@@ -1,10 +1,8 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { randomToken, signCookie, verifyCookie, hmac } from "@/lib/crypto";
 import { repo } from "@/server/repository";
-
-// Dev/In-memory auth. Production target is Better Auth (Google OAuth + Magic Link), which
-// requires OAuth credentials and an email provider (D0 Provisional). This module keeps the
-// full flow runnable locally and uses the same cookie/session shape the production layer will.
+import { runtimeConfig } from "@/server/config";
+import { getProductionAuth } from "@/server/auth/better-auth";
 
 const ANON_COOKIE = "iching_anon";
 const SESSION_COOKIE = "iching_session";
@@ -38,6 +36,12 @@ export async function getAnonymousHash(): Promise<string | null> {
 }
 
 export async function getCurrentUser(): Promise<{ id: string; email: string } | null> {
+  const config = runtimeConfig();
+  if (config.auth === "better-auth") {
+    const session = await getProductionAuth(config).api.getSession({ headers: await headers() });
+    return session?.user ? { id: session.user.id, email: session.user.email } : null;
+  }
+
   const store = await cookies();
   const raw = store.get(SESSION_COOKIE)?.value;
   if (!raw) return null;
@@ -51,6 +55,7 @@ export async function getCurrentUser(): Promise<{ id: string; email: string } | 
 }
 
 export async function devSignIn(email: string): Promise<{ id: string; email: string }> {
+  if (runtimeConfig().auth !== "dev") throw new Error("DEV_SIGN_IN_DISABLED");
   let user = repo.getUserByEmail(email);
   if (!user) user = repo.createUser(email);
   const session = repo.createSession(user.id);
@@ -66,6 +71,11 @@ export async function devSignIn(email: string): Promise<{ id: string; email: str
 }
 
 export async function signOut(): Promise<void> {
+  const config = runtimeConfig();
+  if (config.auth === "better-auth") {
+    await getProductionAuth(config).api.signOut({ headers: await headers() });
+    return;
+  }
   const store = await cookies();
   store.delete(SESSION_COOKIE);
 }
