@@ -10,7 +10,7 @@ const productionCredentials = {
   AI_MODEL_DEEP_READING: "openai/gpt-5.2",
   AI_MODEL_OUTPUT_REVIEW: "openai/gpt-5-mini",
   AUTH_ADAPTER_MODE: "better-auth",
-  BETTER_AUTH_SECRET: "better-auth-production-secret",
+  BETTER_AUTH_SECRET: "better-auth-production-secret-at-least-32-characters",
   BETTER_AUTH_URL: "https://iching.example.com",
   GOOGLE_CLIENT_ID: "google-client-id",
   GOOGLE_CLIENT_SECRET: "google-client-secret",
@@ -81,6 +81,23 @@ describe("runtime configuration", () => {
       `PRODUCTION_CONFIG_INVALID: ${name} is required`,
     );
   });
+
+  it("rejects a Better Auth secret shorter than 32 characters", () => {
+    expect(() => loadRuntimeConfig({
+      ...productionCredentials,
+      BETTER_AUTH_SECRET: "too-short",
+    })).toThrow("PRODUCTION_CONFIG_INVALID: BETTER_AUTH_SECRET must be at least 32 characters");
+  });
+
+  it.each(["APP_BASE_URL", "BETTER_AUTH_URL", "NEXT_PUBLIC_APP_URL"])(
+    "requires HTTPS for production URL %s",
+    (name) => {
+      expect(() => loadRuntimeConfig({
+        ...productionCredentials,
+        [name]: "http://iching.example.com",
+      })).toThrow(`PRODUCTION_CONFIG_INVALID: ${name} must be an HTTPS URL`);
+    },
+  );
 
   it("rejects malformed versioned key sets", () => {
     expect(() => loadRuntimeConfig({
