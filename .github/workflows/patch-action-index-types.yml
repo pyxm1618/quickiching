@@ -1,0 +1,44 @@
+name: patch-action-index-types
+
+on:
+  push:
+    branches:
+      - agent/v2-1-jobs-release
+    paths:
+      - .github/workflows/patch-action-index-types.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/v2-1-jobs-release
+      - name: Apply exact index narrowing patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/app/production-actions.ts')
+          text = path.read_text()
+          pairs = [
+            ('lineIndex: input.lineIndex,\n    }));', 'lineIndex: input.lineIndex as 0 | 1 | 2 | 3 | 4 | 5,\n    }));'),
+            ('lineIndex: input.lineIndex,\n      changeIndex: input.changeIndex,', 'lineIndex: input.lineIndex as 0 | 1 | 2 | 3 | 4 | 5,\n      changeIndex: input.changeIndex as 0 | 1 | 2,'),
+          ]
+          for old, new in pairs:
+            count = text.count(old)
+            if count != 1:
+              raise SystemExit(f'expected one match, found {count}: {old!r}')
+            text = text.replace(old, new)
+          path.write_text(text)
+          PY
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/patch-action-index-types.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/production-actions.ts .github/workflows/patch-action-index-types.yml
+          git commit -m "fix: narrow validated casting step indexes"
+          git push origin HEAD:agent/v2-1-jobs-release
