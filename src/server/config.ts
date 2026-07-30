@@ -5,6 +5,18 @@ export type VersionedKey = {
   value: string;
 };
 
+export type VersionedKeySet = {
+  writeVersion: string;
+  read: VersionedKey[];
+};
+
+export type RuntimeKeys = {
+  sessionSigning: VersionedKeySet;
+  questionFingerprint: VersionedKeySet;
+  questionEncryption: VersionedKeySet;
+  resultIntegrity: VersionedKeySet;
+};
+
 type LocalRuntimeConfig = {
   mode: "development" | "test";
   ai: "local";
@@ -12,6 +24,7 @@ type LocalRuntimeConfig = {
   payment: "simulated";
   database: "memory";
   workflow: "local";
+  keys: RuntimeKeys;
 };
 
 type ProductionRuntimeConfig = {
@@ -43,12 +56,7 @@ type ProductionRuntimeConfig = {
     publicAppUrl: string;
     workflowAdapterMode: "vercel";
   };
-  keys: {
-    sessionSigning: VersionedKey[];
-    questionFingerprint: VersionedKey[];
-    questionEncryption: VersionedKey[];
-    resultIntegrity: VersionedKey[];
-  };
+  keys: RuntimeKeys;
 };
 
 export type RuntimeConfig = LocalRuntimeConfig | ProductionRuntimeConfig;
@@ -80,28 +88,33 @@ function oneOf<T extends string>(
   return invalid(`${name} must be one of: ${allowed.join(", ")}`, production);
 }
 
-function versionedKeySet(env: RuntimeEnv, name: string): VersionedKey[] {
-  const raw = required(env, name);
+function versionedKeySet(env: RuntimeEnv, keysName: string, writeVersionName: string): VersionedKeySet {
+  const raw = required(env, keysName);
   const entries = raw.split(",").map((entry) => entry.trim());
-  const keys: VersionedKey[] = [];
+  const read: VersionedKey[] = [];
   const versions = new Set<string>();
 
   for (const entry of entries) {
     const match = /^([A-Za-z0-9][A-Za-z0-9._-]*):(.+)$/.exec(entry);
-    if (!match || !match[2].trim() || versions.has(match[1]))
-      invalid(`${name} must use version:key entries`, true);
+    if (!match || !match[2].trim() || versions.has(match[1])) {
+      invalid(`${keysName} must use unique version:key entries`, true);
+    }
     versions.add(match[1]);
-    keys.push({ version: match[1], value: match[2].trim() });
+    read.push({ version: match[1], value: match[2].trim() });
   }
 
-  return keys;
+  const writeVersion = required(env, writeVersionName);
+  if (!versions.has(writeVersion)) {
+    invalid(`${writeVersionName} must reference a version in ${keysName}`, true);
+  }
+  return { writeVersion, read };
 }
 
-function assertPurposeSeparated(keys: ProductionRuntimeConfig["keys"]): void {
+function assertPurposeSeparated(keys: RuntimeKeys, production: boolean): void {
   const materials = new Set<string>();
   for (const keySet of Object.values(keys)) {
-    for (const key of keySet) {
-      if (materials.has(key.value)) invalid("key material must not be reused across purposes", true);
+    for (const key of keySet.read) {
+      if (materials.has(key.value)) invalid("key material must not be reused across purposes", production);
       materials.add(key.value);
     }
   }
@@ -126,19 +139,29 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
   const betterAuthUrl = required(env, "BETTER_AUTH_URL");
   if (!z.string().url().safeParse(betterAuthUrl).success) invalid("BETTER_AUTH_URL must be a valid URL", true);
   const emailFrom = required(env, "EMAIL_FROM");
-  if (!z.string().email().safeParse(emailFrom.match(/<([^>]+)>$/)?.[1] ?? emailFrom).success)
+  if (!z.string().email().safeParse(emailFrom.match(/<([^>]+)>$/)?.[1] ?? emailFrom).success) {
     invalid("EMAIL_FROM must contain a valid email address", true);
+  }
   const databaseUrl = required(env, "DATABASE_URL");
-  if (!z.string().url().safeParse(databaseUrl).success || !databaseUrl.startsWith("postgres"))
+  if (!z.string().url().safeParse(databaseUrl).success || !databaseUrl.startsWith("postgres")) {
     invalid("DATABASE_URL must be a PostgreSQL URL", true);
+  }
 
-  const keys = {
-    sessionSigning: versionedKeySet(env, "SESSION_SIGNING_KEYS"),
-    questionFingerprint: versionedKeySet(env, "QUESTION_FINGERPRINT_KEYS"),
-    questionEncryption: versionedKeySet(env, "QUESTION_ENCRYPTION_KEYS"),
-    resultIntegrity: versionedKeySet(env, "RESULT_INTEGRITY_KEYS"),
+  const keys: RuntimeKeys = {
+    sessionSigning: versionedKeySet(env, "SESSION_SIGNING_KEYS", "SESSION_SIGNING_WRITE_VERSION"),
+    questionFingerprint: versionedKeySet(
+      env,
+      "QUESTION_FINGERPRINT_KEYS",
+      "QUESTION_FINGERPRINT_WRITE_VERSION",
+    ),
+    questionEncryption: versionedKeySet(
+      env,
+      "QUESTION_ENCRYPTION_KEYS",
+      "QUESTION_ENCRYPTION_WRITE_VERSION",
+    ),
+    resultIntegrity: versionedKeySet(env, "RESULT_INTEGRITY_KEYS", "RESULT_INTEGRITY_WRITE_VERSION"),
   };
-  assertPurposeSeparated(keys);
+  assertPurposeSeparated(keys, true);
 
   return {
     mode: "production",
@@ -173,7 +196,22 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
   };
 }
 
+function localKeySet(purpose: string): VersionedKeySet {
+  const version = "v1";
+  return {
+    writeVersion: version,
+    read: [{ version, value: `local-${purpose}-key-material-never-use-in-production` }],
+  };
+}
+
 function loadLocalConfig(env: RuntimeEnv, mode: "development" | "test"): LocalRuntimeConfig {
+  const keys: RuntimeKeys = {
+    sessionSigning: localKeySet("session-signing"),
+    questionFingerprint: localKeySet("question-fingerprint"),
+    questionEncryption: localKeySet("question-encryption"),
+    resultIntegrity: localKeySet("result-integrity"),
+  };
+  assertPurposeSeparated(keys, false);
   return {
     mode,
     ai: oneOf(env.AI_ADAPTER_MODE, ["local"] as const, "AI_ADAPTER_MODE", "local"),
@@ -181,6 +219,7 @@ function loadLocalConfig(env: RuntimeEnv, mode: "development" | "test"): LocalRu
     payment: oneOf(env.PAYMENT_ADAPTER_MODE, ["simulated"] as const, "PAYMENT_ADAPTER_MODE", "simulated"),
     database: oneOf(env.DATABASE_ADAPTER_MODE, ["memory"] as const, "DATABASE_ADAPTER_MODE", "memory"),
     workflow: oneOf(env.WORKFLOW_ADAPTER_MODE, ["local"] as const, "WORKFLOW_ADAPTER_MODE", "local"),
+    keys,
   };
 }
 
@@ -197,4 +236,14 @@ export function validateRuntimeConfig(env: RuntimeEnv = process.env): RuntimeCon
 
 export function runtimeConfig(): RuntimeConfig {
   return loadRuntimeConfig();
+}
+
+export function resolveVersionedKey(keySet: VersionedKeySet, version: string): VersionedKey {
+  const key = keySet.read.find((candidate) => candidate.version === version);
+  if (!key) throw new Error(`KEY_VERSION_UNAVAILABLE: ${version}`);
+  return key;
+}
+
+export function resolveWriteKey(keySet: VersionedKeySet): VersionedKey {
+  return resolveVersionedKey(keySet, keySet.writeVersion);
 }
