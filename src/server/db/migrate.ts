@@ -2,15 +2,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Sql } from "postgres";
 
-const MIGRATION_ID = "0000_v2_1";
+const MIGRATION_IDS = ["0000_v2_1", "0001_auth_payment"] as const;
 const MIGRATION_LOCK = 8_924_211_607;
 
 export async function migratePostgres(sql: Sql): Promise<void> {
-  const migrationSql = await readFile(
-    path.join(process.cwd(), "drizzle", `${MIGRATION_ID}.sql`),
-    "utf8",
-  );
-
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS _app_migrations (
       id text PRIMARY KEY,
@@ -20,10 +15,16 @@ export async function migratePostgres(sql: Sql): Promise<void> {
 
   await sql.begin(async (tx) => {
     await tx`select pg_advisory_xact_lock(${MIGRATION_LOCK})`;
-    const existing = await tx`select id from _app_migrations where id = ${MIGRATION_ID}`;
-    if (existing.length > 0) return;
-    await tx.unsafe(migrationSql);
-    await tx`insert into _app_migrations (id) values (${MIGRATION_ID})`;
+    for (const migrationId of MIGRATION_IDS) {
+      const existing = await tx`select id from _app_migrations where id = ${migrationId}`;
+      if (existing.length > 0) continue;
+      const migrationSql = await readFile(
+        path.join(process.cwd(), "drizzle", `${migrationId}.sql`),
+        "utf8",
+      );
+      await tx.unsafe(migrationSql);
+      await tx`insert into _app_migrations (id) values (${migrationId})`;
+    }
   });
 }
 
@@ -33,6 +34,8 @@ export async function resetPostgresForTests(sql: Sql): Promise<void> {
   }
   await sql.unsafe(`
     TRUNCATE TABLE
+      disputes,
+      refunds,
       webhook_inbox,
       outbox,
       generation_jobs,
@@ -50,6 +53,8 @@ export async function resetPostgresForTests(sql: Sql): Promise<void> {
       question_versions,
       login_intents,
       casting_sessions,
+      accounts,
+      verifications,
       sessions,
       users
     CASCADE
