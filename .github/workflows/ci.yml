@@ -1,0 +1,40 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+      - "agent/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      APP_SECRET: local-ci-only-secret-not-for-production
+      AI_ADAPTER_MODE: local
+      AUTH_ADAPTER_MODE: dev
+      PAYMENT_ADAPTER_MODE: simulated
+      DATABASE_ADAPTER_MODE: memory
+      WORKFLOW_ADAPTER_MODE: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Build credential-free application
+        run: npm run build
