@@ -7,7 +7,9 @@ import { cryptoRandomInt } from "@/domain/casting/yarrow/algorithm";
 import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
 import { repo, castingRepository, loginIntentRepository, revealRepository } from "@/server/repository";
 import { getAnonymousHash, getOrCreateAnonymousHash, getCurrentUser, devSignIn } from "@/lib/auth/session";
-import { runPreview, runReading } from "@/server/ai";
+import { runPreview, runReading, type GenerationInput } from "@/server/ai";
+import { buildCastingMethodEvidence } from "@/server/casting-method-evidence";
+import type { CastResult, CastingSession } from "@/server/repositories/models";
 import { getProduct, PRODUCTS, CURRENCY } from "@/domain/entitlements/pricing";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
 import { randomToken } from "@/lib/crypto";
@@ -31,6 +33,37 @@ const riskService = new RiskService({
   castingRepository,
   evaluator: { evaluate: evaluateRisk },
 });
+
+function buildGenerationInput(
+  castingId: string,
+  session: CastingSession,
+  result: CastResult,
+  context: string,
+): GenerationInput {
+  if (result.lineValues.length !== 6) {
+    throw new DomainError("CAST_RESULT_INTEGRITY_FAILED", "The casting result is invalid.", false);
+  }
+  const hexagramResult: GenerationInput["result"] = {
+    lineValuesBottomUp: [...result.lineValues] as GenerationInput["result"]["lineValuesBottomUp"],
+    primaryHexagramNumber: result.primaryHexagramNumber,
+    movingLinePositions: [...result.movingLinePositions],
+    relatingHexagramNumber: result.relatingHexagramNumber,
+    method: session.method,
+    algorithmVersion: result.algorithmVersion,
+    classicMappingVersion: result.classicMappingVersion,
+  };
+  return {
+    result: hexagramResult,
+    methodEvidence: buildCastingMethodEvidence({
+      session,
+      result,
+      steps: repo.getSteps(castingId),
+    }),
+    scene: session.scene,
+    interpretationGoal: session.interpretationGoal,
+    context,
+  };
+}
 
 function getRevealService(): RevealService {
   const config = runtimeConfig();
@@ -167,7 +200,6 @@ async function submitQuestionActionImpl(unknownInput: unknown): Promise<
     return fail("CASTING_NOT_FOUND", "Casting session not found", false);
   return ok(castingService.submitQuestion(input.castingId, input.context));
 }
-
 
 async function clarifyQuestionActionImpl(unknownInput: unknown): Promise<
   ActionResult<{ riskStatus: string; reasonCode: string; emergency: boolean }>
@@ -313,20 +345,7 @@ async function startPreviewActionImpl(unknownInput: unknown): Promise<ActionResu
   const { context } = riskService.recheckPersonalizedGeneration(input.castingId);
 
   try {
-    const preview = await runPreview({
-      result: {
-        lineValuesBottomUp: result.lineValues as any,
-        primaryHexagramNumber: result.primaryHexagramNumber,
-        movingLinePositions: result.movingLinePositions,
-        relatingHexagramNumber: result.relatingHexagramNumber,
-        method: session.method,
-        algorithmVersion: result.algorithmVersion,
-        classicMappingVersion: result.classicMappingVersion,
-      },
-      scene: session.scene,
-      interpretationGoal: session.interpretationGoal,
-      context,
-    });
+    const preview = await runPreview(buildGenerationInput(input.castingId, session, result, context));
     const saved = repo.savePreviewSuccess(input.castingId, preview.relevanceStatement);
     return ok({ status: saved.status, relevanceStatement: saved.relevanceStatement });
   } catch (error) {
@@ -409,20 +428,7 @@ async function startDeepReadingActionImpl(unknownInput: unknown): Promise<Action
 
   const result = repo.getCastResult(input.castingId)!;
   try {
-    const report = await runReading({
-      result: {
-        lineValuesBottomUp: result.lineValues as any,
-        primaryHexagramNumber: result.primaryHexagramNumber,
-        movingLinePositions: result.movingLinePositions,
-        relatingHexagramNumber: result.relatingHexagramNumber,
-        method: session.method,
-        algorithmVersion: result.algorithmVersion,
-        classicMappingVersion: result.classicMappingVersion,
-      },
-      scene: session.scene,
-      interpretationGoal: session.interpretationGoal,
-      context,
-    });
+    const report = await runReading(buildGenerationInput(input.castingId, session, result, context));
     repo.completeReadingConsume(freeze.reservationId, report as unknown as Record<string, unknown>);
     return ok({ status: "completed", readingId: reading.id, report });
   } catch (error) {
