@@ -224,8 +224,11 @@ function loadLocalConfig(env: RuntimeEnv, mode: "development" | "test"): LocalRu
 }
 
 export function loadRuntimeConfig(env: RuntimeEnv = process.env): RuntimeConfig {
-  const parsedMode = modeSchema.safeParse(env.NODE_ENV ?? "development");
-  if (!parsedMode.success) invalid("NODE_ENV must be one of: development, test, production");
+  // Next.js sets NODE_ENV=production during every production build, including
+  // credential-free CI builds. APP_RUNTIME_MODE is an explicit runtime profile
+  // override for build/test environments; production deployments normally omit it.
+  const parsedMode = modeSchema.safeParse(env.APP_RUNTIME_MODE ?? env.NODE_ENV ?? "development");
+  if (!parsedMode.success) invalid("APP_RUNTIME_MODE/NODE_ENV must be one of: development, test, production");
   if (parsedMode.data === "production") return loadProductionConfig(env);
   return loadLocalConfig(env, parsedMode.data);
 }
