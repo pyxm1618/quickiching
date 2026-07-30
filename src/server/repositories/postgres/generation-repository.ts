@@ -34,7 +34,7 @@ export type GenerationJob = {
 };
 
 function id(prefix: string): string {
-  return `${prefix}_${randomUUID().replaceAll("-", "")}`;
+  return `${prefix}_${randomUUID().replaceAll("-", "").slice(0, 24)}`;
 }
 
 function rowDate(value: unknown): Date {

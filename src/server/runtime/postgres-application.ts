@@ -26,7 +26,7 @@ const HOUR_MS = 60 * 60 * 1000;
 const LOGIN_INTENT_TTL_MS = 10 * 60 * 1000;
 
 function id(prefix: string): string {
-  return `${prefix}_${randomUUID().replaceAll("-", "")}`;
+  return `${prefix}_${randomUUID().replaceAll("-", "").slice(0, 24)}`;
 }
 
 function date(value: unknown): Date | null {
