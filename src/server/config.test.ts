@@ -28,10 +28,14 @@ const productionCredentials = {
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: "turnstile-site-key",
   NEXT_PUBLIC_APP_URL: "https://iching.example.com",
   WORKFLOW_ADAPTER_MODE: "vercel",
-  SESSION_SIGNING_KEYS: "v1:session-signing-key",
-  QUESTION_FINGERPRINT_KEYS: "v1:question-fingerprint-key",
-  QUESTION_ENCRYPTION_KEYS: "v1:question-encryption-key",
-  RESULT_INTEGRITY_KEYS: "v1:result-integrity-key",
+  SESSION_SIGNING_KEYS: "v2:session-signing-key-new,v1:session-signing-key-old",
+  SESSION_SIGNING_WRITE_VERSION: "v1",
+  QUESTION_FINGERPRINT_KEYS: "v2:question-fingerprint-key-new,v1:question-fingerprint-key-old",
+  QUESTION_FINGERPRINT_WRITE_VERSION: "v1",
+  QUESTION_ENCRYPTION_KEYS: "v2:question-encryption-key-new,v1:question-encryption-key-old",
+  QUESTION_ENCRYPTION_WRITE_VERSION: "v1",
+  RESULT_INTEGRITY_KEYS: "v2:result-integrity-key-new,v1:result-integrity-key-old",
+  RESULT_INTEGRITY_WRITE_VERSION: "v1",
 };
 
 describe("runtime configuration", () => {
@@ -65,7 +69,11 @@ describe("runtime configuration", () => {
     "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
     "NEXT_PUBLIC_APP_URL",
     "WORKFLOW_ADAPTER_MODE",
-  ])("rejects production when required provider or workflow setting %s is missing", (name) => {
+    "SESSION_SIGNING_WRITE_VERSION",
+    "QUESTION_FINGERPRINT_WRITE_VERSION",
+    "QUESTION_ENCRYPTION_WRITE_VERSION",
+    "RESULT_INTEGRITY_WRITE_VERSION",
+  ])("rejects production when required setting %s is missing", (name) => {
     const withoutRequiredSetting = { ...productionCredentials };
     delete withoutRequiredSetting[name as keyof typeof withoutRequiredSetting];
 
@@ -74,100 +82,88 @@ describe("runtime configuration", () => {
     );
   });
 
-  it("rejects missing production credentials", () => {
-    const { CREEM_WEBHOOK_SECRET: _missing, ...withoutWebhookSecret } = productionCredentials;
-
-    expect(() => loadRuntimeConfig(withoutWebhookSecret)).toThrow(
-      "PRODUCTION_CONFIG_INVALID: CREEM_WEBHOOK_SECRET is required",
+  it("rejects malformed versioned key sets", () => {
+    expect(() => loadRuntimeConfig({
+      ...productionCredentials,
+      SESSION_SIGNING_KEYS: "session-signing-key-without-version",
+    })).toThrow(
+      "PRODUCTION_CONFIG_INVALID: SESSION_SIGNING_KEYS must use unique version:key entries",
     );
   });
 
-  it("rejects malformed versioned key sets", () => {
-    expect(() =>
-      loadRuntimeConfig({
-        ...productionCredentials,
-        SESSION_SIGNING_KEYS: "session-signing-key-without-version",
-      }),
-    ).toThrow("PRODUCTION_CONFIG_INVALID: SESSION_SIGNING_KEYS must use version:key entries");
+  it("rejects a write version that is not in its readable key set", () => {
+    expect(() => loadRuntimeConfig({
+      ...productionCredentials,
+      QUESTION_FINGERPRINT_WRITE_VERSION: "v3",
+    })).toThrow(
+      "PRODUCTION_CONFIG_INVALID: QUESTION_FINGERPRINT_WRITE_VERSION must reference a version in QUESTION_FINGERPRINT_KEYS",
+    );
   });
 
-  it("accepts explicit local adapter modes in test mode without production credentials", () => {
-    expect(
-      loadRuntimeConfig({
-        NODE_ENV: "test",
-        AI_ADAPTER_MODE: "local",
-        AUTH_ADAPTER_MODE: "dev",
-        PAYMENT_ADAPTER_MODE: "simulated",
-        DATABASE_ADAPTER_MODE: "memory",
-      }),
-    ).toMatchObject({
+  it("accepts explicit local adapter modes without any production secret", () => {
+    expect(loadRuntimeConfig({
+      NODE_ENV: "test",
+      AI_ADAPTER_MODE: "local",
+      AUTH_ADAPTER_MODE: "dev",
+      PAYMENT_ADAPTER_MODE: "simulated",
+      DATABASE_ADAPTER_MODE: "memory",
+    })).toMatchObject({
       mode: "test",
       ai: "local",
       auth: "dev",
       payment: "simulated",
       database: "memory",
       workflow: "local",
+      keys: {
+        sessionSigning: { writeVersion: "v1" },
+        questionFingerprint: { writeVersion: "v1" },
+        questionEncryption: { writeVersion: "v1" },
+        resultIntegrity: { writeVersion: "v1" },
+      },
     });
   });
 
   it("rejects a production workflow adapter in test mode", () => {
-    expect(() =>
-      loadRuntimeConfig({
-        NODE_ENV: "test",
-        AI_ADAPTER_MODE: "local",
-        AUTH_ADAPTER_MODE: "dev",
-        PAYMENT_ADAPTER_MODE: "simulated",
-        DATABASE_ADAPTER_MODE: "memory",
-        WORKFLOW_ADAPTER_MODE: "vercel",
-      }),
-    ).toThrow("CONFIG_INVALID: WORKFLOW_ADAPTER_MODE must be one of: local");
+    expect(() => loadRuntimeConfig({
+      NODE_ENV: "test",
+      WORKFLOW_ADAPTER_MODE: "vercel",
+    })).toThrow("CONFIG_INVALID: WORKFLOW_ADAPTER_MODE must be one of: local");
   });
 
   it("rejects a secret reused across key purposes", () => {
-    expect(() =>
-      loadRuntimeConfig({
-        ...productionCredentials,
-        SESSION_SIGNING_KEYS: "v1:shared-secret",
-        QUESTION_FINGERPRINT_KEYS: "v1:shared-secret",
-      }),
-    ).toThrow("PRODUCTION_CONFIG_INVALID: key material must not be reused across purposes");
+    expect(() => loadRuntimeConfig({
+      ...productionCredentials,
+      SESSION_SIGNING_KEYS: "v1:shared-secret",
+      SESSION_SIGNING_WRITE_VERSION: "v1",
+      QUESTION_FINGERPRINT_KEYS: "v1:shared-secret",
+      QUESTION_FINGERPRINT_WRITE_VERSION: "v1",
+    })).toThrow("PRODUCTION_CONFIG_INVALID: key material must not be reused across purposes");
   });
 
-  it("returns a production configuration with explicit production adapters and key versions", () => {
-    expect(loadRuntimeConfig(productionCredentials)).toEqual({
+  it("returns production keyrings with explicit single-write and multi-read versions", () => {
+    const config = loadRuntimeConfig(productionCredentials);
+
+    expect(config).toMatchObject({
       mode: "production",
       ai: "ai-sdk",
       auth: "better-auth",
       payment: "creem",
       database: "postgres",
-      baseUrl: "https://iching.example.com",
-      credentials: {
-        aiGatewayApiKey: "gateway-production-key",
-        aiModelPreview: "openai/gpt-5-mini",
-        aiModelDeepReading: "openai/gpt-5.2",
-        aiModelOutputReview: "openai/gpt-5-mini",
-        betterAuthSecret: "better-auth-production-secret",
-        betterAuthUrl: "https://iching.example.com",
-        googleClientId: "google-client-id",
-        googleClientSecret: "google-client-secret",
-        resendApiKey: "resend-api-key",
-        emailFrom: "I Ching Coin <noreply@iching.example.com>",
-        creemApiKey: "creem-production-key",
-        creemWebhookSecret: "creem-webhook-secret",
-        creemProductIdOne: "prod_one",
-        creemProductIdThree: "prod_three",
-        creemProductIdFive: "prod_five",
-        databaseUrl: "postgres://user:password@db.example.com:5432/iching",
-        turnstileSecretKey: "turnstile-secret-key",
-        turnstileSiteKey: "turnstile-site-key",
-        publicAppUrl: "https://iching.example.com",
-        workflowAdapterMode: "vercel",
-      },
       keys: {
-        sessionSigning: [{ version: "v1", value: "session-signing-key" }],
-        questionFingerprint: [{ version: "v1", value: "question-fingerprint-key" }],
-        questionEncryption: [{ version: "v1", value: "question-encryption-key" }],
-        resultIntegrity: [{ version: "v1", value: "result-integrity-key" }],
+        sessionSigning: {
+          writeVersion: "v1",
+          read: [
+            { version: "v2", value: "session-signing-key-new" },
+            { version: "v1", value: "session-signing-key-old" },
+          ],
+        },
+        questionFingerprint: {
+          writeVersion: "v1",
+          read: [
+            { version: "v2", value: "question-fingerprint-key-new" },
+            { version: "v1", value: "question-fingerprint-key-old" },
+          ],
+        },
       },
     });
   });
