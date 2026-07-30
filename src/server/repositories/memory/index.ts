@@ -1,8 +1,10 @@
 import type { CastingRepository } from "../casting-repository";
 import type { EntitlementRepository } from "../entitlement-repository";
 import type { IdentityRepository } from "../identity-repository";
+import type { LoginIntentRepository } from "../login-intent-repository";
 import type { PrivacyRepository } from "../privacy-repository";
 import type { ReadingRepository } from "../reading-repository";
+import type { RevealRepository } from "../reveal-repository";
 import type { ReviewRepository } from "../review-repository";
 import { MemoryCastingRepository } from "./casting-repository";
 import { MemoryRepositoryCoordinator } from "./coordinator";
@@ -10,6 +12,7 @@ import { MemoryEntitlementRepository } from "./entitlement-repository";
 import { createMemoryIdentityRepository } from "./identity-repository";
 import { MemoryPrivacyRepository } from "./privacy-repository";
 import { MemoryReadingRepository } from "./reading-repository";
+import { MemoryRevealRepository } from "./reveal-repository";
 import { MemoryReviewRepository } from "./review-repository";
 import { MemoryStore } from "./store";
 
@@ -29,6 +32,8 @@ export type RepositoryFacade = IdentityRepository &
 export type MemoryRepositories = {
   identityRepository: IdentityRepository;
   castingRepository: CastingRepository;
+  loginIntentRepository: LoginIntentRepository;
+  revealRepository: RevealRepository;
   readingRepository: ReadingRepository;
   entitlementRepository: EntitlementRepository;
   reviewRepository: ReviewRepository;
@@ -103,6 +108,7 @@ function createFacade(
 export function createMemoryRepositories(store = new MemoryStore()): MemoryRepositories {
   const identityRepository = createMemoryIdentityRepository(store);
   const castingRepository = new MemoryCastingRepository(store);
+  const revealAdapter = new MemoryRevealRepository(store);
   const readingRepository = new MemoryReadingRepository(store);
   const entitlementRepository = new MemoryEntitlementRepository(store);
   const reviewRepository = new MemoryReviewRepository(store);
@@ -111,6 +117,8 @@ export function createMemoryRepositories(store = new MemoryStore()): MemoryRepos
   return {
     identityRepository,
     castingRepository,
+    loginIntentRepository: revealAdapter,
+    revealRepository: revealAdapter,
     readingRepository,
     entitlementRepository,
     reviewRepository,
