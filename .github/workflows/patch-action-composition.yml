@@ -1,0 +1,80 @@
+name: patch-action-composition
+
+on:
+  push:
+    branches:
+      - agent/v2-1-jobs-release
+    paths:
+      - .github/workflows/patch-action-composition.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/v2-1-jobs-release
+      - name: Apply exact production action composition patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/app/actions.ts')
+          text = path.read_text()
+          anchor = '"use server";\n\n'
+          if text.count(anchor) != 1:
+            raise SystemExit('server directive anchor mismatch')
+          text = text.replace(anchor, anchor + 'import { productionActions } from "./production-actions";\n', 1)
+          old = '''export const createCastingSessionAction = withActionErrorBoundary("createCastingSessionAction", createCastingSessionActionImpl);
+          export const getCastingSummaryAction = withActionErrorBoundary("getCastingSummaryAction", getCastingSummaryActionImpl);
+          export const getCastingSnapshotAction = withActionErrorBoundary("getCastingSnapshotAction", getCastingSnapshotActionImpl);
+          export const signInAction = withActionErrorBoundary("signInAction", signInActionImpl);
+          export const submitQuestionAction = withActionErrorBoundary("submitQuestionAction", submitQuestionActionImpl);
+          export const clarifyQuestionAction = withActionErrorBoundary("clarifyQuestionAction", clarifyQuestionActionImpl);
+          export const generateThreeCoinLineAction = withActionErrorBoundary("generateThreeCoinLineAction", generateThreeCoinLineActionImpl);
+          export const generateYarrowChangeAction = withActionErrorBoundary("generateYarrowChangeAction", generateYarrowChangeActionImpl);
+          export const completeYarrowAction = withActionErrorBoundary("completeYarrowAction", completeYarrowActionImpl);
+          export const createMeiHuaResultAction = withActionErrorBoundary("createMeiHuaResultAction", createMeiHuaResultActionImpl);
+          export const revealCastingAction = withActionErrorBoundary("revealCastingAction", revealCastingActionImpl);
+          export const startPreviewAction = withActionErrorBoundary("startPreviewAction", startPreviewActionImpl);
+          export const createCheckoutAction = withActionErrorBoundary("createCheckoutAction", createCheckoutActionImpl);
+          export const simulatePaymentAction = withActionErrorBoundary("simulatePaymentAction", simulatePaymentActionImpl);
+          export const startDeepReadingAction = withActionErrorBoundary("startDeepReadingAction", startDeepReadingActionImpl);
+          export const submitQualityReviewAction = withActionErrorBoundary("submitQualityReviewAction", submitQualityReviewActionImpl);
+          export const requestCastingDeletionAction = withActionErrorBoundary("requestCastingDeletionAction", requestCastingDeletionActionImpl);
+          export const restoreCastingAction = withActionErrorBoundary("restoreCastingAction", restoreCastingActionImpl);'''.replace('          ', '')
+          new = '''const productionMode = process.env.NODE_ENV === "production";
+
+          export const createCastingSessionAction = productionMode ? productionActions.createCastingSessionAction : withActionErrorBoundary("createCastingSessionAction", createCastingSessionActionImpl);
+          export const getCastingSummaryAction = productionMode ? productionActions.getCastingSummaryAction : withActionErrorBoundary("getCastingSummaryAction", getCastingSummaryActionImpl);
+          export const getCastingSnapshotAction = productionMode ? productionActions.getCastingSnapshotAction : withActionErrorBoundary("getCastingSnapshotAction", getCastingSnapshotActionImpl);
+          export const signInAction = productionMode ? productionActions.signInAction : withActionErrorBoundary("signInAction", signInActionImpl);
+          export const submitQuestionAction = productionMode ? productionActions.submitQuestionAction : withActionErrorBoundary("submitQuestionAction", submitQuestionActionImpl);
+          export const clarifyQuestionAction = productionMode ? productionActions.clarifyQuestionAction : withActionErrorBoundary("clarifyQuestionAction", clarifyQuestionActionImpl);
+          export const generateThreeCoinLineAction = productionMode ? productionActions.generateThreeCoinLineAction : withActionErrorBoundary("generateThreeCoinLineAction", generateThreeCoinLineActionImpl);
+          export const generateYarrowChangeAction = productionMode ? productionActions.generateYarrowChangeAction : withActionErrorBoundary("generateYarrowChangeAction", generateYarrowChangeActionImpl);
+          export const completeYarrowAction = productionMode ? productionActions.completeYarrowAction : withActionErrorBoundary("completeYarrowAction", completeYarrowActionImpl);
+          export const createMeiHuaResultAction = productionMode ? productionActions.createMeiHuaResultAction : withActionErrorBoundary("createMeiHuaResultAction", createMeiHuaResultActionImpl);
+          export const revealCastingAction = productionMode ? productionActions.revealCastingAction : withActionErrorBoundary("revealCastingAction", revealCastingActionImpl);
+          export const startPreviewAction = productionMode ? productionActions.startPreviewAction : withActionErrorBoundary("startPreviewAction", startPreviewActionImpl);
+          export const createCheckoutAction = productionMode ? productionActions.createCheckoutAction : withActionErrorBoundary("createCheckoutAction", createCheckoutActionImpl);
+          export const simulatePaymentAction = productionMode ? productionActions.simulatePaymentAction : withActionErrorBoundary("simulatePaymentAction", simulatePaymentActionImpl);
+          export const startDeepReadingAction = productionMode ? productionActions.startDeepReadingAction : withActionErrorBoundary("startDeepReadingAction", startDeepReadingActionImpl);
+          export const submitQualityReviewAction = productionMode ? productionActions.submitQualityReviewAction : withActionErrorBoundary("submitQualityReviewAction", submitQualityReviewActionImpl);
+          export const requestCastingDeletionAction = productionMode ? productionActions.requestCastingDeletionAction : withActionErrorBoundary("requestCastingDeletionAction", requestCastingDeletionActionImpl);
+          export const restoreCastingAction = productionMode ? productionActions.restoreCastingAction : withActionErrorBoundary("restoreCastingAction", restoreCastingActionImpl);'''.replace('          ', '')
+          count = text.count(old)
+          if count != 1:
+            raise SystemExit(f'export block match count: {count}')
+          path.write_text(text.replace(old, new))
+          PY
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/patch-action-composition.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/actions.ts .github/workflows/patch-action-composition.yml
+          git commit -m "runtime: select production server action adapters"
+          git push origin HEAD:agent/v2-1-jobs-release
