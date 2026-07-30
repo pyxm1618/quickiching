@@ -167,7 +167,7 @@ async function generateThreeCoinLineAction(unknownInput: unknown) {
       castingId: input.castingId,
       userId: user?.id ?? null,
       anonymousSessionHash,
-      lineIndex: input.lineIndex,
+      lineIndex: input.lineIndex as 0 | 1 | 2 | 3 | 4 | 5,
     }));
   });
 }
@@ -183,8 +183,8 @@ async function generateYarrowChangeAction(unknownInput: unknown) {
       castingId: input.castingId,
       userId: user?.id ?? null,
       anonymousSessionHash,
-      lineIndex: input.lineIndex,
-      changeIndex: input.changeIndex,
+      lineIndex: input.lineIndex as 0 | 1 | 2 | 3 | 4 | 5,
+      changeIndex: input.changeIndex as 0 | 1 | 2,
     }));
   });
 }
