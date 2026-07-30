@@ -51,4 +51,34 @@ export class PrivacyService {
   purgeDue(): number {
     return this.dependencies.privacyRepository.purgeDeletedCasts(this.dependencies.clock.now());
   }
+
+  requestAccountDeletion(userId: string) {
+    return this.dependencies.privacyRepository.requestAccountDeletion(
+      userId,
+      this.dependencies.clock.now(),
+    );
+  }
+
+  getAccountDeletion(userId: string) {
+    return this.dependencies.privacyRepository.getAccountDeletion(userId);
+  }
+
+  restoreAccount(userId: string) {
+    try {
+      return this.dependencies.privacyRepository.restoreAccount(
+        userId,
+        this.dependencies.clock.now(),
+      );
+    } catch {
+      throw new DomainError(
+        "ACCOUNT_DELETION_RECOVERY_CLOSED",
+        "This account can no longer be restored.",
+        false,
+      );
+    }
+  }
+
+  purgeDueAccounts(): number {
+    return this.dependencies.privacyRepository.purgeDeletedAccounts(this.dependencies.clock.now());
+  }
 }
