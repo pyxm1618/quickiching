@@ -36,7 +36,7 @@ function validReport(): ReadingReport {
 describe("PreviewOutput validation", () => {
   it("accepts a bounded relevance-only preview", () => {
     expect(validatePreviewOutput({
-      relevanceStatement: "Your description of delayed progress and the hexagram imagery both involve tension between an established arrangement and an unsettled first step. The connection is relevant to the situation without determining a stage, direction, or action for you.",
+      relevanceStatement: "Your description of unclear expectations and delayed progress and the hexagram imagery both involve tension between an established arrangement and an unsettled first step. The connection is relevant without determining a stage, direction, outcome, or action for you.",
     }, generationInput)).toBeDefined();
   });
 
@@ -70,10 +70,10 @@ describe("ReadingReport validation", () => {
     expect(() => validateReadingReport(report, generationInput)).toThrow("AI_REFERENCE_INTEGRITY_INVALID");
   });
 
-  it("rejects absolute predictions and direct commands", () => {
+  it("rejects absolute predictions and direct commands after structural validation", () => {
     const report = validReport();
-    report.possibleDirection = "This will definitely happen next month and cannot be prevented.";
-    report.conditionalActionDirection = "Quit your job now and do not reconsider.";
+    report.possibleDirection = "This will definitely happen next month and cannot be prevented, regardless of any new information, organizational decision, external constraint, or change in the situation described by the user.";
+    report.conditionalActionDirection = "Quit your job now and do not reconsider the choice, even if authority, expectations, timing, or other real-world conditions change after this report is delivered.";
     expect(() => validateReadingReport(report, generationInput)).toThrow("AI_OUTPUT_SAFETY_INVALID");
   });
 
