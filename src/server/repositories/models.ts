@@ -11,8 +11,22 @@ import type {
   Scene,
 } from "@/domain/casting/types";
 
-export type User = { id: string; email: string; createdAt: Date };
+export type User = {
+  id: string;
+  email: string;
+  deletionRequestedAt?: Date | null;
+  anonymizedAt?: Date | null;
+  createdAt: Date;
+};
 export type Session = { id: string; userId: string; createdAt: Date; expiresAt: Date };
+
+export type AccountDeletionRequest = {
+  userId: string;
+  requestedAt: Date;
+  purgeAfter: Date;
+  restoredAt: Date | null;
+  purgedAt: Date | null;
+};
 
 export type LoginIntent = {
   id: string;
