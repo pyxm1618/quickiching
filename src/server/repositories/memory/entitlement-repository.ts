@@ -34,11 +34,10 @@ export class MemoryEntitlementRepository implements EntitlementRepository {
       this.store.entitlementLedger.push({
         id: memoryId("led"),
         batchId: batch.id,
-        action: "grant",
+        action: input.productId === "quality-review-compensation" ? "compensate" : "grant",
         quantity: input.quantity,
         createdAt: now,
       });
-      void input.productId;
       void input.amountUsd;
       if (!batchIdentityHolds(batch)) throw new Error("ENTITLEMENT_IDENTITY_BROKEN");
       return snapshot(batch);
@@ -47,6 +46,11 @@ export class MemoryEntitlementRepository implements EntitlementRepository {
 
   freezeForReading(readingId: string, userId: string, now: Date): { reservationId: string } | { error: string } {
     return this.store.withLock(() => this.freezeForReadingInTransaction(readingId, userId, now));
+  }
+
+  getReservation(reservationId: string): Reservation | undefined {
+    const reservation = this.store.reservations.get(reservationId);
+    return reservation ? snapshot(reservation) : undefined;
   }
 
   consumeReservation(reservationId: string, now: Date): { readingId: string; changed: boolean } {
