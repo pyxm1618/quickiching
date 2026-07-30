@@ -51,6 +51,9 @@ export class MemoryPrivacyRepository implements PrivacyRepository {
         .filter((reading) => reading.castingSessionId === castingId)
         .map((reading) => reading.id),
     );
+    for (const [id, intent] of this.store.loginIntents) {
+      if (intent.castingSessionId === castingId) this.store.loginIntents.delete(id);
+    }
     for (const [id, review] of this.store.qualityReviews) {
       if (readingIds.has(review.readingId)) this.store.qualityReviews.delete(id);
     }
@@ -72,8 +75,8 @@ export class MemoryPrivacyRepository implements PrivacyRepository {
     for (const [key, lock] of this.store.questionLocks) {
       if (lock.winningCastingId === castingId) this.store.questionLocks.delete(key);
     }
-      this.store.castResults.delete(castingId);
-      this.store.castingRiskDecisions.delete(castingId);
+    this.store.castResults.delete(castingId);
+    this.store.castingRiskDecisions.delete(castingId);
     this.store.castingSessions.delete(castingId);
   }
 }
