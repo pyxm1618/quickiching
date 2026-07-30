@@ -6,14 +6,19 @@ import { createMemoryRepositories, MemoryStore, type RepositoryFacade } from "@/
 // default for tests and explicit local compositions.
 const globalRef = globalThis as unknown as { __ICHING_MEMORY_STORE__?: MemoryStore };
 const store = globalRef.__ICHING_MEMORY_STORE__ ?? (globalRef.__ICHING_MEMORY_STORE__ = new MemoryStore());
+const repositories = createMemoryRepositories(store);
 
-export const repo: RepositoryFacade = createMemoryRepositories(store).repo;
+export const repo: RepositoryFacade = repositories.repo;
+export const castingRepository = repositories.castingRepository;
+export const loginIntentRepository = repositories.loginIntentRepository;
+export const revealRepository = repositories.revealRepository;
 export type Repo = RepositoryFacade;
 
 export type {
   CastResult,
   CastingSession,
   CastingStep,
+  LoginIntent,
   Order,
   Preview,
   QualityReview,
