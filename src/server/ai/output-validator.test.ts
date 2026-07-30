@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildClassicReferences } from "@/domain/classics";
+import type { CastingMethodEvidence } from "@/domain/casting/method-evidence";
 import type { ReadingReport } from "@/domain/readings/types";
 import { validatePreviewOutput, validateReadingReport } from "./output-validator";
 
@@ -10,8 +11,21 @@ const result = buildHexagramResult({
   algorithmVersion: "three-coin-v1",
 });
 
+const methodEvidence: CastingMethodEvidence = {
+  method: "three_coin",
+  rounds: [
+    { linePosition: 1, coinValues: [3, 3, 3], lineValue: 9 },
+    { linePosition: 2, coinValues: [3, 3, 2], lineValue: 8 },
+    { linePosition: 3, coinValues: [3, 2, 2], lineValue: 7 },
+    { linePosition: 4, coinValues: [3, 3, 2], lineValue: 8 },
+    { linePosition: 5, coinValues: [3, 2, 2], lineValue: 7 },
+    { linePosition: 6, coinValues: [3, 3, 2], lineValue: 8 },
+  ],
+};
+
 const generationInput = {
   result,
+  methodEvidence,
   scene: "career" as const,
   interpretationGoal: "what_should_i_pay_attention_to_next" as const,
   context: "I am considering a role change after repeated delays and unclear expectations.",
@@ -29,6 +43,7 @@ function validReport(): ReadingReport {
     turningConditions: "Maintain the current interpretation while responsibilities become clearer and communication grows more consistent. Re-evaluate it if the decision maker changes, the role scope materially shifts, or promised milestones repeatedly pass without evidence. These are observable conditions rather than dates.",
     conditionalActionDirection: "Under current conditions, observation, clarification, and reversible preparation fit better than an irreversible commitment. A more active orientation becomes reasonable only after authority, expectations, and timing are confirmed. The reading does not make the career decision for the user.",
     uncertaintyAndBoundaries: "This interpretation uses the supplied career context, the primary hexagram, and the single moving line. It cannot account for undisclosed organizational constraints or future decisions by other people. It offers a reflective framework rather than professional, legal, medical, or financial advice.",
+    interpretiveBasis: "Interpretive Basis: the analysis is anchored in the six persisted three-coin rounds, the primary hexagram judgment reference, the first moving-line reference, and the relating-hexagram judgment reference. These sources explain the reading structure without presenting generated prose as a classical quotation.",
     interpretiveBasisReferences: buildClassicReferences(result),
   };
 }
@@ -50,13 +65,33 @@ describe("PreviewOutput validation", () => {
 });
 
 describe("ReadingReport validation", () => {
-  it("accepts all ten modules with result-consistent controlled references", () => {
+  it("accepts all ten visible modules with result-consistent controlled references", () => {
     expect(validateReadingReport(validReport(), generationInput)).toEqual(validReport());
   });
 
   it("rejects a missing module before persistence", () => {
-    const { turningConditions: _missing, ...incomplete } = validReport();
+    const { interpretiveBasis: _missing, ...incomplete } = validReport();
     expect(() => validateReadingReport(incomplete, generationInput)).toThrow();
+  });
+
+  it("rejects an interpretive basis that does not identify the persisted method evidence", () => {
+    const report = validReport();
+    report.interpretiveBasis = "Interpretive Basis: this explanation relies on general symbolism and controlled classic references, without identifying which persisted casting evidence established the result or how that evidence constrains the interpretation.";
+    expect(() => validateReadingReport(report, generationInput)).toThrow("AI_METHOD_EVIDENCE_OMITTED");
+  });
+
+  it("rejects method evidence inconsistent with the persisted result before validating output", () => {
+    const inconsistent = {
+      ...generationInput,
+      methodEvidence: {
+        ...methodEvidence,
+        rounds: methodEvidence.rounds.map((round, index) => index === 0
+          ? { ...round, coinValues: [2, 2, 2] as const }
+          : round),
+      },
+    };
+    expect(() => validateReadingReport(validReport(), inconsistent))
+      .toThrow("CASTING_METHOD_EVIDENCE_INVALID");
   });
 
   it("rejects references that do not match the primary, moving line, or relating hexagram", () => {
