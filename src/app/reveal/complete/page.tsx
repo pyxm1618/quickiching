@@ -43,6 +43,7 @@ export default async function CompleteRevealPage() {
   if (!reveal) redirect("/signin?error=reveal_intent");
   if (!user) redirect(`/signin?callbackURL=${encodeURIComponent("/reveal/complete")}`);
 
+  let destination = `/result/${reveal.castingId}?auth=error`;
   try {
     const runtime = await getProductionRuntime();
     const outcome = await runtime.application.consumeLoginIntentAndReveal({
@@ -51,8 +52,9 @@ export default async function CompleteRevealPage() {
       authenticatedUserId: user.id,
       callbackPath: reveal.callbackPath,
     });
-    redirect(`/result/${outcome.castingId}`);
+    destination = `/result/${outcome.castingId}`;
   } catch {
-    redirect(`/result/${reveal.castingId}?auth=error`);
+    // The destination remains a bounded result-page error state. No token or provider detail is exposed.
   }
+  redirect(destination);
 }
