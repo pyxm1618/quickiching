@@ -26,6 +26,8 @@ export class MemoryRevealRepository implements LoginIntentRepository, RevealRepo
         anonymousSessionHash: input.anonymousSessionHash,
         nonceHash: input.nonceHash,
         nonceKeyVersion: input.nonceKeyVersion,
+        expectedEmailHash: input.expectedEmailHash ?? null,
+        expectedEmailKeyVersion: input.expectedEmailKeyVersion ?? null,
         allowedCallbackPath: input.allowedCallbackPath,
         expiresAt: new Date(input.expiresAt),
         consumedAt: null,
@@ -39,6 +41,15 @@ export class MemoryRevealRepository implements LoginIntentRepository, RevealRepo
   getLoginIntent(intentId: string): LoginIntent | undefined {
     const intent = this.store.loginIntents.get(intentId);
     return intent ? snapshot(intent) : undefined;
+  }
+
+  findLoginIntentByNonceHash(nonceHash: string, nonceKeyVersion: string): LoginIntent | undefined {
+    for (const intent of this.store.loginIntents.values()) {
+      if (intent.nonceHash === nonceHash && intent.nonceKeyVersion === nonceKeyVersion) {
+        return snapshot(intent);
+      }
+    }
+    return undefined;
   }
 
   consumeLoginIntentAndReveal(input: ConsumeLoginIntentAndRevealInput): RevealOutcome {
