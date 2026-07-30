@@ -1,5 +1,6 @@
 "use server";
 
+import { productionActions } from "./production-actions";
 import { type CastingMethod } from "@/domain/casting/types";
 import { evaluateRisk } from "@/domain/risk/engine";
 import { cryptoRandomBit } from "@/domain/casting/three-coin/algorithm";
@@ -506,21 +507,23 @@ async function restoreCastingActionImpl(unknownInput: unknown): Promise<ActionRe
   return ok({ restored: true });
 }
 
-export const createCastingSessionAction = withActionErrorBoundary("createCastingSessionAction", createCastingSessionActionImpl);
-export const getCastingSummaryAction = withActionErrorBoundary("getCastingSummaryAction", getCastingSummaryActionImpl);
-export const getCastingSnapshotAction = withActionErrorBoundary("getCastingSnapshotAction", getCastingSnapshotActionImpl);
-export const signInAction = withActionErrorBoundary("signInAction", signInActionImpl);
-export const submitQuestionAction = withActionErrorBoundary("submitQuestionAction", submitQuestionActionImpl);
-export const clarifyQuestionAction = withActionErrorBoundary("clarifyQuestionAction", clarifyQuestionActionImpl);
-export const generateThreeCoinLineAction = withActionErrorBoundary("generateThreeCoinLineAction", generateThreeCoinLineActionImpl);
-export const generateYarrowChangeAction = withActionErrorBoundary("generateYarrowChangeAction", generateYarrowChangeActionImpl);
-export const completeYarrowAction = withActionErrorBoundary("completeYarrowAction", completeYarrowActionImpl);
-export const createMeiHuaResultAction = withActionErrorBoundary("createMeiHuaResultAction", createMeiHuaResultActionImpl);
-export const revealCastingAction = withActionErrorBoundary("revealCastingAction", revealCastingActionImpl);
-export const startPreviewAction = withActionErrorBoundary("startPreviewAction", startPreviewActionImpl);
-export const createCheckoutAction = withActionErrorBoundary("createCheckoutAction", createCheckoutActionImpl);
-export const simulatePaymentAction = withActionErrorBoundary("simulatePaymentAction", simulatePaymentActionImpl);
-export const startDeepReadingAction = withActionErrorBoundary("startDeepReadingAction", startDeepReadingActionImpl);
-export const submitQualityReviewAction = withActionErrorBoundary("submitQualityReviewAction", submitQualityReviewActionImpl);
-export const requestCastingDeletionAction = withActionErrorBoundary("requestCastingDeletionAction", requestCastingDeletionActionImpl);
-export const restoreCastingAction = withActionErrorBoundary("restoreCastingAction", restoreCastingActionImpl);
+const productionMode = process.env.NODE_ENV === "production";
+
+export const createCastingSessionAction = productionMode ? productionActions.createCastingSessionAction : withActionErrorBoundary("createCastingSessionAction", createCastingSessionActionImpl);
+export const getCastingSummaryAction = productionMode ? productionActions.getCastingSummaryAction : withActionErrorBoundary("getCastingSummaryAction", getCastingSummaryActionImpl);
+export const getCastingSnapshotAction = productionMode ? productionActions.getCastingSnapshotAction : withActionErrorBoundary("getCastingSnapshotAction", getCastingSnapshotActionImpl);
+export const signInAction = productionMode ? productionActions.signInAction : withActionErrorBoundary("signInAction", signInActionImpl);
+export const submitQuestionAction = productionMode ? productionActions.submitQuestionAction : withActionErrorBoundary("submitQuestionAction", submitQuestionActionImpl);
+export const clarifyQuestionAction = productionMode ? productionActions.clarifyQuestionAction : withActionErrorBoundary("clarifyQuestionAction", clarifyQuestionActionImpl);
+export const generateThreeCoinLineAction = productionMode ? productionActions.generateThreeCoinLineAction : withActionErrorBoundary("generateThreeCoinLineAction", generateThreeCoinLineActionImpl);
+export const generateYarrowChangeAction = productionMode ? productionActions.generateYarrowChangeAction : withActionErrorBoundary("generateYarrowChangeAction", generateYarrowChangeActionImpl);
+export const completeYarrowAction = productionMode ? productionActions.completeYarrowAction : withActionErrorBoundary("completeYarrowAction", completeYarrowActionImpl);
+export const createMeiHuaResultAction = productionMode ? productionActions.createMeiHuaResultAction : withActionErrorBoundary("createMeiHuaResultAction", createMeiHuaResultActionImpl);
+export const revealCastingAction = productionMode ? productionActions.revealCastingAction : withActionErrorBoundary("revealCastingAction", revealCastingActionImpl);
+export const startPreviewAction = productionMode ? productionActions.startPreviewAction : withActionErrorBoundary("startPreviewAction", startPreviewActionImpl);
+export const createCheckoutAction = productionMode ? productionActions.createCheckoutAction : withActionErrorBoundary("createCheckoutAction", createCheckoutActionImpl);
+export const simulatePaymentAction = productionMode ? productionActions.simulatePaymentAction : withActionErrorBoundary("simulatePaymentAction", simulatePaymentActionImpl);
+export const startDeepReadingAction = productionMode ? productionActions.startDeepReadingAction : withActionErrorBoundary("startDeepReadingAction", startDeepReadingActionImpl);
+export const submitQualityReviewAction = productionMode ? productionActions.submitQualityReviewAction : withActionErrorBoundary("submitQualityReviewAction", submitQualityReviewActionImpl);
+export const requestCastingDeletionAction = productionMode ? productionActions.requestCastingDeletionAction : withActionErrorBoundary("requestCastingDeletionAction", requestCastingDeletionActionImpl);
+export const restoreCastingAction = productionMode ? productionActions.restoreCastingAction : withActionErrorBoundary("restoreCastingAction", restoreCastingActionImpl);
