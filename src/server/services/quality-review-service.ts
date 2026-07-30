@@ -102,6 +102,7 @@ export class QualityReviewService {
         productId: "quality-review-compensation",
         quantity: 1,
         amountUsd: 0,
+        reviewId: review.id,
       });
       compensationBatchId = batch.id;
     }
