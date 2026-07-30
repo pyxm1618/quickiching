@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { betterAuthSchema } from "./auth-schema";
+import { runtimeConfig } from "@/server/config";
 import { PostgresAuthBridge } from "@/server/repositories/postgres/auth-bridge";
 
 type ProductionAuthCredentials = {
@@ -12,12 +13,6 @@ type ProductionAuthCredentials = {
 };
 
 type FetchLike = typeof fetch;
-
-function required(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) throw new Error(`AUTH_CONFIG_MISSING:${name}`);
-  return value;
-}
 
 function escapeHtml(value: string): string {
   return value
@@ -101,14 +96,15 @@ type ProductionAuth = Awaited<ReturnType<typeof createProductionAuth>>;
 let cachedAuth: Promise<ProductionAuth> | undefined;
 
 async function createProductionAuth() {
-  const databaseUrl = required("DATABASE_URL");
+  const config = runtimeConfig();
+  if (config.mode !== "production") throw new Error("PRODUCTION_AUTH_NOT_ENABLED");
   const credentials: ProductionAuthCredentials = {
-    betterAuthSecret: required("BETTER_AUTH_SECRET"),
-    betterAuthUrl: required("BETTER_AUTH_URL"),
-    googleClientId: required("GOOGLE_CLIENT_ID"),
-    googleClientSecret: required("GOOGLE_CLIENT_SECRET"),
-    resendApiKey: required("RESEND_API_KEY"),
-    emailFrom: required("EMAIL_FROM"),
+    betterAuthSecret: config.credentials.betterAuthSecret,
+    betterAuthUrl: config.credentials.betterAuthUrl,
+    googleClientId: config.credentials.googleClientId,
+    googleClientSecret: config.credentials.googleClientSecret,
+    resendApiKey: config.credentials.resendApiKey,
+    emailFrom: config.credentials.emailFrom,
   };
 
   const [
@@ -127,7 +123,7 @@ async function createProductionAuth() {
     import("postgres"),
   ]);
 
-  const client = postgres(databaseUrl, {
+  const client = postgres(config.credentials.databaseUrl, {
     max: 10,
     idle_timeout: 20,
     connect_timeout: 10,
