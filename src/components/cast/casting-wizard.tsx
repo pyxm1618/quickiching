@@ -106,7 +106,9 @@ export function CastingWizard({ method }: { method: CastingMethod }) {
               onCast={controller.castNext}
             />
           )}
-          {state.phase === "reveal" && <RevealStep pending={state.pending} onReveal={controller.reveal} />}
+          {state.phase === "reveal" && state.castingId && (
+            <RevealStep castingId={state.castingId} pending={state.pending} onReveal={controller.reveal} />
+          )}
         </div>
         <footer className="py-5 text-center font-mono text-[10.5px] uppercase tracking-[0.12em] text-[var(--line-strong)]">
           For entertainment, cultural exploration, and self-reflection only
