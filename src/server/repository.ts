@@ -12,6 +12,10 @@ export const repo: RepositoryFacade = repositories.repo;
 export const castingRepository = repositories.castingRepository;
 export const loginIntentRepository = repositories.loginIntentRepository;
 export const revealRepository = repositories.revealRepository;
+export const readingRepository = repositories.readingRepository;
+export const entitlementRepository = repositories.entitlementRepository;
+export const reviewRepository = repositories.reviewRepository;
+export const privacyRepository = repositories.privacyRepository;
 export type Repo = RepositoryFacade;
 
 export type {
