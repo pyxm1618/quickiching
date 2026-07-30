@@ -88,7 +88,8 @@ export function useCastingController(method: CastingMethod) {
       setState((current) => ({ ...current, castingId: null, phase: "input", pending: false }));
       return;
     }
-    setState((current) => stateFromSnapshot(current, loaded.value));
+    const snapshot = loaded.value;
+    setState((current) => stateFromSnapshot(current, snapshot));
   }, [method]);
 
   useEffect(() => {
