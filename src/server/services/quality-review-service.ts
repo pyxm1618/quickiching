@@ -1,5 +1,4 @@
 import { DomainError } from "@/server/errors/domain-error";
-import type { CastingRepository } from "@/server/repositories/casting-repository";
 import type { EntitlementRepository } from "@/server/repositories/entitlement-repository";
 import type { ReadingRepository } from "@/server/repositories/reading-repository";
 import type { ReviewRepository } from "@/server/repositories/review-repository";
@@ -35,7 +34,6 @@ export class QualityReviewService {
   constructor(private readonly dependencies: {
     reviewRepository: ReviewRepository;
     readingRepository: ReadingRepository;
-    castingRepository: CastingRepository;
     entitlementRepository: EntitlementRepository;
     clock: { now(): Date };
     businessCalendar?: BusinessCalendar;
@@ -44,16 +42,12 @@ export class QualityReviewService {
   }
 
   submit(input: { readingId: string; userId: string; reason: string }) {
-    const reading = this.dependencies.readingRepository.getReading(input.readingId);
+    const reading = this.dependencies.reviewRepository.getReviewableReading(
+      input.readingId,
+      input.userId,
+    );
     if (!reading) {
       throw new DomainError("QUALITY_REVIEW_FORBIDDEN", "This review is not available.", false);
-    }
-    const casting = this.dependencies.castingRepository.getCastingSession(reading.castingSessionId);
-    if (!casting || casting.userId !== input.userId || casting.lifecycle !== "revealed") {
-      throw new DomainError("QUALITY_REVIEW_FORBIDDEN", "This review is not available.", false);
-    }
-    if (reading.status !== "completed") {
-      throw new DomainError("QUALITY_REVIEW_NOT_DELIVERED", "This report is not available for review.", false);
     }
     const now = this.dependencies.clock.now();
     if (now.getTime() > reading.updatedAt.getTime() + REVIEW_SUBMISSION_WINDOW_MS) {
