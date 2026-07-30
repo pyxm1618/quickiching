@@ -95,6 +95,7 @@ export type CastResult = {
   relatingHexagramNumber: number | null;
   methodCalculation: unknown;
   resultHmac: string;
+  resultHmacKeyVersion?: string;
   algorithmVersion: string;
   classicMappingVersion: string;
   createdAt: Date;
