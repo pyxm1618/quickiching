@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "ai": "^7.0.42",
     "better-auth": "^1.6.25",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
@@ -22,6 +23,7 @@
     "react-dom": "19.0.0",
     "swr": "^2.3.0",
     "tailwind-merge": "^2.6.0",
+    "workflow": "^4.7.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
