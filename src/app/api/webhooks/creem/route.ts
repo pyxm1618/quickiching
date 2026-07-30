@@ -1,5 +1,6 @@
 import postgres, { type Sql } from "postgres";
 import { PRODUCTS } from "@/domain/entitlements/pricing";
+import { runtimeConfig } from "@/server/config";
 import { verifyCreemSignature } from "@/server/payments/creem-signature";
 import { parseCreemWebhook } from "@/server/payments/creem-webhook";
 import { PostgresPaymentRepository } from "@/server/repositories/postgres/payment-repository";
@@ -8,15 +9,16 @@ export const runtime = "nodejs";
 
 type PaymentGlobal = typeof globalThis & { __ICHING_PAYMENT_SQL__?: Sql };
 
-function required(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) throw new Error(`PAYMENT_CONFIG_MISSING:${name}`);
-  return value;
+function productionConfig() {
+  const config = runtimeConfig();
+  if (config.mode !== "production") throw new Error("CREEM_NOT_ENABLED");
+  return config;
 }
 
 function paymentRepository(): PostgresPaymentRepository {
+  const config = productionConfig();
   const globalRef = globalThis as PaymentGlobal;
-  globalRef.__ICHING_PAYMENT_SQL__ ??= postgres(required("DATABASE_URL"), {
+  globalRef.__ICHING_PAYMENT_SQL__ ??= postgres(config.credentials.databaseUrl, {
     max: 10,
     idle_timeout: 20,
     connect_timeout: 10,
@@ -24,17 +26,17 @@ function paymentRepository(): PostgresPaymentRepository {
   });
   return new PostgresPaymentRepository(globalRef.__ICHING_PAYMENT_SQL__, {
     products: {
-      [required("CREEM_PRODUCT_ONE_ID")]: {
+      [config.credentials.creemProductIdOne]: {
         internalProductId: "one",
         quantity: PRODUCTS.one.quantity,
         amountUsd: PRODUCTS.one.unitPriceUsd,
       },
-      [required("CREEM_PRODUCT_THREE_ID")]: {
+      [config.credentials.creemProductIdThree]: {
         internalProductId: "three",
         quantity: PRODUCTS.three.quantity,
         amountUsd: PRODUCTS.three.unitPriceUsd,
       },
-      [required("CREEM_PRODUCT_FIVE_ID")]: {
+      [config.credentials.creemProductIdFive]: {
         internalProductId: "five",
         quantity: PRODUCTS.five.quantity,
         amountUsd: PRODUCTS.five.unitPriceUsd,
@@ -46,7 +48,8 @@ function paymentRepository(): PostgresPaymentRepository {
 export async function POST(request: Request): Promise<Response> {
   const rawBody = await request.text();
   const signature = request.headers.get("creem-signature");
-  if (!verifyCreemSignature(rawBody, signature, required("CREEM_WEBHOOK_SECRET"))) {
+  const config = productionConfig();
+  if (!verifyCreemSignature(rawBody, signature, config.credentials.creemWebhookSecret)) {
     return Response.json({ error: "invalid_signature" }, { status: 401 });
   }
 
