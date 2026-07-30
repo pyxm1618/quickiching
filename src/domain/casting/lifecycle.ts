@@ -5,11 +5,12 @@ import type { CastingLifecycle } from "./types";
 // folded into this machine (§7, §6.3).
 
 const ALLOWED: Record<CastingLifecycle, CastingLifecycle[]> = {
-  draft: ["casting", "emergency_blocked", "user_deleted"],
+  draft: ["casting", "emergency_blocked", "cancelled", "user_deleted"],
   casting: ["awaiting_reveal", "expired"],
   awaiting_reveal: ["revealed", "discarded_duplicate", "expired"],
   revealed: ["user_deleted"],
   expired: [],
+  cancelled: [],
   discarded_duplicate: [],
   emergency_blocked: [],
   user_deleted: [],
