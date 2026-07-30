@@ -100,10 +100,8 @@ function assertYarrow(
     }
     if (change.stalksAfter >= change.stalksBefore) invalid();
     if (change.removedRemainders !== change.stalksBefore - change.stalksAfter) invalid();
-    if (change.leftPile + change.rightPile !== change.stalksBefore - 1) invalid();
-    if (change.removedRemainders !== 4 && change.removedRemainders !== 8 && change.removedRemainders !== 5 && change.removedRemainders !== 9) {
-      invalid();
-    }
+    if (change.leftPile + change.rightPile !== change.stalksBefore) invalid();
+    if (![4, 5, 8, 9].includes(change.removedRemainders)) invalid();
     if (index % 3 !== 0 && change.stalksBefore !== evidence.changes[index - 1].stalksAfter) invalid();
   }
   if (!sameLineValues(evidence.lineValues, result.lineValuesBottomUp)) invalid();
