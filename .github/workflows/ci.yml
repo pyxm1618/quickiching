@@ -17,7 +17,21 @@ concurrency:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: iching
+          POSTGRES_PASSWORD: iching
+          POSTGRES_DB: iching_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U iching -d iching_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       NEXT_TELEMETRY_DISABLED: "1"
       AI_ADAPTER_MODE: local
@@ -25,6 +39,7 @@ jobs:
       PAYMENT_ADAPTER_MODE: simulated
       DATABASE_ADAPTER_MODE: memory
       WORKFLOW_ADAPTER_MODE: local
+      TEST_DATABASE_URL: postgres://iching:iching@localhost:5432/iching_test
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
