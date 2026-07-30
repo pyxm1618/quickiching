@@ -4,17 +4,16 @@
 
 export type ReadingVariant =
   | "standard"
-  | "still_hexagram" // no moving lines
+  | "still_hexagram"
   | "multiple_moving"
-  | "all_lines_moving"; // six lines all moving
+  | "all_lines_moving";
 
 export type InterpretiveBasisReference = {
-  // We do NOT generate classic text (G-02 licensing blocked). References describe which
-  // controlled source the production renderer would pull, and are auditable.
-  source: "king_wen_judgment" | "king_wen_line" | "relating_judgment";
+  referenceId: string;
+  sourceVersion: "legge-1899-v1";
   hexagramNumber: number;
   linePosition?: number;
-  status: "pending_license";
+  kind: "judgment" | "line" | "relating_judgment";
 };
 
 export type ReadingReport = {
