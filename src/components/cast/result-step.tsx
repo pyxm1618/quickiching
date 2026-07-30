@@ -9,7 +9,9 @@ import type { CastingSnapshot } from "@/server/services/casting-snapshot-service
 export function ResultStep(props: {
   result: NonNullable<CastingSnapshot["result"]>;
   riskStatus: string;
+  previewStatus: string;
   previewText: string | null;
+  readingStatus: string;
   readingReport: Record<string, unknown> | null;
   pending: boolean;
   onPreview(): Promise<void>;
@@ -42,7 +44,9 @@ export function ResultStep(props: {
         </Card>
       ) : (
         <ReadingStep
+          previewStatus={props.previewStatus}
           previewText={props.previewText}
+          readingStatus={props.readingStatus}
           readingReport={props.readingReport}
           pending={props.pending}
           onPreview={props.onPreview}
