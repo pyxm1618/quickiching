@@ -5,6 +5,8 @@ export type CreateLoginIntentInput = {
   anonymousSessionHash: string;
   nonceHash: string;
   nonceKeyVersion: string;
+  expectedEmailHash?: string | null;
+  expectedEmailKeyVersion?: string | null;
   allowedCallbackPath: string;
   expiresAt: Date;
   createdAt: Date;
@@ -13,4 +15,5 @@ export type CreateLoginIntentInput = {
 export interface LoginIntentRepository {
   createLoginIntent(input: CreateLoginIntentInput): LoginIntent;
   getLoginIntent(intentId: string): LoginIntent | undefined;
+  findLoginIntentByNonceHash(nonceHash: string, nonceKeyVersion: string): LoginIntent | undefined;
 }
