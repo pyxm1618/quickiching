@@ -75,6 +75,23 @@ function required(env: RuntimeEnv, name: string): string {
   return invalid(`${name} is required`, true);
 }
 
+function httpsUrl(env: RuntimeEnv, name: string): string {
+  const value = required(env, name);
+  const parsed = z.string().url().safeParse(value);
+  if (!parsed.success) invalid(`${name} must be an HTTPS URL`, true);
+  const url = new URL(value);
+  if (url.protocol !== "https:") invalid(`${name} must be an HTTPS URL`, true);
+  return value;
+}
+
+function secretAtLeast(env: RuntimeEnv, name: string, minimumLength: number): string {
+  const value = required(env, name);
+  if (value.length < minimumLength) {
+    invalid(`${name} must be at least ${minimumLength} characters`, true);
+  }
+  return value;
+}
+
 function oneOf<T extends string>(
   value: string | undefined,
   allowed: readonly [T, ...T[]],
@@ -132,12 +149,10 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
     undefined,
     true,
   );
-  const baseUrl = required(env, "APP_BASE_URL");
-  if (!z.string().url().safeParse(baseUrl).success) invalid("APP_BASE_URL must be a valid URL", true);
-  const publicAppUrl = required(env, "NEXT_PUBLIC_APP_URL");
-  if (!z.string().url().safeParse(publicAppUrl).success) invalid("NEXT_PUBLIC_APP_URL must be a valid URL", true);
-  const betterAuthUrl = required(env, "BETTER_AUTH_URL");
-  if (!z.string().url().safeParse(betterAuthUrl).success) invalid("BETTER_AUTH_URL must be a valid URL", true);
+  const baseUrl = httpsUrl(env, "APP_BASE_URL");
+  const publicAppUrl = httpsUrl(env, "NEXT_PUBLIC_APP_URL");
+  const betterAuthUrl = httpsUrl(env, "BETTER_AUTH_URL");
+  const betterAuthSecret = secretAtLeast(env, "BETTER_AUTH_SECRET", 32);
   const emailFrom = required(env, "EMAIL_FROM");
   if (!z.string().email().safeParse(emailFrom.match(/<([^>]+)>$/)?.[1] ?? emailFrom).success) {
     invalid("EMAIL_FROM must contain a valid email address", true);
@@ -175,7 +190,7 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
       aiModelPreview: required(env, "AI_MODEL_PREVIEW"),
       aiModelDeepReading: required(env, "AI_MODEL_DEEP_READING"),
       aiModelOutputReview: required(env, "AI_MODEL_OUTPUT_REVIEW"),
-      betterAuthSecret: required(env, "BETTER_AUTH_SECRET"),
+      betterAuthSecret,
       betterAuthUrl,
       googleClientId: required(env, "GOOGLE_CLIENT_ID"),
       googleClientSecret: required(env, "GOOGLE_CLIENT_SECRET"),
