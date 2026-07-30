@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { EntitlementBatch, LedgerEntry } from "@/domain/entitlements/batch";
 import { DomainError } from "@/server/errors/domain-error";
 import type {
+  AccountDeletionRequest,
   CastResult,
   CastingRiskDecision,
   CastingSession,
@@ -78,6 +79,7 @@ export function memoryId(prefix: string): string {
 export class MemoryStore {
   readonly users = new Map<string, User>();
   readonly sessions = new Map<string, Session>();
+  readonly accountDeletions = new Map<string, AccountDeletionRequest>();
   readonly loginIntents = new Map<string, LoginIntent>();
   readonly castingSessions = new Map<string, CastingSession>();
   readonly questionVersions = new Map<string, QuestionVersion>();
