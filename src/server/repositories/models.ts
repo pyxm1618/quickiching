@@ -14,6 +14,18 @@ import type {
 export type User = { id: string; email: string; createdAt: Date };
 export type Session = { id: string; userId: string; createdAt: Date; expiresAt: Date };
 
+export type LoginIntent = {
+  id: string;
+  castingSessionId: string;
+  anonymousSessionHash: string;
+  nonceHash: string;
+  nonceKeyVersion: string;
+  allowedCallbackPath: string;
+  expiresAt: Date;
+  consumedAt: Date | null;
+  createdAt: Date;
+};
+
 export type CastingSession = {
   id: string;
   userId: string | null;
