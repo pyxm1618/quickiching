@@ -1,0 +1,3 @@
+$ eslint .
+
+LINT_EXIT_CODE=0
