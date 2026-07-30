@@ -27,6 +27,16 @@ export class PostgresPaymentRepository implements PaymentEventRepository {
     return inserted.length === 1;
   }
 
+  async releaseEvent(event: PaymentEvent, error: unknown): Promise<void> {
+    void error;
+    await this.sql`
+      delete from webhook_inbox
+      where provider = 'creem'
+        and event_id = ${event.providerEventId}
+        and processed_at is null
+    `;
+  }
+
   async applyCheckoutCompleted(event: PaymentEvent): Promise<void> {
     await this.sql.begin(async (tx) => {
       const [order] = await tx`select * from orders where id = ${event.orderId} for update`;
