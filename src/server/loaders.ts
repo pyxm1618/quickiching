@@ -116,6 +116,14 @@ export async function loadRecoverableCasts() {
   return privacyRepository.listRecoverableDeletedCasts(user.id, new Date());
 }
 
+export async function loadAccountDeletion() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const request = privacyRepository.getAccountDeletion(user.id);
+  if (!request || request.restoredAt || request.purgedAt) return null;
+  return request;
+}
+
 export function parseHistoryFilter(input: Record<string, string | string[] | undefined>): HistoryLoaderInput {
   const method = typeof input.method === "string" ? input.method : undefined;
   const scene = typeof input.scene === "string" ? input.scene : undefined;
