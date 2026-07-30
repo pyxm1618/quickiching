@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { HexagramResult } from "./types";
+import type { HexagramResult, LineValue } from "./types";
 import {
   assertMethodEvidenceMatchesResult,
   type CastingMethodEvidence,
+  type YarrowChangeEvidence,
 } from "./method-evidence";
 
 const coinResult: HexagramResult = {
@@ -26,6 +27,32 @@ const coinEvidence: CastingMethodEvidence = {
     { linePosition: 6, coinValues: [3, 3, 2], lineValue: 8 },
   ],
 };
+
+function yarrowChangesForLine(linePosition: number, lineValue: LineValue): YarrowChangeEvidence[] {
+  const removalsByLine: Record<LineValue, readonly [number, number, number]> = {
+    6: [9, 8, 8],
+    7: [9, 4, 8],
+    8: [5, 4, 8],
+    9: [5, 4, 4],
+  };
+  let stalksBefore = 49;
+  return removalsByLine[lineValue].map((removedRemainders, index) => {
+    const leftPile = Math.floor((stalksBefore - 1) / 2);
+    const rightPile = stalksBefore - 1 - leftPile;
+    const stalksAfter = stalksBefore - removedRemainders;
+    const change: YarrowChangeEvidence = {
+      linePosition: linePosition as 1 | 2 | 3 | 4 | 5 | 6,
+      changeIndex: (index + 1) as 1 | 2 | 3,
+      stalksBefore,
+      leftPile,
+      rightPile,
+      removedRemainders,
+      stalksAfter,
+    };
+    stalksBefore = stalksAfter;
+    return change;
+  });
+}
 
 describe("casting method evidence", () => {
   it("accepts six server-recorded three-coin rounds that reproduce the result", () => {
@@ -63,15 +90,7 @@ describe("casting method evidence", () => {
     };
     const evidence: CastingMethodEvidence = {
       method: "yarrow_stalk",
-      changes: Array.from({ length: 18 }, (_, index) => ({
-        linePosition: Math.floor(index / 3) + 1,
-        changeIndex: (index % 3) + 1 as 1 | 2 | 3,
-        stalksBefore: index % 3 === 0 ? 49 : 44,
-        leftPile: 23,
-        rightPile: 21,
-        removedRemainders: 5,
-        stalksAfter: index % 3 === 2 ? lineValues[Math.floor(index / 3)] * 4 : 44,
-      })),
+      changes: lineValues.flatMap((lineValue, index) => yarrowChangesForLine(index + 1, lineValue)),
       lineValues: [...lineValues],
     };
 
