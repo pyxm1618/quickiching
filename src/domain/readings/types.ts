@@ -1,6 +1,6 @@
-// §12.5 Deep Reading schema (READ-002). All ten modules are always present, even when the
-// reading variant changes module 4/5 titles (READ-004). Personalization is a minimum quality
-// bar for every module, not a separate field.
+// §12.5 Deep Reading schema (READ-002). All ten narrative modules are always present, even
+// when the reading variant changes module 4/5 titles (READ-004). Controlled source references
+// support the visible Interpretive Basis module but do not replace it.
 
 export type ReadingVariant =
   | "standard"
@@ -27,6 +27,7 @@ export type ReadingReport = {
   turningConditions: string;
   conditionalActionDirection: string;
   uncertaintyAndBoundaries: string;
+  interpretiveBasis: string;
   interpretiveBasisReferences: InterpretiveBasisReference[];
 };
 
