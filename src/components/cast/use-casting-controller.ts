@@ -21,6 +21,8 @@ import {
 import type { CastingSnapshot } from "@/server/services/casting-snapshot-service";
 
 const CASTING_ID_STORAGE_KEY = "iching_casting_id";
+const POLL_INTERVAL_MS = 1500;
+const MAX_POLL_ATTEMPTS = 20;
 
 type ControllerState = {
   phase: "input" | "ritual" | "reveal" | "result" | "crisis" | "expired";
@@ -32,10 +34,13 @@ type ControllerState = {
   completedSteps: number;
   totalSteps: number;
   result: CastingSnapshot["result"];
+  previewStatus: string | null;
   previewText: string | null;
+  readingStatus: string | null;
   readingReport: Record<string, unknown> | null;
   ianaTimeZone: string;
   error: string | null;
+  notice: string | null;
   pending: boolean;
 };
 
@@ -49,10 +54,13 @@ const initialState: ControllerState = {
   completedSteps: 0,
   totalSteps: 0,
   result: null,
+  previewStatus: null,
   previewText: null,
+  readingStatus: null,
   readingReport: null,
   ianaTimeZone: "America/New_York",
   error: null,
+  notice: null,
   pending: false,
 };
 
@@ -67,7 +75,9 @@ function stateFromSnapshot(previous: ControllerState, snapshot: CastingSnapshot)
     completedSteps: snapshot.progress.completedSteps,
     totalSteps: snapshot.progress.totalSteps,
     result: snapshot.result,
+    previewStatus: snapshot.preview?.status ?? null,
     previewText: snapshot.preview?.relevanceStatement ?? null,
+    readingStatus: snapshot.reading?.status ?? null,
     readingReport: snapshot.reading?.report ?? null,
     error: null,
     pending: false,
@@ -78,19 +88,41 @@ function errorMessage(result: { ok: false; error: { message: string } }): string
   return result.error.message;
 }
 
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 export function useCastingController(method: CastingMethod) {
   const [state, setState] = useState<ControllerState>(initialState);
 
-  const refresh = useCallback(async (castingId: string) => {
+  const refresh = useCallback(async (castingId: string): Promise<CastingSnapshot | null> => {
     const loaded = await getCastingSnapshotAction({ castingId });
     if (!loaded.ok || !loaded.value || loaded.value.method !== method) {
       sessionStorage.removeItem(CASTING_ID_STORAGE_KEY);
       setState((current) => ({ ...current, castingId: null, phase: "input", pending: false }));
-      return;
+      return null;
     }
     const snapshot = loaded.value;
     setState((current) => stateFromSnapshot(current, snapshot));
+    return snapshot;
   }, [method]);
+
+  const poll = useCallback(async (
+    castingId: string,
+    done: (snapshot: CastingSnapshot) => boolean,
+  ): Promise<CastingSnapshot | null> => {
+    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+      const snapshot = await refresh(castingId);
+      if (!snapshot || done(snapshot)) return snapshot;
+      await delay(POLL_INTERVAL_MS);
+    }
+    setState((current) => ({
+      ...current,
+      pending: false,
+      notice: "Generation is still running. You can leave this page and reopen the reading from your history.",
+    }));
+    return null;
+  }, [refresh]);
 
   useEffect(() => {
     try {
@@ -102,7 +134,7 @@ export function useCastingController(method: CastingMethod) {
   }, [refresh]);
 
   const run = useCallback(async (operation: () => Promise<void>) => {
-    setState((current) => ({ ...current, pending: true, error: null }));
+    setState((current) => ({ ...current, pending: true, error: null, notice: null }));
     try { await operation(); }
     catch (error) {
       setState((current) => ({
@@ -163,6 +195,14 @@ export function useCastingController(method: CastingMethod) {
     await run(async () => {
       const result = await revealCastingAction({ castingId: state.castingId!, email });
       if (!result.ok) throw new Error(errorMessage(result));
+      if ("authPending" in result.value && result.value.authPending) {
+        setState((current) => ({
+          ...current,
+          pending: false,
+          notice: "Check your email and open the one-time sign-in link to reveal this casting.",
+        }));
+        return;
+      }
       if (result.value.duplicate) {
         sessionStorage.setItem(CASTING_ID_STORAGE_KEY, result.value.castingId);
         await refresh(result.value.castingId);
@@ -177,7 +217,10 @@ export function useCastingController(method: CastingMethod) {
     await run(async () => {
       const result = await startPreviewAction({ castingId: state.castingId! });
       if (!result.ok) throw new Error(errorMessage(result));
-      await refresh(state.castingId!);
+      await poll(state.castingId!, (snapshot) => {
+        const status = snapshot.preview?.status;
+        return status === "completed" || status === "failed" || status === "blocked";
+      });
     });
   }
 
@@ -186,7 +229,10 @@ export function useCastingController(method: CastingMethod) {
     await run(async () => {
       const result = await startDeepReadingAction({ castingId: state.castingId! });
       if (!result.ok) throw new Error(errorMessage(result));
-      await refresh(state.castingId!);
+      await poll(state.castingId!, (snapshot) => {
+        const status = snapshot.reading?.status;
+        return status === "completed" || status === "failed" || status === "blocked";
+      });
     });
   }
 
