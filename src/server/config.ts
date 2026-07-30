@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import * as z from "zod";
 
 export type VersionedKey = {
@@ -64,6 +65,10 @@ export type RuntimeConfig = LocalRuntimeConfig | ProductionRuntimeConfig;
 type RuntimeEnv = Record<string, string | undefined>;
 
 const modeSchema = z.enum(["development", "test", "production"]);
+const MINIMUM_KEY_BYTES = 32;
+const MINIMUM_KEY_ENTROPY_BITS_PER_BYTE = 3.5;
+const MINIMUM_UNIQUE_KEY_BYTES = 16;
+const PLACEHOLDER_MATERIAL = /(?:change[-_ ]?me|replace[-_ ]?me|placeholder|example|dummy|sample|password|secret|development|local[-_ ]?key|test[-_ ]?key|your[-_ ]?key|todo)/i;
 
 function invalid(message: string, production = false): never {
   throw new Error(`${production ? "PRODUCTION_CONFIG_INVALID" : "CONFIG_INVALID"}: ${message}`);
@@ -88,6 +93,61 @@ function oneOf<T extends string>(
   return invalid(`${name} must be one of: ${allowed.join(", ")}`, production);
 }
 
+function decodeBase64Strict(payload: string): Buffer | null {
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(payload) || payload.length % 4 !== 0) return null;
+  const decoded = Buffer.from(payload, "base64");
+  return decoded.toString("base64") === payload ? decoded : null;
+}
+
+function decodeHexStrict(payload: string): Buffer | null {
+  if (!/^[A-Fa-f0-9]+$/.test(payload) || payload.length % 2 !== 0) return null;
+  return Buffer.from(payload, "hex");
+}
+
+function decodeEncodedKeyMaterial(value: string): Buffer | null {
+  if (value.startsWith("base64:")) return decodeBase64Strict(value.slice("base64:".length));
+  if (value.startsWith("hex:")) return decodeHexStrict(value.slice("hex:".length));
+  return null;
+}
+
+function entropyBitsPerByte(bytes: Buffer): number {
+  const counts = new Map<number, number>();
+  for (const byte of bytes) counts.set(byte, (counts.get(byte) ?? 0) + 1);
+  let entropy = 0;
+  for (const count of counts.values()) {
+    const probability = count / bytes.length;
+    entropy -= probability * Math.log2(probability);
+  }
+  return entropy;
+}
+
+function containsPlaceholderMaterial(bytes: Buffer): boolean {
+  if ([...bytes].some((byte) => byte < 0x20 || byte > 0x7e)) return false;
+  return PLACEHOLDER_MATERIAL.test(bytes.toString("ascii"));
+}
+
+function validateKeyMaterial(value: string, keysName: string, version: string): Buffer {
+  if (!value.startsWith("base64:") && !value.startsWith("hex:")) {
+    invalid(`${keysName} key ${version} must use base64: or hex: encoding`, true);
+  }
+  const material = decodeEncodedKeyMaterial(value);
+  if (!material) invalid(`${keysName} key ${version} has invalid encoded material`, true);
+  if (material.length < MINIMUM_KEY_BYTES) {
+    invalid(`${keysName} key ${version} must decode to at least ${MINIMUM_KEY_BYTES} bytes`, true);
+  }
+  if (containsPlaceholderMaterial(material)) {
+    invalid(`${keysName} key ${version} contains placeholder material`, true);
+  }
+  const uniqueBytes = new Set(material).size;
+  if (
+    uniqueBytes < MINIMUM_UNIQUE_KEY_BYTES
+    || entropyBitsPerByte(material) < MINIMUM_KEY_ENTROPY_BITS_PER_BYTE
+  ) {
+    invalid(`${keysName} key ${version} does not contain sufficient entropy`, true);
+  }
+  return material;
+}
+
 function versionedKeySet(env: RuntimeEnv, keysName: string, writeVersionName: string): VersionedKeySet {
   const raw = required(env, keysName);
   const entries = raw.split(",").map((entry) => entry.trim());
@@ -99,8 +159,11 @@ function versionedKeySet(env: RuntimeEnv, keysName: string, writeVersionName: st
     if (!match || !match[2].trim() || versions.has(match[1])) {
       invalid(`${keysName} must use unique version:key entries`, true);
     }
-    versions.add(match[1]);
-    read.push({ version: match[1], value: match[2].trim() });
+    const version = match[1];
+    const value = match[2].trim();
+    validateKeyMaterial(value, keysName, version);
+    versions.add(version);
+    read.push({ version, value });
   }
 
   const writeVersion = required(env, writeVersionName);
@@ -114,8 +177,13 @@ function assertPurposeSeparated(keys: RuntimeKeys, production: boolean): void {
   const materials = new Set<string>();
   for (const keySet of Object.values(keys)) {
     for (const key of keySet.read) {
-      if (materials.has(key.value)) invalid("key material must not be reused across purposes", production);
-      materials.add(key.value);
+      const material = production
+        ? decodeEncodedKeyMaterial(key.value)
+        : Buffer.from(key.value, "utf8");
+      if (!material) invalid(`key ${key.version} has invalid encoded material`, production);
+      const fingerprint = createHash("sha256").update(material).digest("hex");
+      if (materials.has(fingerprint)) invalid("key material must not be reused across purposes", production);
+      materials.add(fingerprint);
     }
   }
 }
