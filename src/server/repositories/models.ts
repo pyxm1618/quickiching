@@ -158,6 +158,10 @@ export type QualityReview = {
   userId: string;
   status: QualityReviewStatus;
   reason: string | null;
+  responseDueAt: Date;
+  supplementedAt: Date | null;
+  decidedAt: Date | null;
+  compensationBatchId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
