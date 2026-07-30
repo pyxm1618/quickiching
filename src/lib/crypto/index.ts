@@ -52,6 +52,13 @@ function fromB64(s: string): Buffer {
   return Buffer.from(s, "base64url");
 }
 
+function base64UrlEqual(actual: string, expected: string): boolean {
+  if (!/^[A-Za-z0-9_-]+$/.test(actual) || !/^[A-Za-z0-9_-]+$/.test(expected)) return false;
+  const actualBuffer = fromB64(actual);
+  const expectedBuffer = fromB64(expected);
+  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer);
+}
+
 // ---- AES-256-GCM for sensitive question context & generation snapshots (§17.2) ----
 export type EncryptedBlob = {
   v: string;
@@ -99,6 +106,19 @@ export function hmac(
   return b64(createHmac("sha256", key).update(value).digest());
 }
 
+export function hmacMatches(
+  value: string,
+  signature: string,
+  purpose: Exclude<CryptoPurpose, "context">,
+  version: string,
+): boolean {
+  try {
+    return base64UrlEqual(signature, hmac(value, purpose, version));
+  } catch {
+    return false;
+  }
+}
+
 export function randomToken(bytes = 32): string {
   return b64(randomBytes(bytes));
 }
@@ -117,15 +137,6 @@ export function verifyCookie(signed: string): string | null {
   if (firstDot <= 0 || lastDot <= firstDot) return null;
   const version = signed.slice(0, firstDot);
   const payload = signed.slice(firstDot + 1, lastDot);
-  const sig = signed.slice(lastDot + 1);
-  let expected: string;
-  try {
-    expected = hmac(`${version}.${payload}`, "cookie", version);
-  } catch {
-    return null;
-  }
-  const actualBuffer = Buffer.from(sig);
-  const expectedBuffer = Buffer.from(expected);
-  if (actualBuffer.length !== expectedBuffer.length) return null;
-  return timingSafeEqual(actualBuffer, expectedBuffer) ? payload : null;
+  const signature = signed.slice(lastDot + 1);
+  return hmacMatches(`${version}.${payload}`, signature, "cookie", version) ? payload : null;
 }
