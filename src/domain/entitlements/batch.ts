@@ -2,7 +2,7 @@ import type { ReservationStatus } from "../casting/types";
 
 // §13.3 / §13.5 Entitlement batch + ledger identity. The invariant
 //   available + reserved + consumed + revoked = total
-// must hold for every batch after every mutation. Ledger entries provide the audit trail.
+// must hold for every batch after every mutation. Ledger entries provide the immutable audit trail.
 
 export type EntitlementBatch = {
   id: string;
@@ -19,6 +19,10 @@ export type LedgerEntry = {
   batchId: string;
   action: "grant" | "reserve" | "consume" | "release" | "expire" | "revoke" | "compensate";
   quantity: number;
+  readingId?: string | null;
+  reservationId?: string | null;
+  orderId?: string | null;
+  reviewId?: string | null;
   createdAt: Date;
 };
 
@@ -44,7 +48,6 @@ export function isBatchUsable(b: EntitlementBatch, now: Date): boolean {
   return b.quantityAvailable > 0 && b.expiresAt.getTime() > now.getTime();
 }
 
-// §13.4 Select the earliest-expiring usable batch (FIFO by expiry).
 export function selectEarliestExpiringBatch(
   batches: EntitlementBatch[],
   now: Date,
@@ -60,7 +63,6 @@ export type ReservationEffect =
   | { kind: "reserved"; batch: EntitlementBatch; entry: LedgerEntry }
   | { kind: "unavailable" };
 
-// Pure transition for freezing one entitlement from the earliest-expiring usable batch.
 export function freezeOne(
   batches: EntitlementBatch[],
   now: Date,
@@ -80,12 +82,12 @@ export function freezeOne(
     batchId: batch.id,
     action: "reserve",
     quantity: 1,
+    readingId: reservationId,
     createdAt: now,
   };
   return { kind: "reserved", batch: next, entry };
 }
 
-// §13.5 Completion / failure / expiry paths. All idempotent via caller's completion key.
 export function consumeReserved(batch: EntitlementBatch, reservationId: string, ledgerId: string, now: Date) {
   const next: EntitlementBatch = {
     ...batch,
@@ -98,9 +100,9 @@ export function consumeReserved(batch: EntitlementBatch, reservationId: string, 
     batchId: batch.id,
     action: "consume",
     quantity: 1,
+    reservationId,
     createdAt: now,
   };
-  void reservationId;
   return { batch: next, entry };
 }
 
@@ -132,3 +134,5 @@ export function releaseReserved(
   };
   return { batch: next, entry };
 }
+
+void (null as unknown as ReservationStatus);
