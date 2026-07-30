@@ -5,7 +5,16 @@ import { evaluateRisk } from "@/domain/risk/engine";
 import { cryptoRandomBit } from "@/domain/casting/three-coin/algorithm";
 import { cryptoRandomInt } from "@/domain/casting/yarrow/algorithm";
 import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
-import { repo, castingRepository, loginIntentRepository, revealRepository } from "@/server/repository";
+import {
+  repo,
+  castingRepository,
+  loginIntentRepository,
+  revealRepository,
+  readingRepository,
+  entitlementRepository,
+  reviewRepository,
+  privacyRepository,
+} from "@/server/repository";
 import { getAnonymousHash, getOrCreateAnonymousHash, getCurrentUser, devSignIn } from "@/lib/auth/session";
 import { runPreview, runReading } from "@/server/ai";
 import { getProduct, PRODUCTS, CURRENCY } from "@/domain/entitlements/pricing";
@@ -16,6 +25,9 @@ import { DomainError } from "@/server/errors/domain-error";
 import { CastingService } from "@/server/services/casting-service";
 import { RevealService } from "@/server/services/reveal-service";
 import { RiskService } from "@/server/services/risk-service";
+import { CastingSnapshotService } from "@/server/services/casting-snapshot-service";
+import { QualityReviewService } from "@/server/services/quality-review-service";
+import { PrivacyService } from "@/server/services/privacy-service";
 import { runtimeConfig } from "@/server/config";
 import { actionSchemas, parseActionInput } from "@/server/validation/action-schemas";
 import * as z from "zod";
@@ -30,6 +42,22 @@ const castingService = new CastingService({
 const riskService = new RiskService({
   castingRepository,
   evaluator: { evaluate: evaluateRisk },
+});
+
+const castingSnapshotService = new CastingSnapshotService({
+  castingRepository,
+  readingRepository,
+});
+const qualityReviewService = new QualityReviewService({
+  reviewRepository,
+  readingRepository,
+  entitlementRepository,
+  clock: { now: () => new Date() },
+});
+const privacyService = new PrivacyService({
+  privacyRepository,
+  castingRepository,
+  clock: { now: () => new Date() },
 });
 
 function getRevealService(): RevealService {
@@ -143,6 +171,19 @@ async function getCastingSummaryActionImpl(unknownInput: unknown): Promise<
     previewText: preview?.relevanceStatement ?? null,
     hasReading: !!reading && reading.status === "completed",
   });
+}
+
+async function getCastingSnapshotActionImpl(unknownInput: unknown): Promise<ActionResult<ReturnType<CastingSnapshotService["load"]>>> {
+  const parsed = parseBoundaryInput(actionSchemas.castingId, unknownInput, "getCastingSnapshotAction");
+  if (isActionFailure(parsed)) return parsed;
+  const user = await getCurrentUser();
+  const anonHash = await getAnonymousHash();
+  return ok(castingSnapshotService.load({
+    castingId: parsed.castingId,
+    userId: user?.id ?? null,
+    anonymousSessionHash: anonHash,
+    now: new Date(),
+  }));
 }
 
 // ---- Standalone dev sign-in (Better Auth is the production target) ----
@@ -432,45 +473,42 @@ async function startDeepReadingActionImpl(unknownInput: unknown): Promise<Action
 }
 
 // ---- 12. Quality review (QUALITY-001/002) ----
-async function submitQualityReviewActionImpl(unknownInput: unknown): Promise<ActionResult<{ reviewId: string; status: string }>> {
+async function submitQualityReviewActionImpl(unknownInput: unknown): Promise<ActionResult<{ reviewId: string; status: string; responseDueAt: Date }>> {
   const parsed = parseBoundaryInput(actionSchemas.submitQualityReview, unknownInput, "submitQualityReviewAction");
   if (isActionFailure(parsed)) return parsed;
   const input = parsed;
   const user = await getCurrentUser();
   if (!user) return fail("AUTH_REQUIRED", "Please sign in", false);
-  try {
-    const review = repo.createQualityReview({
-      readingId: input.readingId,
-      userId: user.id,
-      reason: input.reason,
-    });
-    return ok({ reviewId: review.id, status: review.status });
-  } catch (error) {
-    if (error instanceof DomainError && error.code === "QUALITY_REVIEW_ALREADY_SUBMITTED") {
-      return mapKnownDomainError(
-        error,
-        { action: "submitQualityReviewAction" },
-      );
-    }
-    throw error;
-  }
+  const review = qualityReviewService.submit({
+    readingId: input.readingId,
+    userId: user.id,
+    reason: input.reason,
+  });
+  return ok({ reviewId: review.id, status: review.status, responseDueAt: review.responseDueAt });
 }
 
-// ---- 13. Deletion request (PRIV-002) ----
-async function requestCastingDeletionActionImpl(unknownInput: unknown): Promise<ActionResult<{ deleted: boolean }>> {
+// ---- 13. Deletion request and recovery (PRIV-002) ----
+async function requestCastingDeletionActionImpl(unknownInput: unknown): Promise<ActionResult<{ deleted: boolean; purgeAfter: Date }>> {
   const parsed = parseBoundaryInput(actionSchemas.castingId, unknownInput, "requestCastingDeletionAction");
   if (isActionFailure(parsed)) return parsed;
-  const input = parsed;
-  const anonHash = await getAnonymousHash();
   const user = await getCurrentUser();
-  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash))
-    return fail("CASTING_NOT_FOUND", "Casting session not found", false);
-  repo.requestCastingDeletion(input.castingId);
-  return ok({ deleted: true });
+  if (!user) return fail("AUTH_REQUIRED", "Please sign in", false);
+  const deleted = privacyService.requestDeletion(parsed.castingId, user.id);
+  return ok({ deleted: true, purgeAfter: deleted.purgeAfter! });
+}
+
+async function restoreCastingActionImpl(unknownInput: unknown): Promise<ActionResult<{ restored: boolean }>> {
+  const parsed = parseBoundaryInput(actionSchemas.castingId, unknownInput, "restoreCastingAction");
+  if (isActionFailure(parsed)) return parsed;
+  const user = await getCurrentUser();
+  if (!user) return fail("AUTH_REQUIRED", "Please sign in", false);
+  privacyService.restore(parsed.castingId, user.id);
+  return ok({ restored: true });
 }
 
 export const createCastingSessionAction = withActionErrorBoundary("createCastingSessionAction", createCastingSessionActionImpl);
 export const getCastingSummaryAction = withActionErrorBoundary("getCastingSummaryAction", getCastingSummaryActionImpl);
+export const getCastingSnapshotAction = withActionErrorBoundary("getCastingSnapshotAction", getCastingSnapshotActionImpl);
 export const signInAction = withActionErrorBoundary("signInAction", signInActionImpl);
 export const submitQuestionAction = withActionErrorBoundary("submitQuestionAction", submitQuestionActionImpl);
 export const clarifyQuestionAction = withActionErrorBoundary("clarifyQuestionAction", clarifyQuestionActionImpl);
@@ -485,3 +523,4 @@ export const simulatePaymentAction = withActionErrorBoundary("simulatePaymentAct
 export const startDeepReadingAction = withActionErrorBoundary("startDeepReadingAction", startDeepReadingActionImpl);
 export const submitQualityReviewAction = withActionErrorBoundary("submitQualityReviewAction", submitQualityReviewActionImpl);
 export const requestCastingDeletionAction = withActionErrorBoundary("requestCastingDeletionAction", requestCastingDeletionActionImpl);
+export const restoreCastingAction = withActionErrorBoundary("restoreCastingAction", restoreCastingActionImpl);
