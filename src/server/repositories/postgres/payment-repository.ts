@@ -4,6 +4,8 @@ import { entitlementExpiry, PRODUCTS } from "@/domain/entitlements/pricing";
 import type { PaymentEvent } from "@/server/payments/provider";
 import type { PaymentEventRepository } from "@/server/payments/payment-event-service";
 
+type PostgresJsonValue = Parameters<Sql["json"]>[0];
+
 function id(prefix: string): string {
   return `${prefix}_${randomUUID().replaceAll("-", "")}`;
 }
@@ -12,11 +14,12 @@ export class PostgresPaymentRepository implements PaymentEventRepository {
   constructor(private readonly sql: Sql) {}
 
   async claimEvent(event: PaymentEvent): Promise<boolean> {
+    const payload = JSON.parse(JSON.stringify(event.raw)) as PostgresJsonValue;
     const inserted = await this.sql`
       insert into webhook_inbox (
         provider, event_id, event_type, payload, signature_verified_at, created_at
       ) values (
-        'creem', ${event.providerEventId}, ${event.type}, ${this.sql.json(event.raw)}, now(), now()
+        'creem', ${event.providerEventId}, ${event.type}, ${this.sql.json(payload)}, now(), now()
       )
       on conflict (provider, event_id) do nothing
       returning event_id
@@ -29,7 +32,10 @@ export class PostgresPaymentRepository implements PaymentEventRepository {
       const [order] = await tx`select * from orders where id = ${event.orderId} for update`;
       if (!order) throw new Error("ORDER_NOT_FOUND");
       if (order.status === "paid") {
-        await this.markProcessed(tx, event);
+        await tx`
+          update webhook_inbox set processed_at = now(), processing_error_code = null
+          where provider = 'creem' and event_id = ${event.providerEventId}
+        `;
         return;
       }
       if (order.status !== "pending") throw new Error("ORDER_PAYMENT_STATE_INVALID");
@@ -39,29 +45,36 @@ export class PostgresPaymentRepository implements PaymentEventRepository {
       const product = PRODUCTS[order.product_id as keyof typeof PRODUCTS];
       if (!product) throw new Error("ORDER_PRODUCT_INVALID");
       const now = new Date();
-      const batchId = id("bat");
+      const proposedBatchId = id("bat");
       await tx`
         update orders set status = 'paid', provider_checkout_id = ${event.providerCheckoutId}, updated_at = ${now}
         where id = ${event.orderId}
       `;
-      await tx`
+      const insertedBatches = await tx`
         insert into entitlement_batches (
           id, user_id, product_id, amount_usd, quantity_total, quantity_available,
           quantity_reserved, quantity_consumed, quantity_revoked, expires_at,
           created_at, updated_at, order_id
         ) values (
-          ${batchId}, ${order.user_id}, ${order.product_id}, ${order.amount_usd},
+          ${proposedBatchId}, ${order.user_id}, ${order.product_id}, ${order.amount_usd},
           ${product.quantity}, ${product.quantity}, 0, 0, 0, ${entitlementExpiry(now)},
           ${now}, ${now}, ${event.orderId}
         )
         on conflict (order_id) where order_id is not null do nothing
+        returning id
       `;
+      const batchId = insertedBatches[0]?.id
+        ?? (await tx`select id from entitlement_batches where order_id = ${event.orderId}`)[0]?.id;
+      if (!batchId) throw new Error("ENTITLEMENT_BATCH_NOT_CREATED");
       await tx`
         insert into entitlement_ledger (id, batch_id, action, quantity, created_at)
         values (${`led_${event.providerEventId}`}, ${batchId}, 'grant', ${product.quantity}, ${now})
         on conflict (id) do nothing
       `;
-      await this.markProcessed(tx, event);
+      await tx`
+        update webhook_inbox set processed_at = now(), processing_error_code = null
+        where provider = 'creem' and event_id = ${event.providerEventId}
+      `;
     });
   }
 
@@ -111,14 +124,10 @@ export class PostgresPaymentRepository implements PaymentEventRepository {
           on conflict (provider_dispute_id) do nothing
         `;
       }
-      await this.markProcessed(tx, event);
+      await tx`
+        update webhook_inbox set processed_at = now(), processing_error_code = null
+        where provider = 'creem' and event_id = ${event.providerEventId}
+      `;
     });
-  }
-
-  private async markProcessed(tx: Sql, event: PaymentEvent): Promise<void> {
-    await tx`
-      update webhook_inbox set processed_at = now(), processing_error_code = null
-      where provider = 'creem' and event_id = ${event.providerEventId}
-    `;
   }
 }
