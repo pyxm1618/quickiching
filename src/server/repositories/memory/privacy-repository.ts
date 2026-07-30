@@ -1,4 +1,5 @@
-import type { CastingSession } from "../models";
+import { createHash } from "node:crypto";
+import type { AccountDeletionRequest, CastingSession } from "../models";
 import type { PrivacyRepository } from "../privacy-repository";
 import { snapshot } from "./snapshot";
 import { repositoryError, type MemoryStore } from "./store";
@@ -21,10 +22,7 @@ export class MemoryPrivacyRepository implements PrivacyRepository {
       if (!session) throw repositoryError("CASTING_NOT_FOUND");
       if (session.lifecycle !== "revealed") throw repositoryError("CASTING_NOT_DELETABLE");
       const now = requestedAt ? new Date(requestedAt) : new Date();
-      session.deletedAt = now;
-      session.purgeAfter = new Date(now.getTime() + RECOVERY_WINDOW_MS);
-      session.lifecycle = "user_deleted";
-      session.updatedAt = now;
+      this.markCastingDeleted(session, now);
       return snapshot(session);
     });
   }
@@ -53,10 +51,10 @@ export class MemoryPrivacyRepository implements PrivacyRepository {
   listRecoverableDeletedCasts(userId: string, now: Date): CastingSession[] {
     const sessions = [...this.store.castingSessions.values()].filter(
       (session) =>
-        session.userId === userId &&
-        session.deletedAt != null &&
-        session.purgeAfter != null &&
-        session.purgeAfter.getTime() > now.getTime(),
+        session.userId === userId
+        && session.deletedAt != null
+        && session.purgeAfter != null
+        && session.purgeAfter.getTime() > now.getTime(),
     );
     return snapshot(sessions);
   }
@@ -67,10 +65,109 @@ export class MemoryPrivacyRepository implements PrivacyRepository {
       for (const [castingId, session] of this.store.castingSessions.entries()) {
         if (!session.deletedAt || !session.purgeAfter || session.purgeAfter.getTime() > now.getTime()) continue;
         this.purgeCasting(castingId);
-        purged++;
+        purged += 1;
       }
       return purged;
     });
+  }
+
+  requestAccountDeletion(userId: string, now: Date): AccountDeletionRequest {
+    return this.store.withLock(() => {
+      const user = this.store.users.get(userId);
+      if (!user || user.anonymizedAt) throw new Error("ACCOUNT_NOT_FOUND");
+      const existing = this.store.accountDeletions.get(userId);
+      if (existing && !existing.restoredAt && !existing.purgedAt) return snapshot(existing);
+
+      const requestedAt = new Date(now);
+      const purgeAfter = new Date(requestedAt.getTime() + RECOVERY_WINDOW_MS);
+      const castingLifecycleSnapshot: AccountDeletionRequest["castingLifecycleSnapshot"] = {};
+      for (const session of this.store.castingSessions.values()) {
+        if (session.userId !== userId) continue;
+        castingLifecycleSnapshot[session.id] = session.lifecycle;
+        session.deletedAt = requestedAt;
+        session.purgeAfter = purgeAfter;
+        session.lifecycle = "user_deleted";
+        session.updatedAt = requestedAt;
+      }
+      for (const [sessionId, session] of this.store.sessions) {
+        if (session.userId === userId) this.store.sessions.delete(sessionId);
+      }
+      user.deletionRequestedAt = requestedAt;
+      const request: AccountDeletionRequest = {
+        userId,
+        requestedAt,
+        purgeAfter,
+        castingLifecycleSnapshot,
+        restoredAt: null,
+        purgedAt: null,
+      };
+      this.store.accountDeletions.set(userId, request);
+      return snapshot(request);
+    });
+  }
+
+  getAccountDeletion(userId: string): AccountDeletionRequest | undefined {
+    const request = this.store.accountDeletions.get(userId);
+    return request ? snapshot(request) : undefined;
+  }
+
+  restoreAccount(userId: string, now: Date): AccountDeletionRequest {
+    return this.store.withLock(() => {
+      const request = this.store.accountDeletions.get(userId);
+      const user = this.store.users.get(userId);
+      if (
+        !request
+        || !user
+        || request.restoredAt
+        || request.purgedAt
+        || request.purgeAfter.getTime() <= now.getTime()
+      ) {
+        throw new Error("ACCOUNT_DELETION_RECOVERY_CLOSED");
+      }
+      for (const [castingId, lifecycle] of Object.entries(request.castingLifecycleSnapshot)) {
+        const session = this.store.castingSessions.get(castingId);
+        if (!session || session.userId !== userId) continue;
+        session.lifecycle = lifecycle;
+        session.deletedAt = null;
+        session.purgeAfter = null;
+        session.updatedAt = new Date(now);
+      }
+      request.restoredAt = new Date(now);
+      user.deletionRequestedAt = null;
+      return snapshot(request);
+    });
+  }
+
+  purgeDeletedAccounts(now: Date): number {
+    return this.store.withLock(() => {
+      let purged = 0;
+      for (const request of this.store.accountDeletions.values()) {
+        if (request.restoredAt || request.purgedAt || request.purgeAfter.getTime() > now.getTime()) continue;
+        const user = this.store.users.get(request.userId);
+        if (!user) continue;
+        const castingIds = [...this.store.castingSessions.values()]
+          .filter((session) => session.userId === request.userId)
+          .map((session) => session.id);
+        for (const castingId of castingIds) this.purgeCasting(castingId);
+        for (const [sessionId, session] of this.store.sessions) {
+          if (session.userId === request.userId) this.store.sessions.delete(sessionId);
+        }
+        const subjectHash = createHash("sha256").update(request.userId).digest("hex").slice(0, 24);
+        user.email = `deleted-${subjectHash}@deleted.invalid`;
+        user.deletionRequestedAt = null;
+        user.anonymizedAt = new Date(now);
+        request.purgedAt = new Date(now);
+        purged += 1;
+      }
+      return purged;
+    });
+  }
+
+  private markCastingDeleted(session: CastingSession, now: Date): void {
+    session.deletedAt = new Date(now);
+    session.purgeAfter = new Date(now.getTime() + RECOVERY_WINDOW_MS);
+    session.lifecycle = "user_deleted";
+    session.updatedAt = new Date(now);
   }
 
   private purgeCasting(castingId: string): void {
