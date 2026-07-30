@@ -21,6 +21,7 @@ import {
 import type { CastingSnapshot } from "@/server/services/casting-snapshot-service";
 
 const CASTING_ID_STORAGE_KEY = "iching_casting_id";
+const ACTIVE_GENERATION_STATUSES = new Set(["queued", "generating", "reserved", "validating"]);
 
 type ControllerState = {
   phase: "input" | "ritual" | "reveal" | "result" | "crisis" | "expired";
@@ -32,7 +33,9 @@ type ControllerState = {
   completedSteps: number;
   totalSteps: number;
   result: CastingSnapshot["result"];
+  previewStatus: string;
   previewText: string | null;
+  readingStatus: string;
   readingReport: Record<string, unknown> | null;
   ianaTimeZone: string;
   error: string | null;
@@ -49,7 +52,9 @@ const initialState: ControllerState = {
   completedSteps: 0,
   totalSteps: 0,
   result: null,
+  previewStatus: "not_started",
   previewText: null,
+  readingStatus: "not_started",
   readingReport: null,
   ianaTimeZone: "America/New_York",
   error: null,
@@ -67,7 +72,9 @@ function stateFromSnapshot(previous: ControllerState, snapshot: CastingSnapshot)
     completedSteps: snapshot.progress.completedSteps,
     totalSteps: snapshot.progress.totalSteps,
     result: snapshot.result,
+    previewStatus: snapshot.preview?.status ?? "not_started",
     previewText: snapshot.preview?.relevanceStatement ?? null,
+    readingStatus: snapshot.reading?.status ?? "not_started",
     readingReport: snapshot.reading?.report ?? null,
     error: null,
     pending: false,
@@ -88,8 +95,7 @@ export function useCastingController(method: CastingMethod) {
       setState((current) => ({ ...current, castingId: null, phase: "input", pending: false }));
       return;
     }
-    const snapshot = loaded.value;
-    setState((current) => stateFromSnapshot(current, snapshot));
+    setState((current) => stateFromSnapshot(current, loaded.value));
   }, [method]);
 
   useEffect(() => {
@@ -100,6 +106,15 @@ export function useCastingController(method: CastingMethod) {
     const castingId = sessionStorage.getItem(CASTING_ID_STORAGE_KEY);
     if (castingId) void refresh(castingId);
   }, [refresh]);
+
+  useEffect(() => {
+    if (!state.castingId) return;
+    const active = ACTIVE_GENERATION_STATUSES.has(state.previewStatus)
+      || ACTIVE_GENERATION_STATUSES.has(state.readingStatus);
+    if (!active) return;
+    const interval = window.setInterval(() => void refresh(state.castingId!), 2_000);
+    return () => window.clearInterval(interval);
+  }, [refresh, state.castingId, state.previewStatus, state.readingStatus]);
 
   const run = useCallback(async (operation: () => Promise<void>) => {
     setState((current) => ({ ...current, pending: true, error: null }));
@@ -133,9 +148,7 @@ export function useCastingController(method: CastingMethod) {
     if (!state.castingId) return;
     await run(async () => {
       if (method === "three_coin") {
-        const result = await generateThreeCoinLineAction({
-          castingId: state.castingId!, lineIndex: state.completedSteps,
-        });
+        const result = await generateThreeCoinLineAction({ castingId: state.castingId!, lineIndex: state.completedSteps });
         if (!result.ok) throw new Error(errorMessage(result));
       } else if (method === "yarrow_stalk") {
         const result = await generateYarrowChangeAction({
