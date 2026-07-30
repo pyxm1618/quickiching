@@ -19,16 +19,35 @@ const step = (lineIndex: number, changeIndex: number | null = null): CastingStep
 });
 
 describe("casting guards", () => {
-  it("rejects a casting mutation without an accepted question", () => {
+  it("rejects a casting mutation without a persisted question", () => {
     expect(() => assertCastingMutationAllowed(session({ currentQuestionVersionId: null }), "three_coin", new Date())).toThrow("QUESTION_REQUIRED");
   });
+
+  it("allows the ritual for a professional-decision question on the classic-only path", () => {
+    expect(() => assertCastingMutationAllowed(
+      session({ riskStatus: "professional_decision_blocked" }),
+      "three_coin",
+      new Date(),
+    )).not.toThrow();
+  });
+
+  it("rejects the ritual while clarification is still required", () => {
+    expect(() => assertCastingMutationAllowed(
+      session({ riskStatus: "needs_clarification" }),
+      "three_coin",
+      new Date(),
+    )).toThrow("RISK_CLARIFICATION_REQUIRED");
+  });
+
   it("rejects an expired session before a new random step", () => {
     expect(() => assertCastingMutationAllowed(session({ castingExpiresAt: new Date(Date.now() - 1) }), "three_coin", new Date())).toThrow("CASTING_EXPIRED");
   });
+
   it("accepts only the first missing coin line", () => {
     expect(nextMissingCoinLine([step(0), step(1)])).toBe(2);
     expect(nextMissingCoinLine([step(0), step(2)])).toBe(1);
   });
+
   it("accepts yarrow changes in one global order", () => {
     expect(nextYarrowCoordinate([step(0, 0), step(0, 1)])).toEqual({ lineIndex: 0, changeIndex: 2 });
     expect(nextYarrowCoordinate([step(0, 0), step(0, 1), step(0, 2)])).toEqual({ lineIndex: 1, changeIndex: 0 });
