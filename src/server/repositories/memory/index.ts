@@ -13,6 +13,7 @@ import { createMemoryIdentityRepository } from "./identity-repository";
 import { MemoryPrivacyRepository } from "./privacy-repository";
 import { MemoryReadingRepository } from "./reading-repository";
 import { MemoryRevealRepository } from "./reveal-repository";
+import { withMemoryCastResultIntegrity } from "./result-integrity-repository";
 import { MemoryReviewRepository } from "./review-repository";
 import { MemoryStore } from "./store";
 
@@ -106,8 +107,9 @@ function createFacade(
 }
 
 export function createMemoryRepositories(store = new MemoryStore()): MemoryRepositories {
+  const rawCastingRepository = new MemoryCastingRepository(store);
+  const castingRepository = withMemoryCastResultIntegrity(rawCastingRepository, store);
   const identityRepository = createMemoryIdentityRepository(store);
-  const castingRepository = new MemoryCastingRepository(store);
   const revealAdapter = new MemoryRevealRepository(store);
   const readingRepository = new MemoryReadingRepository(store);
   const entitlementRepository = new MemoryEntitlementRepository(store);
