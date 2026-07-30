@@ -5,8 +5,8 @@ export interface ReviewRepository {
     readingId: string;
     userId: string;
     reason: string;
-    responseDueAt: Date;
-    now: Date;
+    responseDueAt?: Date;
+    now?: Date;
   }): QualityReview;
   getQualityReview(reviewId: string): QualityReview | undefined;
   supplementQualityReview(input: {
@@ -21,4 +21,5 @@ export interface ReviewRepository {
     compensationBatchId: string | null;
     now: Date;
   }): QualityReview;
+  decideQualityReview(reviewId: string, approved: boolean): QualityReview;
 }
