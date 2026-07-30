@@ -33,7 +33,7 @@ describe("memory privacy repository characterization", () => {
 describe("memory privacy repository audited defects", () => {
   it("purges every cast-owned record while retaining identity and financial records", () => {
     const store = new MemoryStore();
-    const { repo: isolated } = createMemoryRepositories(store);
+    const { repo: isolated, loginIntentRepository } = createMemoryRepositories(store);
     const user = isolated.createUser(`complete-purge-${crypto.randomUUID()}@example.com`);
     isolated.createSession(user.id);
     const casting = isolated.createCastingSession({
@@ -48,6 +48,15 @@ describe("memory privacy repository audited defects", () => {
     isolated.saveStep({ castingSessionId: casting.id, stepKind: "coin", lineIndex: 0, changeIndex: null, rawRecord: { nested: true }, lineValue: 7 });
     isolated.saveCastResult({ castingSessionId: casting.id, lineValues: [7, 7, 7, 7, 7, 7], methodCalculation: { private: true } });
     isolated.transitionCasting(casting.id, "revealed");
+    loginIntentRepository.createLoginIntent({
+      castingSessionId: casting.id,
+      anonymousSessionHash: "historical-anonymous-owner",
+      nonceHash: "hashed-nonce",
+      nonceKeyVersion: "v1",
+      allowedCallbackPath: `/result/${casting.id}`,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
     isolated.savePreviewSuccess(casting.id, "preview");
     const reading = isolated.getOrCreateReading(casting.id);
     isolated.grantEntitlement({ userId: user.id, productId: "one", quantity: 1, amountUsd: 2.99 });
@@ -62,6 +71,7 @@ describe("memory privacy repository audited defects", () => {
     expect(isolated.purgeDeletedCasts(new Date(Date.now() + 31 * 24 * 3600 * 1000))).toBe(1);
 
     expect(store.castingSessions.size).toBe(0);
+    expect(store.loginIntents.size).toBe(0);
     expect(store.questionVersions.size).toBe(0);
     expect(store.castingSteps.size).toBe(0);
     expect(store.castResults.size).toBe(0);
@@ -90,9 +100,6 @@ describe("memory privacy repository audited defects", () => {
       fingerprint,
       keyVersion: "v1",
       winningCastingId: `replacement-${crypto.randomUUID()}`,
-      // The repository accepts an explicit transaction clock. Re-check inside
-      // the original 72-hour window so an undeleted lock cannot pass merely by
-      // expiring naturally during the 30-day recovery period.
       now: new Date(now.getTime() + 60 * 60 * 1000),
     }).won).toBe(true);
   });
