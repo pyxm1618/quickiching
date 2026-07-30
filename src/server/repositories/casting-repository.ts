@@ -43,6 +43,7 @@ export interface CastingRepository {
     reason: string;
   }): Readonly<QuestionVersion>;
   getLatestQuestionContext(castingSessionId: string): string;
+  getQuestionVersionCount(castingSessionId: string): number;
   saveStep(input: {
     castingSessionId: string;
     stepKind: string;
