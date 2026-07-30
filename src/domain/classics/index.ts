@@ -8,10 +8,10 @@ export const CLASSIC_SOURCE = {
   translator: "James Legge",
   publicationYear: 1899,
   series: "Sacred Books of the East, Volume 16",
-  rightsStatus: "public_domain_source" as const,
+  rightsStatus: "public_domain_source",
   provenanceUrl: "https://archive.org/details/sacredbooksofchi16legg",
   note: "Controlled source metadata and reference identifiers; interpretive prose is generated separately and never represented as a quotation.",
-};
+} as const;
 
 export type ClassicHexagramRecord = {
   sourceVersion: typeof CLASSIC_SOURCE.version;
