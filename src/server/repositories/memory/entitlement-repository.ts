@@ -18,7 +18,14 @@ export class MemoryEntitlementRepository implements EntitlementRepository {
     return snapshot(this.ownedBatches(userId));
   }
 
-  grantEntitlement(input: { userId: string; productId: string; quantity: number; amountUsd: number }): EntitlementBatch {
+  grantEntitlement(input: {
+    userId: string;
+    productId: string;
+    quantity: number;
+    amountUsd: number;
+    orderId?: string | null;
+    reviewId?: string | null;
+  }): EntitlementBatch {
     return this.store.withLock(() => {
       const now = new Date();
       const batch: EntitlementBatch = {
@@ -36,6 +43,8 @@ export class MemoryEntitlementRepository implements EntitlementRepository {
         batchId: batch.id,
         action: input.productId === "quality-review-compensation" ? "compensate" : "grant",
         quantity: input.quantity,
+        orderId: input.orderId ?? null,
+        reviewId: input.reviewId ?? null,
         createdAt: now,
       });
       void input.amountUsd;
@@ -61,15 +70,12 @@ export class MemoryEntitlementRepository implements EntitlementRepository {
     return this.store.withLock(() => this.releaseReservationInTransaction(reservationId, expired, now));
   }
 
-  /** @internal Used only by the memory composition coordinator inside one store lock. */
   freezeForReadingInTransaction(readingId: string, userId: string, now: Date): { reservationId: string } | { error: string } {
     const activeId = this.activeOrCompletedReservationId(readingId);
     if (activeId) return { reservationId: activeId };
     const transactionNow = new Date(now);
     const frozen = freezeOne(this.ownedBatches(userId), transactionNow, readingId, memoryId("led"));
     if (frozen.kind === "unavailable") return { error: "ENTITLEMENT_NOT_AVAILABLE" };
-    this.store.entitlementBatches.set(frozen.batch.id, cloneForStorage(frozen.batch));
-    this.store.entitlementLedger.push(cloneForStorage(frozen.entry));
     const reservation: Reservation = {
       id: memoryId("res"),
       readingId,
@@ -78,11 +84,14 @@ export class MemoryEntitlementRepository implements EntitlementRepository {
       createdAt: transactionNow,
       updatedAt: transactionNow,
     };
+    frozen.entry.readingId = readingId;
+    frozen.entry.reservationId = reservation.id;
+    this.store.entitlementBatches.set(frozen.batch.id, cloneForStorage(frozen.batch));
+    this.store.entitlementLedger.push(cloneForStorage(frozen.entry));
     this.store.reservations.set(reservation.id, reservation);
     return { reservationId: reservation.id };
   }
 
-  /** @internal Used only by the memory composition coordinator inside one store lock. */
   consumeReservationInTransaction(reservationId: string, now: Date): { readingId: string; changed: boolean } {
     const reservation = this.requireReservation(reservationId);
     if (reservation.status === "consumed") return { readingId: reservation.readingId, changed: false };
@@ -91,6 +100,8 @@ export class MemoryEntitlementRepository implements EntitlementRepository {
     if (!batch) throw new Error("BATCH_NOT_FOUND");
     const transactionNow = new Date(now);
     const consumed = consumeReserved(batch, reservationId, memoryId("led"), transactionNow);
+    consumed.entry.readingId = reservation.readingId;
+    consumed.entry.reservationId = reservation.id;
     this.store.entitlementBatches.set(batch.id, cloneForStorage(consumed.batch));
     this.store.entitlementLedger.push(cloneForStorage(consumed.entry));
     reservation.status = "consumed";
@@ -98,7 +109,6 @@ export class MemoryEntitlementRepository implements EntitlementRepository {
     return { readingId: reservation.readingId, changed: true };
   }
 
-  /** @internal Used only by the memory composition coordinator inside one store lock. */
   releaseReservationInTransaction(
     reservationId: string,
     expired: boolean,
@@ -110,6 +120,8 @@ export class MemoryEntitlementRepository implements EntitlementRepository {
     if (!batch) throw new Error("BATCH_NOT_FOUND");
     const transactionNow = new Date(now);
     const released = releaseReserved(batch, memoryId("led"), transactionNow, expired);
+    released.entry.readingId = reservation.readingId;
+    released.entry.reservationId = reservation.id;
     this.store.entitlementBatches.set(batch.id, cloneForStorage(released.batch));
     this.store.entitlementLedger.push(cloneForStorage(released.entry));
     reservation.status = expired ? "expired" : "released";
