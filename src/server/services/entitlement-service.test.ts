@@ -70,17 +70,15 @@ describe("EntitlementService", () => {
 
   it("releases an unexpired reservation and revokes an expired reservation", () => {
     const { repositories, user, service } = fixture();
-    const createReading = () => {
-      const casting = repositories.castingRepository.createCastingSession({
-        method: "three_coin",
-        scene: "career",
-        interpretationGoal: "what_do_i_need_to_see_clearly",
-        userId: user.id,
-        anonHash: null,
-        algorithmVersion: "three-coin-v1",
-      });
-      return repositories.readingRepository.getOrCreateReading(casting.id);
-    };
+    const casting = repositories.castingRepository.createCastingSession({
+      method: "three_coin",
+      scene: "career",
+      interpretationGoal: "what_do_i_need_to_see_clearly",
+      userId: user.id,
+      anonHash: null,
+      algorithmVersion: "three-coin-v1",
+    });
+    const reading = repositories.readingRepository.getOrCreateReading(casting.id);
     repositories.entitlementRepository.grantEntitlement({
       userId: user.id,
       productId: "two-test",
@@ -88,9 +86,9 @@ describe("EntitlementService", () => {
       amountUsd: 5.98,
     });
 
-    const first = service.reserveForReading(createReading().id, user.id);
+    const first = service.reserveForReading(reading.id, user.id);
     expect(service.release(first.reservationId, false).changed).toBe(true);
-    const second = service.reserveForReading(createReading().id, user.id);
+    const second = service.reserveForReading(reading.id, user.id);
     expect(service.release(second.reservationId, true).changed).toBe(true);
 
     expect(repositories.entitlementRepository.getBatches(user.id)[0]).toMatchObject({
