@@ -32,6 +32,7 @@ export const actionSchemas = {
   castingId: z.object({ castingId }),
   signIn: z.object({ email }),
   submitQuestion: z.object({ castingId, context: questionContext }),
+  clarifyQuestion: z.object({ castingId, context: questionContext }),
   generateThreeCoinLine: z.object({ castingId, lineIndex: z.number().int().min(0).max(5) }),
   generateYarrowChange: z.object({
     castingId,
