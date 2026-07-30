@@ -38,8 +38,5 @@ export function hasDirectInvestmentDecision(text: string): boolean {
 }
 
 export function hasDirectLegalDecision(text: string): boolean {
-  return LEGAL_OBJECT.test(text) && (
-    appearsNear(text, LEGAL_OBJECT, LEGAL_ACTION)
-    || GENERAL_DECISION_REQUEST.test(text) && /\b(?:divorce|lawsuit|custody|court|criminal case)\b/i.test(text)
-  );
+  return LEGAL_OBJECT.test(text) && appearsNear(text, LEGAL_OBJECT, LEGAL_ACTION);
 }
