@@ -1,5 +1,6 @@
 import type { CastingRepository } from "../casting-repository";
 import type { EntitlementRepository } from "../entitlement-repository";
+import type { HistoryRepository } from "../history-repository";
 import type { IdentityRepository } from "../identity-repository";
 import type { LoginIntentRepository } from "../login-intent-repository";
 import type { PrivacyRepository } from "../privacy-repository";
@@ -9,6 +10,7 @@ import type { ReviewRepository } from "../review-repository";
 import { MemoryCastingRepository } from "./casting-repository";
 import { MemoryRepositoryCoordinator } from "./coordinator";
 import { MemoryEntitlementRepository } from "./entitlement-repository";
+import { MemoryHistoryRepository } from "./history-repository";
 import { createMemoryIdentityRepository } from "./identity-repository";
 import { MemoryPrivacyRepository } from "./privacy-repository";
 import { MemoryReadingRepository } from "./reading-repository";
@@ -27,6 +29,7 @@ export type RepositoryFacade = IdentityRepository &
   EntitlementRepository &
   ReviewRepository &
   PrivacyRepository &
+  HistoryRepository &
   LegacyRepositoryCoordinator;
 
 export type MemoryRepositories = {
@@ -38,6 +41,7 @@ export type MemoryRepositories = {
   entitlementRepository: EntitlementRepository;
   reviewRepository: ReviewRepository;
   privacyRepository: PrivacyRepository;
+  historyRepository: HistoryRepository;
   repo: RepositoryFacade;
 };
 
@@ -48,6 +52,7 @@ function createFacade(
   entitlement: EntitlementRepository,
   review: ReviewRepository,
   privacy: PrivacyRepository,
+  history: HistoryRepository,
   coordinator: MemoryRepositoryCoordinator,
 ): RepositoryFacade {
   return {
@@ -105,6 +110,11 @@ function createFacade(
     restoreCasting: (castingId, userId, now) => privacy.restoreCasting(castingId, userId, now),
     listRecoverableDeletedCasts: (userId, now) => privacy.listRecoverableDeletedCasts(userId, now),
     purgeDeletedCasts: (now) => privacy.purgeDeletedCasts(now),
+    requestAccountDeletion: (userId, now) => privacy.requestAccountDeletion(userId, now),
+    getAccountDeletion: (userId) => privacy.getAccountDeletion(userId),
+    restoreAccount: (userId, now) => privacy.restoreAccount(userId, now),
+    purgeDeletedAccounts: (now) => privacy.purgeDeletedAccounts(now),
+    queryHistory: (input) => history.queryHistory(input),
     completeReadingConsume: (reservationId, report) => coordinator.completeReadingConsume(reservationId, report),
     releaseReading: (reservationId, expired) => coordinator.releaseReading(reservationId, expired),
   };
@@ -118,6 +128,7 @@ export function createMemoryRepositories(store = new MemoryStore()): MemoryRepos
   const entitlementRepository = new MemoryEntitlementRepository(store);
   const reviewRepository = new MemoryReviewRepository(store);
   const privacyRepository = new MemoryPrivacyRepository(store);
+  const historyRepository = new MemoryHistoryRepository(store, castingRepository);
   const coordinator = new MemoryRepositoryCoordinator(store, readingRepository, entitlementRepository);
   return {
     identityRepository,
@@ -128,6 +139,7 @@ export function createMemoryRepositories(store = new MemoryStore()): MemoryRepos
     entitlementRepository,
     reviewRepository,
     privacyRepository,
+    historyRepository,
     repo: createFacade(
       identityRepository,
       castingRepository,
@@ -135,6 +147,7 @@ export function createMemoryRepositories(store = new MemoryStore()): MemoryRepos
       entitlementRepository,
       reviewRepository,
       privacyRepository,
+      historyRepository,
       coordinator,
     ),
   };
