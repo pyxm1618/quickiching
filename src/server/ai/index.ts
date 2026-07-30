@@ -1,11 +1,10 @@
 import type { HexagramResult, InterpretationGoal, Scene } from "@/domain/casting/types";
-import { generateLocalPreview, generateLocalReading } from "./local-adapter";
+import { evaluateRisk } from "@/domain/risk/engine";
 import type { PreviewOutput, ReadingReport } from "@/domain/readings/types";
+import { DomainError } from "@/server/errors/domain-error";
 import { runtimeConfig } from "@/server/config";
-
-// Adapter dispatch. Production target is AI SDK v6 + AI Gateway (G-06 pending). Until that is
-// configured and passes the golden-standard eval, the deterministic local generator is used so
-// the full flow runs offline. The interface is intentionally thin (§4.3 allowed boundaries).
+import { generateLocalPreview, generateLocalReading } from "./local-adapter";
+import { validatePreviewOutput, validateReadingReport } from "./output-validator";
 
 export type GenerationInput = {
   result: HexagramResult;
@@ -14,19 +13,39 @@ export type GenerationInput = {
   context: string;
 };
 
+function assertPersonalizedGenerationAllowed(input: GenerationInput): void {
+  const decision = evaluateRisk(input.context, input.scene);
+  if (decision.status !== "allowed") {
+    throw new DomainError(
+      "RISK_BLOCKED",
+      "Personalized generation is not available for this question.",
+      false,
+    );
+  }
+}
+
 export async function runPreview(input: GenerationInput): Promise<PreviewOutput> {
+  assertPersonalizedGenerationAllowed(input);
   const config = runtimeConfig();
   if (config.ai !== "local") throw new Error("AI_SDK_PATH_NOT_CONFIGURED");
-  return generateLocalPreview({ result: input.result, scene: input.scene, context: input.context });
+  const output = validatePreviewOutput(
+    generateLocalPreview({ result: input.result, scene: input.scene, context: input.context }),
+    input,
+  );
+  assertPersonalizedGenerationAllowed(input);
+  return output;
 }
 
 export async function runReading(input: GenerationInput): Promise<ReadingReport> {
+  assertPersonalizedGenerationAllowed(input);
   const config = runtimeConfig();
   if (config.ai !== "local") throw new Error("AI_SDK_PATH_NOT_CONFIGURED");
-  return generateLocalReading({
+  const output = validateReadingReport(generateLocalReading({
     result: input.result,
     scene: input.scene,
     goal: input.interpretationGoal,
     context: input.context,
-  });
+  }), input);
+  assertPersonalizedGenerationAllowed(input);
+  return output;
 }
