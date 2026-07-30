@@ -603,7 +603,7 @@ export class PostgresApplicationRuntime {
     }
   }
 
-  private async markIrreversible(tx: Sql, casting: Record<string, unknown>, now: Date): Promise<void> {
+  private async markIrreversible(tx: any, casting: Record<string, any>, now: Date): Promise<void> {
     if (casting.first_irreversible_step_at == null) {
       await tx`
         update casting_sessions set lifecycle = 'casting', first_irreversible_step_at = ${now},
@@ -616,8 +616,8 @@ export class PostgresApplicationRuntime {
   }
 
   private async persistResult(
-    tx: Sql,
-    casting: Record<string, unknown>,
+    tx: any,
+    casting: Record<string, any>,
     lineValues: LineValue[],
     methodCalculation: unknown,
     now: Date,
@@ -654,7 +654,7 @@ export class PostgresApplicationRuntime {
     `;
   }
 
-  private async readQuestion(tx: Sql, casting: Record<string, unknown>): Promise<string> {
+  private async readQuestion(tx: any, casting: Record<string, any>): Promise<string> {
     const rows = await tx`select * from question_versions where id = ${casting.current_question_version_id}`;
     const question = rows[0];
     if (!question) return "";
