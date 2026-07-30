@@ -7,7 +7,13 @@ const auth = vi.hoisted(() => ({
 }));
 const repository = vi.hoisted(() => ({
   ownsCasting: vi.fn(),
+  getCastingSession: vi.fn(),
+}));
+const privacyRepository = vi.hoisted(() => ({
   requestCastingDeletion: vi.fn(),
+  listRecoverableDeletedCasts: vi.fn(),
+  restoreCasting: vi.fn(),
+  purgeDeletedCasts: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -21,22 +27,32 @@ vi.mock("@/server/repository", () => ({
   castingRepository: repository,
   loginIntentRepository: {},
   revealRepository: {},
+  readingRepository: {},
+  entitlementRepository: {},
+  reviewRepository: {},
+  privacyRepository,
 }));
 
 import { requestCastingDeletionAction } from "./actions";
 
 const castingId = "cas_0123456789abcdef01234567";
+const user = { id: "usr_test", email: "test@example.com" };
 
 describe("requestCastingDeletionAction error boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     auth.getAnonymousHash.mockResolvedValue("anon");
-    auth.getCurrentUser.mockResolvedValue(null);
+    auth.getCurrentUser.mockResolvedValue(user);
     repository.ownsCasting.mockReturnValue(true);
+    repository.getCastingSession.mockReturnValue({
+      id: castingId,
+      userId: user.id,
+      lifecycle: "revealed",
+    });
   });
 
   it("maps a known repository state failure to a safe action result", async () => {
-    repository.requestCastingDeletion.mockImplementation(() => {
+    privacyRepository.requestCastingDeletion.mockImplementation(() => {
       throw new DomainError("CASTING_NOT_DELETABLE", "This casting cannot be deleted in its current state.", false);
     });
 
@@ -53,7 +69,7 @@ describe("requestCastingDeletionAction error boundary", () => {
   it("logs only safe context then rethrows an unexpected repository failure", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const unexpected = new TypeError("CASTING_NOT_DELETABLE");
-    repository.requestCastingDeletion.mockImplementation(() => {
+    privacyRepository.requestCastingDeletion.mockImplementation(() => {
       throw unexpected;
     });
 
