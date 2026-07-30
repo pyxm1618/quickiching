@@ -4,6 +4,11 @@ import { withWorkflow } from "workflow/next";
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // @vercel/oidc pulls in Vercel CLI credential discovery and env-paths.
+  // Keeping it external preserves normal Node process metadata in the
+  // generated Workflow route instead of evaluating env-paths inside the
+  // Next.js page-data build worker.
+  serverExternalPackages: ["@vercel/oidc"],
   async headers() {
     return [
       {
