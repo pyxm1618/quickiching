@@ -1,14 +1,14 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { randomToken, signCookie, verifyCookie, hmac } from "@/lib/crypto";
 import { repo } from "@/server/repository";
-
-// Dev/In-memory auth. Production target is Better Auth (Google OAuth + Magic Link), which
-// requires OAuth credentials and an email provider (D0 Provisional). This module keeps the
-// full flow runnable locally and uses the same cookie/session shape the production layer will.
 
 const ANON_COOKIE = "iching_anon";
 const SESSION_COOKIE = "iching_session";
 const ANON_KEY_VERSION = "v1";
+
+function productionAuthEnabled(): boolean {
+  return process.env.AUTH_ADAPTER_MODE === "better-auth";
+}
 
 export async function getOrCreateAnonymousHash(): Promise<string> {
   const store = await cookies();
@@ -38,6 +38,13 @@ export async function getAnonymousHash(): Promise<string | null> {
 }
 
 export async function getCurrentUser(): Promise<{ id: string; email: string } | null> {
+  if (productionAuthEnabled()) {
+    const { getProductionAuth } = await import("@/lib/auth/production-auth");
+    const auth = await getProductionAuth();
+    const session = await auth.api.getSession({ headers: await headers() });
+    return session?.user ? { id: session.user.id, email: session.user.email } : null;
+  }
+
   const store = await cookies();
   const raw = store.get(SESSION_COOKIE)?.value;
   if (!raw) return null;
@@ -51,6 +58,7 @@ export async function getCurrentUser(): Promise<{ id: string; email: string } | 
 }
 
 export async function devSignIn(email: string): Promise<{ id: string; email: string }> {
+  if (productionAuthEnabled()) throw new Error("DEV_SIGN_IN_DISABLED");
   let user = repo.getUserByEmail(email);
   if (!user) user = repo.createUser(email);
   const session = repo.createSession(user.id);
@@ -66,6 +74,12 @@ export async function devSignIn(email: string): Promise<{ id: string; email: str
 }
 
 export async function signOut(): Promise<void> {
+  if (productionAuthEnabled()) {
+    const { getProductionAuth } = await import("@/lib/auth/production-auth");
+    const auth = await getProductionAuth();
+    await auth.api.signOut({ headers: await headers() });
+    return;
+  }
   const store = await cookies();
   store.delete(SESSION_COOKIE);
 }
