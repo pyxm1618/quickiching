@@ -24,6 +24,7 @@ export type AccountDeletionRequest = {
   userId: string;
   requestedAt: Date;
   purgeAfter: Date;
+  castingLifecycleSnapshot: Record<string, CastingLifecycle>;
   restoredAt: Date | null;
   purgedAt: Date | null;
 };
@@ -34,6 +35,8 @@ export type LoginIntent = {
   anonymousSessionHash: string;
   nonceHash: string;
   nonceKeyVersion: string;
+  expectedEmailHash: string | null;
+  expectedEmailKeyVersion: string | null;
   allowedCallbackPath: string;
   expiresAt: Date;
   consumedAt: Date | null;
@@ -107,6 +110,7 @@ export type CastResult = {
   relatingHexagramNumber: number | null;
   methodCalculation: unknown;
   resultHmac: string;
+  resultHmacKeyVersion?: string;
   algorithmVersion: string;
   classicMappingVersion: string;
   createdAt: Date;
