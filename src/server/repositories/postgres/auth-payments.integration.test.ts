@@ -7,6 +7,8 @@ import { PostgresPaymentRepository } from "./payment-repository";
 const databaseUrl = process.env.POSTGRES_TEST_URL;
 const describePostgres = databaseUrl ? describe : describe.skip;
 
+type ColumnRow = { table_name: string; column_name: string };
+
 describePostgres("PostgreSQL auth and payment boundaries", () => {
   let sql: Sql;
 
@@ -31,7 +33,12 @@ describePostgres("PostgreSQL auth and payment boundaries", () => {
         and table_name in ('auth_users', 'auth_sessions', 'auth_accounts', 'auth_verifications')
       order by table_name, column_name
     `;
-    const byTable = Map.groupBy(columns, (row) => String(row.table_name));
+    const byTable = new Map<string, ColumnRow[]>();
+    for (const row of columns as unknown as ColumnRow[]) {
+      const group = byTable.get(row.table_name) ?? [];
+      group.push(row);
+      byTable.set(row.table_name, group);
+    }
 
     expect(byTable.get("auth_users")?.map((row) => row.column_name)).toEqual(expect.arrayContaining([
       "id", "name", "email", "email_verified", "image", "created_at", "updated_at",
