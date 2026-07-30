@@ -3,6 +3,8 @@ import type { PrivacyRepository } from "../privacy-repository";
 import { snapshot } from "./snapshot";
 import { repositoryError, type MemoryStore } from "./store";
 
+const RECOVERY_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
 export class MemoryPrivacyRepository implements PrivacyRepository {
   constructor(private readonly store: MemoryStore) {}
 
@@ -13,15 +15,38 @@ export class MemoryPrivacyRepository implements PrivacyRepository {
     return snapshot(sessions);
   }
 
-  requestCastingDeletion(castingId: string): void {
-    const session = this.store.castingSessions.get(castingId);
-    if (!session) throw repositoryError("CASTING_NOT_FOUND");
-    if (session.lifecycle !== "revealed") throw repositoryError("CASTING_NOT_DELETABLE");
-    const now = new Date();
-    session.deletedAt = now;
-    session.purgeAfter = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
-    session.lifecycle = "user_deleted";
-    session.updatedAt = now;
+  requestCastingDeletion(castingId: string, now: Date): CastingSession {
+    return this.store.withLock(() => {
+      const session = this.store.castingSessions.get(castingId);
+      if (!session) throw repositoryError("CASTING_NOT_FOUND");
+      if (session.lifecycle !== "revealed") throw repositoryError("CASTING_NOT_DELETABLE");
+      session.deletedAt = new Date(now);
+      session.purgeAfter = new Date(now.getTime() + RECOVERY_WINDOW_MS);
+      session.lifecycle = "user_deleted";
+      session.updatedAt = new Date(now);
+      return snapshot(session);
+    });
+  }
+
+  restoreCasting(castingId: string, userId: string, now: Date): CastingSession {
+    return this.store.withLock(() => {
+      const session = this.store.castingSessions.get(castingId);
+      if (
+        !session
+        || session.userId !== userId
+        || session.lifecycle !== "user_deleted"
+        || !session.deletedAt
+        || !session.purgeAfter
+        || session.purgeAfter.getTime() <= now.getTime()
+      ) {
+        throw new Error("DELETION_RECOVERY_CLOSED");
+      }
+      session.deletedAt = null;
+      session.purgeAfter = null;
+      session.lifecycle = "revealed";
+      session.updatedAt = new Date(now);
+      return snapshot(session);
+    });
   }
 
   listRecoverableDeletedCasts(userId: string, now: Date): CastingSession[] {
@@ -36,13 +61,15 @@ export class MemoryPrivacyRepository implements PrivacyRepository {
   }
 
   purgeDeletedCasts(now: Date): number {
-    let purged = 0;
-    for (const [castingId, session] of this.store.castingSessions.entries()) {
-      if (!session.deletedAt || !session.purgeAfter || session.purgeAfter.getTime() > now.getTime()) continue;
-      this.purgeCasting(castingId);
-      purged++;
-    }
-    return purged;
+    return this.store.withLock(() => {
+      let purged = 0;
+      for (const [castingId, session] of this.store.castingSessions.entries()) {
+        if (!session.deletedAt || !session.purgeAfter || session.purgeAfter.getTime() > now.getTime()) continue;
+        this.purgeCasting(castingId);
+        purged++;
+      }
+      return purged;
+    });
   }
 
   private purgeCasting(castingId: string): void {
