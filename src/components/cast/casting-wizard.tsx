@@ -54,7 +54,9 @@ export function CastingWizard({ method }: { method: CastingMethod }) {
       <ResultStep
         result={state.result}
         riskStatus={state.riskStatus}
+        previewStatus={state.previewStatus}
         previewText={state.previewText}
+        readingStatus={state.readingStatus}
         readingReport={state.readingReport}
         pending={state.pending}
         onPreview={controller.generatePreview}
