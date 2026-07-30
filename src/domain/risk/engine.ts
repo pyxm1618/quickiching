@@ -79,6 +79,15 @@ export function evaluateRisk(rawQuestion: string, _scene: Scene): RiskDecision {
     };
   }
 
+  if (hasProfessionalObject && VAGUE_HIGH_RISK_REQUEST.test(text)) {
+    return {
+      status: "needs_clarification",
+      ruleVersion: RISK_RULE_VERSION,
+      matchedRuleCodes: [...codes, "ambiguous_professional_context"],
+      reasonCode: "high_risk_ambiguous_request",
+    };
+  }
+
   if (hasProfessionalObject && GENERAL_DECISION_REQUEST.test(text) && !hasEmploymentOrProjectContext) {
     const kind = hasMedical ? "medical" : hasInvestment ? "investment" : "legal";
     return {
@@ -86,15 +95,6 @@ export function evaluateRisk(rawQuestion: string, _scene: Scene): RiskDecision {
       ruleVersion: RISK_RULE_VERSION,
       matchedRuleCodes: [...codes, "general_professional_decision_request"],
       reasonCode: `professional_decision_${kind}`,
-    };
-  }
-
-  if (hasProfessionalObject && VAGUE_HIGH_RISK_REQUEST.test(text)) {
-    return {
-      status: "needs_clarification",
-      ruleVersion: RISK_RULE_VERSION,
-      matchedRuleCodes: [...codes, "ambiguous_professional_context"],
-      reasonCode: "high_risk_ambiguous_request",
     };
   }
 
