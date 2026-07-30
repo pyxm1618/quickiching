@@ -1,49 +1,49 @@
-import type { QualityReview } from "../models";
+import type { QualityReview, Reading } from "../models";
 import type { ReviewRepository } from "../review-repository";
 import { snapshot } from "./snapshot";
 import { memoryId, repositoryError, type MemoryStore } from "./store";
 
-const RESPONSE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
-
-type ReviewDecisionInput = {
-  reviewId: string;
-  approved: boolean;
-  compensationBatchId: string | null;
-  now: Date;
-};
-
 export class MemoryReviewRepository implements ReviewRepository {
   constructor(private readonly store: MemoryStore) {}
+
+  getReviewableReading(readingId: string, userId: string): Reading | undefined {
+    const reading = this.store.readings.get(readingId);
+    if (!reading) return undefined;
+    const casting = this.store.castingSessions.get(reading.castingSessionId);
+    if (
+      !casting
+      || casting.userId !== userId
+      || casting.lifecycle !== "revealed"
+      || reading.status !== "completed"
+    ) {
+      return undefined;
+    }
+    return snapshot(reading);
+  }
 
   createQualityReview(input: {
     readingId: string;
     userId: string;
     reason: string;
-    responseDueAt?: Date;
-    now?: Date;
+    responseDueAt: Date;
+    now: Date;
   }): QualityReview {
     return this.store.withLock(() => {
-      const reading = this.store.readings.get(input.readingId);
-      if (!reading) throw repositoryError("READING_NOT_FOUND");
-      const casting = this.store.castingSessions.get(reading.castingSessionId);
-      if (!casting || casting.userId !== input.userId || casting.lifecycle !== "revealed") {
+      if (!this.getReviewableReading(input.readingId, input.userId)) {
         throw repositoryError("QUALITY_REVIEW_FORBIDDEN");
       }
-      if (reading.status !== "completed") throw repositoryError("QUALITY_REVIEW_NOT_DELIVERED");
       const existing = [...this.store.qualityReviews.values()].find(
         (review) => review.readingId === input.readingId,
       );
       if (existing) throw repositoryError("QUALITY_REVIEW_ALREADY_SUBMITTED");
-      const now = input.now ? new Date(input.now) : new Date();
+      const now = new Date(input.now);
       const review: QualityReview = {
         id: memoryId("qr"),
         readingId: input.readingId,
         userId: input.userId,
         status: "submitted",
         reason: input.reason,
-        responseDueAt: input.responseDueAt
-          ? new Date(input.responseDueAt)
-          : new Date(now.getTime() + RESPONSE_WINDOW_MS),
+        responseDueAt: new Date(input.responseDueAt),
         supplementedAt: null,
         decidedAt: null,
         compensationBatchId: null,
@@ -81,17 +81,12 @@ export class MemoryReviewRepository implements ReviewRepository {
     });
   }
 
-  decideQualityReview(input: ReviewDecisionInput): QualityReview;
-  decideQualityReview(reviewId: string, approved: boolean): QualityReview;
-  decideQualityReview(inputOrId: ReviewDecisionInput | string, legacyApproved?: boolean): QualityReview {
-    const input: ReviewDecisionInput = typeof inputOrId === "string"
-      ? {
-          reviewId: inputOrId,
-          approved: legacyApproved ?? false,
-          compensationBatchId: null,
-          now: new Date(),
-        }
-      : inputOrId;
+  decideQualityReview(input: {
+    reviewId: string;
+    approved: boolean;
+    compensationBatchId: string | null;
+    now: Date;
+  }): QualityReview {
     return this.store.withLock(() => {
       const review = this.store.qualityReviews.get(input.reviewId);
       if (!review) throw new Error("REVIEW_NOT_FOUND");
