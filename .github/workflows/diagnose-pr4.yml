@@ -1,0 +1,25 @@
+name: diagnose-pr4
+
+on:
+  push:
+    branches:
+      - agent/v2-1-postgres
+
+permissions:
+  contents: read
+
+jobs:
+  lint-diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Print lint output without workflow annotations
+        shell: bash
+        run: |
+          set +e
+          bun run lint -- --format compact > /tmp/lint-output.txt 2>&1
+          status=$?
+          while IFS= read -r line; do printf 'LINT_DIAGNOSTIC %s\n' "$line"; done < /tmp/lint-output.txt
+          exit $status
