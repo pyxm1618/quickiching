@@ -37,8 +37,8 @@ function yarrowChangesForLine(linePosition: number, lineValue: LineValue): Yarro
   };
   let stalksBefore = 49;
   return removalsByLine[lineValue].map((removedRemainders, index) => {
-    const leftPile = Math.floor((stalksBefore - 1) / 2);
-    const rightPile = stalksBefore - 1 - leftPile;
+    const leftPile = Math.floor(stalksBefore / 2);
+    const rightPile = stalksBefore - leftPile;
     const stalksAfter = stalksBefore - removedRemainders;
     const change: YarrowChangeEvidence = {
       linePosition: linePosition as 1 | 2 | 3 | 4 | 5 | 6,
