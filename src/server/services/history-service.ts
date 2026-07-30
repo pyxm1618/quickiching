@@ -1,8 +1,9 @@
-import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
 import type { CastingMethod, Scene } from "@/domain/casting/types";
-import type { CastingRepository } from "@/server/repositories/casting-repository";
-import type { PrivacyRepository } from "@/server/repositories/privacy-repository";
-import type { ReadingRepository } from "@/server/repositories/reading-repository";
+import { DomainError } from "@/server/errors/domain-error";
+import type { HistoryCursor, HistoryRepository } from "@/server/repositories/history-repository";
+
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 50;
 
 export type HistoryFilter = {
   method?: CastingMethod;
@@ -11,34 +12,67 @@ export type HistoryFilter = {
   hasReading?: boolean;
 };
 
+type HistoryPageInput = HistoryFilter & {
+  cursor?: string | null;
+  limit?: number;
+};
+
+function encodeCursor(cursor: HistoryCursor): string {
+  return Buffer.from(JSON.stringify({
+    v: 1,
+    createdAt: cursor.createdAt.toISOString(),
+    castingId: cursor.castingId,
+  }), "utf8").toString("base64url");
+}
+
+function decodeCursor(cursor: string | null | undefined): HistoryCursor | undefined {
+  if (!cursor) return undefined;
+  try {
+    const value = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as Record<string, unknown>;
+    if (value.v !== 1 || typeof value.createdAt !== "string" || typeof value.castingId !== "string") {
+      throw new Error("invalid");
+    }
+    const createdAt = new Date(value.createdAt);
+    if (!Number.isFinite(createdAt.getTime()) || createdAt.toISOString() !== value.createdAt || !value.castingId) {
+      throw new Error("invalid");
+    }
+    return { createdAt, castingId: value.castingId };
+  } catch {
+    throw new DomainError("HISTORY_CURSOR_INVALID", "The history cursor is invalid.", false, "cursor");
+  }
+}
+
 export class HistoryService {
   constructor(private readonly dependencies: {
-    privacyRepository: PrivacyRepository;
-    castingRepository: CastingRepository;
-    readingRepository: ReadingRepository;
+    historyRepository: HistoryRepository;
   }) {}
 
-  list(userId: string, filter: HistoryFilter) {
-    return this.dependencies.privacyRepository.listCastsForUser(userId)
-      .map((session) => {
-        const result = this.dependencies.castingRepository.getCastResult(session.id);
-        const preview = this.dependencies.readingRepository.getPreview(session.id);
-        const reading = this.dependencies.readingRepository.getReadingByCasting(session.id);
-        return {
-          id: session.id,
-          method: session.method,
-          scene: session.scene,
-          lifecycle: session.lifecycle,
-          riskStatus: session.riskStatus,
-          createdAt: session.createdAt,
-          primaryName: result ? hexagramByNumber(result.primaryHexagramNumber).englishName : null,
-          hasPreview: preview?.status === "completed",
-          hasReading: reading?.status === "completed",
-        };
-      })
-      .filter((item) => filter.method === undefined || item.method === filter.method)
-      .filter((item) => filter.scene === undefined || item.scene === filter.scene)
-      .filter((item) => filter.hasPreview === undefined || item.hasPreview === filter.hasPreview)
-      .filter((item) => filter.hasReading === undefined || item.hasReading === filter.hasReading);
+  listPage(userId: string, input: HistoryPageInput = {}) {
+    const limit = input.limit ?? DEFAULT_PAGE_SIZE;
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_PAGE_SIZE) {
+      throw new DomainError(
+        "HISTORY_PAGE_SIZE_INVALID",
+        `History page size must be between 1 and ${MAX_PAGE_SIZE}.`,
+        false,
+        "limit",
+      );
+    }
+    const page = this.dependencies.historyRepository.queryHistory({
+      userId,
+      limit,
+      after: decodeCursor(input.cursor),
+      method: input.method,
+      scene: input.scene,
+      hasPreview: input.hasPreview,
+      hasReading: input.hasReading,
+    });
+    return {
+      items: page.items,
+      nextCursor: page.next ? encodeCursor(page.next) : null,
+    };
+  }
+
+  list(userId: string, filters: HistoryFilter) {
+    return this.listPage(userId, { ...filters, limit: MAX_PAGE_SIZE }).items;
   }
 }
