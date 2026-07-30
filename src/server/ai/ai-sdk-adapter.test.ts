@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
+import { buildClassicReferences } from "@/domain/classics";
 import { AiSdkAdapter } from "./ai-sdk-adapter";
 
 const input = {
@@ -28,11 +29,7 @@ const validReading = {
   turningConditions: "Maintain the current interpretation while responsibilities become clearer and communication grows more consistent. Re-evaluate it if the decision maker changes, the role scope materially shifts, or promised milestones repeatedly pass without evidence. These are observable conditions rather than dates.",
   conditionalActionDirection: "Under current conditions, observation, clarification, and reversible preparation fit better than an irreversible commitment. A more active orientation becomes reasonable only after authority, expectations, and timing are confirmed. The reading does not make the career decision for the user.",
   uncertaintyAndBoundaries: "This interpretation uses the supplied career context, the primary hexagram, and the single moving line. It cannot account for undisclosed organizational constraints or future decisions by other people. It offers a reflective framework rather than professional, legal, medical, or financial advice.",
-  interpretiveBasisReferences: [
-    { referenceId: "legge-1899-v1:hexagram-3:judgment", sourceVersion: "legge-1899-v1", hexagramNumber: 3, kind: "judgment" },
-    { referenceId: "legge-1899-v1:hexagram-3:line-1", sourceVersion: "legge-1899-v1", hexagramNumber: 3, linePosition: 1, kind: "line" },
-    { referenceId: "legge-1899-v1:hexagram-8:judgment", sourceVersion: "legge-1899-v1", hexagramNumber: 8, kind: "relating_judgment" },
-  ],
+  interpretiveBasisReferences: buildClassicReferences(input.result),
 };
 
 describe("AiSdkAdapter", () => {
@@ -141,6 +138,6 @@ describe("AiSdkAdapter", () => {
 
     await expect(adapter.generatePreview(input, {
       userId: "usr_ai", jobId: "job_invalid", epoch: 1, attempt: 1,
-    })).rejects.toThrow("AI_OUTPUT");
+    })).rejects.toThrow("AI_PREVIEW_LENGTH_INVALID");
   });
 });
