@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Sql } from "postgres";
 
-const MIGRATION_IDS = ["0000_v2_1", "0001_auth_payment"] as const;
+const MIGRATION_IDS = ["0000_v2_1", "0001_auth_payment", "0002_generation_runtime"] as const;
 const MIGRATION_LOCK = 8_924_211_607;
 
 export async function migratePostgres(sql: Sql): Promise<void> {
@@ -37,6 +37,7 @@ export async function resetPostgresForTests(sql: Sql): Promise<void> {
       disputes,
       refunds,
       webhook_inbox,
+      generation_attempts,
       outbox,
       generation_jobs,
       quality_reviews,
