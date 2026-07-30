@@ -11,6 +11,14 @@ const input = {
     algorithmVersion: "three-coin-v1",
     classicMappingVersion: "king-wen-v1",
   },
+  methodEvidence: {
+    method: "three_coin" as const,
+    rounds: [1, 2, 3, 4, 5, 6].map((linePosition) => ({
+      linePosition: linePosition as 1 | 2 | 3 | 4 | 5 | 6,
+      coinValues: [3, 2, 2] as const,
+      lineValue: 7 as const,
+    })),
+  },
   scene: "career" as const,
   interpretationGoal: "what_do_i_need_to_see_clearly" as const,
   context: "I want perspective on my next role.",
