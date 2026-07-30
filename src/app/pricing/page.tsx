@@ -30,13 +30,11 @@ export default async function PricingPage() {
         </p>
       )}
 
-      <div className="mt-12 text-left">
-        <PricingButtons />
-      </div>
+      <div className="mt-12 text-left"><PricingButtons /></div>
 
       <p className="mt-8 font-mono text-[11px] leading-relaxed tracking-[0.06em] text-[var(--ink-3)]">
-        VALID 12 MONTHS FROM PURCHASE · EARLIEST-EXPIRING CREDIT USED FIRST · NO COUNTDOWN, NO FALSE
-        URGENCY · USD, TAXES SHOWN BEFORE PAYMENT · DEMO CHECKOUT — NO REAL CHARGE
+        VALID 12 MONTHS FROM PURCHASE · EARLIEST-EXPIRING CREDIT USED FIRST · NO SUBSCRIPTIONS · USD,
+        TAXES SHOWN BEFORE PAYMENT · ACCESS IS GRANTED ONLY AFTER A VERIFIED PAYMENT WEBHOOK
       </p>
     </div>
   );
