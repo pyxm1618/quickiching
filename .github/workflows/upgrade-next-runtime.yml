@@ -1,0 +1,33 @@
+name: upgrade-next-runtime
+
+on:
+  push:
+    branches:
+      - agent/v2-1-jobs-release
+    paths:
+      - .github/workflows/upgrade-next-runtime.yml
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/v2-1-jobs-release
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Upgrade maintained Next 15 and React 19 lines
+        run: bun add next@15.5.22 react@19.1.9 react-dom@19.1.9 @types/react@19.1.17 @types/react-dom@19.1.9
+      - name: Commit lockfile and remove installer
+        run: |
+          rm .github/workflows/upgrade-next-runtime.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json bun.lock .github/workflows/upgrade-next-runtime.yml
+          git commit -m "build: upgrade maintained Next and React runtimes"
+          git push origin HEAD:agent/v2-1-jobs-release
