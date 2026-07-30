@@ -1,5 +1,10 @@
 import { buildClassicReferences } from "@/domain/classics";
-import { assertMethodEvidenceMatchesResult, type CastingMethodEvidence } from "@/domain/casting/method-evidence";
+import {
+  assertMethodEvidenceMatchesResult,
+  type CastingMethodEvidence,
+  type MethodEvidenceResult,
+  verifiedHexagramResult,
+} from "@/domain/casting/method-evidence";
 import type {
   HexagramResult,
   InterpretationGoal,
@@ -9,7 +14,7 @@ import type { PreviewOutput, ReadingReport, ReadingVariant } from "@/domain/read
 import { previewOutputSchema, readingReportSchema } from "./schemas";
 
 export type OutputValidationInput = {
-  result: HexagramResult;
+  result: MethodEvidenceResult;
   methodEvidence: CastingMethodEvidence;
   scene: Scene;
   interpretationGoal: InterpretationGoal;
@@ -47,26 +52,25 @@ function canonicalReference(value: ReadingReport["interpretiveBasisReferences"][
   });
 }
 
-function assertReferenceIntegrity(report: ReadingReport, input: OutputValidationInput): void {
-  const expected = new Set(buildClassicReferences(input.result).map(canonicalReference));
+function assertReferenceIntegrity(report: ReadingReport, result: HexagramResult): void {
+  const expected = new Set(buildClassicReferences(result).map(canonicalReference));
   const actual = new Set(report.interpretiveBasisReferences.map(canonicalReference));
   if (expected.size !== actual.size || [...expected].some((reference) => !actual.has(reference))) {
     invalid("AI_REFERENCE_INTEGRITY_INVALID");
   }
 }
 
-function assertResultIntegrity(report: ReadingReport, input: OutputValidationInput): void {
-  assertMethodEvidenceMatchesResult(input.methodEvidence, input.result);
-  if (report.readingVariant !== expectedVariant(input.result)) {
+function assertResultIntegrity(report: ReadingReport, result: HexagramResult): void {
+  if (report.readingVariant !== expectedVariant(result)) {
     invalid("AI_RESULT_INTEGRITY_INVALID");
   }
   const mechanism = report.changeMechanism.toLowerCase();
-  for (const linePosition of input.result.movingLinePositions) {
+  for (const linePosition of result.movingLinePositions) {
     if (!mechanism.includes(`line ${linePosition}`) && !mechanism.includes(`position ${linePosition}`)) {
       invalid("AI_RESULT_INTEGRITY_INVALID");
     }
   }
-  if (input.result.movingLinePositions.length === 0 && !/\b(?:no moving line|still hexagram|stabilizing)\b/i.test(mechanism)) {
+  if (result.movingLinePositions.length === 0 && !/\b(?:no moving line|still hexagram|stabilizing)\b/i.test(mechanism)) {
     invalid("AI_RESULT_INTEGRITY_INVALID");
   }
 }
@@ -144,13 +148,13 @@ export function validatePreviewOutput(output: unknown, input: OutputValidationIn
 }
 
 export function validateReadingReport(output: unknown, input: OutputValidationInput): ReadingReport {
-  assertMethodEvidenceMatchesResult(input.methodEvidence, input.result);
+  const verifiedResult = verifiedHexagramResult(input.methodEvidence, input.result);
   const parsed = readingReportSchema.safeParse(output);
   if (!parsed.success) invalid("AI_OUTPUT_SCHEMA_INVALID");
   const report = parsed.data as ReadingReport;
   assertReadingStructure(report);
-  assertResultIntegrity(report, input);
-  assertReferenceIntegrity(report, input);
+  assertResultIntegrity(report, verifiedResult);
+  assertReferenceIntegrity(report, verifiedResult);
   assertMethodEvidenceDisclosed(report, input.methodEvidence);
   assertContextRelevance(report, input);
   assertSafety(JSON.stringify(report));
