@@ -20,6 +20,8 @@ export type LoginIntent = {
   anonymousSessionHash: string;
   nonceHash: string;
   nonceKeyVersion: string;
+  expectedEmailHash: string | null;
+  expectedEmailKeyVersion: string | null;
   allowedCallbackPath: string;
   expiresAt: Date;
   consumedAt: Date | null;
