@@ -4,11 +4,11 @@ import { withWorkflow } from "workflow/next";
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // @vercel/oidc pulls in Vercel CLI credential discovery and env-paths.
-  // Keeping it external preserves normal Node process metadata in the
-  // generated Workflow route instead of evaluating env-paths inside the
-  // Next.js page-data build worker.
-  serverExternalPackages: ["@vercel/oidc"],
+  // The Workflow Vercel world loads @vercel/queue, which in turn loads
+  // @vercel/oidc and Vercel CLI credential discovery. Those packages must
+  // retain normal Node process metadata; bundling them into Next's page-data
+  // worker causes env-paths to evaluate without process.argv[0].
+  serverExternalPackages: ["@vercel/queue", "@vercel/oidc"],
   async headers() {
     return [
       {
