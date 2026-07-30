@@ -50,4 +50,6 @@ jobs:
       - run: bun run typecheck
       - run: bun run test
       - name: Build credential-free application
+        env:
+          APP_RUNTIME_MODE: test
         run: bun run build
