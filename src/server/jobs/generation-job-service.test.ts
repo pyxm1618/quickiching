@@ -1,30 +1,36 @@
 import { describe, expect, it, vi } from "vitest";
-import { GenerationJobService, type GenerationJobRepository } from "./generation-job-service";
+import {
+  GenerationJobService,
+  type GenerationJob,
+  type GenerationJobRepository,
+} from "./generation-job-service";
 
 function jobRepository(overrides: Partial<GenerationJobRepository> = {}): GenerationJobRepository {
+  const queued = (input: Parameters<GenerationJobRepository["enqueue"]>[0]): GenerationJob => ({
+    id: "job_1",
+    jobType: input.jobType,
+    castingId: input.castingId,
+    readingId: input.readingId,
+    reservationId: input.reservationId,
+    status: "queued",
+    generationEpoch: 0,
+    snapshot: input.snapshot,
+    timeoutAt: input.timeoutAt,
+  });
+  const running: GenerationJob = {
+    id: "job_1",
+    jobType: "deep_reading",
+    castingId: "cas_1",
+    readingId: "rdg_1",
+    reservationId: "res_1",
+    status: "running",
+    generationEpoch: 1,
+    snapshot: { kind: "reading" },
+    timeoutAt: new Date("2026-07-30T00:05:00.000Z"),
+  };
   return {
-    enqueue: vi.fn(async (input) => ({
-      id: "job_1",
-      jobType: input.jobType,
-      castingId: input.castingId,
-      readingId: input.readingId,
-      reservationId: input.reservationId,
-      status: "queued",
-      generationEpoch: 0,
-      snapshot: input.snapshot,
-      timeoutAt: input.timeoutAt,
-    })),
-    claim: vi.fn(async () => ({
-      id: "job_1",
-      jobType: "deep_reading",
-      castingId: "cas_1",
-      readingId: "rdg_1",
-      reservationId: "res_1",
-      status: "running",
-      generationEpoch: 1,
-      snapshot: { kind: "reading" },
-      timeoutAt: new Date("2026-07-30T00:05:00.000Z"),
-    })),
+    enqueue: vi.fn(async (input) => queued(input)),
+    claim: vi.fn(async () => running),
     complete: vi.fn(async () => true),
     fail: vi.fn(async () => ({ terminal: true })),
     ...overrides,
