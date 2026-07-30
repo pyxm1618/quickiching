@@ -1,4 +1,3 @@
-import type { GenerationInput } from "@/server/ai";
 import type { GenerationAttemptAudit } from "@/server/ai/gateway-provider";
 
 export type GenerationJobType = "preview" | "deep_reading";
@@ -43,8 +42,8 @@ export interface GenerationJobRepository {
 }
 
 type GenerationProvider = {
-  generatePreview(input: GenerationInput): Promise<{ output: unknown; attempts: GenerationAttemptAudit[] }>;
-  generateReading(input: GenerationInput): Promise<{ output: unknown; attempts: GenerationAttemptAudit[] }>;
+  generatePreview(snapshot: unknown): Promise<{ output: unknown; attempts: GenerationAttemptAudit[] }>;
+  generateReading(snapshot: unknown): Promise<{ output: unknown; attempts: GenerationAttemptAudit[] }>;
 };
 
 type EntitlementFinalizer = {
@@ -65,7 +64,7 @@ export class GenerationJobService {
     clock: { now(): Date };
   }) {}
 
-  enqueuePreview(input: { castingId: string; snapshot: GenerationInput }): Promise<GenerationJob> {
+  enqueuePreview(input: { castingId: string; snapshot: unknown }): Promise<GenerationJob> {
     const now = this.dependencies.clock.now();
     return this.dependencies.repository.enqueue({
       jobType: "preview",
@@ -100,8 +99,8 @@ export class GenerationJobService {
     const job = await this.dependencies.repository.claim(jobId, this.dependencies.clock.now());
     try {
       const generated = job.jobType === "preview"
-        ? await this.dependencies.provider.generatePreview(job.snapshot as GenerationInput)
-        : await this.dependencies.provider.generateReading(job.snapshot as GenerationInput);
+        ? await this.dependencies.provider.generatePreview(job.snapshot)
+        : await this.dependencies.provider.generateReading(job.snapshot);
       const completed = await this.dependencies.repository.complete({
         jobId: job.id,
         generationEpoch: job.generationEpoch,
