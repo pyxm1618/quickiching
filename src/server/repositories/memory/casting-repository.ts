@@ -140,6 +140,12 @@ export class MemoryCastingRepository implements CastingRepository {
     return decryptJson<{ context: string }>(blob, "context", `${castingSessionId}:${latest.id}`).context;
   }
 
+  getQuestionVersionCount(castingSessionId: string): number {
+    return [...this.store.questionVersions.values()]
+      .filter((version) => version.castingSessionId === castingSessionId)
+      .length;
+  }
+
   saveStep(input: {
     castingSessionId: string;
     stepKind: string;

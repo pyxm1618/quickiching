@@ -15,6 +15,7 @@ import { mapKnownDomainError } from "@/server/actions/action-result";
 import { DomainError } from "@/server/errors/domain-error";
 import { CastingService } from "@/server/services/casting-service";
 import { RevealService } from "@/server/services/reveal-service";
+import { RiskService } from "@/server/services/risk-service";
 import { runtimeConfig } from "@/server/config";
 import { actionSchemas, parseActionInput } from "@/server/validation/action-schemas";
 import * as z from "zod";
@@ -24,6 +25,11 @@ const castingService = new CastingService({
   clock: { now: () => new Date() },
   randomSource: { randomBit: cryptoRandomBit, randomInt: cryptoRandomInt },
   riskService: { evaluate: evaluateRisk },
+});
+
+const riskService = new RiskService({
+  castingRepository,
+  evaluator: { evaluate: evaluateRisk },
 });
 
 function getRevealService(): RevealService {
@@ -162,6 +168,25 @@ async function submitQuestionActionImpl(unknownInput: unknown): Promise<
   return ok(castingService.submitQuestion(input.castingId, input.context));
 }
 
+
+async function clarifyQuestionActionImpl(unknownInput: unknown): Promise<
+  ActionResult<{ riskStatus: string; reasonCode: string; emergency: boolean }>
+> {
+  const parsed = parseBoundaryInput(actionSchemas.clarifyQuestion, unknownInput, "clarifyQuestionAction");
+  if (isActionFailure(parsed)) return parsed;
+  const input = parsed;
+  const anonHash = await getAnonymousHash();
+  const user = await getCurrentUser();
+  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash))
+    return fail("CASTING_NOT_FOUND", "Casting session not found", false);
+  const decision = riskService.clarifyQuestion(input.castingId, input.context);
+  return ok({
+    riskStatus: decision.status,
+    reasonCode: decision.reasonCode,
+    emergency: decision.status === "emergency_blocked",
+  });
+}
+
 // ---- 3. Three-coin: generate one line (idempotent) ----
 async function generateThreeCoinLineActionImpl(unknownInput: unknown): Promise<
   ActionResult<{
@@ -278,9 +303,6 @@ async function startPreviewActionImpl(unknownInput: unknown): Promise<ActionResu
   const session = repo.getCastingSession(input.castingId)!;
   if (session.lifecycle !== "revealed")
     return fail("CASTING_NOT_REVEALED", "Reveal the casting before generating a preview", false);
-  if (session.riskStatus === "professional_decision_blocked" || session.riskStatus === "emergency_blocked")
-    return fail("RISK_BLOCKED", "A personalized preview is not available for this question", false);
-
   const existing = repo.getPreview(input.castingId);
   if (existing && existing.status === "completed") {
     return ok({ status: "completed", relevanceStatement: existing.relevanceStatement });
@@ -288,7 +310,7 @@ async function startPreviewActionImpl(unknownInput: unknown): Promise<ActionResu
 
   const result = repo.getCastResult(input.castingId);
   if (!result) return fail("RESULT_MISSING", "Cast result missing", false);
-  const context = repo.getLatestQuestionContext(input.castingId);
+  const { context } = riskService.recheckPersonalizedGeneration(input.castingId);
 
   try {
     const preview = await runPreview({
@@ -372,14 +394,12 @@ async function startDeepReadingActionImpl(unknownInput: unknown): Promise<Action
   const session = repo.getCastingSession(input.castingId)!;
   if (session.lifecycle !== "revealed")
     return fail("CASTING_NOT_REVEALED", "Reveal the casting first", false);
-  if (session.riskStatus === "professional_decision_blocked" || session.riskStatus === "emergency_blocked")
-    return fail("RISK_BLOCKED", "A deep reading is not available for this question", false);
-
   const reading = repo.getOrCreateReading(input.castingId);
   if (reading.status === "completed" && reading.report) {
     return ok({ status: "completed", readingId: reading.id, report: reading.report });
   }
 
+  const { context } = riskService.recheckPersonalizedGeneration(input.castingId);
   const freeze = repo.freezeForReading(reading.id, user.id, new Date());
   if ("error" in freeze) {
     if (freeze.error === "ENTITLEMENT_NOT_AVAILABLE")
@@ -388,7 +408,6 @@ async function startDeepReadingActionImpl(unknownInput: unknown): Promise<Action
   }
 
   const result = repo.getCastResult(input.castingId)!;
-  const context = repo.getLatestQuestionContext(input.castingId);
   try {
     const report = await runReading({
       result: {
@@ -454,6 +473,7 @@ export const createCastingSessionAction = withActionErrorBoundary("createCasting
 export const getCastingSummaryAction = withActionErrorBoundary("getCastingSummaryAction", getCastingSummaryActionImpl);
 export const signInAction = withActionErrorBoundary("signInAction", signInActionImpl);
 export const submitQuestionAction = withActionErrorBoundary("submitQuestionAction", submitQuestionActionImpl);
+export const clarifyQuestionAction = withActionErrorBoundary("clarifyQuestionAction", clarifyQuestionActionImpl);
 export const generateThreeCoinLineAction = withActionErrorBoundary("generateThreeCoinLineAction", generateThreeCoinLineActionImpl);
 export const generateYarrowChangeAction = withActionErrorBoundary("generateYarrowChangeAction", generateYarrowChangeActionImpl);
 export const completeYarrowAction = withActionErrorBoundary("completeYarrowAction", completeYarrowActionImpl);

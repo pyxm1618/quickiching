@@ -65,6 +65,7 @@ function createFacade(
     transitionCasting: (castingId, to) => casting.transitionCasting(castingId, to),
     addQuestionVersion: (input) => casting.addQuestionVersion(input),
     getLatestQuestionContext: (castingSessionId) => casting.getLatestQuestionContext(castingSessionId),
+    getQuestionVersionCount: (castingSessionId) => casting.getQuestionVersionCount(castingSessionId),
     saveStep: (input) => casting.saveStep(input),
     getOrCreateStep: (input) => casting.getOrCreateStep(input),
     recordCoinStep: (input) => casting.recordCoinStep(input),
