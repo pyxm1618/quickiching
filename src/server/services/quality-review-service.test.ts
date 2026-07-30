@@ -5,6 +5,7 @@ import { QualityReviewService } from "./quality-review-service";
 function deliveredFixture() {
   const repositories = createMemoryRepositories();
   const user = repositories.identityRepository.createUser("review-service@example.com");
+  const otherUser = repositories.identityRepository.createUser("other-reviewer@example.com");
   const casting = repositories.castingRepository.createCastingSession({
     method: "three_coin",
     scene: "career",
@@ -32,14 +33,14 @@ function deliveredFixture() {
       stepKind: "coin",
       lineIndex,
       changeIndex: null,
-      rawRecord: {},
+      rawRecord: { coinFaces: ["yang", "yin", "yin"] },
       lineValue: 7,
     });
   }
   repositories.castingRepository.saveCastResult({
     castingSessionId: casting.id,
     lineValues: [7, 7, 7, 7, 7, 7],
-    methodCalculation: {},
+    methodCalculation: { kind: "three-coin" },
   });
   repositories.castingRepository.transitionCasting(casting.id, "revealed");
   const reading = repositories.readingRepository.getOrCreateReading(casting.id);
@@ -65,29 +66,54 @@ function deliveredFixture() {
     readingRepository: repositories.readingRepository,
     entitlementRepository: repositories.entitlementRepository,
     clock: { now: () => new Date(current.value) },
+    businessCalendar: {
+      isBusinessDay: (date) => {
+        const iso = date.toISOString().slice(0, 10);
+        if (iso === "2026-08-04") return false; // configured public holiday
+        const day = date.getUTCDay();
+        return day !== 0 && day !== 6;
+      },
+    },
   });
-  return { repositories, user, reading, current, service };
+  return { repositories, user, otherUser, reading, current, service };
 }
 
 describe("QualityReviewService", () => {
-  it("accepts one review within the delivery window and records a response deadline", () => {
+  it("accepts one review within seven days and records a three-business-day response deadline", () => {
     const { repositories, user, reading, service } = deliveredFixture();
 
-    const review = service.submit({ readingId: reading.id, userId: user.id, reason: "Missing moving-line explanation" });
+    const review = service.submit({
+      readingId: reading.id,
+      userId: user.id,
+      reason: "Missing moving-line explanation",
+    });
 
+    // Submitted Saturday 1 Aug. Monday is day 1, Tuesday is a configured holiday,
+    // Wednesday day 2, Thursday day 3.
     expect(review).toMatchObject({
       status: "submitted",
-      responseDueAt: new Date("2026-08-08T00:00:00.000Z"),
+      responseDueAt: new Date("2026-08-06T00:00:00.000Z"),
     });
     expect(repositories.reviewRepository.getQualityReview(review.id)).toBeDefined();
     expect(() => service.submit({ readingId: reading.id, userId: user.id, reason: "duplicate" }))
       .toThrow("QUALITY_REVIEW_ALREADY_SUBMITTED");
   });
 
-  it("allows one supplementation before review begins", () => {
-    const { user, reading, service } = deliveredFixture();
+  it("checks report ownership before exposing whether the reading is reviewable", () => {
+    const { otherUser, reading, service } = deliveredFixture();
+
+    expect(() => service.submit({
+      readingId: reading.id,
+      userId: otherUser.id,
+      reason: "Should not reveal report state",
+    })).toThrow("QUALITY_REVIEW_FORBIDDEN");
+  });
+
+  it("allows exactly one supplementation during the first 24 hours", () => {
+    const { user, reading, current, service } = deliveredFixture();
     const review = service.submit({ readingId: reading.id, userId: user.id, reason: "Initial reason" });
 
+    current.value = new Date("2026-08-01T23:59:59.999Z");
     const supplemented = service.supplement({
       reviewId: review.id,
       userId: user.id,
@@ -102,7 +128,24 @@ describe("QualityReviewService", () => {
     })).toThrow("QUALITY_REVIEW_SUPPLEMENT_CLOSED");
   });
 
-  it("approves a review once and grants one compensation credit", () => {
+  it("rejects the first supplementation after 24 hours without changing the review", () => {
+    const { repositories, user, reading, current, service } = deliveredFixture();
+    const review = service.submit({ readingId: reading.id, userId: user.id, reason: "Initial reason" });
+    current.value = new Date("2026-08-02T00:00:00.001Z");
+
+    expect(() => service.supplement({
+      reviewId: review.id,
+      userId: user.id,
+      additionalReason: "Too late",
+    })).toThrow("QUALITY_REVIEW_SUPPLEMENT_CLOSED");
+    expect(repositories.reviewRepository.getQualityReview(review.id)).toMatchObject({
+      status: "submitted",
+      supplementedAt: null,
+      reason: "Initial reason",
+    });
+  });
+
+  it("approves a review once and grants exactly one compensation credit", () => {
     const { repositories, user, reading, service } = deliveredFixture();
     const review = service.submit({ readingId: reading.id, userId: user.id, reason: "Objective defect" });
 
@@ -112,11 +155,13 @@ describe("QualityReviewService", () => {
       .reduce((sum, batch) => sum + batch.quantityAvailable, 0)).toBe(1);
     expect(() => service.decide({ reviewId: review.id, approved: true }))
       .toThrow("QUALITY_REVIEW_TERMINAL");
+    expect(repositories.entitlementRepository.getBatches(user.id)
+      .reduce((sum, batch) => sum + batch.quantityAvailable, 0)).toBe(1);
   });
 
-  it("rejects review submission after the 7-day submission window", () => {
+  it("rejects review submission after the seven-day submission window", () => {
     const { user, reading, current, service } = deliveredFixture();
-    current.value = new Date("2026-08-08T00:00:00.001Z");
+    current.value = new Date("2026-08-06T00:00:00.001Z");
 
     expect(() => service.submit({ readingId: reading.id, userId: user.id, reason: "Too late" }))
       .toThrow("QUALITY_REVIEW_WINDOW_CLOSED");
