@@ -48,7 +48,7 @@ export class CastingService {
     if (ownerId) {
       const active = castingRepository.findActiveCasting(ownerId, input.userId != null);
       if (active?.lifecycle === "draft") {
-        castingRepository.transitionCasting(active.id, "user_deleted");
+        castingRepository.transitionCasting(active.id, "cancelled");
       } else if (active) {
         const clocks = castingRepository.evaluateSessionClocks(active, this.dependencies.clock.now());
         const timedOut = active.lifecycle === "casting" ? clocks.castingExpired : clocks.revealExpired;

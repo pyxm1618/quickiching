@@ -57,7 +57,7 @@ describe("CastingService draft lifecycle", () => {
     const replacement = service.createDraft(draftInput);
 
     expect(replacement.castingId).not.toBe(first.castingId);
-    expect(repositories.castingRepository.getCastingSession(first.castingId)?.lifecycle).toBe("user_deleted");
+    expect(repositories.castingRepository.getCastingSession(first.castingId)?.lifecycle).toBe("cancelled");
     expect(repositories.castingRepository.getCastingSession(replacement.castingId)?.lifecycle).toBe("draft");
   });
 

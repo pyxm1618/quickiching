@@ -2,11 +2,10 @@
 
 import { type CastingMethod } from "@/domain/casting/types";
 import { evaluateRisk } from "@/domain/risk/engine";
-import { normalizeComposite, fingerprintQuestion } from "@/domain/questions/normalize";
 import { cryptoRandomBit } from "@/domain/casting/three-coin/algorithm";
 import { cryptoRandomInt } from "@/domain/casting/yarrow/algorithm";
 import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
-import { repo } from "@/server/repository";
+import { repo, castingRepository, loginIntentRepository, revealRepository } from "@/server/repository";
 import { getAnonymousHash, getOrCreateAnonymousHash, getCurrentUser, devSignIn } from "@/lib/auth/session";
 import { runPreview, runReading } from "@/server/ai";
 import { getProduct, PRODUCTS, CURRENCY } from "@/domain/entitlements/pricing";
@@ -15,10 +14,10 @@ import { randomToken } from "@/lib/crypto";
 import { mapKnownDomainError } from "@/server/actions/action-result";
 import { DomainError } from "@/server/errors/domain-error";
 import { CastingService } from "@/server/services/casting-service";
+import { RevealService } from "@/server/services/reveal-service";
+import { runtimeConfig } from "@/server/config";
 import { actionSchemas, parseActionInput } from "@/server/validation/action-schemas";
 import * as z from "zod";
-
-const FINGERPRINT_KEY_VERSION = "v1";
 
 const castingService = new CastingService({
   castingRepository: repo,
@@ -26,6 +25,19 @@ const castingService = new CastingService({
   randomSource: { randomBit: cryptoRandomBit, randomInt: cryptoRandomInt },
   riskService: { evaluate: evaluateRisk },
 });
+
+function getRevealService(): RevealService {
+  const config = runtimeConfig();
+  return new RevealService({
+    castingRepository,
+    loginIntentRepository,
+    revealRepository,
+    clock: { now: () => new Date() },
+    tokenSource: { randomToken: () => randomToken(32) },
+    sessionSigningKeys: config.keys.sessionSigning,
+    questionFingerprintKeys: config.keys.questionFingerprint,
+  });
+}
 
 function mutationFailure<T>(error: unknown): ActionResult<T> {
   if (error instanceof DomainError) return mapKnownDomainError(error, { action: "castingMutation" });
@@ -220,35 +232,38 @@ async function createMeiHuaResultActionImpl(unknownInput: unknown): Promise<
   return ok(castingService.recordMeiHua(input.castingId, input.ianaTimeZone));
 }
 
-// ---- 7. Reveal: dev sign-in + atomic bind + 72h lock (AUTH-003, CAST-004) ----
-async function revealCastingActionImpl(unknownInput: unknown): Promise<ActionResult<{ revealed: boolean; duplicate: boolean; winningCastingId?: string }>> {
+// ---- 7. Reveal: local auth callback over single-use Login Intent (AUTH-003, CAST-004) ----
+async function revealCastingActionImpl(unknownInput: unknown): Promise<ActionResult<{ revealed: boolean; duplicate: boolean; castingId: string }>> {
   const parsed = parseBoundaryInput(actionSchemas.revealCasting, unknownInput, "revealCastingAction");
   if (isActionFailure(parsed)) return parsed;
   const input = parsed;
   const anonHash = await getAnonymousHash();
-  if (!repo.ownsCasting(input.castingId, null, anonHash))
+  if (!anonHash || !repo.ownsCasting(input.castingId, null, anonHash))
     return fail("CASTING_NOT_FOUND", "Casting session not found", false);
-  const session = repo.getCastingSession(input.castingId)!;
-  if (session.lifecycle !== "awaiting_reveal")
-    return fail("CASTING_NOT_REVEALABLE", "This casting is not ready to be revealed", false);
 
-  const user = await devSignIn(input.email);
-
-  const context = repo.getLatestQuestionContext(input.castingId);
-  const composite = normalizeComposite(session.scene, session.interpretationGoal, context);
-  const fingerprint = fingerprintQuestion(composite, "question", FINGERPRINT_KEY_VERSION);
-
-  try {
-    return ok(repo.revealWithQuestionLock({
-      castingId: input.castingId,
-      userId: user.id,
-      fingerprint,
-      keyVersion: FINGERPRINT_KEY_VERSION,
-      now: new Date(),
-    }));
-  } catch (error) {
-    return mutationFailure(error);
+  const config = runtimeConfig();
+  if (config.auth !== "dev") {
+    throw new DomainError(
+      "AUTH_PROVIDER_REQUIRED",
+      "Sign in through the configured authentication provider to reveal this casting.",
+      false,
+    );
   }
+
+  const revealService = getRevealService();
+  const callbackPath = `/result/${input.castingId}`;
+  const intent = revealService.startLoginIntent({
+    castingId: input.castingId,
+    anonymousSessionHash: anonHash,
+    allowedCallbackPath: callbackPath,
+  });
+  const user = await devSignIn(input.email);
+  return ok(revealService.consumeLoginIntentAndReveal({
+    intentId: intent.intentId,
+    nonce: intent.nonce,
+    authenticatedUserId: user.id,
+    callbackPath,
+  }));
 }
 
 // ---- 8. Preview (RESULT-002) ----
