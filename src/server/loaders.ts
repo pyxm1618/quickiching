@@ -104,6 +104,12 @@ export async function loadHistory(filter: HistoryFilter = {}) {
   return historyService.list(user.id, filter);
 }
 
+export async function loadRecoverableCasts() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  return privacyRepository.listRecoverableDeletedCasts(user.id, new Date());
+}
+
 export function parseHistoryFilter(input: Record<string, string | string[] | undefined>): HistoryFilter {
   const method = typeof input.method === "string" ? input.method : undefined;
   const scene = typeof input.scene === "string" ? input.scene : undefined;
