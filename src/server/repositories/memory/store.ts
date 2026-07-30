@@ -6,6 +6,7 @@ import type {
   CastingRiskDecision,
   CastingSession,
   CastingStep,
+  LoginIntent,
   Order,
   Preview,
   QualityReview,
@@ -22,6 +23,11 @@ type RecoverableRepositoryCode =
   | "CASTING_NOT_DELETABLE"
   | "CASTING_NOT_FOUND"
   | "CASTING_NOT_REVEALABLE"
+  | "LOGIN_INTENT_CALLBACK_INVALID"
+  | "LOGIN_INTENT_CONSUMED"
+  | "LOGIN_INTENT_EXPIRED"
+  | "LOGIN_INTENT_INVALID"
+  | "LOGIN_INTENT_NOT_FOUND"
   | "ORDER_NOT_FOUND"
   | "QUALITY_REVIEW_ALREADY_SUBMITTED"
   | "QUALITY_REVIEW_FORBIDDEN"
@@ -38,6 +44,15 @@ export function repositoryError(code: RecoverableRepositoryCode): DomainError {
       return new DomainError(code, "This casting cannot be changed in its current state.", false);
     case "CASTING_NOT_DELETABLE":
       return new DomainError(code, "This casting cannot be deleted in its current state.", false);
+    case "LOGIN_INTENT_CALLBACK_INVALID":
+      return new DomainError(code, "The sign-in return path is not allowed.", false, "callbackPath");
+    case "LOGIN_INTENT_CONSUMED":
+      return new DomainError(code, "This sign-in link has already been used.", false);
+    case "LOGIN_INTENT_EXPIRED":
+      return new DomainError(code, "This sign-in link has expired.", false);
+    case "LOGIN_INTENT_INVALID":
+    case "LOGIN_INTENT_NOT_FOUND":
+      return new DomainError(code, "This sign-in link is invalid.", false);
     case "ORDER_NOT_FOUND":
       return new DomainError(code, "Order not found", false);
     case "QUALITY_REVIEW_ALREADY_SUBMITTED":
@@ -63,6 +78,7 @@ export function memoryId(prefix: string): string {
 export class MemoryStore {
   readonly users = new Map<string, User>();
   readonly sessions = new Map<string, Session>();
+  readonly loginIntents = new Map<string, LoginIntent>();
   readonly castingSessions = new Map<string, CastingSession>();
   readonly questionVersions = new Map<string, QuestionVersion>();
   readonly castingSteps = new Map<string, CastingStep>();
