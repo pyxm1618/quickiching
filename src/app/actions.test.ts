@@ -16,7 +16,12 @@ vi.mock("@/lib/auth/session", () => ({
   getOrCreateAnonymousHash: vi.fn(),
   devSignIn: vi.fn(),
 }));
-vi.mock("@/server/repository", () => ({ repo: repository }));
+vi.mock("@/server/repository", () => ({
+  repo: repository,
+  castingRepository: repository,
+  loginIntentRepository: {},
+  revealRepository: {},
+}));
 
 import { requestCastingDeletionAction } from "./actions";
 
