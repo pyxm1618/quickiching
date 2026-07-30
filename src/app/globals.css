@@ -1,0 +1,233 @@
+@import "tailwindcss";
+
+/* ============================================================
+   I Ching Coin — Design Tokens v2.0
+   设计语言：「明室 · 暗室」 The Library & The Chamber
+   规范文档：phototype/UI设计方案.md
+   ============================================================ */
+
+/* ---------- 明室（The Library）· 默认 ---------- */
+:root {
+  /* 纸墨基底 */
+  --paper: #f7f2e7;            /* 宣纸 — 页面背景 */
+  --paper-raised: #fdfaf2;     /* 裱纸 — 卡片 / 浮层 */
+  --ink: #221c12;              /* 墨 — 主文字（14.2:1） */
+  --ink-2: #4a4232;            /* 淡墨 — 次级文字（8.1:1） */
+  --ink-3: #7a6f58;            /* 灰墨 — 辅助说明（4.7:1，≥12px） */
+
+  /* 朱砂 · 主行动色 */
+  --cinnabar: #a9341f;         /* 按钮 / 动爻 / 印章（白字 5.9:1） */
+  --cinnabar-deep: #8c2a18;    /* hover / active */
+  --cinnabar-wash: #f3e2da;    /* 朱砂淡染 — 标签底 */
+
+  /* 青玉 · 次强调（链接） */
+  --jade: #1e5748;             /* 7.0:1 */
+  --jade-wash: #e2ebe4;
+
+  /* 古铜 · 金属点缀（钱币 / 编号 / kicker） */
+  --bronze: #8c6a2b;           /* 5.0:1 */
+  --bronze-bright: #b08d42;
+
+  /* 界线 */
+  --line: #e4dac2;
+  --line-strong: #cbbd9c;
+
+  /* 语义 */
+  --danger: #a33b2a;
+  --danger-wash: #f6e4df;
+  --success: #2f6b3a;
+
+  /* ---------- 旧 token 别名（平滑过渡，勿新增使用） ---------- */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --muted: var(--ink-3);
+  --card: var(--paper-raised);
+  --border: var(--line);
+  --primary: var(--cinnabar);
+  --primary-foreground: #fff7ea;
+  --accent: var(--jade);
+}
+
+/* ---------- 暗室（The Chamber）· 起卦仪式 ---------- */
+[data-realm="chamber"] {
+  --paper: #14100a;            /* 暗室底 — 暖黑 */
+  --paper-raised: #1f1a10;
+  --ink: #f0e7d2;              /* 烛下纸（13.1:1） */
+  --ink-2: #c9bb9c;            /* 8.3:1 */
+  --ink-3: #93876c;            /* 5.2:1 */
+
+  --cinnabar: #d9533a;         /* 提亮朱砂（深字按钮 5.4:1） */
+  --cinnabar-deep: #b7412c;
+  --cinnabar-wash: rgba(51, 32, 22, 0.5);
+
+  --jade: #5da88f;
+  --jade-wash: #1c2a24;
+
+  --bronze: #d9a95c;           /* 烛金 */
+  --bronze-bright: #e8c07a;
+
+  --line: #3a3122;
+  --line-strong: #55482f;
+
+  --danger: #e0654f;
+  --danger-wash: #3a1d15;
+  --success: #6faf7c;
+
+  /* 旧 token 别名同步切境 */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --muted: var(--ink-3);
+  --card: var(--paper-raised);
+  --border: var(--line);
+  --primary: var(--cinnabar);
+  --primary-foreground: #1a0e08;
+  --accent: var(--jade);
+}
+
+/* ---------- Tailwind v4 主题映射 ---------- */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-cinnabar: var(--cinnabar);
+  --color-cinnabar-deep: var(--cinnabar-deep);
+  --color-cinnabar-wash: var(--cinnabar-wash);
+  --color-jade: var(--jade);
+  --color-jade-wash: var(--jade-wash);
+  --color-bronze: var(--bronze);
+  --color-bronze-bright: var(--bronze-bright);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-danger: var(--danger);
+  --color-danger-wash: var(--danger-wash);
+  --color-success: var(--success);
+
+  /* 旧命名兼容 */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+
+  /* 字体家族（next/font 注入，见 layout.tsx） */
+  --font-display: var(--font-fraunces), "Noto Serif SC", Georgia, serif;
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex), ui-monospace, "SF Mono", monospace;
+  --font-cjk: var(--font-noto-sc), "Songti SC", serif;
+
+  /* 动效 */
+  --ease-ritual: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- 基础 ---------- */
+* {
+  border-color: var(--line);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--cinnabar);
+  color: #fff7ea;
+}
+
+/* 焦点可见性（WCAG 2.4.7） */
+:focus-visible {
+  outline: 2px solid var(--cinnabar);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+[data-realm="chamber"] :focus-visible {
+  outline-color: var(--bronze);
+}
+
+/* ---------- 签名式工具类 ---------- */
+
+/* 暗室背景：一炉微光自上方落下 */
+.chamber-bg {
+  background: radial-gradient(120% 90% at 50% 0%, #241c10 0%, #14100a 55%);
+}
+
+/* 卦画分割线：———  —— ——（阳爻接阴爻） */
+.hex-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 6px;
+}
+.hex-divider::before {
+  content: "";
+  flex: 0 0 72px;
+  height: 5px;
+  background: var(--ink);
+}
+.hex-divider::after {
+  content: "";
+  flex: 1;
+  height: 5px;
+  background: linear-gradient(
+    to right,
+    var(--ink) 0 calc(50% - 6px),
+    transparent calc(50% - 6px) calc(50% + 6px),
+    var(--ink) calc(50% + 6px) 100%
+  );
+  opacity: 0.25;
+}
+
+/* 卦画线条落定动效（480ms expo-out，自左向右） */
+@keyframes hex-line-draw {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+.hex-line-draw {
+  animation: hex-line-draw 480ms var(--ease-ritual, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  transform-origin: left center;
+}
+
+/* 钱币落定动效（600ms，无回弹） */
+@keyframes coin-settle {
+  0% {
+    transform: translateY(-10px) rotate(-8deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+}
+.coin-settle {
+  animation: coin-settle 600ms var(--ease-ritual, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+/* 动效：尊重减弱动态偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

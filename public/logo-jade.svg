@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="I Ching Coin">
+  <defs>
+    <radialGradient id="iccJade" cx="42%" cy="34%" r="72%">
+      <stop offset="0%" stop-color="#2DD4BF"/>
+      <stop offset="48%" stop-color="#0F766E"/>
+      <stop offset="100%" stop-color="#134E4A"/>
+    </radialGradient>
+  </defs>
+  <circle cx="128" cy="128" r="112" fill="url(#iccJade)"/>
+  <circle cx="128" cy="128" r="112" fill="none" stroke="#0B3B38" stroke-opacity="0.35" stroke-width="2"/>
+  <circle cx="128" cy="128" r="96" fill="none" stroke="#99F6E4" stroke-opacity="0.55" stroke-width="3"/>
+  <g fill="#FAF8F3">
+    <rect x="56" y="62" width="62" height="13" rx="2.5"/>
+    <rect x="138" y="62" width="62" height="13" rx="2.5"/>
+    <rect x="56" y="86" width="144" height="13" rx="2.5"/>
+    <rect x="56" y="110" width="62" height="13" rx="2.5"/>
+    <rect x="138" y="110" width="62" height="13" rx="2.5"/>
+    <rect x="56" y="134" width="144" height="13" rx="2.5"/>
+    <rect x="56" y="158" width="62" height="13" rx="2.5"/>
+    <rect x="138" y="158" width="62" height="13" rx="2.5"/>
+    <rect x="56" y="182" width="144" height="13" rx="2.5"/>
+  </g>
+</svg>

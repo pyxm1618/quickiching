@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I Ching Coin — 设计语言「明室 · 暗室」高保真预览</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS · 明室 ============ */
+:root{
+  --paper:#f7f2e7; --paper-raised:#fdfaf2;
+  --ink:#221c12; --ink-2:#4a4232; --ink-3:#7a6f58;
+  --cinnabar:#a9341f; --cinnabar-deep:#8c2a18; --cinnabar-wash:#f3e2da;
+  --jade:#1e5748; --jade-wash:#e2ebe4;
+  --bronze:#8c6a2b; --bronze-bright:#b08d42;
+  --line:#e4dac2; --line-strong:#cbbd9c;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+/* ============ TOKENS · 暗室 ============ */
+.chamber{
+  --paper:#14100a; --paper-raised:#1f1a10;
+  --ink:#f0e7d2; --ink-2:#c9bb9c; --ink-3:#93876c;
+  --cinnabar:#d9533a; --cinnabar-deep:#b7412c; --cinnabar-wash:rgba(51,32,22,.5);
+  --jade:#5da88f; --jade-wash:#1c2a24;
+  --bronze:#d9a95c; --bronze-bright:#e8c07a;
+  --line:#3a3122; --line-strong:#55482f;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:#efe8d8;
+  color:var(--ink);
+  font-family:"Instrument Sans",system-ui,sans-serif;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",monospace}
+.serif{font-family:"Fraunces","Noto Serif SC",serif}
+.cjk{font-family:"Noto Serif SC",serif}
+
+/* ============ 预览框架（非产品设计的一部分） ============ */
+.doc{max-width:1180px;margin:0 auto;padding:64px 32px 120px}
+.doc-label{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#8c6a2b;margin-bottom:10px}
+.doc-h2{font-family:"Fraunces",serif;font-size:30px;font-weight:560;margin-bottom:8px;letter-spacing:-.01em}
+.doc-note{font-size:14px;color:#7a6f58;max-width:640px;margin-bottom:28px}
+.doc-section{margin-top:88px}
+.frame{background:var(--paper);border:1px solid var(--line-strong);border-radius:10px;overflow:hidden;box-shadow:0 24px 48px -24px rgba(34,28,18,.25)}
+.browser-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--paper-raised)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--line-strong)}
+.url{flex:1;max-width:340px;margin:0 auto;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:3px 14px;text-align:center}
+.frame.chamber .browser-bar{background:#1f1a10;border-color:#3a3122}
+.frame.chamber .dot{background:#55482f}
+.frame.chamber .url{background:#14100a;border-color:#3a3122;color:#93876c}
+
+/* ============ 签名元素 ============ */
+.seal{display:inline-flex;align-items:center;justify-content:center;background:var(--cinnabar);color:#fff7ea;font-family:"Noto Serif SC",serif;border-radius:3px;line-height:1}
+.coin{position:relative;border-radius:50%;border:2px solid var(--bronze);background:radial-gradient(circle at 32% 28%, var(--bronze-bright), var(--bronze) 78%);display:inline-flex;align-items:center;justify-content:center}
+.coin::after{content:"";width:26%;height:26%;background:var(--paper);border:1.5px solid var(--bronze)}
+.chamber .coin::after{background:#14100a}
+.yline,.xline{display:flex;align-items:center;height:12px}
+.seg{background:var(--ink);height:10px;border-radius:1px}
+.seg.moving{background:var(--cinnabar)}
+.gap{width:12%}
+
+/* ============ 通用 UI ============ */
+.realm{background:var(--paper);color:var(--ink)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:"Instrument Sans",sans-serif;font-weight:600;font-size:15px;border:none;cursor:pointer;border-radius:4px;padding:13px 26px;transition:all .24s var(--ease);text-decoration:none}
+.btn-primary{background:var(--cinnabar);color:#fff7ea}
+.btn-primary:hover{background:var(--cinnabar-deep);transform:translateY(-1px)}
+.chamber .btn-primary{background:var(--cinnabar);color:#1a0e08}
+.btn-quiet{background:transparent;color:var(--jade);padding:13px 0;font-weight:600}
+.kicker{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--bronze)}
+.card{background:var(--paper-raised);border:1px solid var(--line);border-radius:8px}
+
+/* ============ COVER ============ */
+.cover{background:#221c12;color:#f0e7d2;border-radius:12px;padding:72px 64px;position:relative;overflow:hidden}
+.cover-watermark{position:absolute;right:-40px;top:-70px;font-family:"Noto Serif SC",serif;font-size:340px;color:rgba(240,231,210,.05);line-height:1}
+.cover .kicker{color:#d9a95c}
+.cover h1{font-family:"Fraunces",serif;font-weight:400;font-size:clamp(2.4rem,5vw,3.8rem);line-height:1.12;letter-spacing:-.015em;margin:18px 0 16px;max-width:560px}
+.cover h1 em{font-style:italic;color:#e8c07a}
+.cover p{max-width:520px;color:#c9bb9c;font-size:16px}
+.cover-meta{display:flex;gap:32px;margin-top:44px;flex-wrap:wrap}
+.cover-meta div{font-family:"IBM Plex Mono",monospace;font-size:12px;color:#93876c}
+.cover-meta strong{display:block;color:#f0e7d2;font-weight:500;margin-bottom:2px}
+
+/* ============ TOKENS 展示 ============ */
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.swatch{border:1px solid var(--line-strong);border-radius:6px;overflow:hidden;background:#fdfaf2}
+.swatch-color{height:72px}
+.swatch-body{padding:10px 12px;font-size:12px}
+.swatch-body .mono{font-size:11px;color:#7a6f58}
+.type-spec{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px}
+@media(max-width:820px){.type-spec{grid-template-columns:1fr}}
+.spec-card{background:#fdfaf2;border:1px solid var(--line);border-radius:8px;padding:24px}
+
+/* ============ SCREEN: 首页 ============ */
+.site-nav{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-family:"Fraunces",serif;font-weight:600;font-size:17px;text-decoration:none;color:var(--ink)}
+.nav-links{display:flex;gap:28px;font-size:13.5px}
+.nav-links a{color:var(--ink-2);text-decoration:none}
+.nav-links a:hover{color:var(--ink)}
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;padding:72px 40px 64px;position:relative;overflow:hidden}
+.hero-watermark{position:absolute;left:38%;top:-60px;font-family:"Noto Serif SC",serif;font-size:300px;color:rgba(34,28,18,.045);line-height:1;pointer-events:none}
+.hero h1{font-family:"Fraunces",serif;font-weight:460;font-size:clamp(2.2rem,3.6vw,3.4rem);line-height:1.14;letter-spacing:-.015em;margin:20px 0}
+.hero h1 em{font-style:italic;color:var(--cinnabar)}
+.hero-sub{max-width:480px;color:var(--ink-2);font-size:16.5px;margin-bottom:32px}
+.hero-cta{display:flex;align-items:center;gap:24px}
+.hero-side{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:36px 28px;background:var(--paper-raised);border:1px solid var(--line);border-radius:10px;position:relative}
+.hero-hex{display:flex;flex-direction:column;gap:9px;width:168px}
+.hero-hex .yline,.hero-hex .xline{height:14px}
+.hero-hex .seg{height:12px}
+.hex-name{display:flex;align-items:baseline;gap:12px}
+.hex-name .cjk{font-size:34px;font-weight:600}
+.hex-name .mono{font-size:12px;color:var(--ink-3)}
+.methods{display:grid;grid-template-columns:1.2fr 1fr 1fr;border-top:1px solid var(--line)}
+.method{padding:36px 40px 40px;border-right:1px solid var(--line);text-decoration:none;color:var(--ink);display:block;transition:background .24s var(--ease)}
+.method:last-child{border-right:none}
+.method:hover{background:var(--paper-raised)}
+.method .idx{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--bronze);letter-spacing:.1em}
+.method h3{font-family:"Fraunces",serif;font-weight:560;font-size:22px;margin:14px 0 4px}
+.method .cjk-name{font-family:"Noto Serif SC",serif;font-size:14px;color:var(--ink-3);margin-bottom:12px}
+.method p{font-size:14px;color:var(--ink-2);margin-bottom:20px}
+.method .go{font-size:13.5px;font-weight:600;color:var(--jade)}
+.ritual-strip{display:flex;gap:0;border-top:1px solid var(--line)}
+.rstep{flex:1;padding:28px 40px;border-right:1px solid var(--line)}
+.rstep:last-child{border-right:none}
+.rstep .mono{font-size:11px;color:var(--bronze);letter-spacing:.12em}
+.rstep h4{font-family:"Fraunces",serif;font-size:16.5px;font-weight:560;margin:8px 0 4px}
+.rstep p{font-size:13px;color:var(--ink-3)}
+
+/* ============ SCREEN: 暗室仪式 ============ */
+.ritual{background:radial-gradient(120% 90% at 50% 0%, #241c10 0%, #14100a 55%);min-height:640px;display:flex;flex-direction:column}
+.ritual-nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;color:#93876c;text-transform:uppercase}
+.ritual-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px 48px;text-align:center}
+.ritual-question{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:#93876c;letter-spacing:.08em;margin-bottom:36px;display:flex;gap:10px;align-items:center}
+.ritual-question .chip{border:1px solid #3a3122;border-radius:99px;padding:3px 12px;color:#c9bb9c}
+.build-hex{display:flex;flex-direction:column-reverse;gap:11px;width:220px;margin:26px 0 8px}
+.build-hex .slot{height:14px;position:relative}
+.build-hex .guide{position:absolute;inset:0;display:flex;align-items:center}
+.build-hex .guide i{display:block;height:1.5px;width:100%;background:#3a3122}
+.build-hex .seg{height:12px}
+.build-hex .seg{animation:draw .48s var(--ease) both}
+@keyframes draw{from{transform:scaleX(0);opacity:0}to{transform:scaleX(1);opacity:1}}
+.build-row{display:flex;align-items:center;gap:14px}
+.build-row .ln{font-family:"IBM Plex Mono",monospace;font-size:10px;color:#55482f;width:14px;text-align:right}
+.build-row.done .ln{color:#93876c}
+.moving-mark{color:#d9533a;font-size:13px;width:16px}
+.last-cast{display:flex;align-items:center;gap:14px;margin:30px 0 34px}
+.last-cast .coin{width:44px;height:44px;border-width:2.5px}
+.last-cast .coin .face{position:absolute;font-family:"Noto Serif SC",serif;font-size:13px;color:#14100a;opacity:.85;z-index:1}
+.coin-sum{font-family:"IBM Plex Mono",monospace;font-size:12px;color:#93876c;margin-left:6px}
+.coin-sum strong{color:#d9a95c;font-weight:500}
+.ritual-assure{margin-top:26px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:#55482f;letter-spacing:.06em}
+.progress-track{display:flex;gap:6px;margin-top:14px}
+.progress-track i{width:22px;height:3px;background:#3a3122;border-radius:2px}
+.progress-track i.on{background:#d9a95c}
+.phone{width:375px;flex-shrink:0}
+.phone .ritual{min-height:700px;border-radius:28px;overflow:hidden;border:8px solid #221c12}
+
+/* ============ SCREEN: 结果页 ============ */
+.result-wrap{padding:48px 40px 56px}
+.result-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.result-grid{display:grid;grid-template-columns:380px 1fr;gap:28px}
+.hex-card{padding:32px 32px 26px;text-align:center}
+.hex-lines{display:flex;flex-direction:column;gap:10px;width:190px;margin:22px auto}
+.hex-lines .build-row .ln{color:var(--ink-3)}
+.hex-lines .seg{height:11px}
+.hex-card .verdict{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);margin-top:18px}
+.relating-strip{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:center;gap:12px;font-size:13.5px;color:var(--ink-2)}
+.mini-hex{display:inline-flex;flex-direction:column;gap:3px;width:34px}
+.mini-hex .seg{height:3.5px}
+.mini-hex .gap{width:14%}
+.name-block .num{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--bronze);letter-spacing:.14em}
+.name-block h2{font-family:"Fraunces",serif;font-weight:500;font-size:34px;letter-spacing:-.01em;margin:6px 0 2px;display:flex;align-items:baseline;gap:14px}
+.name-block h2 .cjk{font-size:30px;color:var(--cinnabar)}
+.name-block .comp{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3);margin-bottom:0}
+.classic-quote{margin-top:20px;padding:20px 22px;border-left:3px solid var(--cinnabar);background:var(--paper-raised);border-radius:0 8px 8px 0}
+.classic-quote p{font-family:"Fraunces",serif;font-style:italic;font-size:16.5px;line-height:1.65;color:var(--ink-2)}
+.classic-quote .src{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);margin-top:10px}
+.preview-card{margin-top:20px;padding:24px;position:relative}
+.preview-card .seal{position:absolute;top:-13px;right:22px;width:26px;height:26px;font-size:13px;transform:rotate(-6deg)}
+.preview-card h4{font-family:"Fraunces",serif;font-size:17px;font-weight:560;margin-bottom:8px}
+.preview-card p{font-size:15px;color:var(--ink-2)}
+.preview-card .fixed-note{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3);margin-top:12px}
+.reading-cta{margin-top:20px;padding:24px;background:#221c12;color:#f0e7d2;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.reading-cta h4{font-family:"Fraunces",serif;font-size:18px;font-weight:500}
+.reading-cta p{font-size:13px;color:#c9bb9c;margin-top:4px;max-width:420px}
+.reading-cta .btn{flex-shrink:0}
+
+/* ============ SCREEN: 定价 ============ */
+.pricing-wrap{padding:56px 40px 64px;text-align:center}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:36px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper-raised)}
+.price-cell{padding:36px 28px 32px;border-right:1px solid var(--line);position:relative;text-align:center}
+.price-cell:last-child{border-right:none}
+.price-cell .pack{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;color:var(--bronze);text-transform:uppercase}
+.price-cell .amount{font-family:"Fraunces",serif;font-size:44px;font-weight:500;margin:10px 0 0;letter-spacing:-.02em}
+.price-cell .per{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3);margin-top:2px}
+.price-cell ul{list-style:none;margin:22px 0 26px;font-size:13.5px;color:var(--ink-2);display:grid;gap:7px}
+.stamp{position:absolute;top:16px;right:16px;border:2px solid var(--cinnabar);color:var(--cinnabar);font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;padding:4px 9px;border-radius:3px;transform:rotate(6deg);text-transform:uppercase}
+.pricing-fine{margin-top:22px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3)}
+
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr}
+  .methods,.ritual-strip{grid-template-columns:1fr;flex-direction:column}
+  .method,.rstep{border-right:none;border-bottom:1px solid var(--line)}
+  .result-grid{grid-template-columns:1fr}
+  .pricing-grid{grid-template-columns:1fr}
+  .price-cell{border-right:none;border-bottom:1px solid var(--line)}
+  .doc{padding:32px 16px 80px}
+}
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <!-- ================= COVER ================= -->
+  <div class="cover">
+    <div class="cover-watermark">易</div>
+    <div class="kicker">I Ching Coin · Design Language v2.0 · 设计语言</div>
+    <h1>明室 · 暗室<br>The Library <em>&amp;</em> The Chamber</h1>
+    <p>内容在明室中被阅读——宣纸、墨色、朱砂印；仪式在暗室中完成——暖黑、烛金、一线一爻。卦画即图形语言，方孔钱即品牌印记。</p>
+    <div class="cover-meta">
+      <div><strong>受众</strong>US English · 东方哲学 / 自我反思人群</div>
+      <div><strong>调性</strong>庄重 · 克制 · 可信赖</div>
+      <div><strong>字体</strong>Fraunces / Instrument Sans / IBM Plex Mono / Noto Serif SC</div>
+      <div><strong>无障碍</strong>WCAG 2.1 AA（全部文字 ≥ 4.5:1）</div>
+    </div>
+  </div>
+
+  <!-- ================= TOKENS ================= -->
+  <div class="doc-section">
+    <div class="doc-label">01 — Design Tokens · 双境色板</div>
+    <h2 class="doc-h2">明室五色，暗室五光</h2>
+    <p class="doc-note">同一套语义 token，两套取值。页面以 <span class="mono">data-realm="chamber"</span> 切换暗室，组件零改动。</p>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#f7f2e7"></div><div class="swatch-body">宣纸 Paper<div class="mono">#F7F2E7 · 页面底</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#221c12"></div><div class="swatch-body">墨 Ink<div class="mono">#221C12 · 14.2:1</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#a9341f"></div><div class="swatch-body">朱砂 Cinnabar<div class="mono">#A9341F · 主行动 5.9:1</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#1e5748"></div><div class="swatch-body">青玉 Jade<div class="mono">#1E5748 · 链接 7.0:1</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#8c6a2b"></div><div class="swatch-body">古铜 Bronze<div class="mono">#8C6A2B · 点缀 5.0:1</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#14100a"></div><div class="swatch-body">暗室 Chamber<div class="mono">#14100A · 仪式底</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#d9a95c"></div><div class="swatch-body">烛金 Candle Gold<div class="mono">#D9A95C · 暗室金属</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#d9533a"></div><div class="swatch-body">朱砂明 Cinnabar Glow<div class="mono">#D9533A · 暗室行动</div></div></div>
+    </div>
+
+    <div class="type-spec" style="margin-top:24px">
+      <div class="spec-card">
+        <div class="doc-label" style="margin-bottom:14px">字阶 · 1.333 流体比例</div>
+        <div class="serif" style="font-size:44px;font-weight:480;line-height:1.15">辨势知变</div>
+        <div class="serif" style="font-size:30px;font-weight:480;margin-top:10px">Understand where you are</div>
+        <div style="font-size:16px;margin-top:12px;color:#4a4232">Body — A quiet, irreversible ritual. Each line is sealed the moment it is cast.</div>
+        <div class="mono" style="font-size:12px;margin-top:12px;color:#8c6a2b;letter-spacing:.14em">CAPTION · ROUND 4 OF 6 · 九二动</div>
+      </div>
+      <div class="spec-card">
+        <div class="doc-label" style="margin-bottom:14px">签名元素 · Signature Marks</div>
+        <div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap">
+          <div style="text-align:center">
+            <span class="seal" style="width:44px;height:44px;font-size:24px">易</span>
+            <div class="mono" style="font-size:10px;color:#7a6f58;margin-top:8px">SEAL 印章</div>
+          </div>
+          <div style="text-align:center">
+            <span class="coin" style="width:44px;height:44px"></span>
+            <div class="mono" style="font-size:10px;color:#7a6f58;margin-top:8px">COIN 方孔钱</div>
+          </div>
+          <div style="text-align:center">
+            <div style="display:flex;flex-direction:column;gap:5px;width:88px">
+              <div class="yline"><div class="seg" style="flex:1"></div></div>
+              <div class="xline"><div class="seg" style="flex:1"></div><div class="gap"></div><div class="seg" style="flex:1"></div></div>
+              <div class="yline"><div class="seg moving" style="flex:1"></div></div>
+            </div>
+            <div class="mono" style="font-size:10px;color:#7a6f58;margin-top:8px">LINES 卦画 · 动爻朱砂</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:#7a6f58;margin-top:18px">阳爻一整，阴爻两分；动爻染朱砂并以 ○／× 记。六爻自下而上，是产品唯一的图形母题——进度、装饰、结果皆出于此。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 1: 首页 ================= -->
+  <div class="doc-section">
+    <div class="doc-label">02 — Screen · Home 首页（明室）</div>
+    <h2 class="doc-h2">编辑式首屏：左文右卦，方法如书页排开</h2>
+    <p class="doc-note">放弃居中模板与图标卡片。左侧编辑级标题直陈价值，右侧「泰」卦静静立于一旁；三种玩法以书页栏式铺陈，序号与卦名汉字建立文化坐标。</p>
+    <div class="frame">
+      <div class="browser-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">ichingcoin.com</span></div>
+      <div class="realm">
+        <nav class="site-nav">
+          <a class="brand" href="#"><span class="seal" style="width:26px;height:26px;font-size:14px">易</span>I Ching Coin</a>
+          <div class="nav-links">
+            <a href="#">Coin Reading</a><a href="#">Methods</a><a href="#">Pricing</a>
+          </div>
+          <a href="#" style="font-size:13.5px;color:var(--jade);text-decoration:none;font-weight:600">Sign in</a>
+        </nav>
+        <section class="hero">
+          <div class="hero-watermark">易</div>
+          <div>
+            <div class="kicker">A quiet ritual for a changing moment</div>
+            <h1>Understand where you are.<br>See <em>how it may be changing.</em></h1>
+            <p class="hero-sub">Cast a hexagram through a formal, irreversible ritual. Reveal the classic pattern for free — then unlock a deep reading written for your exact situation.</p>
+            <div class="hero-cta">
+              <a class="btn btn-primary" href="#">Start Your Coin Reading</a>
+              <a class="btn btn-quiet" href="#">Explore all methods →</a>
+            </div>
+          </div>
+          <div class="hero-side">
+            <div class="hex-name"><span class="cjk">泰</span><span class="mono">NO. 11 · TAI</span></div>
+            <div class="hero-hex">
+              <div class="xline"><div class="seg" style="flex:1"></div><div class="gap"></div><div class="seg" style="flex:1"></div></div>
+              <div class="xline"><div class="seg" style="flex:1"></div><div class="gap"></div><div class="seg" style="flex:1"></div></div>
+              <div class="xline"><div class="seg" style="flex:1"></div><div class="gap"></div><div class="seg" style="flex:1"></div></div>
+              <div class="yline"><div class="seg" style="flex:1"></div></div>
+              <div class="yline"><div class="seg" style="flex:1"></div></div>
+              <div class="yline"><div class="seg" style="flex:1"></div></div>
+            </div>
+            <div class="mono" style="font-size:11px;color:var(--ink-3)">☷ OVER ☰ · EARTH ABOVE, HEAVEN BELOW</div>
+          </div>
+        </section>
+        <section class="methods">
+          <a class="method" href="#">
+            <span class="idx">01</span>
+            <h3>Three-Coin Method</h3>
+            <div class="cjk-name">三枚铜钱 · 入门正途</div>
+            <p>Six rounds of three coins. The most direct and recognized way into the I Ching.</p>
+            <span class="go">Begin the ritual →</span>
+          </a>
+          <a class="method" href="#">
+            <span class="idx">02</span>
+            <h3>Yarrow Stalk</h3>
+            <div class="cjk-name">蓍草 · 慢仪式</div>
+            <p>An eighteen-step division of forty-nine stalks. Slower, deliberate, deeply traditional.</p>
+            <span class="go">Begin the ritual →</span>
+          </a>
+          <a class="method" href="#">
+            <span class="idx">03</span>
+            <h3>Mei Hua Yi Shu</h3>
+            <div class="cjk-name">梅花易数 · 时间起卦</div>
+            <p>A hexagram formed from the current time in your confirmed timezone.</p>
+            <span class="go">Begin the ritual →</span>
+          </a>
+        </section>
+        <section class="ritual-strip">
+          <div class="rstep"><span class="mono">STEP I</span><h4>Ask with care</h4><p>Choose a scene, a goal, and describe your situation.</p></div>
+          <div class="rstep"><span class="mono">STEP II</span><h4>Complete the ritual</h4><p>Each line is sealed the moment it is cast. No redo.</p></div>
+          <div class="rstep"><span class="mono">STEP III</span><h4>Reveal &amp; reflect</h4><p>Sign in to reveal the full pattern, free.</p></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 2: 暗室仪式 ================= -->
+  <div class="doc-section">
+    <div class="doc-label">03 — Screen · The Ritual 起卦仪式（暗室）</div>
+    <h2 class="doc-h2">一线一爻，暗室渐成</h2>
+    <p class="doc-note">仪式页整体进入暗室：导航退隐，只留一炉微光。正在生成的卦就是进度条——每一爻以 480ms 落定，动爻染朱砂。一次只给一个动作，其余皆为静。</p>
+    <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+      <div class="frame chamber" style="flex:1;min-width:520px">
+        <div class="browser-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">ichingcoin.com/cast/three-coin</span></div>
+        <div class="ritual">
+          <div class="ritual-nav">
+            <span>☵ The Ritual · 三枚铜钱</span>
+            <span>Question sealed ✓</span>
+          </div>
+          <div class="ritual-stage">
+            <div class="ritual-question">
+              <span class="chip">Career</span>
+              <span>What is blocking this situation?</span>
+            </div>
+            <div class="kicker" style="color:#d9a95c">ROUND 4 OF 6 · 第四爻</div>
+            <div class="build-hex">
+              <div class="slot"><div class="guide"><i></i></div></div>
+              <div class="slot"><div class="guide"><i></i></div></div>
+              <div class="slot"><div class="guide"><i></i></div></div>
+              <div class="build-row done"><span class="ln">三</span><div class="yline" style="flex:1"><div class="seg" style="flex:1;background:#f0e7d2"></div></div><span class="moving-mark"></span></div>
+              <div class="build-row done"><span class="ln">二</span><div class="xline" style="flex:1"><div class="seg" style="flex:1;background:#f0e7d2"></div><div class="gap"></div><div class="seg" style="flex:1;background:#f0e7d2"></div></div><span class="moving-mark"></span></div>
+              <div class="build-row done"><span class="ln">初</span><div class="yline" style="flex:1"><div class="seg moving" style="flex:1"></div></div><span class="moving-mark">○</span></div>
+            </div>
+            <div class="last-cast">
+              <span class="coin"><span class="face">乾</span></span>
+              <span class="coin"></span>
+              <span class="coin"></span>
+              <span class="coin-sum">3 + 2 + 2 = <strong>7 · YOUNG YANG 少阳</strong></span>
+            </div>
+            <a class="btn btn-primary" href="#">Cast the fourth line</a>
+            <div class="progress-track"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+            <p class="ritual-assure">EACH LINE IS SEALED THE MOMENT IT IS CAST · 不可撤销 · 不可重来</p>
+          </div>
+        </div>
+      </div>
+      <div class="phone">
+        <div class="ritual">
+          <div class="ritual-nav"><span>☵ 三枚铜钱</span><span>✓</span></div>
+          <div class="ritual-stage" style="padding-top:56px">
+            <div class="ritual-question" style="margin-bottom:28px"><span class="chip">Career</span></div>
+            <div class="kicker" style="color:#d9a95c">ROUND 4 OF 6</div>
+            <div class="build-hex" style="width:190px">
+              <div class="slot"><div class="guide"><i></i></div></div>
+              <div class="slot"><div class="guide"><i></i></div></div>
+              <div class="slot"><div class="guide"><i></i></div></div>
+              <div class="yline"><div class="seg" style="flex:1;background:#f0e7d2"></div></div>
+              <div class="xline"><div class="seg" style="flex:1;background:#f0e7d2"></div><div class="gap"></div><div class="seg" style="flex:1;background:#f0e7d2"></div></div>
+              <div class="yline"><div class="seg moving" style="flex:1"></div></div>
+            </div>
+            <div class="last-cast" style="margin:26px 0">
+              <span class="coin" style="width:38px;height:38px"></span>
+              <span class="coin" style="width:38px;height:38px"></span>
+              <span class="coin" style="width:38px;height:38px"></span>
+            </div>
+            <a class="btn btn-primary" href="#" style="width:100%;max-width:280px">Cast the fourth line</a>
+            <div class="progress-track"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 3: 结果页 ================= -->
+  <div class="doc-section">
+    <div class="doc-label">04 — Screen · Result 结果页（明室）</div>
+    <h2 class="doc-h2">卦为主角，文为注脚</h2>
+    <p class="doc-note">揭示后，卦画以最大规格立于左侧，如碑刻；右侧依次展开卦名、卦辞、固定预览与深度解读入口。朱砂小印表示「已封存，不再变更」。</p>
+    <div class="frame">
+      <div class="browser-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">ichingcoin.com/result/7f3a…</span></div>
+      <div class="realm result-wrap">
+        <div class="result-head">
+          <span class="kicker">Ritual complete · Revealed</span>
+          <span class="mono" style="font-size:11px;color:var(--ink-3)">THREE-COIN-V1 · KING-WEN-V1</span>
+        </div>
+        <div class="result-grid">
+          <div class="card hex-card">
+            <span class="seal" style="width:24px;height:24px;font-size:12px">封</span>
+            <div class="hex-lines">
+              <div class="build-row"><span class="ln">上六</span><div class="xline" style="flex:1"><div class="seg" style="flex:1"></div><div class="gap"></div><div class="seg" style="flex:1"></div></div><span class="moving-mark"></span></div>
+              <div class="build-row"><span class="ln">六五</span><div class="xline" style="flex:1"><div class="seg" style="flex:1"></div><div class="gap"></div><div class="seg" style="flex:1"></div></div><span class="moving-mark"></span></div>
+              <div class="build-row"><span class="ln">六四</span><div class="xline" style="flex:1"><div class="seg" style="flex:1"></div><div class="gap"></div><div class="seg" style="flex:1"></div></div><span class="moving-mark"></span></div>
+              <div class="build-row"><span class="ln">九三</span><div class="yline" style="flex:1"><div class="seg" style="flex:1"></div></div><span class="moving-mark"></span></div>
+              <div class="build-row"><span class="ln">九二</span><div class="yline" style="flex:1"><div class="seg moving" style="flex:1"></div></div><span class="moving-mark" style="color:var(--cinnabar)">○</span></div>
+              <div class="build-row"><span class="ln">初九</span><div class="yline" style="flex:1"><div class="seg" style="flex:1"></div></div><span class="moving-mark"></span></div>
+            </div>
+            <div class="verdict">ONE MOVING LINE · 九二</div>
+            <div class="relating-strip">
+              <span>Changing toward</span>
+              <span class="mini-hex">
+                <span class="yline"><span class="seg" style="flex:1"></span></span>
+                <span class="xline"><span class="seg" style="flex:1"></span><span class="gap"></span><span class="seg" style="flex:1"></span></span>
+                <span class="yline"><span class="seg" style="flex:1"></span></span>
+                <span class="xline"><span class="seg" style="flex:1"></span><span class="gap"></span><span class="seg" style="flex:1"></span></span>
+                <span class="xline"><span class="seg" style="flex:1"></span><span class="gap"></span><span class="seg" style="flex:1"></span></span>
+                <span class="xline"><span class="seg" style="flex:1"></span><span class="gap"></span><span class="seg" style="flex:1"></span></span>
+              </span>
+              <span><strong class="serif">35 · Jin 晉</strong> · Progress</span>
+            </div>
+          </div>
+          <div>
+            <div class="name-block">
+              <span class="num">HEXAGRAM NO. 11</span>
+              <h2>Tai <span class="cjk">泰</span></h2>
+              <div class="comp">☷ OVER ☰ · EARTH ABOVE, HEAVEN BELOW · 地天泰</div>
+            </div>
+            <div class="classic-quote">
+              <p>“The small departs, the great approaches. Good fortune — things move smoothly.”</p>
+              <div class="src">THE JUDGMENT · 卦辞 · LICENSED TEXT PENDING (G-02)</div>
+            </div>
+            <div class="card preview-card">
+              <span class="seal">固</span>
+              <h4>Your fixed preview</h4>
+              <p>Your question turns on a tension between steady ground and a stalled next step. This hexagram meets that directly — something in the foundation is sound, while one part of the structure is already in motion.</p>
+              <div class="fixed-note">FIXED FOR THIS HEXAGRAM · REFRESHING WILL NOT REWRITE IT</div>
+            </div>
+            <div class="reading-cta">
+              <div>
+                <h4>Unlock the deep reading</h4>
+                <p>Current stage · mechanism of change · obstacles · turning conditions — ten modules written for this exact situation.</p>
+              </div>
+              <a class="btn btn-primary" href="#">Use 1 credit</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 4: 定价 ================= -->
+  <div class="doc-section">
+    <div class="doc-label">05 — Screen · Pricing 定价页（明室 · 账册式）</div>
+    <h2 class="doc-h2">一册权益账，明码不喧哗</h2>
+    <p class="doc-note">不用营销式价格卡墙。三档权益如账册三栏并列，数字用等宽字体对齐；「Best Value」以朱砂印章斜盖，如同账房批注——克制，但一眼可辨。</p>
+    <div class="frame">
+      <div class="browser-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">ichingcoin.com/pricing</span></div>
+      <div class="realm pricing-wrap">
+        <div class="kicker">READING CREDITS · 解读权益</div>
+        <h2 class="serif" style="font-size:34px;font-weight:500;margin-top:10px">One reading, kept forever.</h2>
+        <p style="color:var(--ink-2);font-size:15px;max-width:520px;margin:8px auto 0">Credits work with any method. A report, once delivered, can be re-opened at any time.</p>
+        <div class="pricing-grid">
+          <div class="price-cell">
+            <div class="pack">First Reading</div>
+            <div class="amount">$2.99</div>
+            <div class="per">1 CREDIT · $2.99 / READING</div>
+            <ul><li>Any casting method</li><li>Ten-module report</li><li>Re-openable forever</li></ul>
+            <a class="btn btn-primary" href="#" style="width:100%">Get 1 credit</a>
+          </div>
+          <div class="price-cell">
+            <div class="pack">Steady Practice</div>
+            <div class="amount">$6.99</div>
+            <div class="per">3 CREDITS · $2.33 / READING</div>
+            <ul><li>Any casting method</li><li>Save about 22%</li><li>Re-openable forever</li></ul>
+            <a class="btn btn-primary" href="#" style="width:100%">Get 3 credits</a>
+          </div>
+          <div class="price-cell">
+            <span class="stamp">Best Value</span>
+            <div class="pack">Deep Reserve</div>
+            <div class="amount">$9.99</div>
+            <div class="per">5 CREDITS · $2.00 / READING</div>
+            <ul><li>Any casting method</li><li>Lowest per reading</li><li>Re-openable forever</li></ul>
+            <a class="btn btn-primary" href="#" style="width:100%">Get 5 credits</a>
+          </div>
+        </div>
+        <p class="pricing-fine">VALID 12 MONTHS FROM PURCHASE · EARLIEST-EXPIRING CREDIT USED FIRST · NO COUNTDOWN, NO FALSE URGENCY</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="mono" style="text-align:center;font-size:11px;color:#7a6f58;margin-top:80px;letter-spacing:.1em">
+    I CHING COIN · 明室暗室 DESIGN LANGUAGE · PREVIEW v2.0 · 与 docs/UI设计方案.md 配套使用
+  </p>
+</div>
+</body>
+</html>
