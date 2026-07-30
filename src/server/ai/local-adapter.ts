@@ -1,11 +1,14 @@
-import type { HexagramResult, Scene } from "@/domain/casting/types";
+import type {
+  HexagramResult,
+  InterpretationGoal,
+  Scene,
+} from "@/domain/casting/types";
 import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
-import type { ReadingReport, ReadingVariant, PreviewOutput, InterpretiveBasisReference } from "@/domain/readings/types";
+import { buildClassicReferences } from "@/domain/classics";
+import type { PreviewOutput, ReadingReport, ReadingVariant } from "@/domain/readings/types";
 
-// Deterministic offline generator used when AI_ADAPTER_MODE=local (the default for this MVP
-// build). It is an explicit stand-in for the production AI SDK pipeline (G-06 pending). It
-// honors the structural and safety constraints (no absolute predictions, no commands, fixed
-// module set) but the prose quality is NOT the reviewed model output.
+// Explicit developmental adapter. It is deterministic and structurally valid, but it is not
+// represented as reviewed production interpretation quality.
 
 const SCENE_LABEL: Record<Scene, string> = {
   career: "your work and direction",
@@ -17,34 +20,38 @@ const SCENE_LABEL: Record<Scene, string> = {
   other: "what you brought to the reading",
 };
 
+const GOAL_LABEL: Record<InterpretationGoal, string> = {
+  what_do_i_need_to_see_clearly: "see clearly",
+  what_is_blocking_this_situation: "understand what is blocking the situation",
+  what_should_i_understand_about_my_options: "understand the available options",
+  what_should_i_pay_attention_to_next: "pay attention to the next observable signs",
+  is_the_timing_favorable: "examine the conditions around timing",
+};
+
+const METHOD_LABEL: Record<HexagramResult["method"], string> = {
+  three_coin: "three-coin method",
+  yarrow_stalk: "yarrow-stalk method",
+  mei_hua_current_time: "Mei Hua current-time method",
+};
+
 function variantFor(result: HexagramResult): ReadingVariant {
-  const n = result.movingLinePositions.length;
-  if (n === 0) return "still_hexagram";
-  if (n === 6) return "all_lines_moving";
-  if (n > 1) return "multiple_moving";
+  const moving = result.movingLinePositions.length;
+  if (moving === 0) return "still_hexagram";
+  if (moving === 6) return "all_lines_moving";
+  if (moving > 1) return "multiple_moving";
   return "standard";
 }
 
-function referencesFor(result: HexagramResult): InterpretiveBasisReference[] {
-  const refs: InterpretiveBasisReference[] = [
-    { source: "king_wen_judgment", hexagramNumber: result.primaryHexagramNumber, status: "pending_license" },
-  ];
-  for (const pos of result.movingLinePositions) {
-    refs.push({
-      source: "king_wen_line",
-      hexagramNumber: result.primaryHexagramNumber,
-      linePosition: pos,
-      status: "pending_license",
-    });
-  }
-  if (result.relatingHexagramNumber) {
-    refs.push({
-      source: "relating_judgment",
-      hexagramNumber: result.relatingHexagramNumber,
-      status: "pending_license",
-    });
-  }
-  return refs;
+function contextFocus(context: string, maximumWords = 14): string {
+  const words = context.normalize("NFKC").replace(/\s+/g, " ").trim().split(" ");
+  const selected = words.slice(0, maximumWords).join(" ").replace(/[.!?]+$/, "");
+  return selected || "the situation you described";
+}
+
+function movingDescription(result: HexagramResult): string {
+  if (result.movingLinePositions.length === 0) return "no moving line";
+  if (result.movingLinePositions.length === 1) return `line ${result.movingLinePositions[0]}`;
+  return result.movingLinePositions.map((line) => `line ${line}`).join(", ");
 }
 
 export function generateLocalPreview(input: {
@@ -53,96 +60,92 @@ export function generateLocalPreview(input: {
   context: string;
 }): PreviewOutput {
   const name = hexagramByNumber(input.result.primaryHexagramNumber).englishName;
-  const sceneLabel = SCENE_LABEL[input.scene];
-  // 25-55 words, max 2 sentences, only surface tension + surface relevance.
-  // Must NOT reveal stage, trend, turning conditions, or action orientation (RESULT-002).
-  const statement =
-    `Your question about ${sceneLabel} and the imagery of ${name} both turn on a quiet tension ` +
-    `between what feels settled and what is still moving. The pattern echoes the situation you ` +
-    `described without telling you what must happen next.`;
-  return { relevanceStatement: statement };
+  const focus = contextFocus(input.context, 10);
+  return {
+    relevanceStatement:
+      `Your description of ${focus} and the imagery of ${name} both involve tension between an ` +
+      `established arrangement and an unsettled element. The connection is relevant to ${SCENE_LABEL[input.scene]} ` +
+      `without determining a stage, direction, outcome, or action for you.`,
+  };
 }
 
 export function generateLocalReading(input: {
   result: HexagramResult;
   scene: Scene;
-  goal: string;
+  goal: InterpretationGoal;
   context: string;
 }): ReadingReport {
-  const name = hexagramByNumber(input.result.primaryHexagramNumber).englishName;
+  const primaryName = hexagramByNumber(input.result.primaryHexagramNumber).englishName;
+  const relatingName = input.result.relatingHexagramNumber == null
+    ? null
+    : hexagramByNumber(input.result.relatingHexagramNumber).englishName;
   const sceneLabel = SCENE_LABEL[input.scene];
-  const moving = input.result.movingLinePositions;
+  const focus = contextFocus(input.context);
+  const method = METHOD_LABEL[input.result.method];
+  const goal = GOAL_LABEL[input.goal];
+  const moving = movingDescription(input.result);
   const variant = variantFor(input.result);
 
   const coreSummary =
-    `The situation centers on a contrast between steady conditions and pressures that are shifting ` +
-    `beneath them. The pattern of ${name} suggests the main tension in ${sceneLabel} is about ` +
-    `whether existing structures still fit what is now occurring. Watch what changes first, and ` +
-    `treat any single sign as information rather than a finished verdict.`;
+    `The main tension in your description of ${focus} is between an established arrangement and pressure for a different fit. ` +
+    `The ${method} produced ${primaryName}, so the present pattern is treated as structured but not necessarily settled. ` +
+    `The change focus is ${moving}, which concentrates attention on where the arrangement can shift. ` +
+    `Because your stated goal is to ${goal}, the most useful evidence is what becomes observable rather than any promised outcome.`;
 
   const currentStage =
-    `Stage: forming. The judgment is based on the primary hexagram ${name}, where the early ` +
-    `conditions are established but not yet resolved. This reading treats the present as a phase ` +
-    `of arrangement rather than arrival, because the lines show forces still taking shape.`;
+    `Stage: forming. The pattern is classified this way because ${primaryName} establishes the broad environment while ${moving} ` +
+    `shows that part of the arrangement is still being defined. This is an early-to-middle phase of clarification rather than a completed transition.`;
 
   const primaryHexagramPattern =
-    `${name} describes an environment where the relation between you, others, and outside conditions ` +
-    `is uneven. Some factors are comparatively stable; others are already unstable. The pattern ` +
-    `matters more than any single element, and the reading keeps that whole before drawing conclusions.`;
+    `${primaryName} frames ${sceneLabel} as a relationship among your stated concern, other people, and external conditions. ` +
+    `The existing structure is comparatively stable, while expectations and practical coordination remain less stable. ` +
+    `That imbalance helps explain why the situation can appear recognizable yet still resist a final interpretation.`;
 
   let changeMechanism: string;
   if (variant === "still_hexagram") {
     changeMechanism =
-      `Still Hexagram and Stabilizing Forces: there is no moving line, so the reading emphasizes ` +
-      `the present configuration as a holding pattern. The forces at work are mainly stabilizing, ` +
-      `and change is more about maintenance than transformation.`;
+      `Still Hexagram and Stabilizing Forces: there is no moving line, so the developmental reading emphasizes maintenance of the current configuration. ` +
+      `The ${method} facts do not identify a separate pivot. Change therefore remains conditional on new real-world information rather than an internal line transformation.`;
   } else if (variant === "all_lines_moving") {
     changeMechanism =
-      `Transformation of the Whole Structure: every line moves, so the reading treats this as a ` +
-      `comprehensive reconfiguration rather than a single pivot. The change logic is that the ` +
-      `entire situation is in transition at once, and partial fixes are unlikely to hold.`;
+      `Transformation of the Whole Structure: line 1, line 2, line 3, line 4, line 5, and line 6 all move. ` +
+      `The ${method} therefore describes comprehensive reconfiguration rather than one isolated pivot. ` +
+      `The useful logic is to examine how the entire arrangement changes together instead of treating any single line as sufficient.`;
   } else if (variant === "multiple_moving") {
-    const positions = moving.join(", ");
     changeMechanism =
-      `Several lines move (${positions}). They are read as a connected sequence rather than separate ` +
-      `events: earlier movements set conditions that later movements alter. The dominant logic is ` +
-      `one of cumulative change, where the order of the lines tells the story of how the situation evolves.`;
+      `${moving} are the moving facts recorded by the ${method}. They are interpreted as a connected sequence: earlier positions establish conditions that later positions modify. ` +
+      `The dominant mechanism is cumulative change, with each recorded line remaining traceable to the persisted casting result.`;
   } else {
-    const pos = moving[0];
     changeMechanism =
-      `A single line moves at position ${pos}. That line is the main axis of change: it marks where ` +
-      `the present pattern is most likely to give way. The rest of the hexagram supplies the context ` +
-      `that makes that single shift meaningful.`;
+      `${moving} is the single moving fact recorded by the ${method}. It is the principal axis of change and identifies the first assumption, boundary, or commitment that may need revision. ` +
+      `The other five lines remain the stable context that gives this one movement its significance.`;
   }
 
-  const possibleDirection =
-    `If the present trend continues, the relating hexagram shows a structure that could emerge, but ` +
-    `this is a possible direction, not a forecast. What is already changing may lead there; what is ` +
-    `stable may prevent it. The reading keeps the distinction between a likely continuation and a ` +
-    `certain outcome.`;
+  const possibleDirection = relatingName
+    ? `The relating hexagram, ${relatingName}, describes a possible structure that could emerge if the recorded movement continues. ` +
+      `It is not a forecast. Clearer expectations and consistent follow-through could support that direction, while unresolved constraints could preserve the present pattern.`
+    : `There is no relating hexagram because no line moves. The possible direction therefore depends on new external conditions rather than a transformation already encoded in the result. ` +
+      `The current arrangement could persist, but it remains open to revision when materially new information appears.`;
 
   const obstaclesAndBlindSpots =
-    `The main resistance is the pull to treat a partial signal as the whole picture. A likely ` +
-    `misjudgment is rushing a decision before the unstable factors reveal themselves. Information ` +
-    `you do not yet have — especially about others' actual constraints — may be the missing piece.`;
+    `The main obstacle is treating one delay, message, or emotional reaction as the entire pattern. ` +
+    `A blind spot would be assuming that everyone involved uses the same definition of progress. ` +
+    `Information about authority, timing, resources, and other people's actual constraints may still be missing from the situation you described.`;
 
   const turningConditions =
-    `Signs that support holding the current read: clearer information, calmer external pressure, and ` +
-    `a stable response from the people involved. Signs that call for re-evaluation: a sudden change ` +
-    `in a key condition, new information that contradicts the earlier picture, or a shift in your own ` +
-    `capacity to act. No precise date is implied.`;
+    `Maintain the current interpretation while responsibilities become clearer, communication grows more consistent, and small commitments are followed by evidence. ` +
+    `Re-evaluate it if decision authority changes, the practical scope shifts, or promised milestones repeatedly pass without observable progress. ` +
+    `These are real-world conditions, not a prediction of a precise date.`;
 
   const conditionalActionDirection =
-    `Under current conditions it is generally more apt to observe and prepare than to force a move. ` +
-    `Suitable now: gathering information, clarifying intentions, and small reversible steps. Less ` +
-    `suitable now: irreversible commitments or final answers. Change the orientation only when the ` +
-    `turning conditions above actually appear — this reading does not command specific life decisions.`;
+    `Under current conditions, observation, clarification, and reversible preparation fit the pattern better than an irreversible commitment. ` +
+    `A more active orientation becomes reasonable only after authority, expectations, and timing are confirmed. ` +
+    `This developmental reading keeps the final choice with the user and does not issue a command about ${sceneLabel}.`;
 
   const uncertaintyAndBoundaries =
-    `This reading works from the situation you described and the pattern of ${name}; it is not a ` +
-    `substitute for professional advice on medical, legal, financial, or safety matters. Several ` +
-    `real-world variables could change the picture, and trend is not the same as fact. The useful ` +
-    `output is perspective, not a directive.`;
+    `This interpretation uses the supplied context, the ${method}, ${primaryName}, and ${moving}. ` +
+    `It cannot account for undisclosed constraints or future decisions by other people. ` +
+    `It offers a self-reflection framework and is not medical, legal, financial, safety, or other professional advice.`;
 
   return {
     readingVariant: variant,
@@ -155,6 +158,6 @@ export function generateLocalReading(input: {
     turningConditions,
     conditionalActionDirection,
     uncertaintyAndBoundaries,
-    interpretiveBasisReferences: referencesFor(input.result),
+    interpretiveBasisReferences: buildClassicReferences(input.result),
   };
 }
