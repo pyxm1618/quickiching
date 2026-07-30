@@ -16,9 +16,11 @@ export const readingRepository = repositories.readingRepository;
 export const entitlementRepository = repositories.entitlementRepository;
 export const reviewRepository = repositories.reviewRepository;
 export const privacyRepository = repositories.privacyRepository;
+export const historyRepository = repositories.historyRepository;
 export type Repo = RepositoryFacade;
 
 export type {
+  AccountDeletionRequest,
   CastResult,
   CastingSession,
   CastingStep,
