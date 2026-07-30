@@ -15,15 +15,16 @@ export class MemoryPrivacyRepository implements PrivacyRepository {
     return snapshot(sessions);
   }
 
-  requestCastingDeletion(castingId: string, now: Date): CastingSession {
+  requestCastingDeletion(castingId: string, requestedAt?: Date): CastingSession {
     return this.store.withLock(() => {
       const session = this.store.castingSessions.get(castingId);
       if (!session) throw repositoryError("CASTING_NOT_FOUND");
       if (session.lifecycle !== "revealed") throw repositoryError("CASTING_NOT_DELETABLE");
-      session.deletedAt = new Date(now);
+      const now = requestedAt ? new Date(requestedAt) : new Date();
+      session.deletedAt = now;
       session.purgeAfter = new Date(now.getTime() + RECOVERY_WINDOW_MS);
       session.lifecycle = "user_deleted";
-      session.updatedAt = new Date(now);
+      session.updatedAt = now;
       return snapshot(session);
     });
   }
