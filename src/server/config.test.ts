@@ -28,6 +28,7 @@ const productionCredentials = {
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: "turnstile-site-key",
   NEXT_PUBLIC_APP_URL: "https://iching.example.com",
   WORKFLOW_ADAPTER_MODE: "vercel",
+  CRON_SECRET: "cron-production-secret",
   SESSION_SIGNING_KEYS: "v2:session-signing-key-new,v1:session-signing-key-old",
   SESSION_SIGNING_WRITE_VERSION: "v1",
   QUESTION_FINGERPRINT_KEYS: "v2:question-fingerprint-key-new,v1:question-fingerprint-key-old",
@@ -69,6 +70,7 @@ describe("runtime configuration", () => {
     "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
     "NEXT_PUBLIC_APP_URL",
     "WORKFLOW_ADAPTER_MODE",
+    "CRON_SECRET",
     "SESSION_SIGNING_WRITE_VERSION",
     "QUESTION_FINGERPRINT_WRITE_VERSION",
     "QUESTION_ENCRYPTION_WRITE_VERSION",
@@ -140,7 +142,7 @@ describe("runtime configuration", () => {
     })).toThrow("PRODUCTION_CONFIG_INVALID: key material must not be reused across purposes");
   });
 
-  it("returns production keyrings with explicit single-write and multi-read versions", () => {
+  it("returns production adapters and keyrings with explicit single-write and multi-read versions", () => {
     const config = loadRuntimeConfig(productionCredentials);
 
     expect(config).toMatchObject({
@@ -149,6 +151,8 @@ describe("runtime configuration", () => {
       auth: "better-auth",
       payment: "creem",
       database: "postgres",
+      workflow: "vercel",
+      credentials: { cronSecret: "cron-production-secret" },
       keys: {
         sessionSigning: {
           writeVersion: "v1",
