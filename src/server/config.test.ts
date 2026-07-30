@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { loadRuntimeConfig } from "./config";
 
+function keyBytes(seed: number): Buffer {
+  return Buffer.from(Array.from({ length: 32 }, (_, index) => (seed + index * 17) % 256));
+}
+
+function base64Key(seed: number): string {
+  return `base64:${keyBytes(seed).toString("base64")}`;
+}
+
+function hexKey(seed: number): string {
+  return `hex:${keyBytes(seed).toString("hex")}`;
+}
+
 const productionCredentials = {
   NODE_ENV: "production",
   APP_BASE_URL: "https://iching.example.com",
@@ -28,13 +40,13 @@ const productionCredentials = {
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: "turnstile-site-key",
   NEXT_PUBLIC_APP_URL: "https://iching.example.com",
   WORKFLOW_ADAPTER_MODE: "vercel",
-  SESSION_SIGNING_KEYS: "v2:session-signing-key-new,v1:session-signing-key-old",
+  SESSION_SIGNING_KEYS: `v2:${base64Key(1)},v1:${base64Key(2)}`,
   SESSION_SIGNING_WRITE_VERSION: "v1",
-  QUESTION_FINGERPRINT_KEYS: "v2:question-fingerprint-key-new,v1:question-fingerprint-key-old",
+  QUESTION_FINGERPRINT_KEYS: `v2:${base64Key(33)},v1:${base64Key(34)}`,
   QUESTION_FINGERPRINT_WRITE_VERSION: "v1",
-  QUESTION_ENCRYPTION_KEYS: "v2:question-encryption-key-new,v1:question-encryption-key-old",
+  QUESTION_ENCRYPTION_KEYS: `v2:${base64Key(65)},v1:${base64Key(66)}`,
   QUESTION_ENCRYPTION_WRITE_VERSION: "v1",
-  RESULT_INTEGRITY_KEYS: "v2:result-integrity-key-new,v1:result-integrity-key-old",
+  RESULT_INTEGRITY_KEYS: `v2:${base64Key(97)},v1:${base64Key(98)}`,
   RESULT_INTEGRITY_WRITE_VERSION: "v1",
 };
 
@@ -47,7 +59,6 @@ describe("runtime configuration", () => {
   ])("rejects production when %s is not explicitly set", (name) => {
     const withoutAdapterMode = { ...productionCredentials };
     delete withoutAdapterMode[name as keyof typeof withoutAdapterMode];
-
     expect(() => loadRuntimeConfig(withoutAdapterMode)).toThrow(
       `PRODUCTION_CONFIG_INVALID: ${name} is required`,
     );
@@ -76,7 +87,6 @@ describe("runtime configuration", () => {
   ])("rejects production when required setting %s is missing", (name) => {
     const withoutRequiredSetting = { ...productionCredentials };
     delete withoutRequiredSetting[name as keyof typeof withoutRequiredSetting];
-
     expect(() => loadRuntimeConfig(withoutRequiredSetting)).toThrow(
       `PRODUCTION_CONFIG_INVALID: ${name} is required`,
     );
@@ -105,6 +115,47 @@ describe("runtime configuration", () => {
       SESSION_SIGNING_KEYS: "session-signing-key-without-version",
     })).toThrow(
       "PRODUCTION_CONFIG_INVALID: SESSION_SIGNING_KEYS must use unique version:key entries",
+    );
+  });
+
+  it("rejects raw unencoded production key material", () => {
+    expect(() => loadRuntimeConfig({
+      ...productionCredentials,
+      SESSION_SIGNING_KEYS: "v1:a-raw-secret-is-not-an-accepted-key-format",
+      SESSION_SIGNING_WRITE_VERSION: "v1",
+    })).toThrow(
+      "PRODUCTION_CONFIG_INVALID: SESSION_SIGNING_KEYS key v1 must use base64: or hex: encoding",
+    );
+  });
+
+  it("rejects production key material shorter than 32 decoded bytes", () => {
+    expect(() => loadRuntimeConfig({
+      ...productionCredentials,
+      SESSION_SIGNING_KEYS: `v1:base64:${Buffer.alloc(31, 7).toString("base64")}`,
+      SESSION_SIGNING_WRITE_VERSION: "v1",
+    })).toThrow(
+      "PRODUCTION_CONFIG_INVALID: SESSION_SIGNING_KEYS key v1 must decode to at least 32 bytes",
+    );
+  });
+
+  it("rejects low-entropy production key material", () => {
+    expect(() => loadRuntimeConfig({
+      ...productionCredentials,
+      SESSION_SIGNING_KEYS: `v1:base64:${Buffer.alloc(32, 0).toString("base64")}`,
+      SESSION_SIGNING_WRITE_VERSION: "v1",
+    })).toThrow(
+      "PRODUCTION_CONFIG_INVALID: SESSION_SIGNING_KEYS key v1 does not contain sufficient entropy",
+    );
+  });
+
+  it("rejects encoded placeholder key material", () => {
+    const placeholder = Buffer.from("change-me-change-me-change-me-change-me", "utf8");
+    expect(() => loadRuntimeConfig({
+      ...productionCredentials,
+      SESSION_SIGNING_KEYS: `v1:base64:${placeholder.toString("base64")}`,
+      SESSION_SIGNING_WRITE_VERSION: "v1",
+    })).toThrow(
+      "PRODUCTION_CONFIG_INVALID: SESSION_SIGNING_KEYS key v1 contains placeholder material",
     );
   });
 
@@ -147,19 +198,19 @@ describe("runtime configuration", () => {
     })).toThrow("CONFIG_INVALID: WORKFLOW_ADAPTER_MODE must be one of: local");
   });
 
-  it("rejects a secret reused across key purposes", () => {
+  it("rejects decoded key material reused across purposes even with different encodings", () => {
+    const shared = keyBytes(129);
     expect(() => loadRuntimeConfig({
       ...productionCredentials,
-      SESSION_SIGNING_KEYS: "v1:shared-secret",
+      SESSION_SIGNING_KEYS: `v1:base64:${shared.toString("base64")}`,
       SESSION_SIGNING_WRITE_VERSION: "v1",
-      QUESTION_FINGERPRINT_KEYS: "v1:shared-secret",
+      QUESTION_FINGERPRINT_KEYS: `v1:hex:${shared.toString("hex")}`,
       QUESTION_FINGERPRINT_WRITE_VERSION: "v1",
     })).toThrow("PRODUCTION_CONFIG_INVALID: key material must not be reused across purposes");
   });
 
   it("returns production keyrings with explicit single-write and multi-read versions", () => {
     const config = loadRuntimeConfig(productionCredentials);
-
     expect(config).toMatchObject({
       mode: "production",
       ai: "ai-sdk",
@@ -170,16 +221,30 @@ describe("runtime configuration", () => {
         sessionSigning: {
           writeVersion: "v1",
           read: [
-            { version: "v2", value: "session-signing-key-new" },
-            { version: "v1", value: "session-signing-key-old" },
+            { version: "v2", value: base64Key(1) },
+            { version: "v1", value: base64Key(2) },
           ],
         },
         questionFingerprint: {
           writeVersion: "v1",
           read: [
-            { version: "v2", value: "question-fingerprint-key-new" },
-            { version: "v1", value: "question-fingerprint-key-old" },
+            { version: "v2", value: base64Key(33) },
+            { version: "v1", value: base64Key(34) },
           ],
+        },
+      },
+    });
+  });
+
+  it("accepts both base64 and hex encoded high-entropy keys", () => {
+    expect(loadRuntimeConfig({
+      ...productionCredentials,
+      SESSION_SIGNING_KEYS: `v1:${hexKey(161)}`,
+      SESSION_SIGNING_WRITE_VERSION: "v1",
+    })).toMatchObject({
+      keys: {
+        sessionSigning: {
+          read: [{ version: "v1", value: hexKey(161) }],
         },
       },
     });
