@@ -1,0 +1,81 @@
+import { CURRENCY, getProduct, type ProductId } from "@/domain/entitlements/pricing";
+import { DomainError } from "@/server/errors/domain-error";
+
+type UserIdentity = { id: string; email: string };
+
+type OrderRecord = { id: string; requestId: string; amountUsd: number };
+
+type CheckoutResult = {
+  id: string;
+  status: string;
+  checkoutUrl: string;
+  requestId: string;
+};
+
+export class CheckoutService {
+  constructor(private readonly dependencies: {
+    orderRepository: {
+      createOrder(input: {
+        userId: string;
+        productId: ProductId;
+        amountUsd: number;
+        currency: string;
+        requestId: string;
+      }): OrderRecord | Promise<OrderRecord>;
+    };
+    creemClient: {
+      createCheckout(input: {
+        productId: string;
+        requestId: string;
+        successUrl: string;
+        customerEmail: string;
+        metadata: Record<string, string>;
+      }): Promise<CheckoutResult>;
+    };
+    providerProductIds: Record<ProductId, string>;
+    appUrl: string;
+    requestId(): string;
+  }) {}
+
+  async create(input: { user: UserIdentity; productId: string }): Promise<{
+    orderId: string;
+    checkoutId: string;
+    checkoutUrl: string;
+    amountUsd: number;
+  }> {
+    const product = getProduct(input.productId);
+    if (!product) throw new DomainError("INVALID_PRODUCT", "Unknown product.", false);
+    const providerProductId = this.dependencies.providerProductIds[product.id]?.trim();
+    if (!providerProductId) {
+      throw new DomainError("CREEM_PRODUCT_NOT_CONFIGURED", "This product is not available.", false);
+    }
+    const appUrl = new URL(this.dependencies.appUrl);
+    if (appUrl.protocol !== "https:") throw new Error("APP_URL_INVALID");
+    const requestId = this.dependencies.requestId();
+    const order = await this.dependencies.orderRepository.createOrder({
+      userId: input.user.id,
+      productId: product.id,
+      amountUsd: product.unitPriceUsd,
+      currency: CURRENCY,
+      requestId,
+    });
+    const checkout = await this.dependencies.creemClient.createCheckout({
+      productId: providerProductId,
+      requestId,
+      successUrl: new URL("/checkout/success", appUrl).toString(),
+      customerEmail: input.user.email,
+      metadata: {
+        orderId: order.id,
+        userId: input.user.id,
+        productId: product.id,
+      },
+    });
+    if (checkout.requestId !== requestId) throw new Error("CREEM_REQUEST_ID_MISMATCH");
+    return {
+      orderId: order.id,
+      checkoutId: checkout.id,
+      checkoutUrl: checkout.checkoutUrl,
+      amountUsd: product.unitPriceUsd,
+    };
+  }
+}
