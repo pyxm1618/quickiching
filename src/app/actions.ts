@@ -16,7 +16,9 @@ import {
   privacyRepository,
 } from "@/server/repository";
 import { getAnonymousHash, getOrCreateAnonymousHash, getCurrentUser, devSignIn } from "@/lib/auth/session";
-import { runPreview, runReading } from "@/server/ai";
+import { runPreview, runReading, type GenerationInput } from "@/server/ai";
+import { buildCastingMethodEvidence } from "@/server/casting-method-evidence";
+import type { CastResult, CastingSession } from "@/server/repositories/models";
 import { getProduct, PRODUCTS, CURRENCY } from "@/domain/entitlements/pricing";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
 import { randomToken } from "@/lib/crypto";
@@ -43,6 +45,34 @@ const riskService = new RiskService({
   castingRepository,
   evaluator: { evaluate: evaluateRisk },
 });
+
+function buildGenerationInput(
+  castingId: string,
+  session: CastingSession,
+  result: CastResult,
+  context: string,
+): GenerationInput {
+  const methodEvidence = buildCastingMethodEvidence({
+    session,
+    result,
+    steps: repo.getSteps(castingId),
+  });
+  return {
+    result: {
+      lineValuesBottomUp: [...result.lineValues],
+      primaryHexagramNumber: result.primaryHexagramNumber,
+      movingLinePositions: [...result.movingLinePositions],
+      relatingHexagramNumber: result.relatingHexagramNumber,
+      method: session.method,
+      algorithmVersion: result.algorithmVersion,
+      classicMappingVersion: result.classicMappingVersion,
+    },
+    methodEvidence,
+    scene: session.scene,
+    interpretationGoal: session.interpretationGoal,
+    context,
+  };
+}
 
 const castingSnapshotService = new CastingSnapshotService({
   castingRepository,
@@ -107,12 +137,10 @@ function isActionFailure(value: unknown): value is ActionResult<never> {
   return typeof value === "object" && value !== null && "ok" in value;
 }
 
-// ---- 1. Create casting session ----
 async function createCastingSessionActionImpl(unknownInput: unknown): Promise<ActionResult<{ castingId: string; method: CastingMethod; lifecycle: string }>> {
   const parsed = parseBoundaryInput(actionSchemas.createCastingSession, unknownInput, "createCastingSessionAction");
   if (isActionFailure(parsed)) return parsed;
   const input = parsed;
-
   const anonHash = await getOrCreateAnonymousHash();
   const user = await getCurrentUser();
   return ok(castingService.createDraft({
@@ -124,7 +152,6 @@ async function createCastingSessionActionImpl(unknownInput: unknown): Promise<Ac
   }));
 }
 
-// ---- Casting summary for client resume (no sensitive question text) ----
 async function getCastingSummaryActionImpl(unknownInput: unknown): Promise<
   ActionResult<{
     lifecycle: string;
@@ -148,8 +175,7 @@ async function getCastingSummaryActionImpl(unknownInput: unknown): Promise<
   const input = parsed;
   const anonHash = await getAnonymousHash();
   const user = await getCurrentUser();
-  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash))
-    return ok(null);
+  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash)) return ok(null);
   const session = repo.getCastingSession(input.castingId)!;
   const canReadResult = repo.canReadRevealedResult(input.castingId, user?.id ?? null);
   const cr = canReadResult ? repo.getCastResult(input.castingId) : undefined;
@@ -186,7 +212,6 @@ async function getCastingSnapshotActionImpl(unknownInput: unknown): Promise<Acti
   }));
 }
 
-// ---- Standalone dev sign-in (Better Auth is the production target) ----
 async function signInActionImpl(unknownInput: unknown): Promise<ActionResult<{ email: string }>> {
   const parsed = parseBoundaryInput(actionSchemas.signIn, unknownInput, "signInAction");
   if (isActionFailure(parsed)) return parsed;
@@ -195,179 +220,98 @@ async function signInActionImpl(unknownInput: unknown): Promise<ActionResult<{ e
   return ok({ email });
 }
 
-// ---- 2. Submit question + server-side risk precheck (SAFE-002) ----
-async function submitQuestionActionImpl(unknownInput: unknown): Promise<
-  ActionResult<{ riskStatus: string; reasonCode: string; emergency: boolean }>
-> {
+async function submitQuestionActionImpl(unknownInput: unknown): Promise<ActionResult<{ riskStatus: string; reasonCode: string; emergency: boolean }>> {
   const parsed = parseBoundaryInput(actionSchemas.submitQuestion, unknownInput, "submitQuestionAction");
   if (isActionFailure(parsed)) return parsed;
   const input = parsed;
   const anonHash = await getAnonymousHash();
   const user = await getCurrentUser();
-  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash))
-    return fail("CASTING_NOT_FOUND", "Casting session not found", false);
+  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash)) return fail("CASTING_NOT_FOUND", "Casting session not found", false);
   return ok(castingService.submitQuestion(input.castingId, input.context));
 }
 
-
-async function clarifyQuestionActionImpl(unknownInput: unknown): Promise<
-  ActionResult<{ riskStatus: string; reasonCode: string; emergency: boolean }>
-> {
+async function clarifyQuestionActionImpl(unknownInput: unknown): Promise<ActionResult<{ riskStatus: string; reasonCode: string; emergency: boolean }>> {
   const parsed = parseBoundaryInput(actionSchemas.clarifyQuestion, unknownInput, "clarifyQuestionAction");
   if (isActionFailure(parsed)) return parsed;
   const input = parsed;
   const anonHash = await getAnonymousHash();
   const user = await getCurrentUser();
-  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash))
-    return fail("CASTING_NOT_FOUND", "Casting session not found", false);
+  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash)) return fail("CASTING_NOT_FOUND", "Casting session not found", false);
   const decision = riskService.clarifyQuestion(input.castingId, input.context);
-  return ok({
-    riskStatus: decision.status,
-    reasonCode: decision.reasonCode,
-    emergency: decision.status === "emergency_blocked",
-  });
+  return ok({ riskStatus: decision.status, reasonCode: decision.reasonCode, emergency: decision.status === "emergency_blocked" });
 }
 
-// ---- 3. Three-coin: generate one line (idempotent) ----
-async function generateThreeCoinLineActionImpl(unknownInput: unknown): Promise<
-  ActionResult<{
-    lineIndex: number;
-    completed: boolean;
-  }>
-> {
+async function generateThreeCoinLineActionImpl(unknownInput: unknown): Promise<ActionResult<{ lineIndex: number; completed: boolean }>> {
   const parsed = parseBoundaryInput(actionSchemas.generateThreeCoinLine, unknownInput, "generateThreeCoinLineAction");
   if (isActionFailure(parsed)) return parsed;
   const input = parsed;
   const anonHash = await getAnonymousHash();
   const user = await getCurrentUser();
-  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash))
-    return fail("CASTING_NOT_FOUND", "Casting session not found", false);
-  return ok(await castingService.recordCoinLine(
-    input.castingId,
-    input.lineIndex as 0 | 1 | 2 | 3 | 4 | 5,
-  ));
+  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash)) return fail("CASTING_NOT_FOUND", "Casting session not found", false);
+  return ok(await castingService.recordCoinLine(input.castingId, input.lineIndex as 0 | 1 | 2 | 3 | 4 | 5));
 }
 
-// ---- 4. Yarrow: generate one change (idempotent) ----
-async function generateYarrowChangeActionImpl(unknownInput: unknown): Promise<
-  ActionResult<{
-    lineIndex: number;
-    changeIndex: number;
-    completed: boolean;
-  }>
-> {
+async function generateYarrowChangeActionImpl(unknownInput: unknown): Promise<ActionResult<{ lineIndex: number; changeIndex: number; completed: boolean }>> {
   const parsed = parseBoundaryInput(actionSchemas.generateYarrowChange, unknownInput, "generateYarrowChangeAction");
   if (isActionFailure(parsed)) return parsed;
   const input = parsed;
   const anonHash = await getAnonymousHash();
   const user = await getCurrentUser();
-  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash))
-    return fail("CASTING_NOT_FOUND", "Casting session not found", false);
-  return ok(castingService.recordYarrowChange(
-    input.castingId,
-    input.lineIndex as 0 | 1 | 2 | 3 | 4 | 5,
-    input.changeIndex as 0 | 1 | 2,
-  ));
+  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash)) return fail("CASTING_NOT_FOUND", "Casting session not found", false);
+  return ok(castingService.recordYarrowChange(input.castingId, input.lineIndex as 0 | 1 | 2 | 3 | 4 | 5, input.changeIndex as 0 | 1 | 2));
 }
 
-// ---- 5. Yarrow: finalize all six lines ----
-async function completeYarrowActionImpl(unknownInput: unknown): Promise<
-  ActionResult<{ completed: true }>
-> {
+async function completeYarrowActionImpl(unknownInput: unknown): Promise<ActionResult<{ completed: true }>> {
   const parsed = parseBoundaryInput(actionSchemas.castingId, unknownInput, "completeYarrowAction");
   if (isActionFailure(parsed)) return parsed;
   const input = parsed;
   const anonHash = await getAnonymousHash();
   const user = await getCurrentUser();
-  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash))
-    return fail("CASTING_NOT_FOUND", "Casting session not found", false);
+  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash)) return fail("CASTING_NOT_FOUND", "Casting session not found", false);
   return ok(castingService.completeYarrow(input.castingId));
 }
 
-// ---- 6. Mei Hua: create result from server time + confirmed timezone ----
-async function createMeiHuaResultActionImpl(unknownInput: unknown): Promise<
-  ActionResult<{ completed: true }>
-> {
+async function createMeiHuaResultActionImpl(unknownInput: unknown): Promise<ActionResult<{ completed: true }>> {
   const parsed = parseBoundaryInput(actionSchemas.createMeiHuaResult, unknownInput, "createMeiHuaResultAction");
   if (isActionFailure(parsed)) return parsed;
   const input = parsed;
   const anonHash = await getAnonymousHash();
   const user = await getCurrentUser();
-  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash))
-    return fail("CASTING_NOT_FOUND", "Casting session not found", false);
+  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash)) return fail("CASTING_NOT_FOUND", "Casting session not found", false);
   return ok(castingService.recordMeiHua(input.castingId, input.ianaTimeZone));
 }
 
-// ---- 7. Reveal: local auth callback over single-use Login Intent (AUTH-003, CAST-004) ----
 async function revealCastingActionImpl(unknownInput: unknown): Promise<ActionResult<{ revealed: boolean; duplicate: boolean; castingId: string }>> {
   const parsed = parseBoundaryInput(actionSchemas.revealCasting, unknownInput, "revealCastingAction");
   if (isActionFailure(parsed)) return parsed;
   const input = parsed;
   const anonHash = await getAnonymousHash();
-  if (!anonHash || !repo.ownsCasting(input.castingId, null, anonHash))
-    return fail("CASTING_NOT_FOUND", "Casting session not found", false);
-
+  if (!anonHash || !repo.ownsCasting(input.castingId, null, anonHash)) return fail("CASTING_NOT_FOUND", "Casting session not found", false);
   const config = runtimeConfig();
-  if (config.auth !== "dev") {
-    throw new DomainError(
-      "AUTH_PROVIDER_REQUIRED",
-      "Sign in through the configured authentication provider to reveal this casting.",
-      false,
-    );
-  }
-
+  if (config.auth !== "dev") throw new DomainError("AUTH_PROVIDER_REQUIRED", "Sign in through the configured authentication provider to reveal this casting.", false);
   const revealService = getRevealService();
   const callbackPath = `/result/${input.castingId}`;
-  const intent = revealService.startLoginIntent({
-    castingId: input.castingId,
-    anonymousSessionHash: anonHash,
-    allowedCallbackPath: callbackPath,
-  });
+  const intent = revealService.startLoginIntent({ castingId: input.castingId, anonymousSessionHash: anonHash, allowedCallbackPath: callbackPath });
   const user = await devSignIn(input.email);
-  return ok(revealService.consumeLoginIntentAndReveal({
-    intentId: intent.intentId,
-    nonce: intent.nonce,
-    authenticatedUserId: user.id,
-    callbackPath,
-  }));
+  return ok(revealService.consumeLoginIntentAndReveal({ intentId: intent.intentId, nonce: intent.nonce, authenticatedUserId: user.id, callbackPath }));
 }
 
-// ---- 8. Preview (RESULT-002) ----
 async function startPreviewActionImpl(unknownInput: unknown): Promise<ActionResult<{ status: string; relevanceStatement: string | null }>> {
   const parsed = parseBoundaryInput(actionSchemas.castingId, unknownInput, "startPreviewAction");
   if (isActionFailure(parsed)) return parsed;
   const input = parsed;
   const anonHash = await getAnonymousHash();
   const user = await getCurrentUser();
-  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash))
-    return fail("CASTING_NOT_FOUND", "Casting session not found", false);
+  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash)) return fail("CASTING_NOT_FOUND", "Casting session not found", false);
   const session = repo.getCastingSession(input.castingId)!;
-  if (session.lifecycle !== "revealed")
-    return fail("CASTING_NOT_REVEALED", "Reveal the casting before generating a preview", false);
+  if (session.lifecycle !== "revealed") return fail("CASTING_NOT_REVEALED", "Reveal the casting before generating a preview", false);
   const existing = repo.getPreview(input.castingId);
-  if (existing && existing.status === "completed") {
-    return ok({ status: "completed", relevanceStatement: existing.relevanceStatement });
-  }
-
+  if (existing?.status === "completed") return ok({ status: "completed", relevanceStatement: existing.relevanceStatement });
   const result = repo.getCastResult(input.castingId);
   if (!result) return fail("RESULT_MISSING", "Cast result missing", false);
   const { context } = riskService.recheckPersonalizedGeneration(input.castingId);
-
   try {
-    const preview = await runPreview({
-      result: {
-        lineValuesBottomUp: result.lineValues as any,
-        primaryHexagramNumber: result.primaryHexagramNumber,
-        movingLinePositions: result.movingLinePositions,
-        relatingHexagramNumber: result.relatingHexagramNumber,
-        method: session.method,
-        algorithmVersion: result.algorithmVersion,
-        classicMappingVersion: result.classicMappingVersion,
-      },
-      scene: session.scene,
-      interpretationGoal: session.interpretationGoal,
-      context,
-    });
+    const preview = await runPreview(buildGenerationInput(input.castingId, session, result, context));
     const saved = repo.savePreviewSuccess(input.castingId, preview.relevanceStatement);
     return ok({ status: saved.status, relevanceStatement: saved.relevanceStatement });
   } catch (error) {
@@ -376,7 +320,6 @@ async function startPreviewActionImpl(unknownInput: unknown): Promise<ActionResu
   }
 }
 
-// ---- 9. Checkout (PAY-001) ----
 async function createCheckoutActionImpl(unknownInput: unknown): Promise<ActionResult<{ orderId: string; checkoutUrl: string; amountUsd: number }>> {
   const parsed = parseBoundaryInput(actionSchemas.createCheckout, unknownInput, "createCheckoutAction");
   if (isActionFailure(parsed)) return parsed;
@@ -385,21 +328,11 @@ async function createCheckoutActionImpl(unknownInput: unknown): Promise<ActionRe
   if (!user) return fail("AUTH_REQUIRED", "Please sign in to purchase", false);
   const product = getProduct(input.productId);
   if (!product) return fail("INVALID_PRODUCT", "Unknown product", false);
-
   const requestId = randomToken(16);
-  const order = repo.createOrder({
-    userId: user.id,
-    productId: product.id,
-    amountUsd: product.unitPriceUsd,
-    currency: CURRENCY,
-    requestId,
-  });
-  // Production: call Creem and return its HTTPS checkout URL (whitelisted). Dev: simulate.
-  const checkoutUrl = `/checkout/simulate?orderId=${order.id}`;
-  return ok({ orderId: order.id, checkoutUrl, amountUsd: product.unitPriceUsd });
+  const order = repo.createOrder({ userId: user.id, productId: product.id, amountUsd: product.unitPriceUsd, currency: CURRENCY, requestId });
+  return ok({ orderId: order.id, checkoutUrl: `/checkout/simulate?orderId=${order.id}`, amountUsd: product.unitPriceUsd });
 }
 
-// ---- 10. Dev payment simulation (production = Creem webhook) ----
 async function simulatePaymentActionImpl(unknownInput: unknown): Promise<ActionResult<{ granted: boolean }>> {
   const parsed = parseBoundaryInput(actionSchemas.simulatePayment, unknownInput, "simulatePaymentAction");
   if (isActionFailure(parsed)) return parsed;
@@ -408,21 +341,13 @@ async function simulatePaymentActionImpl(unknownInput: unknown): Promise<ActionR
   if (!user) return fail("AUTH_REQUIRED", "Please sign in", false);
   const order = repo.getOrder(input.orderId);
   if (!order || order.userId !== user.id) return fail("ORDER_NOT_FOUND", "Order not found", false);
-  if (order.status === "paid") {
-    return ok({ granted: true });
-  }
+  if (order.status === "paid") return ok({ granted: true });
   const product = PRODUCTS[order.productId as keyof typeof PRODUCTS];
   repo.markOrderPaid(order.id, `dev_${randomToken(8)}`);
-  repo.grantEntitlement({
-    userId: user.id,
-    productId: order.productId,
-    quantity: product.quantity,
-    amountUsd: order.amountUsd,
-  });
+  repo.grantEntitlement({ userId: user.id, productId: order.productId, quantity: product.quantity, amountUsd: order.amountUsd });
   return ok({ granted: true });
 }
 
-// ---- 11. Start deep reading (consumes one entitlement) ----
 async function startDeepReadingActionImpl(unknownInput: unknown): Promise<ActionResult<{ status: string; readingId: string; report: unknown | null }>> {
   const parsed = parseBoundaryInput(actionSchemas.castingId, unknownInput, "startDeepReadingAction");
   if (isActionFailure(parsed)) return parsed;
@@ -430,40 +355,20 @@ async function startDeepReadingActionImpl(unknownInput: unknown): Promise<Action
   const anonHash = await getAnonymousHash();
   const user = await getCurrentUser();
   if (!user) return fail("AUTH_REQUIRED", "Please sign in", false);
-  if (!repo.ownsCasting(input.castingId, user.id, anonHash))
-    return fail("CASTING_NOT_FOUND", "Casting session not found", false);
+  if (!repo.ownsCasting(input.castingId, user.id, anonHash)) return fail("CASTING_NOT_FOUND", "Casting session not found", false);
   const session = repo.getCastingSession(input.castingId)!;
-  if (session.lifecycle !== "revealed")
-    return fail("CASTING_NOT_REVEALED", "Reveal the casting first", false);
+  if (session.lifecycle !== "revealed") return fail("CASTING_NOT_REVEALED", "Reveal the casting first", false);
   const reading = repo.getOrCreateReading(input.castingId);
-  if (reading.status === "completed" && reading.report) {
-    return ok({ status: "completed", readingId: reading.id, report: reading.report });
-  }
-
+  if (reading.status === "completed" && reading.report) return ok({ status: "completed", readingId: reading.id, report: reading.report });
   const { context } = riskService.recheckPersonalizedGeneration(input.castingId);
   const freeze = repo.freezeForReading(reading.id, user.id, new Date());
   if ("error" in freeze) {
-    if (freeze.error === "ENTITLEMENT_NOT_AVAILABLE")
-      return fail("ENTITLEMENT_NOT_AVAILABLE", "You have no available reading credit", false);
+    if (freeze.error === "ENTITLEMENT_NOT_AVAILABLE") return fail("ENTITLEMENT_NOT_AVAILABLE", "You have no available reading credit", false);
     return fail("READING_ERROR", "Could not start reading", true);
   }
-
   const result = repo.getCastResult(input.castingId)!;
   try {
-    const report = await runReading({
-      result: {
-        lineValuesBottomUp: result.lineValues as any,
-        primaryHexagramNumber: result.primaryHexagramNumber,
-        movingLinePositions: result.movingLinePositions,
-        relatingHexagramNumber: result.relatingHexagramNumber,
-        method: session.method,
-        algorithmVersion: result.algorithmVersion,
-        classicMappingVersion: result.classicMappingVersion,
-      },
-      scene: session.scene,
-      interpretationGoal: session.interpretationGoal,
-      context,
-    });
+    const report = await runReading(buildGenerationInput(input.castingId, session, result, context));
     repo.completeReadingConsume(freeze.reservationId, report as unknown as Record<string, unknown>);
     return ok({ status: "completed", readingId: reading.id, report });
   } catch (error) {
@@ -472,22 +377,15 @@ async function startDeepReadingActionImpl(unknownInput: unknown): Promise<Action
   }
 }
 
-// ---- 12. Quality review (QUALITY-001/002) ----
 async function submitQualityReviewActionImpl(unknownInput: unknown): Promise<ActionResult<{ reviewId: string; status: string; responseDueAt: Date }>> {
   const parsed = parseBoundaryInput(actionSchemas.submitQualityReview, unknownInput, "submitQualityReviewAction");
   if (isActionFailure(parsed)) return parsed;
-  const input = parsed;
   const user = await getCurrentUser();
   if (!user) return fail("AUTH_REQUIRED", "Please sign in", false);
-  const review = qualityReviewService.submit({
-    readingId: input.readingId,
-    userId: user.id,
-    reason: input.reason,
-  });
+  const review = qualityReviewService.submit({ readingId: parsed.readingId, userId: user.id, reason: parsed.reason });
   return ok({ reviewId: review.id, status: review.status, responseDueAt: review.responseDueAt });
 }
 
-// ---- 13. Deletion request and recovery (PRIV-002) ----
 async function requestCastingDeletionActionImpl(unknownInput: unknown): Promise<ActionResult<{ deleted: boolean; purgeAfter: Date }>> {
   const parsed = parseBoundaryInput(actionSchemas.castingId, unknownInput, "requestCastingDeletionAction");
   if (isActionFailure(parsed)) return parsed;
