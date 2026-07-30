@@ -51,15 +51,27 @@ export function CastingWizard({ method }: { method: CastingMethod }) {
 
   if (state.phase === "result" && state.result) {
     return (
-      <ResultStep
-        result={state.result}
-        riskStatus={state.riskStatus}
-        previewText={state.previewText}
-        readingReport={state.readingReport}
-        pending={state.pending}
-        onPreview={controller.generatePreview}
-        onReading={controller.generateReading}
-      />
+      <div>
+        {state.notice && (
+          <div className="mx-auto mt-6 max-w-4xl rounded border border-[var(--jade)] bg-[var(--jade-wash)] px-4 py-3 text-sm text-[var(--jade)]">
+            {state.notice}
+          </div>
+        )}
+        {state.error && (
+          <div className="mx-auto mt-6 max-w-4xl rounded border border-[var(--danger)] bg-[var(--danger-wash)] px-4 py-3 text-sm text-[var(--danger)]">
+            {state.error}
+          </div>
+        )}
+        <ResultStep
+          result={state.result}
+          riskStatus={state.riskStatus}
+          previewText={state.previewText}
+          readingReport={state.readingReport}
+          pending={state.pending}
+          onPreview={controller.generatePreview}
+          onReading={controller.generateReading}
+        />
+      </div>
     );
   }
   if (state.phase === "crisis") return <CrisisStep />;
@@ -79,6 +91,11 @@ export function CastingWizard({ method }: { method: CastingMethod }) {
           {state.error && (
             <div className="mb-6 w-full max-w-md rounded border border-[var(--danger)] bg-[var(--danger-wash)] px-4 py-3 text-sm text-[var(--danger)]">
               {state.error}
+            </div>
+          )}
+          {state.notice && (
+            <div className="mb-6 w-full max-w-md rounded border border-[var(--jade)] bg-[var(--jade-wash)] px-4 py-3 text-sm text-[var(--jade)]">
+              {state.notice}
             </div>
           )}
           {state.phase === "input" && (
