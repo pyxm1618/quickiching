@@ -3,6 +3,13 @@ import { createPostgresPersistence } from "@/server/repositories/postgres";
 
 export const dynamic = "force-dynamic";
 
+const REQUIRED_MIGRATIONS = [
+  "0000_v2_1",
+  "0001_auth_payment",
+  "0002_generation_runtime",
+  "0003_production_composition",
+] as const;
+
 export async function GET(): Promise<Response> {
   const config = runtimeConfig();
   if (config.mode !== "production") {
@@ -16,13 +23,15 @@ export async function GET(): Promise<Response> {
     const [database] = await persistence.sql`select 1 as ready`;
     const [migrations] = await persistence.sql`
       select count(*)::int as count from _app_migrations
-      where id in ('0000_v2_1', '0001_auth_payment', '0002_generation_runtime')
+      where id in ${persistence.sql(REQUIRED_MIGRATIONS)}
     `;
-    const ready = Number(database?.ready) === 1 && Number(migrations?.count) === 3;
+    const migrationCount = Number(migrations?.count ?? 0);
+    const ready = Number(database?.ready) === 1 && migrationCount === REQUIRED_MIGRATIONS.length;
     return Response.json({
       status: ready ? "ready" : "not_ready",
       database: Boolean(database),
-      migrations: Number(migrations?.count ?? 0),
+      migrations: migrationCount,
+      requiredMigrations: REQUIRED_MIGRATIONS.length,
       adapters: {
         ai: config.ai,
         auth: config.auth,
