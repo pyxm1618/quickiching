@@ -12,6 +12,10 @@ function deterministicBits() {
   return () => values[index++ % values.length];
 }
 
+function deterministicYarrowSplit(maxExclusive: number): number {
+  return Math.max(1, Math.floor(maxExclusive / 2));
+}
+
 describePostgres("PostgresApplicationRuntime", () => {
   let sql: Sql;
   const now = new Date("2026-07-30T00:00:00.000Z");
@@ -100,11 +104,12 @@ describePostgres("PostgresApplicationRuntime", () => {
       phase: "result",
       canReadResult: true,
       result: {
-        lineValues: expect.arrayContaining([6, 7, 8, 9]),
         primaryNumber: expect.any(Number),
         algorithmVersion: "three-coin-v1",
       },
     });
+    expect(authenticatedSnapshot?.result?.lineValues).toHaveLength(6);
+    expect(authenticatedSnapshot?.result?.lineValues.every((value) => [6, 7, 8, 9].includes(value))).toBe(true);
   });
 
   it("serializes out-of-order and duplicate coin mutations at the database boundary", async () => {
@@ -156,7 +161,7 @@ describePostgres("PostgresApplicationRuntime", () => {
     const runtime = new PostgresApplicationRuntime({
       sql,
       clock: { now: () => new Date("2026-07-30T12:34:00.000Z") },
-      random: { randomBit: deterministicBits(), randomInt: () => 0 },
+      random: { randomBit: deterministicBits(), randomInt: deterministicYarrowSplit },
     });
 
     const yarrow = await runtime.createDraft({
