@@ -1,6 +1,7 @@
 import {
   castingRepository,
   entitlementRepository,
+  historyRepository,
   privacyRepository,
   readingRepository,
   repo,
@@ -17,11 +18,7 @@ const castingSnapshotService = new CastingSnapshotService({
   castingRepository,
   readingRepository,
 });
-const historyService = new HistoryService({
-  privacyRepository,
-  castingRepository,
-  readingRepository,
-});
+const historyService = new HistoryService({ historyRepository });
 
 export type CastingView = {
   session: CastingSession;
@@ -98,10 +95,19 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
   };
 }
 
-export async function loadHistory(filter: HistoryFilter = {}) {
+export type HistoryLoaderInput = HistoryFilter & {
+  cursor?: string | null;
+  limit?: number;
+};
+
+export async function loadHistoryPage(input: HistoryLoaderInput = {}) {
   const user = await getCurrentUser();
-  if (!user) return [];
-  return historyService.list(user.id, filter);
+  if (!user) return { items: [], nextCursor: null };
+  return historyService.listPage(user.id, input);
+}
+
+export async function loadHistory(filter: HistoryFilter = {}) {
+  return (await loadHistoryPage({ ...filter, limit: 50 })).items;
 }
 
 export async function loadRecoverableCasts() {
@@ -110,9 +116,10 @@ export async function loadRecoverableCasts() {
   return privacyRepository.listRecoverableDeletedCasts(user.id, new Date());
 }
 
-export function parseHistoryFilter(input: Record<string, string | string[] | undefined>): HistoryFilter {
+export function parseHistoryFilter(input: Record<string, string | string[] | undefined>): HistoryLoaderInput {
   const method = typeof input.method === "string" ? input.method : undefined;
   const scene = typeof input.scene === "string" ? input.scene : undefined;
+  const limitCandidate = typeof input.limit === "string" ? Number(input.limit) : undefined;
   return {
     method: ["three_coin", "yarrow_stalk", "mei_hua_current_time"].includes(method ?? "")
       ? method as CastingMethod
@@ -122,6 +129,8 @@ export function parseHistoryFilter(input: Record<string, string | string[] | und
       : undefined,
     hasPreview: input.hasPreview === "true" ? true : input.hasPreview === "false" ? false : undefined,
     hasReading: input.hasReading === "true" ? true : input.hasReading === "false" ? false : undefined,
+    cursor: typeof input.cursor === "string" ? input.cursor : undefined,
+    limit: Number.isSafeInteger(limitCandidate) ? limitCandidate : undefined,
   };
 }
 
