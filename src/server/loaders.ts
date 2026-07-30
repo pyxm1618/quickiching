@@ -12,16 +12,13 @@ import type { CastingMethod, Scene } from "@/domain/casting/types";
 import type { CastingSession } from "@/server/repository";
 import { CastingSnapshotService } from "@/server/services/casting-snapshot-service";
 import { HistoryService, type HistoryFilter } from "@/server/services/history-service";
+import { runtimeConfig } from "@/server/config";
+import { createPostgresPersistence } from "@/server/repositories/postgres";
+import { PostgresCastingApplicationService } from "@/server/services/postgres-casting-service";
+import { PostgresAccountApplicationService } from "@/server/services/postgres-account-service";
 
-const castingSnapshotService = new CastingSnapshotService({
-  castingRepository,
-  readingRepository,
-});
-const historyService = new HistoryService({
-  privacyRepository,
-  castingRepository,
-  readingRepository,
-});
+const castingSnapshotService = new CastingSnapshotService({ castingRepository, readingRepository });
+const historyService = new HistoryService({ privacyRepository, castingRepository, readingRepository });
 
 export type CastingView = {
   session: CastingSession;
@@ -44,36 +41,75 @@ export type CastingView = {
   clocks: { castingExpired: boolean; revealExpired: boolean };
 };
 
+async function withProductionServices<T>(handler: (services: {
+  casting: PostgresCastingApplicationService;
+  account: PostgresAccountApplicationService;
+}) => Promise<T>): Promise<T> {
+  const config = runtimeConfig();
+  if (config.mode !== "production") throw new Error("PRODUCTION_CONFIGURATION_REQUIRED");
+  const persistence = createPostgresPersistence(config.credentials.databaseUrl);
+  try {
+    return await handler({
+      casting: new PostgresCastingApplicationService({
+        sql: persistence.sql,
+        atomicRepository: persistence.atomicRepository,
+        config,
+      }),
+      account: new PostgresAccountApplicationService(persistence.sql),
+    });
+  } finally {
+    await persistence.close();
+  }
+}
+
 export async function loadCastingSnapshot(castingId: string) {
   const user = await getCurrentUser();
-  const anonHash = await getAnonymousHash();
+  const anonymousSessionHash = await getAnonymousHash();
+  if (runtimeConfig().mode === "production") {
+    return withProductionServices(({ casting }) => casting.snapshot({
+      castingId,
+      userId: user?.id ?? null,
+      anonymousSessionHash,
+      now: new Date(),
+    }));
+  }
   return castingSnapshotService.load({
     castingId,
     userId: user?.id ?? null,
-    anonymousSessionHash: anonHash,
+    anonymousSessionHash,
     now: new Date(),
   });
 }
 
 export async function loadCastingView(castingId: string): Promise<CastingView | null> {
   const user = await getCurrentUser();
-  const anonHash = await getAnonymousHash();
+  const anonymousSessionHash = await getAnonymousHash();
+  if (runtimeConfig().mode === "production") {
+    return withProductionServices(({ account }) => account.loadCastingView({
+      castingId,
+      userId: user?.id ?? null,
+      anonymousSessionHash,
+      now: new Date(),
+    }));
+  }
   const session = repo.getCastingSession(castingId);
   if (!session) return null;
-  const owns = repo.ownsCasting(castingId, user?.id ?? null, anonHash);
+  const owns = repo.ownsCasting(castingId, user?.id ?? null, anonymousSessionHash);
   const canReadResult = repo.canReadRevealedResult(castingId, user?.id ?? null);
   const context = canReadResult ? repo.getLatestQuestionContext(castingId) : "";
-  const cr = canReadResult ? repo.getCastResult(castingId) : undefined;
-  const result = cr
+  const resultRecord = canReadResult ? repo.getCastResult(castingId) : undefined;
+  const result = resultRecord
     ? {
-        primaryHexagramNumber: cr.primaryHexagramNumber,
-        primaryName: hexagramByNumber(cr.primaryHexagramNumber).englishName,
-        movingLinePositions: cr.movingLinePositions,
-        relatingHexagramNumber: cr.relatingHexagramNumber,
-        relatingName: cr.relatingHexagramNumber ? hexagramByNumber(cr.relatingHexagramNumber).englishName : null,
-        lineValues: cr.lineValues,
-        algorithmVersion: cr.algorithmVersion,
-        classicMappingVersion: cr.classicMappingVersion,
+        primaryHexagramNumber: resultRecord.primaryHexagramNumber,
+        primaryName: hexagramByNumber(resultRecord.primaryHexagramNumber).englishName,
+        movingLinePositions: resultRecord.movingLinePositions,
+        relatingHexagramNumber: resultRecord.relatingHexagramNumber,
+        relatingName: resultRecord.relatingHexagramNumber
+          ? hexagramByNumber(resultRecord.relatingHexagramNumber).englishName
+          : null,
+        lineValues: resultRecord.lineValues,
+        algorithmVersion: resultRecord.algorithmVersion,
+        classicMappingVersion: resultRecord.classicMappingVersion,
       }
     : null;
   const preview = canReadResult ? repo.getPreview(castingId) : undefined;
@@ -88,7 +124,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
   return {
     session,
     owns,
-    isAuthed: !!user,
+    isAuthed: Boolean(user),
     context,
     result,
     preview: preview ? { status: preview.status, relevanceStatement: preview.relevanceStatement } : null,
@@ -101,12 +137,18 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
 export async function loadHistory(filter: HistoryFilter = {}) {
   const user = await getCurrentUser();
   if (!user) return [];
+  if (runtimeConfig().mode === "production") {
+    return withProductionServices(({ account }) => account.history(user.id, filter));
+  }
   return historyService.list(user.id, filter);
 }
 
 export async function loadRecoverableCasts() {
   const user = await getCurrentUser();
   if (!user) return [];
+  if (runtimeConfig().mode === "production") {
+    return withProductionServices(({ account }) => account.recoverableCasts(user.id, new Date()));
+  }
   return privacyRepository.listRecoverableDeletedCasts(user.id, new Date());
 }
 
@@ -128,6 +170,9 @@ export function parseHistoryFilter(input: Record<string, string | string[] | und
 export async function loadEntitlementBalance(): Promise<{ available: number; expiringSoon: number }> {
   const user = await getCurrentUser();
   if (!user) return { available: 0, expiringSoon: 0 };
+  if (runtimeConfig().mode === "production") {
+    return withProductionServices(({ account }) => account.entitlementBalance(user.id, new Date()));
+  }
   const batches = entitlementRepository.getBatches(user.id);
   const now = new Date();
   let available = 0;
