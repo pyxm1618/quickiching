@@ -33,6 +33,7 @@ type ProductionRuntimeConfig = {
   auth: "better-auth";
   payment: "creem";
   database: "postgres";
+  workflow: "vercel";
   baseUrl: string;
   credentials: {
     aiGatewayApiKey: string;
@@ -55,6 +56,7 @@ type ProductionRuntimeConfig = {
     turnstileSiteKey: string;
     publicAppUrl: string;
     workflowAdapterMode: "vercel";
+    cronSecret: string;
   };
   keys: RuntimeKeys;
 };
@@ -169,6 +171,7 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
     auth,
     payment,
     database,
+    workflow: workflowAdapterMode,
     baseUrl,
     credentials: {
       aiGatewayApiKey: required(env, "AI_GATEWAY_API_KEY"),
@@ -191,6 +194,7 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
       turnstileSiteKey: required(env, "NEXT_PUBLIC_TURNSTILE_SITE_KEY"),
       publicAppUrl,
       workflowAdapterMode,
+      cronSecret: required(env, "CRON_SECRET"),
     },
     keys,
   };
