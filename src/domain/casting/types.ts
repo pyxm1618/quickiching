@@ -24,9 +24,9 @@ export const CLASSIC_MAPPING_VERSION = "king-wen-v1";
 // §6.2 Unified result. Six lines stored bottom-up: index 0 = 初爻, index 5 = 上爻.
 export type HexagramResult = {
   lineValuesBottomUp: readonly [LineValue, LineValue, LineValue, LineValue, LineValue, LineValue];
-  primaryHexagramNumber: number; // 1..64 King Wen
-  movingLinePositions: readonly number[]; // 1..6 ascending, unique
-  relatingHexagramNumber: number | null; // null when no moving line
+  primaryHexagramNumber: number;
+  movingLinePositions: readonly number[];
+  relatingHexagramNumber: number | null;
   method: CastingMethod;
   algorithmVersion: string;
   classicMappingVersion: string;
@@ -39,6 +39,7 @@ export type CastingLifecycle =
   | "awaiting_reveal"
   | "revealed"
   | "expired"
+  | "cancelled"
   | "discarded_duplicate"
   | "emergency_blocked"
   | "user_deleted";
