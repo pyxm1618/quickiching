@@ -1,5 +1,9 @@
 import type { HexagramResult, LineValue } from "./types";
 
+export type MethodEvidenceResult = Omit<HexagramResult, "lineValuesBottomUp"> & {
+  lineValuesBottomUp: readonly LineValue[];
+};
+
 export type ThreeCoinRoundEvidence = {
   linePosition: 1 | 2 | 3 | 4 | 5 | 6;
   coinValues: readonly [2 | 3, 2 | 3, 2 | 3];
@@ -62,7 +66,7 @@ function sameLineValues(actual: readonly number[], expected: readonly number[]):
 
 function assertThreeCoin(
   evidence: ThreeCoinMethodEvidence,
-  result: HexagramResult,
+  result: MethodEvidenceResult,
 ): void {
   if (evidence.rounds.length !== 6) invalid();
   const positions = new Set<number>();
@@ -81,7 +85,7 @@ function assertThreeCoin(
 
 function assertYarrow(
   evidence: YarrowMethodEvidence,
-  result: HexagramResult,
+  result: MethodEvidenceResult,
 ): void {
   if (evidence.changes.length !== 18 || evidence.lineValues.length !== 6) invalid();
   for (let index = 0; index < evidence.changes.length; index += 1) {
@@ -117,7 +121,7 @@ function assertIanaTimeZone(value: string): void {
 
 function assertMeiHua(
   evidence: MeiHuaMethodEvidence,
-  result: HexagramResult,
+  result: MethodEvidenceResult,
 ): void {
   if (evidence.calendarSystem !== "chinese_lunisolar") invalid();
   const timestamp = new Date(evidence.inputTimestamp);
@@ -138,9 +142,9 @@ function assertMeiHua(
 
 export function assertMethodEvidenceMatchesResult(
   evidence: CastingMethodEvidence,
-  result: HexagramResult,
+  result: MethodEvidenceResult,
 ): void {
-  if (evidence.method !== result.method) invalid();
+  if (result.lineValuesBottomUp.length !== 6 || evidence.method !== result.method) invalid();
   switch (evidence.method) {
     case "three_coin":
       assertThreeCoin(evidence, result);
@@ -156,4 +160,17 @@ export function assertMethodEvidenceMatchesResult(
       return exhaustive;
     }
   }
+}
+
+export function verifiedHexagramResult(
+  evidence: CastingMethodEvidence,
+  result: MethodEvidenceResult,
+): HexagramResult {
+  assertMethodEvidenceMatchesResult(evidence, result);
+  const [line1, line2, line3, line4, line5, line6] = result.lineValuesBottomUp;
+  return {
+    ...result,
+    lineValuesBottomUp: [line1, line2, line3, line4, line5, line6],
+    movingLinePositions: [...result.movingLinePositions],
+  };
 }
