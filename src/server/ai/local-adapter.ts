@@ -3,6 +3,7 @@ import type {
   InterpretationGoal,
   Scene,
 } from "@/domain/casting/types";
+import type { CastingMethodEvidence } from "@/domain/casting/method-evidence";
 import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
 import { buildClassicReferences } from "@/domain/classics";
 import type { PreviewOutput, ReadingReport, ReadingVariant } from "@/domain/readings/types";
@@ -54,6 +55,21 @@ function movingDescription(result: HexagramResult): string {
   return result.movingLinePositions.map((line) => `line ${line}`).join(", ");
 }
 
+function evidenceDescription(evidence: CastingMethodEvidence): string {
+  switch (evidence.method) {
+    case "three_coin":
+      return `the six persisted three-coin rounds, including all eighteen server-recorded coin values and their six derived line values`;
+    case "yarrow_stalk":
+      return `the eighteen persisted yarrow changes, their pile and remainder records, and the six derived line values`;
+    case "mei_hua_current_time":
+      return `the persisted ${evidence.calendarSystem} date calculation for ${evidence.ianaTimeZone}, the upper and lower trigrams, moving line, and body/use assignment`;
+    default: {
+      const exhaustive: never = evidence;
+      return exhaustive;
+    }
+  }
+}
+
 export function generateLocalPreview(input: {
   result: HexagramResult;
   scene: Scene;
@@ -71,6 +87,7 @@ export function generateLocalPreview(input: {
 
 export function generateLocalReading(input: {
   result: HexagramResult;
+  methodEvidence: CastingMethodEvidence;
   scene: Scene;
   goal: InterpretationGoal;
   context: string;
@@ -147,6 +164,12 @@ export function generateLocalReading(input: {
     `It cannot account for undisclosed constraints or future decisions by other people. ` +
     `It offers a self-reflection framework and is not medical, legal, financial, safety, or other professional advice.`;
 
+  const interpretiveBasis =
+    `Interpretive Basis: this reading is anchored in ${evidenceDescription(input.methodEvidence)}, the controlled judgment reference for ${primaryName}, ` +
+    `${input.result.movingLinePositions.length === 0 ? "the absence of moving-line references" : `the controlled references for ${moving}`}, ` +
+    `and ${relatingName ? `the relating-hexagram judgment reference for ${relatingName}` : "the absence of a relating hexagram"}. ` +
+    `The source identifiers establish provenance; the explanatory prose is a modern interpretation and is not presented as a classical quotation.`;
+
   return {
     readingVariant: variant,
     coreSummary,
@@ -158,6 +181,7 @@ export function generateLocalReading(input: {
     turningConditions,
     conditionalActionDirection,
     uncertaintyAndBoundaries,
+    interpretiveBasis,
     interpretiveBasisReferences: buildClassicReferences(input.result),
   };
 }
