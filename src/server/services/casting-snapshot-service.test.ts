@@ -55,6 +55,8 @@ describe("CastingSnapshotService", () => {
       now: new Date(),
     });
 
+    expect(snapshot).not.toBeNull();
+    if (!snapshot) throw new Error("expected snapshot");
     expect(snapshot).toMatchObject({
       castingId: casting.id,
       method: "yarrow_stalk",
