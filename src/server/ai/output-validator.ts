@@ -1,4 +1,5 @@
 import { buildClassicReferences } from "@/domain/classics";
+import { assertMethodEvidenceMatchesResult, type CastingMethodEvidence } from "@/domain/casting/method-evidence";
 import type {
   HexagramResult,
   InterpretationGoal,
@@ -9,6 +10,7 @@ import { previewOutputSchema, readingReportSchema } from "./schemas";
 
 export type OutputValidationInput = {
   result: HexagramResult;
+  methodEvidence: CastingMethodEvidence;
   scene: Scene;
   interpretationGoal: InterpretationGoal;
   context: string;
@@ -54,6 +56,7 @@ function assertReferenceIntegrity(report: ReadingReport, input: OutputValidation
 }
 
 function assertResultIntegrity(report: ReadingReport, input: OutputValidationInput): void {
+  assertMethodEvidenceMatchesResult(input.methodEvidence, input.result);
   if (report.readingVariant !== expectedVariant(input.result)) {
     invalid("AI_RESULT_INTEGRITY_INVALID");
   }
@@ -65,6 +68,34 @@ function assertResultIntegrity(report: ReadingReport, input: OutputValidationInp
   }
   if (input.result.movingLinePositions.length === 0 && !/\b(?:no moving line|still hexagram|stabilizing)\b/i.test(mechanism)) {
     invalid("AI_RESULT_INTEGRITY_INVALID");
+  }
+}
+
+function assertMethodEvidenceDisclosed(report: ReadingReport, evidence: CastingMethodEvidence): void {
+  const basis = report.interpretiveBasis.toLowerCase();
+  switch (evidence.method) {
+    case "three_coin":
+      if (!/(?:six|6).{0,30}(?:three-coin|coin).{0,30}(?:round|record|value)/i.test(basis)) {
+        invalid("AI_METHOD_EVIDENCE_OMITTED");
+      }
+      return;
+    case "yarrow_stalk":
+      if (!/(?:eighteen|18).{0,30}yarrow.{0,30}(?:change|record|remainder)/i.test(basis)) {
+        invalid("AI_METHOD_EVIDENCE_OMITTED");
+      }
+      return;
+    case "mei_hua_current_time":
+      if (!/lunisolar/i.test(basis)
+        || !/(?:time zone|timezone)/i.test(basis)
+        || !/body/i.test(basis)
+        || !/use/i.test(basis)) {
+        invalid("AI_METHOD_EVIDENCE_OMITTED");
+      }
+      return;
+    default: {
+      const exhaustive: never = evidence;
+      return exhaustive;
+    }
   }
 }
 
@@ -97,6 +128,7 @@ function assertSafety(text: string): void {
 }
 
 export function validatePreviewOutput(output: unknown, input: OutputValidationInput): PreviewOutput {
+  assertMethodEvidenceMatchesResult(input.methodEvidence, input.result);
   const parsed = previewOutputSchema.safeParse(output);
   if (!parsed.success) invalid("AI_OUTPUT_SCHEMA_INVALID");
   const words = countWords(parsed.data.relevanceStatement);
@@ -112,12 +144,14 @@ export function validatePreviewOutput(output: unknown, input: OutputValidationIn
 }
 
 export function validateReadingReport(output: unknown, input: OutputValidationInput): ReadingReport {
+  assertMethodEvidenceMatchesResult(input.methodEvidence, input.result);
   const parsed = readingReportSchema.safeParse(output);
   if (!parsed.success) invalid("AI_OUTPUT_SCHEMA_INVALID");
   const report = parsed.data as ReadingReport;
   assertReadingStructure(report);
   assertResultIntegrity(report, input);
   assertReferenceIntegrity(report, input);
+  assertMethodEvidenceDisclosed(report, input.methodEvidence);
   assertContextRelevance(report, input);
   assertSafety(JSON.stringify(report));
   return report;
