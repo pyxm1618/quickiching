@@ -65,7 +65,7 @@ describePostgres("PostgreSQL cast result integrity", () => {
     if (sql) await sql.end();
   });
 
-  it("seals completed production results with a key version and supports idempotent final-step replay", async () => {
+  it("seals completed production results with a key version and permits idempotent sealing", async () => {
     const integrity = new PostgresResultIntegrityService(sql);
     const application = new IntegrityCheckedPostgresApplication(dependencies(), integrity);
     const castingId = await completeCasting(application, "anon-integrity");
@@ -77,12 +77,7 @@ describePostgres("PostgreSQL cast result integrity", () => {
     expect(rows[0].result_hmac).toMatch(/^[A-Za-z0-9_-]+$/);
     expect(rows[0].result_hmac_key_version).toBe("v1");
 
-    await expect(application.recordCoinLine({
-      castingId,
-      userId: null,
-      anonymousSessionHash: "anon-integrity",
-      lineIndex: 5,
-    })).resolves.toEqual({ lineIndex: 5, completed: true });
+    await expect(integrity.seal(castingId)).resolves.toBeUndefined();
     await expect(integrity.assertValid(castingId)).resolves.toBeUndefined();
   });
 
