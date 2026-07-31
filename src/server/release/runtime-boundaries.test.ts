@@ -30,6 +30,13 @@ describe("production release boundaries", () => {
     expect(instrumentation).toContain("validateCronConfig()");
   });
 
+  it("requires the latest schema migration before reporting ready", () => {
+    const readiness = source("src/app/api/ready/route.ts");
+
+    expect(readiness).toContain("0009_account_deletion_privacy");
+    expect(readiness).not.toContain("0002_jobs_release");
+  });
+
   it("derives new anonymous identifiers from the active session-signing write version", () => {
     const session = source("src/lib/auth/session.ts");
 
