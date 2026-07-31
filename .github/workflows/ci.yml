@@ -66,16 +66,28 @@ jobs:
       DATABASE_ADAPTER_MODE: memory
       WORKFLOW_ADAPTER_MODE: local
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+      PLAYWRIGHT_HOME: /tmp/iching-playwright
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - name: Install pinned Playwright test runner
-        run: npm install --no-save --package-lock=false --legacy-peer-deps @playwright/test@1.62.0
+      - name: Install pinned Playwright in isolation
+        run: |
+          mkdir -p "$PLAYWRIGHT_HOME"
+          npm install \
+            --prefix "$PLAYWRIGHT_HOME" \
+            --no-save \
+            --package-lock=false \
+            --legacy-peer-deps \
+            @playwright/test@1.62.0
+          mkdir -p node_modules/@playwright
+          ln -s "$PLAYWRIGHT_HOME/node_modules/@playwright/test" node_modules/@playwright/test
+          ln -s "$PLAYWRIGHT_HOME/node_modules/playwright" node_modules/playwright
+          ln -s "$PLAYWRIGHT_HOME/node_modules/playwright-core" node_modules/playwright-core
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: "$PLAYWRIGHT_HOME/node_modules/.bin/playwright install --with-deps chromium"
       - name: Start application
         run: |
           bun run dev --hostname 127.0.0.1 > /tmp/iching-e2e-server.log 2>&1 &
@@ -91,7 +103,7 @@ jobs:
           cat /tmp/iching-e2e-server.log
           exit 1
       - name: Run browser E2E
-        run: npx playwright test
+        run: "$PLAYWRIGHT_HOME/node_modules/.bin/playwright test"
       - name: Print application log on failure
         if: failure()
         run: cat /tmp/iching-e2e-server.log
