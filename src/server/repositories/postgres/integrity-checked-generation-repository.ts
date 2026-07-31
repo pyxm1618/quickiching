@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Sql } from "postgres";
+import type { Sql, TransactionSql } from "postgres";
 import { decryptJson, encryptJson, type EncryptedBlob } from "@/lib/crypto";
 import { DomainError } from "@/server/errors/domain-error";
 import { PostgresResultIntegrityService } from "@/server/runtime/postgres-result-integrity";
@@ -261,13 +261,13 @@ export class IntegrityCheckedPostgresGenerationRepository extends PostgresGenera
     return rowDate(rows[0].now);
   }
 
-  private async databaseClock(tx: Sql): Promise<Date> {
+  private async databaseClock(tx: TransactionSql): Promise<Date> {
     const rows = await tx`select clock_timestamp() as now`;
     return rowDate(rows[0].now);
   }
 
   private async releaseReadingReservation(
-    tx: Sql,
+    tx: TransactionSql,
     readingId: string,
     now: Date,
     reasonCode: string,
