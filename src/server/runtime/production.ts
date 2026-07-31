@@ -2,6 +2,7 @@ import postgres, { type Sql } from "postgres";
 import { assertPostgresSchemaReady } from "@/server/db/migrate";
 import { runtimeConfig } from "@/server/config";
 import { IntegrityCheckedPostgresApplication } from "./integrity-checked-postgres-application";
+import { PostgresAccountPrivacyService } from "./postgres-account-privacy";
 import { PostgresHistoryService } from "./postgres-history";
 import { PostgresPrivacyLifecycleService } from "./postgres-privacy-lifecycle";
 import { PostgresQualityReviewService } from "./postgres-quality-review";
@@ -13,6 +14,7 @@ import { PostgresRateLimiter, TurnstileVerifier } from "@/server/security/abuse-
 export type ProductionRuntime = {
   sql: Sql;
   application: IntegrityCheckedPostgresApplication;
+  accountPrivacy: PostgresAccountPrivacyService;
   revealHandoff: PostgresRevealHandoffService;
   resultIntegrity: PostgresResultIntegrityService;
   generation: IntegrityCheckedPostgresGenerationRepository;
@@ -59,6 +61,7 @@ async function createProductionRuntime(): Promise<ProductionRuntime> {
   return {
     sql,
     application: new IntegrityCheckedPostgresApplication(applicationDependencies, resultIntegrity),
+    accountPrivacy: new PostgresAccountPrivacyService(sql),
     revealHandoff: new PostgresRevealHandoffService({ sql, clock, resultIntegrity }),
     resultIntegrity,
     generation: new IntegrityCheckedPostgresGenerationRepository(sql, resultIntegrity),
