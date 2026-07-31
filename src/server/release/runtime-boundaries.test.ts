@@ -18,14 +18,16 @@ describe("production release boundaries", () => {
     expect(policy.isReleased("mei_hua_current_time")).toBe(false);
   });
 
-  it("requires the cron authorization secret in validated production configuration", () => {
-    const config = source("src/server/config.ts");
+  it("requires the cron authorization secret in validated server startup configuration", () => {
+    const cronConfig = source("src/server/cron-config.ts");
     const route = source("src/app/api/internal/generation/reconcile/route.ts");
+    const instrumentation = source("src/instrumentation.ts");
 
-    expect(config).toContain("cronSecret: string");
-    expect(config).toContain('secretAtLeast(env, "CRON_SECRET", 32)');
-    expect(route).toContain("config.credentials.cronSecret");
+    expect(cronConfig).toContain("loadCronSecret");
+    expect(cronConfig).toContain("CRON_SECRET must be at least 32 characters");
+    expect(route).toContain("loadCronSecret()");
     expect(route).not.toContain("process.env.CRON_SECRET");
+    expect(instrumentation).toContain("validateCronConfig()");
   });
 
   it("derives new anonymous identifiers from the active session-signing write version", () => {
