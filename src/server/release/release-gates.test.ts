@@ -3,6 +3,7 @@ import {
   assertPublicReleaseApproved,
   blockedExternalReleaseGateIds,
   isExternalReleaseGateApproved,
+  isReleaseGateRecordApproved,
 } from "./release-gates";
 
 describe("public release gates", () => {
@@ -12,6 +13,29 @@ describe("public release gates", () => {
       "G-06", "G-07", "G-08", "G-09", "G-10",
     ]);
     expect(isExternalReleaseGateApproved("G-03")).toBe(false);
+  });
+
+  it("accepts only an approved gate with non-empty archived evidence paths", () => {
+    expect(isReleaseGateRecordApproved({
+      id: "G-test",
+      status: "approved",
+      approvalEvidence: ["docs/approvals/g-test.md"],
+    })).toBe(true);
+    expect(isReleaseGateRecordApproved({
+      id: "G-test",
+      status: "approved",
+      approvalEvidence: [],
+    })).toBe(false);
+    expect(isReleaseGateRecordApproved({
+      id: "G-test",
+      status: "approved",
+      approvalEvidence: ["   "],
+    })).toBe(false);
+    expect(isReleaseGateRecordApproved({
+      id: "G-test",
+      status: "blocked_external",
+      approvalEvidence: ["docs/approvals/g-test.md"],
+    })).toBe(false);
   });
 
   it("blocks a public production runtime even when environment flags claim approval", () => {
