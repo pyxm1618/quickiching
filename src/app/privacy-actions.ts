@@ -3,6 +3,7 @@
 import * as z from "zod";
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { getCurrentUser } from "@/lib/auth/session";
+import { hmac } from "@/lib/crypto";
 import { mapKnownDomainError } from "@/server/actions/action-result";
 import { runtimeConfig } from "@/server/config";
 import { privacyRepository, castingRepository } from "@/server/repository";
@@ -37,7 +38,7 @@ async function boundary<T>(
 async function rateLimit(userId: string, action: string, limit: number, windowMs: number) {
   const runtime = await import("@/server/runtime/production").then((module) => module.getProductionRuntime());
   const outcome = await runtime.rateLimiter.consume({
-    key: `privacy:${action}:${userId}`,
+    key: hmac(`privacy:${action}:${userId}`, "anon"),
     limit,
     cost: 1,
     windowMs,
