@@ -6,9 +6,11 @@ This file records release-state evidence. It does not authorize release by itsel
 
 - Code-testable requirements must remain green in CI.
 - External approvals G-01 through G-10 remain `blocked_external` until an accountable reviewer supplies dated evidence.
-- A release gate cannot be changed to approved by changing configuration alone.
-- Yarrow and Mei Hua remain disabled in production unless their approved ruleset environment variable exactly matches the current algorithm version.
-- Public deployment remains prohibited while any G gate is blocked or production credentials and smoke tests are incomplete.
+- Each approved gate must include non-empty `approvalEvidence` in `docs/prd-traceability.json`; environment variables alone never authorize release.
+- `src/server/release/release-gates.ts` blocks public production startup while any gate lacks approved evidence.
+- Yarrow and Mei Hua remain disabled unless both the archived gate evidence and the exact current ruleset version are present.
+- Vercel Preview may be used for controlled real-provider smoke tests, but it is not authorization for a public production release.
+- Public deployment remains prohibited while any G gate is blocked or production credentials, scheduler capacity, and smoke tests are incomplete.
 
 ## Current external blockers
 
@@ -27,7 +29,14 @@ This file records release-state evidence. It does not authorize release by itsel
 
 ## Production configuration gates
 
-- `YARROW_RULESET_APPROVED_VERSION=yarrow-v1` may be set only after G-03 approval is archived.
-- `MEI_HUA_RULESET_APPROVED_VERSION=mei-hua-v1` may be set only after G-04 approval is archived.
+- `YARROW_RULESET_APPROVED_VERSION=yarrow-v1` may be set only after G-03 approval evidence is archived and the manifest gate is changed to `approved`.
+- `MEI_HUA_RULESET_APPROVED_VERSION=mei-hua-v1` may be set only after G-04 approval evidence is archived and the manifest gate is changed to `approved`.
 - Payment, authentication, email, Turnstile, AI Gateway, database and cron credentials must be operator-owned production values.
+- `CRON_SECRET` must contain at least 32 characters and is validated when the Node.js runtime starts.
 - Database migrations must run before application deployment; the runtime account does not perform DDL.
+
+## Scheduler capacity gate
+
+`vercel.json` intentionally schedules `/api/internal/generation/reconcile` every minute. That cadence supports generation outbox dispatch, five-minute job timeout reconciliation, expired rate-limit cleanup, and due account-content purging.
+
+The currently connected Vercel Hobby plan rejects this schedule because it permits only daily Cron Jobs. This is an external infrastructure blocker. Do not change the schedule to daily merely to make deployment pass; use a Vercel plan that supports the required cadence or an approved external scheduler, then execute authenticated production smoke tests and archive their evidence.
