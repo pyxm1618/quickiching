@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, type BinaryLike } from "node:crypto";
 import type { InterpretationGoal, Scene } from "../casting/types";
 
 // §10.1 Question normalization + fingerprint for the 72-hour same-question lock (CAST-004).
@@ -27,11 +27,10 @@ export function normalizeComposite(
 }
 
 // Versioned HMAC so low-entropy questions cannot be brute-forced offline (§10.1).
-// `key` is the raw secret for the given version; the caller supplies the active and
-// previous versions during key rotation.
+// The caller supplies the decoded secret bytes for the active and previous versions.
 export function fingerprintQuestion(
   composite: string,
-  key: string,
+  key: BinaryLike,
   keyVersion: string,
 ): string {
   const h = createHmac("sha256", key);
