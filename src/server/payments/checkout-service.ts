@@ -59,10 +59,12 @@ export class CheckoutService {
       currency: CURRENCY,
       requestId,
     });
+    const successUrl = new URL("/checkout/success", appUrl);
+    successUrl.searchParams.set("orderId", order.id);
     const checkout = await this.dependencies.creemClient.createCheckout({
       productId: providerProductId,
       requestId,
-      successUrl: new URL("/checkout/success", appUrl).toString(),
+      successUrl: successUrl.toString(),
       customerEmail: input.user.email,
       metadata: {
         orderId: order.id,
