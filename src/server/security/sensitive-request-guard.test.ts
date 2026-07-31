@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/crypto", () => ({
-  hmac: (value: string) => `digest-${value}`,
+  hmac: (value: string) => {
+    let digest = 2_166_136_261;
+    for (let index = 0; index < value.length; index++) {
+      digest ^= value.charCodeAt(index);
+      digest = Math.imul(digest, 16_777_619);
+    }
+    return `digest-${(digest >>> 0).toString(16)}`;
+  },
 }));
 vi.mock("@/server/config", () => ({
   runtimeConfig: () => ({
