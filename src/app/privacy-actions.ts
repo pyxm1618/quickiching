@@ -67,10 +67,7 @@ export async function requestCastingDeletionAction(
       }));
     }
 
-    return ok(developmentPrivacy.requestCastingDeletion({
-      castingId: input.castingId,
-      userId: user.id,
-    }));
+    return ok(developmentPrivacy.requestDeletion(input.castingId, user.id));
   });
 }
 
@@ -92,10 +89,7 @@ export async function restoreCastingAction(
       }));
     }
 
-    return ok(developmentPrivacy.restoreCasting({
-      castingId: input.castingId,
-      userId: user.id,
-    }));
+    return ok(developmentPrivacy.restore(input.castingId, user.id));
   });
 }
 
