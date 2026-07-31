@@ -19,6 +19,7 @@ import {
 import { DomainError } from "@/server/errors/domain-error";
 import { PostgresAtomicRepository } from "@/server/repositories/postgres/atomic-repository";
 import type { RevealOutcome } from "@/server/repositories/reveal-repository";
+import { PostgresResultIntegrityService } from "./postgres-result-integrity";
 
 const LOGIN_INTENT_TTL_MS = 10 * 60 * 1000;
 
@@ -44,6 +45,7 @@ export class PostgresRevealHandoffService {
   constructor(private readonly dependencies: {
     sql: Sql;
     clock: { now(): Date };
+    resultIntegrity?: PostgresResultIntegrityService;
   }) {
     this.atomicRepository = new PostgresAtomicRepository(dependencies.sql);
   }
@@ -58,6 +60,7 @@ export class PostgresRevealHandoffService {
     allowedCallbackPath: string;
     expiresAt: Date;
   }> {
+    await this.dependencies.resultIntegrity?.assertValid(input.castingId);
     const callbackPath = assertAllowedCallbackPath(input.allowedCallbackPath);
     const now = this.dependencies.clock.now();
     const config = runtimeConfig();
@@ -153,6 +156,7 @@ export class PostgresRevealHandoffService {
       );
     }
 
+    await this.dependencies.resultIntegrity?.assertValid(String(intent.casting_session_id));
     const castingRows = await this.dependencies.sql`
       select c.*, q.id as question_id, q.ciphertext, q.iv, q.auth_tag, q.encryption_key_version
       from casting_sessions c
