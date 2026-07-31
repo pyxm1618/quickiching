@@ -49,6 +49,24 @@ describe("production release boundaries", () => {
     expect(workflow).toContain("Verify built server action boundary");
   });
 
+  it("uses the dedicated CI lint command and suppresses Next's incompatible duplicate lint pass", () => {
+    const nextConfig = source("next.config.mjs");
+    const workflow = source(".github/workflows/ci.yml");
+
+    expect(workflow).toContain("bun run lint");
+    expect(nextConfig).toContain("ignoreDuringBuilds: true");
+  });
+
+  it("pins Vercel install and build commands to the repository's Bun toolchain", () => {
+    const vercel = JSON.parse(source("vercel.json")) as {
+      installCommand?: string;
+      buildCommand?: string;
+    };
+
+    expect(vercel.installCommand).toBe("bun install --frozen-lockfile");
+    expect(vercel.buildCommand).toBe("bun run build");
+  });
+
   it("derives new anonymous identifiers from the active session-signing write version", () => {
     const session = source("src/lib/auth/session.ts");
 
