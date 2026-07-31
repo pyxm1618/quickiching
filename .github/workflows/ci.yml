@@ -92,20 +92,52 @@ jobs:
         run: bun run build
       - name: Start stable browser-test application
         run: |
-          NODE_ENV=development bun run start --hostname 127.0.0.1 > /tmp/iching-e2e-server.log 2>&1 &
-          echo $! > /tmp/iching-e2e-server.pid
-      - name: Wait for application
+          NODE_ENV=development bun run start --hostname 127.0.0.1 > /tmp/iching-built-server.log 2>&1 &
+          echo $! > /tmp/iching-built-server.pid
+      - name: Wait for stable application
         run: |
           for attempt in $(seq 1 60); do
-            if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then
+            if curl --fail --silent http://127.0.0.1:3000/signin > /dev/null; then
               exit 0
             fi
             sleep 1
           done
-          cat /tmp/iching-e2e-server.log
+          cat /tmp/iching-built-server.log
           exit 1
-      - name: Run browser E2E
-        run: "$PLAYWRIGHT_HOME/node_modules/.bin/playwright test"
-      - name: Print application log on failure
+      - name: Verify built server action boundary
+        run: "$PLAYWRIGHT_HOME/node_modules/.bin/playwright test --grep 'built server action boundary'"
+      - name: Stop stable application
+        if: always()
+        run: |
+          kill "$(cat /tmp/iching-built-server.pid)" 2>/dev/null || true
+          sleep 2
+          rm -rf .next
+      - name: Start development browser-test application
+        run: |
+          bun run dev --hostname 127.0.0.1 > /tmp/iching-dev-server.log 2>&1 &
+          echo $! > /tmp/iching-dev-server.pid
+      - name: Precompile and stabilize development routes
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --silent http://127.0.0.1:3000/cast/three_coin > /dev/null
+          curl --silent http://127.0.0.1:3000/signin > /dev/null
+          curl --silent http://127.0.0.1:3000/account > /dev/null
+          sleep 15
+          curl --silent http://127.0.0.1:3000/ > /dev/null
+          curl --silent http://127.0.0.1:3000/cast/three_coin > /dev/null
+          curl --silent http://127.0.0.1:3000/signin > /dev/null
+          sleep 5
+      - name: Run development browser E2E
+        run: "$PLAYWRIGHT_HOME/node_modules/.bin/playwright test --grep-invert 'built server action boundary'"
+      - name: Print application logs on failure
         if: failure()
-        run: cat /tmp/iching-e2e-server.log
+        run: |
+          echo '--- built server ---'
+          cat /tmp/iching-built-server.log 2>/dev/null || true
+          echo '--- development server ---'
+          cat /tmp/iching-dev-server.log 2>/dev/null || true
