@@ -42,6 +42,8 @@ type ProductionRuntimeConfig = {
     aiModelOutputReview: string;
     betterAuthSecret: string;
     betterAuthUrl: string;
+    publicAuthAdapterMode: "better-auth";
+    publicBetterAuthUrl: string;
     googleClientId: string;
     googleClientSecret: string;
     resendApiKey: string;
@@ -222,6 +224,13 @@ function assertPurposeSeparated(keys: RuntimeKeys, production: boolean): void {
 function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
   const ai = oneOf(env.AI_ADAPTER_MODE, ["ai-sdk"] as const, "AI_ADAPTER_MODE", undefined, true);
   const auth = oneOf(env.AUTH_ADAPTER_MODE, ["better-auth"] as const, "AUTH_ADAPTER_MODE", undefined, true);
+  const publicAuthAdapterMode = oneOf(
+    env.NEXT_PUBLIC_AUTH_ADAPTER_MODE,
+    ["better-auth"] as const,
+    "NEXT_PUBLIC_AUTH_ADAPTER_MODE",
+    undefined,
+    true,
+  );
   const payment = oneOf(env.PAYMENT_ADAPTER_MODE, ["creem"] as const, "PAYMENT_ADAPTER_MODE", undefined, true);
   const database = oneOf(env.DATABASE_ADAPTER_MODE, ["postgres"] as const, "DATABASE_ADAPTER_MODE", undefined, true);
   const workflowAdapterMode = oneOf(
@@ -234,6 +243,16 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
   const baseUrl = httpsUrl(env, "APP_BASE_URL");
   const publicAppUrl = httpsUrl(env, "NEXT_PUBLIC_APP_URL");
   const betterAuthUrl = httpsUrl(env, "BETTER_AUTH_URL");
+  const publicBetterAuthUrl = httpsUrl(env, "NEXT_PUBLIC_BETTER_AUTH_URL");
+  const applicationOrigins = new Set([
+    new URL(baseUrl).origin,
+    new URL(publicAppUrl).origin,
+    new URL(betterAuthUrl).origin,
+    new URL(publicBetterAuthUrl).origin,
+  ]);
+  if (applicationOrigins.size !== 1) {
+    invalid("application and authentication URLs must share one origin", true);
+  }
   const betterAuthSecret = secretAtLeast(env, "BETTER_AUTH_SECRET", 32);
   const emailFrom = required(env, "EMAIL_FROM");
   if (!z.string().email().safeParse(emailFrom.match(/<([^>]+)>$/)?.[1] ?? emailFrom).success) {
@@ -274,6 +293,8 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
       aiModelOutputReview: required(env, "AI_MODEL_OUTPUT_REVIEW"),
       betterAuthSecret,
       betterAuthUrl,
+      publicAuthAdapterMode,
+      publicBetterAuthUrl,
       googleClientId: required(env, "GOOGLE_CLIENT_ID"),
       googleClientSecret: required(env, "GOOGLE_CLIENT_SECRET"),
       resendApiKey: required(env, "RESEND_API_KEY"),
