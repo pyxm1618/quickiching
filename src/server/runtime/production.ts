@@ -1,16 +1,18 @@
 import postgres, { type Sql } from "postgres";
 import { migratePostgres } from "@/server/db/migrate";
 import { runtimeConfig } from "@/server/config";
-import { PostgresApplicationRuntime } from "./postgres-application";
+import { IntegrityCheckedPostgresApplication } from "./integrity-checked-postgres-application";
 import { PostgresRevealHandoffService } from "./postgres-reveal-handoff";
-import { PostgresGenerationRepository } from "@/server/repositories/postgres/generation-repository";
+import { PostgresResultIntegrityService } from "./postgres-result-integrity";
+import { IntegrityCheckedPostgresGenerationRepository } from "@/server/repositories/postgres/integrity-checked-generation-repository";
 import { PostgresRateLimiter, TurnstileVerifier } from "@/server/security/abuse-controls";
 
 export type ProductionRuntime = {
   sql: Sql;
-  application: PostgresApplicationRuntime;
+  application: IntegrityCheckedPostgresApplication;
   revealHandoff: PostgresRevealHandoffService;
-  generation: PostgresGenerationRepository;
+  resultIntegrity: PostgresResultIntegrityService;
+  generation: IntegrityCheckedPostgresGenerationRepository;
   rateLimiter: PostgresRateLimiter;
   turnstile: TurnstileVerifier;
 };
@@ -39,18 +41,21 @@ async function createProductionRuntime(): Promise<ProductionRuntime> {
   });
   await migratePostgres(sql);
   const clock = { now: () => new Date() };
+  const resultIntegrity = new PostgresResultIntegrityService(sql);
+  const applicationDependencies = {
+    sql,
+    clock,
+    random: {
+      randomBit: () => secureRandomInt(2) === 1,
+      randomInt: secureRandomInt,
+    },
+  };
   return {
     sql,
-    application: new PostgresApplicationRuntime({
-      sql,
-      clock,
-      random: {
-        randomBit: () => secureRandomInt(2) === 1,
-        randomInt: secureRandomInt,
-      },
-    }),
+    application: new IntegrityCheckedPostgresApplication(applicationDependencies, resultIntegrity),
     revealHandoff: new PostgresRevealHandoffService({ sql, clock }),
-    generation: new PostgresGenerationRepository(sql),
+    resultIntegrity,
+    generation: new IntegrityCheckedPostgresGenerationRepository(sql, resultIntegrity),
     rateLimiter: new PostgresRateLimiter(sql),
     turnstile: new TurnstileVerifier({ secret: config.credentials.turnstileSecretKey }),
   };
