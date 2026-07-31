@@ -64,15 +64,37 @@ export class PostgresRateLimiter {
   }
 }
 
+type TurnstileResponse = {
+  success?: unknown;
+  action?: unknown;
+  hostname?: unknown;
+  challenge_ts?: unknown;
+};
+
+const MAX_CHALLENGE_AGE_MS = 5 * 60_000;
+const MAX_FUTURE_CLOCK_SKEW_MS = 60_000;
+
+function normalizedHostname(value: string): string {
+  return value.trim().toLowerCase().replace(/\.$/, "");
+}
+
 export class TurnstileVerifier {
   constructor(private readonly dependencies: {
     secret: string;
     fetchImpl?: typeof fetch;
   }) {}
 
-  async verify(input: { token: string; remoteIp: string | null }): Promise<boolean> {
+  async verify(input: {
+    token: string;
+    remoteIp: string | null;
+    expectedAction: string;
+    expectedHostname: string;
+    now: Date;
+  }): Promise<boolean> {
     const token = input.token.trim();
-    if (!token || !this.dependencies.secret.trim()) return false;
+    const expectedAction = input.expectedAction.trim();
+    const expectedHostname = normalizedHostname(input.expectedHostname);
+    if (!token || !this.dependencies.secret.trim() || !expectedAction || !expectedHostname) return false;
     const body = new URLSearchParams({
       secret: this.dependencies.secret,
       response: token,
@@ -90,8 +112,20 @@ export class TurnstileVerifier {
         },
       );
       if (!response.ok) return false;
-      const result = await response.json() as { success?: unknown };
-      return result.success === true;
+      const result = await response.json() as TurnstileResponse;
+      if (
+        result.success !== true
+        || result.action !== expectedAction
+        || typeof result.hostname !== "string"
+        || normalizedHostname(result.hostname) !== expectedHostname
+        || typeof result.challenge_ts !== "string"
+      ) {
+        return false;
+      }
+      const challengedAt = new Date(result.challenge_ts);
+      if (!Number.isFinite(challengedAt.getTime())) return false;
+      const age = input.now.getTime() - challengedAt.getTime();
+      return age >= -MAX_FUTURE_CLOCK_SKEW_MS && age <= MAX_CHALLENGE_AGE_MS;
     } catch {
       return false;
     }
