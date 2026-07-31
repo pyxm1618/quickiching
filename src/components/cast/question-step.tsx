@@ -1,8 +1,9 @@
 "use client";
 
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/input";
+import { TurnstileChallenge } from "@/components/security/turnstile-challenge";
 import {
   INTERPRETATION_GOALS,
   QUESTION_MAX_CHARS,
@@ -21,11 +22,14 @@ export function QuestionStep(props: {
   onSceneChange(value: string): void;
   onGoalChange(value: string): void;
   onContextChange(value: string): void;
-  onSubmit(): Promise<void>;
+  onSubmit(turnstileToken?: string): Promise<void>;
 }) {
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const challengeRequired = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    void props.onSubmit();
+    if (challengeRequired && !turnstileToken) return;
+    void props.onSubmit(turnstileToken ?? undefined);
   };
   return (
     <form onSubmit={submit} className="w-full max-w-md">
@@ -58,10 +62,19 @@ export function QuestionStep(props: {
             {props.context.length}/{QUESTION_MAX_CHARS} · min {QUESTION_MIN_CHARS}
           </p>
         </div>
+        <TurnstileChallenge action="create_casting" onToken={setTurnstileToken} />
         <p className="border-l-2 border-[var(--cinnabar)] py-1 pl-4 text-sm text-[var(--ink-2)]">
           Casting is free. Sign in after the ritual to reveal and save the result.
         </p>
-        <Button type="submit" size="lg" disabled={props.pending || props.context.length < QUESTION_MIN_CHARS}>
+        <Button
+          type="submit"
+          size="lg"
+          disabled={
+            props.pending
+            || props.context.length < QUESTION_MIN_CHARS
+            || (challengeRequired && !turnstileToken)
+          }
+        >
           {props.pending ? "Preparing ritual…" : "Begin the ritual"}
         </Button>
       </div>
