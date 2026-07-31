@@ -84,5 +84,5 @@ export async function resetPostgresForTests(sql: Sql): Promise<void> {
       sessions,
       users
     CASCADE
-  `;
+  `);
 }
