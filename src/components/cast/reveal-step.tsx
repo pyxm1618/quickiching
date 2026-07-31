@@ -12,11 +12,14 @@ export function RevealStep(props: {
 }) {
   const [email, setEmail] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
   const challengeRequired = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (challengeRequired && !turnstileToken) return;
-    void props.onReveal(email, turnstileToken ?? undefined);
+    const token = turnstileToken ?? undefined;
+    setTurnstileToken(null);
+    void props.onReveal(email, token).finally(() => setResetKey((value) => value + 1));
   };
   return (
     <div className="flex w-full max-w-sm flex-col items-center text-center">
@@ -34,7 +37,7 @@ export function RevealStep(props: {
           <Label htmlFor="reveal-email">Email</Label>
           <Input id="reveal-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
         </div>
-        <TurnstileChallenge action="reveal_casting" onToken={setTurnstileToken} />
+        <TurnstileChallenge action="reveal_casting" resetKey={resetKey} onToken={setTurnstileToken} />
         <Button
           type="submit"
           disabled={props.pending || (challengeRequired && !turnstileToken)}
