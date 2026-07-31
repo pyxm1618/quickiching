@@ -25,11 +25,14 @@ export function QuestionStep(props: {
   onSubmit(turnstileToken?: string): Promise<void>;
 }) {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
   const challengeRequired = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (challengeRequired && !turnstileToken) return;
-    void props.onSubmit(turnstileToken ?? undefined);
+    const token = turnstileToken ?? undefined;
+    setTurnstileToken(null);
+    void props.onSubmit(token).finally(() => setResetKey((value) => value + 1));
   };
   return (
     <form onSubmit={submit} className="w-full max-w-md">
@@ -62,7 +65,7 @@ export function QuestionStep(props: {
             {props.context.length}/{QUESTION_MAX_CHARS} · min {QUESTION_MIN_CHARS}
           </p>
         </div>
-        <TurnstileChallenge action="create_casting" onToken={setTurnstileToken} />
+        <TurnstileChallenge action="create_casting" resetKey={resetKey} onToken={setTurnstileToken} />
         <p className="border-l-2 border-[var(--cinnabar)] py-1 pl-4 text-sm text-[var(--ink-2)]">
           Casting is free. Sign in after the ritual to reveal and save the result.
         </p>
