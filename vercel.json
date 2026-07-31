@@ -1,11 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "bun install --frozen-lockfile",
-  "buildCommand": "bun run build",
-  "crons": [
-    {
-      "path": "/api/internal/generation/reconcile",
-      "schedule": "* * * * *"
-    }
-  ]
+  "buildCommand": "bun run build"
 }
