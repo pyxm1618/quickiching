@@ -19,16 +19,18 @@ export async function GET(request: Request): Promise<Response> {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   const production = await getProductionRuntime();
-  const [dispatch, timedOut, rateLimitBucketsPurged] = await Promise.all([
+  const [dispatch, timedOut, rateLimitBucketsPurged, accountContent] = await Promise.all([
     dispatchGenerationOutbox(25),
     production.generation.reconcileTimeouts(new Date()),
     production.rateLimiter.purgeExpired(new Date()),
+    production.accountPrivacy.purgeDue(25),
   ]);
   return Response.json({
     dispatched: dispatch.dispatched,
     skipped: dispatch.skipped,
     timedOut: timedOut.length,
     rateLimitBucketsPurged,
+    accountContentPurged: accountContent.purged,
   }, {
     headers: { "cache-control": "no-store" },
   });
