@@ -5,10 +5,10 @@ import { PostgresGenerationRepository } from "./generation-repository";
 
 export class IntegrityCheckedPostgresGenerationRepository extends PostgresGenerationRepository {
   constructor(
-    private readonly sql: Sql,
+    private readonly database: Sql,
     private readonly resultIntegrity: PostgresResultIntegrityService,
   ) {
-    super(sql);
+    super(database);
   }
 
   override async enqueuePreview(
@@ -28,7 +28,7 @@ export class IntegrityCheckedPostgresGenerationRepository extends PostgresGenera
   }
 
   private async assertAuthorized(castingId: string, userId: string): Promise<void> {
-    const rows = await this.sql`
+    const rows = await this.database`
       select 1 from casting_sessions
       where id = ${castingId} and user_id = ${userId}
         and lifecycle = 'revealed' and deleted_at is null
