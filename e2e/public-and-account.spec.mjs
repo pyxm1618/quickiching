@@ -46,7 +46,7 @@ test("the complete three-coin ritual reveals an immutable result", async ({ page
   await revealButton.click();
 
   await expect(page.getByText("Ritual complete · Revealed")).toBeVisible();
-  await expect(page.getByText(/three-coin-v1 · king-wen-v1/)).toBeVisible();
+  await expect(page.getByText("three-coin-v1 · king-wen-v1", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /View in my history/ })).toBeVisible();
 });
 
