@@ -4,7 +4,6 @@ import { repo } from "@/server/repository";
 
 const ANON_COOKIE = "iching_anon";
 const SESSION_COOKIE = "iching_session";
-const ANON_KEY_VERSION = "v1";
 
 function productionAuthEnabled(): boolean {
   return process.env.AUTH_ADAPTER_MODE === "better-auth";
@@ -18,7 +17,7 @@ export async function getOrCreateAnonymousHash(): Promise<string> {
     if (payload) return payload;
   }
   const token = randomToken(32);
-  const payload = hmac(token, "anon", ANON_KEY_VERSION);
+  const payload = hmac(token, "anon");
   const signed = signCookie(payload);
   store.set(ANON_COOKIE, signed, {
     httpOnly: true,
