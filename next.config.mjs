@@ -1,5 +1,18 @@
 import { withWorkflow } from "workflow/next";
 
+const developmentMode = process.env.NODE_ENV === "development";
+const scriptSources = [
+  "'self'",
+  "'unsafe-inline'",
+  ...(developmentMode ? ["'unsafe-eval'"] : []),
+  "https://challenges.cloudflare.com",
+];
+const connectSources = [
+  "'self'",
+  ...(developmentMode ? ["ws:", "wss:"] : []),
+  "https://challenges.cloudflare.com",
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -27,11 +40,11 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+              `script-src ${scriptSources.join(" ")}`,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data:",
               "font-src 'self' data:",
-              "connect-src 'self' https://challenges.cloudflare.com",
+              `connect-src ${connectSources.join(" ")}`,
               "frame-src https://challenges.cloudflare.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
