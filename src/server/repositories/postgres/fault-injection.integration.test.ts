@@ -1,0 +1,143 @@
+import postgres, { type Sql } from "postgres";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { migratePostgres, resetPostgresForTests } from "@/server/db/migrate";
+import { PostgresAccountPrivacyService } from "@/server/runtime/postgres-account-privacy";
+import { PostgresPaymentRepository } from "./payment-repository";
+
+const databaseUrl = process.env.POSTGRES_TEST_URL;
+const describePostgres = databaseUrl ? describe : describe.skip;
+
+describePostgres("PostgreSQL transaction fault injection", () => {
+  let sql: Sql;
+
+  beforeAll(async () => {
+    sql = postgres(databaseUrl!, { max: 10 });
+    await migratePostgres(sql);
+  });
+
+  beforeEach(async () => {
+    await sql.unsafe(`
+      DROP TRIGGER IF EXISTS fault_checkout_ledger_trigger ON entitlement_ledger;
+      DROP FUNCTION IF EXISTS fault_checkout_ledger();
+      DROP TRIGGER IF EXISTS fault_account_deletion_request_trigger ON account_deletion_requests;
+      DROP FUNCTION IF EXISTS fault_account_deletion_request();
+    `);
+    await resetPostgresForTests(sql);
+  });
+
+  afterAll(async () => {
+    if (sql) {
+      await sql.unsafe(`
+        DROP TRIGGER IF EXISTS fault_checkout_ledger_trigger ON entitlement_ledger;
+        DROP FUNCTION IF EXISTS fault_checkout_ledger();
+        DROP TRIGGER IF EXISTS fault_account_deletion_request_trigger ON account_deletion_requests;
+        DROP FUNCTION IF EXISTS fault_account_deletion_request();
+      `);
+      await sql.end();
+    }
+  });
+
+  it("rolls back inbox, order and entitlement writes when checkout ledger persistence fails", async () => {
+    await sql`insert into users (id, email) values ('usr_fault_payment', 'fault-payment@example.com')`;
+    await sql`
+      insert into orders (id, user_id, product_id, amount_usd, currency, request_id, status)
+      values ('ord_fault_payment', 'usr_fault_payment', 'one', 2.99, 'USD', 'req_fault_payment', 'pending')
+    `;
+    await sql.unsafe(`
+      CREATE FUNCTION fault_checkout_ledger()
+      RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        IF NEW.reason_code = 'checkout_completed' THEN
+          RAISE EXCEPTION 'FAULT_INJECTED_CHECKOUT_LEDGER';
+        END IF;
+        RETURN NEW;
+      END
+      $$;
+      CREATE TRIGGER fault_checkout_ledger_trigger
+      BEFORE INSERT ON entitlement_ledger
+      FOR EACH ROW EXECUTE FUNCTION fault_checkout_ledger();
+    `);
+
+    const repository = new PostgresPaymentRepository(sql, {
+      products: {
+        prod_one: { internalProductId: "one", quantity: 1, amountUsd: 2.99 },
+      },
+    });
+    await expect(repository.processEvent({
+      eventId: "evt_fault_payment",
+      eventType: "checkout.completed",
+      checkoutId: "checkout_fault_payment",
+      providerOrderId: "provider_order_fault_payment",
+      providerTransactionId: "provider_transaction_fault_payment",
+      requestId: "req_fault_payment",
+      providerProductId: "prod_one",
+      amountMinor: 299,
+      currency: "USD",
+      occurredAt: new Date("2026-07-31T04:00:00.000Z"),
+      payload: { ignored: "provider payload" },
+    })).rejects.toThrow("FAULT_INJECTED_CHECKOUT_LEDGER");
+
+    expect((await sql`select status, provider_order_id from orders where id = 'ord_fault_payment'`)[0])
+      .toMatchObject({ status: "pending", provider_order_id: null });
+    expect(await sql`select id from entitlement_batches where order_id = 'ord_fault_payment'`).toHaveLength(0);
+    expect(await sql`select id from entitlement_ledger where order_id = 'ord_fault_payment'`).toHaveLength(0);
+    expect(await sql`select event_id from webhook_inbox where event_id = 'evt_fault_payment'`).toHaveLength(0);
+  });
+
+  it("rolls back anonymization, authentication deletion and credit revocation when deletion audit persistence fails", async () => {
+    await sql`insert into users (id, email) values ('usr_fault_delete', 'fault-delete@example.com')`;
+    await sql`
+      insert into sessions (id, user_id, expires_at)
+      values ('ses_fault_delete', 'usr_fault_delete', clock_timestamp() + interval '1 day')
+    `;
+    await sql`
+      insert into auth_users (id, name, email, email_verified)
+      values ('usr_fault_delete', 'Fault User', 'fault-delete@example.com', true)
+    `;
+    await sql`
+      insert into entitlement_batches (
+        id, user_id, product_id, amount_usd, quantity_total, quantity_available,
+        quantity_reserved, quantity_consumed, quantity_revoked, expires_at
+      ) values (
+        'bat_fault_delete', 'usr_fault_delete', 'one', 2.99, 1, 1, 0, 0, 0,
+        clock_timestamp() + interval '180 days'
+      )
+    `;
+    await sql.unsafe(`
+      CREATE FUNCTION fault_account_deletion_request()
+      RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        RAISE EXCEPTION 'FAULT_INJECTED_ACCOUNT_DELETION_AUDIT';
+      END
+      $$;
+      CREATE TRIGGER fault_account_deletion_request_trigger
+      BEFORE INSERT ON account_deletion_requests
+      FOR EACH ROW EXECUTE FUNCTION fault_account_deletion_request();
+    `);
+
+    const service = new PostgresAccountPrivacyService(sql, {
+      digestEmail: () => ({ digest: "fault-email-digest", keyVersion: "test-v1" }),
+      pseudonymousEmail: () => "fault-deleted@deleted.invalid",
+    });
+    await expect(service.requestDeletion({ userId: "usr_fault_delete" }))
+      .rejects.toThrow("FAULT_INJECTED_ACCOUNT_DELETION_AUDIT");
+
+    expect((await sql`
+      select email, deleted_at, anonymized_at from users where id = 'usr_fault_delete'
+    `)[0]).toMatchObject({
+      email: "fault-delete@example.com",
+      deleted_at: null,
+      anonymized_at: null,
+    });
+    expect(await sql`select id from sessions where user_id = 'usr_fault_delete'`).toHaveLength(1);
+    expect(await sql`select id from auth_users where id = 'usr_fault_delete'`).toHaveLength(1);
+    expect((await sql`
+      select quantity_available, quantity_revoked from entitlement_batches where id = 'bat_fault_delete'
+    `)[0]).toMatchObject({ quantity_available: 1, quantity_revoked: 0 });
+    expect(await sql`
+      select id from entitlement_ledger where batch_id = 'bat_fault_delete' and reason_code = 'account_deleted'
+    `).toHaveLength(0);
+    expect(await sql`select user_id from account_deletion_requests where user_id = 'usr_fault_delete'`)
+      .toHaveLength(0);
+  });
+});
