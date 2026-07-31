@@ -4,7 +4,7 @@
 
 1. Keep PR #12 Draft until every automated gate required by the PR is green. Do not merge or publish from the remediation branch during audit.
 2. After an authorized merge decision, deploy a migration-capable release using the production `DATABASE_URL`.
-3. Confirm `_app_migrations` contains every repository migration through `0009_account_deletion_privacy`.
+3. Confirm `_app_migrations` contains every identifier currently exported by `MIGRATION_IDS` in `src/server/db/migrate.ts`, including the current `LATEST_MIGRATION_ID`; do not maintain a second hard-coded migration ceiling in this runbook.
 4. Confirm `/api/ready` reports the `LATEST_MIGRATION_ID` from `src/server/db/migrate.ts`; do not rely on an older hard-coded migration name.
 5. Do not enable production adapter modes until the migration is complete.
 
