@@ -1,23 +1,32 @@
 import traceability from "../../../docs/prd-traceability.json";
 
-type ReleaseGateRecord = {
+export type ReleaseGateRecord = {
   id: string;
   status: string;
-  approvalEvidence?: string;
+  approvalEvidence?: readonly string[];
 };
 
 type ReleaseEnvironment = Record<string, string | undefined>;
 
 const releaseGates = traceability.releaseGates as ReleaseGateRecord[];
 
+export function isReleaseGateRecordApproved(gate: ReleaseGateRecord): boolean {
+  return gate.status === "approved"
+    && Array.isArray(gate.approvalEvidence)
+    && gate.approvalEvidence.length > 0
+    && gate.approvalEvidence.every(
+      (evidencePath) => typeof evidencePath === "string" && evidencePath.trim().length > 0,
+    );
+}
+
 export function isExternalReleaseGateApproved(id: string): boolean {
   const gate = releaseGates.find((candidate) => candidate.id === id);
-  return gate?.status === "approved" && Boolean(gate.approvalEvidence?.trim());
+  return gate ? isReleaseGateRecordApproved(gate) : false;
 }
 
 export function blockedExternalReleaseGateIds(): string[] {
   return releaseGates
-    .filter((gate) => !isExternalReleaseGateApproved(gate.id))
+    .filter((gate) => !isReleaseGateRecordApproved(gate))
     .map((gate) => gate.id);
 }
 
