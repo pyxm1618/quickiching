@@ -26,10 +26,6 @@ BEGIN
   IF NEW.lifecycle = 'user_deleted'
     AND OLD.lifecycle IS DISTINCT FROM 'user_deleted'
   THEN
-    -- Service callers acquire these locks before the casting row. A direct SQL
-    -- caller must not wait while holding the row, because enqueue acquires the
-    -- advisory lock before reading the casting. Fail with a retryable SQLSTATE
-    -- instead of permitting a lock-order deadlock or an unfenced deletion.
     IF NOT pg_try_advisory_xact_lock(hashtext(NEW.id || ':preview')) THEN
       RAISE EXCEPTION 'CASTING_DELETE_RETRY'
         USING ERRCODE = '40001';
@@ -65,19 +61,19 @@ BEGIN
         SELECT * INTO v_reading
         FROM readings WHERE id = v_job.reading_id FOR UPDATE;
 
-        IF FOUND AND v_reading.reservation_id IS NOT NULL THEN
+        IF v_reading.id IS NOT NULL AND v_reading.reservation_id IS NOT NULL THEN
           SELECT * INTO v_reservation
           FROM reservations
           WHERE id = v_reading.reservation_id
           FOR UPDATE;
 
-          IF FOUND AND v_reservation.status = 'reserved' THEN
+          IF v_reservation.id IS NOT NULL AND v_reservation.status = 'reserved' THEN
             SELECT * INTO v_batch
             FROM entitlement_batches
             WHERE id = v_reservation.batch_id
             FOR UPDATE;
 
-            IF FOUND THEN
+            IF v_batch.id IS NOT NULL THEN
               v_expired := v_batch.expires_at <= v_now;
               UPDATE entitlement_batches SET
                 quantity_reserved = quantity_reserved - 1,
@@ -114,7 +110,7 @@ BEGIN
           END IF;
         END IF;
 
-        IF FOUND THEN
+        IF v_reading.id IS NOT NULL THEN
           UPDATE readings SET
             status = 'failed',
             reservation_id = NULL,
