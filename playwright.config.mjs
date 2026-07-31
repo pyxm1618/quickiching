@@ -1,9 +1,14 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
+
+const outputDir = process.env.PLAYWRIGHT_OUTPUT_DIR
+  ?? join(tmpdir(), "iching-playwright-results");
 
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "**/*.spec.mjs",
-  outputDir: process.env.PLAYWRIGHT_OUTPUT_DIR ?? "test-results",
+  outputDir,
   fullyParallel: false,
   workers: 1,
   retries: 1,
