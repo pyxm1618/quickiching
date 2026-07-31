@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { VersionedKeySet } from "@/server/config";
 import {
   assertAllowedCallbackPath,
+  createLoginHandoffState,
+  emailMatches,
+  hashLoginExpectedEmail,
   hashLoginIntentNonce,
   nonceMatches,
+  verifyLoginHandoffState,
 } from "./login-intent";
 
 const keys: VersionedKeySet = {
@@ -49,5 +53,38 @@ describe("Login Intent nonce hashing", () => {
     });
 
     expect(nonceMatches(stored, "retired", "single-use-nonce", keys)).toBe(false);
+  });
+});
+
+describe("cross-browser Login Intent handoff", () => {
+  it("signs an opaque state without exposing intent metadata and verifies it after key rotation", () => {
+    const token = "opaque-random-token-with-at-least-256-bits-of-source-entropy";
+    const state = createLoginHandoffState(token, keys.read[1]);
+
+    expect(state).not.toContain("casting");
+    expect(state).not.toContain("owner@example.com");
+    expect(verifyLoginHandoffState(state, keys)).toEqual({
+      token,
+      keyVersion: "v1",
+    });
+  });
+
+  it("rejects a modified state and a state signed by a retired key", () => {
+    const state = createLoginHandoffState("opaque-token", keys.read[0]);
+    expect(verifyLoginHandoffState(`${state}tampered`, keys)).toBeNull();
+
+    const retiredState = createLoginHandoffState("opaque-token", {
+      version: "retired",
+      value: "retired-key",
+    });
+    expect(verifyLoginHandoffState(retiredState, keys)).toBeNull();
+  });
+
+  it("binds the handoff to a normalized authenticated email using timing-safe comparison", () => {
+    const stored = hashLoginExpectedEmail(" Owner@Example.COM ", keys.read[1]);
+
+    expect(emailMatches(stored, "v1", "owner@example.com", keys)).toBe(true);
+    expect(emailMatches(stored, "v1", "attacker@example.com", keys)).toBe(false);
+    expect(emailMatches(stored, "retired", "owner@example.com", keys)).toBe(false);
   });
 });
