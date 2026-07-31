@@ -20,10 +20,9 @@ export class PostgresPrivacyLifecycleService {
     userId: string;
   }): Promise<{ deleted: true; purgeAfter: Date }> {
     return this.database.begin(async (tx) => {
-      // Match generation enqueue lock identities and use a fixed order so deletion
-      // is linearized before any new preview/deep-reading job can be created.
-      await tx`select pg_advisory_xact_lock(hashtext(${`${input.castingId}:preview`}))`;
-      await tx`select pg_advisory_xact_lock(hashtext(${`${input.castingId}:deep_reading`}))`;
+      // Use the exact same advisory-lock identity as generation enqueue.
+      await tx`select pg_advisory_xact_lock(hashtextextended(${`${input.castingId}:preview`}, 0))`;
+      await tx`select pg_advisory_xact_lock(hashtextextended(${`${input.castingId}:deep_reading`}, 0))`;
       const clockRows = await tx`select clock_timestamp() as now`;
       const now = asDate(clockRows[0].now);
 
