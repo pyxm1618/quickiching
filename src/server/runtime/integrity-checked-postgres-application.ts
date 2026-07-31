@@ -1,12 +1,24 @@
 import { PostgresApplicationRuntime } from "./postgres-application";
 import { PostgresResultIntegrityService } from "./postgres-result-integrity";
+import {
+  allowAllMethodsPolicy,
+  type MethodReleasePolicy,
+} from "@/server/release/method-release";
 
 export class IntegrityCheckedPostgresApplication extends PostgresApplicationRuntime {
   constructor(
     dependencies: ConstructorParameters<typeof PostgresApplicationRuntime>[0],
     private readonly resultIntegrity: PostgresResultIntegrityService,
+    private readonly methodRelease: MethodReleasePolicy = allowAllMethodsPolicy,
   ) {
     super(dependencies);
+  }
+
+  override async createDraft(
+    input: Parameters<PostgresApplicationRuntime["createDraft"]>[0],
+  ) {
+    this.methodRelease.assertReleased(input.method);
+    return super.createDraft(input);
   }
 
   override async recordCoinLine(
@@ -17,9 +29,17 @@ export class IntegrityCheckedPostgresApplication extends PostgresApplicationRunt
     return outcome;
   }
 
+  override async recordYarrowChange(
+    input: Parameters<PostgresApplicationRuntime["recordYarrowChange"]>[0],
+  ) {
+    this.methodRelease.assertReleased("yarrow_stalk");
+    return super.recordYarrowChange(input);
+  }
+
   override async completeYarrow(
     input: Parameters<PostgresApplicationRuntime["completeYarrow"]>[0],
   ) {
+    this.methodRelease.assertReleased("yarrow_stalk");
     const outcome = await super.completeYarrow(input);
     await this.resultIntegrity.seal(input.castingId);
     return outcome;
@@ -28,6 +48,7 @@ export class IntegrityCheckedPostgresApplication extends PostgresApplicationRunt
   override async recordMeiHua(
     input: Parameters<PostgresApplicationRuntime["recordMeiHua"]>[0],
   ) {
+    this.methodRelease.assertReleased("mei_hua_current_time");
     const outcome = await super.recordMeiHua(input);
     await this.resultIntegrity.seal(input.castingId);
     return outcome;
