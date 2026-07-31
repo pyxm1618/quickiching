@@ -3,6 +3,7 @@ import {
   type CastingMethod,
 } from "@/domain/casting/types";
 import { DomainError } from "@/server/errors/domain-error";
+import { isExternalReleaseGateApproved } from "./release-gates";
 
 type MethodReleaseEnv = Record<string, string | undefined>;
 
@@ -17,9 +18,11 @@ export class ProductionMethodReleasePolicy implements MethodReleasePolicy {
   isReleased(method: CastingMethod): boolean {
     if (method === "three_coin") return true;
     if (method === "yarrow_stalk") {
-      return this.env.YARROW_RULESET_APPROVED_VERSION === ALGORITHM_VERSIONS.yarrow_stalk;
+      return isExternalReleaseGateApproved("G-03")
+        && this.env.YARROW_RULESET_APPROVED_VERSION === ALGORITHM_VERSIONS.yarrow_stalk;
     }
-    return this.env.MEI_HUA_RULESET_APPROVED_VERSION === ALGORITHM_VERSIONS.mei_hua_current_time;
+    return isExternalReleaseGateApproved("G-04")
+      && this.env.MEI_HUA_RULESET_APPROVED_VERSION === ALGORITHM_VERSIONS.mei_hua_current_time;
   }
 
   assertReleased(method: CastingMethod): void {
