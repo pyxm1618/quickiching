@@ -25,6 +25,7 @@ export const readingReportSchema = z.object({
   turningConditions: boundedModule,
   conditionalActionDirection: boundedModule,
   uncertaintyAndBoundaries: boundedModule,
+  interpretiveBasis: boundedModule,
   interpretiveBasisReferences: z.array(interpretiveBasisReferenceSchema).min(1).max(8),
 }).strict();
 
