@@ -7,6 +7,7 @@ import {
   parseHistoryFilter,
 } from "@/server/loaders";
 import { loadAccountHistoryPage } from "@/server/history-loader";
+import { AccountDeletionPanel } from "@/components/account/account-deletion-panel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -189,6 +190,8 @@ export default async function AccountPage({
           </div>
         </section>
       )}
+
+      <AccountDeletionPanel email={user.email} />
     </main>
   );
 }
