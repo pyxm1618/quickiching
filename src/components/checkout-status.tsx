@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 type OrderStatus = "pending" | "paid" | "partially_refunded" | "refunded" | "disputed";
@@ -20,6 +19,8 @@ type OrderSnapshot = {
 const TERMINAL = new Set<OrderStatus>(["paid", "partially_refunded", "refunded", "disputed"]);
 const MAX_ATTEMPTS = 40;
 const POLL_MS = 1500;
+const primaryLink = "inline-flex h-11 items-center justify-center rounded bg-[var(--cinnabar)] px-5 text-[15px] font-semibold text-[var(--primary-foreground)] transition-all hover:-translate-y-px hover:bg-[var(--cinnabar-deep)]";
+const outlineLink = "inline-flex h-11 items-center justify-center rounded border border-[var(--line-strong)] px-5 text-[15px] font-semibold text-[var(--ink)] transition-all hover:bg-[var(--ink)]/5";
 
 function copyFor(snapshot: OrderSnapshot | null, error: string | null) {
   if (error) return { title: "We could not verify this order", body: error };
@@ -91,8 +92,8 @@ export function CheckoutStatus({ orderId }: { orderId: string }) {
           </p>
         )}
         <div className="mt-7 flex flex-wrap justify-center gap-3">
-          <Button asChild><Link href="/account">Open account</Link></Button>
-          <Button asChild variant="outline"><Link href="/pricing">Back to pricing</Link></Button>
+          <Link href="/account" className={primaryLink}>Open account</Link>
+          <Link href="/pricing" className={outlineLink}>Back to pricing</Link>
         </div>
       </CardContent>
     </Card>
