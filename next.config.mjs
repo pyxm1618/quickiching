@@ -4,6 +4,12 @@ import { withWorkflow } from "workflow/next";
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // CI runs `bun run lint` as an explicit, blocking quality gate. Next 15's
+  // duplicate build-time lint invocation passes legacy ESLint options that
+  // the installed toolchain rejects, so keep linting single-sourced in CI.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // The Workflow Vercel world loads @vercel/queue, which in turn loads
   // @vercel/oidc and Vercel CLI credential discovery. Those packages must
   // retain normal Node process metadata; bundling them into Next's page-data
