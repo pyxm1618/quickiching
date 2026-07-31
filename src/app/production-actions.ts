@@ -4,12 +4,12 @@ import { randomUUID } from "node:crypto";
 import { headers } from "next/headers";
 import type { ActionResult } from "@/lib/action-result";
 import { fail, ok } from "@/lib/action-result";
+import { hmac } from "@/lib/crypto";
 import { getAnonymousHash, getCurrentUser } from "@/lib/auth/session";
 import { getProductionAuth } from "@/lib/auth/production-auth";
 import { PRODUCTS } from "@/domain/entitlements/pricing";
 import { mapKnownDomainError } from "@/server/actions/action-result";
 import { runtimeConfig } from "@/server/config";
-import { DomainError } from "@/server/errors/domain-error";
 import { dispatchGenerationOutbox } from "@/server/jobs/generation-dispatcher";
 import { CheckoutService } from "@/server/payments/checkout-service";
 import { CreemClient } from "@/server/payments/creem-client";
@@ -20,8 +20,6 @@ import {
 } from "@/server/security/sensitive-request-guard";
 import { actionSchemas, parseActionInput } from "@/server/validation/action-schemas";
 
-const REVIEW_RESPONSE_DAYS = 5;
-const DELETE_RECOVERY_DAYS = 30;
 const TEN_MINUTES_MS = 10 * 60_000;
 const ONE_HOUR_MS = 60 * 60_000;
 
@@ -65,10 +63,10 @@ async function guard(input: {
   return requestHeaders;
 }
 
-async function limit(key: string, maximum: number, windowMs = 60_000): Promise<ActionResult<never> | null> {
+async function limit(subject: string, maximum: number, windowMs = 60_000): Promise<ActionResult<never> | null> {
   const runtime = await getProductionRuntime();
   const result = await runtime.rateLimiter.consume({
-    key,
+    key: hmac(subject, "anon"),
     limit: maximum,
     cost: 1,
     windowMs,
@@ -391,22 +389,14 @@ async function submitQualityReviewAction(unknownInput: unknown) {
     const input = parseActionInput(actionSchemas.submitQualityReview, unknownInput);
     const user = await getCurrentUser();
     if (!user) return fail("AUTH_REQUIRED", "Please sign in.", false);
+    const blocked = await limit(`quality-review:${user.id}`, 5, ONE_HOUR_MS);
+    if (blocked) return blocked;
     const runtime = await getProductionRuntime();
-    const now = new Date();
-    const dueAt = new Date(now.getTime() + REVIEW_RESPONSE_DAYS * 24 * 60 * 60 * 1000);
-    const rows = await runtime.sql`
-      insert into quality_reviews (
-        id, reading_id, user_id, status, reason, response_due_at, created_at, updated_at
-      )
-      select ${id("qr")}, r.id, ${user.id}, 'submitted', ${input.reason}, ${dueAt}, ${now}, ${now}
-      from readings r join casting_sessions c on c.id = r.casting_session_id
-      where r.id = ${input.readingId} and c.user_id = ${user.id}
-        and c.lifecycle = 'revealed' and r.status = 'completed'
-      on conflict (reading_id) do nothing
-      returning id, status, response_due_at
-    `;
-    if (!rows[0]) throw new DomainError("QUALITY_REVIEW_ALREADY_SUBMITTED", "A review has already been submitted.", false);
-    return ok({ reviewId: rows[0].id, status: rows[0].status, responseDueAt: rows[0].response_due_at });
+    return ok(await runtime.qualityReview.submit({
+      readingId: input.readingId,
+      userId: user.id,
+      reason: input.reason,
+    }));
   });
 }
 
@@ -415,18 +405,13 @@ async function requestCastingDeletionAction(unknownInput: unknown) {
     const input = parseActionInput(actionSchemas.castingId, unknownInput);
     const user = await getCurrentUser();
     if (!user) return fail("AUTH_REQUIRED", "Please sign in.", false);
+    const blocked = await limit(`privacy:delete-casting:${user.id}`, 10, ONE_HOUR_MS);
+    if (blocked) return blocked;
     const runtime = await getProductionRuntime();
-    const now = new Date();
-    const purgeAfter = new Date(now.getTime() + DELETE_RECOVERY_DAYS * 24 * 60 * 60 * 1000);
-    const rows = await runtime.sql`
-      update casting_sessions set lifecycle = 'user_deleted', deleted_at = ${now},
-        purge_after = ${purgeAfter}, updated_at = ${now}
-      where id = ${input.castingId} and user_id = ${user.id}
-        and lifecycle = 'revealed' and deleted_at is null
-      returning id
-    `;
-    if (!rows[0]) throw new DomainError("CASTING_NOT_DELETABLE", "This casting cannot be deleted in its current state.", false);
-    return ok({ deleted: true, purgeAfter });
+    return ok(await runtime.privacy.requestCastingDeletion({
+      castingId: input.castingId,
+      userId: user.id,
+    }));
   });
 }
 
@@ -435,17 +420,13 @@ async function restoreCastingAction(unknownInput: unknown) {
     const input = parseActionInput(actionSchemas.castingId, unknownInput);
     const user = await getCurrentUser();
     if (!user) return fail("AUTH_REQUIRED", "Please sign in.", false);
+    const blocked = await limit(`privacy:restore-casting:${user.id}`, 10, ONE_HOUR_MS);
+    if (blocked) return blocked;
     const runtime = await getProductionRuntime();
-    const now = new Date();
-    const rows = await runtime.sql`
-      update casting_sessions set lifecycle = 'revealed', deleted_at = null,
-        purge_after = null, updated_at = ${now}
-      where id = ${input.castingId} and user_id = ${user.id}
-        and lifecycle = 'user_deleted' and purge_after > ${now}
-      returning id
-    `;
-    if (!rows[0]) throw new DomainError("DELETION_RECOVERY_CLOSED", "This casting can no longer be restored.", false);
-    return ok({ restored: true });
+    return ok(await runtime.privacy.restoreCasting({
+      castingId: input.castingId,
+      userId: user.id,
+    }));
   });
 }
 
