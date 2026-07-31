@@ -222,7 +222,7 @@ BEGIN
                 v_ledger_id,
                 v_batch.id,
                 v_batch.order_id,
-                CASE WHEN v_expired THEN 'revoke'::ledger_action ELSE 'release'::ledger_action END,
+                CASE WHEN v_expired THEN 'revoke' ELSE 'release' END,
                 1,
                 v_reading.id,
                 v_reservation.id,
