@@ -1,6 +1,7 @@
 import postgres, { type Sql } from "postgres";
 import { PRODUCTS } from "@/domain/entitlements/pricing";
 import { runtimeConfig } from "@/server/config";
+import { DomainError } from "@/server/errors/domain-error";
 import { verifyCreemSignature } from "@/server/payments/creem-signature";
 import { parseCreemWebhook } from "@/server/payments/creem-webhook";
 import { PostgresPaymentRepository } from "@/server/repositories/postgres/payment-repository";
@@ -58,11 +59,23 @@ export async function POST(request: Request): Promise<Response> {
     if ("ignored" in event) {
       return Response.json({ received: true, ignored: true });
     }
-    const outcome = await paymentRepository().processCheckoutCompleted(event);
-    return Response.json({ received: true, duplicate: outcome.duplicate });
+    const outcome = await paymentRepository().processEvent(event);
+    return Response.json({
+      received: true,
+      duplicate: outcome.duplicate,
+      financialReviewRequired: outcome.financialReviewRequired ?? false,
+    });
   } catch (error) {
-    const code = error instanceof Error ? error.message.split(":", 1)[0] : "CREEM_WEBHOOK_FAILED";
+    const code = error instanceof DomainError
+      ? error.code
+      : error instanceof Error
+        ? error.message.split(":", 1)[0]
+        : "CREEM_WEBHOOK_FAILED";
     console.error("Creem webhook processing failed", { code });
-    return Response.json({ error: "webhook_processing_failed" }, { status: 400 });
+    const retryable = error instanceof DomainError && error.retryable;
+    return Response.json(
+      { error: "webhook_processing_failed" },
+      { status: retryable ? 503 : 400 },
+    );
   }
 }
