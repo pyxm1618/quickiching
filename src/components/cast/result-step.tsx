@@ -12,8 +12,8 @@ export function ResultStep(props: {
   previewText: string | null;
   readingReport: Record<string, unknown> | null;
   pending: boolean;
-  onPreview(): Promise<void>;
-  onReading(): Promise<void>;
+  onPreview(turnstileToken?: string): Promise<void>;
+  onReading(turnstileToken?: string): Promise<void>;
 }) {
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
