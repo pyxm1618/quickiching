@@ -162,9 +162,9 @@ export default async function AccountPage({
 
         {nextHistoryHref && (
           <div className="mt-6 flex justify-center">
-            <Button asChild variant="outline">
-              <Link href={nextHistoryHref}>Next page</Link>
-            </Button>
+            <Link href={nextHistoryHref}>
+              <Button type="button" variant="outline">Next page</Button>
+            </Link>
           </div>
         )}
       </section>
