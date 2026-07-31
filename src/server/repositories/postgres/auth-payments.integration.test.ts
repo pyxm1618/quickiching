@@ -85,6 +85,8 @@ describePostgres("PostgreSQL auth and payment boundaries", () => {
       eventId: "evt_checkout_once",
       eventType: "checkout.completed" as const,
       checkoutId: "ch_checkout_once",
+      providerOrderId: "provider_order_once",
+      providerTransactionId: "provider_transaction_once",
       requestId: "request_payment",
       providerProductId: "prod_creem_one",
       amountMinor: 299,
@@ -106,22 +108,34 @@ describePostgres("PostgreSQL auth and payment boundaries", () => {
     expect(outcomes.filter((outcome) => outcome.duplicate)).toHaveLength(1);
 
     const [order] = await sql`
-      select status, provider_checkout_id from orders where id = 'ord_payment'
+      select status, provider_checkout_id, provider_order_id, provider_transaction_id
+      from orders where id = 'ord_payment'
     `;
-    expect(order).toMatchObject({ status: "paid", provider_checkout_id: "ch_checkout_once" });
+    expect(order).toMatchObject({
+      status: "paid",
+      provider_checkout_id: "ch_checkout_once",
+      provider_order_id: "provider_order_once",
+      provider_transaction_id: "provider_transaction_once",
+    });
 
     const batches = await sql`
-      select quantity_total, quantity_available, quantity_reserved, quantity_consumed, quantity_revoked
+      select order_id, quantity_total, quantity_available,
+        quantity_reserved, quantity_consumed, quantity_revoked
       from entitlement_batches where user_id = 'usr_payment'
     `;
     expect(batches).toEqual([{
+      order_id: "ord_payment",
       quantity_total: 1,
       quantity_available: 1,
       quantity_reserved: 0,
       quantity_consumed: 0,
       quantity_revoked: 0,
     }]);
-    expect(await sql`select id from entitlement_ledger where action = 'grant'`).toHaveLength(1);
+    expect(await sql`
+      select id from entitlement_ledger
+      where action = 'grant' and order_id = 'ord_payment'
+        and webhook_event_id = 'evt_checkout_once'
+    `).toHaveLength(1);
     expect(await sql`select event_id from webhook_inbox where provider = 'creem'`).toHaveLength(1);
   });
 
@@ -144,6 +158,8 @@ describePostgres("PostgreSQL auth and payment boundaries", () => {
       eventId: "evt_mismatch",
       eventType: "checkout.completed",
       checkoutId: "ch_mismatch",
+      providerOrderId: "provider_order_mismatch",
+      providerTransactionId: "provider_transaction_mismatch",
       requestId: "request_mismatch",
       providerProductId: "prod_creem_one",
       amountMinor: 399,
