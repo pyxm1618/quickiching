@@ -147,6 +147,11 @@ export function generateLocalReading(input: {
     `It cannot account for undisclosed constraints or future decisions by other people. ` +
     `It offers a self-reflection framework and is not medical, legal, financial, safety, or other professional advice.`;
 
+  const interpretiveBasis =
+    `The interpretive basis begins with the controlled judgment reference for ${primaryName} and the persisted ${method} evidence. ` +
+    `The discussion of change is limited to ${moving}; when a relating hexagram exists, its controlled judgment supports only the conditional direction described above. ` +
+    `The source references below identify the exact approved records used, while this paragraph explains how those records connect to the situation without inventing classic wording.`;
+
   return {
     readingVariant: variant,
     coreSummary,
@@ -158,6 +163,7 @@ export function generateLocalReading(input: {
     turningConditions,
     conditionalActionDirection,
     uncertaintyAndBoundaries,
+    interpretiveBasis,
     interpretiveBasisReferences: buildClassicReferences(input.result),
   };
 }
