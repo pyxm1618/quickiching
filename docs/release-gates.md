@@ -37,6 +37,10 @@ This file records release-state evidence. It does not authorize release by itsel
 
 ## Scheduler capacity gate
 
-`vercel.json` intentionally schedules `/api/internal/generation/reconcile` every minute. That cadence supports generation outbox dispatch, five-minute job timeout reconciliation, expired rate-limit cleanup, and due account-content purging.
+The default `vercel.json` is intentionally Preview-safe and does not provision Cron Jobs. Vercel invokes Cron Jobs only for production deployments, while plan validation can still reject a Preview deployment that contains an unsupported production schedule.
 
-The currently connected Vercel Hobby plan rejects this schedule because it permits only daily Cron Jobs. This is an external infrastructure blocker. Do not change the schedule to daily merely to make deployment pass; use a Vercel plan that supports the required cadence or an approved external scheduler, then execute authenticated production smoke tests and archive their evidence.
+`vercel.production.json` is the only repository configuration that provisions `/api/internal/generation/reconcile`, with the required `* * * * *` schedule. That cadence supports generation outbox dispatch, five-minute job timeout reconciliation, expired rate-limit cleanup, and due account-content purging.
+
+The currently connected Vercel Hobby plan cannot accept the required one-minute schedule. This remains an external infrastructure blocker. Do not change the production schedule to daily merely to make deployment pass. Upgrade to a plan that supports the required cadence or use an approved external scheduler.
+
+A production deployment must be performed through the reviewed release process with `vercel deploy --prod --local-config vercel.production.json`. A normal Git integration deployment that reads only `vercel.json` is not an approved production release path because it would omit the required scheduler. After provisioning, execute authenticated scheduler and provider smoke tests and archive their evidence.
