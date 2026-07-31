@@ -88,9 +88,11 @@ jobs:
           ln -s "$PLAYWRIGHT_HOME/node_modules/playwright-core" node_modules/playwright-core
       - name: Install Chromium
         run: "$PLAYWRIGHT_HOME/node_modules/.bin/playwright install --with-deps chromium"
-      - name: Start application
+      - name: Build stable browser-test application
+        run: bun run build
+      - name: Start stable browser-test application
         run: |
-          bun run dev --hostname 127.0.0.1 > /tmp/iching-e2e-server.log 2>&1 &
+          NODE_ENV=development bun run start --hostname 127.0.0.1 > /tmp/iching-e2e-server.log 2>&1 &
           echo $! > /tmp/iching-e2e-server.pid
       - name: Wait for application
         run: |
