@@ -1,5 +1,16 @@
 import { expect, test } from "@playwright/test";
 
+test("the built server action boundary accepts an async invocation", async ({ page }) => {
+  await page.goto("/signin");
+  await page.getByLabel("Email").fill("built-boundary@example.com");
+  const continueButton = page.getByRole("button", { name: "Continue" });
+  await expect(continueButton).toBeEnabled();
+  await continueButton.click();
+
+  await expect(page).toHaveURL(/\/signin$/);
+  await expect(page.getByText("Use Google or a one-time email link to sign in.")).toBeVisible();
+});
+
 test("the primary CTA opens the three-coin casting chamber", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Understand where you are/i })).toBeVisible();
