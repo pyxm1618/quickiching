@@ -8,6 +8,11 @@ import { PostgresGenerationRepository } from "./generation-repository";
 const databaseUrl = process.env.POSTGRES_TEST_URL;
 const describePostgres = databaseUrl ? describe : describe.skip;
 
+async function databaseNow(sql: Sql): Promise<Date> {
+  const rows = await sql`select clock_timestamp() as now`;
+  return rows[0].now instanceof Date ? rows[0].now : new Date(String(rows[0].now));
+}
+
 async function seedRevealedCasting(sql: Sql, input: {
   userId: string;
   castingId: string;
@@ -21,7 +26,7 @@ async function seedRevealedCasting(sql: Sql, input: {
       algorithm_version, revealed_at
     ) values (
       ${input.castingId}, ${input.userId}, 'three_coin', 'revealed', 'allowed', 'career',
-      'what_should_i_pay_attention_to_next', 'three-coin-v1', ${new Date("2026-07-30T00:00:00.000Z")}
+      'what_should_i_pay_attention_to_next', 'three-coin-v1', clock_timestamp()
     )
   `;
   const questionId = `qv_${input.castingId}`;
@@ -66,7 +71,7 @@ async function seedRevealedCasting(sql: Sql, input: {
 describePostgres("PostgresGenerationRepository", () => {
   let sql: Sql;
   let repository: PostgresGenerationRepository;
-  const now = new Date("2026-07-30T00:00:00.000Z");
+  let now: Date;
 
   beforeAll(async () => {
     sql = postgres(databaseUrl!, { max: 10 });
@@ -76,6 +81,7 @@ describePostgres("PostgresGenerationRepository", () => {
 
   beforeEach(async () => {
     await resetPostgresForTests(sql);
+    now = await databaseNow(sql);
   });
 
   afterAll(async () => {
@@ -148,7 +154,7 @@ describePostgres("PostgresGenerationRepository", () => {
         quantity_reserved, quantity_consumed, quantity_revoked, expires_at
       ) values (
         'bat_reading', 'usr_reading', 'one', 2.99, 1, 1, 0, 0, 0,
-        ${new Date("2027-07-30T00:00:00.000Z")}
+        ${new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)}
       )
     `;
 
@@ -192,7 +198,7 @@ describePostgres("PostgresGenerationRepository", () => {
         quantity_reserved, quantity_consumed, quantity_revoked, expires_at
       ) values (
         'bat_timeout', 'usr_timeout', 'one', 2.99, 1, 1, 0, 0, 0,
-        ${new Date("2027-07-30T00:00:00.000Z")}
+        ${new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)}
       )
     `;
     const queued = await repository.enqueueDeepReading({ castingId: "cas_timeout", userId: "usr_timeout", now });
