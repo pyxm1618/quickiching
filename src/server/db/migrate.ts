@@ -44,14 +44,15 @@ export async function migratePostgres(sql: Sql): Promise<void> {
 export async function assertPostgresSchemaReady(sql: Sql): Promise<void> {
   let rows: Record<string, unknown>[];
   try {
-    rows = await sql`
-      select id from _app_migrations where id = ${LATEST_MIGRATION_ID} limit 1
-    `;
+    rows = await sql`select id from _app_migrations`;
   } catch {
-    throw new Error(`DATABASE_SCHEMA_NOT_READY: expected ${LATEST_MIGRATION_ID}`);
+    throw new Error(`DATABASE_SCHEMA_NOT_READY: missing ${MIGRATION_IDS[0]}`);
   }
-  if (!rows[0]) {
-    throw new Error(`DATABASE_SCHEMA_NOT_READY: expected ${LATEST_MIGRATION_ID}`);
+
+  const applied = new Set(rows.map((row) => String(row.id)));
+  const missing = MIGRATION_IDS.filter((migrationId) => !applied.has(migrationId));
+  if (missing.length > 0) {
+    throw new Error(`DATABASE_SCHEMA_NOT_READY: missing ${missing.join(",")}`);
   }
 }
 
