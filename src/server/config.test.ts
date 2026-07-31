@@ -22,8 +22,10 @@ const productionCredentials = {
   AI_MODEL_DEEP_READING: "openai/gpt-5.2",
   AI_MODEL_OUTPUT_REVIEW: "openai/gpt-5-mini",
   AUTH_ADAPTER_MODE: "better-auth",
+  NEXT_PUBLIC_AUTH_ADAPTER_MODE: "better-auth",
   BETTER_AUTH_SECRET: "better-auth-production-secret-at-least-32-characters",
   BETTER_AUTH_URL: "https://iching.example.com",
+  NEXT_PUBLIC_BETTER_AUTH_URL: "https://iching.example.com",
   GOOGLE_CLIENT_ID: "google-client-id",
   GOOGLE_CLIENT_SECRET: "google-client-secret",
   RESEND_API_KEY: "resend-api-key",
@@ -69,6 +71,8 @@ describe("runtime configuration", () => {
     "AI_MODEL_DEEP_READING",
     "AI_MODEL_OUTPUT_REVIEW",
     "BETTER_AUTH_URL",
+    "NEXT_PUBLIC_AUTH_ADAPTER_MODE",
+    "NEXT_PUBLIC_BETTER_AUTH_URL",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
     "RESEND_API_KEY",
@@ -99,7 +103,7 @@ describe("runtime configuration", () => {
     })).toThrow("PRODUCTION_CONFIG_INVALID: BETTER_AUTH_SECRET must be at least 32 characters");
   });
 
-  it.each(["APP_BASE_URL", "BETTER_AUTH_URL", "NEXT_PUBLIC_APP_URL"])(
+  it.each(["APP_BASE_URL", "BETTER_AUTH_URL", "NEXT_PUBLIC_BETTER_AUTH_URL", "NEXT_PUBLIC_APP_URL"])(
     "requires HTTPS for production URL %s",
     (name) => {
       expect(() => loadRuntimeConfig({
@@ -217,6 +221,10 @@ describe("runtime configuration", () => {
       auth: "better-auth",
       payment: "creem",
       database: "postgres",
+      credentials: {
+        publicAuthAdapterMode: "better-auth",
+        publicBetterAuthUrl: "https://iching.example.com",
+      },
       keys: {
         sessionSigning: {
           writeVersion: "v1",
