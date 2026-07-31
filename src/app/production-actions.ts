@@ -14,10 +14,16 @@ import { dispatchGenerationOutbox } from "@/server/jobs/generation-dispatcher";
 import { CheckoutService } from "@/server/payments/checkout-service";
 import { CreemClient } from "@/server/payments/creem-client";
 import { getProductionRuntime } from "@/server/runtime/production";
+import {
+  guardSensitiveRequest,
+  type RateLimitDimension,
+} from "@/server/security/sensitive-request-guard";
 import { actionSchemas, parseActionInput } from "@/server/validation/action-schemas";
 
 const REVIEW_RESPONSE_DAYS = 5;
 const DELETE_RECOVERY_DAYS = 30;
+const TEN_MINUTES_MS = 10 * 60_000;
+const ONE_HOUR_MS = 60 * 60_000;
 
 function id(prefix: string): string {
   return `${prefix}_${randomUUID().replaceAll("-", "").slice(0, 24)}`;
@@ -39,6 +45,26 @@ async function owner() {
   return { user, anonymousSessionHash };
 }
 
+async function guard(input: {
+  action: string;
+  turnstileToken: string | undefined;
+  dimensions: RateLimitDimension[];
+  requestHeaders?: Headers;
+}): Promise<Headers> {
+  const runtime = await getProductionRuntime();
+  const requestHeaders = input.requestHeaders ?? new Headers(await headers());
+  await guardSensitiveRequest({
+    action: input.action,
+    turnstileToken: input.turnstileToken,
+    requestHeaders,
+    rateLimiter: runtime.rateLimiter,
+    turnstile: runtime.turnstile,
+    dimensions: input.dimensions,
+    now: new Date(),
+  });
+  return requestHeaders;
+}
+
 async function limit(key: string, maximum: number, windowMs = 60_000): Promise<ActionResult<never> | null> {
   const runtime = await getProductionRuntime();
   const result = await runtime.rateLimiter.consume({
@@ -57,8 +83,13 @@ async function createCastingSessionAction(unknownInput: unknown) {
     const input = parseActionInput(actionSchemas.createCastingSession, unknownInput);
     const { user, anonymousSessionHash } = await owner();
     if (!user && !anonymousSessionHash) return fail("CASTING_OWNER_REQUIRED", "Casting owner is required.", false);
-    const blocked = await limit(`cast:create:${user?.id ?? anonymousSessionHash}`, 5);
-    if (blocked) return blocked;
+    const ownerKind = user ? "user" as const : "anonymous" as const;
+    const ownerValue = user?.id ?? anonymousSessionHash!;
+    await guard({
+      action: "create_casting",
+      turnstileToken: input.turnstileToken,
+      dimensions: [{ kind: ownerKind, value: ownerValue, limit: 5, windowMs: TEN_MINUTES_MS }],
+    });
     const runtime = await getProductionRuntime();
     return ok(await runtime.application.createDraft({
       method: input.method,
@@ -206,8 +237,15 @@ async function revealCastingAction(unknownInput: unknown) {
     const input = parseActionInput(actionSchemas.revealCasting, unknownInput);
     const { user, anonymousSessionHash } = await owner();
     if (!anonymousSessionHash) return fail("CASTING_NOT_FOUND", "Casting session not found.", false);
-    const blocked = await limit(`cast:reveal:${anonymousSessionHash}`, 5, 10 * 60_000);
-    if (blocked) return blocked;
+    const requestHeaders = await guard({
+      action: "reveal_casting",
+      turnstileToken: input.turnstileToken,
+      dimensions: [
+        { kind: "anonymous", value: anonymousSessionHash, limit: 5, windowMs: TEN_MINUTES_MS },
+        { kind: "email", value: input.email, limit: 3, windowMs: TEN_MINUTES_MS },
+        ...(user ? [{ kind: "user" as const, value: user.id, limit: 5, windowMs: TEN_MINUTES_MS }] : []),
+      ],
+    });
     const runtime = await getProductionRuntime();
     const callbackPath = `/result/${input.castingId}`;
 
@@ -238,7 +276,7 @@ async function revealCastingAction(unknownInput: unknown) {
         callbackURL: `/reveal/complete?state=${encodeURIComponent(handoff.handoffState)}`,
         errorCallbackURL: "/signin?error=reveal_intent",
       },
-      headers: await headers(),
+      headers: requestHeaders,
     });
     return ok({
       revealed: false,
@@ -251,13 +289,20 @@ async function revealCastingAction(unknownInput: unknown) {
 
 async function startPreviewAction(unknownInput: unknown) {
   return boundary("startPreviewAction", async () => {
-    const input = parseActionInput(actionSchemas.castingId, unknownInput);
+    const input = parseActionInput(actionSchemas.protectedCastingId, unknownInput);
     const user = await getCurrentUser();
     if (!user) return fail("AUTH_REQUIRED", "Please sign in.", false);
-    const blocked = await limit(`generation:preview:${user.id}`, 10, 60 * 60_000);
-    if (blocked) return blocked;
+    await guard({
+      action: "generate_preview",
+      turnstileToken: input.turnstileToken,
+      dimensions: [{ kind: "user", value: user.id, limit: 10, windowMs: ONE_HOUR_MS }],
+    });
     const runtime = await getProductionRuntime();
-    const queued = await runtime.generation.enqueuePreview({ castingId: input.castingId, userId: user.id, now: new Date() });
+    const queued = await runtime.generation.enqueuePreview({
+      castingId: input.castingId,
+      userId: user.id,
+      now: new Date(),
+    });
     await dispatchGenerationOutbox(10);
     return ok({ status: queued.status, relevanceStatement: null, jobId: queued.jobId });
   });
@@ -265,13 +310,20 @@ async function startPreviewAction(unknownInput: unknown) {
 
 async function startDeepReadingAction(unknownInput: unknown) {
   return boundary("startDeepReadingAction", async () => {
-    const input = parseActionInput(actionSchemas.castingId, unknownInput);
+    const input = parseActionInput(actionSchemas.protectedCastingId, unknownInput);
     const user = await getCurrentUser();
     if (!user) return fail("AUTH_REQUIRED", "Please sign in.", false);
-    const blocked = await limit(`generation:reading:${user.id}`, 5, 60 * 60_000);
-    if (blocked) return blocked;
+    await guard({
+      action: "generate_reading",
+      turnstileToken: input.turnstileToken,
+      dimensions: [{ kind: "user", value: user.id, limit: 5, windowMs: ONE_HOUR_MS }],
+    });
     const runtime = await getProductionRuntime();
-    const queued = await runtime.generation.enqueueDeepReading({ castingId: input.castingId, userId: user.id, now: new Date() });
+    const queued = await runtime.generation.enqueueDeepReading({
+      castingId: input.castingId,
+      userId: user.id,
+      now: new Date(),
+    });
     await dispatchGenerationOutbox(10);
     return ok({ status: queued.status, readingId: queued.readingId!, report: null, jobId: queued.jobId });
   });
@@ -282,8 +334,11 @@ async function createCheckoutAction(unknownInput: unknown) {
     const input = parseActionInput(actionSchemas.createCheckout, unknownInput);
     const user = await getCurrentUser();
     if (!user) return fail("AUTH_REQUIRED", "Please sign in to purchase.", false);
-    const blocked = await limit(`checkout:${user.id}`, 5, 10 * 60_000);
-    if (blocked) return blocked;
+    await guard({
+      action: "create_checkout",
+      turnstileToken: input.turnstileToken,
+      dimensions: [{ kind: "user", value: user.id, limit: 5, windowMs: TEN_MINUTES_MS }],
+    });
     const config = runtimeConfig();
     if (config.mode !== "production") throw new Error("PRODUCTION_CONFIG_REQUIRED");
     const runtime = await getProductionRuntime();
