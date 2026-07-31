@@ -7,7 +7,7 @@ test("the primary CTA opens the three-coin casting chamber", async ({ page }) =>
   await expect(cta).toHaveAttribute("href", "/cast/three_coin");
   await cta.click();
   await expect(page).toHaveURL(/\/cast\/three_coin$/);
-  await expect(page.getByText("Three-Coin Method", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What would you like clarity on?" })).toBeVisible();
   await expect(page.getByText("For entertainment, cultural exploration, and self-reflection only"))
     .toBeVisible();
 });
@@ -21,7 +21,9 @@ test("an unauthenticated account visit redirects to sign-in", async ({ page }) =
 test("development sign-in creates a session and exposes the account privacy confirmation", async ({ page }) => {
   await page.goto("/signin");
   await page.getByLabel("Email").fill("browser-e2e@example.com");
-  await page.getByRole("button", { name: "Continue" }).click();
+  const continueButton = page.getByRole("button", { name: "Continue" });
+  await expect(continueButton).toBeEnabled();
+  await continueButton.click();
 
   await expect(page).toHaveURL(/\/account$/);
   await expect(page.getByRole("heading", { name: "Your Account" })).toBeVisible();
