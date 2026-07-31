@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import { DomainError } from "@/server/errors/domain-error";
 
 vi.mock("@/lib/crypto", () => ({
   hmac: (value: string) => `digest-${value}`,
@@ -91,7 +90,7 @@ describe("guardSensitiveRequest", () => {
       turnstile: turnstile as never,
       dimensions: [{ kind: "user", value: "usr_secret", limit: 5, windowMs: 600_000 }],
       now: new Date("2026-07-31T01:00:00.000Z"),
-    })).rejects.toMatchObject<Partial<DomainError>>({
+    })).rejects.toMatchObject({
       code: "TURNSTILE_VERIFICATION_FAILED",
       field: "turnstileToken",
     });
@@ -123,6 +122,6 @@ describe("guardSensitiveRequest", () => {
         { kind: "email", value: "owner@example.com", limit: 3, windowMs: 600_000 },
       ],
       now: new Date("2026-07-31T01:00:00.000Z"),
-    })).rejects.toMatchObject<Partial<DomainError>>({ code: "RATE_LIMITED" });
+    })).rejects.toMatchObject({ code: "RATE_LIMITED" });
   });
 });
