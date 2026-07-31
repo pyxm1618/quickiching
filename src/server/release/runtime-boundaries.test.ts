@@ -37,12 +37,17 @@ describe("production release boundaries", () => {
     expect(session).toContain('hmac(token, "anon")');
   });
 
-  it("pins the Bun runtime used by local installs and CI", () => {
+  it("pins the Bun runtime and third-party actions used by CI", () => {
     const workflow = source(".github/workflows/ci.yml");
     const packageJson = JSON.parse(source("package.json")) as { packageManager?: string };
 
     expect(workflow).not.toContain("bun-version: latest");
     expect(workflow.match(/bun-version: 1\.3\.14/g)?.length).toBe(2);
     expect(packageJson.packageManager).toBe("bun@1.3.14");
+    expect(workflow.match(/actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/g)?.length)
+      .toBe(2);
+    expect(workflow.match(/oven-sh\/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6/g)?.length)
+      .toBe(2);
+    expect(workflow).not.toMatch(/uses:\s+[^\s]+@(v\d+|main|master)\b/);
   });
 });
