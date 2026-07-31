@@ -13,6 +13,7 @@ export const MIGRATION_IDS = [
   "0007_deletion_generation_fence",
   "0008_quality_review_lifecycle",
   "0009_account_deletion_privacy",
+  "0010_deletion_lock_namespace",
 ] as const;
 export const LATEST_MIGRATION_ID = MIGRATION_IDS[MIGRATION_IDS.length - 1];
 const MIGRATION_LOCK = 8_924_211_607;
