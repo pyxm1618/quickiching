@@ -23,10 +23,18 @@ describe("public release gates", () => {
     })).toThrow("PUBLIC_RELEASE_BLOCKED: G-01,G-02,G-03,G-04,G-05,G-06,G-07,G-08,G-09,G-10");
   });
 
-  it("allows development and preview environments for testing", () => {
+  it("does not let a non-Vercel production runtime spoof preview mode", () => {
+    expect(() => assertPublicReleaseApproved({
+      NODE_ENV: "production",
+      VERCEL_ENV: "preview",
+    })).toThrow("PUBLIC_RELEASE_BLOCKED: G-01,G-02,G-03,G-04,G-05,G-06,G-07,G-08,G-09,G-10");
+  });
+
+  it("allows development and an actual Vercel preview deployment for testing", () => {
     expect(() => assertPublicReleaseApproved({ NODE_ENV: "development" })).not.toThrow();
     expect(() => assertPublicReleaseApproved({
       NODE_ENV: "production",
+      VERCEL: "1",
       VERCEL_ENV: "preview",
     })).not.toThrow();
   });
