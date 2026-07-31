@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createCheckoutAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
+import { TurnstileChallenge } from "@/components/security/turnstile-challenge";
 import { PRODUCTS } from "@/domain/entitlements/pricing";
 
 /** 账册式定价（phototype/UI设计方案.md §6.4）：三栏并列，印章批注，mono 折算。 */
@@ -18,22 +19,35 @@ export function PricingButtons() {
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
+  const challengeRequired = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   async function buy(productId: string) {
+    if (challengeRequired && !turnstileToken) return;
+    const token = turnstileToken ?? undefined;
+    setTurnstileToken(null);
     setPending(productId);
     setError(null);
-    const res = await createCheckoutAction({ productId });
-    if (!res.ok) {
-      setError(res.error.message);
-      if (res.error.code === "AUTH_REQUIRED") router.push("/signin");
+    try {
+      const res = await createCheckoutAction({ productId, turnstileToken: token });
+      if (!res.ok) {
+        setError(res.error.message);
+        if (res.error.code === "AUTH_REQUIRED") router.push("/signin");
+        return;
+      }
+      router.push(res.value.checkoutUrl);
+    } finally {
       setPending(null);
-      return;
+      setResetKey((value) => value + 1);
     }
-    router.push(res.value.checkoutUrl);
   }
 
   return (
     <div>
+      <div className="mb-5 flex justify-center">
+        <TurnstileChallenge action="create_checkout" resetKey={resetKey} onToken={setTurnstileToken} />
+      </div>
       <div className="grid overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--paper-raised)] md:grid-cols-3 md:divide-x md:divide-[var(--line)]">
         {(["one", "three", "five"] as const).map((id) => {
           const p = PRODUCTS[id];
@@ -60,8 +74,8 @@ export function PricingButtons() {
               </ul>
               <Button
                 className="mt-7 w-full"
-                disabled={pending === id}
-                onClick={() => buy(id)}
+                disabled={pending === id || (challengeRequired && !turnstileToken)}
+                onClick={() => void buy(id)}
                 variant={id === "five" ? "primary" : "outline"}
               >
                 {pending === id ? "Opening checkout…" : `Get ${p.quantity} credit${p.quantity > 1 ? "s" : ""}`}
