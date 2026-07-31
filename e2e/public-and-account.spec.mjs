@@ -12,6 +12,33 @@ test("the primary CTA opens the three-coin casting chamber", async ({ page }) =>
     .toBeVisible();
 });
 
+test("the complete three-coin ritual reveals an immutable result", async ({ page }) => {
+  await page.goto("/cast/three_coin");
+  await page.getByLabel("Your specific situation").fill(
+    "I want to understand how to organize my work priorities over the next month.",
+  );
+
+  const beginButton = page.getByRole("button", { name: "Begin the ritual" });
+  await expect(beginButton).toBeEnabled();
+  await beginButton.click();
+
+  for (let line = 1; line <= 6; line += 1) {
+    const castButton = page.getByRole("button", { name: `Cast line ${line} of 6` });
+    await expect(castButton).toBeEnabled();
+    await castButton.click();
+  }
+
+  await expect(page.getByRole("heading", { name: "Reveal your result" })).toBeVisible();
+  await page.getByLabel("Email").fill("casting-e2e@example.com");
+  const revealButton = page.getByRole("button", { name: "Sign in & reveal" });
+  await expect(revealButton).toBeEnabled();
+  await revealButton.click();
+
+  await expect(page.getByText("Ritual complete · Revealed")).toBeVisible();
+  await expect(page.getByText(/three-coin-v1 · king-wen-v1/)).toBeVisible();
+  await expect(page.getByRole("link", { name: /View in my history/ })).toBeVisible();
+});
+
 test("an unauthenticated account visit redirects to sign-in", async ({ page }) => {
   await page.goto("/account");
   await expect(page).toHaveURL(/\/signin$/);
