@@ -24,14 +24,17 @@ describe("ProductionMethodReleasePolicy", () => {
     expect(stale.isReleased("mei_hua_current_time")).toBe(false);
   });
 
-  it("releases each method only for the exact algorithm version reviewed", () => {
+  it("does not accept exact version environment flags without archived gate evidence", () => {
     const policy = new ProductionMethodReleasePolicy({
       YARROW_RULESET_APPROVED_VERSION: ALGORITHM_VERSIONS.yarrow_stalk,
       MEI_HUA_RULESET_APPROVED_VERSION: ALGORITHM_VERSIONS.mei_hua_current_time,
     });
-    expect(policy.isReleased("yarrow_stalk")).toBe(true);
-    expect(policy.isReleased("mei_hua_current_time")).toBe(true);
-    expect(() => policy.assertReleased("yarrow_stalk")).not.toThrow();
-    expect(() => policy.assertReleased("mei_hua_current_time")).not.toThrow();
+
+    expect(policy.isReleased("yarrow_stalk")).toBe(false);
+    expect(policy.isReleased("mei_hua_current_time")).toBe(false);
+    expect(() => policy.assertReleased("yarrow_stalk"))
+      .toThrowError(expect.objectContaining({ code: "METHOD_NOT_RELEASED", field: "method" }));
+    expect(() => policy.assertReleased("mei_hua_current_time"))
+      .toThrowError(expect.objectContaining({ code: "METHOD_NOT_RELEASED", field: "method" }));
   });
 });
