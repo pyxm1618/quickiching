@@ -39,6 +39,7 @@ jobs:
       PAYMENT_ADAPTER_MODE: simulated
       DATABASE_ADAPTER_MODE: memory
       WORKFLOW_ADAPTER_MODE: local
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/iching_test
       POSTGRES_TEST_URL: postgres://postgres:postgres@localhost:5432/iching_test
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +47,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - run: bun run db:migrate
       - run: bun run lint
       - run: bun run typecheck
       - run: bun run test
