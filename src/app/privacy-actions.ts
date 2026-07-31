@@ -67,7 +67,11 @@ export async function requestCastingDeletionAction(
       }));
     }
 
-    return ok(developmentPrivacy.requestDeletion(input.castingId, user.id));
+    const deleted = developmentPrivacy.requestDeletion(input.castingId, user.id);
+    if (!deleted.purgeAfter) {
+      return fail("CASTING_DELETE_STATE_INVALID", "The deletion deadline was not created.", true);
+    }
+    return ok({ deleted: true as const, purgeAfter: deleted.purgeAfter });
   });
 }
 
@@ -89,7 +93,8 @@ export async function restoreCastingAction(
       }));
     }
 
-    return ok(developmentPrivacy.restore(input.castingId, user.id));
+    developmentPrivacy.restore(input.castingId, user.id);
+    return ok({ restored: true as const });
   });
 }
 
