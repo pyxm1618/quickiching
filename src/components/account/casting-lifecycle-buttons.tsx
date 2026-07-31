@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   requestCastingDeletionAction,
   restoreCastingAction,
-} from "@/app/actions";
+} from "@/app/privacy-actions";
 import { Button } from "@/components/ui/button";
 
 export function DeleteCastingButton({ castingId }: { castingId: string }) {
