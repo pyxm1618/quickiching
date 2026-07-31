@@ -9,6 +9,7 @@ import { PostgresQualityReviewService } from "./postgres-quality-review";
 import { PostgresRevealHandoffService } from "./postgres-reveal-handoff";
 import { PostgresResultIntegrityService } from "./postgres-result-integrity";
 import { IntegrityCheckedPostgresGenerationRepository } from "@/server/repositories/postgres/integrity-checked-generation-repository";
+import { ProductionMethodReleasePolicy } from "@/server/release/method-release";
 import { PostgresRateLimiter, TurnstileVerifier } from "@/server/security/abuse-controls";
 
 export type ProductionRuntime = {
@@ -60,7 +61,11 @@ async function createProductionRuntime(): Promise<ProductionRuntime> {
   };
   return {
     sql,
-    application: new IntegrityCheckedPostgresApplication(applicationDependencies, resultIntegrity),
+    application: new IntegrityCheckedPostgresApplication(
+      applicationDependencies,
+      resultIntegrity,
+      new ProductionMethodReleasePolicy(process.env),
+    ),
     accountPrivacy: new PostgresAccountPrivacyService(sql),
     revealHandoff: new PostgresRevealHandoffService({ sql, clock, resultIntegrity }),
     resultIntegrity,
