@@ -4,15 +4,19 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { SealMark } from "@/components/hex/seal-mark";
+import { TurnstileChallenge } from "@/components/security/turnstile-challenge";
 
 export function RevealStep(props: {
   pending: boolean;
-  onReveal(email: string): Promise<void>;
+  onReveal(email: string, turnstileToken?: string): Promise<void>;
 }) {
   const [email, setEmail] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const challengeRequired = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    void props.onReveal(email);
+    if (challengeRequired && !turnstileToken) return;
+    void props.onReveal(email, turnstileToken ?? undefined);
   };
   return (
     <div className="flex w-full max-w-sm flex-col items-center text-center">
@@ -30,7 +34,13 @@ export function RevealStep(props: {
           <Label htmlFor="reveal-email">Email</Label>
           <Input id="reveal-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
         </div>
-        <Button type="submit" disabled={props.pending} size="lg" className="w-full">
+        <TurnstileChallenge action="reveal_casting" onToken={setTurnstileToken} />
+        <Button
+          type="submit"
+          disabled={props.pending || (challengeRequired && !turnstileToken)}
+          size="lg"
+          className="w-full"
+        >
           {props.pending ? "Revealing…" : "Sign in & reveal"}
         </Button>
       </form>
