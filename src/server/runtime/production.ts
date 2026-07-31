@@ -53,7 +53,7 @@ async function createProductionRuntime(): Promise<ProductionRuntime> {
   return {
     sql,
     application: new IntegrityCheckedPostgresApplication(applicationDependencies, resultIntegrity),
-    revealHandoff: new PostgresRevealHandoffService({ sql, clock }),
+    revealHandoff: new PostgresRevealHandoffService({ sql, clock, resultIntegrity }),
     resultIntegrity,
     generation: new IntegrityCheckedPostgresGenerationRepository(sql, resultIntegrity),
     rateLimiter: new PostgresRateLimiter(sql),
