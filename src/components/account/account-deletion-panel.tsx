@@ -75,7 +75,7 @@ export function AccountDeletionPanel({ email }: { email: string }) {
 
           <Button
             type="button"
-            variant="destructive"
+            variant="danger"
             disabled={!ready || pending}
             onClick={() => void removeAccount()}
           >
