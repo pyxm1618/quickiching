@@ -1,10 +1,9 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import type { ActionResult } from "@/lib/action-result";
 import { fail, ok } from "@/lib/action-result";
-import { signCookie } from "@/lib/crypto";
 import { getAnonymousHash, getCurrentUser } from "@/lib/auth/session";
 import { getProductionAuth } from "@/lib/auth/production-auth";
 import { PRODUCTS } from "@/domain/entitlements/pricing";
@@ -17,7 +16,6 @@ import { CreemClient } from "@/server/payments/creem-client";
 import { getProductionRuntime } from "@/server/runtime/production";
 import { actionSchemas, parseActionInput } from "@/server/validation/action-schemas";
 
-const REVEAL_INTENT_COOKIE = "iching_reveal_intent";
 const REVIEW_RESPONSE_DAYS = 5;
 const DELETE_RECOVERY_DAYS = 30;
 
@@ -52,19 +50,6 @@ async function limit(key: string, maximum: number, windowMs = 60_000): Promise<A
   });
   if (result.allowed) return null;
   return fail("RATE_LIMITED", "Too many requests. Please try again later.", true);
-}
-
-function serializeRevealIntent(value: {
-  intentId: string;
-  nonce: string;
-  callbackPath: string;
-  castingId: string;
-  expiresAt: Date;
-}): string {
-  return signCookie(Buffer.from(JSON.stringify({
-    ...value,
-    expiresAt: value.expiresAt.toISOString(),
-  }), "utf8").toString("base64url"));
 }
 
 async function createCastingSessionAction(unknownInput: unknown) {
@@ -225,12 +210,13 @@ async function revealCastingAction(unknownInput: unknown) {
     if (blocked) return blocked;
     const runtime = await getProductionRuntime();
     const callbackPath = `/result/${input.castingId}`;
-    const intent = await runtime.application.startLoginIntent({
-      castingId: input.castingId,
-      anonymousSessionHash,
-      allowedCallbackPath: callbackPath,
-    });
+
     if (user) {
+      const intent = await runtime.application.startLoginIntent({
+        castingId: input.castingId,
+        anonymousSessionHash,
+        allowedCallbackPath: callbackPath,
+      });
       return ok(await runtime.application.consumeLoginIntentAndReveal({
         intentId: intent.intentId,
         nonce: intent.nonce,
@@ -239,26 +225,18 @@ async function revealCastingAction(unknownInput: unknown) {
       }));
     }
 
-    const cookieStore = await cookies();
-    cookieStore.set(REVEAL_INTENT_COOKIE, serializeRevealIntent({
-      intentId: intent.intentId,
-      nonce: intent.nonce,
-      callbackPath,
+    const handoff = await runtime.revealHandoff.start({
       castingId: input.castingId,
-      expiresAt: intent.expiresAt,
-    }), {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      path: "/",
-      expires: intent.expiresAt,
+      anonymousSessionHash,
+      expectedEmail: input.email,
+      allowedCallbackPath: callbackPath,
     });
     const auth = await getProductionAuth();
     await auth.api.signInMagicLink({
       body: {
         email: input.email,
-        callbackURL: "/reveal/complete",
-        errorCallbackURL: `${callbackPath}?auth=error`,
+        callbackURL: `/reveal/complete?state=${encodeURIComponent(handoff.handoffState)}`,
+        errorCallbackURL: "/signin?error=reveal_intent",
       },
       headers: await headers(),
     });
