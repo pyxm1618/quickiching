@@ -1,60 +1,50 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { verifyCookie } from "@/lib/crypto";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getProductionRuntime } from "@/server/runtime/production";
 
-const REVEAL_INTENT_COOKIE = "iching_reveal_intent";
+const MAX_HANDOFF_STATE_LENGTH = 1024;
 
-type RevealCookie = {
-  intentId: string;
-  nonce: string;
-  callbackPath: string;
-  castingId: string;
-  expiresAt: string;
-};
-
-function parseCookie(raw: string | undefined): RevealCookie | null {
-  if (!raw) return null;
-  const verified = verifyCookie(raw);
-  if (!verified) return null;
-  try {
-    const value = JSON.parse(Buffer.from(verified, "base64url").toString("utf8")) as RevealCookie;
-    if (
-      typeof value.intentId !== "string"
-      || typeof value.nonce !== "string"
-      || typeof value.callbackPath !== "string"
-      || typeof value.castingId !== "string"
-      || typeof value.expiresAt !== "string"
-      || new Date(value.expiresAt).getTime() <= Date.now()
-    ) return null;
-    return value;
-  } catch {
+function singleState(value: string | string[] | undefined): string | null {
+  if (typeof value !== "string" || value.length < 8 || value.length > MAX_HANDOFF_STATE_LENGTH) {
     return null;
   }
+  return value;
 }
 
-export default async function CompleteRevealPage() {
-  const store = await cookies();
-  const reveal = parseCookie(store.get(REVEAL_INTENT_COOKIE)?.value);
+export default async function CompleteRevealPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ state?: string | string[] }>;
+}) {
+  const { state: rawState } = await searchParams;
+  const state = singleState(rawState);
+  if (!state) redirect("/signin?error=reveal_intent");
+
   const user = await getCurrentUser();
-  store.delete(REVEAL_INTENT_COOKIE);
+  if (!user) {
+    const callbackURL = `/reveal/complete?state=${encodeURIComponent(state)}`;
+    redirect(`/signin?callbackURL=${encodeURIComponent(callbackURL)}`);
+  }
 
-  if (!reveal) redirect("/signin?error=reveal_intent");
-  if (!user) redirect(`/signin?callbackURL=${encodeURIComponent("/reveal/complete")}`);
-
-  let destination = `/result/${reveal.castingId}?auth=error`;
   try {
     const runtime = await getProductionRuntime();
-    const outcome = await runtime.application.consumeLoginIntentAndReveal({
-      intentId: reveal.intentId,
-      nonce: reveal.nonce,
+    const outcome = await runtime.revealHandoff.consume({
+      handoffState: state,
       authenticatedUserId: user.id,
-      callbackPath: reveal.callbackPath,
+      authenticatedEmail: user.email,
     });
-    destination = `/result/${outcome.castingId}`;
-  } catch {
-    // The destination remains a bounded result-page error state. No token or provider detail is exposed.
+    redirect(`/result/${outcome.castingId}`);
+  } catch (error) {
+    // Next.js redirects are implemented as thrown control-flow errors.
+    if (
+      typeof error === "object"
+      && error !== null
+      && "digest" in error
+      && typeof error.digest === "string"
+      && error.digest.startsWith("NEXT_REDIRECT")
+    ) {
+      throw error;
+    }
+    redirect("/signin?error=reveal_intent");
   }
-  redirect(destination);
 }
