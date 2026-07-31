@@ -7,6 +7,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import {
+  decodeVersionedKeyValue,
   resolveVersionedKey,
   resolveWriteKey,
   runtimeConfig,
@@ -35,9 +36,14 @@ function keySetForPurpose(purpose: CryptoPurpose): VersionedKeySet {
 function deriveKey(purpose: CryptoPurpose, version?: string, length = 32): { key: Buffer; version: string } {
   const keySet = keySetForPurpose(purpose);
   const resolved = version ? resolveVersionedKey(keySet, version) : resolveWriteKey(keySet);
+  const rootMaterial = decodeVersionedKeyValue(resolved.value);
+  const derivationInput = Buffer.concat([
+    Buffer.from(`${purpose}:${resolved.version}:`, "utf8"),
+    rootMaterial,
+  ]);
   return {
     key: scryptSync(
-      `${purpose}:${resolved.version}:${resolved.value}`,
+      derivationInput,
       `iching-coin-${purpose}-v2`,
       length,
     ),
