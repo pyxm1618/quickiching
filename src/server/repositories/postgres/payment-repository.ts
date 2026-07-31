@@ -58,6 +58,34 @@ function id(prefix: string): string {
   return `${prefix}_${randomUUID().replaceAll("-", "")}`;
 }
 
+function paymentAuditPayload(event: CreemPaymentEvent): Record<string, unknown> {
+  const common = {
+    eventId: event.eventId,
+    eventType: event.eventType,
+    providerOrderId: event.providerOrderId,
+    providerTransactionId: event.providerTransactionId,
+    amountMinor: event.amountMinor,
+    currency: event.currency,
+    occurredAt: event.occurredAt.toISOString(),
+  };
+  if (event.eventType === "checkout.completed") {
+    return {
+      ...common,
+      checkoutId: event.checkoutId,
+      requestId: event.requestId,
+      providerProductId: event.providerProductId,
+    };
+  }
+  if (event.eventType === "refund.created") {
+    return {
+      ...common,
+      refundId: event.refundId,
+      status: event.status,
+    };
+  }
+  return { ...common, disputeId: event.disputeId };
+}
+
 function mismatch(): never {
   throw new DomainError("CREEM_ORDER_MISMATCH", "Payment details did not match the order.", false);
 }
@@ -85,7 +113,8 @@ export class PostgresPaymentRepository {
         insert into webhook_inbox (
           provider, event_id, event_type, payload, signature_verified_at, created_at
         ) values (
-          'creem', ${event.eventId}, ${event.eventType}, ${tx.json(event.payload as never)},
+          'creem', ${event.eventId}, ${event.eventType},
+          ${tx.json(paymentAuditPayload(event) as never)},
           ${event.occurredAt}, ${event.occurredAt}
         )
         on conflict (provider, event_id) do nothing
@@ -123,7 +152,7 @@ export class PostgresPaymentRepository {
             mismatch();
           }
           await tx`
-            update webhook_inbox set processed_at = ${event.occurredAt}
+            update webhook_inbox set order_id = ${order.id}, processed_at = ${event.occurredAt}
             where provider = 'creem' and event_id = ${event.eventId}
           `;
           return {
@@ -167,7 +196,7 @@ export class PostgresPaymentRepository {
           )
         `;
         await tx`
-          update webhook_inbox set processed_at = ${event.occurredAt}
+          update webhook_inbox set order_id = ${order.id}, processed_at = ${event.occurredAt}
           where provider = 'creem' and event_id = ${event.eventId}
         `;
         return { processed: true, duplicate: false, orderId: order.id };
@@ -188,7 +217,7 @@ export class PostgresPaymentRepository {
 
       if (event.eventType === "refund.created" && event.status.toLowerCase() !== "succeeded") {
         await tx`
-          update webhook_inbox set processed_at = ${event.occurredAt}
+          update webhook_inbox set order_id = ${order.id}, processed_at = ${event.occurredAt}
           where provider = 'creem' and event_id = ${event.eventId}
         `;
         return {
@@ -272,7 +301,7 @@ export class PostgresPaymentRepository {
         where id = ${order.id}
       `;
       await tx`
-        update webhook_inbox set processed_at = ${event.occurredAt}
+        update webhook_inbox set order_id = ${order.id}, processed_at = ${event.occurredAt}
         where provider = 'creem' and event_id = ${event.eventId}
       `;
       return {
