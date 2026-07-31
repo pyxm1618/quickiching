@@ -31,6 +31,13 @@ function asDate(value: unknown): Date | null {
   return value instanceof Date ? value : new Date(String(value));
 }
 
+function normalizeAtomicRevealError(error: unknown): never {
+  if (error instanceof DomainError && error.code === "LOGIN_INTENT_ALREADY_CONSUMED") {
+    throw new DomainError("LOGIN_INTENT_CONSUMED", "This sign-in link has already been used.", false);
+  }
+  throw error;
+}
+
 export class PostgresRevealHandoffService {
   private readonly atomicRepository: PostgresAtomicRepository;
 
@@ -177,15 +184,19 @@ export class PostgresRevealHandoffService {
     );
     if (!writeFingerprint) throw new Error("QUESTION_FINGERPRINT_WRITE_KEY_MISSING");
 
-    return this.atomicRepository.consumeLoginIntentAndReveal({
-      intentId: intent.id,
-      nonceHash,
-      nonceKeyVersion: verified.keyVersion,
-      authenticatedUserId: input.authenticatedUserId,
-      callbackPath: assertAllowedCallbackPath(intent.allowed_callback_path),
-      fingerprintCandidates: candidates,
-      writeFingerprint,
-      now: this.dependencies.clock.now(),
-    });
+    try {
+      return await this.atomicRepository.consumeLoginIntentAndReveal({
+        intentId: intent.id,
+        nonceHash,
+        nonceKeyVersion: verified.keyVersion,
+        authenticatedUserId: input.authenticatedUserId,
+        callbackPath: assertAllowedCallbackPath(intent.allowed_callback_path),
+        fingerprintCandidates: candidates,
+        writeFingerprint,
+        now: this.dependencies.clock.now(),
+      });
+    } catch (error) {
+      return normalizeAtomicRevealError(error);
+    }
   }
 }
