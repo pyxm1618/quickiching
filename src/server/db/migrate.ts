@@ -11,6 +11,7 @@ export const MIGRATION_IDS = [
   "0005_payment_lifecycle",
   "0006_generation_lifecycle",
   "0007_deletion_generation_fence",
+  "0008_quality_review_lifecycle",
 ] as const;
 export const LATEST_MIGRATION_ID = MIGRATION_IDS[MIGRATION_IDS.length - 1];
 const MIGRATION_LOCK = 8_924_211_607;
@@ -83,7 +84,8 @@ export async function resetPostgresForTests(sql: Sql): Promise<void> {
       login_intents,
       casting_sessions,
       sessions,
-      users
+      users,
+      business_calendar_holidays
     CASCADE
   `);
 }
