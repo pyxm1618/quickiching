@@ -2,6 +2,7 @@ import postgres, { type Sql } from "postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { migratePostgres, resetPostgresForTests } from "@/server/db/migrate";
 import { PostgresApplicationRuntime } from "./postgres-application";
+import { PostgresRevealHandoffService } from "./postgres-reveal-handoff";
 
 const databaseUrl = process.env.POSTGRES_TEST_URL;
 const describePostgres = databaseUrl ? describe : describe.skip;
@@ -16,7 +17,7 @@ describePostgres("PostgreSQL cross-browser reveal handoff", () => {
   let sql: Sql;
   const current = { value: new Date("2026-07-31T00:00:00.000Z") };
 
-  function runtime() {
+  function application() {
     return new PostgresApplicationRuntime({
       sql,
       clock: { now: () => new Date(current.value) },
@@ -24,23 +25,30 @@ describePostgres("PostgreSQL cross-browser reveal handoff", () => {
     });
   }
 
+  function handoffService() {
+    return new PostgresRevealHandoffService({
+      sql,
+      clock: { now: () => new Date(current.value) },
+    });
+  }
+
   async function completedCasting(anonymousSessionHash: string) {
-    const application = runtime();
-    const draft = await application.createDraft({
+    const runtime = application();
+    const draft = await runtime.createDraft({
       method: "three_coin",
       scene: "career",
       interpretationGoal: "what_should_i_pay_attention_to_next",
       userId: null,
       anonymousSessionHash,
     });
-    await application.submitQuestion({
+    await runtime.submitQuestion({
       castingId: draft.castingId,
       userId: null,
       anonymousSessionHash,
       context: "I need to understand how to approach a delayed role decision without forcing the outcome.",
     });
     for (let lineIndex = 0; lineIndex < 6; lineIndex++) {
-      await application.recordCoinLine({
+      await runtime.recordCoinLine({
         castingId: draft.castingId,
         userId: null,
         anonymousSessionHash,
@@ -65,11 +73,11 @@ describePostgres("PostgreSQL cross-browser reveal handoff", () => {
   });
 
   it("reveals from a new browser using only opaque state and the authenticated identity", async () => {
-    const application = runtime();
+    const handoffs = handoffService();
     const castingId = await completedCasting("anon-cross-browser");
     await sql`insert into users (id, email) values ('usr_owner', 'owner@example.com')`;
 
-    const handoff = await application.startLoginHandoff({
+    const handoff = await handoffs.start({
       castingId,
       anonymousSessionHash: "anon-cross-browser",
       expectedEmail: "Owner@Example.COM",
@@ -79,14 +87,14 @@ describePostgres("PostgreSQL cross-browser reveal handoff", () => {
     expect(handoff.handoffState).not.toContain(castingId);
     expect(handoff.handoffState).not.toContain("owner@example.com");
 
-    const revealed = await application.consumeLoginHandoffAndReveal({
+    const revealed = await handoffs.consume({
       handoffState: handoff.handoffState,
       authenticatedUserId: "usr_owner",
       authenticatedEmail: "owner@example.com",
     });
     expect(revealed).toEqual({ revealed: true, duplicate: false, castingId });
 
-    await expect(application.consumeLoginHandoffAndReveal({
+    await expect(handoffs.consume({
       handoffState: handoff.handoffState,
       authenticatedUserId: "usr_owner",
       authenticatedEmail: "owner@example.com",
@@ -94,32 +102,32 @@ describePostgres("PostgreSQL cross-browser reveal handoff", () => {
   });
 
   it("does not consume the intent for a mismatched email and rejects tampered state", async () => {
-    const application = runtime();
+    const handoffs = handoffService();
     const castingId = await completedCasting("anon-email-bound");
     await sql`insert into users (id, email) values
       ('usr_owner', 'owner@example.com'),
       ('usr_attacker', 'attacker@example.com')`;
 
-    const handoff = await application.startLoginHandoff({
+    const handoff = await handoffs.start({
       castingId,
       anonymousSessionHash: "anon-email-bound",
       expectedEmail: "owner@example.com",
       allowedCallbackPath: `/result/${castingId}`,
     });
 
-    await expect(application.consumeLoginHandoffAndReveal({
+    await expect(handoffs.consume({
       handoffState: handoff.handoffState,
       authenticatedUserId: "usr_attacker",
       authenticatedEmail: "attacker@example.com",
     })).rejects.toThrow("LOGIN_INTENT_EMAIL_MISMATCH");
 
-    await expect(application.consumeLoginHandoffAndReveal({
+    await expect(handoffs.consume({
       handoffState: `${handoff.handoffState}tampered`,
       authenticatedUserId: "usr_owner",
       authenticatedEmail: "owner@example.com",
     })).rejects.toThrow("LOGIN_INTENT_INVALID");
 
-    await expect(application.consumeLoginHandoffAndReveal({
+    await expect(handoffs.consume({
       handoffState: handoff.handoffState,
       authenticatedUserId: "usr_owner",
       authenticatedEmail: "owner@example.com",
@@ -127,10 +135,10 @@ describePostgres("PostgreSQL cross-browser reveal handoff", () => {
   });
 
   it("rejects an expired handoff before binding the casting", async () => {
-    const application = runtime();
+    const handoffs = handoffService();
     const castingId = await completedCasting("anon-expired-handoff");
     await sql`insert into users (id, email) values ('usr_owner', 'owner@example.com')`;
-    const handoff = await application.startLoginHandoff({
+    const handoff = await handoffs.start({
       castingId,
       anonymousSessionHash: "anon-expired-handoff",
       expectedEmail: "owner@example.com",
@@ -138,13 +146,13 @@ describePostgres("PostgreSQL cross-browser reveal handoff", () => {
     });
 
     current.value = new Date("2026-07-31T00:10:00.001Z");
-    await expect(application.consumeLoginHandoffAndReveal({
+    await expect(handoffs.consume({
       handoffState: handoff.handoffState,
       authenticatedUserId: "usr_owner",
       authenticatedEmail: "owner@example.com",
     })).rejects.toThrow("LOGIN_INTENT_EXPIRED");
 
-    const rows = await sql`select user_id, consumed_at from login_intents where casting_session_id = ${castingId}`;
+    const rows = await sql`select consumed_at from login_intents where casting_session_id = ${castingId}`;
     expect(rows[0]).toMatchObject({ consumed_at: null });
     const castRows = await sql`select user_id, lifecycle from casting_sessions where id = ${castingId}`;
     expect(castRows[0]).toMatchObject({ user_id: null, lifecycle: "awaiting_reveal" });
