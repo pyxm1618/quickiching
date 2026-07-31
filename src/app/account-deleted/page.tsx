@@ -31,9 +31,9 @@ export default async function AccountDeletedPage({
           <p className="text-sm text-[var(--ink-2)]">
             Orders, refunds, disputes, and immutable entitlement records remain only in pseudonymous form where required for financial, fraud-prevention, and legal obligations.
           </p>
-          <Button asChild variant="outline">
-            <Link href="/">Return home</Link>
-          </Button>
+          <Link href="/">
+            <Button type="button" variant="outline">Return home</Button>
+          </Link>
         </CardContent>
       </Card>
     </main>
