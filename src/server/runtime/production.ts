@@ -30,11 +30,23 @@ type ProductionGlobal = typeof globalThis & {
   __ICHING_PRODUCTION_RUNTIME__?: Promise<ProductionRuntime>;
 };
 
-function secureRandomInt(maxExclusive: number): number {
-  if (!Number.isSafeInteger(maxExclusive) || maxExclusive <= 0) throw new Error("RANDOM_BOUND_INVALID");
-  const bytes = new Uint32Array(1);
-  crypto.getRandomValues(bytes);
-  return bytes[0] % maxExclusive;
+const UINT32_RANGE = 0x1_0000_0000;
+
+export function secureRandomInt(maxExclusive: number): number {
+  if (
+    !Number.isSafeInteger(maxExclusive)
+    || maxExclusive <= 0
+    || maxExclusive > UINT32_RANGE
+  ) {
+    throw new Error("RANDOM_BOUND_INVALID");
+  }
+
+  const acceptedRange = Math.floor(UINT32_RANGE / maxExclusive) * maxExclusive;
+  const sample = new Uint32Array(1);
+  do {
+    crypto.getRandomValues(sample);
+  } while (sample[0] >= acceptedRange);
+  return sample[0] % maxExclusive;
 }
 
 async function createProductionRuntime(): Promise<ProductionRuntime> {
