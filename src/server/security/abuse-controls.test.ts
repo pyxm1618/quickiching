@@ -44,11 +44,25 @@ describePostgres("PostgresRateLimiter", () => {
 });
 
 describe("TurnstileVerifier", () => {
-  it("submits the token and optional IP to Cloudflare and accepts only an explicit success response", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }));
+  const now = new Date("2026-07-31T01:00:00.000Z");
+  const validResponse = {
+    success: true,
+    action: "reveal_casting",
+    hostname: "iching.example.com",
+    challenge_ts: "2026-07-31T00:58:00.000Z",
+  };
+
+  it("submits the token and optional IP and accepts an exact fresh action/hostname match", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify(validResponse), { status: 200 }));
     const verifier = new TurnstileVerifier({ secret: "turnstile-secret", fetchImpl });
 
-    await expect(verifier.verify({ token: "turnstile-token", remoteIp: "203.0.113.5" })).resolves.toBe(true);
+    await expect(verifier.verify({
+      token: "turnstile-token",
+      remoteIp: "203.0.113.5",
+      expectedAction: "reveal_casting",
+      expectedHostname: "iching.example.com",
+      now,
+    })).resolves.toBe(true);
     const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://challenges.cloudflare.com/turnstile/v0/siteverify");
     const body = new URLSearchParams(String(init.body));
@@ -60,6 +74,26 @@ describe("TurnstileVerifier", () => {
   });
 
   it.each([
+    ["wrong action", { ...validResponse, action: "create_casting" }],
+    ["wrong hostname", { ...validResponse, hostname: "attacker.example" }],
+    ["stale challenge", { ...validResponse, challenge_ts: "2026-07-31T00:54:59.999Z" }],
+    ["future challenge", { ...validResponse, challenge_ts: "2026-07-31T01:01:00.001Z" }],
+    ["missing metadata", { success: true }],
+  ])("fails closed for %s", async (_label, body) => {
+    const verifier = new TurnstileVerifier({
+      secret: "turnstile-secret",
+      fetchImpl: vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 })),
+    });
+    await expect(verifier.verify({
+      token: "turnstile-token",
+      remoteIp: null,
+      expectedAction: "reveal_casting",
+      expectedHostname: "iching.example.com",
+      now,
+    })).resolves.toBe(false);
+  });
+
+  it.each([
     new Response(JSON.stringify({ success: false, "error-codes": ["timeout-or-duplicate"] }), { status: 200 }),
     new Response("provider error", { status: 503 }),
   ])("fails closed for unsuccessful provider responses", async (response) => {
@@ -67,13 +101,25 @@ describe("TurnstileVerifier", () => {
       secret: "turnstile-secret",
       fetchImpl: vi.fn().mockResolvedValue(response),
     });
-    await expect(verifier.verify({ token: "turnstile-token", remoteIp: null })).resolves.toBe(false);
+    await expect(verifier.verify({
+      token: "turnstile-token",
+      remoteIp: null,
+      expectedAction: "reveal_casting",
+      expectedHostname: "iching.example.com",
+      now,
+    })).resolves.toBe(false);
   });
 
   it("rejects a missing token without making a provider request", async () => {
     const fetchImpl = vi.fn();
     const verifier = new TurnstileVerifier({ secret: "turnstile-secret", fetchImpl });
-    await expect(verifier.verify({ token: "", remoteIp: null })).resolves.toBe(false);
+    await expect(verifier.verify({
+      token: "",
+      remoteIp: null,
+      expectedAction: "reveal_casting",
+      expectedHostname: "iching.example.com",
+      now,
+    })).resolves.toBe(false);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
