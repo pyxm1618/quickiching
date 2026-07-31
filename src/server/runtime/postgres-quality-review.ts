@@ -15,31 +15,37 @@ export class PostgresQualityReviewService {
     userId: string;
     reason: string;
   }): Promise<{ reviewId: string; status: string; responseDueAt: Date }> {
+    const ownedDelivered = await this.database`
+      select 1
+      from readings r
+      join casting_sessions c on c.id = r.casting_session_id
+      where r.id = ${input.readingId}
+        and c.user_id = ${input.userId}
+        and r.status = 'completed'
+      limit 1
+    `;
+    if (!ownedDelivered[0]) {
+      throw new DomainError(
+        "QUALITY_REVIEW_NOT_DELIVERED",
+        "This report is not available for review.",
+        false,
+      );
+    }
+
     const rows = await this.database`
       insert into quality_reviews (
         id, reading_id, user_id, status, reason, response_due_at
+      ) values (
+        ${id("qr")}, ${input.readingId}, ${input.userId}, 'submitted',
+        ${input.reason}, clock_timestamp()
       )
-      select ${id("qr")}, r.id, ${input.userId}, 'submitted', ${input.reason}, clock_timestamp()
-      from readings r
-      join casting_sessions c on c.id = r.casting_session_id
-      where r.id = ${input.readingId} and c.user_id = ${input.userId}
       on conflict (reading_id) do nothing
       returning id, status, response_due_at
     `;
     if (!rows[0]) {
-      const existing = await this.database`
-        select 1 from quality_reviews where reading_id = ${input.readingId} limit 1
-      `;
-      if (existing[0]) {
-        throw new DomainError(
-          "QUALITY_REVIEW_ALREADY_SUBMITTED",
-          "A review has already been submitted.",
-          false,
-        );
-      }
       throw new DomainError(
-        "QUALITY_REVIEW_NOT_DELIVERED",
-        "This report is not available for review.",
+        "QUALITY_REVIEW_ALREADY_SUBMITTED",
+        "A review has already been submitted.",
         false,
       );
     }
@@ -57,10 +63,11 @@ export class PostgresQualityReviewService {
     userId: string;
     additionalReason: string;
   }): Promise<{ reviewId: string; status: string; supplementedAt: Date }> {
+    const supplementText = `Supplement: ${input.additionalReason}`;
     const rows = await this.database`
       update quality_reviews set
         status = 'supplementing',
-        reason = concat_ws(E'\n\n', nullif(reason, ''), ${`Supplement: ${input.additionalReason}`})
+        reason = concat_ws(E'\n\n', nullif(reason, ''), ${supplementText}::text)
       where id = ${input.reviewId} and user_id = ${input.userId}
         and status = 'submitted' and supplemented_at is null
       returning id, status, supplemented_at
