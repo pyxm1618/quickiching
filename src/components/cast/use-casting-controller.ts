@@ -145,12 +145,13 @@ export function useCastingController(method: CastingMethod) {
     }
   }, []);
 
-  async function submitQuestion() {
+  async function submitQuestion(turnstileToken?: string) {
     await run(async () => {
       const created = await createCastingSessionAction({
         method,
         scene: state.scene,
         interpretationGoal: state.goal,
+        turnstileToken,
       });
       if (!created.ok) throw new Error(errorMessage(created));
       const castingId = created.value.castingId;
@@ -190,10 +191,14 @@ export function useCastingController(method: CastingMethod) {
     });
   }
 
-  async function reveal(email: string) {
+  async function reveal(email: string, turnstileToken?: string) {
     if (!state.castingId) return;
     await run(async () => {
-      const result = await revealCastingAction({ castingId: state.castingId!, email });
+      const result = await revealCastingAction({
+        castingId: state.castingId!,
+        email,
+        turnstileToken,
+      });
       if (!result.ok) throw new Error(errorMessage(result));
       if ("authPending" in result.value && result.value.authPending) {
         setState((current) => ({
@@ -212,10 +217,10 @@ export function useCastingController(method: CastingMethod) {
     });
   }
 
-  async function generatePreview() {
+  async function generatePreview(turnstileToken?: string) {
     if (!state.castingId) return;
     await run(async () => {
-      const result = await startPreviewAction({ castingId: state.castingId! });
+      const result = await startPreviewAction({ castingId: state.castingId!, turnstileToken });
       if (!result.ok) throw new Error(errorMessage(result));
       await poll(state.castingId!, (snapshot) => {
         const status = snapshot.preview?.status;
@@ -224,10 +229,10 @@ export function useCastingController(method: CastingMethod) {
     });
   }
 
-  async function generateReading() {
+  async function generateReading(turnstileToken?: string) {
     if (!state.castingId) return;
     await run(async () => {
-      const result = await startDeepReadingAction({ castingId: state.castingId! });
+      const result = await startDeepReadingAction({ castingId: state.castingId!, turnstileToken });
       if (!result.ok) throw new Error(errorMessage(result));
       await poll(state.castingId!, (snapshot) => {
         const status = snapshot.reading?.status;
