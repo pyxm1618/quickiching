@@ -2,7 +2,12 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Sql } from "postgres";
 
-const MIGRATION_IDS = ["0000_v2_1", "0001_auth_payments", "0002_jobs_release"] as const;
+const MIGRATION_IDS = [
+  "0000_v2_1",
+  "0001_auth_payments",
+  "0002_jobs_release",
+  "0003_reveal_handoff",
+] as const;
 const MIGRATION_LOCK = 8_924_211_607;
 
 export async function migratePostgres(sql: Sql): Promise<void> {
