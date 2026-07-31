@@ -92,7 +92,7 @@ jobs:
         run: bun run build
       - name: Start stable browser-test application
         run: |
-          NODE_ENV=development bun run start --hostname 127.0.0.1 > /tmp/iching-built-server.log 2>&1 &
+          NODE_ENV=development ./node_modules/.bin/next start --hostname 127.0.0.1 > /tmp/iching-built-server.log 2>&1 &
           echo $! > /tmp/iching-built-server.pid
       - name: Wait for stable application
         run: |
@@ -110,11 +110,21 @@ jobs:
         if: always()
         run: |
           kill "$(cat /tmp/iching-built-server.pid)" 2>/dev/null || true
-          sleep 2
+          pkill -f 'next-server' 2>/dev/null || true
+          for attempt in $(seq 1 20); do
+            if ! curl --silent http://127.0.0.1:3000/ > /dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          if curl --silent http://127.0.0.1:3000/ > /dev/null 2>&1; then
+            echo 'Stable server did not release port 3000.'
+            exit 1
+          fi
           rm -rf .next
       - name: Start development browser-test application
         run: |
-          bun run dev --hostname 127.0.0.1 > /tmp/iching-dev-server.log 2>&1 &
+          ./node_modules/.bin/next dev --hostname 127.0.0.1 > /tmp/iching-dev-server.log 2>&1 &
           echo $! > /tmp/iching-dev-server.pid
       - name: Precompile and stabilize development routes
         run: |
