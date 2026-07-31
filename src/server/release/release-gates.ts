@@ -21,13 +21,17 @@ export function blockedExternalReleaseGateIds(): string[] {
     .map((gate) => gate.id);
 }
 
+function isVercelPreview(env: ReleaseEnvironment): boolean {
+  return env.VERCEL === "1" && env.VERCEL_ENV === "preview";
+}
+
 export function assertPublicReleaseApproved(env: ReleaseEnvironment = process.env): void {
   if (env.NODE_ENV !== "production") return;
 
-  // Vercel Preview remains available for real-provider smoke tests. Only the
-  // production environment, or a non-Vercel production runtime, is a public
-  // release and therefore subject to the complete external gate set.
-  if (env.VERCEL_ENV && env.VERCEL_ENV !== "production") return;
+  // Vercel Preview remains available for real-provider smoke tests. A
+  // non-Vercel production process cannot bypass the external gates merely by
+  // setting VERCEL_ENV=preview.
+  if (isVercelPreview(env)) return;
 
   const blocked = blockedExternalReleaseGateIds();
   if (blocked.length > 0) {
