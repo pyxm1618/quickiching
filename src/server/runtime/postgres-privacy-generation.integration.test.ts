@@ -199,7 +199,7 @@ describePostgres("casting deletion generation fencing", () => {
     `)[0]).toMatchObject({ status: "failed", error_code: "CASTING_DELETED" });
   });
 
-  it("restores the casting without reviving cancelled jobs and permits a fresh generation epoch", async () => {
+  it("restores the casting with a fresh fenced epoch and never accepts the pre-deletion epoch", async () => {
     const { castingId, integrity } = await revealedCasting({
       userId: "usr_restore_generation",
       email: "restore-generation@example.com",
@@ -221,12 +221,20 @@ describePostgres("casting deletion generation fencing", () => {
       userId: "usr_restore_generation",
       now: await databaseNow(sql),
     });
-    expect(second.jobId).not.toBe(first.jobId);
+    expect(second.jobId).toBe(first.jobId);
+    expect(second.generationEpoch).toBeGreaterThan(first.generationEpoch);
     expect((await sql`
-      select status from generation_jobs where id = ${first.jobId}
-    `)[0].status).toBe("cancelled");
-    expect((await sql`
-      select status from generation_jobs where id = ${second.jobId}
-    `)[0].status).toBe("queued");
+      select status, generation_epoch from generation_jobs where id = ${second.jobId}
+    `)[0]).toMatchObject({ status: "queued", generation_epoch: second.generationEpoch });
+    await expect(generation.finalizePreview({
+      jobId: first.jobId,
+      generationEpoch: first.generationEpoch,
+      output: { relevanceStatement: "stale pre-deletion output" },
+      providerRequestId: "provider-stale-restore",
+      inputTokens: 1,
+      outputTokens: 1,
+      latencyMs: 1,
+      now: new Date(0),
+    })).resolves.toEqual({ accepted: false, code: "LATE_RESULT_REJECTED" });
   });
 });
