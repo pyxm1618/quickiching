@@ -3,6 +3,7 @@ import { assertPostgresSchemaReady } from "@/server/db/migrate";
 import { runtimeConfig } from "@/server/config";
 import { IntegrityCheckedPostgresApplication } from "./integrity-checked-postgres-application";
 import { PostgresPrivacyLifecycleService } from "./postgres-privacy-lifecycle";
+import { PostgresQualityReviewService } from "./postgres-quality-review";
 import { PostgresRevealHandoffService } from "./postgres-reveal-handoff";
 import { PostgresResultIntegrityService } from "./postgres-result-integrity";
 import { IntegrityCheckedPostgresGenerationRepository } from "@/server/repositories/postgres/integrity-checked-generation-repository";
@@ -15,6 +16,7 @@ export type ProductionRuntime = {
   resultIntegrity: PostgresResultIntegrityService;
   generation: IntegrityCheckedPostgresGenerationRepository;
   privacy: PostgresPrivacyLifecycleService;
+  qualityReview: PostgresQualityReviewService;
   rateLimiter: PostgresRateLimiter;
   turnstile: TurnstileVerifier;
 };
@@ -59,6 +61,7 @@ async function createProductionRuntime(): Promise<ProductionRuntime> {
     resultIntegrity,
     generation: new IntegrityCheckedPostgresGenerationRepository(sql, resultIntegrity),
     privacy: new PostgresPrivacyLifecycleService(sql),
+    qualityReview: new PostgresQualityReviewService(sql),
     rateLimiter: new PostgresRateLimiter(sql),
     turnstile: new TurnstileVerifier({ secret: config.credentials.turnstileSecretKey }),
   };
