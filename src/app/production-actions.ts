@@ -1,5 +1,3 @@
-"use server";
-
 import { randomUUID } from "node:crypto";
 import { headers } from "next/headers";
 import type { ActionResult } from "@/lib/action-result";
