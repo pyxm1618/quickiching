@@ -1,5 +1,5 @@
 import postgres, { type Sql } from "postgres";
-import { migratePostgres } from "@/server/db/migrate";
+import { assertPostgresSchemaReady } from "@/server/db/migrate";
 import { runtimeConfig } from "@/server/config";
 import { IntegrityCheckedPostgresApplication } from "./integrity-checked-postgres-application";
 import { PostgresRevealHandoffService } from "./postgres-reveal-handoff";
@@ -39,7 +39,7 @@ async function createProductionRuntime(): Promise<ProductionRuntime> {
     connect_timeout: 10,
     prepare: true,
   });
-  await migratePostgres(sql);
+  await assertPostgresSchemaReady(sql);
   const clock = { now: () => new Date() };
   const resultIntegrity = new PostgresResultIntegrityService(sql);
   const applicationDependencies = {
