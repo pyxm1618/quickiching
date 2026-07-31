@@ -14,6 +14,7 @@ const orderId = identifier("ord");
 const email = z.string().trim().toLowerCase().email();
 const questionContext = z.string().trim().min(QUESTION_MIN_CHARS).max(QUESTION_MAX_CHARS);
 const reviewReason = z.string().trim().min(1).max(2000);
+const turnstileToken = z.string().trim().min(1).max(4096).optional();
 const ianaTimeZone = z.string().trim().refine((value) => {
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: value }).format();
@@ -28,8 +29,10 @@ export const actionSchemas = {
     method: z.enum(["three_coin", "yarrow_stalk", "mei_hua_current_time"]),
     scene: z.enum(SCENES),
     interpretationGoal: z.enum(INTERPRETATION_GOALS),
+    turnstileToken,
   }),
   castingId: z.object({ castingId }),
+  protectedCastingId: z.object({ castingId, turnstileToken }),
   signIn: z.object({ email }),
   submitQuestion: z.object({ castingId, context: questionContext }),
   clarifyQuestion: z.object({ castingId, context: questionContext }),
@@ -40,8 +43,8 @@ export const actionSchemas = {
     changeIndex: z.number().int().min(0).max(2),
   }),
   createMeiHuaResult: z.object({ castingId, ianaTimeZone }),
-  revealCasting: z.object({ castingId, email }),
-  createCheckout: z.object({ productId: z.enum(["one", "three", "five"]) }),
+  revealCasting: z.object({ castingId, email, turnstileToken }),
+  createCheckout: z.object({ productId: z.enum(["one", "three", "five"]), turnstileToken }),
   simulatePayment: z.object({ orderId }),
   submitQualityReview: z.object({ readingId, reason: reviewReason }),
 };
