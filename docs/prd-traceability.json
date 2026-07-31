@@ -1,0 +1,33 @@
+{
+  "version": "V2.1",
+  "requirements": [
+    { "id": "CAST-001", "evidence": ["src/server/runtime/postgres-application.integration.test.ts", "src/server/services/casting-service.test.ts"] },
+    { "id": "CAST-002", "evidence": ["src/server/runtime/postgres-application.integration.test.ts", "src/server/repositories/memory/casting-repository.test.ts"] },
+    { "id": "CAST-003", "evidence": ["src/server/services/casting-service.test.ts", "src/server/services/casting-snapshot-service.test.ts"] },
+    { "id": "CAST-004", "evidence": ["src/server/repositories/postgres/atomic-repository.integration.test.ts", "src/server/runtime/postgres-reveal-handoff.integration.test.ts"] },
+    { "id": "AUTH-001", "evidence": ["src/app/actions.test.ts", "src/lib/auth/production-auth.test.ts"] },
+    { "id": "AUTH-002", "evidence": ["src/server/runtime/postgres-reveal-handoff.integration.test.ts", "src/server/auth/login-intent.test.ts"] },
+    { "id": "AUTH-003", "evidence": ["src/server/runtime/postgres-reveal-handoff.integration.test.ts", "src/server/repositories/postgres/atomic-repository.integration.test.ts"] },
+    { "id": "RESULT-001", "evidence": ["src/domain/casting/algorithms.test.ts", "src/domain/classics/index.test.ts"] },
+    { "id": "RESULT-002", "evidence": ["src/server/ai/output-validator.test.ts", "src/server/runtime/postgres-result-integrity.integration.test.ts"] },
+    { "id": "READ-001-006", "evidence": ["src/server/ai/output-validator.test.ts", "src/server/ai/ai-sdk-adapter.test.ts", "src/server/repositories/postgres/generation-repository.integration.test.ts"] },
+    { "id": "SAFE-001-003", "evidence": ["src/domain/risk/engine.test.ts", "src/server/services/risk-service.test.ts", "src/server/ai/output-validator.test.ts"] },
+    { "id": "PAY-001-004", "evidence": ["src/server/repositories/postgres/payment-lifecycle.integration.test.ts", "src/server/repositories/postgres/auth-payments.integration.test.ts", "src/server/repositories/postgres/payment-privacy.integration.test.ts"] },
+    { "id": "JOB-001", "evidence": ["src/server/repositories/postgres/generation-repository.integration.test.ts", "src/server/repositories/postgres/generation-lifecycle-hardening.integration.test.ts"] },
+    { "id": "QUALITY-001-002", "evidence": ["src/server/runtime/postgres-quality-review.integration.test.ts", "src/server/services/quality-review-service.test.ts"] },
+    { "id": "HIST-001", "evidence": ["src/server/runtime/postgres-history.integration.test.ts", "src/server/services/history-service.test.ts"] },
+    { "id": "PRIV-001-002", "evidence": ["src/server/runtime/postgres-account-privacy.integration.test.ts", "src/server/runtime/postgres-privacy-generation.integration.test.ts", "src/server/observability/structured-logger.test.ts"] }
+  ],
+  "releaseGates": [
+    { "id": "G-01", "status": "blocked_external", "control": ["src/domain/casting/algorithms.test.ts", "src/domain/classics/index.test.ts"], "requiredEvidence": "Two-person mapping approval record and approved checksum" },
+    { "id": "G-02", "status": "blocked_external", "control": ["src/domain/classics/index.test.ts"], "requiredEvidence": "Source, license, attribution and takedown approval" },
+    { "id": "G-03", "status": "blocked_external", "control": ["src/server/release/method-release.ts"], "requiredEvidence": "Yarrow domain approval for yarrow-v1" },
+    { "id": "G-04", "status": "blocked_external", "control": ["src/server/release/method-release.ts"], "requiredEvidence": "Mei Hua calendar, leap-month, zi-hour, timezone and body/use approval for mei-hua-v1" },
+    { "id": "G-05", "status": "blocked_external", "control": ["src/server/ai/output-validator.test.ts"], "requiredEvidence": "Approved interpretation goldens for still, single, multiple and all-moving variants" },
+    { "id": "G-06", "status": "blocked_external", "control": ["src/server/ai/ai-sdk-adapter.test.ts", "src/server/ai/output-validator.test.ts"], "requiredEvidence": "English quality, safety and cost evaluation approval" },
+    { "id": "G-07", "status": "blocked_external", "control": ["src/server/repositories/postgres/payment-lifecycle.integration.test.ts"], "requiredEvidence": "Creem merchant and production product approval" },
+    { "id": "G-08", "status": "blocked_external", "control": ["src/server/runtime/postgres-account-privacy.integration.test.ts"], "requiredEvidence": "US legal approval for terms, privacy, refund, expiry and disclaimer copy" },
+    { "id": "G-09", "status": "blocked_external", "control": ["src/domain/risk/engine.test.ts"], "requiredEvidence": "Professional approval of emergency copy and regional resources" },
+    { "id": "G-10", "status": "blocked_external", "control": ["docs/release-gates.md"], "requiredEvidence": "Support mailbox, reviewers, SLA, alerting and incident process evidence" }
+  ]
+}
