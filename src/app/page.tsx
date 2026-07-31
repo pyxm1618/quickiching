@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
+import { ProductionMethodReleasePolicy } from "@/server/release/method-release";
 
 /**
  * 首页（明室 · 编辑式，phototype/UI设计方案.md §6.1）：
@@ -13,6 +14,7 @@ const TAI_LINES = [7, 7, 7, 8, 8, 8];
 
 const METHODS = [
   {
+    method: "three_coin" as const,
     idx: "01",
     name: "Three-Coin Method",
     zh: "三枚铜钱 · 入门正途",
@@ -21,6 +23,7 @@ const METHODS = [
     guide: "/three-coin-method",
   },
   {
+    method: "yarrow_stalk" as const,
     idx: "02",
     name: "Yarrow Stalk",
     zh: "蓍草 · 慢仪式",
@@ -29,6 +32,7 @@ const METHODS = [
     guide: "/yarrow-stalk-method",
   },
   {
+    method: "mei_hua_current_time" as const,
     idx: "03",
     name: "Mei Hua Yi Shu",
     zh: "梅花易数 · 时间起卦",
@@ -45,6 +49,8 @@ const STEPS = [
 ] as const;
 
 export default function HomePage() {
+  const releasePolicy = new ProductionMethodReleasePolicy(process.env);
+
   return (
     <div>
       {/* Hero：左文右卦 */}
@@ -101,29 +107,38 @@ export default function HomePage() {
       {/* 方法书页栏 */}
       <section className="mx-auto max-w-6xl px-4">
         <div className="grid divide-y divide-[var(--line)] border-b border-[var(--line)] md:grid-cols-3 md:divide-x md:divide-y-0">
-          {METHODS.map((m) => (
-            <div key={m.idx} className="group px-2 py-10 md:px-8">
-              <p className="font-mono text-xs tracking-[0.1em] text-[var(--bronze)]">{m.idx}</p>
-              <h3 className="mt-3 font-display text-[22px] font-medium tracking-[-0.01em]">
-                {m.name}
-              </h3>
-              <p className="font-cjk mt-1 text-sm text-[var(--ink-3)]">{m.zh}</p>
-              <p className="mt-3 min-h-[3.5rem] text-sm leading-relaxed text-[var(--ink-2)]">
-                {m.blurb}
-              </p>
-              <div className="mt-5 flex items-center gap-5">
-                <Link href={m.cast} className="text-[13.5px] font-semibold text-[var(--jade)] hover:underline">
-                  Begin the ritual →
-                </Link>
-                <Link
-                  href={m.guide}
-                  className="text-[13.5px] text-[var(--ink-3)] transition-colors hover:text-[var(--ink)]"
-                >
-                  How it works
-                </Link>
+          {METHODS.map((m) => {
+            const released = releasePolicy.isReleased(m.method);
+            return (
+              <div key={m.idx} className="group px-2 py-10 md:px-8">
+                <p className="font-mono text-xs tracking-[0.1em] text-[var(--bronze)]">{m.idx}</p>
+                <h3 className="mt-3 font-display text-[22px] font-medium tracking-[-0.01em]">
+                  {m.name}
+                </h3>
+                <p className="font-cjk mt-1 text-sm text-[var(--ink-3)]">{m.zh}</p>
+                <p className="mt-3 min-h-[3.5rem] text-sm leading-relaxed text-[var(--ink-2)]">
+                  {m.blurb}
+                </p>
+                <div className="mt-5 flex items-center gap-5">
+                  {released ? (
+                    <Link href={m.cast} className="text-[13.5px] font-semibold text-[var(--jade)] hover:underline">
+                      Begin the ritual →
+                    </Link>
+                  ) : (
+                    <span className="text-[13.5px] font-semibold text-[var(--ink-3)]">
+                      Pending domain approval
+                    </span>
+                  )}
+                  <Link
+                    href={m.guide}
+                    className="text-[13.5px] text-[var(--ink-3)] transition-colors hover:text-[var(--ink)]"
+                  >
+                    How it works
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
