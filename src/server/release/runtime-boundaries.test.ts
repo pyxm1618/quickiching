@@ -38,6 +38,17 @@ describe("production release boundaries", () => {
     expect(readiness).not.toContain("0002_jobs_release");
   });
 
+  it("keeps implementation objects outside the server action module boundary", () => {
+    const actions = source("src/app/actions.ts");
+    const productionActions = source("src/app/production-actions.ts");
+    const workflow = source(".github/workflows/ci.yml");
+
+    expect(actions.startsWith('"use server";')).toBe(true);
+    expect(productionActions.startsWith('"use server";')).toBe(false);
+    expect(productionActions).toContain("export const productionActions = {");
+    expect(workflow).toContain("Verify built server action boundary");
+  });
+
   it("derives new anonymous identifiers from the active session-signing write version", () => {
     const session = source("src/lib/auth/session.ts");
 
