@@ -1,6 +1,7 @@
 import {
   createCipheriv,
   createDecipheriv,
+  createHash,
   createHmac,
   randomBytes,
   scryptSync,
@@ -29,6 +30,8 @@ const PURPOSE_KEYS: Record<CryptoPurpose, RuntimeKeyPurpose> = {
   anon: "sessionSigning",
 };
 
+const derivedKeyCache = new Map<string, Buffer>();
+
 function keySetForPurpose(purpose: CryptoPurpose): VersionedKeySet {
   return runtimeConfig().keys[PURPOSE_KEYS[purpose]];
 }
@@ -37,18 +40,22 @@ function deriveKey(purpose: CryptoPurpose, version?: string, length = 32): { key
   const keySet = keySetForPurpose(purpose);
   const resolved = version ? resolveVersionedKey(keySet, version) : resolveWriteKey(keySet);
   const rootMaterial = decodeVersionedKeyValue(resolved.value);
+  const materialFingerprint = createHash("sha256").update(rootMaterial).digest("hex");
+  const cacheKey = `${purpose}:${resolved.version}:${length}:${materialFingerprint}`;
+  const cached = derivedKeyCache.get(cacheKey);
+  if (cached) return { key: cached, version: resolved.version };
+
   const derivationInput = Buffer.concat([
     Buffer.from(`${purpose}:${resolved.version}:`, "utf8"),
     rootMaterial,
   ]);
-  return {
-    key: scryptSync(
-      derivationInput,
-      `iching-coin-${purpose}-v2`,
-      length,
-    ),
-    version: resolved.version,
-  };
+  const key = scryptSync(
+    derivationInput,
+    `iching-coin-${purpose}-v2`,
+    length,
+  );
+  derivedKeyCache.set(cacheKey, key);
+  return { key, version: resolved.version };
 }
 
 function b64(buf: Buffer): string {
