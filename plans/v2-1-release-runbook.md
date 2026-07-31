@@ -2,10 +2,11 @@
 
 ## 1. Merge and migration order
 
-1. Merge the stacked PRs in order: #1, #2, #3, #4, #8, #10.
-2. Deploy a migration-capable release using the production `DATABASE_URL`.
-3. Confirm `_app_migrations` contains `0000_v2_1`, `0001_auth_payments`, and `0002_jobs_release`.
-4. Do not enable production adapter modes until the migration is complete.
+1. Keep PR #12 Draft until every automated gate required by the PR is green. Do not merge or publish from the remediation branch during audit.
+2. After an authorized merge decision, deploy a migration-capable release using the production `DATABASE_URL`.
+3. Confirm `_app_migrations` contains every repository migration through `0009_account_deletion_privacy`.
+4. Confirm `/api/ready` reports the `LATEST_MIGRATION_ID` from `src/server/db/migrate.ts`; do not rely on an older hard-coded migration name.
+5. Do not enable production adapter modes until the migration is complete.
 
 ## 2. Required production configuration
 
@@ -19,7 +20,7 @@ Validate all variables documented in `.env.example`. Production must use:
 - HTTPS values for `APP_BASE_URL`, `BETTER_AUTH_URL`, and `NEXT_PUBLIC_APP_URL`
 - a 32+ character `BETTER_AUTH_SECRET`
 - purpose-separated versioned key sets
-- `CRON_SECRET` configured for Vercel Cron
+- `CRON_SECRET` configured for the production scheduler
 
 Never expose server-only keys through `NEXT_PUBLIC_*` variables.
 
@@ -57,25 +58,31 @@ Never expose server-only keys through `NEXT_PUBLIC_*` variables.
 - Configure the site key and secret for the production host.
 - Confirm failed provider responses fail closed.
 
-### Vercel Workflow and Cron
+### Vercel Workflow and scheduler
 
+- Use the default `vercel.json` only for Preview deployments and controlled smoke testing. It intentionally contains no Cron Jobs.
 - Confirm Workflow is enabled for the project.
-- Confirm the cron for `/api/internal/generation/reconcile` runs every minute with the configured `CRON_SECRET`.
+- Provision production only through the reviewed CLI path: `vercel deploy --prod --local-config vercel.production.json`.
+- Confirm the selected Vercel plan supports the one-minute schedule, or provision an approved external scheduler with the same cadence and bearer authorization contract.
+- Confirm `/api/internal/generation/reconcile` runs every minute with the configured `CRON_SECRET`.
 - Confirm Outbox rows become dispatched and generation jobs progress through queued, running, and completed/failed states.
+- Treat any ordinary Git integration production deployment that reads only `vercel.json` as incomplete because it omits scheduler provisioning.
 
 ## 5. Pre-release verification
 
 Required automated checks:
 
 - `bun install --frozen-lockfile`
+- `bun run db:migrate` against an empty PostgreSQL 16 database
 - `bun run lint`
 - `bun run typecheck`
-- `bun run test` with PostgreSQL 16
+- `bun run test --reporter=dot` with PostgreSQL 16
 - `bun run build` without production credentials
+- the independent pinned Chromium Playwright job
 
 Required manual checks in a production-like environment:
 
-1. Complete and reload each casting method.
+1. Complete and reload each released casting method.
 2. Verify anonymous users cannot read line values or results before reveal.
 3. Reveal by Magic Link in a different browser and verify only the authenticated browser receives access.
 4. Attempt the same normalized question twice inside 72 hours and verify the original casting wins.
@@ -84,16 +91,17 @@ Required manual checks in a production-like environment:
 7. Submit a quality review, supplement once, and verify terminal decision/compensation behavior.
 8. Delete and restore a casting inside the recovery window; verify purge after the deadline.
 9. Confirm logs contain IDs, epochs, statuses, latency, and provider request IDs but no question text, email, token, prompt, cookie, or secret.
+10. Exercise the production scheduler endpoint with its real bearer secret and verify outbox dispatch, timeout reconciliation, rate-limit cleanup, and due account-content purge.
 
 ## 6. Health and monitoring
 
 - `/api/health` must return HTTP 200 without database access.
-- `/api/ready` must return HTTP 200 only when PostgreSQL is reachable and migration `0002_jobs_release` is applied.
-- Alert on readiness failures, webhook processing failures, generation timeout rate, late-result rejection rate, and entitlement identity violations.
+- `/api/ready` must return HTTP 200 only when PostgreSQL is reachable and the repository's `LATEST_MIGRATION_ID` is applied.
+- Alert on readiness failures, webhook processing failures, generation timeout rate, late-result rejection rate, entitlement identity violations, and missed reconciliation invocations.
 
 ## 7. Rollback
 
-1. Stop new generation dispatch by disabling the reconciliation cron.
+1. Stop new generation dispatch by disabling the production reconciliation scheduler.
 2. Keep PostgreSQL available; do not roll back destructive migrations.
 3. Roll application code back to the previous verified deployment.
 4. Leave new schema objects in place; all migrations are forward-compatible additions.
