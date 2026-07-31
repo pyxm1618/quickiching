@@ -29,6 +29,7 @@ const validReading = {
   turningConditions: "Maintain the current interpretation while responsibilities become clearer and communication grows more consistent. Re-evaluate it if the decision maker changes, the role scope materially shifts, or promised milestones repeatedly pass without evidence. These are observable conditions rather than dates.",
   conditionalActionDirection: "Under current conditions, observation, clarification, and reversible preparation fit better than an irreversible commitment. A more active orientation becomes reasonable only after authority, expectations, and timing are confirmed. The reading does not make the career decision for the user.",
   uncertaintyAndBoundaries: "This interpretation uses the supplied career context, the primary hexagram, and the single moving line. It cannot account for undisclosed organizational constraints or future decisions by other people. It offers a reflective framework rather than professional, legal, medical, or financial advice.",
+  interpretiveBasis: "The controlled primary judgment and line 1 reference supply the source boundary for this interpretation. The relating judgment supports only the conditional direction described above. These approved references are connected to the user's delayed role-change context without quoting, altering, or inventing classic text.",
   interpretiveBasisReferences: buildClassicReferences(input.result),
 };
 
