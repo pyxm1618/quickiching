@@ -33,7 +33,8 @@ describe("production release boundaries", () => {
   it("requires the latest schema migration before reporting ready", () => {
     const readiness = source("src/app/api/ready/route.ts");
 
-    expect(readiness).toContain("0009_account_deletion_privacy");
+    expect(readiness).toContain('import { LATEST_MIGRATION_ID } from "@/server/db/migrate"');
+    expect(readiness).toContain("where id = ${LATEST_MIGRATION_ID}");
     expect(readiness).not.toContain("0002_jobs_release");
   });
 
