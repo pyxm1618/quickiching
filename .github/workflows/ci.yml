@@ -52,3 +52,46 @@ jobs:
       - run: bun run typecheck
       - run: bun run test --reporter=dot
       - run: bun run build
+
+  browser-e2e:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      AI_ADAPTER_MODE: local
+      AUTH_ADAPTER_MODE: dev
+      NEXT_PUBLIC_AUTH_ADAPTER_MODE: dev
+      PAYMENT_ADAPTER_MODE: simulated
+      DATABASE_ADAPTER_MODE: memory
+      WORKFLOW_ADAPTER_MODE: local
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Install pinned Playwright test runner
+        run: npm install --no-save --package-lock=false --legacy-peer-deps @playwright/test@1.62.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start application
+        run: |
+          bun run dev --hostname 127.0.0.1 > /tmp/iching-e2e-server.log 2>&1 &
+          echo $! > /tmp/iching-e2e-server.pid
+      - name: Wait for application
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/iching-e2e-server.log
+          exit 1
+      - name: Run browser E2E
+        run: npx playwright test
+      - name: Print application log on failure
+        if: failure()
+        run: cat /tmp/iching-e2e-server.log
