@@ -2,12 +2,14 @@ import postgres, { type Sql } from "postgres";
 import { migratePostgres } from "@/server/db/migrate";
 import { runtimeConfig } from "@/server/config";
 import { PostgresApplicationRuntime } from "./postgres-application";
+import { PostgresRevealHandoffService } from "./postgres-reveal-handoff";
 import { PostgresGenerationRepository } from "@/server/repositories/postgres/generation-repository";
 import { PostgresRateLimiter, TurnstileVerifier } from "@/server/security/abuse-controls";
 
 export type ProductionRuntime = {
   sql: Sql;
   application: PostgresApplicationRuntime;
+  revealHandoff: PostgresRevealHandoffService;
   generation: PostgresGenerationRepository;
   rateLimiter: PostgresRateLimiter;
   turnstile: TurnstileVerifier;
@@ -36,16 +38,18 @@ async function createProductionRuntime(): Promise<ProductionRuntime> {
     prepare: true,
   });
   await migratePostgres(sql);
+  const clock = { now: () => new Date() };
   return {
     sql,
     application: new PostgresApplicationRuntime({
       sql,
-      clock: { now: () => new Date() },
+      clock,
       random: {
         randomBit: () => secureRandomInt(2) === 1,
         randomInt: secureRandomInt,
       },
     }),
+    revealHandoff: new PostgresRevealHandoffService({ sql, clock }),
     generation: new PostgresGenerationRepository(sql),
     rateLimiter: new PostgresRateLimiter(sql),
     turnstile: new TurnstileVerifier({ secret: config.credentials.turnstileSecretKey }),
