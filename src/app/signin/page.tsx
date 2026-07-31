@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInAction } from "@/app/actions";
 import { authClient } from "@/lib/auth/auth-client";
@@ -17,9 +17,13 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => setHydrated(true), []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!hydrated) return;
     setPending(true);
     setError(null);
     setNotice(null);
@@ -50,6 +54,7 @@ export default function SignInPage() {
   }
 
   async function signInWithGoogle() {
+    if (!hydrated) return;
     setPending(true);
     setError(null);
     const result = await authClient.signIn.social({
@@ -83,7 +88,13 @@ export default function SignInPage() {
           </p>
           {productionAuth && (
             <>
-              <Button type="button" variant="outline" className="w-full" disabled={pending} onClick={signInWithGoogle}>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={pending || !hydrated}
+                onClick={signInWithGoogle}
+              >
                 Continue with Google
               </Button>
               <div className="my-4 flex items-center gap-3 text-xs text-[var(--ink-3)]">
@@ -107,7 +118,7 @@ export default function SignInPage() {
             </div>
             {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
             {notice && <p className="text-sm text-[var(--jade)]">{notice}</p>}
-            <Button type="submit" disabled={pending} className="w-full">
+            <Button type="submit" disabled={pending || !hydrated} className="w-full">
               {pending ? "Working…" : productionAuth ? "Email me a sign-in link" : "Continue"}
             </Button>
           </form>
