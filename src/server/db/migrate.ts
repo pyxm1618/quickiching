@@ -7,6 +7,7 @@ const MIGRATION_IDS = [
   "0001_auth_payments",
   "0002_jobs_release",
   "0003_reveal_handoff",
+  "0004_result_integrity",
 ] as const;
 const MIGRATION_LOCK = 8_924_211_607;
 
