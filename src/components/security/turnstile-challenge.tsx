@@ -44,7 +44,11 @@ function loadTurnstile(): Promise<TurnstileApi> {
   });
 }
 
-export function TurnstileChallenge(props: {
+export function TurnstileChallenge({
+  action,
+  resetKey,
+  onToken,
+}: {
   action: string;
   resetKey?: number;
   onToken(token: string | null): void;
@@ -55,7 +59,7 @@ export function TurnstileChallenge(props: {
 
   useEffect(() => {
     if (!siteKey || !containerRef.current) {
-      props.onToken(null);
+      onToken(null);
       return;
     }
     let cancelled = false;
@@ -63,26 +67,26 @@ export function TurnstileChallenge(props: {
       if (cancelled || !containerRef.current) return;
       widgetIdRef.current = turnstile.render(containerRef.current, {
         sitekey: siteKey,
-        action: props.action,
-        callback: (token) => props.onToken(token),
-        "expired-callback": () => props.onToken(null),
-        "error-callback": () => props.onToken(null),
+        action,
+        callback: (token) => onToken(token),
+        "expired-callback": () => onToken(null),
+        "error-callback": () => onToken(null),
         theme: "auto",
         appearance: "interaction-only",
       });
-    }).catch(() => props.onToken(null));
+    }).catch(() => onToken(null));
     return () => {
       cancelled = true;
       if (widgetIdRef.current && window.turnstile) window.turnstile.remove(widgetIdRef.current);
       widgetIdRef.current = null;
     };
-  }, [props.action, props.onToken, siteKey]);
+  }, [action, onToken, siteKey]);
 
   useEffect(() => {
-    if (props.resetKey === undefined || !widgetIdRef.current || !window.turnstile) return;
-    props.onToken(null);
+    if (resetKey === undefined || !widgetIdRef.current || !window.turnstile) return;
+    onToken(null);
     window.turnstile.reset(widgetIdRef.current);
-  }, [props.onToken, props.resetKey]);
+  }, [onToken, resetKey]);
 
   if (!siteKey) return null;
   return <div ref={containerRef} className="min-h-16" aria-label="Security verification" />;
