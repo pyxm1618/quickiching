@@ -36,7 +36,7 @@ describe("CheckoutService", () => {
     expect(createCheckout).toHaveBeenCalledWith({
       productId: "prod_creem_one",
       requestId: "req_checkout",
-      successUrl: "https://example.com/checkout/success",
+      successUrl: "https://example.com/checkout/success?orderId=ord_checkout",
       customerEmail: user.email,
       metadata: { orderId: "ord_checkout", userId: user.id, productId: "one" },
     });
