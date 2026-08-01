@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: one-shot-production-blockers
+  cancel-in-progress: true
+
 jobs:
   remediate:
     runs-on: ubuntu-latest
