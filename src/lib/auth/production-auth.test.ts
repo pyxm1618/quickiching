@@ -7,7 +7,7 @@ const credentials = {
   googleClientId: "google-client-id",
   googleClientSecret: "google-client-secret",
   resendApiKey: "re_test_key",
-  emailFrom: "I Ching Coin <hello@example.com>",
+  emailFrom: "Quick I Ching <hello@example.com>",
 };
 
 describe("production authentication", () => {
@@ -64,7 +64,7 @@ describe("production authentication", () => {
     expect(body).toMatchObject({
       from: credentials.emailFrom,
       to: ["user@example.com"],
-      subject: "Your I Ching Coin sign-in link",
+      subject: "Your Quick I Ching sign-in link",
     });
     expect(body.html).toContain(url.replaceAll("&", "&amp;"));
     expect(JSON.stringify(init.headers)).not.toContain("secret-token");

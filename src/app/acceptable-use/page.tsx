@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Acceptable Use",
-  description: "Boundaries for using I Ching Coin responsibly.",
+  description: "Boundaries for using Quick I Ching responsibly.",
   alternates: { canonical: "/acceptable-use" },
   robots: { index: false, follow: true },
 };

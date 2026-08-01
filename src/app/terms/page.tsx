@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Terms",
-  description: "Terms of use for I Ching Coin.",
+  description: "Terms of use for Quick I Ching.",
   alternates: { canonical: "/terms" },
   robots: { index: false, follow: true },
 };
@@ -15,7 +15,7 @@ export default function TermsPage() {
 
       <h2 className="mt-8 text-xl font-semibold">The service</h2>
       <p className="mt-2 text-[var(--muted)]">
-        I Ching Coin is a structured reflection tool based on the I Ching. It is not a prediction
+        Quick I Ching is a structured reflection tool based on the I Ching. It is not a prediction
         service and does not guarantee accuracy. It is not a substitute for medical, legal, financial,
         or safety advice.
       </p>

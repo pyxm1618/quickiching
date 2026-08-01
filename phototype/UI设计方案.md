@@ -1,4 +1,4 @@
-# I Ching Coin · UI 设计方案 v2.0
+# Quick I Ching · UI 设计方案 v2.0
 
 **设计语言：** 「明室 · 暗室」 The Library & The Chamber
 **日期：** 2026-07-30 · **状态：** 待评审接入

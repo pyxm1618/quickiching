@@ -1,4 +1,4 @@
-# I Ching Coin V2.1 Complete Remediation Implementation Plan
+# Quick I Ching V2.1 Complete Remediation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task-by-task. Every behavior change follows RED → GREEN → REFACTOR. Steps use checkbox (`- [ ]`) syntax for tracking.
 

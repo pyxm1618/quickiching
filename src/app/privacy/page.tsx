@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy",
-  description: "How I Ching Coin handles your questions, readings, and account data.",
+  description: "How Quick I Ching handles your questions, readings, and account data.",
   alternates: { canonical: "/privacy" },
   robots: { index: false, follow: true },
 };

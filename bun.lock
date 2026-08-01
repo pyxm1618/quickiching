@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "iching-coin",
+      "name": "quick-i-ching",
       "dependencies": {
         "ai": "^6",
         "better-auth": "^1.6.25",

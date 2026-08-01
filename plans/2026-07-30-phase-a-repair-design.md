@@ -1,4 +1,4 @@
-# I Ching Coin Phase A Repair Design
+# Quick I Ching Phase A Repair Design
 
 ## Goal
 

@@ -3,16 +3,16 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "I Ching Coin — Three-Coin Reading",
+  title: "Quick I Ching — Three-Coin Reading",
   description:
     "Cast the I Ching with three coins. Learn the rule (yang/head = 3, yin/tail = 2), complete six rounds, and reveal your hexagram.",
   alternates: { canonical: "/i-ching-coin" },
 };
 
-export default function IChingCoinPage() {
+export default function QuickIChingPage() {
   return (
     <article className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="text-3xl font-bold tracking-tight">I Ching Coin · Three-Coin Method</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Quick I Ching · Three-Coin Method</h1>
       <p className="mt-4 text-[var(--muted)]">
         The three-coin method is the most accessible way to cast a hexagram. You flip three coins six
         times, building the hexagram from the bottom line upward. In this tool, every coin result is

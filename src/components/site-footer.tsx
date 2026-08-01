@@ -11,7 +11,7 @@ export function SiteFooter() {
         <div>
           <p className="flex items-center gap-2 font-display text-[15px] font-medium">
             <SealMark size="sm" />
-            I Ching Coin
+            Quick I Ching
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[var(--ink-3)]">
             Understand where you are, how it may be changing, and what to watch before you act.
@@ -46,7 +46,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-[var(--line)] py-6 text-center font-mono text-[11px] tracking-[0.06em] text-[var(--ink-3)]">
-        © {new Date().getFullYear()} I Ching Coin · For reflection, not professional advice
+        © {new Date().getFullYear()} Quick I Ching · For reflection, not professional advice
       </div>
     </footer>
   );

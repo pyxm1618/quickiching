@@ -1,4 +1,4 @@
-# I Ching Coin — Multi-Method Divination Web App (MVP)
+# Quick I Ching — Multi-Method Divination Web App (MVP)
 
 A production-shaped, **runnable MVP** of the I Ching (易经) divination product described in
 `docs/PRD.md` (v2.1) and `docs/技术设计文档.md` (v2.1), built for the US English market.

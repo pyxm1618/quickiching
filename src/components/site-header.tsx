@@ -12,7 +12,7 @@ export async function SiteHeader() {
           className="flex items-center gap-2.5 font-display text-[17px] font-medium text-[var(--ink)]"
         >
           <SealMark size="sm" />
-          <span>I Ching Coin</span>
+          <span>Quick I Ching</span>
         </Link>
         <nav className="hidden items-center gap-7 text-[13.5px] md:flex">
           <Link href="/i-ching-coin" className="text-[var(--ink-2)] transition-colors hover:text-[var(--ink)]">

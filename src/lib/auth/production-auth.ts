@@ -48,9 +48,9 @@ export async function sendMagicLinkWithResend(input: {
     body: JSON.stringify({
       from: input.from,
       to: [input.email.trim().toLowerCase()],
-      subject: "Your I Ching Coin sign-in link",
+      subject: "Your Quick I Ching sign-in link",
       html: [
-        "<p>Use the link below to sign in to I Ching Coin.</p>",
+        "<p>Use the link below to sign in to Quick I Ching.</p>",
         `<p><a href="${escapeHtml(url.toString())}">Sign in securely</a></p>`,
         "<p>This link expires in 10 minutes and can be used once.</p>",
       ].join(""),

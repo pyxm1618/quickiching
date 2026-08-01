@@ -1,56 +1,46 @@
-README.md:1:# I Ching Coin — Multi-Method Divination Web App (MVP)
-bun.lock:6:      "name": "iching-coin",
+# Quick I Ching brand migration residual audit
+
+Changed files:
+- README.md
+- bun.lock
+- overview.md
+- package-lock.json
+- package.json
+- phototype/UI设计方案.md
+- phototype/design-preview.html
+- phototype/design-tokens.css
+- plans/2026-07-30-complete-v2-1-remediation-plan.md
+- plans/2026-07-30-phase-a-repair-design.md
+- plans/2026-07-30-phase-b-production-adapters.md
+- plans/2026-07-30-v2.1-remediation-design.md
+- plans/2026-07-30-v2.1-remediation-plan.md
+- public/logo-jade.svg
+- public/logo-monochrome.svg
+- public/logo.svg
+- src/app/acceptable-use/page.tsx
+- src/app/api/health/route.ts
+- src/app/globals.css
+- src/app/i-ching-coin/page.tsx
+- src/app/icon.svg
+- src/app/layout.tsx
+- src/app/privacy/page.tsx
+- src/app/terms/page.tsx
+- src/components/site-footer.tsx
+- src/components/site-header.tsx
+- src/lib/auth/production-auth.test.ts
+- src/lib/auth/production-auth.ts
+- src/server/config-public-auth.test.ts
+- src/server/config.test.ts
+
+Residual matches requiring semantic review:
 docs/PRD.md:8:**核心 SEO 主题：** `i ching coin`  
 docs/PRD.md:69:- 主要通过搜索 `i ching coin`、`three coin method`、`yarrow stalk i ching`、`mei hua yi shu` 等主题进入；
 docs/PRD.md:206:- `/i-ching-coin`：核心工具＋教程落地页；
 docs/PRD.md:239:- `/i-ching-coin`：覆盖硬币起卦的工具型与入门型意图；
 docs/PRD.md:1000:> 用户通过 `i ching coin` 或方法页进入网站  
 docs/技术设计文档.md:1304:- `/i-ching-coin` 与 `/three-coin-method` 使用不同搜索意图和正文；
-overview.md:1:# UI 重构交付总览 · I Ching Coin「明室 · 暗室」
-package-lock.json:2:  "name": "iching-coin",
-package-lock.json:8:      "name": "iching-coin",
-package.json:2:  "name": "iching-coin",
-phototype/UI设计方案.md:1:# I Ching Coin · UI 设计方案 v2.0
 phototype/UI设计方案.md:13:| **受众** | 美国英语用户；对 I Ching / 东方哲学 / 塔罗 / 自我反思工具有兴趣；经 SEO（`i ching coin` 等）进入 |
-phototype/design-preview.html:6:<title>I Ching Coin — 设计语言「明室 · 暗室」高保真预览</title>
-phototype/design-preview.html:221:    <div class="kicker">I Ching Coin · Design Language v2.0 · 设计语言</div>
-phototype/design-preview.html:287:      <div class="browser-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">ichingcoin.com</span></div>
-phototype/design-preview.html:290:          <a class="brand" href="#"><span class="seal" style="width:26px;height:26px;font-size:14px">易</span>I Ching Coin</a>
-phototype/design-preview.html:359:        <div class="browser-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">ichingcoin.com/cast/three-coin</span></div>
-phototype/design-preview.html:424:      <div class="browser-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">ichingcoin.com/result/7f3a…</span></div>
-phototype/design-preview.html:490:      <div class="browser-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">ichingcoin.com/pricing</span></div>
-phototype/design-tokens.css:2:   I Ching Coin — Design Tokens v2.0
-plans/2026-07-30-complete-v2-1-remediation-plan.md:1:# I Ching Coin V2.1 Complete Remediation Implementation Plan
-plans/2026-07-30-phase-a-repair-design.md:1:# I Ching Coin Phase A Repair Design
-plans/2026-07-30-phase-b-production-adapters.md:1:# I Ching Coin Phase B Implementation Plan
-plans/2026-07-30-v2.1-remediation-design.md:1:# I Ching Coin V2.1 Remediation Design
-plans/2026-07-30-v2.1-remediation-plan.md:1:# I Ching Coin V2.1 Remediation Implementation Plan
-public/logo-jade.svg:1:<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="I Ching Coin">
-public/logo-monochrome.svg:1:<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="I Ching Coin">
-public/logo.svg:1:<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="I Ching Coin">
-src/app/acceptable-use/page.tsx:5:  description: "Boundaries for using I Ching Coin responsibly.",
-src/app/api/health/route.ts:6:    service: "ichingcoin",
-src/app/globals.css:4:   I Ching Coin — Design Tokens v2.0
-src/app/i-ching-coin/page.tsx:6:  title: "I Ching Coin — Three-Coin Reading",
 src/app/i-ching-coin/page.tsx:9:  alternates: { canonical: "/i-ching-coin" },
-src/app/i-ching-coin/page.tsx:12:export default function IChingCoinPage() {
-src/app/i-ching-coin/page.tsx:15:      <h1 className="text-3xl font-bold tracking-tight">I Ching Coin · Three-Coin Method</h1>
-src/app/icon.svg:1:<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="I Ching Coin">
-src/app/layout.tsx:32:    default: "I Ching Coin — Understand where you are",
-src/app/layout.tsx:33:    template: "%s · I Ching Coin",
 src/app/layout.tsx:37:  keywords: ["i ching coin", "three coin method", "yarrow stalk i ching", "mei hua yi shu", "i ching reading"],
-src/app/layout.tsx:39:    title: "I Ching Coin",
-src/app/privacy/page.tsx:5:  description: "How I Ching Coin handles your questions, readings, and account data.",
-src/app/terms/page.tsx:5:  description: "Terms of use for I Ching Coin.",
-src/app/terms/page.tsx:18:        I Ching Coin is a structured reflection tool based on the I Ching. It is not a prediction
-src/components/site-footer.tsx:14:            I Ching Coin
-src/components/site-footer.tsx:49:        © {new Date().getFullYear()} I Ching Coin · For reflection, not professional advice
-src/components/site-header.tsx:15:          <span>I Ching Coin</span>
 src/components/site-header.tsx:18:          <Link href="/i-ching-coin" className="text-[var(--ink-2)] transition-colors hover:text-[var(--ink)]">
-src/lib/auth/production-auth.test.ts:10:  emailFrom: "I Ching Coin <hello@example.com>",
-src/lib/auth/production-auth.test.ts:67:      subject: "Your I Ching Coin sign-in link",
-src/lib/auth/production-auth.ts:51:      subject: "Your I Ching Coin sign-in link",
-src/lib/auth/production-auth.ts:53:        "<p>Use the link below to sign in to I Ching Coin.</p>",
 src/lib/crypto/index.ts:54:    `iching-coin-${purpose}-v2`,
-src/server/config-public-auth.test.ts:26:    EMAIL_FROM: "I Ching Coin <noreply@iching.example.com>",
-src/server/config.test.ts:32:  EMAIL_FROM: "I Ching Coin <noreply@iching.example.com>",

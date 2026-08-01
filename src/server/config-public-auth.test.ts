@@ -23,7 +23,7 @@ function productionEnv(): Record<string, string> {
     GOOGLE_CLIENT_ID: "google-client-id",
     GOOGLE_CLIENT_SECRET: "google-client-secret",
     RESEND_API_KEY: "resend-api-key",
-    EMAIL_FROM: "I Ching Coin <noreply@iching.example.com>",
+    EMAIL_FROM: "Quick I Ching <noreply@iching.example.com>",
     PAYMENT_ADAPTER_MODE: "creem",
     CREEM_API_KEY: "creem-production-key",
     CREEM_WEBHOOK_SECRET: "creem-webhook-secret",
