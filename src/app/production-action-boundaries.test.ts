@@ -17,6 +17,15 @@ describe("production action boundaries", () => {
     expect(text).not.toMatch(/update\s+casting_sessions\s+set\s+lifecycle\s*=\s*'user_deleted'/i);
   });
 
+  it("creates a durable anonymous owner and uses the authenticated reveal service", async () => {
+    const production = await source("src/app/production-actions.ts");
+    const resultPage = await source("src/app/result/[castingId]/page.tsx");
+    expect(production).toContain("getOrCreateAnonymousHash");
+    expect(production).toContain("owner({ createAnonymous: true })");
+    expect(production).toContain("PostgresAuthenticatedRevealService");
+    expect(resultPage).toContain("ResultReadingControls");
+  });
+
   it("hashes direct production and privacy rate-limit identities before database persistence", async () => {
     const production = await source("src/app/production-actions.ts");
     const privacy = await source("src/app/privacy-actions.ts");

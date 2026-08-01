@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import type { ActionResult } from "@/lib/action-result";
 import { fail, ok } from "@/lib/action-result";
 import { hmac } from "@/lib/crypto";
-import { getAnonymousHash, getCurrentUser } from "@/lib/auth/session";
+import { getAnonymousHash, getOrCreateAnonymousHash, getCurrentUser } from "@/lib/auth/session";
 import { getProductionAuth } from "@/lib/auth/production-auth";
 import { PRODUCTS } from "@/domain/entitlements/pricing";
 import { mapKnownDomainError } from "@/server/actions/action-result";
@@ -12,6 +12,7 @@ import { dispatchGenerationOutbox } from "@/server/jobs/generation-dispatcher";
 import { CheckoutService } from "@/server/payments/checkout-service";
 import { CreemClient } from "@/server/payments/creem-client";
 import { getProductionRuntime } from "@/server/runtime/production";
+import { PostgresAuthenticatedRevealService } from "@/server/runtime/postgres-authenticated-reveal";
 import {
   guardSensitiveRequest,
   type RateLimitDimension,
@@ -33,11 +34,11 @@ async function boundary<T>(action: string, operation: () => Promise<ActionResult
   }
 }
 
-async function owner() {
-  const [user, anonymousSessionHash] = await Promise.all([
-    getCurrentUser(),
-    getAnonymousHash(),
-  ]);
+async function owner(options: { createAnonymous?: boolean } = {}) {
+  const user = await getCurrentUser();
+  const anonymousSessionHash = options.createAnonymous && !user
+    ? await getOrCreateAnonymousHash()
+    : await getAnonymousHash();
   return { user, anonymousSessionHash };
 }
 
@@ -77,8 +78,7 @@ async function limit(subject: string, maximum: number, windowMs = 60_000): Promi
 async function createCastingSessionAction(unknownInput: unknown) {
   return boundary("createCastingSessionAction", async () => {
     const input = parseActionInput(actionSchemas.createCastingSession, unknownInput);
-    const { user, anonymousSessionHash } = await owner();
-    if (!user && !anonymousSessionHash) return fail("CASTING_OWNER_REQUIRED", "Casting owner is required.", false);
+    const { user, anonymousSessionHash } = await owner({ createAnonymous: true });
     const ownerKind = user ? "user" as const : "anonymous" as const;
     const ownerValue = user?.id ?? anonymousSessionHash!;
     await guard({
@@ -232,33 +232,42 @@ async function revealCastingAction(unknownInput: unknown) {
   return boundary("revealCastingAction", async () => {
     const input = parseActionInput(actionSchemas.revealCasting, unknownInput);
     const { user, anonymousSessionHash } = await owner();
-    if (!anonymousSessionHash) return fail("CASTING_NOT_FOUND", "Casting session not found.", false);
+    const runtime = await getProductionRuntime();
+
+    if (user) {
+      await guard({
+        action: "reveal_casting",
+        turnstileToken: input.turnstileToken,
+        dimensions: [
+          { kind: "user", value: user.id, limit: 5, windowMs: TEN_MINUTES_MS },
+          ...(anonymousSessionHash
+            ? [{ kind: "anonymous" as const, value: anonymousSessionHash, limit: 5, windowMs: TEN_MINUTES_MS }]
+            : []),
+        ],
+      });
+      const reveal = new PostgresAuthenticatedRevealService({
+        sql: runtime.sql,
+        clock: { now: () => new Date() },
+      });
+      return ok(await reveal.reveal({
+        castingId: input.castingId,
+        authenticatedUserId: user.id,
+        anonymousSessionHash,
+      }));
+    }
+
+    if (!anonymousSessionHash) {
+      return fail("CASTING_NOT_FOUND", "Casting session not found.", false);
+    }
     const requestHeaders = await guard({
       action: "reveal_casting",
       turnstileToken: input.turnstileToken,
       dimensions: [
         { kind: "anonymous", value: anonymousSessionHash, limit: 5, windowMs: TEN_MINUTES_MS },
         { kind: "email", value: input.email, limit: 3, windowMs: TEN_MINUTES_MS },
-        ...(user ? [{ kind: "user" as const, value: user.id, limit: 5, windowMs: TEN_MINUTES_MS }] : []),
       ],
     });
-    const runtime = await getProductionRuntime();
     const callbackPath = `/result/${input.castingId}`;
-
-    if (user) {
-      const intent = await runtime.application.startLoginIntent({
-        castingId: input.castingId,
-        anonymousSessionHash,
-        allowedCallbackPath: callbackPath,
-      });
-      return ok(await runtime.application.consumeLoginIntentAndReveal({
-        intentId: intent.intentId,
-        nonce: intent.nonce,
-        authenticatedUserId: user.id,
-        callbackPath,
-      }));
-    }
-
     const handoff = await runtime.revealHandoff.start({
       castingId: input.castingId,
       anonymousSessionHash,

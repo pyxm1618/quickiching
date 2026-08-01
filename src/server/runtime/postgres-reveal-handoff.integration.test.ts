@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { migratePostgres, resetPostgresForTests } from "@/server/db/migrate";
 import { PostgresApplicationRuntime } from "./postgres-application";
 import { PostgresRevealHandoffService } from "./postgres-reveal-handoff";
+import { PostgresAuthenticatedRevealService } from "./postgres-authenticated-reveal";
 
 const databaseUrl = process.env.POSTGRES_TEST_URL;
 const describePostgres = databaseUrl ? describe : describe.skip;
@@ -27,6 +28,13 @@ describePostgres("PostgreSQL cross-browser reveal handoff", () => {
 
   function handoffService() {
     return new PostgresRevealHandoffService({
+      sql,
+      clock: { now: () => new Date(current.value) },
+    });
+  }
+
+  function authenticatedRevealService() {
+    return new PostgresAuthenticatedRevealService({
       sql,
       clock: { now: () => new Date(current.value) },
     });
@@ -58,6 +66,32 @@ describePostgres("PostgreSQL cross-browser reveal handoff", () => {
     return draft.castingId;
   }
 
+  async function completedUserCasting(userId: string) {
+    const runtime = application();
+    const draft = await runtime.createDraft({
+      method: "three_coin",
+      scene: "career",
+      interpretationGoal: "what_should_i_pay_attention_to_next",
+      userId,
+      anonymousSessionHash: null,
+    });
+    await runtime.submitQuestion({
+      castingId: draft.castingId,
+      userId,
+      anonymousSessionHash: null,
+      context: "I need to understand how to approach a delayed role decision without forcing the outcome.",
+    });
+    for (let lineIndex = 0; lineIndex < 6; lineIndex++) {
+      await runtime.recordCoinLine({
+        castingId: draft.castingId,
+        userId,
+        anonymousSessionHash: null,
+        lineIndex: lineIndex as 0 | 1 | 2 | 3 | 4 | 5,
+      });
+    }
+    return draft.castingId;
+  }
+
   beforeAll(async () => {
     sql = postgres(databaseUrl!, { max: 10 });
     await migratePostgres(sql);
@@ -70,6 +104,46 @@ describePostgres("PostgreSQL cross-browser reveal handoff", () => {
 
   afterAll(async () => {
     if (sql) await sql.end();
+  });
+
+  it("reveals a casting created by an authenticated user without an anonymous cookie", async () => {
+    await sql`insert into users (id, email) values ('usr_owner', 'owner@example.com')`;
+    const castingId = await completedUserCasting("usr_owner");
+
+    await expect(authenticatedRevealService().reveal({
+      castingId,
+      authenticatedUserId: "usr_owner",
+      anonymousSessionHash: null,
+    })).resolves.toEqual({ revealed: true, duplicate: false, castingId });
+
+    const rows = await sql`
+      select user_id, anonymous_session_hash, lifecycle from casting_sessions where id = ${castingId}
+    `;
+    expect(rows[0]).toMatchObject({
+      user_id: "usr_owner",
+      anonymous_session_hash: null,
+      lifecycle: "revealed",
+    });
+  });
+
+  it("binds an anonymous casting when its browser session is already signed in", async () => {
+    const castingId = await completedCasting("anon-already-signed-in");
+    await sql`insert into users (id, email) values ('usr_owner', 'owner@example.com')`;
+
+    await expect(authenticatedRevealService().reveal({
+      castingId,
+      authenticatedUserId: "usr_owner",
+      anonymousSessionHash: "anon-already-signed-in",
+    })).resolves.toEqual({ revealed: true, duplicate: false, castingId });
+
+    const rows = await sql`
+      select user_id, anonymous_session_hash, lifecycle from casting_sessions where id = ${castingId}
+    `;
+    expect(rows[0]).toMatchObject({
+      user_id: "usr_owner",
+      anonymous_session_hash: null,
+      lifecycle: "revealed",
+    });
   });
 
   it("reveals from a new browser using only opaque state and the authenticated identity", async () => {

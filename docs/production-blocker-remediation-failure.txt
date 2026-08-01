@@ -1,3 +1,0 @@
-run_id=30697549369
-run_url=https://github.com/pyxm1618/ichingcoin/actions/runs/30697549369
-head_sha=153aaa162750315ad5edf1a19028041848f7d62d

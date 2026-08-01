@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInAction } from "@/app/actions";
 import { authClient } from "@/lib/auth/auth-client";
+import { safeCallbackPath } from "@/lib/auth/callback-path";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,8 +19,18 @@ export default function SignInPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [callbackPath, setCallbackPath] = useState("/account");
 
-  useEffect(() => setHydrated(true), []);
+  useEffect(() => {
+    setHydrated(true);
+    const callback = new URLSearchParams(window.location.search).get("callbackURL");
+    setCallbackPath(safeCallbackPath(callback));
+  }, []);
+
+  function providerErrorPath(provider: string): string {
+    const params = new URLSearchParams({ error: provider, callbackURL: callbackPath });
+    return `/signin?${params.toString()}`;
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,8 +42,8 @@ export default function SignInPage() {
     if (productionAuth) {
       const result = await authClient.signIn.magicLink({
         email,
-        callbackURL: "/account",
-        errorCallbackURL: "/signin?error=magic_link",
+        callbackURL: callbackPath,
+        errorCallbackURL: providerErrorPath("magic_link"),
       });
       if (result.error) {
         setError("The sign-in link could not be sent. Please try again.");
@@ -46,7 +57,7 @@ export default function SignInPage() {
 
     const result = await signInAction({ email });
     if (result.ok) {
-      router.push("/account");
+      router.push(callbackPath);
       return;
     }
     setError(result.error.message);
@@ -59,8 +70,8 @@ export default function SignInPage() {
     setError(null);
     const result = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/account",
-      errorCallbackURL: "/signin?error=google",
+      callbackURL: callbackPath,
+      errorCallbackURL: providerErrorPath("google"),
     });
     if (result.error) {
       setError("Google sign-in could not be started. Please try again.");

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { loadCastingView } from "@/server/loaders";
 import { HexagramDisplay } from "@/components/cast/hexagram-display";
 import { DeleteCastButton } from "@/components/cast/delete-cast-button";
+import { ResultReadingControls } from "@/components/cast/result-reading-controls";
 import { SealMark } from "@/components/hex/seal-mark";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -74,6 +75,13 @@ export default async function ResultPage({ params }: { params: Promise<{ casting
         relatingNumber={r.relatingHexagramNumber}
         algorithmVersion={r.algorithmVersion}
         classicMappingVersion={r.classicMappingVersion}
+      />
+
+      <ResultReadingControls
+        castingId={castingId}
+        isAuthed={view.isAuthed}
+        previewStatus={view.preview?.status ?? null}
+        readingStatus={view.reading?.status ?? null}
       />
 
       {view.preview?.relevanceStatement && (
