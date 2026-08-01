@@ -3,10 +3,11 @@
 ## 1. Merge and migration order
 
 1. Keep PR #12 Draft until every automated gate required by the PR is green. Do not merge or publish from the remediation branch during audit.
-2. After an authorized merge decision, deploy a migration-capable release using the production `DATABASE_URL`.
-3. Confirm `_app_migrations` contains every identifier currently exported by `MIGRATION_IDS` in `src/server/db/migrate.ts`, including the current `LATEST_MIGRATION_ID`; do not maintain a second hard-coded migration ceiling in this runbook.
-4. Confirm `/api/ready` reports the `LATEST_MIGRATION_ID` from `src/server/db/migrate.ts`; do not rely on an older hard-coded migration name.
-5. Do not enable production adapter modes until the migration is complete.
+2. After an authorized merge decision, run the production migration with `bun run db:migrate:production`. This command injects the Vercel Production environment without writing secrets to a local `.env` file and requires `DATABASE_URL_UNPOOLED`.
+3. Keep `DATABASE_URL` as the pooled application runtime connection and `DATABASE_URL_UNPOOLED` as the direct schema-migration connection. The migration command fails closed when the selected hostname contains `-pooler.`.
+4. Confirm `_app_migrations` contains every identifier currently exported by `MIGRATION_IDS` in `src/server/db/migrate.ts`, including the current `LATEST_MIGRATION_ID`; do not maintain a second hard-coded migration ceiling in this runbook.
+5. Confirm `/api/ready` reports the `LATEST_MIGRATION_ID` from `src/server/db/migrate.ts`; do not rely on an older hard-coded migration name.
+6. Do not enable production adapter modes until the migration is complete.
 
 ## 2. Required production configuration
 
@@ -17,12 +18,14 @@ Validate all variables documented in `.env.example`. Production must use:
 - `PAYMENT_ADAPTER_MODE=creem`
 - `DATABASE_ADAPTER_MODE=postgres`
 - `WORKFLOW_ADAPTER_MODE=vercel`
+- pooled `DATABASE_URL` for application runtime traffic
+- direct `DATABASE_URL_UNPOOLED` for schema migrations; it must not contain `-pooler.`
 - HTTPS values for `APP_BASE_URL`, `BETTER_AUTH_URL`, and `NEXT_PUBLIC_APP_URL`
 - a 32+ character `BETTER_AUTH_SECRET`
 - purpose-separated versioned key sets
 - `CRON_SECRET` configured for the production scheduler
 
-Never expose server-only keys through `NEXT_PUBLIC_*` variables.
+Never expose server-only keys through `NEXT_PUBLIC_*` variables. Never print, log, or commit either database connection string.
 
 ## 3. Key rotation
 
@@ -73,12 +76,19 @@ Never expose server-only keys through `NEXT_PUBLIC_*` variables.
 Required automated checks:
 
 - `bun install --frozen-lockfile`
-- `bun run db:migrate` against an empty PostgreSQL 16 database
+- `bun run db:migrate` against an empty PostgreSQL 16 database through `POSTGRES_TEST_URL`
+- tests proving pooled migration URLs are rejected and direct URLs are accepted
 - `bun run lint`
 - `bun run typecheck`
 - `bun run test --reporter=dot` with PostgreSQL 16
 - `bun run build` without production credentials
 - the independent pinned Chromium Playwright job
+
+Required production migration checks:
+
+1. Link the local checkout to the correct Vercel project and confirm `vercel env ls production` lists both `DATABASE_URL` and `DATABASE_URL_UNPOOLED`.
+2. Run `bun run db:migrate:production`; do not pull the production secrets into a plaintext `.env` file.
+3. Confirm `_app_migrations` contains every current migration identifier before deploying production adapters.
 
 Required manual checks in a production-like environment:
 
