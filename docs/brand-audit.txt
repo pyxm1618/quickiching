@@ -1,36 +1,9 @@
 # Quick I Ching brand migration residual audit
 
 Changed files:
-- README.md
-- bun.lock
-- overview.md
-- package-lock.json
-- package.json
-- phototype/UI设计方案.md
-- phototype/design-preview.html
-- phototype/design-tokens.css
-- plans/2026-07-30-complete-v2-1-remediation-plan.md
-- plans/2026-07-30-phase-a-repair-design.md
-- plans/2026-07-30-phase-b-production-adapters.md
-- plans/2026-07-30-v2.1-remediation-design.md
-- plans/2026-07-30-v2.1-remediation-plan.md
 - public/logo-jade.svg
-- public/logo-monochrome.svg
 - public/logo.svg
-- src/app/acceptable-use/page.tsx
-- src/app/api/health/route.ts
-- src/app/globals.css
-- src/app/i-ching-coin/page.tsx
 - src/app/icon.svg
-- src/app/layout.tsx
-- src/app/privacy/page.tsx
-- src/app/terms/page.tsx
-- src/components/site-footer.tsx
-- src/components/site-header.tsx
-- src/lib/auth/production-auth.test.ts
-- src/lib/auth/production-auth.ts
-- src/server/config-public-auth.test.ts
-- src/server/config.test.ts
 
 Residual matches requiring semantic review:
 docs/PRD.md:8:**核心 SEO 主题：** `i ching coin`  
