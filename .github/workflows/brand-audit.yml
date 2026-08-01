@@ -35,6 +35,7 @@ jobs:
               "IChingCoinPage": "QuickIChingPage",
               "iccCoin": "qicCoin",
               "iccJade": "qicJade",
+              "/i-ching-coin": "/quick-i-ching",
           }
           patterns = [
               r"I Ching Coin",
