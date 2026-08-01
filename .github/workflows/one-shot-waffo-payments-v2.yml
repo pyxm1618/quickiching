@@ -1,4 +1,5 @@
 name: one-shot-waffo-payments-v2
+# Explicit execution trigger after the workflow exists on the remediation branch.
 
 on:
   push:
