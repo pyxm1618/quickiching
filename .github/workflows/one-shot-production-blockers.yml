@@ -58,18 +58,23 @@ jobs:
 
           path = Path("src/components/cast/result-reading-controls.tsx")
           text = path.read_text()
-          old = '''          <Button asChild size="sm" className="mt-3">
-            <Link href={`/signin?callbackURL=${encodeURIComponent(`/result/${props.castingId}`)}`}>Sign in</Link>
-          </Button>'''
+          marker = '<Button asChild size="sm" className="mt-3">'
+          marker_at = text.find(marker)
+          if marker_at < 0:
+              raise SystemExit("result sign-in button marker not found")
+          start = text.rfind("\n", 0, marker_at) + 1
+          close = "</Button>"
+          end_at = text.find(close, marker_at)
+          if end_at < 0:
+              raise SystemExit("result sign-in button close marker not found")
+          end = end_at + len(close)
           new = '''          <Link
             href={`/signin?callbackURL=${encodeURIComponent(`/result/${props.castingId}`)}`}
             className="mt-3 inline-flex h-9 items-center justify-center rounded bg-[var(--cinnabar)] px-3 text-sm font-semibold text-[var(--primary-foreground)]"
           >
             Sign in
           </Link>'''
-          if text.count(old) != 1:
-              raise SystemExit("result sign-in link contract not found exactly once")
-          path.write_text(text.replace(old, new, 1))
+          path.write_text(text[:start] + new + text[end:])
           PY
       - name: Verify dependency lock
         run: bun install --frozen-lockfile
