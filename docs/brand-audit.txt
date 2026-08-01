@@ -1,10 +1,6 @@
 # Quick I Ching brand migration residual audit
 
 Changed files:
-- docs/PRD.md
-- docs/技术设计文档.md
-- src/app/i-ching-coin/page.tsx
-- src/components/site-header.tsx
 
 Residual matches requiring semantic review:
 docs/PRD.md:8:**核心 SEO 主题：** `i ching coin`  
