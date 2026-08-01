@@ -33,9 +33,12 @@ jobs:
               '"name": "iching-coin"': '"name": "quick-i-ching"',
               'service: "ichingcoin"': 'service: "quickiching"',
               "IChingCoinPage": "QuickIChingPage",
+              "iccCoin": "qicCoin",
+              "iccJade": "qicJade",
           }
           patterns = [
               r"I Ching Coin",
+              r"I Ching coin",
               r"i ching coin",
               r"ICHING COIN",
               r"I-Ching Coin",
@@ -47,6 +50,8 @@ jobs:
               r"iChingCoin",
               r"ICHINGCOIN",
               r"ichingcoin",
+              r"\bicc[A-Z][A-Za-z0-9_-]*\b",
+              r"\bICC[A-Za-z0-9_-]*\b",
           ]
           combined = re.compile("|".join(f"(?:{pattern})" for pattern in patterns))
           excluded = {
@@ -119,6 +124,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Brand migration produced no changes."
           else
-            git commit -m "Rename product branding to Quick I Ching"
+            git commit -m "Complete Quick I Ching identifier cleanup"
             git push
           fi
