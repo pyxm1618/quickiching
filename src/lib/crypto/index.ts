@@ -30,6 +30,10 @@ const PURPOSE_KEYS: Record<CryptoPurpose, RuntimeKeyPurpose> = {
   anon: "sessionSigning",
 };
 
+// This namespace predates the Quick I Ching rename and is cryptographic protocol data, not display branding.
+// Changing it would derive different keys and make existing ciphertext, signatures, and cookies unreadable.
+const STABLE_KEY_DERIVATION_NAMESPACE = "iching-coin";
+
 const derivedKeyCache = new Map<string, Buffer>();
 
 function keySetForPurpose(purpose: CryptoPurpose): VersionedKeySet {
@@ -51,7 +55,7 @@ function deriveKey(purpose: CryptoPurpose, version?: string, length = 32): { key
   ]);
   const key = scryptSync(
     derivationInput,
-    `iching-coin-${purpose}-v2`,
+    `${STABLE_KEY_DERIVATION_NAMESPACE}-${purpose}-v2`,
     length,
   );
   derivedKeyCache.set(cacheKey, key);
