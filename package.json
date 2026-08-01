@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "db:migrate": "bun scripts/db-migrate.ts",
+    "db:migrate:production": "vercel env run -e production -- bun run db:migrate",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
