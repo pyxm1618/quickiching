@@ -1,1 +1,1 @@
-Trigger the one-time Waffo migration through the established branch CI.
+Trigger the observable one-time Waffo migration through branch CI, attempt 2.
