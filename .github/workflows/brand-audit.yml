@@ -1,0 +1,81 @@
+name: Brand audit
+
+on:
+  push:
+    branches:
+      - agent/rename-quick-i-ching
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Scan tracked text files for legacy brand identifiers
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import pathlib
+          import re
+          import subprocess
+
+          patterns = [
+              r"I Ching Coin",
+              r"i ching coin",
+              r"ICHING COIN",
+              r"I-Ching Coin",
+              r"i-ching-coin",
+              r"iching-coin",
+              r"i_ching_coin",
+              r"iching_coin",
+              r"IChingCoin",
+              r"iChingCoin",
+              r"ICHINGCOIN",
+              r"ichingcoin",
+          ]
+          combined = re.compile("|".join(f"(?:{pattern})" for pattern in patterns))
+          excluded = {
+              ".github/workflows/brand-audit.yml",
+              "brand-audit.txt",
+          }
+
+          tracked = subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0")
+          matches: list[str] = []
+          for raw_path in tracked:
+              if not raw_path:
+                  continue
+              path = pathlib.Path(raw_path.decode("utf-8"))
+              normalized = path.as_posix()
+              if normalized in excluded or not path.is_file():
+                  continue
+              data = path.read_bytes()
+              if b"\0" in data:
+                  continue
+              try:
+                  text = data.decode("utf-8")
+              except UnicodeDecodeError:
+                  continue
+              for line_number, line in enumerate(text.splitlines(), start=1):
+                  if combined.search(line):
+                      matches.append(f"{normalized}:{line_number}:{line}")
+
+          report = "\n".join(matches)
+          pathlib.Path("brand-audit.txt").write_text(report + ("\n" if report else ""), encoding="utf-8")
+          print(report if report else "No legacy brand identifiers found.")
+          print(f"MATCH_COUNT={len(matches)}")
+          PY
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: brand-audit
+          path: brand-audit.txt
+          if-no-files-found: error
