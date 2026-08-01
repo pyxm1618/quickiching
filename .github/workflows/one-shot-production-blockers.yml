@@ -51,6 +51,26 @@ jobs:
           bun-version: 1.3.14
       - name: Apply reviewed patch
         run: python tools/one-shot-production-blockers.py
+      - name: Fix generated sign-in link contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/components/cast/result-reading-controls.tsx")
+          text = path.read_text()
+          old = '''          <Button asChild size="sm" className="mt-3">
+            <Link href={`/signin?callbackURL=${encodeURIComponent(`/result/${props.castingId}`)}`}>Sign in</Link>
+          </Button>'''
+          new = '''          <Link
+            href={`/signin?callbackURL=${encodeURIComponent(`/result/${props.castingId}`)}`}
+            className="mt-3 inline-flex h-9 items-center justify-center rounded bg-[var(--cinnabar)] px-3 text-sm font-semibold text-[var(--primary-foreground)]"
+          >
+            Sign in
+          </Link>'''
+          if text.count(old) != 1:
+              raise SystemExit("result sign-in link contract not found exactly once")
+          path.write_text(text.replace(old, new, 1))
+          PY
       - name: Verify dependency lock
         run: bun install --frozen-lockfile
       - name: Verify migrations
@@ -82,5 +102,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/production-blocker-remediation-failure.txt
-          git commit -m "chore: record production blocker remediation failure"
+          if git diff --cached --quiet; then
+            git commit --allow-empty -m "chore: record production blocker remediation failure"
+          else
+            git commit -m "chore: record production blocker remediation failure"
+          fi
           git push origin HEAD:agent/v2-1-audit-remediation
