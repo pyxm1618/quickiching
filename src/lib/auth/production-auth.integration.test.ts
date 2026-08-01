@@ -67,12 +67,11 @@ describePostgres("production Better Auth database mapping", () => {
     const rows = await sql`
       select identifier, value, expires_at
       from auth_verifications
-      where identifier like ${"%magic-link@example.com%"}
     `;
 
     expect(token).toBeTruthy();
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.value).not.toBe(token);
+    expect([rows[0]?.identifier, rows[0]?.value]).not.toContain(token);
     expect(new Date(String(rows[0]?.expires_at)).getTime()).toBeGreaterThan(Date.now());
   });
 });
