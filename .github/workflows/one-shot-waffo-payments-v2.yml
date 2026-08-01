@@ -1,0 +1,120 @@
+name: one-shot-waffo-payments-v2
+
+on:
+  push:
+    branches:
+      - agent/v2-1-audit-remediation
+    paths:
+      - .github/workflows/one-shot-waffo-payments-v2.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: one-shot-waffo-payments
+  cancel-in-progress: true
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: iching_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d iching_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      AI_ADAPTER_MODE: local
+      AUTH_ADAPTER_MODE: dev
+      PAYMENT_ADAPTER_MODE: simulated
+      DATABASE_ADAPTER_MODE: memory
+      WORKFLOW_ADAPTER_MODE: local
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/iching_test
+      POSTGRES_TEST_URL: postgres://postgres:postgres@localhost:5432/iching_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.3.14
+      - name: Install official Waffo SDK
+        run: bun add --exact @waffo/pancake-ts@0.14.0
+      - name: Normalize public-auth fixture indentation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("src/server/config-public-auth.test.ts")
+          text = path.read_text()
+          old = '''    PAYMENT_ADAPTER_MODE: "creem",
+    CREEM_API_KEY: "creem-production-key",
+    CREEM_WEBHOOK_SECRET: "creem-webhook-secret",
+    CREEM_PRODUCT_ID_ONE: "prod_one",
+    CREEM_PRODUCT_ID_THREE: "prod_three",
+    CREEM_PRODUCT_ID_FIVE: "prod_five",'''
+          new = '''  PAYMENT_ADAPTER_MODE: "creem",
+  CREEM_API_KEY: "creem-production-key",
+  CREEM_WEBHOOK_SECRET: "creem-webhook-secret",
+  CREEM_PRODUCT_ID_ONE: "prod_one",
+  CREEM_PRODUCT_ID_THREE: "prod_three",
+  CREEM_PRODUCT_ID_FIVE: "prod_five",'''
+          if text.count(old) != 1:
+              raise SystemExit("public-auth payment fixture not found exactly once")
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Apply reviewed migration
+        run: python tools/one-shot-waffo-payments.py
+      - name: Verify provider removal and dependency lock
+        run: |
+          bun install --frozen-lockfile
+          if git grep -in -E 'creem' -- src .env.example package.json; then
+            echo 'Legacy payment provider references remain in active code or configuration.' >&2
+            exit 1
+          fi
+      - name: Verify migrations
+        run: bun run db:migrate
+      - name: Verify source
+        run: |
+          git diff --check
+          bun run lint
+          bun run typecheck
+          bun run test --reporter=dot
+          bun run build
+      - name: Commit verified Waffo migration
+        run: |
+          git rm tools/one-shot-waffo-payments.py
+          git rm .github/workflows/one-shot-waffo-payments.yml
+          git rm .github/workflows/one-shot-waffo-payments-v2.yml
+          rm -f docs/waffo-payment-migration-failure.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: replace Creem payments with Waffo"
+          git push origin HEAD:agent/v2-1-audit-remediation
+      - name: Record failure run
+        if: failure()
+        run: |
+          cat > docs/waffo-payment-migration-failure.txt <<EOF
+          run_id=${{ github.run_id }}
+          run_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          head_sha=${{ github.sha }}
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/waffo-payment-migration-failure.txt
+          if git diff --cached --quiet; then
+            git commit --allow-empty -m "chore: record Waffo migration failure"
+          else
+            git commit -m "chore: record Waffo migration failure"
+          fi
+          git push origin HEAD:agent/v2-1-audit-remediation
