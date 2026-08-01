@@ -73,10 +73,6 @@ export function buildProductionAuthOptions(
     secret: credentials.betterAuthSecret,
     database: dependencies.database,
     trustedOrigins: [baseUrl.origin],
-    user: { modelName: "auth_users" },
-    session: { modelName: "auth_sessions" },
-    account: { modelName: "auth_accounts" },
-    verification: { modelName: "auth_verifications" },
     socialProviders: {
       google: {
         clientId: credentials.googleClientId,
@@ -149,10 +145,6 @@ async function createProductionAuth() {
     secret: descriptor.secret,
     database: descriptor.database as never,
     trustedOrigins: descriptor.trustedOrigins,
-    user: descriptor.user,
-    session: descriptor.session,
-    account: descriptor.account,
-    verification: descriptor.verification,
     socialProviders: descriptor.socialProviders,
     advanced: {
       database: {
