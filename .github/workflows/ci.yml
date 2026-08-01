@@ -1,15 +1,15 @@
 name: ci
 
 on:
-  pull_request:
-    types: [reopened]
+  push:
+    branches:
+      - agent/v2-1-audit-remediation
 
 permissions:
   contents: write
 
 jobs:
   waffo-migration:
-    if: github.event.pull_request.head.ref == 'agent/v2-1-audit-remediation'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     services:
@@ -92,6 +92,7 @@ jobs:
           git rm .github/workflows/one-shot-waffo-payments.yml
           git rm .github/workflows/one-shot-waffo-payments-v2.yml
           rm -f docs/waffo-payment-migration-failure.txt
+          rm -f docs/waffo-migration-trigger.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
