@@ -1,0 +1,68 @@
+name: one-shot-production-blockers
+
+on:
+  push:
+    branches:
+      - agent/v2-1-audit-remediation
+    paths:
+      - tools/one-shot-production-blockers.py
+      - .github/workflows/one-shot-production-blockers.yml
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: iching_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d iching_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      AI_ADAPTER_MODE: local
+      AUTH_ADAPTER_MODE: dev
+      PAYMENT_ADAPTER_MODE: simulated
+      DATABASE_ADAPTER_MODE: memory
+      WORKFLOW_ADAPTER_MODE: local
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/iching_test
+      POSTGRES_TEST_URL: postgres://postgres:postgres@localhost:5432/iching_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.3.14
+      - name: Apply reviewed patch
+        run: python tools/one-shot-production-blockers.py
+      - name: Verify dependency lock
+        run: bun install --frozen-lockfile
+      - name: Verify migrations
+        run: bun run db:migrate
+      - name: Verify source
+        run: |
+          git diff --check
+          bun run lint
+          bun run typecheck
+          bun run test --reporter=dot
+          bun run build
+      - name: Commit verified remediation
+        run: |
+          git rm tools/one-shot-production-blockers.py .github/workflows/one-shot-production-blockers.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: close production casting and result blockers"
+          git push origin HEAD:agent/v2-1-audit-remediation
