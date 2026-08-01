@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - agent/v2-1-audit-remediation
+    paths:
+      - docs/waffo-migration-trigger.txt
 
 permissions:
   contents: write
@@ -92,9 +94,25 @@ jobs:
           git rm .github/workflows/one-shot-waffo-payments.yml
           git rm .github/workflows/one-shot-waffo-payments-v2.yml
           rm -f docs/waffo-payment-migration-failure.txt
-          rm -f docs/waffo-migration-trigger.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "feat: replace Creem payments with Waffo"
+          git push origin HEAD:agent/v2-1-audit-remediation
+      - name: Record failure run
+        if: failure()
+        run: |
+          cat > docs/waffo-payment-migration-failure.txt <<EOF
+          run_id=${{ github.run_id }}
+          run_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          head_sha=${{ github.sha }}
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/waffo-payment-migration-failure.txt
+          if git diff --cached --quiet; then
+            git commit --allow-empty -m "chore: record Waffo migration failure"
+          else
+            git commit -m "chore: record Waffo migration failure"
+          fi
           git push origin HEAD:agent/v2-1-audit-remediation
