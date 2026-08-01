@@ -1,4 +1,4 @@
-name: Brand audit
+name: Brand rename and audit
 
 on:
   push:
@@ -10,14 +10,14 @@ permissions:
   contents: write
 
 jobs:
-  audit:
+  rename-and-audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Scan tracked text files for legacy brand identifiers
+      - name: Replace legacy brand identifiers and audit residuals
         shell: bash
         run: |
           python3 - <<'PY'
@@ -27,6 +27,13 @@ jobs:
           import re
           import subprocess
 
+          replacements = {
+              "I Ching Coin": "Quick I Ching",
+              "ichingcoin.com": "quickiching.com",
+              '"name": "iching-coin"': '"name": "quick-i-ching"',
+              'service: "ichingcoin"': 'service: "quickiching"',
+              "IChingCoinPage": "QuickIChingPage",
+          }
           patterns = [
               r"I Ching Coin",
               r"i ching coin",
@@ -44,13 +51,35 @@ jobs:
           combined = re.compile("|".join(f"(?:{pattern})" for pattern in patterns))
           excluded = {
               ".github/workflows/brand-audit.yml",
-              "brand-audit.txt",
               "docs/brand-audit.txt",
           }
 
           tracked = subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0")
-          matches: list[str] = []
+          changed: list[str] = []
           for raw_path in tracked:
+              if not raw_path:
+                  continue
+              path = pathlib.Path(raw_path.decode("utf-8"))
+              normalized = path.as_posix()
+              if normalized in excluded or not path.is_file():
+                  continue
+              data = path.read_bytes()
+              if b"\0" in data:
+                  continue
+              try:
+                  original = data.decode("utf-8")
+              except UnicodeDecodeError:
+                  continue
+              updated = original
+              for old, new in replacements.items():
+                  updated = updated.replace(old, new)
+              if updated != original:
+                  path.write_text(updated, encoding="utf-8")
+                  changed.append(normalized)
+
+          matches: list[str] = []
+          tracked_after = subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0")
+          for raw_path in tracked_after:
               if not raw_path:
                   continue
               path = pathlib.Path(raw_path.decode("utf-8"))
@@ -68,21 +97,28 @@ jobs:
                   if combined.search(line):
                       matches.append(f"{normalized}:{line_number}:{line}")
 
-          report = "\n".join(matches)
-          pathlib.Path("docs/brand-audit.txt").write_text(report + ("\n" if report else ""), encoding="utf-8")
-          print(report if report else "No legacy brand identifiers found.")
-          print(f"MATCH_COUNT={len(matches)}")
+          report_lines = [
+              "# Quick I Ching brand migration residual audit",
+              "",
+              "Changed files:",
+              *[f"- {path}" for path in changed],
+              "",
+              "Residual matches requiring semantic review:",
+              *(matches if matches else ["None"]),
+          ]
+          pathlib.Path("docs/brand-audit.txt").write_text("\n".join(report_lines) + "\n", encoding="utf-8")
+          print("\n".join(report_lines))
           PY
 
-      - name: Commit audit report
+      - name: Commit brand migration changes
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/brand-audit.txt
+          git add -A
           if git diff --cached --quiet; then
-            echo "Audit report unchanged."
+            echo "Brand migration produced no changes."
           else
-            git commit -m "Record legacy brand audit"
+            git commit -m "Rename product branding to Quick I Ching"
             git push
           fi
