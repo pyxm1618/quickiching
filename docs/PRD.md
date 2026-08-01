@@ -203,7 +203,7 @@ Timing / Choices / ...                              历史与质量复核
 **营销与内容：**
 
 - `/`：首页；
-- `/i-ching-coin`：核心工具＋教程落地页；
+- `/quick-i-ching`：核心工具＋教程落地页；
 - `/casting-methods`：方法中心；
 - `/three-coin-method`；
 - `/yarrow-stalk-method`；
@@ -236,7 +236,7 @@ Timing / Choices / ...                              历史与质量复核
 
 ### 5.3 搜索意图分工
 
-- `/i-ching-coin`：覆盖硬币起卦的工具型与入门型意图；
+- `/quick-i-ching`：覆盖硬币起卦的工具型与入门型意图；
 - `/three-coin-method`：覆盖规则、计算和实践教程，避免与主落地页重复正文；
 - `/yarrow-stalk-method`：覆盖蓍草仪式、步骤与文化背景；
 - `/mei-hua-yi-shu`：覆盖梅花易数及本产品采用的当前时间规则；

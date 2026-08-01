@@ -15,7 +15,7 @@ export async function SiteHeader() {
           <span>Quick I Ching</span>
         </Link>
         <nav className="hidden items-center gap-7 text-[13.5px] md:flex">
-          <Link href="/i-ching-coin" className="text-[var(--ink-2)] transition-colors hover:text-[var(--ink)]">
+          <Link href="/quick-i-ching" className="text-[var(--ink-2)] transition-colors hover:text-[var(--ink)]">
             Coin Reading
           </Link>
           <Link href="/casting-methods" className="text-[var(--ink-2)] transition-colors hover:text-[var(--ink)]">

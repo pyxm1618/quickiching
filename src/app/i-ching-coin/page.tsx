@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Quick I Ching — Three-Coin Reading",
   description:
     "Cast the I Ching with three coins. Learn the rule (yang/head = 3, yin/tail = 2), complete six rounds, and reveal your hexagram.",
-  alternates: { canonical: "/i-ching-coin" },
+  alternates: { canonical: "/quick-i-ching" },
 };
 
 export default function QuickIChingPage() {

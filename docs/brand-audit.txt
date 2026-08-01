@@ -1,16 +1,15 @@
 # Quick I Ching brand migration residual audit
 
 Changed files:
+- docs/PRD.md
+- docs/技术设计文档.md
+- src/app/i-ching-coin/page.tsx
+- src/components/site-header.tsx
 
 Residual matches requiring semantic review:
 docs/PRD.md:8:**核心 SEO 主题：** `i ching coin`  
 docs/PRD.md:69:- 主要通过搜索 `i ching coin`、`three coin method`、`yarrow stalk i ching`、`mei hua yi shu` 等主题进入；
-docs/PRD.md:206:- `/i-ching-coin`：核心工具＋教程落地页；
-docs/PRD.md:239:- `/i-ching-coin`：覆盖硬币起卦的工具型与入门型意图；
 docs/PRD.md:1000:> 用户通过 `i ching coin` 或方法页进入网站  
-docs/技术设计文档.md:1304:- `/i-ching-coin` 与 `/three-coin-method` 使用不同搜索意图和正文；
 phototype/UI设计方案.md:13:| **受众** | 美国英语用户；对 I Ching / 东方哲学 / 塔罗 / 自我反思工具有兴趣；经 SEO（`i ching coin` 等）进入 |
-src/app/i-ching-coin/page.tsx:9:  alternates: { canonical: "/i-ching-coin" },
 src/app/layout.tsx:37:  keywords: ["i ching coin", "three coin method", "yarrow stalk i ching", "mei hua yi shu", "i ching reading"],
-src/components/site-header.tsx:18:          <Link href="/i-ching-coin" className="text-[var(--ink-2)] transition-colors hover:text-[var(--ink)]">
 src/lib/crypto/index.ts:35:const STABLE_KEY_DERIVATION_NAMESPACE = "iching-coin";
