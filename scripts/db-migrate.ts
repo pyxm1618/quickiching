@@ -1,11 +1,8 @@
 import postgres from "postgres";
 import { LATEST_MIGRATION_ID, migratePostgres } from "../src/server/db/migrate";
+import { resolveMigrationDatabaseUrl } from "../src/server/db/migration-url";
 
-const databaseUrl = process.env.DATABASE_URL ?? process.env.POSTGRES_TEST_URL;
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is required for db:migrate");
-}
-
+const databaseUrl = resolveMigrationDatabaseUrl();
 const sql = postgres(databaseUrl, {
   max: 1,
   idle_timeout: 5,
