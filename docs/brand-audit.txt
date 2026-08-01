@@ -1,9 +1,6 @@
 # Quick I Ching brand migration residual audit
 
 Changed files:
-- public/logo-jade.svg
-- public/logo.svg
-- src/app/icon.svg
 
 Residual matches requiring semantic review:
 docs/PRD.md:8:**核心 SEO 主题：** `i ching coin`  
@@ -16,4 +13,4 @@ phototype/UI设计方案.md:13:| **受众** | 美国英语用户；对 I Ching /
 src/app/i-ching-coin/page.tsx:9:  alternates: { canonical: "/i-ching-coin" },
 src/app/layout.tsx:37:  keywords: ["i ching coin", "three coin method", "yarrow stalk i ching", "mei hua yi shu", "i ching reading"],
 src/components/site-header.tsx:18:          <Link href="/i-ching-coin" className="text-[var(--ink-2)] transition-colors hover:text-[var(--ink)]">
-src/lib/crypto/index.ts:54:    `iching-coin-${purpose}-v2`,
+src/lib/crypto/index.ts:35:const STABLE_KEY_DERIVATION_NAMESPACE = "iching-coin";
