@@ -1,0 +1,203 @@
+# Active Creem references
+
+.env.example:16:# PAYMENT_ADAPTER_MODE=creem
+.env.example:38:CREEM_API_KEY=
+.env.example:39:CREEM_WEBHOOK_SECRET=
+.env.example:40:CREEM_PRODUCT_ID_ONE=
+.env.example:41:CREEM_PRODUCT_ID_THREE=
+.env.example:42:CREEM_PRODUCT_ID_FIVE=
+.github/workflows/one-shot-creem-inventory.yml:1:name: one-shot-creem-inventory
+.github/workflows/one-shot-creem-inventory.yml:8:      - .github/workflows/one-shot-creem-inventory.yml
+.github/workflows/one-shot-creem-inventory.yml:23:            echo '# Active Creem references'
+.github/workflows/one-shot-creem-inventory.yml:25:            git grep -in -E 'creem' -- . ':!bun.lock' || true
+.github/workflows/one-shot-creem-inventory.yml:28:            git grep -in -E 'creem' -- bun.lock || true
+.github/workflows/one-shot-creem-inventory.yml:29:          } > docs/creem-inventory.txt
+.github/workflows/one-shot-creem-inventory.yml:32:          git rm .github/workflows/one-shot-creem-inventory.yml
+.github/workflows/one-shot-creem-inventory.yml:35:          git add docs/creem-inventory.txt
+.github/workflows/one-shot-creem-inventory.yml:36:          git commit -m "docs: inventory Creem payment references"
+README.md:31:| Pricing / checkout | ✅ | $2.99 / $6.99 / $9.99; simulated checkout (Creem is the production target) |
+README.md:80:- **G-04** Payments merchant approval (Creem live mode) + real webhook
+docs/PRD.md:971:| G-07 | 支付可用性 | Creem 完成商户与产品审核；若被拒，按技术文档的支付适配边界更换服务商 |
+docs/prd-traceability.json:28:    { "id": "G-07", "status": "blocked_external", "control": ["src/server/repositories/postgres/payment-lifecycle.integration.test.ts"], "requiredEvidence": "Creem merchant and production product approval" },
+docs/release-gates.md:25:| G-07 | blocked_external | Creem merchant and production product approval |
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:5:**Goal:** Remove the remaining production user-flow blockers, replace Creem completely with Waffo Pancake, and make PR #12 ready for production-like Preview acceptance.
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:97:- [ ] Remove all `CREEM_*` configuration and credential fields.
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:110:- Delete: `src/server/payments/creem-client.ts`
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:111:- Delete: `src/server/payments/creem-client.test.ts`
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:120:- [ ] Replace the production checkout composition root and remove all Creem client references.
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:129:- Delete: `src/app/api/webhooks/creem/route.ts`
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:130:- Delete: `src/server/payments/creem-signature.ts`
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:131:- Delete: `src/server/payments/creem-signature.test.ts`
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:132:- Delete: `src/server/payments/creem-webhook.ts`
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:133:- Delete: `src/server/payments/creem-webhook.test.ts`
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:145:- [ ] Store provider `waffo` in `webhook_inbox`; remove all Creem error codes and audit labels.
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:162:- [ ] Remove “DEMO CHECKOUT” and Creem wording.
+docs/superpowers/plans/2026-08-01-production-preview-waffo-remediation.md:189:- [ ] Remove every active Creem reference from source, tests, environment examples, and runbooks; retain historical migration filenames only when renaming would break applied migration history.
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":119:| Creem | Provisional | 商户、产品和退款政策审核通过；否则切换支付适配实现 |
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":149:| 支付 | Creem | Provisional | Checkout、签名 Webhook、退款和争议事件 |
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":198:    Pay[Creem]
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":800:2. 使用官方 SDK 或 HMAC-SHA256 验证 `creem-signature`，手写比较必须常量时间；
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1127:- Creem Webhook；
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1250:CSP 只开放 Better Auth、Creem、Turnstile 和批准分析域名所需来源；禁止宽泛 `unsafe-eval`。
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1557:CREEM_API_KEY
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1558:CREEM_WEBHOOK_SECRET
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1559:CREEM_PRODUCT_ID_ONE
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1560:CREEM_PRODUCT_ID_THREE
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1561:CREEM_PRODUCT_ID_FIVE
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1596:- preview：独立数据库分支、Creem Test Mode、测试 Turnstile、独立 Auth URL、邮件白名单；
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1664:- 验证 Creem Checkout、Webhook、退款和争议；
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1701:- Creem Checkout、Webhook Inbox、退款和争议；
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1766:- Creem Checkout：<https://docs.creem.io/api-reference/endpoint/create-checkout>
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1767:- Creem Webhooks：<https://docs.creem.io/code/webhooks>
+"docs/\346\212\200\346\234\257\350\256\276\350\256\241\346\226\207\346\241\243.md":1788:11. 使用 Creem 作为暂定支付商，同时保留最薄 PaymentProvider 边界应对审批失败。
+plans/2026-07-30-complete-v2-1-remediation-plan.md:9:**Tech Stack:** Next.js 15, React 19, TypeScript, Zod, Vitest, Drizzle ORM, PostgreSQL, Better Auth, Creem HTTP/Webhook API, Vercel Workflow-compatible job boundary, structured AI provider boundary.
+plans/2026-07-30-complete-v2-1-remediation-plan.md:244:### Task 12: Creem payment, Webhook Inbox, refund, and dispute
+plans/2026-07-30-complete-v2-1-remediation-plan.md:248:- Create: `src/server/payments/creem-provider.ts`
+plans/2026-07-30-complete-v2-1-remediation-plan.md:250:- Create: `src/app/api/webhooks/creem/route.ts`
+plans/2026-07-30-complete-v2-1-remediation-plan.md:257:- [ ] Implement the minimal Creem HTTP adapter without granting from return URLs.
+plans/2026-07-30-phase-a-repair-design.md:11:Phase A does not add Better Auth, Creem, PostgreSQL/Drizzle, Vercel Workflow, licensed classic text, or a third-party AI provider. Production configuration will reject startup when any of those capabilities would be required.
+plans/2026-07-30-phase-b-production-adapters.md:9:**Tech Stack:** Next.js 15, TypeScript, Drizzle ORM, Neon PostgreSQL, Better Auth, Creem, Vercel Workflow, Vitest, Zod.
+plans/2026-07-30-phase-b-production-adapters.md:25:- [ ] Add Drizzle, PostgreSQL driver, Better Auth, Creem SDK boundary, Workflow SDK, and validation dependencies at lockfile-pinned versions.
+plans/2026-07-30-phase-b-production-adapters.md:47:**Files:** `src/server/payments/*`, `src/app/api/webhooks/creem/route.ts`, `src/server/services/reading-service.ts`
+plans/2026-07-30-phase-b-production-adapters.md:49:- [ ] Create a Checkout only through the Creem adapter and persist a pending order with a request id.
+plans/2026-07-30-v2.1-remediation-design.md:15:5. Better Auth and Creem payment/webhook integrations.
+plans/2026-07-30-v2.1-remediation-plan.md:9:**Tech Stack:** Next.js 15, React 19, TypeScript, Zod, Vitest, Drizzle ORM, PostgreSQL, Better Auth, Creem, Vercel Workflow, structured AI output.
+plans/2026-07-30-v2.1-remediation-plan.md:62:## Pull Request 5: Better Auth and Creem
+plans/2026-07-30-v2.1-remediation-plan.md:66:- [ ] Implement Creem checkout and raw-body webhook signature validation.
+plans/v2-1-release-runbook.md:18:- `PAYMENT_ADAPTER_MODE=creem`
+plans/v2-1-release-runbook.md:52:### Creem
+plans/v2-1-release-runbook.md:55:- Configure the webhook endpoint `/api/webhooks/creem`.
+plans/v2-1-release-runbook.md:56:- Confirm the webhook secret matches `CREEM_WEBHOOK_SECRET`.
+src/app/actions.ts:398:  // Production: call Creem and return its HTTPS checkout URL (whitelisted). Dev: simulate.
+src/app/actions.ts:403:// ---- 10. Dev payment simulation (production = Creem webhook) ----
+src/app/api/webhooks/creem/route.ts:5:import { verifyCreemSignature } from "@/server/payments/creem-signature";
+src/app/api/webhooks/creem/route.ts:6:import { parseCreemWebhook } from "@/server/payments/creem-webhook";
+src/app/api/webhooks/creem/route.ts:15:  if (config.mode !== "production") throw new Error("CREEM_NOT_ENABLED");
+src/app/api/webhooks/creem/route.ts:30:      [config.credentials.creemProductIdOne]: {
+src/app/api/webhooks/creem/route.ts:35:      [config.credentials.creemProductIdThree]: {
+src/app/api/webhooks/creem/route.ts:40:      [config.credentials.creemProductIdFive]: {
+src/app/api/webhooks/creem/route.ts:51:  const signature = request.headers.get("creem-signature");
+src/app/api/webhooks/creem/route.ts:53:  if (!verifyCreemSignature(rawBody, signature, config.credentials.creemWebhookSecret)) {
+src/app/api/webhooks/creem/route.ts:58:    const event = parseCreemWebhook(rawBody);
+src/app/api/webhooks/creem/route.ts:73:        : "CREEM_WEBHOOK_FAILED";
+src/app/api/webhooks/creem/route.ts:74:    console.error("Creem webhook processing failed", { code });
+src/app/production-actions.ts:13:import { CreemClient } from "@/server/payments/creem-client";
+src/app/production-actions.ts:369:      creemClient: new CreemClient({
+src/app/production-actions.ts:370:        apiKey: config.credentials.creemApiKey,
+src/app/production-actions.ts:371:        mode: config.credentials.creemApiKey.startsWith("creem_test_") ? "test" : "production",
+src/app/production-actions.ts:374:        one: config.credentials.creemProductIdOne,
+src/app/production-actions.ts:375:        three: config.credentials.creemProductIdThree,
+src/app/production-actions.ts:376:        five: config.credentials.creemProductIdFive,
+src/server/config-public-auth.test.ts:27:    PAYMENT_ADAPTER_MODE: "creem",
+src/server/config-public-auth.test.ts:28:    CREEM_API_KEY: "creem-production-key",
+src/server/config-public-auth.test.ts:29:    CREEM_WEBHOOK_SECRET: "creem-webhook-secret",
+src/server/config-public-auth.test.ts:30:    CREEM_PRODUCT_ID_ONE: "prod_one",
+src/server/config-public-auth.test.ts:31:    CREEM_PRODUCT_ID_THREE: "prod_three",
+src/server/config-public-auth.test.ts:32:    CREEM_PRODUCT_ID_FIVE: "prod_five",
+src/server/config.test.ts:33:  PAYMENT_ADAPTER_MODE: "creem",
+src/server/config.test.ts:34:  CREEM_API_KEY: "creem-production-key",
+src/server/config.test.ts:35:  CREEM_WEBHOOK_SECRET: "creem-webhook-secret",
+src/server/config.test.ts:36:  CREEM_PRODUCT_ID_ONE: "prod_one",
+src/server/config.test.ts:37:  CREEM_PRODUCT_ID_THREE: "prod_three",
+src/server/config.test.ts:38:  CREEM_PRODUCT_ID_FIVE: "prod_five",
+src/server/config.test.ts:80:    "CREEM_PRODUCT_ID_ONE",
+src/server/config.test.ts:81:    "CREEM_PRODUCT_ID_THREE",
+src/server/config.test.ts:82:    "CREEM_PRODUCT_ID_FIVE",
+src/server/config.test.ts:222:      payment: "creem",
+src/server/config.ts:35:  payment: "creem";
+src/server/config.ts:51:    creemApiKey: string;
+src/server/config.ts:52:    creemWebhookSecret: string;
+src/server/config.ts:53:    creemProductIdOne: string;
+src/server/config.ts:54:    creemProductIdThree: string;
+src/server/config.ts:55:    creemProductIdFive: string;
+src/server/config.ts:234:  const payment = oneOf(env.PAYMENT_ADAPTER_MODE, ["creem"] as const, "PAYMENT_ADAPTER_MODE", undefined, true);
+src/server/config.ts:302:      creemApiKey: required(env, "CREEM_API_KEY"),
+src/server/config.ts:303:      creemWebhookSecret: required(env, "CREEM_WEBHOOK_SECRET"),
+src/server/config.ts:304:      creemProductIdOne: required(env, "CREEM_PRODUCT_ID_ONE"),
+src/server/config.ts:305:      creemProductIdThree: required(env, "CREEM_PRODUCT_ID_THREE"),
+src/server/config.ts:306:      creemProductIdFive: required(env, "CREEM_PRODUCT_ID_FIVE"),
+src/server/payments/checkout-service.test.ts:16:      checkoutUrl: "https://checkout.creem.io/ch_checkout",
+src/server/payments/checkout-service.test.ts:21:      creemClient: { createCheckout },
+src/server/payments/checkout-service.test.ts:22:      providerProductIds: { one: "prod_creem_one", three: "prod_creem_three", five: "prod_creem_five" },
+src/server/payments/checkout-service.test.ts:37:      productId: "prod_creem_one",
+src/server/payments/checkout-service.test.ts:46:      checkoutUrl: "https://checkout.creem.io/ch_checkout",
+src/server/payments/checkout-service.test.ts:55:      creemClient: { createCheckout: vi.fn() },
+src/server/payments/checkout-service.test.ts:61:    await expect(service.create({ user, productId: "one" })).rejects.toThrow("CREEM_PRODUCT_NOT_CONFIGURED");
+src/server/payments/checkout-service.ts:26:    creemClient: {
+src/server/payments/checkout-service.ts:50:      throw new DomainError("CREEM_PRODUCT_NOT_CONFIGURED", "This product is not available.", false);
+src/server/payments/checkout-service.ts:64:    const checkout = await this.dependencies.creemClient.createCheckout({
+src/server/payments/checkout-service.ts:75:    if (checkout.requestId !== requestId) throw new Error("CREEM_REQUEST_ID_MISMATCH");
+src/server/payments/creem-client.test.ts:2:import { CreemClient } from "./creem-client";
+src/server/payments/creem-client.test.ts:4:describe("CreemClient", () => {
+src/server/payments/creem-client.test.ts:9:      checkout_url: "https://checkout.creem.io/ch_test_1",
+src/server/payments/creem-client.test.ts:12:    const client = new CreemClient({
+src/server/payments/creem-client.test.ts:13:      apiKey: "creem_test_key",
+src/server/payments/creem-client.test.ts:28:    expect(url).toBe("https://test-api.creem.io/v1/checkouts");
+src/server/payments/creem-client.test.ts:33:        "x-api-key": "creem_test_key",
+src/server/payments/creem-client.test.ts:47:      checkoutUrl: "https://checkout.creem.io/ch_test_1",
+src/server/payments/creem-client.test.ts:53:    "http://checkout.creem.io/ch_1",
+src/server/payments/creem-client.test.ts:57:    const client = new CreemClient({
+src/server/payments/creem-client.test.ts:58:      apiKey: "creem_prod_key",
+src/server/payments/creem-client.test.ts:74:    })).rejects.toThrow("CREEM_CHECKOUT_URL_INVALID");
+src/server/payments/creem-client.test.ts:78:    const client = new CreemClient({
+src/server/payments/creem-client.test.ts:79:      apiKey: "creem_prod_key",
+src/server/payments/creem-client.test.ts:93:    })).rejects.toThrow("CREEM_CHECKOUT_CREATE_FAILED:422");
+src/server/payments/creem-client.ts:1:type CreemMode = "test" | "production";
+src/server/payments/creem-client.ts:11:type CreemCheckoutResponse = {
+src/server/payments/creem-client.ts:18:const ALLOWED_CHECKOUT_HOSTS = new Set(["checkout.creem.io", "test-checkout.creem.io"]);
+src/server/payments/creem-client.ts:21:  if (typeof raw !== "string") throw new Error("CREEM_CHECKOUT_URL_INVALID");
+src/server/payments/creem-client.ts:26:    throw new Error("CREEM_CHECKOUT_URL_INVALID");
+src/server/payments/creem-client.ts:29:    throw new Error("CREEM_CHECKOUT_URL_INVALID");
+src/server/payments/creem-client.ts:34:export class CreemClient {
+src/server/payments/creem-client.ts:37:    mode: CreemMode;
+src/server/payments/creem-client.ts:49:      ? "https://test-api.creem.io"
+src/server/payments/creem-client.ts:50:      : "https://api.creem.io";
+src/server/payments/creem-client.ts:67:      throw new Error(`CREEM_CHECKOUT_CREATE_FAILED:${response.status}`);
+src/server/payments/creem-client.ts:69:    const body = await response.json() as CreemCheckoutResponse;
+src/server/payments/creem-client.ts:75:      throw new Error("CREEM_CHECKOUT_RESPONSE_INVALID");
+src/server/payments/creem-signature.test.ts:3:import { verifyCreemSignature } from "./creem-signature";
+src/server/payments/creem-signature.test.ts:12:describe("verifyCreemSignature", () => {
+src/server/payments/creem-signature.test.ts:14:    expect(verifyCreemSignature(rawBody, sign(rawBody), secret)).toBe(true);
+src/server/payments/creem-signature.test.ts:19:    expect(verifyCreemSignature(reformatted, sign(rawBody), secret)).toBe(false);
+src/server/payments/creem-signature.test.ts:25:      expect(() => verifyCreemSignature(rawBody, signature, secret)).not.toThrow();
+src/server/payments/creem-signature.test.ts:26:      expect(verifyCreemSignature(rawBody, signature, secret)).toBe(false);
+src/server/payments/creem-signature.ts:5:export function verifyCreemSignature(
+src/server/payments/creem-webhook.test.ts:2:import { parseCreemWebhook } from "./creem-webhook";
+src/server/payments/creem-webhook.test.ts:6:describe("parseCreemWebhook", () => {
+src/server/payments/creem-webhook.test.ts:8:    const event = parseCreemWebhook(JSON.stringify({
+src/server/payments/creem-webhook.test.ts:35:    const event = parseCreemWebhook(JSON.stringify({
+src/server/payments/creem-webhook.test.ts:62:    expect(parseCreemWebhook(JSON.stringify({
+src/server/payments/creem-webhook.test.ts:80:    expect(() => parseCreemWebhook(JSON.stringify({
+src/server/payments/creem-webhook.test.ts:90:    }), receivedAt)).toThrow("CREEM_WEBHOOK_SCHEMA_INVALID");
+src/server/payments/creem-webhook.test.ts:94:    expect(parseCreemWebhook(JSON.stringify({
+src/server/payments/creem-webhook.ts:3:  CreemPaymentEvent,
+src/server/payments/creem-webhook.ts:33:  if (Number.isNaN(value.getTime())) throw new Error("CREEM_WEBHOOK_DATE_INVALID");
+src/server/payments/creem-webhook.ts:68:    throw new Error("CREEM_WEBHOOK_SCHEMA_INVALID");
+src/server/payments/creem-webhook.ts:115:    throw new Error("CREEM_WEBHOOK_SCHEMA_INVALID");
+src/server/payments/creem-webhook.ts:153:    throw new Error("CREEM_WEBHOOK_SCHEMA_INVALID");
+src/server/payments/creem-webhook.ts:168:export function parseCreemWebhook(rawBody: string, receivedAt = new Date()):
+src/server/payments/creem-webhook.ts:169:  | CreemPaymentEvent
+src/server/payments/creem-webhook.ts:175:    throw new Error("CREEM_WEBHOOK_JSON_INVALID");
+src/server/payments/creem-webhook.ts:180:  if (!root || !eventId || !eventType) throw new Error("CREEM_WEBHOOK_SCHEMA_INVALID");
+src/server/repositories/postgres/auth-payments.integration.test.ts:81:        prod_creem_one: { internalProductId: "one", quantity: 1, amountUsd: 2.99 },
+src/server/repositories/postgres/auth-payments.integration.test.ts:91:      providerProductId: "prod_creem_one",
+src/server/repositories/postgres/auth-payments.integration.test.ts:139:    expect(await sql`select event_id from webhook_inbox where provider = 'creem'`).toHaveLength(1);
+src/server/repositories/postgres/auth-payments.integration.test.ts:153:        prod_creem_one: { internalProductId: "one", quantity: 1, amountUsd: 2.99 },
+src/server/repositories/postgres/auth-payments.integration.test.ts:164:      providerProductId: "prod_creem_one",
+src/server/repositories/postgres/auth-payments.integration.test.ts:169:    })).rejects.toThrow("CREEM_ORDER_MISMATCH");
+src/server/repositories/postgres/payment-lifecycle.integration.test.ts:26:describePostgres("Creem payment lifecycle", () => {
+src/server/repositories/postgres/payment-lifecycle.integration.test.ts:169:    await expect(repository.processEvent(refund)).rejects.toThrow("CREEM_ORDER_NOT_READY");
+src/server/repositories/postgres/payment-privacy.integration.test.ts:60:      where provider = 'creem' and event_id = 'evt_payment_privacy'
+src/server/repositories/postgres/payment-repository.ts:48:export type CreemPaymentEvent = CheckoutCompletedEvent | RefundCreatedEvent | DisputeCreatedEvent;
+src/server/repositories/postgres/payment-repository.ts:61:function paymentAuditPayload(event: CreemPaymentEvent): Record<string, unknown> {
+src/server/repositories/postgres/payment-repository.ts:90:  throw new DomainError("CREEM_ORDER_MISMATCH", "Payment details did not match the order.", false);
+src/server/repositories/postgres/payment-repository.ts:95:    "CREEM_ORDER_NOT_READY",
+src/server/repositories/postgres/payment-repository.ts:110:  async processEvent(event: CreemPaymentEvent): Promise<PaymentProcessingOutcome> {
+src/server/repositories/postgres/payment-repository.ts:116:          'creem', ${event.eventId}, ${event.eventType},
+src/server/repositories/postgres/payment-repository.ts:156:            where provider = 'creem' and event_id = ${event.eventId}
+src/server/repositories/postgres/payment-repository.ts:200:          where provider = 'creem' and event_id = ${event.eventId}
+src/server/repositories/postgres/payment-repository.ts:221:          where provider = 'creem' and event_id = ${event.eventId}
+src/server/repositories/postgres/payment-repository.ts:305:        where provider = 'creem' and event_id = ${event.eventId}
+src/server/runtime/postgres-account-privacy.integration.test.ts:64:        'creem', 'evt_account_delete', 'checkout.completed', 'ord_account_delete',
+
+# Lockfile references
