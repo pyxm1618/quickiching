@@ -43,6 +43,7 @@ export async function sendMagicLinkWithResend(input: {
     headers: {
       authorization: `Bearer ${input.apiKey}`,
       "content-type": "application/json",
+      "user-agent": "quickiching/0.1.0",
     },
     body: JSON.stringify({
       from: input.from,
