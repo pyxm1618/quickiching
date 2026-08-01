@@ -51,6 +51,29 @@ jobs:
           bun-version: 1.3.14
       - name: Install official Waffo SDK
         run: bun add --exact @waffo/pancake-ts@0.14.0
+      - name: Normalize public-auth fixture indentation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/server/config-public-auth.test.ts")
+          text = path.read_text()
+          old = '''    PAYMENT_ADAPTER_MODE: "creem",
+    CREEM_API_KEY: "creem-production-key",
+    CREEM_WEBHOOK_SECRET: "creem-webhook-secret",
+    CREEM_PRODUCT_ID_ONE: "prod_one",
+    CREEM_PRODUCT_ID_THREE: "prod_three",
+    CREEM_PRODUCT_ID_FIVE: "prod_five",'''
+          new = '''  PAYMENT_ADAPTER_MODE: "creem",
+  CREEM_API_KEY: "creem-production-key",
+  CREEM_WEBHOOK_SECRET: "creem-webhook-secret",
+  CREEM_PRODUCT_ID_ONE: "prod_one",
+  CREEM_PRODUCT_ID_THREE: "prod_three",
+  CREEM_PRODUCT_ID_FIVE: "prod_five",'''
+          if text.count(old) != 1:
+              raise SystemExit("public-auth payment fixture not found exactly once")
+          path.write_text(text.replace(old, new, 1))
+          PY
       - name: Apply reviewed migration
         run: python tools/one-shot-waffo-payments.py
       - name: Verify provider removal and dependency lock
