@@ -11,7 +11,7 @@ const credentials = {
 };
 
 describe("production authentication", () => {
-  it("maps Better Auth to dedicated plural tables and a hashed, single-use magic-link policy", () => {
+  it("uses Better Auth logical model names with the Drizzle schema table mapping", () => {
     const options = buildProductionAuthOptions(credentials, {
       database: { kind: "test-database" },
       sendMagicLink: vi.fn(),
@@ -20,10 +20,6 @@ describe("production authentication", () => {
     expect(options).toMatchObject({
       baseURL: "https://example.com",
       secret: credentials.betterAuthSecret,
-      user: { modelName: "auth_users" },
-      session: { modelName: "auth_sessions" },
-      account: { modelName: "auth_accounts" },
-      verification: { modelName: "auth_verifications" },
       socialProviders: {
         google: {
           clientId: "google-client-id",
@@ -36,6 +32,10 @@ describe("production authentication", () => {
         atomicSingleUse: true,
       },
     });
+    expect(options).not.toHaveProperty("user");
+    expect(options).not.toHaveProperty("session");
+    expect(options).not.toHaveProperty("account");
+    expect(options).not.toHaveProperty("verification");
   });
 
   it("sends a bounded Resend request without placing the token in headers or logs", async () => {
