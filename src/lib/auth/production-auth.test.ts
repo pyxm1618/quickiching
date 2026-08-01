@@ -58,6 +58,7 @@ describe("production authentication", () => {
     expect(init.headers).toEqual({
       authorization: "Bearer re_test_key",
       "content-type": "application/json",
+      "user-agent": "quickiching/0.1.0",
     });
     const body = JSON.parse(String(init.body));
     expect(body).toMatchObject({
