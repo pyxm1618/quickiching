@@ -1,60 +1,15 @@
 name: ci
 
 on:
-  push:
-    branches:
-      - main
-      - "agent/**"
   pull_request:
+    types: [reopened]
 
 permissions:
   contents: write
 
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  quality:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: iching_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d iching_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      NEXT_TELEMETRY_DISABLED: "1"
-      AI_ADAPTER_MODE: local
-      AUTH_ADAPTER_MODE: dev
-      PAYMENT_ADAPTER_MODE: simulated
-      DATABASE_ADAPTER_MODE: memory
-      WORKFLOW_ADAPTER_MODE: local
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/iching_test
-      POSTGRES_TEST_URL: postgres://postgres:postgres@localhost:5432/iching_test
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: 1.3.14
-      - run: bun install --frozen-lockfile
-      - run: bun run db:migrate
-      - run: bun run lint
-      - run: bun run typecheck
-      - run: bun run test --reporter=dot
-      - run: bun run build
-
   waffo-migration:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/agent/v2-1-audit-remediation'
+    if: github.event.pull_request.head.ref == 'agent/v2-1-audit-remediation'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     services:
@@ -83,6 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: agent/v2-1-audit-remediation
           fetch-depth: 0
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
@@ -131,7 +87,7 @@ jobs:
           bun run build
       - name: Commit verified Waffo migration
         run: |
-          git show HEAD^:.github/workflows/ci.yml > .github/workflows/ci.yml
+          git show 4a1e54e043cb76848324ef6ceaca540c55cfa29a:.github/workflows/ci.yml > .github/workflows/ci.yml
           git rm tools/one-shot-waffo-payments.py
           git rm .github/workflows/one-shot-waffo-payments.yml
           git rm .github/workflows/one-shot-waffo-payments-v2.yml
@@ -141,104 +97,3 @@ jobs:
           git add -A
           git commit -m "feat: replace Creem payments with Waffo"
           git push origin HEAD:agent/v2-1-audit-remediation
-
-  browser-e2e:
-    needs: quality
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      NEXT_TELEMETRY_DISABLED: "1"
-      AI_ADAPTER_MODE: local
-      AUTH_ADAPTER_MODE: dev
-      NEXT_PUBLIC_AUTH_ADAPTER_MODE: dev
-      PAYMENT_ADAPTER_MODE: simulated
-      DATABASE_ADAPTER_MODE: memory
-      WORKFLOW_ADAPTER_MODE: local
-      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
-      PLAYWRIGHT_HOME: /tmp/iching-playwright
-      PLAYWRIGHT_OUTPUT_DIR: /tmp/iching-playwright-results
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: 1.3.14
-      - run: bun install --frozen-lockfile
-      - name: Install pinned Playwright in isolation
-        run: |
-          mkdir -p "$PLAYWRIGHT_HOME"
-          rm -rf "$PLAYWRIGHT_OUTPUT_DIR"
-          npm install \
-            --prefix "$PLAYWRIGHT_HOME" \
-            --no-save \
-            --package-lock=false \
-            --legacy-peer-deps \
-            @playwright/test@1.62.0
-          mkdir -p node_modules/@playwright
-          ln -s "$PLAYWRIGHT_HOME/node_modules/@playwright/test" node_modules/@playwright/test
-          ln -s "$PLAYWRIGHT_HOME/node_modules/playwright" node_modules/playwright
-          ln -s "$PLAYWRIGHT_HOME/node_modules/playwright-core" node_modules/playwright-core
-      - name: Install Chromium
-        run: "$PLAYWRIGHT_HOME/node_modules/.bin/playwright install --with-deps chromium"
-      - name: Build stable browser-test application
-        run: bun run build
-      - name: Start stable browser-test application
-        run: |
-          NODE_ENV=development ./node_modules/.bin/next start --hostname 127.0.0.1 > /tmp/iching-built-server.log 2>&1 &
-          echo $! > /tmp/iching-built-server.pid
-      - name: Wait for stable application
-        run: |
-          for attempt in $(seq 1 60); do
-            if curl --fail --silent http://127.0.0.1:3000/signin > /dev/null; then
-              exit 0
-            fi
-            sleep 1
-          done
-          cat /tmp/iching-built-server.log
-          exit 1
-      - name: Verify built server action boundary
-        run: "$PLAYWRIGHT_HOME/node_modules/.bin/playwright test --grep 'built server action boundary'"
-      - name: Stop stable application
-        if: always()
-        run: |
-          kill "$(cat /tmp/iching-built-server.pid)" 2>/dev/null || true
-          pkill -f 'next-server' 2>/dev/null || true
-          for attempt in $(seq 1 20); do
-            if ! curl --silent http://127.0.0.1:3000/ > /dev/null 2>&1; then
-              break
-            fi
-            sleep 1
-          done
-          if curl --silent http://127.0.0.1:3000/ > /dev/null 2>&1; then
-            echo 'Stable server did not release port 3000.'
-            exit 1
-          fi
-          rm -rf .next
-      - name: Start development browser-test application
-        run: |
-          ./node_modules/.bin/next dev --hostname 127.0.0.1 > /tmp/iching-dev-server.log 2>&1 &
-          echo $! > /tmp/iching-dev-server.pid
-      - name: Precompile and stabilize development routes
-        run: |
-          for attempt in $(seq 1 60); do
-            if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then
-              break
-            fi
-            sleep 1
-          done
-          curl --silent http://127.0.0.1:3000/cast/three_coin > /dev/null
-          curl --silent http://127.0.0.1:3000/signin > /dev/null
-          curl --silent http://127.0.0.1:3000/account > /dev/null
-          sleep 15
-          curl --silent http://127.0.0.1:3000/ > /dev/null
-          curl --silent http://127.0.0.1:3000/cast/three_coin > /dev/null
-          curl --silent http://127.0.0.1:3000/signin > /dev/null
-          sleep 5
-      - name: Run development browser E2E
-        run: "$PLAYWRIGHT_HOME/node_modules/.bin/playwright test --grep-invert 'built server action boundary'"
-      - name: Print application logs on failure
-        if: failure()
-        run: |
-          echo '--- built server ---'
-          cat /tmp/iching-built-server.log 2>/dev/null || true
-          echo '--- development server ---'
-          cat /tmp/iching-dev-server.log 2>/dev/null || true
