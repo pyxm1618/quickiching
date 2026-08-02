@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - agent/rename-quick-i-ching
+  pull_request:
 
 permissions:
   contents: read
