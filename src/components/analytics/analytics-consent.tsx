@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { MicrosoftClarity } from "@/components/analytics/microsoft-clarity";
 import { Button } from "@/components/ui/button";
 import {
+  buildClarityCookieDeletionStrings,
   buildGoogleAnalyticsCookieDeletionStrings,
+  isValidClarityProjectId,
   isValidGaMeasurementId,
   OPEN_ANALYTICS_SETTINGS_EVENT,
   parseAnalyticsConsent,
@@ -15,26 +18,40 @@ import {
 
 type ConsentState = AnalyticsConsent | "loading";
 
-const DENIED_CONSENT_UPDATE = {
+const DENIED_GOOGLE_CONSENT_UPDATE = {
   analytics_storage: "denied",
   ad_storage: "denied",
   ad_user_data: "denied",
   ad_personalization: "denied",
 } as const;
 
+const DENIED_CLARITY_CONSENT_UPDATE = {
+  ad_Storage: "denied",
+  analytics_Storage: "denied",
+} as const;
+
 export function AnalyticsConsentController() {
-  const measurementId = useMemo(() => {
-    const configured = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-    return process.env.NODE_ENV === "production" && isValidGaMeasurementId(configured)
-      ? configured
-      : null;
+  const configuredProviders = useMemo(() => {
+    if (process.env.NODE_ENV !== "production") {
+      return { measurementId: null, clarityProjectId: null };
+    }
+
+    const ga = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+    const clarity = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
+
+    return {
+      measurementId: isValidGaMeasurementId(ga) ? ga : null,
+      clarityProjectId: isValidClarityProjectId(clarity) ? clarity : null,
+    };
   }, []);
 
+  const { measurementId, clarityProjectId } = configuredProviders;
+  const analyticsConfigured = Boolean(measurementId || clarityProjectId);
   const [consent, setConsent] = useState<ConsentState>("loading");
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    if (!measurementId) return;
+    if (!analyticsConfigured) return;
 
     const storedConsent = parseAnalyticsConsent(document.cookie);
     setConsent(storedConsent);
@@ -43,7 +60,7 @@ export function AnalyticsConsentController() {
     const openSettings = () => setIsOpen(true);
     window.addEventListener(OPEN_ANALYTICS_SETTINGS_EVENT, openSettings);
     return () => window.removeEventListener(OPEN_ANALYTICS_SETTINGS_EVENT, openSettings);
-  }, [measurementId]);
+  }, [analyticsConfigured]);
 
   const persistConsent = useCallback((nextConsent: "granted" | "denied") => {
     const secure = window.location.protocol === "https:";
@@ -61,15 +78,28 @@ export function AnalyticsConsentController() {
     const secure = window.location.protocol === "https:";
 
     if (wasGranted) {
-      window.gtag?.("consent", "update", DENIED_CONSENT_UPDATE);
-      (window as unknown as Record<string, unknown>)[`ga-disable-${measurementId}`] = true;
+      window.gtag?.("consent", "update", DENIED_GOOGLE_CONSENT_UPDATE);
+      window.clarity?.("consentv2", DENIED_CLARITY_CONSENT_UPDATE);
+
+      if (measurementId) {
+        (window as unknown as Record<string, unknown>)[`ga-disable-${measurementId}`] = true;
+      }
     }
 
-    for (const deletion of buildGoogleAnalyticsCookieDeletionStrings(
-      document.cookie,
-      window.location.hostname,
-      secure,
-    )) {
+    const cookieDeletions = [
+      ...buildGoogleAnalyticsCookieDeletionStrings(
+        document.cookie,
+        window.location.hostname,
+        secure,
+      ),
+      ...buildClarityCookieDeletionStrings(
+        document.cookie,
+        window.location.hostname,
+        secure,
+      ),
+    ];
+
+    for (const deletion of cookieDeletions) {
       document.cookie = deletion;
     }
 
@@ -80,11 +110,16 @@ export function AnalyticsConsentController() {
     }
   }, [consent, measurementId, persistConsent]);
 
-  if (!measurementId || consent === "loading") return null;
+  if (!analyticsConfigured || consent === "loading") return null;
 
   return (
     <>
-      {consent === "granted" ? <GoogleAnalytics measurementId={measurementId} /> : null}
+      {consent === "granted" && measurementId ? (
+        <GoogleAnalytics measurementId={measurementId} />
+      ) : null}
+      {consent === "granted" && clarityProjectId ? (
+        <MicrosoftClarity projectId={clarityProjectId} />
+      ) : null}
 
       {isOpen ? (
         <div className="fixed inset-x-0 bottom-0 z-[100] px-4 pb-4 sm:px-6 sm:pb-6">
@@ -102,9 +137,9 @@ export function AnalyticsConsentController() {
                 Choose whether to share usage analytics
               </h2>
               <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                Google Analytics loads only after you accept. We measure page and feature usage, but
-                never send your question text, email, reading content, authentication secrets, or
-                payment details.
+                Google Analytics and Microsoft Clarity load only after you accept. We measure page and
+                feature usage and diagnose usability problems, but never send your question text, email,
+                reading content, authentication secrets, or payment details.
               </p>
               <p className="mt-2 text-sm text-[var(--muted)]">
                 Rejecting analytics does not affect casting, sign-in, purchases, or saved readings. See
