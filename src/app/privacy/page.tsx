@@ -154,6 +154,7 @@ export default function PrivacyPage() {
           <li><strong className="text-[var(--ink)]">Neon and database infrastructure:</strong> managed PostgreSQL storage and database operations.</li>
           <li><strong className="text-[var(--ink)]">Resend:</strong> delivery of sign-in links and essential service email.</li>
           <li><strong className="text-[var(--ink)]">Google:</strong> Google account authentication when selected by the user, and Google Analytics only under the optional analytics rules below when enabled.</li>
+          <li><strong className="text-[var(--ink)]">Microsoft:</strong> Microsoft Clarity for consented heatmaps, session recordings, and usability analysis under the optional analytics rules below.</li>
           <li><strong className="text-[var(--ink)]">Cloudflare:</strong> DNS, network protection, Turnstile, and abuse-prevention services where configured.</li>
           <li><strong className="text-[var(--ink)]">AI model providers:</strong> generation and automated review of requested reading content.</li>
           <li><strong className="text-[var(--ink)]">Professional advisers and authorities:</strong> where reasonably necessary for legal, accounting, security, fraud, dispute, or regulatory purposes.</li>
@@ -173,16 +174,23 @@ export default function PrivacyPage() {
           that function is in use.
         </p>
         <p className={BODY}>
-          Analytics is optional. When Google Analytics is enabled, it will be treated as optional
-          analytics and will load only after the required analytics consent has been obtained under the
-          site&apos;s consent controls. Before consent, or after analytics is rejected or withdrawn, the
-          basic implementation will not load the Google Analytics tag for that visitor.
+          Analytics is optional. Google Analytics and Microsoft Clarity load only after the required
+          analytics consent has been obtained under the site&apos;s consent controls. Before consent, or
+          after analytics is rejected or withdrawn, the basic implementation does not load either
+          analytics tag for that visitor.
         </p>
         <p className={BODY}>
-          Microsoft Clarity is not enabled at the date of this Policy. We may add Microsoft Clarity in
-          the future for product analytics and session-level usability analysis. Before enabling it, we
-          will update this Policy and place it under the same optional analytics choice so that it does
-          not set analytics cookies before the required consent.
+          When accepted, Google Analytics measures page and feature usage. Microsoft Clarity may create
+          heatmaps and session recordings to help identify usability problems. Clarity&apos;s project is
+          configured not to set cookies by default; the site sends analytics-storage consent only after
+          acceptance, while advertising storage remains denied.
+        </p>
+        <p className={BODY}>
+          We apply explicit Clarity masking to question context, sign-in and account information,
+          casting results, generated previews and readings, and order status. Masked content is not
+          intended to be uploaded to Clarity. These controls supplement, rather than replace, the rule
+          that private question text, email, reading content, authentication secrets, and payment details
+          must not be sent as analytics events.
         </p>
         <p className={BODY}>
           Rejecting or withdrawing analytics does not prevent you from casting, signing in, purchasing
