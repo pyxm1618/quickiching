@@ -67,7 +67,7 @@ describe("production release boundaries", () => {
     expect(vercel.buildCommand).toBe("bun run build");
   });
 
-  it("configures the staging production deployment for minute reconciliation", () => {
+  it("configures the Hobby-compatible staging production reconciliation schedule", () => {
     const preview = JSON.parse(source("vercel.json")) as {
       crons?: Array<{ path?: string; schedule?: string }>;
     };
@@ -77,7 +77,7 @@ describe("production release boundaries", () => {
       crons?: Array<{ path?: string; schedule?: string }>;
     };
 
-    expect(preview.crons).toEqual([{ path: "/api/internal/generation/reconcile", schedule: "* * * * *" }]);
+    expect(preview.crons).toEqual([{ path: "/api/internal/generation/reconcile", schedule: "0 0 * * *" }]);
     expect(production.installCommand).toBe("bun install --frozen-lockfile");
     expect(production.buildCommand).toBe("bun run build");
     expect(production.crons).toEqual([
