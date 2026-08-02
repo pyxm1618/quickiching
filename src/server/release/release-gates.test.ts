@@ -62,4 +62,14 @@ describe("public release gates", () => {
       VERCEL_ENV: "preview",
     })).not.toThrow();
   });
+
+  it("allows the explicitly identified dedicated Staging deployment for provider validation", () => {
+    expect(() => assertPublicReleaseApproved({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      QUICKICHING_DEPLOYMENT_TIER: "staging",
+      APP_BASE_URL: "https://staging.quickiching.com",
+    })).not.toThrow();
+  });
 });

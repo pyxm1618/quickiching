@@ -34,13 +34,19 @@ function isVercelPreview(env: ReleaseEnvironment): boolean {
   return env.VERCEL === "1" && env.VERCEL_ENV === "preview";
 }
 
+function isDedicatedStaging(env: ReleaseEnvironment): boolean {
+  return env.VERCEL === "1"
+    && env.QUICKICHING_DEPLOYMENT_TIER === "staging"
+    && env.APP_BASE_URL === "https://staging.quickiching.com";
+}
+
 export function assertPublicReleaseApproved(env: ReleaseEnvironment = process.env): void {
   if (env.NODE_ENV !== "production") return;
 
   // Vercel Preview remains available for real-provider smoke tests. A
   // non-Vercel production process cannot bypass the external gates merely by
   // setting VERCEL_ENV=preview.
-  if (isVercelPreview(env)) return;
+  if (isVercelPreview(env) || isDedicatedStaging(env)) return;
 
   const blocked = blockedExternalReleaseGateIds();
   if (blocked.length > 0) {
