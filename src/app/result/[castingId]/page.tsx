@@ -58,7 +58,7 @@ export default async function ResultPage({ params }: { params: Promise<{ casting
   const r = view.result;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
+    <div data-clarity-mask="true" className="mx-auto max-w-4xl px-4 py-12">
       <div className="mb-6 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
         <span>Ritual complete · Revealed</span>
         <span>
