@@ -26,6 +26,8 @@ const notoSerifSC = Noto_Serif_SC({
   variable: "--font-noto-sc",
 });
 
+const PRIMARY_SEO_KEYWORD = "quick i ching";
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: {
@@ -34,7 +36,7 @@ export const metadata: Metadata = {
   },
   description:
     "A multi-method I Ching reflection tool. Cast with coins, yarrow stalks, or the current time, then reveal your hexagram and an optional deep reading.",
-  keywords: ["quick i ching", "three coin method", "yarrow stalk i ching", "mei hua yi shu", "i ching reading"],
+  keywords: [PRIMARY_SEO_KEYWORD, "three coin method", "yarrow stalk i ching", "mei hua yi shu", "i ching reading"],
   openGraph: {
     title: "Quick I Ching",
     description: "Understand where you are, how it may be changing, and what to watch before you act.",
