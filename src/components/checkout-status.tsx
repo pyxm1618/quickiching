@@ -79,23 +79,25 @@ export function CheckoutStatus({ orderId }: { orderId: string }) {
 
   const copy = copyFor(snapshot, error);
   return (
-    <Card className="mx-auto max-w-xl">
-      <CardContent className="py-10 text-center">
-        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--bronze)]">
-          Order {orderId}
-        </p>
-        <h1 className="mt-3 font-display text-3xl font-medium">{copy.title}</h1>
-        <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-[var(--ink-2)]">{copy.body}</p>
-        {snapshot?.financialReviewRequired && (
-          <p className="mt-4 rounded border border-[var(--danger)] bg-[var(--danger-wash)] px-4 py-3 text-sm text-[var(--danger)]">
-            This order requires manual financial review because some credits had already been used or reserved.
+    <div data-clarity-mask="true">
+      <Card className="mx-auto max-w-xl">
+        <CardContent className="py-10 text-center">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--bronze)]">
+            Order {orderId}
           </p>
-        )}
-        <div className="mt-7 flex flex-wrap justify-center gap-3">
-          <Link href="/account" className={primaryLink}>Open account</Link>
-          <Link href="/pricing" className={outlineLink}>Back to pricing</Link>
-        </div>
-      </CardContent>
-    </Card>
+          <h1 className="mt-3 font-display text-3xl font-medium">{copy.title}</h1>
+          <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-[var(--ink-2)]">{copy.body}</p>
+          {snapshot?.financialReviewRequired && (
+            <p className="mt-4 rounded border border-[var(--danger)] bg-[var(--danger-wash)] px-4 py-3 text-sm text-[var(--danger)]">
+              This order requires manual financial review because some credits had already been used or reserved.
+            </p>
+          )}
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            <Link href="/account" className={primaryLink}>Open account</Link>
+            <Link href="/pricing" className={outlineLink}>Back to pricing</Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
