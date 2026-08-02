@@ -25,4 +25,7 @@ jobs:
         with:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
-      - run: bun run test -- src/lib/analytics-consent.test.ts
+      - run: >-
+          bun run test --
+          src/lib/analytics-consent.test.ts
+          src/app/analytics-consent-integration.test.ts
