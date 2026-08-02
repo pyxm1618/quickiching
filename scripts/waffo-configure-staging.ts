@@ -5,6 +5,7 @@ import {
 } from "@waffo/pancake-ts";
 import {
   assertWaffoStagingSnapshot,
+  classifyWaffoGraphqlFailure,
   resolveWaffoStagingConfig,
   waffoStagingProductUpdates,
   type WaffoStagingSnapshot,
@@ -70,7 +71,11 @@ try {
     }`,
     variables: { id: config.storeId },
   });
-  if (!webhookResult.data) throw new Error("WAFFO_STAGING_WEBHOOK_QUERY_INVALID");
+  if (!webhookResult.data) {
+    throw new Error(
+      `WAFFO_STAGING_WEBHOOK_QUERY_INVALID:${classifyWaffoGraphqlFailure(webhookResult.errors)}`,
+    );
+  }
 
   assertWaffoStagingSnapshot(
     {

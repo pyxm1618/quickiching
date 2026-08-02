@@ -8,6 +8,8 @@ export const WAFFO_STAGING_WEBHOOK_EVENTS = [
 
 type ProductKey = "one" | "three" | "five";
 
+type WaffoGraphqlNotice = { message: string };
+
 export type WaffoStagingConfig = {
   merchantId: string;
   privateKey: string;
@@ -49,6 +51,27 @@ export type WaffoStagingSnapshot = {
     }>;
   } | null;
 };
+
+export function classifyWaffoGraphqlFailure(
+  notices: WaffoGraphqlNotice[] | undefined,
+): string {
+  const messages = notices?.map((notice) => notice.message.toLowerCase()) ?? [];
+  if (messages.some((message) => message.includes("cannot query field"))) return "schema_field";
+  if (messages.some((message) => message.includes("unknown argument"))) return "schema_argument";
+  if (messages.some((message) => message.includes("variable") && message.includes("type"))) {
+    return "variable_type";
+  }
+  if (
+    messages.some((message) =>
+      message.includes("unauthorized")
+      || message.includes("forbidden")
+      || message.includes("permission")
+    )
+  ) {
+    return "access_denied";
+  }
+  return messages.length > 0 ? "provider_error" : "empty_response";
+}
 
 function required(env: WaffoStagingEnvironment, name: string): string {
   const value = env[name]?.trim();
