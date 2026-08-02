@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/add-ga4-consent
+  pull_request:
+    branches:
+      - agent/rename-quick-i-ching
 
 permissions:
   contents: read
