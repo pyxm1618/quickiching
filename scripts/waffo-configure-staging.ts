@@ -37,25 +37,49 @@ try {
     );
   }
 
-  const result = await client.graphql.query<WaffoStagingSnapshot>({
-    query: `query StagingWaffoAudit($storeId: String!, $storeObjectId: ID!) {
+  const storesResult = await client.graphql.query<{
+    stores: WaffoStagingSnapshot["stores"];
+  }>({
+    query: `query StagingWaffoStores {
       stores { id name status }
-      onetimeProducts(storeId: $storeId) {
+    }`,
+  });
+  if (!storesResult.data) throw new Error("WAFFO_STAGING_STORES_QUERY_INVALID");
+
+  const productsResult = await client.graphql.query<{
+    onetimeProducts: WaffoStagingSnapshot["onetimeProducts"];
+  }>({
+    query: `query StagingWaffoProducts($storeId: String!) {
+      onetimeProducts(storeId: $storeId, filter: { status: { eq: "active" } }) {
         id name status hasProdVersion
         prices { currency priceInfo { amount taxCategory } }
       }
-      store(id: $storeObjectId) {
+    }`,
+    variables: { storeId: config.storeId },
+  });
+  if (!productsResult.data) throw new Error("WAFFO_STAGING_PRODUCTS_QUERY_INVALID");
+
+  const webhookResult = await client.graphql.query<{
+    store: WaffoStagingSnapshot["store"];
+  }>({
+    query: `query StagingWaffoWebhook($id: ID!) {
+      store(id: $id) {
         id
         storeWebhooks { channel url events testMode }
       }
     }`,
-    variables: {
-      storeId: config.storeId,
-      storeObjectId: config.storeId,
-    },
+    variables: { id: config.storeId },
   });
-  if (!result.data) throw new Error("WAFFO_STAGING_GRAPHQL_INVALID");
-  assertWaffoStagingSnapshot(result.data, config);
+  if (!webhookResult.data) throw new Error("WAFFO_STAGING_WEBHOOK_QUERY_INVALID");
+
+  assertWaffoStagingSnapshot(
+    {
+      stores: storesResult.data.stores,
+      onetimeProducts: productsResult.data.onetimeProducts,
+      store: webhookResult.data.store,
+    },
+    config,
+  );
   console.log(
     "Verified one Waffo Test store, three tax-excluded one-time products, no Production product versions, and the Test webhook",
   );
