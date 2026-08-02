@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   integer,
@@ -33,7 +34,7 @@ export const reservationStatus = pgEnum("reservation_status", ["reserved", "cons
 export const qualityReviewStatus = pgEnum("quality_review_status", [
   "not_started", "submitted", "supplementing", "in_review", "approved", "rejected",
 ]);
-export const orderStatus = pgEnum("order_status", ["pending", "paid", "refunded", "disputed"]);
+export const orderStatus = pgEnum("order_status", ["pending", "paid", "partially_refunded", "refunded", "disputed"]);
 export const jobStatus = pgEnum("job_status", ["queued", "running", "completed", "failed", "timed_out"]);
 
 export const users = pgTable("users", {
@@ -198,6 +199,7 @@ export const entitlementBatches = pgTable("entitlement_batches", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   productId: text("product_id").notNull(),
+  orderId: text("order_id").unique().references(() => orders.id, { onDelete: "restrict" }),
   amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
   quantityTotal: integer("quantity_total").notNull(),
   quantityAvailable: integer("quantity_available").notNull(),
@@ -221,10 +223,13 @@ export const entitlementBatches = pgTable("entitlement_batches", {
 export const entitlementLedger = pgTable("entitlement_ledger", {
   id: text("id").primaryKey(),
   batchId: text("batch_id").notNull().references(() => entitlementBatches.id, { onDelete: "cascade" }),
+  orderId: text("order_id").references(() => orders.id, { onDelete: "restrict" }),
+  webhookEventId: text("webhook_event_id"),
   action: text("action").notNull(),
   quantity: integer("quantity").notNull(),
   readingId: text("reading_id"),
   reservationId: text("reservation_id"),
+  reasonCode: text("reason_code"),
   createdAt,
 }, (table) => [index("entitlement_ledger_batch_idx").on(table.batchId, table.createdAt)]);
 
@@ -245,6 +250,12 @@ export const orders = pgTable("orders", {
   currency: text("currency").notNull(),
   requestId: text("request_id").notNull().unique(),
   providerCheckoutId: text("provider_checkout_id").unique(),
+  providerOrderId: text("provider_order_id").unique(),
+  providerTransactionId: text("provider_transaction_id").unique(),
+  providerAmountMinor: integer("provider_amount_minor"),
+  refundedAmountMinor: integer("refunded_amount_minor").notNull().default(0),
+  financialReviewRequired: boolean("financial_review_required").notNull().default(false),
+  lastProviderEventAt: timestamp("last_provider_event_at", { withTimezone: true }),
   buyerEmailSnapshot: text("buyer_email_snapshot"),
   providerSubtotalMinor: integer("provider_subtotal_minor"),
   providerTaxAmountMinor: integer("provider_tax_amount_minor"),
@@ -310,6 +321,7 @@ export const webhookInbox = pgTable("webhook_inbox", {
   eventType: text("event_type").notNull(),
   mode: text("mode"),
   storeId: text("store_id"),
+  orderId: text("order_id").references(() => orders.id, { onDelete: "restrict" }),
   payload: jsonb("payload").notNull(),
   signatureVerifiedAt: timestamp("signature_verified_at", { withTimezone: true }).notNull(),
   processedAt: timestamp("processed_at", { withTimezone: true }),

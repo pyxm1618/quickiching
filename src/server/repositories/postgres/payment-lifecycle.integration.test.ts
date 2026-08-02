@@ -30,4 +30,34 @@ describePostgres("Waffo payment lifecycle", () => {
     await repository.recordVerifiedDelivery(refund, refund);
     await expect(repository.dispatchPending()).resolves.toMatchObject({ failed: 1 });
   });
+
+  it("dead-letters a permanent business mismatch on its first attempt", async () => {
+    const invalid = { ...completed, id: "delivery_invalid", eventId: "PAY_invalid", data: { ...completed.data, merchantProvidedBuyerIdentity: "usr_other" } };
+    await repository.recordVerifiedDelivery(invalid, invalid);
+    await expect(repository.dispatchPending()).resolves.toMatchObject({ failed: 1 });
+    expect((await sql`select attempts, dead_lettered_at from outbox where aggregate_id = 'delivery_invalid'`)[0])
+      .toMatchObject({ attempts: 1 });
+    expect((await sql`select dead_lettered_at from outbox where aggregate_id = 'delivery_invalid'`)[0].dead_lettered_at).not.toBeNull();
+  });
+
+  it("recovers an expired dispatcher lease without granting twice", async () => {
+    await repository.recordVerifiedDelivery(completed, completed);
+    await sql`update outbox set attempts = 1, available_at = now() - interval '1 second' where aggregate_id = 'delivery_1'`;
+    await expect(repository.dispatchPending()).resolves.toMatchObject({ dispatched: 1 });
+    await expect(repository.dispatchPending()).resolves.toMatchObject({ dispatched: 0 });
+    expect(await sql`select id from entitlement_ledger where action = 'grant'`).toHaveLength(1);
+  });
+
+  it("does not duplicate an entitlement when two dispatchers race", async () => {
+    const secondSql = postgres(databaseUrl!, { max: 1 });
+    const second = new PostgresPaymentRepository(secondSql, { products: { PROD_one: { internalProductId: "one", quantity: 1, amountUsd: 2.99 } } });
+    try {
+      await repository.recordVerifiedDelivery(completed, completed);
+      await Promise.all([repository.dispatchPending(), second.dispatchPending()]);
+      expect(await sql`select id from entitlement_ledger where action = 'grant'`).toHaveLength(1);
+      expect((await sql`select count(*)::integer as count from entitlement_batches where order_id = 'ord_1'`)[0].count).toBe(1);
+    } finally {
+      await secondSql.end();
+    }
+  });
 });

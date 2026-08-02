@@ -282,7 +282,7 @@ Expected: PASS, or document an unrelated pre-existing failure with file and erro
 
 Run: `bun run typecheck`
 
-Expected: the legal-page files and test introduce no errors. If the known Creem/Waffo migration errors remain, record them as pre-existing and unrelated.
+Expected: the legal-page files and test introduce no errors. If known payment-provider migration errors remain, record them as pre-existing and unrelated.
 
 - [ ] **Step 4: Run production build when repository health permits**
 

@@ -67,7 +67,7 @@ describe("production release boundaries", () => {
     expect(vercel.buildCommand).toBe("bun run build");
   });
 
-  it("keeps preview deployment cron-free and requires the production deployment config for minute reconciliation", () => {
+  it("configures the staging production deployment for minute reconciliation", () => {
     const preview = JSON.parse(source("vercel.json")) as {
       crons?: Array<{ path?: string; schedule?: string }>;
     };
@@ -77,7 +77,7 @@ describe("production release boundaries", () => {
       crons?: Array<{ path?: string; schedule?: string }>;
     };
 
-    expect(preview.crons).toBeUndefined();
+    expect(preview.crons).toEqual([{ path: "/api/internal/generation/reconcile", schedule: "* * * * *" }]);
     expect(production.installCommand).toBe("bun install --frozen-lockfile");
     expect(production.buildCommand).toBe("bun run build");
     expect(production.crons).toEqual([

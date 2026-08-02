@@ -15,7 +15,7 @@ describe("Waffo webhook boundary", () => {
     expect(verifyWebhook(raw, header, { environment: "test", publicKey: keys.publicKey.export({ type: "spki", format: "pem" }).toString() })).toMatchObject({ id: "delivery_1" });
     expect(() => verifyWebhook(`${raw} `, header, { environment: "test", publicKey: keys.publicKey.export({ type: "spki", format: "pem" }).toString() })).toThrow();
   });
-  it("keeps Test/Production mode explicit and accepts a non-zero tax payload", () => {
+  it("keeps Test/Production mode explicit and retains tax values for product-policy validation", () => {
     expect(parseWaffoWebhook(event)).toMatchObject({ mode: "test", data: { subtotal: "2.99", taxAmount: "0.30", total: "3.29" } });
     expect(usdMinor("3.29")).toBe(329);
     expect(() => parseWaffoWebhook({ ...event, mode: "production" })).toThrow("WAFFO_WEBHOOK_SCHEMA_INVALID");

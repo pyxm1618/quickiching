@@ -20,7 +20,9 @@ function taxAmounts(event: WaffoWebhook): { subtotal: number; tax: number; total
   const tax = usdMinor(event.data.taxAmount);
   const total = event.data.total ? usdMinor(event.data.total) : amount;
   const subtotal = event.data.subtotal ? usdMinor(event.data.subtotal) : total - tax;
-  if (subtotal < 0 || subtotal + tax !== total || total !== amount) mismatch();
+  // All three configured Waffo products are taxExcluded. A tax-bearing event is
+  // therefore not a billable entitlement purchase, even if its arithmetic is valid.
+  if (tax !== 0 || subtotal < 0 || subtotal + tax !== total || total !== amount) mismatch();
   return { subtotal, tax, total };
 }
 
@@ -38,7 +40,7 @@ export class PostgresPaymentRepository {
       const deliveryId = String(inbox.delivery_id);
       const created = await tx`insert into outbox (id, topic, aggregate_id, payload, available_at, created_at)
         values (${id("out")}, ${topic}, ${deliveryId}, ${tx.json({ provider, deliveryId } as never)}, now(), now())
-        on conflict (topic, aggregate_id) where topic = ${topic} do nothing returning id`;
+        on conflict do nothing returning id`;
       return { recorded: inserted.length === 1, outboxRepaired: created.length === 1 && inserted.length === 0 };
     });
   }
@@ -118,7 +120,11 @@ export class PostgresPaymentRepository {
         await this.sql`update outbox set dispatched_at = now() where id = ${row.id} and dispatched_at is null`;
         dispatched++;
       } catch (error) {
-        const retryable = error instanceof DomainError && error.retryable;
+        // Business validation failures are final. Database, driver, network, and
+        // other infrastructure failures deliberately default to bounded retry: a
+        // transient dependency outage must never dead-letter a paid entitlement on
+        // its first attempt.
+        const retryable = !(error instanceof DomainError && !error.retryable);
         const exhausted = Number(row.attempts) >= 8;
         const delayMs = Math.min(60 * 60_000, 1_000 * 2 ** Math.min(Number(row.attempts), 12));
         await this.sql.begin(async (tx) => {

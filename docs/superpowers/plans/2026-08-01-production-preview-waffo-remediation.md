@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Remove the remaining production user-flow blockers, replace Creem completely with Waffo Pancake, and make PR #12 ready for production-like Preview acceptance.
+**Goal:** Remove the remaining production user-flow blockers, replace the former provider completely with Waffo Pancake, and make PR #12 ready for production-like Preview acceptance.
 
 **Architecture:** Keep casting, generation, payment, and entitlement state server-authoritative. Add an authenticated reveal path beside the existing anonymous login-intent path. Isolate Waffo behind a provider client and provider-neutral checkout/repository contracts; accept payment state only from RSA-verified Waffo Webhooks and preserve the existing immutable entitlement ledger.
 
@@ -94,7 +94,7 @@
 
 - [ ] Add failing configuration tests requiring `PAYMENT_ADAPTER_MODE=waffo` and all server-only Waffo credentials.
 - [ ] Add `@waffo/pancake-ts@0.14.0` and regenerate the Bun lockfile without weakening frozen installation.
-- [ ] Remove all `CREEM_*` configuration and credential fields.
+- [ ] Remove all former-provider configuration and credential fields.
 - [ ] Validate the PEM private key without logging its value.
 - [ ] Update production boundary tests and example environment documentation.
 - [ ] Run configuration tests and frozen install.
@@ -107,8 +107,7 @@
 - Modify: `src/server/payments/checkout-service.ts`
 - Modify: `src/server/payments/checkout-service.test.ts`
 - Modify: `src/app/production-actions.ts`
-- Delete: `src/server/payments/creem-client.ts`
-- Delete: `src/server/payments/creem-client.test.ts`
+- Delete: the former provider client and its test.
 
 **Interfaces:**
 - Produces: `WaffoClient.createCheckout({ storeId, productId, orderMerchantExternalId, successUrl, buyerEmail, metadata })`.
@@ -117,7 +116,7 @@
 - [ ] Add failing tests for server-authoritative product mapping, internal order correlation, and HTTPS Waffo checkout URLs.
 - [ ] Wrap `WaffoPancake.checkout.createSession()` with bounded error normalization.
 - [ ] Send `productType: "onetime"`, `currency: "USD"`, `buyerEmail`, `successUrl`, metadata, and internal order ID.
-- [ ] Replace the production checkout composition root and remove all Creem client references.
+- [ ] Replace the production checkout composition root and remove all former-provider client references.
 - [ ] Run payment unit tests and typecheck.
 
 ### Task 6: Waffo Webhook ingestion and entitlement lifecycle
@@ -126,11 +125,7 @@
 - Create: `src/server/payments/waffo-webhook.ts`
 - Create: `src/server/payments/waffo-webhook.test.ts`
 - Create: `src/app/api/webhooks/waffo/route.ts`
-- Delete: `src/app/api/webhooks/creem/route.ts`
-- Delete: `src/server/payments/creem-signature.ts`
-- Delete: `src/server/payments/creem-signature.test.ts`
-- Delete: `src/server/payments/creem-webhook.ts`
-- Delete: `src/server/payments/creem-webhook.test.ts`
+- Delete: the former provider webhook route, signature verifier, and tests.
 - Modify: `src/server/repositories/postgres/payment-repository.ts`
 - Modify: PostgreSQL payment integration tests.
 
@@ -142,7 +137,7 @@
 - [ ] Add failing route tests proving `.text()` is used before signature verification and invalid signatures return 401.
 - [ ] Add failing PostgreSQL tests for duplicate delivery IDs, exact order/product/currency/amount reconciliation, full and partial refund revocation, and failed-refund review marking.
 - [ ] Implement the verified Waffo route and provider-neutral repository processing.
-- [ ] Store provider `waffo` in `webhook_inbox`; remove all Creem error codes and audit labels.
+- [ ] Store provider `waffo` in `webhook_inbox`; remove all former-provider error codes and audit labels.
 - [ ] Run payment and fault-injection tests.
 
 ### Task 7: Payment recovery and UI copy
@@ -159,7 +154,7 @@
 
 - [ ] Add a failing recovery test for a paid Waffo order whose Webhook was delayed.
 - [ ] Query Waffo from the server only and feed the result through the same idempotent repository transition.
-- [ ] Remove “DEMO CHECKOUT” and Creem wording.
+- [ ] Remove “DEMO CHECKOUT” and former-provider wording.
 - [ ] Standardize entitlement validity copy to 12 months.
 - [ ] Run focused and full tests.
 
@@ -186,7 +181,7 @@
 - Modify: `docs/release-gates.md`
 - Modify: PR #12 description if all technical gates pass.
 
-- [ ] Remove every active Creem reference from source, tests, environment examples, and runbooks; retain historical migration filenames only when renaming would break applied migration history.
+- [ ] Remove every active former-provider reference from source, tests, environment examples, and runbooks; retain historical migration filenames only when renaming would break applied migration history.
 - [ ] Document Waffo Test and Production environment separation, Webhook URL, events, and required product IDs.
 - [ ] Run `bun install --frozen-lockfile`.
 - [ ] Run ordered PostgreSQL migrations from an empty database.

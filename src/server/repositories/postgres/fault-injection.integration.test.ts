@@ -75,6 +75,39 @@ describePostgres("PostgreSQL transaction fault injection", () => {
     expect(await sql`select id from entitlement_batches where order_id = 'ord_fault_payment'`).toHaveLength(0);
     expect(await sql`select id from entitlement_ledger where order_id = 'ord_fault_payment'`).toHaveLength(0);
     expect(await sql`select event_id from webhook_inbox where event_id = 'evt_fault_payment'`).toHaveLength(1);
+
+    // A normal PostgreSQL failure is infrastructure, not a domain rejection: it
+    // must be retried and can safely complete once the dependency recovers.
+    await sql`drop trigger fault_checkout_ledger_trigger on entitlement_ledger`;
+    await sql`drop function fault_checkout_ledger()`;
+    await sql`update outbox set available_at = now() where aggregate_id = 'delivery_fault_payment'`;
+    await expect(repository.dispatchPending()).resolves.toMatchObject({ dispatched: 1 });
+    expect(await sql`select id from entitlement_ledger where order_id = 'ord_fault_payment' and action = 'grant'`).toHaveLength(1);
+  });
+
+  it("dead-letters an infrastructure failure only after eight attempts", async () => {
+    await sql`insert into users (id, email) values ('usr_eight', 'eight@example.com')`;
+    await sql`insert into orders (id, user_id, product_id, amount_usd, currency, request_id, buyer_email_snapshot, status) values ('ord_eight', 'usr_eight', 'one', 2.99, 'USD', 'req_eight', 'eight@example.com', 'pending')`;
+    await sql.unsafe(`
+      CREATE FUNCTION fault_always() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN RAISE EXCEPTION 'FAULT_ALWAYS'; END $$;
+      CREATE TRIGGER fault_always_trigger BEFORE INSERT ON entitlement_ledger
+      FOR EACH ROW EXECUTE FUNCTION fault_always();
+    `);
+    const repository = new PostgresPaymentRepository(sql, { products: { PROD_one: { internalProductId: 'one', quantity: 1, amountUsd: 2.99 } } });
+    const event = {
+      id: 'delivery_eight', timestamp: '2026-07-31T04:00:00.000Z', eventId: 'evt_eight', eventType: 'order.completed', storeId: 'STO_test', mode: 'test' as const,
+      data: { orderId: 'provider_eight', buyerEmail: 'eight@example.com', merchantProvidedBuyerIdentity: 'usr_eight', currency: 'USD', amount: '2.99', subtotal: '2.99', total: '2.99', taxAmount: '0.00', productName: 'One', paymentId: 'evt_eight', orderMerchantExternalId: 'ord_eight', orderMetadata: { orderId: 'ord_eight', internalProductId: 'one' } },
+    };
+    await repository.recordVerifiedDelivery(event, event);
+    for (let attempt = 1; attempt <= 8; attempt++) {
+      await expect(repository.dispatchPending()).resolves.toMatchObject({ failed: 1 });
+      if (attempt < 8) await sql`update outbox set available_at = now() where aggregate_id = 'delivery_eight'`;
+    }
+    expect((await sql`select attempts, dead_lettered_at from outbox where aggregate_id = 'delivery_eight'`)[0]).toMatchObject({ attempts: 8 });
+    expect((await sql`select dead_lettered_at from outbox where aggregate_id = 'delivery_eight'`)[0].dead_lettered_at).not.toBeNull();
+    await sql`drop trigger fault_always_trigger on entitlement_ledger`;
+    await sql`drop function fault_always()`;
   });
 
   it("rolls back anonymization, authentication deletion and credit revocation when deletion audit persistence fails", async () => {
