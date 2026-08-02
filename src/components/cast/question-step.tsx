@@ -51,7 +51,7 @@ export function QuestionStep(props: {
             {INTERPRETATION_GOALS.map((goal) => <option key={goal} value={goal}>{goal.replace(/_/g, " ")}</option>)}
           </select>
         </div>
-        <div>
+        <div data-clarity-mask="true">
           <Label htmlFor="context">Your specific situation</Label>
           <Textarea
             id="context"
