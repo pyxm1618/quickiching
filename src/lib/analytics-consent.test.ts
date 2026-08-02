@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   ANALYTICS_CONSENT_COOKIE,
+  buildClarityCookieDeletionStrings,
   buildGoogleAnalyticsCookieDeletionStrings,
+  findClarityCookieNames,
   findGoogleAnalyticsCookieNames,
+  isValidClarityProjectId,
   isValidGaMeasurementId,
   parseAnalyticsConsent,
   serializeAnalyticsConsent,
@@ -39,6 +42,15 @@ describe("analytics consent policy", () => {
     expect(isValidGaMeasurementId(undefined)).toBe(false);
   });
 
+  it("accepts only lowercase alphanumeric Clarity project IDs", () => {
+    expect(isValidClarityProjectId("xvz3gv8ics")).toBe(true);
+    expect(isValidClarityProjectId("abc12345")).toBe(true);
+    expect(isValidClarityProjectId("ABC12345")).toBe(false);
+    expect(isValidClarityProjectId("abc-12345")).toBe(false);
+    expect(isValidClarityProjectId(" xv z3gv8ics ")).toBe(false);
+    expect(isValidClarityProjectId(undefined)).toBe(false);
+  });
+
   it("finds only Google Analytics first-party cookies", () => {
     expect(
       findGoogleAnalyticsCookieNames(
@@ -47,7 +59,15 @@ describe("analytics consent policy", () => {
     ).toEqual(["_ga", "_ga_WNMZ8YWC3B"]);
   });
 
-  it("builds host-only and production-domain deletion strings", () => {
+  it("finds only Clarity first-party cookies", () => {
+    expect(
+      findClarityCookieNames(
+        "session=abc; _clck=clarity-user; _clsk=clarity-session; MUID=third-party",
+      ),
+    ).toEqual(["_clck", "_clsk"]);
+  });
+
+  it("builds host-only and production-domain GA deletion strings", () => {
     const deletions = buildGoogleAnalyticsCookieDeletionStrings(
       "_ga=GA1.1.1.1; _ga_WNMZ8YWC3B=GS1.1.1",
       "www.quickiching.com",
@@ -59,6 +79,22 @@ describe("analytics consent policy", () => {
     );
     expect(deletions).toContain(
       "_ga=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; SameSite=Lax; Domain=.quickiching.com; Secure",
+    );
+    expect(deletions.some((value) => value.includes("session="))).toBe(false);
+  });
+
+  it("builds host-only and production-domain Clarity deletion strings", () => {
+    const deletions = buildClarityCookieDeletionStrings(
+      "_clck=clarity-user; _clsk=clarity-session; session=abc",
+      "www.quickiching.com",
+      true,
+    );
+
+    expect(deletions).toContain(
+      "_clck=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; SameSite=Lax; Secure",
+    );
+    expect(deletions).toContain(
+      "_clsk=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; SameSite=Lax; Domain=.quickiching.com; Secure",
     );
     expect(deletions.some((value) => value.includes("session="))).toBe(false);
   });
