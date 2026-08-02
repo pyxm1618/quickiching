@@ -4,17 +4,13 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
-/* 「明室 · 暗室」字体系统 —— 详见 phototype/UI设计方案.md §3 */
 const fraunces = Fraunces({
   subsets: ["latin"],
   style: ["normal", "italic"],
   axes: ["opsz"],
   variable: "--font-fraunces",
 });
-const instrument = Instrument_Sans({
-  subsets: ["latin"],
-  variable: "--font-instrument",
-});
+const instrument = Instrument_Sans({ subsets: ["latin"], variable: "--font-instrument" });
 const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
@@ -27,18 +23,19 @@ const notoSerifSC = Noto_Serif_SC({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  metadataBase: new URL("https://quickiching.com"),
   title: {
-    default: "I Ching Coin — Understand where you are",
-    template: "%s · I Ching Coin",
+    default: "Quick I Ching — Three-Coin Reflection Tool",
+    template: "%s · Quick I Ching",
   },
   description:
-    "A multi-method I Ching reflection tool. Cast with coins, yarrow stalks, or the current time, then reveal your hexagram and an optional deep reading.",
-  keywords: ["i ching coin", "three coin method", "yarrow stalk i ching", "mei hua yi shu", "i ching reading"],
+    "A structured I Ching reflection tool with a free three-coin casting preview. Paid deep readings and accounts are temporarily unavailable.",
+  keywords: ["quick i ching", "i ching coin", "three coin method", "i ching reading"],
   openGraph: {
-    title: "I Ching Coin",
-    description: "Understand where you are, how it may be changing, and what to watch before you act.",
+    title: "Quick I Ching",
+    description: "Cast six lines with three coins and explore the structure of an I Ching reading.",
     type: "website",
+    url: "https://quickiching.com",
   },
   robots: { index: true, follow: true },
 };
@@ -49,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${fraunces.variable} ${instrument.variable} ${plexMono.variable} ${notoSerifSC.variable}`}
     >
-      <body className="min-h-screen flex flex-col">
+      <body className="flex min-h-screen flex-col">
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />
