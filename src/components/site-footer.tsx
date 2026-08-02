@@ -42,6 +42,7 @@ export function SiteFooter() {
             <li><Link href="/terms" className={LINK}>Terms</Link></li>
             <li><Link href="/acceptable-use" className={LINK}>Acceptable Use</Link></li>
             <li><Link href="/help" className={LINK}>Help</Link></li>
+            <li><a href="mailto:support@quickiching.com" className={LINK}>Support</a></li>
           </ul>
         </div>
       </div>
