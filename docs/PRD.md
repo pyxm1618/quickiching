@@ -5,7 +5,7 @@
 **首发市场：** 美国  
 **首发语言：** 英文  
 **展示货币：** 美元  
-**核心 SEO 主题：** `i ching coin`  
+**核心 SEO 主题：** `quick i ching`  
 **核心主入口：** Three-Coin Method  
 **产品形态：** 多玩法《易经》文化解释与自我反思平台  
 **文档状态：** 产品范围已锁定；完成第 21 节上线阻断项后方可公开发布
@@ -66,7 +66,7 @@
 
 - 美国英语用户；
 - 已听说 I Ching，或对东方哲学、塔罗、自我反思工具有兴趣；
-- 主要通过搜索 `i ching coin`、`three coin method`、`yarrow stalk i ching`、`mei hua yi shu` 等主题进入；
+- 主要通过搜索 `quick i ching`、`three coin method`、`yarrow stalk i ching`、`mei hua yi shu` 等主题进入；
 - 正在处理事业、关系、资源、时机、选择或个人成长问题；
 - 愿意完成一次有仪式感的起卦，并为与具体处境相关的深度解释付费。
 
@@ -997,7 +997,7 @@ Organic Visit
 
 ## 23. MVP 最终闭环
 
-> 用户通过 `i ching coin` 或方法页进入网站  
+> 用户通过 `quick i ching` 或方法页进入网站  
 > → 选择一个场景、解读目标和具体情况  
 > → 选择并完成三硬币、蓍草或梅花当前时间起卦  
 > → 登录揭示合法、可复核且不可篡改的原始结果  

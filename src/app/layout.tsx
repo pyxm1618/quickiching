@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   },
   description:
     "A multi-method I Ching reflection tool. Cast with coins, yarrow stalks, or the current time, then reveal your hexagram and an optional deep reading.",
-  keywords: ["i ching coin", "three coin method", "yarrow stalk i ching", "mei hua yi shu", "i ching reading"],
+  keywords: ["quick i ching", "three coin method", "yarrow stalk i ching", "mei hua yi shu", "i ching reading"],
   openGraph: {
     title: "Quick I Ching",
     description: "Understand where you are, how it may be changing, and what to watch before you act.",
