@@ -245,6 +245,10 @@ export const orders = pgTable("orders", {
   currency: text("currency").notNull(),
   requestId: text("request_id").notNull().unique(),
   providerCheckoutId: text("provider_checkout_id").unique(),
+  buyerEmailSnapshot: text("buyer_email_snapshot"),
+  providerSubtotalMinor: integer("provider_subtotal_minor"),
+  providerTaxAmountMinor: integer("provider_tax_amount_minor"),
+  providerTotalMinor: integer("provider_total_minor"),
   status: orderStatus("status").notNull().default("pending"),
   createdAt,
   updatedAt,
@@ -291,6 +295,9 @@ export const outbox = pgTable("outbox", {
   aggregateId: text("aggregate_id"),
   payload: jsonb("payload").notNull(),
   dispatchedAt: timestamp("dispatched_at", { withTimezone: true }),
+  failedAt: timestamp("failed_at", { withTimezone: true }),
+  deadLetteredAt: timestamp("dead_lettered_at", { withTimezone: true }),
+  lastErrorCode: text("last_error_code"),
   attempts: integer("attempts").notNull().default(0),
   availableAt: timestamp("available_at", { withTimezone: true }).notNull().defaultNow(),
   createdAt,
@@ -298,11 +305,18 @@ export const outbox = pgTable("outbox", {
 
 export const webhookInbox = pgTable("webhook_inbox", {
   provider: text("provider").notNull(),
+  deliveryId: text("delivery_id").notNull(),
   eventId: text("event_id").notNull(),
   eventType: text("event_type").notNull(),
+  mode: text("mode"),
+  storeId: text("store_id"),
   payload: jsonb("payload").notNull(),
   signatureVerifiedAt: timestamp("signature_verified_at", { withTimezone: true }).notNull(),
   processedAt: timestamp("processed_at", { withTimezone: true }),
   processingErrorCode: text("processing_error_code"),
   createdAt,
-}, (table) => [primaryKey({ columns: [table.provider, table.eventId] })]);
+}, (table) => [
+  primaryKey({ columns: [table.provider, table.deliveryId] }),
+  uniqueIndex("webhook_inbox_provider_delivery_once_idx").on(table.provider, table.deliveryId),
+  uniqueIndex("webhook_inbox_provider_event_once_idx").on(table.provider, table.eventType, table.eventId),
+]);

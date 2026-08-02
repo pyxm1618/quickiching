@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { dispatchGenerationOutbox } from "@/server/jobs/generation-dispatcher";
+import { dispatchPaymentOutbox } from "@/server/jobs/payment-dispatcher";
 import { getProductionRuntime } from "@/server/runtime/production";
 import { loadCronSecret } from "@/server/cron-config";
 
@@ -20,8 +21,9 @@ export async function GET(request: Request): Promise<Response> {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   const production = await getProductionRuntime();
-  const [dispatch, timedOut, rateLimitBucketsPurged, accountContent] = await Promise.all([
+  const [dispatch, paymentDispatch, timedOut, rateLimitBucketsPurged, accountContent] = await Promise.all([
     dispatchGenerationOutbox(25),
+    dispatchPaymentOutbox(25),
     production.generation.reconcileTimeouts(new Date()),
     production.rateLimiter.purgeExpired(new Date()),
     production.accountPrivacy.purgeDue(25),
@@ -29,6 +31,8 @@ export async function GET(request: Request): Promise<Response> {
   return Response.json({
     dispatched: dispatch.dispatched,
     skipped: dispatch.skipped,
+    paymentDispatched: paymentDispatch.dispatched,
+    paymentFailed: paymentDispatch.failed,
     timedOut: timedOut.length,
     rateLimitBucketsPurged,
     accountContentPurged: accountContent.purged,

@@ -8,7 +8,7 @@ Make the local MVP internally safe and deterministic, and make every production-
 
 Phase A fixes all audit findings that are implementable without a provider account, an approved domain rule set, or a production database. It retains the three-method local demonstration flow, but prevents it from being represented as a public-production implementation.
 
-Phase A does not add Better Auth, Creem, PostgreSQL/Drizzle, Vercel Workflow, licensed classic text, or a third-party AI provider. Production configuration will reject startup when any of those capabilities would be required.
+Phase A does not add Better Auth, Waffo Pancake, PostgreSQL/Drizzle, Vercel Workflow, licensed classic text, or a third-party AI provider. Production configuration will reject startup when any of those capabilities would be required.
 
 ## Design decisions
 

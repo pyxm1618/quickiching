@@ -15,7 +15,7 @@ Validate all variables documented in `.env.example`. Production must use:
 
 - `AI_ADAPTER_MODE=ai-sdk`
 - `AUTH_ADAPTER_MODE=better-auth`
-- `PAYMENT_ADAPTER_MODE=creem`
+- `PAYMENT_ADAPTER_MODE=waffo`
 - `DATABASE_ADAPTER_MODE=postgres`
 - `WORKFLOW_ADAPTER_MODE=vercel`
 - pooled `DATABASE_URL` for application runtime traffic
@@ -49,11 +49,11 @@ Never expose server-only keys through `NEXT_PUBLIC_*` variables. Never print, lo
 - Verify the sender domain and `EMAIL_FROM` address.
 - Send a production Magic Link and confirm no token appears in logs, analytics, or error reporting.
 
-### Creem
+### Waffo Pancake
 
 - Configure product IDs for one, three, and five credits.
-- Configure the webhook endpoint `/api/webhooks/creem`.
-- Confirm the webhook secret matches `CREEM_WEBHOOK_SECRET`.
+- Configure separate Test and Production webhooks at `/api/webhooks/waffo` for `order.completed`, `refund.succeeded`, and `refund.failed`.
+- Configure `WAFFO_MERCHANT_ID`, server-only `WAFFO_PRIVATE_KEY`, `WAFFO_ENVIRONMENT`, `WAFFO_STORE_ID`, and all three product IDs. Test and Production use distinct keys.
 - Run one real test checkout and replay the same webhook; exactly one entitlement batch and one grant ledger entry must exist.
 
 ### Cloudflare Turnstile

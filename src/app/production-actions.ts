@@ -10,7 +10,7 @@ import { mapKnownDomainError } from "@/server/actions/action-result";
 import { runtimeConfig } from "@/server/config";
 import { dispatchGenerationOutbox } from "@/server/jobs/generation-dispatcher";
 import { CheckoutService } from "@/server/payments/checkout-service";
-import { CreemClient } from "@/server/payments/creem-client";
+import { WaffoClient } from "@/server/payments/waffo-client";
 import { getProductionRuntime } from "@/server/runtime/production";
 import { PostgresAuthenticatedRevealService } from "@/server/runtime/postgres-authenticated-reveal";
 import {
@@ -353,10 +353,10 @@ async function createCheckoutAction(unknownInput: unknown) {
           const orderId = id("ord");
           const rows = await runtime.sql`
             insert into orders (
-              id, user_id, product_id, amount_usd, currency, request_id, status
+              id, user_id, product_id, amount_usd, currency, request_id, buyer_email_snapshot, status
             ) values (
               ${orderId}, ${order.userId}, ${order.productId}, ${order.amountUsd},
-              ${order.currency}, ${order.requestId}, 'pending'
+              ${order.currency}, ${order.requestId}, ${user.email}, 'pending'
             ) returning id, request_id, amount_usd
           `;
           return {
@@ -365,15 +365,21 @@ async function createCheckoutAction(unknownInput: unknown) {
             amountUsd: Number(rows[0].amount_usd),
           };
         },
+        saveProviderCheckoutId: async ({ orderId, checkoutId }) => {
+          await runtime.sql`
+            update orders set provider_checkout_id = ${checkoutId}, updated_at = now()
+            where id = ${orderId} and status = 'pending'
+          `;
+        },
       },
-      creemClient: new CreemClient({
-        apiKey: config.credentials.creemApiKey,
-        mode: config.credentials.creemApiKey.startsWith("creem_test_") ? "test" : "production",
+      waffoClient: new WaffoClient({
+        merchantId: config.credentials.waffoMerchantId,
+        privateKey: config.credentials.waffoPrivateKey,
       }),
       providerProductIds: {
-        one: config.credentials.creemProductIdOne,
-        three: config.credentials.creemProductIdThree,
-        five: config.credentials.creemProductIdFive,
+        one: config.credentials.waffoProductIdOne,
+        three: config.credentials.waffoProductIdThree,
+        five: config.credentials.waffoProductIdFive,
       },
       appUrl: config.baseUrl,
       requestId: () => id("req"),

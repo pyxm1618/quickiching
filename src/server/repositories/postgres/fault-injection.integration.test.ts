@@ -40,14 +40,14 @@ describePostgres("PostgreSQL transaction fault injection", () => {
   it("rolls back inbox, order and entitlement writes when checkout ledger persistence fails", async () => {
     await sql`insert into users (id, email) values ('usr_fault_payment', 'fault-payment@example.com')`;
     await sql`
-      insert into orders (id, user_id, product_id, amount_usd, currency, request_id, status)
-      values ('ord_fault_payment', 'usr_fault_payment', 'one', 2.99, 'USD', 'req_fault_payment', 'pending')
+      insert into orders (id, user_id, product_id, amount_usd, currency, request_id, buyer_email_snapshot, status)
+      values ('ord_fault_payment', 'usr_fault_payment', 'one', 2.99, 'USD', 'req_fault_payment', 'fault-payment@example.com', 'pending')
     `;
     await sql.unsafe(`
       CREATE FUNCTION fault_checkout_ledger()
       RETURNS trigger LANGUAGE plpgsql AS $$
       BEGIN
-        IF NEW.reason_code = 'checkout_completed' THEN
+        IF NEW.reason_code = 'order_completed' THEN
           RAISE EXCEPTION 'FAULT_INJECTED_CHECKOUT_LEDGER';
         END IF;
         RETURN NEW;
@@ -60,28 +60,21 @@ describePostgres("PostgreSQL transaction fault injection", () => {
 
     const repository = new PostgresPaymentRepository(sql, {
       products: {
-        prod_one: { internalProductId: "one", quantity: 1, amountUsd: 2.99 },
+        PROD_one: { internalProductId: "one", quantity: 1, amountUsd: 2.99 },
       },
     });
-    await expect(repository.processEvent({
-      eventId: "evt_fault_payment",
-      eventType: "checkout.completed",
-      checkoutId: "checkout_fault_payment",
-      providerOrderId: "provider_order_fault_payment",
-      providerTransactionId: "provider_transaction_fault_payment",
-      requestId: "req_fault_payment",
-      providerProductId: "prod_one",
-      amountMinor: 299,
-      currency: "USD",
-      occurredAt: new Date("2026-07-31T04:00:00.000Z"),
-      payload: { ignored: "provider payload" },
-    })).rejects.toThrow("FAULT_INJECTED_CHECKOUT_LEDGER");
+    const event = {
+      id: "delivery_fault_payment", timestamp: "2026-07-31T04:00:00.000Z", eventId: "evt_fault_payment", eventType: "order.completed", storeId: "STO_test", mode: "test" as const,
+      data: { orderId: "provider_order_fault_payment", buyerEmail: "fault-payment@example.com", merchantProvidedBuyerIdentity: "usr_fault_payment", currency: "USD", amount: "2.99", subtotal: "2.99", total: "2.99", taxAmount: "0.00", productName: "One", paymentId: "evt_fault_payment", orderMerchantExternalId: "ord_fault_payment", orderMetadata: { orderId: "ord_fault_payment", internalProductId: "one" } },
+    };
+    await repository.recordVerifiedDelivery(event, event);
+    await expect(repository.dispatchPending()).resolves.toMatchObject({ failed: 1 });
 
     expect((await sql`select status, provider_order_id from orders where id = 'ord_fault_payment'`)[0])
       .toMatchObject({ status: "pending", provider_order_id: null });
     expect(await sql`select id from entitlement_batches where order_id = 'ord_fault_payment'`).toHaveLength(0);
     expect(await sql`select id from entitlement_ledger where order_id = 'ord_fault_payment'`).toHaveLength(0);
-    expect(await sql`select event_id from webhook_inbox where event_id = 'evt_fault_payment'`).toHaveLength(0);
+    expect(await sql`select event_id from webhook_inbox where event_id = 'evt_fault_payment'`).toHaveLength(1);
   });
 
   it("rolls back anonymization, authentication deletion and credit revocation when deletion audit persistence fails", async () => {

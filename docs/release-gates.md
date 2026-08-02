@@ -22,7 +22,7 @@ This file records release-state evidence. It does not authorize release by itsel
 | G-04 | blocked_external | Domain approval for `mei-hua-v1` calendar, leap month, zi hour, timezone and body/use rules |
 | G-05 | blocked_external | Interpretation goldens for still, single, multiple and all-moving variants |
 | G-06 | blocked_external | English AI quality, safety and cost evaluation |
-| G-07 | blocked_external | Creem merchant and production product approval |
+| G-07 | blocked_external | Waffo merchant, production product, and webhook approval; automated chargeback synchronization remains blocked until Waffo publishes a machine interface |
 | G-08 | blocked_external | US legal review of terms, privacy, refunds, expiry and disclaimers |
 | G-09 | blocked_external | Professional approval of emergency copy and regional resources |
 | G-10 | blocked_external | Support mailbox, review staffing, three-business-day SLA, alerting and incident process |

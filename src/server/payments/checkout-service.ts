@@ -5,13 +5,6 @@ type UserIdentity = { id: string; email: string };
 
 type OrderRecord = { id: string; requestId: string; amountUsd: number };
 
-type CheckoutResult = {
-  id: string;
-  status: string;
-  checkoutUrl: string;
-  requestId: string;
-};
-
 export class CheckoutService {
   constructor(private readonly dependencies: {
     orderRepository: {
@@ -22,15 +15,17 @@ export class CheckoutService {
         currency: string;
         requestId: string;
       }): OrderRecord | Promise<OrderRecord>;
+      saveProviderCheckoutId(input: { orderId: string; checkoutId: string }): void | Promise<void>;
     };
-    creemClient: {
+    waffoClient: {
       createCheckout(input: {
         productId: string;
-        requestId: string;
+        buyerIdentity: string;
         successUrl: string;
-        customerEmail: string;
+        buyerEmail: string;
+        orderMerchantExternalId: string;
         metadata: Record<string, string>;
-      }): Promise<CheckoutResult>;
+      }): Promise<{ sessionId: string; checkoutUrl: string }>;
     };
     providerProductIds: Record<ProductId, string>;
     appUrl: string;
@@ -47,7 +42,7 @@ export class CheckoutService {
     if (!product) throw new DomainError("INVALID_PRODUCT", "Unknown product.", false);
     const providerProductId = this.dependencies.providerProductIds[product.id]?.trim();
     if (!providerProductId) {
-      throw new DomainError("CREEM_PRODUCT_NOT_CONFIGURED", "This product is not available.", false);
+      throw new DomainError("WAFFO_PRODUCT_NOT_CONFIGURED", "This product is not available.", false);
     }
     const appUrl = new URL(this.dependencies.appUrl);
     if (appUrl.protocol !== "https:") throw new Error("APP_URL_INVALID");
@@ -61,21 +56,25 @@ export class CheckoutService {
     });
     const successUrl = new URL("/checkout/success", appUrl);
     successUrl.searchParams.set("orderId", order.id);
-    const checkout = await this.dependencies.creemClient.createCheckout({
+    const checkout = await this.dependencies.waffoClient.createCheckout({
       productId: providerProductId,
-      requestId,
+      buyerIdentity: input.user.id,
       successUrl: successUrl.toString(),
-      customerEmail: input.user.email,
+      buyerEmail: input.user.email,
+      orderMerchantExternalId: order.id,
       metadata: {
         orderId: order.id,
-        userId: input.user.id,
-        productId: product.id,
+        internalProductId: product.id,
       },
     });
-    if (checkout.requestId !== requestId) throw new Error("CREEM_REQUEST_ID_MISMATCH");
+    if (!checkout.sessionId) throw new Error("WAFFO_SESSION_ID_MISSING");
+    await this.dependencies.orderRepository.saveProviderCheckoutId({
+      orderId: order.id,
+      checkoutId: checkout.sessionId,
+    });
     return {
       orderId: order.id,
-      checkoutId: checkout.id,
+      checkoutId: checkout.sessionId,
       checkoutUrl: checkout.checkoutUrl,
       amountUsd: product.unitPriceUsd,
     };

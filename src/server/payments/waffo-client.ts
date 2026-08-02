@@ -1,114 +1,50 @@
-import { createHash, sign } from "node:crypto";
+import { WaffoPancake, WaffoPancakeError } from "@waffo/pancake-ts";
 
-const CREATE_SESSION_PATH = "/v1/actions/checkout/create-session";
-const WAFFO_API_ORIGIN = "https://api.waffo.ai";
-const ALLOWED_CHECKOUT_HOST = "checkout.waffo.ai";
-
-type CheckoutInput = {
+export type WaffoCheckoutInput = {
   productId: string;
-  requestId: string;
+  buyerIdentity: string;
+  buyerEmail: string;
   successUrl: string;
-  customerEmail: string;
+  orderMerchantExternalId: string;
   metadata: Record<string, string>;
 };
 
-type WaffoResponse = {
-  data?: {
-    sessionId?: unknown;
-    checkoutUrl?: unknown;
-    expiresAt?: unknown;
-  };
-};
-
-function safeCheckoutUrl(value: unknown): string {
-  if (typeof value !== "string") throw new Error("WAFFO_CHECKOUT_URL_INVALID");
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    throw new Error("WAFFO_CHECKOUT_URL_INVALID");
-  }
-  if (parsed.protocol !== "https:" || parsed.hostname !== ALLOWED_CHECKOUT_HOST) {
-    throw new Error("WAFFO_CHECKOUT_URL_INVALID");
-  }
-  return parsed.toString();
+function httpsUrl(value: string): string {
+  const url = new URL(value);
+  if (url.protocol !== "https:") throw new Error("WAFFO_CHECKOUT_URL_INVALID");
+  return url.toString();
 }
 
-export function createWaffoRequestSignature(input: {
-  method: string;
-  path: string;
-  timestamp: number;
-  body: string;
-  privateKey: string;
-}): string {
-  const bodyHash = createHash("sha256").update(input.body).digest("base64");
-  const canonicalRequest = [
-    input.method.toUpperCase(),
-    input.path,
-    String(input.timestamp),
-    bodyHash,
-  ].join("\n");
-  return sign("sha256", Buffer.from(canonicalRequest, "utf8"), input.privateKey).toString("base64");
-}
-
+/** Server-only SDK boundary. The SDK owns merchant request signing. */
 export class WaffoClient {
-  constructor(private readonly dependencies: {
-    merchantId: string;
-    privateKey: string;
-    storeId: string;
-    fetchImpl?: typeof fetch;
-    now?: () => Date;
-  }) {}
+  private readonly client: WaffoPancake;
 
-  async createCheckout(input: CheckoutInput): Promise<{
-    id: string;
-    status: string;
-    checkoutUrl: string;
-    requestId: string;
-  }> {
-    const fetchImpl = this.dependencies.fetchImpl ?? fetch;
-    const timestamp = Math.floor((this.dependencies.now?.() ?? new Date()).getTime() / 1000);
-    const body = JSON.stringify({
-      storeId: this.dependencies.storeId,
-      productId: input.productId,
-      productType: "onetime",
-      currency: "USD",
-      buyerEmail: input.customerEmail,
-      successUrl: input.successUrl,
-      metadata: input.metadata,
-      orderMerchantExternalId: input.metadata.orderId,
+  constructor(credentials: { merchantId: string; privateKey: string }) {
+    this.client = new WaffoPancake({
+      merchantId: credentials.merchantId,
+      privateKey: credentials.privateKey,
     });
-    const signature = createWaffoRequestSignature({
-      method: "POST",
-      path: CREATE_SESSION_PATH,
-      timestamp,
-      body,
-      privateKey: this.dependencies.privateKey,
-    });
-    const response = await fetchImpl(`${WAFFO_API_ORIGIN}${CREATE_SESSION_PATH}`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-merchant-id": this.dependencies.merchantId,
-        "x-timestamp": String(timestamp),
-        "x-signature": signature,
-      },
-      body,
-    });
-    if (!response.ok) throw new Error(`WAFFO_CHECKOUT_CREATE_FAILED:${response.status}`);
-    const payload = await response.json() as WaffoResponse;
-    const data = payload.data;
-    if (
-      typeof data?.sessionId !== "string"
-      || typeof data.expiresAt !== "string"
-    ) {
-      throw new Error("WAFFO_CHECKOUT_RESPONSE_INVALID");
+  }
+
+  async createCheckout(input: WaffoCheckoutInput): Promise<{ sessionId: string; checkoutUrl: string }> {
+    try {
+      const session = await this.client.checkout.authenticated.create({
+        productId: input.productId,
+        currency: "USD",
+        buyerIdentity: input.buyerIdentity,
+        buyerEmail: input.buyerEmail,
+        successUrl: input.successUrl,
+        orderMerchantExternalId: input.orderMerchantExternalId,
+        metadata: input.metadata,
+      });
+      return { sessionId: session.sessionId, checkoutUrl: httpsUrl(session.checkoutUrl) };
+    } catch (error) {
+      if (error instanceof WaffoPancakeError) {
+        const cause = error.errors[0]?.message ?? "provider_error";
+        if (error.status >= 500) throw new Error(`WAFFO_PROVIDER_RETRYABLE:${cause}`);
+        throw new Error("WAFFO_CHECKOUT_REJECTED");
+      }
+      throw error;
     }
-    return {
-      id: data.sessionId,
-      status: "pending",
-      checkoutUrl: safeCheckoutUrl(data.checkoutUrl),
-      requestId: input.requestId,
-    };
   }
 }

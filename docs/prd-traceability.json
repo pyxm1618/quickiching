@@ -25,7 +25,7 @@
     { "id": "G-04", "status": "blocked_external", "control": ["src/server/release/method-release.ts"], "requiredEvidence": "Mei Hua calendar, leap-month, zi-hour, timezone and body/use approval for mei-hua-v1" },
     { "id": "G-05", "status": "blocked_external", "control": ["src/server/ai/output-validator.test.ts"], "requiredEvidence": "Approved interpretation goldens for still, single, multiple and all-moving variants" },
     { "id": "G-06", "status": "blocked_external", "control": ["src/server/ai/ai-sdk-adapter.test.ts", "src/server/ai/output-validator.test.ts"], "requiredEvidence": "English quality, safety and cost evaluation approval" },
-    { "id": "G-07", "status": "blocked_external", "control": ["src/server/repositories/postgres/payment-lifecycle.integration.test.ts"], "requiredEvidence": "Creem merchant and production product approval" },
+    { "id": "G-07", "status": "blocked_external", "control": ["src/server/repositories/postgres/payment-lifecycle.integration.test.ts"], "requiredEvidence": "Waffo merchant, production product, and separate Test/Production webhook approval; chargeback automation awaits an official machine interface" },
     { "id": "G-08", "status": "blocked_external", "control": ["src/server/runtime/postgres-account-privacy.integration.test.ts"], "requiredEvidence": "US legal approval for terms, privacy, refund, expiry and disclaimer copy" },
     { "id": "G-09", "status": "blocked_external", "control": ["src/domain/risk/engine.test.ts"], "requiredEvidence": "Professional approval of emergency copy and regional resources" },
     { "id": "G-10", "status": "blocked_external", "control": ["docs/release-gates.md"], "requiredEvidence": "Support mailbox, reviewers, SLA, alerting and incident process evidence" }

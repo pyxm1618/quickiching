@@ -28,7 +28,7 @@ A production-shaped, **runnable MVP** of the I Ching (易经) divination product
 | Anonymous → login reveal | ✅ | Dev email sign-in + anonymous cookie; result data is withheld until bound and revealed |
 | Free hexagram results | ✅ | Public result page (owner-only) |
 | Paid AI deep readings | ✅ | Entitlement batch math (available+reserved+consumed+revoked = total), FIFO freeze/consume/release |
-| Pricing / checkout | ✅ | $2.99 / $6.99 / $9.99; simulated checkout (Creem is the production target) |
+| Pricing / checkout | ✅ | $2.99 / $6.99 / $9.99; local simulated checkout and Waffo production adapter |
 | Quality review | ✅ | One review per reading; submitted→approved/rejected |
 | Deletion / privacy | ✅ | Revealed owner-only deletion + 30-day recovery window; AES-256-GCM encrypted question context |
 | Marketing + SEO | ✅ | Home, method pages, pricing, how-to-ask, changing/relating hexagram explainers |
@@ -47,6 +47,12 @@ Env: copy `.env.example` → `.env.local`. The explicit `dev` / `simulated` / `m
 configuration is for local demonstration only. `APP_SECRET` is used for AES/HMAC and
 `AI_ADAPTER_MODE=local` runs the deterministic offline generator. A production server rejects
 these development adapters and placeholder secrets rather than presenting them as production services.
+
+## Waffo Pancake payments
+
+Production accepts only `PAYMENT_ADAPTER_MODE=waffo`. Set server-side `WAFFO_MERCHANT_ID`, `WAFFO_PRIVATE_KEY`, `WAFFO_ENVIRONMENT` (`test` or `prod`), `WAFFO_STORE_ID`, and `WAFFO_PRODUCT_ID_ONE`, `WAFFO_PRODUCT_ID_THREE`, and `WAFFO_PRODUCT_ID_FIVE`. The private key must never be a `NEXT_PUBLIC_*` value. Test and Production use distinct keys.
+
+The only one-time products are one credit / USD 2.99, three credits / USD 6.99, and five credits / USD 9.99. Create and test them in Waffo Test before publishing Production products. Register separate Test and Production webhooks at `/api/webhooks/waffo`, subscribing only to `order.completed`, `refund.succeeded`, and `refund.failed`. Browser returns only poll local order state; only the verified webhook can grant credits. Automated chargeback synchronization remains blocked until Waffo publishes an official machine interface.
 
 ## Architecture
 
@@ -77,7 +83,7 @@ These require decisions/approvals outside code and are **scaffolded fail-closed*
 - **G-01** Domain advisor sign-off on interpretation content & risk rules
 - **G-02** Licensed classic-text usage (King Wen / 十翼) — current names are placeholders pending licensing
 - **G-03** Legal review of Privacy/Terms/Acceptable-Use for US market
-- **G-04** Payments merchant approval (Creem live mode) + real webhook
+- **G-04** Payments merchant approval (Waffo Production) + real webhook
 - **G-05** AI provider contract + content-safety review for readings
 - **G-06** Production auth (Better Auth) replacing dev email sign-in
 - **G-07** Production DB (Drizzle + Neon PostgreSQL) replacing in-memory repository

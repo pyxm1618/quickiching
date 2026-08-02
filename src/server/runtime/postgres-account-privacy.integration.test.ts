@@ -61,7 +61,7 @@ describePostgres("PostgreSQL account deletion privacy lifecycle", () => {
         provider, event_id, event_type, order_id, payload,
         signature_verified_at, processed_at
       ) values (
-        'creem', 'evt_account_delete', 'checkout.completed', 'ord_account_delete',
+        'waffo', 'evt_account_delete', 'order.completed', 'ord_account_delete',
         ${sql.json({
           customer: { email: "owner@example.com", name: "Owner" },
           order: { id: "provider-order-account-delete", amount: 599 },

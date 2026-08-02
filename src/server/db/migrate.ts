@@ -14,6 +14,9 @@ export const MIGRATION_IDS = [
   "0008_quality_review_lifecycle",
   "0009_account_deletion_privacy",
   "0010_deletion_lock_namespace",
+  "0011_waffo_payment_inbox",
+  "0012_waffo_inbox_outbox_reliability",
+  "0013_payment_outbox_dead_letter",
 ] as const;
 export const LATEST_MIGRATION_ID = MIGRATION_IDS[MIGRATION_IDS.length - 1];
 const MIGRATION_LOCK = 8_924_211_607;

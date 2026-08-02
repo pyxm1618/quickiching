@@ -48,10 +48,9 @@ type ProductionRuntimeConfig = {
     googleClientSecret: string;
     resendApiKey: string;
     emailFrom: string;
-    waffoEnvironment: "test" | "prod";
     waffoMerchantId: string;
     waffoPrivateKey: string;
-    waffoWebhookPublicKey: string;
+    waffoEnvironment: "test" | "prod";
     waffoStoreId: string;
     waffoProductIdOne: string;
     waffoProductIdThree: string;
@@ -99,15 +98,6 @@ function secretAtLeast(env: RuntimeEnv, name: string, minimumLength: number): st
   if (value.length < minimumLength) {
     invalid(`${name} must be at least ${minimumLength} characters`, true);
   }
-  return value;
-}
-
-function pem(env: RuntimeEnv, name: string, kind: "PRIVATE" | "PUBLIC"): string {
-  const value = required(env, name).replaceAll("\\n", "\n").trim();
-  const pattern = kind === "PRIVATE"
-    ? /^-----BEGIN (?:RSA )?PRIVATE KEY-----[\s\S]+-----END (?:RSA )?PRIVATE KEY-----$/
-    : /^-----BEGIN PUBLIC KEY-----[\s\S]+-----END PUBLIC KEY-----$/;
-  if (!pattern.test(value)) invalid(`${name} must be a PEM encoded ${kind.toLowerCase()} key`, true);
   return value;
 }
 
@@ -180,9 +170,14 @@ function validateKeyMaterial(value: string, keysName: string, version: string): 
   if (material.length < MINIMUM_KEY_BYTES) {
     invalid(`${keysName} key ${version} must decode to at least ${MINIMUM_KEY_BYTES} bytes`, true);
   }
-  if (containsPlaceholderMaterial(material)) invalid(`${keysName} key ${version} contains placeholder material`, true);
+  if (containsPlaceholderMaterial(material)) {
+    invalid(`${keysName} key ${version} contains placeholder material`, true);
+  }
   const uniqueBytes = new Set(material).size;
-  if (uniqueBytes < MINIMUM_UNIQUE_KEY_BYTES || entropyBitsPerByte(material) < MINIMUM_KEY_ENTROPY_BITS_PER_BYTE) {
+  if (
+    uniqueBytes < MINIMUM_UNIQUE_KEY_BYTES
+    || entropyBitsPerByte(material) < MINIMUM_KEY_ENTROPY_BITS_PER_BYTE
+  ) {
     invalid(`${keysName} key ${version} does not contain sufficient entropy`, true);
   }
   return material;
@@ -193,6 +188,7 @@ function versionedKeySet(env: RuntimeEnv, keysName: string, writeVersionName: st
   const entries = raw.split(",").map((entry) => entry.trim());
   const read: VersionedKey[] = [];
   const versions = new Set<string>();
+
   for (const entry of entries) {
     const match = /^([A-Za-z0-9][A-Za-z0-9._-]*):(.+)$/.exec(entry);
     if (!match || !match[2].trim() || versions.has(match[1])) {
@@ -204,8 +200,11 @@ function versionedKeySet(env: RuntimeEnv, keysName: string, writeVersionName: st
     versions.add(version);
     read.push({ version, value });
   }
+
   const writeVersion = required(env, writeVersionName);
-  if (!versions.has(writeVersion)) invalid(`${writeVersionName} must reference a version in ${keysName}`, true);
+  if (!versions.has(writeVersion)) {
+    invalid(`${writeVersionName} must reference a version in ${keysName}`, true);
+  }
   return { writeVersion, read };
 }
 
@@ -213,7 +212,9 @@ function assertPurposeSeparated(keys: RuntimeKeys, production: boolean): void {
   const materials = new Set<string>();
   for (const keySet of Object.values(keys)) {
     for (const key of keySet.read) {
-      const material = production ? decodeEncodedKeyMaterial(key.value) : Buffer.from(key.value, "utf8");
+      const material = production
+        ? decodeEncodedKeyMaterial(key.value)
+        : Buffer.from(key.value, "utf8");
       if (!material) invalid(`key ${key.version} has invalid encoded material`, production);
       const fingerprint = createHash("sha256").update(material).digest("hex");
       if (materials.has(fingerprint)) invalid("key material must not be reused across purposes", production);
@@ -225,17 +226,35 @@ function assertPurposeSeparated(keys: RuntimeKeys, production: boolean): void {
 function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
   const ai = oneOf(env.AI_ADAPTER_MODE, ["ai-sdk"] as const, "AI_ADAPTER_MODE", undefined, true);
   const auth = oneOf(env.AUTH_ADAPTER_MODE, ["better-auth"] as const, "AUTH_ADAPTER_MODE", undefined, true);
-  const publicAuthAdapterMode = oneOf(env.NEXT_PUBLIC_AUTH_ADAPTER_MODE, ["better-auth"] as const, "NEXT_PUBLIC_AUTH_ADAPTER_MODE", undefined, true);
+  const publicAuthAdapterMode = oneOf(
+    env.NEXT_PUBLIC_AUTH_ADAPTER_MODE,
+    ["better-auth"] as const,
+    "NEXT_PUBLIC_AUTH_ADAPTER_MODE",
+    undefined,
+    true,
+  );
   const payment = oneOf(env.PAYMENT_ADAPTER_MODE, ["waffo"] as const, "PAYMENT_ADAPTER_MODE", undefined, true);
-  const waffoEnvironment = oneOf(env.WAFFO_ENVIRONMENT, ["test", "prod"] as const, "WAFFO_ENVIRONMENT", undefined, true);
   const database = oneOf(env.DATABASE_ADAPTER_MODE, ["postgres"] as const, "DATABASE_ADAPTER_MODE", undefined, true);
-  const workflowAdapterMode = oneOf(env.WORKFLOW_ADAPTER_MODE, ["vercel"] as const, "WORKFLOW_ADAPTER_MODE", undefined, true);
+  const workflowAdapterMode = oneOf(
+    env.WORKFLOW_ADAPTER_MODE,
+    ["vercel"] as const,
+    "WORKFLOW_ADAPTER_MODE",
+    undefined,
+    true,
+  );
   const baseUrl = httpsUrl(env, "APP_BASE_URL");
   const publicAppUrl = httpsUrl(env, "NEXT_PUBLIC_APP_URL");
   const betterAuthUrl = httpsUrl(env, "BETTER_AUTH_URL");
   const publicBetterAuthUrl = httpsUrl(env, "NEXT_PUBLIC_BETTER_AUTH_URL");
-  const applicationOrigins = new Set([new URL(baseUrl).origin, new URL(publicAppUrl).origin, new URL(betterAuthUrl).origin, new URL(publicBetterAuthUrl).origin]);
-  if (applicationOrigins.size !== 1) invalid("application and authentication URLs must share one origin", true);
+  const applicationOrigins = new Set([
+    new URL(baseUrl).origin,
+    new URL(publicAppUrl).origin,
+    new URL(betterAuthUrl).origin,
+    new URL(publicBetterAuthUrl).origin,
+  ]);
+  if (applicationOrigins.size !== 1) {
+    invalid("application and authentication URLs must share one origin", true);
+  }
   const betterAuthSecret = secretAtLeast(env, "BETTER_AUTH_SECRET", 32);
   const emailFrom = required(env, "EMAIL_FROM");
   if (!z.string().email().safeParse(emailFrom.match(/<([^>]+)>$/)?.[1] ?? emailFrom).success) {
@@ -245,10 +264,19 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
   if (!z.string().url().safeParse(databaseUrl).success || !databaseUrl.startsWith("postgres")) {
     invalid("DATABASE_URL must be a PostgreSQL URL", true);
   }
+
   const keys: RuntimeKeys = {
     sessionSigning: versionedKeySet(env, "SESSION_SIGNING_KEYS", "SESSION_SIGNING_WRITE_VERSION"),
-    questionFingerprint: versionedKeySet(env, "QUESTION_FINGERPRINT_KEYS", "QUESTION_FINGERPRINT_WRITE_VERSION"),
-    questionEncryption: versionedKeySet(env, "QUESTION_ENCRYPTION_KEYS", "QUESTION_ENCRYPTION_WRITE_VERSION"),
+    questionFingerprint: versionedKeySet(
+      env,
+      "QUESTION_FINGERPRINT_KEYS",
+      "QUESTION_FINGERPRINT_WRITE_VERSION",
+    ),
+    questionEncryption: versionedKeySet(
+      env,
+      "QUESTION_ENCRYPTION_KEYS",
+      "QUESTION_ENCRYPTION_WRITE_VERSION",
+    ),
     resultIntegrity: versionedKeySet(env, "RESULT_INTEGRITY_KEYS", "RESULT_INTEGRITY_WRITE_VERSION"),
   };
   assertPurposeSeparated(keys, true);
@@ -273,10 +301,9 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
       googleClientSecret: required(env, "GOOGLE_CLIENT_SECRET"),
       resendApiKey: required(env, "RESEND_API_KEY"),
       emailFrom,
-      waffoEnvironment,
       waffoMerchantId: required(env, "WAFFO_MERCHANT_ID"),
-      waffoPrivateKey: pem(env, "WAFFO_PRIVATE_KEY", "PRIVATE"),
-      waffoWebhookPublicKey: pem(env, "WAFFO_WEBHOOK_PUBLIC_KEY", "PUBLIC"),
+      waffoPrivateKey: required(env, "WAFFO_PRIVATE_KEY"),
+      waffoEnvironment: oneOf(env.WAFFO_ENVIRONMENT, ["test", "prod"] as const, "WAFFO_ENVIRONMENT", undefined, true),
       waffoStoreId: required(env, "WAFFO_STORE_ID"),
       waffoProductIdOne: required(env, "WAFFO_PRODUCT_ID_ONE"),
       waffoProductIdThree: required(env, "WAFFO_PRODUCT_ID_THREE"),
@@ -293,7 +320,10 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
 
 function localKeySet(purpose: string): VersionedKeySet {
   const version = "v1";
-  return { writeVersion: version, read: [{ version, value: `local-${purpose}-key-material-never-use-in-production` }] };
+  return {
+    writeVersion: version,
+    read: [{ version, value: `local-${purpose}-key-material-never-use-in-production` }],
+  };
 }
 
 function loadLocalConfig(env: RuntimeEnv, mode: "development" | "test"): LocalRuntimeConfig {

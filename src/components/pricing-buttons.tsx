@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createCheckoutAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -16,9 +15,9 @@ const TIER_FEATURES: Record<string, string[]> = {
 };
 
 export function PricingButtons() {
-  const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [blockedCheckoutUrl, setBlockedCheckoutUrl] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
   const challengeRequired = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
@@ -29,14 +28,19 @@ export function PricingButtons() {
     setTurnstileToken(null);
     setPending(productId);
     setError(null);
+    setBlockedCheckoutUrl(null);
     try {
       const res = await createCheckoutAction({ productId, turnstileToken: token });
       if (!res.ok) {
         setError(res.error.message);
-        if (res.error.code === "AUTH_REQUIRED") router.push("/signin");
+        if (res.error.code === "AUTH_REQUIRED") window.location.assign("/signin");
         return;
       }
-      router.push(res.value.checkoutUrl);
+      const popup = window.open(res.value.checkoutUrl, "_blank", "noopener,noreferrer");
+      if (!popup) {
+        setBlockedCheckoutUrl(res.value.checkoutUrl);
+        setError("Your browser blocked the payment window. Use the secure checkout link below.");
+      }
     } finally {
       setPending(null);
       setResetKey((value) => value + 1);
@@ -88,6 +92,11 @@ export function PricingButtons() {
         <p className="mt-4 rounded border border-[var(--danger)] bg-[var(--danger-wash)] px-4 py-3 text-sm text-[var(--danger)]">
           {error}
         </p>
+      )}
+      {blockedCheckoutUrl && (
+        <a className="mt-3 inline-block text-sm underline" href={blockedCheckoutUrl} target="_blank" rel="noopener noreferrer">
+          Open secure checkout
+        </a>
       )}
     </div>
   );
