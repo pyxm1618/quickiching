@@ -50,7 +50,7 @@ export default async function AccountPage({
   })();
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-16">
+    <main data-clarity-mask="true" className="mx-auto max-w-4xl px-4 py-16">
       <h1 className="font-display text-4xl font-medium">Your Account</h1>
       <p className="mt-2 text-sm text-[var(--ink-2)]">Signed in as {user.email}</p>
 
