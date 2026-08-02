@@ -80,7 +80,7 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-20">
+    <div data-clarity-mask="true" className="mx-auto max-w-md px-4 py-20">
       <div className="mb-6 flex flex-col items-center gap-3 text-center">
         <SealMark size="lg" tilt />
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--bronze)]">
