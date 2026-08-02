@@ -8,7 +8,12 @@ describe("resolveVercelBuildPlan", () => {
         QUICKICHING_DEPLOYMENT_TIER: "staging",
         APP_BASE_URL: "https://staging.quickiching.com",
       }),
-    ).toEqual(["db:migrate", "db:verify-runtime", "build"]);
+    ).toEqual([
+      "db:migrate",
+      "db:verify-runtime",
+      "waffo:configure-staging",
+      "build",
+    ]);
   });
 
   it("does not migrate the formal project by default", () => {
