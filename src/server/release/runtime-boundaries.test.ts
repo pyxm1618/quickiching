@@ -64,7 +64,8 @@ describe("production release boundaries", () => {
     };
 
     expect(vercel.installCommand).toBe("bun install --frozen-lockfile");
-    expect(vercel.buildCommand).toBe("bun run build");
+    expect(vercel.buildCommand).toBe("bun run build:vercel");
+    expect(source("scripts/vercel-build.ts")).toContain("resolveVercelBuildPlan()");
   });
 
   it("configures the Hobby-compatible staging production reconciliation schedule", () => {
