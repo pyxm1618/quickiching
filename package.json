@@ -9,6 +9,7 @@
     "build:vercel": "bun scripts/vercel-build.ts",
     "start": "next start",
     "db:migrate": "bun scripts/db-migrate.ts",
+    "db:verify-runtime": "bun scripts/db-verify-runtime.ts",
     "db:migrate:production": "vercel env run -e production -- bun run db:migrate",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

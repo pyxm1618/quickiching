@@ -1,6 +1,6 @@
 type BuildEnvironment = Record<string, string | undefined>;
 
-export type VercelBuildStep = "db:migrate" | "build";
+export type VercelBuildStep = "db:migrate" | "db:verify-runtime" | "build";
 
 const STAGING_BASE_URL = "https://staging.quickiching.com";
 
@@ -17,5 +17,5 @@ export function resolveVercelBuildPlan(
     );
   }
 
-  return ["db:migrate", "build"];
+  return ["db:migrate", "db:verify-runtime", "build"];
 }
