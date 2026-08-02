@@ -5,7 +5,6 @@ import {
 } from "@waffo/pancake-ts";
 import {
   assertWaffoStagingSnapshot,
-  classifyWaffoGraphqlFailure,
   resolveWaffoStagingConfig,
   waffoStagingProductUpdates,
   type WaffoStagingSnapshot,
@@ -39,10 +38,15 @@ try {
   }
 
   const storesResult = await client.graphql.query<{
-    stores: WaffoStagingSnapshot["stores"];
+    stores: Array<WaffoStagingSnapshot["stores"][number] & {
+      storeWebhooks: NonNullable<WaffoStagingSnapshot["store"]>["storeWebhooks"];
+    }>;
   }>({
     query: `query StagingWaffoStores {
-      stores { id name status }
+      stores {
+        id name status
+        storeWebhooks { channel url events testMode }
+      }
     }`,
   });
   if (!storesResult.data) throw new Error("WAFFO_STAGING_STORES_QUERY_INVALID");
@@ -60,28 +64,17 @@ try {
   });
   if (!productsResult.data) throw new Error("WAFFO_STAGING_PRODUCTS_QUERY_INVALID");
 
-  const webhookResult = await client.graphql.query<{
-    store: WaffoStagingSnapshot["store"];
-  }>({
-    query: `query StagingWaffoWebhook($id: ID!) {
-      store(id: $id) {
-        id
-        storeWebhooks { channel url events testMode }
-      }
-    }`,
-    variables: { id: config.storeId },
-  });
-  if (!webhookResult.data) {
-    throw new Error(
-      `WAFFO_STAGING_WEBHOOK_QUERY_INVALID:${classifyWaffoGraphqlFailure(webhookResult.errors)}`,
-    );
-  }
+  const auditedStore = storesResult.data.stores[0];
+  if (!auditedStore) throw new Error("WAFFO_STAGING_STORE_INVALID");
 
   assertWaffoStagingSnapshot(
     {
       stores: storesResult.data.stores,
       onetimeProducts: productsResult.data.onetimeProducts,
-      store: webhookResult.data.store,
+      store: {
+        id: auditedStore.id,
+        storeWebhooks: auditedStore.storeWebhooks,
+      },
     },
     config,
   );

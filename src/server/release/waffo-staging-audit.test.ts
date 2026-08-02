@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   assertWaffoStagingSnapshot,
-  classifyWaffoGraphqlFailure,
   resolveWaffoStagingConfig,
   waffoStagingProductUpdates,
 } from "./waffo-staging-audit";
@@ -19,16 +18,6 @@ const env = {
 };
 
 describe("Waffo staging audit", () => {
-  it("classifies GraphQL failures without exposing provider messages", () => {
-    expect(classifyWaffoGraphqlFailure([
-      { message: 'Cannot query field "storeWebhooks" on type "Store".' },
-    ])).toBe("schema_field");
-    expect(classifyWaffoGraphqlFailure([
-      { message: "You do not have permission to query this resource" },
-    ])).toBe("access_denied");
-    expect(classifyWaffoGraphqlFailure(undefined)).toBe("empty_response");
-  });
-
   it("builds explicit tax-excluded Test product updates", () => {
     const config = resolveWaffoStagingConfig(env);
     expect(waffoStagingProductUpdates(config)).toEqual([
