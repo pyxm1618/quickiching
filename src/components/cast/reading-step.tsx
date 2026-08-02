@@ -39,7 +39,7 @@ export function ReadingStep(props: {
         <CardContent className="pt-6">
           <h3 className="font-display text-lg font-medium">Your fixed preview</h3>
           {props.previewText ? (
-            <p className="mt-2 text-[15px] leading-relaxed text-[var(--ink-2)]">{props.previewText}</p>
+            <p data-clarity-mask="true" className="mt-2 text-[15px] leading-relaxed text-[var(--ink-2)]">{props.previewText}</p>
           ) : (
             <>
               <TurnstileChallenge
@@ -86,21 +86,23 @@ export function ReadingStep(props: {
         )}
       </div>
       {props.readingReport && (
-        <Card className="md:col-span-2">
-          <CardContent className="pt-6">
-            <h3 className="font-display text-lg font-medium">Deep reading</h3>
-            <dl className="mt-4 space-y-5">
-              {Object.entries(props.readingReport)
-                .filter(([, value]) => typeof value === "string")
-                .map(([key, value]) => (
-                  <div key={key}>
-                    <dt className="font-display font-medium">{key.replace(/([A-Z])/g, " $1").trim()}</dt>
-                    <dd className="mt-1 text-sm leading-relaxed text-[var(--ink-2)]">{String(value)}</dd>
-                  </div>
-                ))}
-            </dl>
-          </CardContent>
-        </Card>
+        <div data-clarity-mask="true" className="md:col-span-2">
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="font-display text-lg font-medium">Deep reading</h3>
+              <dl className="mt-4 space-y-5">
+                {Object.entries(props.readingReport)
+                  .filter(([, value]) => typeof value === "string")
+                  .map(([key, value]) => (
+                    <div key={key}>
+                      <dt className="font-display font-medium">{key.replace(/([A-Z])/g, " $1").trim()}</dt>
+                      <dd className="mt-1 text-sm leading-relaxed text-[var(--ink-2)]">{String(value)}</dd>
+                    </div>
+                  ))}
+              </dl>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
