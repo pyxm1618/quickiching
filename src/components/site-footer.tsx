@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CookieSettingsButton } from "@/components/analytics/cookie-settings-button";
 import { SealMark } from "@/components/hex/seal-mark";
 
 const HEADING = "font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]";
@@ -42,6 +43,7 @@ export function SiteFooter() {
             <li><Link href="/terms" className={LINK}>Terms</Link></li>
             <li><Link href="/acceptable-use" className={LINK}>Acceptable Use</Link></li>
             <li><Link href="/help" className={LINK}>Help</Link></li>
+            <li><CookieSettingsButton className={LINK}>Cookie settings</CookieSettingsButton></li>
             <li><a href="mailto:support@quickiching.com" className={LINK}>Support</a></li>
           </ul>
         </div>
