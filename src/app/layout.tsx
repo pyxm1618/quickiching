@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Instrument_Sans, IBM_Plex_Mono, Noto_Serif_SC } from "next/font/google";
 import "./globals.css";
+import { AnalyticsConsentController } from "@/components/analytics/analytics-consent";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />
+        <AnalyticsConsentController />
       </body>
     </html>
   );
