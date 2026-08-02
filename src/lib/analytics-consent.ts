@@ -46,10 +46,22 @@ export function isValidGaMeasurementId(value: string | undefined): value is stri
   return typeof value === "string" && /^G-[A-Z0-9]+$/.test(value);
 }
 
+export function isValidClarityProjectId(value: string | undefined): value is string {
+  return typeof value === "string" && /^[a-z0-9]{8,32}$/.test(value);
+}
+
 export function findGoogleAnalyticsCookieNames(cookieHeader: string): string[] {
   const names = parseCookiePairs(cookieHeader)
     .map(([name]) => name)
     .filter((name) => name === "_ga" || name.startsWith("_ga_"));
+
+  return [...new Set(names)];
+}
+
+export function findClarityCookieNames(cookieHeader: string): string[] {
+  const names = parseCookiePairs(cookieHeader)
+    .map(([name]) => name)
+    .filter((name) => name === "_clck" || name === "_clsk");
 
   return [...new Set(names)];
 }
@@ -73,12 +85,11 @@ function cookieDomainCandidates(hostname: string): string[] {
   return [...candidates];
 }
 
-export function buildGoogleAnalyticsCookieDeletionStrings(
-  cookieHeader: string,
+function buildCookieDeletionStrings(
+  names: string[],
   hostname: string,
   secure: boolean,
 ): string[] {
-  const names = findGoogleAnalyticsCookieNames(cookieHeader);
   const domains = cookieDomainCandidates(hostname);
 
   return names.flatMap((name) =>
@@ -95,5 +106,29 @@ export function buildGoogleAnalyticsCookieDeletionStrings(
         .filter((part): part is string => part !== null)
         .join("; "),
     ),
+  );
+}
+
+export function buildGoogleAnalyticsCookieDeletionStrings(
+  cookieHeader: string,
+  hostname: string,
+  secure: boolean,
+): string[] {
+  return buildCookieDeletionStrings(
+    findGoogleAnalyticsCookieNames(cookieHeader),
+    hostname,
+    secure,
+  );
+}
+
+export function buildClarityCookieDeletionStrings(
+  cookieHeader: string,
+  hostname: string,
+  secure: boolean,
+): string[] {
+  return buildCookieDeletionStrings(
+    findClarityCookieNames(cookieHeader),
+    hostname,
+    secure,
   );
 }
