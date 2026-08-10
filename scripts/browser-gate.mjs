@@ -307,12 +307,13 @@ async function runPage(browser, { path, viewport, flow, label }) {
 }
 
 async function verifyBrowserFlows() {
-  const executablePath = await chromium.executablePath();
-  log(`Launching Chromium at ${executablePath}`);
+  const executablePath = process.env.CHROME_PATH || await chromium.executablePath();
+  const usingSystemChrome = Boolean(process.env.CHROME_PATH);
+  log(`Launching Chromium at ${executablePath}${usingSystemChrome ? " (system runner)" : " (serverless fallback)"}`);
   const browser = await puppeteer.launch({
-    args: [...chromium.args, "--disable-dev-shm-usage"],
+    args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
     executablePath,
-    headless: "shell",
+    headless: true,
   });
   try {
     const desktop = { width: 1440, height: 1000 };
