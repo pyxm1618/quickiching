@@ -68,16 +68,24 @@ async function summarizeLighthouse(label, path) {
   const lcp = Math.round(report.audits["largest-contentful-paint"].numericValue);
   const cls = Number(report.audits["cumulative-layout-shift"].numericValue);
   const tbt = Math.round(report.audits["total-blocking-time"].numericValue);
+  const lcpElement = report.audits["largest-contentful-paint-element"]?.details?.items?.[0]?.node?.snippet;
 
   log(`LIGHTHOUSE_${label} performance=${performance} accessibility=${accessibility} seo=${seo} LCP_ms=${lcp} CLS=${cls.toFixed(4)} TBT_ms=${tbt}`);
-
-  if (accessibility < 90) throw new Error(`${label} Lighthouse accessibility score below 90`);
-  if (seo < 90) throw new Error(`${label} Lighthouse SEO score below 90`);
-  if (cls > 0.1) throw new Error(`${label} CLS exceeds 0.10`);
-  if (performance < 65 || lcp > 4000) throw new Error(`${label} severe performance regression`);
+  if (lcpElement) log(`LIGHTHOUSE_${label}_LCP_ELEMENT ${lcpElement}`);
   if (lcp > 2500) log(`WARNING: ${label} lab LCP is above the 2.5s target (${lcp}ms)`);
 
-  return { performance, accessibility, seo, lcp, cls, tbt };
+  return { label, performance, accessibility, seo, lcp, cls, tbt };
+}
+
+function assertLighthouse(metrics) {
+  const failures = [];
+  for (const result of metrics) {
+    if (result.accessibility < 90) failures.push(`${result.label} Lighthouse accessibility score below 90`);
+    if (result.seo < 90) failures.push(`${result.label} Lighthouse SEO score below 90`);
+    if (result.cls > 0.1) failures.push(`${result.label} CLS exceeds 0.10`);
+    if (result.performance < 65 || result.lcp > 4000) failures.push(`${result.label} severe performance regression`);
+  }
+  if (failures.length > 0) throw new Error(failures.join("; "));
 }
 
 log(`Vercel context: env=${process.env.VERCEL_ENV || "unknown"} target=${process.env.VERCEL_TARGET_ENV || "unknown"} ref=${process.env.VERCEL_GIT_COMMIT_REF || "unknown"}`);
@@ -126,8 +134,9 @@ try {
   const desktopPath = "/tmp/quickiching-lighthouse-desktop.json";
   run("./node_modules/.bin/lighthouse", lighthouseArgs(mobilePath), { env: lighthouseEnv });
   run("./node_modules/.bin/lighthouse", lighthouseArgs(desktopPath, true), { env: lighthouseEnv });
-  await summarizeLighthouse("MOBILE", mobilePath);
-  await summarizeLighthouse("DESKTOP", desktopPath);
+  const mobile = await summarizeLighthouse("MOBILE", mobilePath);
+  const desktop = await summarizeLighthouse("DESKTOP", desktopPath);
+  assertLighthouse([mobile, desktop]);
   log("ALL PUBLIC SEO V1 QUALITY / BUILD / BROWSER / LIGHTHOUSE GATES PASS");
 } finally {
   server.kill("SIGTERM");
