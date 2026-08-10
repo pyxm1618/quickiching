@@ -9,10 +9,10 @@ permissions:
   contents: read
 
 jobs:
-  quality:
-    name: Bun quality and build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  launch-gate:
+    name: Bun + Production Browser + Lighthouse
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -25,118 +25,7 @@ jobs:
         run: |
           node --version
           bun --version
-      - name: Install locked dependencies
-        run: bun install --frozen-lockfile
-      - name: Lint
-        run: bun run lint
-      - name: Typecheck
-        run: bun run typecheck
-      - name: Unit and integration tests
-        run: bun run test
-      - name: IndexNow dry run only
-        run: bun run indexnow
-      - name: Production build
-        run: bun run build
-
-  browser:
-    name: Production browser and Lighthouse
-    needs: quality
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
       - name: Install locked application dependencies
         run: bun install --frozen-lockfile
-      - name: Build production application
-        run: bun run build
-      - name: Install ephemeral browser audit tools without changing manifests or lockfile
-        run: |
-          bun install --no-save @playwright/test@1.62.0 lighthouse@13.4.1
-          ./node_modules/.bin/playwright install --with-deps chromium
-      - name: Run production browser acceptance and Lighthouse
-        env:
-          PLAYWRIGHT_TEST_BASE_URL: http://127.0.0.1:3000
-        run: |
-          set -euo pipefail
-          bun run start > public-v1-server.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
-
-          for attempt in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then
-              break
-            fi
-            if [ "$attempt" -eq 60 ]; then
-              cat public-v1-server.log
-              exit 1
-            fi
-            sleep 1
-          done
-
-          ./node_modules/.bin/playwright test e2e/public-v1.spec.mjs --workers=1 --reporter=line
-
-          CHROME_PATH="$(command -v google-chrome || true)"
-          if [ -z "$CHROME_PATH" ]; then
-            CHROME_PATH="$(find "$HOME/.cache/ms-playwright" -type f -name chrome | head -n 1)"
-          fi
-          if [ -z "$CHROME_PATH" ]; then
-            echo "Unable to locate Chrome/Chromium for Lighthouse"
-            exit 1
-          fi
-          export CHROME_PATH
-          echo "Lighthouse Chrome: $CHROME_PATH"
-
-          ./node_modules/.bin/lighthouse http://127.0.0.1:3000/ \
-            --quiet \
-            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
-            --only-categories=performance,accessibility,seo \
-            --output=json \
-            --output-path=lighthouse-home-mobile.json
-
-          ./node_modules/.bin/lighthouse http://127.0.0.1:3000/ \
-            --quiet \
-            --preset=desktop \
-            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
-            --only-categories=performance,accessibility,seo \
-            --output=json \
-            --output-path=lighthouse-home-desktop.json
-
-          node <<'NODE'
-          const fs = require('node:fs');
-          for (const [label, file] of [
-            ['MOBILE', 'lighthouse-home-mobile.json'],
-            ['DESKTOP', 'lighthouse-home-desktop.json'],
-          ]) {
-            const report = JSON.parse(fs.readFileSync(file, 'utf8'));
-            const performance = report.categories.performance.score;
-            const accessibility = report.categories.accessibility.score;
-            const seo = report.categories.seo.score;
-            const lcp = report.audits['largest-contentful-paint'].numericValue;
-            const cls = report.audits['cumulative-layout-shift'].numericValue;
-            const tbt = report.audits['total-blocking-time'].numericValue;
-            console.log(`LIGHTHOUSE_${label} performance=${Math.round(performance * 100)} accessibility=${Math.round(accessibility * 100)} seo=${Math.round(seo * 100)} LCP_ms=${Math.round(lcp)} CLS=${cls.toFixed(4)} TBT_ms=${Math.round(tbt)}`);
-            if (accessibility < 0.90) throw new Error(`${label} accessibility score below 90`);
-            if (seo < 0.90) throw new Error(`${label} SEO score below 90`);
-            if (cls > 0.10) throw new Error(`${label} CLS exceeds 0.10`);
-            if (performance < 0.65 || lcp > 4000) throw new Error(`${label} severe performance regression`);
-          }
-          NODE
-
-          git diff --exit-code -- package.json bun.lock
-      - uses: actions/upload-artifact@v5
-        if: ${{ !cancelled() }}
-        with:
-          name: public-seo-v1-browser-evidence
-          path: |
-            public-v1-server.log
-            lighthouse-home-mobile.json
-            lighthouse-home-desktop.json
-            test-results/
-          if-no-files-found: warn
-          retention-days: 30
+      - name: Run complete Public SEO V1 launch gate
+        run: node scripts/vercel-build.mjs
