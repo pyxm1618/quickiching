@@ -133,3 +133,24 @@ export function generateYarrowLine(
 
   return { lineIndex, lineValue, changes, algorithmVersion: ALGORITHM_VERSIONS.yarrow_stalk };
 }
+
+// Compatibility export for preserved Commercial V2 server actions. Public V1 injects
+// src/lib/browser-random.ts explicitly. The rejection sampler makes the result unbiased for any
+// valid maxExclusive while remaining safe to include in browser-reachable modules.
+export function cryptoRandomInt(maxExclusive: number): number {
+  if (!Number.isSafeInteger(maxExclusive) || maxExclusive <= 0) {
+    throw new Error("RANDOM_INVALID_RANGE");
+  }
+  if (typeof globalThis.crypto?.getRandomValues !== "function") {
+    throw new Error("WEB_CRYPTO_UNAVAILABLE");
+  }
+
+  const limit = Math.floor(0x1_0000_0000 / maxExclusive) * maxExclusive;
+  const values = new Uint32Array(1);
+  let value = 0;
+  do {
+    globalThis.crypto.getRandomValues(values);
+    value = values[0];
+  } while (value >= limit);
+  return value % maxExclusive;
+}
