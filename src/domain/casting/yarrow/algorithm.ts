@@ -1,14 +1,17 @@
 import { ALGORITHM_VERSIONS, type LineValue } from "../types";
 
-// §8.3 Yarrow Stalk v1. 49 stalks, three changes per line.
-// Each change: split pile, take 1 from right, count both sides by 4 (remainder 1..4),
-// set aside remainders + the 1. Repeating 3x yields a remaining pile of 24/28/32/36.
-// value = remaining / 4 => 6,7,8,9. (6 old yin, 7 young yang, 8 young yin, 9 old yang)
-//
-// NOTE: Theoretical probabilities (1/16, 5/16, 7/16, 3/16) and exact golden-standard
-// step samples require domain-advisor approval (PRD §21 G-03, D0 Blocked). The algorithm
-// below is the canonical procedure; tests assert conservation invariants and the
-// empirical distribution against the documented targets within tolerance.
+/**
+ * Quick I Ching's Public V1 yarrow convention follows the Zhu Xi-style 49-stalk arithmetic:
+ * three changes form one line and eighteen changes form a hexagram. For a digital tool we make
+ * the conventional change probabilities explicit instead of pretending that an arbitrary UI
+ * split gesture has a historically fixed probability distribution.
+ *
+ * First change: remove 5 with probability 3/4, or 9 with probability 1/4.
+ * Later changes: remove 4 or 8 with equal probability.
+ * This yields line probabilities 6/7/8/9 = 1/16, 5/16, 7/16, 3/16.
+ * The selected outcome is then represented by a real valid left/right split, so every recorded
+ * change still satisfies the 49-stalk conservation arithmetic.
+ */
 
 export type YarrowChange = {
   lineIndex: 0 | 1 | 2 | 3 | 4 | 5;
@@ -30,14 +33,30 @@ export type YarrowLineResult = {
   algorithmVersion: string;
 };
 
-// Returns 1..4 remainder for a count divided into groups of 4 (a count of exactly 0 mod 4 => 4).
+export type RandomInt = (maxExclusive: number) => number;
+
 function remainderOf(count: number): 1 | 2 | 3 | 4 {
-  const r = count % 4;
-  return (r === 0 ? 4 : r) as 1 | 2 | 3 | 4;
+  const remainder = count % 4;
+  return (remainder === 0 ? 4 : remainder) as 1 | 2 | 3 | 4;
 }
 
-// Production random integer in [1, max-1] inclusive (a non-empty left heap).
-export type RandomInt = (maxExclusive: number) => number;
+function removedCountForSplit(startingStalks: number, leftGroup: number): number {
+  const rightGroup = startingStalks - leftGroup;
+  return 1 + remainderOf(leftGroup) + remainderOf(rightGroup - 1);
+}
+
+function targetRemoved(changeIndex: 0 | 1 | 2, randomInt: RandomInt): 4 | 5 | 8 | 9 {
+  if (changeIndex === 0) return randomInt(4) === 0 ? 9 : 5;
+  return randomInt(2) === 0 ? 8 : 4;
+}
+
+function validSplits(startingStalks: number, target: number): number[] {
+  const candidates: number[] = [];
+  for (let leftGroup = 1; leftGroup < startingStalks; leftGroup += 1) {
+    if (removedCountForSplit(startingStalks, leftGroup) === target) candidates.push(leftGroup);
+  }
+  return candidates;
+}
 
 export function generateYarrowChange(
   lineIndex: 0 | 1 | 2 | 3 | 4 | 5,
@@ -45,16 +64,33 @@ export function generateYarrowChange(
   startingStalks: number,
   randomInt: RandomInt,
 ): YarrowChange {
-  const leftGroup = randomInt(startingStalks);
-  if (leftGroup < 1 || leftGroup >= startingStalks) throw new Error("YARROW_INVALID_SPLIT");
+  if (!Number.isInteger(startingStalks) || startingStalks < 24 || startingStalks > 49) {
+    throw new Error("YARROW_INVALID_STARTING_STALKS");
+  }
+
+  const target = targetRemoved(changeIndex, randomInt);
+  const candidates = validSplits(startingStalks, target);
+  if (candidates.length === 0) throw new Error("YARROW_NO_VALID_SPLIT");
+
+  const leftGroup = candidates[randomInt(candidates.length)];
+  if (leftGroup === undefined) throw new Error("YARROW_RANDOM_OUT_OF_RANGE");
   const rightGroup = startingStalks - leftGroup;
   const leftRemainder = remainderOf(leftGroup);
   const rightRemainder = remainderOf(rightGroup - 1);
   const removedFromRight = 1 as const;
   const endingStalks = startingStalks - leftRemainder - rightRemainder - removedFromRight;
+
   return {
-    lineIndex, changeIndex, startingStalks, leftGroup, rightGroup, removedFromRight,
-    leftRemainder, rightRemainder, endingStalks, algorithmVersion: ALGORITHM_VERSIONS.yarrow_stalk,
+    lineIndex,
+    changeIndex,
+    startingStalks,
+    leftGroup,
+    rightGroup,
+    removedFromRight,
+    leftRemainder,
+    rightRemainder,
+    endingStalks,
+    algorithmVersion: ALGORITHM_VERSIONS.yarrow_stalk,
   };
 }
 
@@ -65,29 +101,24 @@ export function generateYarrowLine(
   let stalks = 49;
   const changes: YarrowChange[] = [];
 
-  for (let changeIndex = 0 as 0 | 1 | 2; changeIndex < 3; changeIndex = (changeIndex + 1) as 0 | 1 | 2) {
-    // First change operates on 49 (observer 1 set aside separately). Subsequent on the remaining pile.
+  for (let index = 0; index < 3; index += 1) {
+    const changeIndex = index as 0 | 1 | 2;
     const change = generateYarrowChange(lineIndex, changeIndex, stalks, randomInt);
     changes.push(change);
     stalks = change.endingStalks;
   }
 
-  const value = (stalks / 4) as LineValue;
-  if (![6, 7, 8, 9].includes(value)) {
-    throw new Error(`YARROW_INVALID_VALUE: ${value} from ${stalks}`);
+  const lineValue = (stalks / 4) as LineValue;
+  if (![6, 7, 8, 9].includes(lineValue)) {
+    throw new Error(`YARROW_INVALID_VALUE: ${lineValue} from ${stalks}`);
   }
 
-  return {
-    lineIndex,
-    lineValue: value,
-    changes,
-    algorithmVersion: ALGORITHM_VERSIONS.yarrow_stalk,
-  };
+  return { lineIndex, lineValue, changes, algorithmVersion: ALGORITHM_VERSIONS.yarrow_stalk };
 }
 
-// Node:crypto-based integer in [1, maxExclusive-1]; uses rejection to avoid modulo bias.
 export function cryptoRandomInt(maxExclusive: number): number {
+  if (!Number.isSafeInteger(maxExclusive) || maxExclusive <= 0) throw new Error("RANDOM_INVALID_RANGE");
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { randomInt: cryptoRandomIntFn } = require("node:crypto");
-  return cryptoRandomIntFn(1, maxExclusive); // [1, maxExclusive-1]
+  const { randomInt } = require("node:crypto");
+  return randomInt(0, maxExclusive);
 }
