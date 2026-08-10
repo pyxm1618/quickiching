@@ -11,6 +11,10 @@ import { ALGORITHM_VERSIONS, type LineValue } from "../types";
  * This yields line probabilities 6/7/8/9 = 1/16, 5/16, 7/16, 3/16.
  * The selected outcome is then represented by a real valid left/right split, so every recorded
  * change still satisfies the 49-stalk conservation arithmetic.
+ *
+ * One unbiased integer sample is consumed per change. The sample space is divisible by every
+ * valid split count that can occur in this 49-stalk procedure as well as by 4 and 2, allowing the
+ * outcome and the conditional split index to be derived from the same draw without modulo bias.
  */
 
 export type YarrowChange = {
@@ -35,6 +39,10 @@ export type YarrowLineResult = {
 
 export type RandomInt = (maxExclusive: number) => number;
 
+// LCM of 4 * every possible valid-split count reachable in the three-change procedure.
+// 931,170,240 < 2^32, so browser Uint32 rejection sampling can draw it exactly.
+const YARROW_SAMPLE_SPACE = 931_170_240;
+
 function remainderOf(count: number): 1 | 2 | 3 | 4 {
   const remainder = count % 4;
   return (remainder === 0 ? 4 : remainder) as 1 | 2 | 3 | 4;
@@ -45,9 +53,9 @@ function removedCountForSplit(startingStalks: number, leftGroup: number): number
   return 1 + remainderOf(leftGroup) + remainderOf(rightGroup - 1);
 }
 
-function targetRemoved(changeIndex: 0 | 1 | 2, randomInt: RandomInt): 4 | 5 | 8 | 9 {
-  if (changeIndex === 0) return randomInt(4) === 0 ? 9 : 5;
-  return randomInt(2) === 0 ? 8 : 4;
+function targetRemoved(changeIndex: 0 | 1 | 2, sample: number): 4 | 5 | 8 | 9 {
+  if (changeIndex === 0) return sample % 4 === 0 ? 9 : 5;
+  return sample % 2 === 0 ? 8 : 4;
 }
 
 function validSplits(startingStalks: number, target: number): number[] {
@@ -56,6 +64,11 @@ function validSplits(startingStalks: number, target: number): number[] {
     if (removedCountForSplit(startingStalks, leftGroup) === target) candidates.push(leftGroup);
   }
   return candidates;
+}
+
+function conditionalSplitIndex(changeIndex: 0 | 1 | 2, sample: number, candidateCount: number): number {
+  const quotient = changeIndex === 0 ? Math.floor(sample / 4) : Math.floor(sample / 2);
+  return quotient % candidateCount;
 }
 
 export function generateYarrowChange(
@@ -68,11 +81,16 @@ export function generateYarrowChange(
     throw new Error("YARROW_INVALID_STARTING_STALKS");
   }
 
-  const target = targetRemoved(changeIndex, randomInt);
+  const sample = randomInt(YARROW_SAMPLE_SPACE);
+  if (!Number.isInteger(sample) || sample < 0 || sample >= YARROW_SAMPLE_SPACE) {
+    throw new Error("YARROW_RANDOM_OUT_OF_RANGE");
+  }
+
+  const target = targetRemoved(changeIndex, sample);
   const candidates = validSplits(startingStalks, target);
   if (candidates.length === 0) throw new Error("YARROW_NO_VALID_SPLIT");
 
-  const leftGroup = candidates[randomInt(candidates.length)];
+  const leftGroup = candidates[conditionalSplitIndex(changeIndex, sample, candidates.length)];
   if (leftGroup === undefined) throw new Error("YARROW_RANDOM_OUT_OF_RANGE");
   const rightGroup = startingStalks - leftGroup;
   const leftRemainder = remainderOf(leftGroup);
