@@ -5,8 +5,10 @@ import {
   INDEXNOW_KEY_LOCATION,
   buildIndexNowPayload,
   defaultIndexNowUrls,
-  normalizeIndexNowUrl,
-  uniqueIndexNowUrls,
+  normalizeIndexNowDeletedUrl,
+  normalizeIndexNowLiveUrl,
+  uniqueDeletedIndexNowUrls,
+  uniqueLiveIndexNowUrls,
 } from "./indexnow";
 import { INDEXABLE_PATHS, SITE_ORIGIN, absoluteUrl } from "./seo";
 
@@ -21,19 +23,29 @@ describe("IndexNow Public V1 generation", () => {
     expect(defaultIndexNowUrls()).toEqual(INDEXABLE_PATHS.map(absoluteUrl));
   });
 
-  it("normalizes paths, strips fragments, and deduplicates", () => {
-    expect(uniqueIndexNowUrls(["/methods/three-coin#tool", `${SITE_ORIGIN}/methods/three-coin`])).toEqual([
+  it("normalizes live paths, strips fragments, and deduplicates", () => {
+    expect(uniqueLiveIndexNowUrls(["/methods/three-coin#tool", `${SITE_ORIGIN}/methods/three-coin`])).toEqual([
       `${SITE_ORIGIN}/methods/three-coin`,
     ]);
   });
 
-  it("rejects bare-domain, staging, http, and private/commercial URLs", () => {
-    expect(() => normalizeIndexNowUrl("https://quickiching.com/")).toThrow("INDEXNOW_NON_CANONICAL_HOST");
-    expect(() => normalizeIndexNowUrl("https://ichingcoin.vercel.app/")).toThrow("INDEXNOW_NON_CANONICAL_HOST");
-    expect(() => normalizeIndexNowUrl("http://www.quickiching.com/")).toThrow("INDEXNOW_NON_CANONICAL_HOST");
-    expect(() => normalizeIndexNowUrl("/account")).toThrow("INDEXNOW_PRIVATE_PATH");
-    expect(() => normalizeIndexNowUrl("/checkout/test")).toThrow("INDEXNOW_PRIVATE_PATH");
-    expect(() => normalizeIndexNowUrl("/result/example")).toThrow("INDEXNOW_PRIVATE_PATH");
+  it("rejects non-canonical hosts, query URLs, and non-indexable live paths", () => {
+    expect(() => normalizeIndexNowLiveUrl("https://quickiching.com/")).toThrow("INDEXNOW_NON_CANONICAL_HOST");
+    expect(() => normalizeIndexNowLiveUrl("https://ichingcoin.vercel.app/")).toThrow("INDEXNOW_NON_CANONICAL_HOST");
+    expect(() => normalizeIndexNowLiveUrl("http://www.quickiching.com/")).toThrow("INDEXNOW_NON_CANONICAL_HOST");
+    expect(() => normalizeIndexNowLiveUrl("/pricing")).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
+    expect(() => normalizeIndexNowLiveUrl("/three-coin-method")).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
+    expect(() => normalizeIndexNowLiveUrl("/account")).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
+    expect(() => normalizeIndexNowLiveUrl("/methods/three-coin?utm_source=test")).toThrow("INDEXNOW_QUERY_URL_FORBIDDEN");
+  });
+
+  it("allows canonical deleted URLs while retaining canonical-host and query safety", () => {
+    expect(uniqueDeletedIndexNowUrls(["/old-removed-page#fragment", `${SITE_ORIGIN}/old-removed-page`])).toEqual([
+      `${SITE_ORIGIN}/old-removed-page`,
+    ]);
+    expect(() => normalizeIndexNowDeletedUrl("https://quickiching.com/old-removed-page")).toThrow("INDEXNOW_NON_CANONICAL_HOST");
+    expect(() => normalizeIndexNowDeletedUrl("https://ichingcoin.vercel.app/old-removed-page")).toThrow("INDEXNOW_NON_CANONICAL_HOST");
+    expect(() => normalizeIndexNowDeletedUrl("/old-removed-page?source=legacy")).toThrow("INDEXNOW_QUERY_URL_FORBIDDEN");
   });
 
   it("builds the official bulk payload shape", () => {
