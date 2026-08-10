@@ -84,11 +84,11 @@ describe("Three-Coin v1", () => {
 
 describe("Yarrow Zhu Xi digital v2", () => {
   it("has golden paths for old yin 6 and old yang 9", () => {
-    const oldYin = generateYarrowLine(0, queuedRandom([0, 0, 0, 0, 0, 0]));
+    const oldYin = generateYarrowLine(0, queuedRandom([0, 0, 0]));
     expect(oldYin.changes.map((change) => change.startingStalks - change.endingStalks)).toEqual([9, 8, 8]);
     expect(oldYin.lineValue).toBe(6);
 
-    const oldYang = generateYarrowLine(0, queuedRandom([1, 0, 1, 0, 1, 0]));
+    const oldYang = generateYarrowLine(0, queuedRandom([1, 1, 1]));
     expect(oldYang.changes.map((change) => change.startingStalks - change.endingStalks)).toEqual([5, 4, 4]);
     expect(oldYang.lineValue).toBe(9);
   });
