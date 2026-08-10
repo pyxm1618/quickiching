@@ -22,6 +22,15 @@ function run(command, args, options = {}) {
   }
 }
 
+function findSystemChrome() {
+  for (const command of ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]) {
+    const result = spawnSync("which", [command], { encoding: "utf8" });
+    const path = result.status === 0 ? result.stdout.trim() : "";
+    if (path) return path;
+  }
+  return null;
+}
+
 async function fileHash(path) {
   return createHash("sha256").update(await readFile(path)).digest("hex");
 }
@@ -94,6 +103,11 @@ if ((await fileHash("package.json")) !== manifestHash || (await fileHash("bun.lo
   throw new Error("Ephemeral browser tooling changed package.json or bun.lock");
 }
 
+const systemChromePath = findSystemChrome();
+const { default: chromium } = await import("@sparticuz/chromium");
+const chromePath = systemChromePath ?? await chromium.executablePath();
+log(`Browser audit Chrome: ${chromePath} (${systemChromePath ? "system runner" : "serverless fallback"})`);
+
 const server = spawn("bun", ["run", "start"], {
   env: { ...process.env, PORT: "3000", HOSTNAME: "127.0.0.1" },
   stdio: ["ignore", "inherit", "inherit"],
@@ -102,11 +116,11 @@ const server = spawn("bun", ["run", "start"], {
 try {
   await waitForServer();
   log("Production Next server is ready; running real Chromium E2E");
-  run("node", ["scripts/browser-gate.mjs"], { env: { PUBLIC_V1_TEST_BASE_URL: BASE } });
+  run("node", ["scripts/browser-gate.mjs"], {
+    env: { PUBLIC_V1_TEST_BASE_URL: BASE, CHROME_PATH: chromePath },
+  });
 
-  const { default: chromium } = await import("@sparticuz/chromium");
-  const chromePath = await chromium.executablePath();
-  log(`Running Lighthouse with serverless Chromium: ${chromePath}`);
+  log(`Running Lighthouse with Chrome: ${chromePath}`);
   const lighthouseEnv = { CHROME_PATH: chromePath };
   const mobilePath = "/tmp/quickiching-lighthouse-mobile.json";
   const desktopPath = "/tmp/quickiching-lighthouse-desktop.json";
