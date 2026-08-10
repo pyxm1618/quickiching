@@ -63,6 +63,16 @@ function extractHrefs(html) {
   return [...hrefs];
 }
 
+function extractCanonicalHref(html) {
+  for (const match of html.matchAll(/<link\b[^>]*>/gi)) {
+    const tag = match[0];
+    const rel = /\brel=["']([^"']*)["']/i.exec(tag)?.[1] ?? "";
+    if (!rel.split(/\s+/).some((value) => value.toLowerCase() === "canonical")) continue;
+    return /\bhref=["']([^"']+)["']/i.exec(tag)?.[1] ?? null;
+  }
+  return null;
+}
+
 async function verifyHttpAndSeo() {
   log("Checking initial HTML, canonical URLs, sitemap, robots, redirects, 404/410 and internal links");
 
@@ -79,8 +89,14 @@ async function verifyHttpAndSeo() {
   for (const path of INDEXABLE_PATHS) {
     const response = await expectStatus(path, 200);
     const html = await response.text();
-    const canonical = new URL(path, "https://www.quickiching.com").toString();
-    assert(html.includes(`rel="canonical" href="${canonical}"`), `${path}: self-canonical missing or wrong`);
+    const expectedCanonical = new URL(path, "https://www.quickiching.com").toString();
+    const actualCanonical = extractCanonicalHref(html);
+    assert(actualCanonical, `${path}: self-canonical missing`);
+    assert.equal(
+      new URL(actualCanonical, "https://www.quickiching.com").toString(),
+      expectedCanonical,
+      `${path}: self-canonical wrong: ${actualCanonical}`,
+    );
     assert(!/name="robots" content="[^"]*noindex/i.test(html), `${path}: indexable page unexpectedly noindex`);
   }
 
