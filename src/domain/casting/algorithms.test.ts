@@ -1,95 +1,11 @@
-import { describe, it, expect } from "vitest";
-import { KING_WEN_HEXAGRAMS, BINARY_TO_KING_WEN, TRIGRAM_BITS } from "./hexagrams/king-wen";
+import { describe, expect, it } from "vitest";
+import { BINARY_TO_KING_WEN, KING_WEN_HEXAGRAMS, TRIGRAM_BITS } from "./hexagrams/king-wen";
 import { buildHexagramResult, isMovingLine } from "./hexagrams/compute";
 import { generateThreeCoinLine } from "./three-coin/algorithm";
 import { generateYarrowLine } from "./yarrow/algorithm";
-import { meiHuaFromFields, hourBranch, localCalendarFields } from "./mei-hua/algorithm";
+import { gregorianYearBranchNumber, hourBranch, localCalendarFields, meiHuaFromFields } from "./mei-hua/algorithm";
 import type { LineValue } from "./types";
 
-describe("King Wen mapping (G-01 golden standard)", () => {
-  it("contains exactly 64 unique hexagrams numbered 1..64", () => {
-    expect(KING_WEN_HEXAGRAMS).toHaveLength(64);
-    const numbers = new Set(KING_WEN_HEXAGRAMS.map((h) => h.number));
-    expect(numbers.size).toBe(64);
-    for (let n = 1; n <= 64; n++) expect(numbers.has(n)).toBe(true);
-  });
-
-  it("binary map covers all 64 six-line combinations", () => {
-    expect(BINARY_TO_KING_WEN.size).toBe(64);
-  });
-
-  it("maps all-yang to Qian (1) and all-yin to Kun (2)", () => {
-    const qian = buildHexagramResult({ lineValuesBottomUp: [7, 7, 7, 7, 7, 7], method: "three_coin" });
-    expect(qian.primaryHexagramNumber).toBe(1);
-    const kun = buildHexagramResult({ lineValuesBottomUp: [8, 8, 8, 8, 8, 8], method: "three_coin" });
-    expect(kun.primaryHexagramNumber).toBe(2);
-  });
-
-  it("maps a known hexagram (63 After Completion: lower Li, upper Kan)", () => {
-    const r = buildHexagramResult({ lineValuesBottomUp: [7, 8, 7, 8, 7, 8], method: "three_coin" });
-    expect(r.primaryHexagramNumber).toBe(63);
-    expect(r.movingLinePositions).toEqual([]);
-    expect(r.relatingHexagramNumber).toBeNull();
-  });
-
-  it("computes moving lines and relating hexagram (single old yang at line 1)", () => {
-    const r = buildHexagramResult({ lineValuesBottomUp: [9, 7, 7, 7, 7, 7], method: "three_coin" });
-    expect(r.movingLinePositions).toEqual([1]);
-    // primary = Qian (all yang). Moving line 1 (old yang) flips bit0 to yin.
-    // relating bits [0,1,1,1,1,1] => lower dui(110), upper qian(111) => hexagram 10 (Treading).
-    expect(r.relatingHexagramNumber).toBe(10);
-  });
-
-  it("all line values are within 6..9", () => {
-    for (const v of [6, 7, 8, 9] as LineValue[]) expect(isMovingLine(v)).toBe(v === 6 || v === 9);
-  });
-
-  it("trigram bits are distinct 0..7", () => {
-    const bits = Object.values(TRIGRAM_BITS).sort();
-    expect(bits).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
-  });
-});
-
-describe("Three-Coin v1 (§8.2)", () => {
-  const combos: Array<["yin" | "yang", "yin" | "yang", "yin" | "yang", LineValue]> = [
-    ["yin", "yin", "yin", 6],
-    ["yin", "yin", "yang", 7],
-    ["yin", "yang", "yin", 7],
-    ["yang", "yin", "yin", 7],
-    ["yin", "yang", "yang", 8],
-    ["yang", "yin", "yang", 8],
-    ["yang", "yang", "yin", 8],
-    ["yang", "yang", "yang", 9],
-  ];
-
-  it("maps all 8 face combinations to the correct line value (yang=3, yin=2)", () => {
-    for (const [a, b, c, expected] of combos) {
-      const step = generateThreeCoinLine(0, () => true); // placeholder
-      void step;
-      const result = generateThreeCoinLine(2, () => false);
-      void result;
-      // Drive deterministic faces by a queue-based bit source.
-      const queue = [a, b, c];
-      let i = 0;
-      const bit = () => queue[i++] === "yang";
-      const s = generateThreeCoinLine(0, bit);
-      expect(s.lineValue).toBe(expected);
-      expect(s.coinFaces).toEqual([a, b, c]);
-    }
-  });
-
-  it("six completed lines produce a valid hexagram", () => {
-    const faces = [true, false, true, false, true, false, true, false, true, false, true, false];
-    let i = 0;
-    const bit = () => faces[i++];
-    const lineValues = [0, 1, 2, 3, 4, 5].map((idx) => generateThreeCoinLine(idx as 0, bit).lineValue);
-    const r = buildHexagramResult({ lineValuesBottomUp: lineValues, method: "three_coin" });
-    expect(r.primaryHexagramNumber).toBeGreaterThanOrEqual(1);
-    expect(r.primaryHexagramNumber).toBeLessThanOrEqual(64);
-  });
-});
-
-// Seeded RNG (mulberry32) for reproducible statistical tests.
 function mulberry32(seed: number) {
   return function () {
     seed |= 0;
@@ -100,79 +16,188 @@ function mulberry32(seed: number) {
   };
 }
 
-describe("Yarrow v1 (§8.3)", () => {
-  it("conserves stalk counts and yields a valid line value for every change", () => {
-    const rng = mulberry32(12345);
-    const ri = (maxExclusive: number) => 1 + Math.floor(rng() * (maxExclusive - 1));
-    for (let trial = 0; trial < 200; trial++) {
-      const res = generateYarrowLine(0, ri);
-      expect([6, 7, 8, 9]).toContain(res.lineValue);
-      let running = 49;
-      for (const ch of res.changes) {
-        expect(ch.startingStalks).toBe(running);
-        const consumed = ch.leftRemainder + ch.rightRemainder + ch.removedFromRight;
-        expect(ch.endingStalks).toBe(ch.startingStalks - consumed);
-        // conservation: left + right == starting, and remainders in 1..4
-        expect(ch.leftGroup + ch.rightGroup).toBe(ch.startingStalks);
-        expect([1, 2, 3, 4]).toContain(ch.leftRemainder);
-        expect([1, 2, 3, 4]).toContain(ch.rightRemainder);
-        running = ch.endingStalks;
-      }
-      expect(running / 4).toBe(res.lineValue);
+function queuedRandom(values: number[]) {
+  let index = 0;
+  return (maxExclusive: number) => {
+    const value = values[index++] ?? 0;
+    return ((value % maxExclusive) + maxExclusive) % maxExclusive;
+  };
+}
+
+function primary(lines: LineValue[]): number {
+  return buildHexagramResult({ lineValuesBottomUp: lines, method: "three_coin" }).primaryHexagramNumber;
+}
+
+describe("King Wen mapping", () => {
+  it("contains exactly 64 unique hexagrams and all 64 binary patterns", () => {
+    expect(KING_WEN_HEXAGRAMS).toHaveLength(64);
+    expect(new Set(KING_WEN_HEXAGRAMS.map((hexagram) => hexagram.number)).size).toBe(64);
+    expect(BINARY_TO_KING_WEN.size).toBe(64);
+    expect(Object.values(TRIGRAM_BITS).sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+  });
+
+  it("uses bottom-up bit orientation for all eight doubled trigrams", () => {
+    expect(primary([7, 7, 7, 7, 7, 7])).toBe(1); // Qian ☰ / Qian ☰
+    expect(primary([8, 8, 8, 8, 8, 8])).toBe(2); // Kun ☷ / Kun ☷
+    expect(primary([8, 7, 8, 8, 7, 8])).toBe(29); // Kan ☵ / Kan ☵
+    expect(primary([7, 8, 7, 7, 8, 7])).toBe(30); // Li ☲ / Li ☲
+    expect(primary([7, 8, 8, 7, 8, 8])).toBe(51); // Zhen ☳ / Zhen ☳
+    expect(primary([8, 8, 7, 8, 8, 7])).toBe(52); // Gen ☶ / Gen ☶
+    expect(primary([8, 7, 7, 8, 7, 7])).toBe(57); // Xun ☴ / Xun ☴
+    expect(primary([7, 7, 8, 7, 7, 8])).toBe(58); // Dui ☱ / Dui ☱
+  });
+
+  it("maps known asymmetric King Wen structures including Opposition and Revolution", () => {
+    expect(primary([7, 8, 7, 8, 7, 8])).toBe(63); // Water over Fire
+    expect(primary([7, 7, 8, 7, 8, 7])).toBe(38); // Fire over Lake
+    expect(primary([7, 8, 7, 7, 7, 8])).toBe(49); // Lake over Fire
+  });
+
+  it("derives all six single-line changes from Qian correctly", () => {
+    const expectedRelating = [44, 13, 10, 9, 14, 43];
+    for (let movingIndex = 0; movingIndex < 6; movingIndex += 1) {
+      const lines = [7, 7, 7, 7, 7, 7] as LineValue[];
+      lines[movingIndex] = 9;
+      const result = buildHexagramResult({ lineValuesBottomUp: lines, method: "three_coin" });
+      expect(result.primaryHexagramNumber).toBe(1);
+      expect(result.movingLinePositions).toEqual([movingIndex + 1]);
+      expect(result.relatingHexagramNumber).toBe(expectedRelating[movingIndex]);
     }
   });
 
-  it("empirical distribution approximates canonical yarrow probabilities (G-03 pending advisor)", () => {
-    // Canonical targets: 6=1/16, 7=5/16, 8=7/16, 9=3/16.
-    const rng = mulberry32(98765);
-    const ri = (maxExclusive: number) => 1 + Math.floor(rng() * (maxExclusive - 1));
-    const counts: Record<number, number> = { 6: 0, 7: 0, 8: 0, 9: 0 };
-    const N = 200000;
-    for (let i = 0; i < N; i++) {
-      const v = generateYarrowLine(0, ri).lineValue;
-      counts[v]++;
+  it("derives all six single-line changes from Kun correctly", () => {
+    const expectedRelating = [24, 7, 15, 16, 8, 23];
+    for (let movingIndex = 0; movingIndex < 6; movingIndex += 1) {
+      const lines = [8, 8, 8, 8, 8, 8] as LineValue[];
+      lines[movingIndex] = 6;
+      const result = buildHexagramResult({ lineValuesBottomUp: lines, method: "three_coin" });
+      expect(result.primaryHexagramNumber).toBe(2);
+      expect(result.movingLinePositions).toEqual([movingIndex + 1]);
+      expect(result.relatingHexagramNumber).toBe(expectedRelating[movingIndex]);
     }
-    const tol = 0.02;
-    expect(Math.abs(counts[6] / N - 1 / 16)).toBeLessThan(tol);
-    expect(Math.abs(counts[7] / N - 5 / 16)).toBeLessThan(tol);
-    expect(Math.abs(counts[8] / N - 7 / 16)).toBeLessThan(tol);
-    expect(Math.abs(counts[9] / N - 3 / 16)).toBeLessThan(tol);
+  });
+
+  it("treats only 6 and 9 as moving", () => {
+    for (const value of [6, 7, 8, 9] as LineValue[]) expect(isMovingLine(value)).toBe(value === 6 || value === 9);
   });
 });
 
-describe("Mei Hua current-time v1 (§8.4)", () => {
-  it("hourBranch maps the 12 terrestrial branches, including 子时 at 23 and 0", () => {
-    expect(hourBranch(23)).toBe(1); // 子
-    expect(hourBranch(0)).toBe(1); // 子
-    expect(hourBranch(1)).toBe(2); // 丑
-    expect(hourBranch(11)).toBe(7); // 午
-    expect(hourBranch(12)).toBe(7); // 午
-    expect(hourBranch(13)).toBe(8); // 未
+describe("Three-Coin v1", () => {
+  const combinations: Array<["yin" | "yang", "yin" | "yang", "yin" | "yang", LineValue]> = [
+    ["yin", "yin", "yin", 6],
+    ["yin", "yin", "yang", 7],
+    ["yin", "yang", "yin", 7],
+    ["yang", "yin", "yin", 7],
+    ["yin", "yang", "yang", 8],
+    ["yang", "yin", "yang", 8],
+    ["yang", "yang", "yin", 8],
+    ["yang", "yang", "yang", 9],
+  ];
+
+  it("maps all eight face combinations to 6/7/8/9 correctly", () => {
+    for (const [a, b, c, expected] of combinations) {
+      const queue = [a, b, c];
+      let index = 0;
+      const step = generateThreeCoinLine(0, () => queue[index++] === "yang");
+      expect(step.lineValue).toBe(expected);
+      expect(step.coinFaces).toEqual([a, b, c]);
+    }
   });
 
-  it("produces exactly one moving line and only 7/8/6/9 values", () => {
-    const r = meiHuaFromFields({ year: 2026, month: 7, day: 29, hour: 14, ianaTimeZone: "America/New_York" });
-    expect(r.lineValuesBottomUp.filter((v) => v === 6 || v === 9)).toHaveLength(1);
-    for (const v of r.lineValuesBottomUp) expect([6, 7, 8, 9]).toContain(v);
-    expect(r.movingLinePosition).toBeGreaterThanOrEqual(1);
-    expect(r.movingLinePosition).toBeLessThanOrEqual(6);
+  it("builds a six-line bottom-up reading through the shared result engine", () => {
+    const faces = [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false];
+    let index = 0;
+    const lines = [0, 1, 2, 3, 4, 5].map((lineIndex) => generateThreeCoinLine(lineIndex as 0 | 1 | 2 | 3 | 4 | 5, () => faces[index++]).lineValue);
+    const result = buildHexagramResult({ lineValuesBottomUp: lines, method: "three_coin" });
+    expect(result.lineValuesBottomUp).toHaveLength(6);
+    expect(result.primaryHexagramNumber).toBeGreaterThanOrEqual(1);
+    expect(result.primaryHexagramNumber).toBeLessThanOrEqual(64);
+  });
+});
+
+describe("Yarrow Zhu Xi digital v2", () => {
+  it("has golden paths for old yin 6 and old yang 9", () => {
+    const oldYin = generateYarrowLine(0, queuedRandom([0, 0, 0]));
+    expect(oldYin.changes.map((change) => change.startingStalks - change.endingStalks)).toEqual([9, 8, 8]);
+    expect(oldYin.lineValue).toBe(6);
+
+    const oldYang = generateYarrowLine(0, queuedRandom([1, 1, 1]));
+    expect(oldYang.changes.map((change) => change.startingStalks - change.endingStalks)).toEqual([5, 4, 4]);
+    expect(oldYang.lineValue).toBe(9);
   });
 
-  it("is deterministic for a fixed instant (no re-cast across minute boundaries)", () => {
-    const a = meiHuaFromFields({ year: 2026, month: 7, day: 29, hour: 14, ianaTimeZone: "America/New_York" });
-    const b = meiHuaFromFields({ year: 2026, month: 7, day: 29, hour: 14, ianaTimeZone: "America/New_York" });
-    expect(a.lineValuesBottomUp).toEqual(b.lineValuesBottomUp);
-    expect(a.movingLinePosition).toBe(b.movingLinePosition);
+  it("conserves stalks and records only allowed first/later removal totals", () => {
+    const rng = mulberry32(12345);
+    const randomInt = (maxExclusive: number) => Math.floor(rng() * maxExclusive);
+    for (let trial = 0; trial < 1000; trial += 1) {
+      const line = generateYarrowLine((trial % 6) as 0 | 1 | 2 | 3 | 4 | 5, randomInt);
+      expect([6, 7, 8, 9]).toContain(line.lineValue);
+      let running = 49;
+      line.changes.forEach((change, changeIndex) => {
+        expect(change.startingStalks).toBe(running);
+        expect(change.leftGroup + change.rightGroup).toBe(change.startingStalks);
+        expect(change.endingStalks).toBe(change.startingStalks - change.removedFromRight - change.leftRemainder - change.rightRemainder);
+        const removed = change.startingStalks - change.endingStalks;
+        expect(changeIndex === 0 ? [5, 9] : [4, 8]).toContain(removed);
+        running = change.endingStalks;
+      });
+      expect(running / 4).toBe(line.lineValue);
+    }
   });
 
-  it("applies the traditional 子时 day rollover", () => {
-    const f = localCalendarFields(Date.UTC(2026, 6, 29, 4, 30), "America/New_York"); // 00:30 local => hour 0
-    expect(f.hour).toBe(0);
-    const f23 = localCalendarFields(Date.UTC(2026, 6, 29, 4, 30), "America/New_York");
-    void f23;
-    // 23:00 local on July 29 => rollover to July 30
-    const fRoll = localCalendarFields(Date.UTC(2026, 6, 30, 3, 30), "America/New_York"); // 23:30 local Jul 29
-    expect(fRoll.day).toBe(30);
-    expect(fRoll.hour).toBe(23);
+  it("empirically matches the explicit 1/16, 5/16, 7/16, 3/16 line distribution", () => {
+    const rng = mulberry32(98765);
+    const randomInt = (maxExclusive: number) => Math.floor(rng() * maxExclusive);
+    const counts: Record<number, number> = { 6: 0, 7: 0, 8: 0, 9: 0 };
+    const sampleSize = 100000;
+    for (let index = 0; index < sampleSize; index += 1) counts[generateYarrowLine(0, randomInt).lineValue] += 1;
+    const tolerance = 0.006;
+    expect(Math.abs(counts[6] / sampleSize - 1 / 16)).toBeLessThan(tolerance);
+    expect(Math.abs(counts[7] / sampleSize - 5 / 16)).toBeLessThan(tolerance);
+    expect(Math.abs(counts[8] / sampleSize - 7 / 16)).toBeLessThan(tolerance);
+    expect(Math.abs(counts[9] / sampleSize - 3 / 16)).toBeLessThan(tolerance);
+  });
+});
+
+describe("Mei Hua Gregorian current-time v2", () => {
+  it("maps terrestrial-branch years and hour branches deterministically", () => {
+    expect(gregorianYearBranchNumber(2020)).toBe(1);
+    expect(gregorianYearBranchNumber(2031)).toBe(12);
+    expect(gregorianYearBranchNumber(2032)).toBe(1);
+    expect(hourBranch(23)).toBe(1);
+    expect(hourBranch(0)).toBe(1);
+    expect(hourBranch(1)).toBe(2);
+    expect(hourBranch(12)).toBe(7);
+    expect(hourBranch(13)).toBe(8);
+  });
+
+  it("has a fixed golden fixture: 2026-08-10 14:xx -> Qian/Qian with line 3 moving", () => {
+    const meiHua = meiHuaFromFields({ year: 2026, month: 8, day: 10, hour: 14, ianaTimeZone: "Asia/Singapore" });
+    expect(meiHua.upperTrigram).toBe("qian");
+    expect(meiHua.lowerTrigram).toBe("qian");
+    expect(meiHua.movingLinePosition).toBe(3);
+    expect(meiHua.lineValuesBottomUp).toEqual([7, 7, 9, 7, 7, 7]);
+    const result = buildHexagramResult({ lineValuesBottomUp: meiHua.lineValuesBottomUp, method: "mei_hua_current_time", algorithmVersion: meiHua.algorithmVersion });
+    expect(result.primaryHexagramNumber).toBe(1);
+    expect(result.relatingHexagramNumber).toBe(10);
+  });
+
+  it("rolls 23:xx into the next Gregorian formula date but leaves 00:xx on its civil date", () => {
+    const at0030 = localCalendarFields(Date.UTC(2026, 6, 29, 4, 30), "America/New_York");
+    expect(at0030).toMatchObject({ year: 2026, month: 7, day: 29, hour: 0 });
+    const at2330 = localCalendarFields(Date.UTC(2026, 6, 30, 3, 30), "America/New_York");
+    expect(at2330).toMatchObject({ year: 2026, month: 7, day: 30, hour: 23 });
+  });
+
+  it("handles Gregorian year rollover at Zi hour", () => {
+    const fields = localCalendarFields(Date.UTC(2027, 0, 1, 4, 30), "America/New_York");
+    expect(fields).toMatchObject({ year: 2027, month: 1, day: 1, hour: 23 });
+  });
+
+  it("uses IANA DST transitions rather than a fixed UTC offset", () => {
+    const before = localCalendarFields(Date.UTC(2026, 2, 8, 6, 30), "America/New_York");
+    const after = localCalendarFields(Date.UTC(2026, 2, 8, 7, 30), "America/New_York");
+    expect(before).toMatchObject({ month: 3, day: 8, hour: 1 });
+    expect(after).toMatchObject({ month: 3, day: 8, hour: 3 });
   });
 });

@@ -1,22 +1,28 @@
-// 64 King Wen hexagrams. Data is the audited golden-standard source (PRD §21 G-01).
-// lower = inner trigram (lines 1-3), upper = outer trigram (lines 4-6), both read bottom-to-top.
-// Trigram bit encoding (bottom-to-top, yang=1): qian=111(7) dui=110(6) li=101(5) zhen=100(4)
-//   xun=011(3) kan=010(2) gen=001(1) kun=000(0).
+// 64 King Wen hexagrams shared by every casting method.
+// lower = inner trigram (lines 1-3), upper = outer trigram (lines 4-6).
+// The domain stores all lines bottom-to-top and buildHexagramResult sets bit i from line i+1,
+// so bit 0 MUST be the bottom line of a trigram (yang=1, yin=0).
+//
+// Correct bottom-up bit encoding:
+//   qian ☰ = 111(7)   dui  ☱ = 011(3)   li   ☲ = 101(5)   zhen ☳ = 001(1)
+//   xun  ☴ = 110(6)   kan  ☵ = 010(2)   gen  ☶ = 100(4)   kun  ☷ = 000(0)
+// Reversing those three-bit values silently swaps Dui/Xun and Zhen/Gen, producing wrong
+// King Wen numbers for asymmetric hexagrams. Keep this convention covered by independent fixtures.
 
 export type Trigram = "qian" | "dui" | "li" | "zhen" | "xun" | "kan" | "gen" | "kun";
 
 export const TRIGRAM_BITS: Record<Trigram, number> = {
   qian: 0b111,
-  dui: 0b110,
+  dui: 0b011,
   li: 0b101,
-  zhen: 0b100,
-  xun: 0b011,
+  zhen: 0b001,
+  xun: 0b110,
   kan: 0b010,
-  gen: 0b001,
+  gen: 0b100,
   kun: 0b000,
 };
 
-// Trigram numbering for Mei Hua (1..8): qian=1 dui=2 li=3 zhen=4 xun=5 kan=6 gen=7 kun=8
+// Trigram numbering for Mei Hua (1..8): qian=1 dui=2 li=3 zhen=4 xun=5 kan=6 gen=7 kun=8.
 export const TRIGRAM_NUMBER: Record<Trigram, number> = {
   qian: 1,
   dui: 2,
@@ -47,7 +53,7 @@ export type HexagramDef = {
   upper: Trigram;
 };
 
-// King Wen sequence. Lower + upper trigrams as documented in classical sources.
+// King Wen sequence. The lower/upper pairs follow the standard eight-trigram composition.
 export const KING_WEN_HEXAGRAMS: HexagramDef[] = [
   { number: 1, englishName: "The Creative", chineseName: "乾", lower: "qian", upper: "qian" },
   { number: 2, englishName: "The Receptive", chineseName: "坤", lower: "kun", upper: "kun" },
@@ -86,7 +92,7 @@ export const KING_WEN_HEXAGRAMS: HexagramDef[] = [
   { number: 35, englishName: "Progress", chineseName: "晋", lower: "kun", upper: "li" },
   { number: 36, englishName: "Darkening of the Light", chineseName: "明夷", lower: "li", upper: "kun" },
   { number: 37, englishName: "The Family", chineseName: "家人", lower: "li", upper: "xun" },
-  { number: 38, englishName: "Opposition", chineseName: "睽", lower: "li", upper: "dui" },
+  { number: 38, englishName: "Opposition", chineseName: "睽", lower: "dui", upper: "li" },
   { number: 39, englishName: "Obstruction", chineseName: "蹇", lower: "gen", upper: "kan" },
   { number: 40, englishName: "Deliverance", chineseName: "解", lower: "kan", upper: "zhen" },
   { number: 41, englishName: "Decrease", chineseName: "损", lower: "dui", upper: "gen" },
@@ -97,7 +103,7 @@ export const KING_WEN_HEXAGRAMS: HexagramDef[] = [
   { number: 46, englishName: "Pushing Upward", chineseName: "升", lower: "xun", upper: "kun" },
   { number: 47, englishName: "Oppression", chineseName: "困", lower: "kan", upper: "dui" },
   { number: 48, englishName: "The Well", chineseName: "井", lower: "xun", upper: "kan" },
-  { number: 49, englishName: "Revolution", chineseName: "革", lower: "dui", upper: "li" },
+  { number: 49, englishName: "Revolution", chineseName: "革", lower: "li", upper: "dui" },
   { number: 50, englishName: "The Cauldron", chineseName: "鼎", lower: "xun", upper: "li" },
   { number: 51, englishName: "The Arousing Thunder", chineseName: "震", lower: "zhen", upper: "zhen" },
   { number: 52, englishName: "Keeping Still Mountain", chineseName: "艮", lower: "gen", upper: "gen" },
@@ -115,15 +121,18 @@ export const KING_WEN_HEXAGRAMS: HexagramDef[] = [
   { number: 64, englishName: "Before Completion", chineseName: "未济", lower: "kan", upper: "li" },
 ];
 
-// Build a map from the 6-bit binary (bit i = line i+1, yang=1) to King Wen number.
+// Build a map from the 6-bit binary (bit i = line i+1, yang=1) to King Wen number and fail fast
+// if the data ever ceases to be a complete one-to-one mapping.
 function buildBinaryToKingWen(): Map<number, number> {
   const map = new Map<number, number>();
   for (const h of KING_WEN_HEXAGRAMS) {
     const lowerBits = TRIGRAM_BITS[h.lower];
     const upperBits = TRIGRAM_BITS[h.upper];
     const binary = (upperBits << 3) | lowerBits;
+    if (map.has(binary)) throw new Error(`HEXAGRAM_MAPPING_DUPLICATE_BITS: ${binary}`);
     map.set(binary, h.number);
   }
+  if (map.size !== 64) throw new Error(`HEXAGRAM_MAPPING_INCOMPLETE: ${map.size}`);
   return map;
 }
 
