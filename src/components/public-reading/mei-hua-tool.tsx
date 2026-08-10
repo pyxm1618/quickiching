@@ -95,7 +95,7 @@ export function MeiHuaTool() {
           <input id="mei-hua-timezone" value={timeZone} onChange={(event) => setTimeZone(event.target.value)} disabled={Boolean(cast)} spellCheck={false} className="min-h-11 flex-1 rounded-md border border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2 font-mono text-sm outline-none focus:ring-2 focus:ring-[var(--jade)] disabled:opacity-70" aria-describedby="mei-hua-timezone-help mei-hua-error" />
           <button type="button" onClick={castCurrentTime} disabled={Boolean(cast)} className="min-h-11 rounded-md bg-[var(--cinnabar)] px-5 py-3 text-sm font-semibold text-white hover:bg-[var(--cinnabar-deep)] disabled:cursor-not-allowed disabled:opacity-50">Cast current time</button>
         </div>
-        <p id="mei-hua-timezone-help" className="mt-2 text-xs leading-6 text-[var(--ink-3)]">Timezone conversion uses the browser's IANA timezone data, including daylight-saving transitions where applicable.</p>
+        <p id="mei-hua-timezone-help" className="mt-2 text-xs leading-6 text-[var(--ink-3)]">Timezone conversion uses the browser’s IANA timezone data, including daylight-saving transitions where applicable.</p>
         {error ? <p id="mei-hua-error" role="alert" className="mt-2 text-sm text-[var(--cinnabar)]">{error}</p> : null}
       </div>
 
