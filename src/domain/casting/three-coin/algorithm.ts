@@ -1,7 +1,7 @@
 import { ALGORITHM_VERSIONS, type LineValue } from "../types";
 
 // §8.2 Three-Coin v1. yang/head = 3, yin/tail = 2. Three coins summed => 6/7/8/9.
-// Randomness is injected so the function stays a pure, deterministic, testable unit.
+// Randomness is injected so the function stays pure, deterministic, testable, and runtime-neutral.
 
 export type CoinFace = "yin" | "yang";
 export type ThreeCoinStep = {
@@ -23,21 +23,12 @@ export function generateThreeCoinLine(
     randomBit() ? "yang" : "yin",
     randomBit() ? "yang" : "yin",
   ];
-  const sum = faces.reduce((acc, f) => acc + (f === "yang" ? 3 : 2), 0);
-  const lineValue = sum as LineValue; // 6,7,8,9
+  const sum = faces.reduce((acc, face) => acc + (face === "yang" ? 3 : 2), 0);
+  const lineValue = sum as LineValue;
   return {
     lineIndex,
     coinFaces: faces as unknown as ThreeCoinStep["coinFaces"],
     lineValue,
     algorithmVersion: ALGORITHM_VERSIONS.three_coin,
   };
-}
-
-// Node:crypto fair bit for production (never Math.random).
-export function cryptoRandomBit(): boolean {
-  // Lazy require to keep this module usable in edge/test contexts without crypto.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { randomBytes } = require("node:crypto");
-  const buf = randomBytes(1);
-  return (buf[0] & 1) === 1;
 }
