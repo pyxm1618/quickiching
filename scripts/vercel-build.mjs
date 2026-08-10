@@ -10,10 +10,11 @@ function log(message) {
 
 function run(command, args, options = {}) {
   log(`$ ${command} ${args.join(" ")}`);
+  const { env: extraEnv = {}, ...spawnOptions } = options;
   const result = spawnSync(command, args, {
+    ...spawnOptions,
     stdio: "inherit",
-    env: { ...process.env, ...options.env },
-    ...options,
+    env: { ...process.env, ...extraEnv },
   });
   if (result.error) throw result.error;
   if (result.status !== 0) {
