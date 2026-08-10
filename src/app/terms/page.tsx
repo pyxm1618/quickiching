@@ -25,13 +25,13 @@ export default function TermsPage() {
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Generated coin lines and completed yarrow changes cannot be manually edited inside a reading. You may clear the whole browser-session reading and start over, but repeated casting simply to obtain a preferred answer is discouraged because it undermines the reflective purpose of the tool.</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">Methods and interpretation limits</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">I Ching and Mei Hua practices have historical transmission and interpretive variation. Quick I Ching documents the specific computational conventions used by the site and does not claim that one web implementation is the only orthodox practice. Free interpretation text is general rather than personalized to a user's private circumstances.</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">I Ching and Mei Hua practices have historical transmission and interpretive variation. Quick I Ching documents the specific computational conventions used by the site and does not claim that one web implementation is the only orthodox practice. Free interpretation text is general rather than personalized to a user’s private circumstances.</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">Acceptable use</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Do not use the service unlawfully, attempt to compromise its security or availability, present a reading as guaranteed professional advice, or use it to manufacture anxiety, dependency, harassment, or consequential claims about another person. Additional boundaries appear in our <Link href="/acceptable-use" className="font-semibold text-[var(--jade)] hover:underline">Acceptable Use</Link> page.</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">Intellectual property</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching does not claim ownership of the historical I Ching tradition or public-domain classical material. The site's original software, interface, branding, and original explanatory and interpretation text remain protected to the extent applicable.</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching does not claim ownership of the historical I Ching tradition or public-domain classical material. The site’s original software, interface, branding, and original explanatory and interpretation text remain protected to the extent applicable.</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">Availability and changes</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">The service may change, be maintained, or become temporarily unavailable. We do not guarantee uninterrupted operation or a particular interpretive outcome. Commercial V2 features will be governed by updated product and legal terms before they are activated.</p>
