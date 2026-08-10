@@ -10,11 +10,22 @@ Public V1 keeps the existing pure domain rule: each of three independent coin fa
 
 No `Math.random()` production path is used.
 
-## King Wen mapping
+## King Wen mapping and line orientation
 
 `src/domain/casting/hexagrams/king-wen.ts` is the single 64-hexagram mapping used by all three methods. `src/domain/casting/hexagrams/compute.ts` converts six bottom-up yin/yang line states into the primary King Wen number, identifies moving positions, flips only those positions, and derives the relating number.
 
-Public V1 does not publish modern copyrighted Judgment or Line translations.
+The bit convention is deliberately explicit because reversing a trigram silently produces valid-looking but wrong King Wen numbers:
+
+- bit 0 = bottom line, bit 1 = middle line, bit 2 = top line;
+- yang = 1, yin = 0;
+- Qian = `111`, Dui = bottom-up `110` visually / numeric bits `011`, Li = `101`, Zhen = bottom-up `100` visually / numeric bits `001`;
+- Xun = bottom-up `011` visually / numeric bits `110`, Kan = `010`, Gen = bottom-up `001` visually / numeric bits `100`, Kun = `000`.
+
+Traditional polarity descriptions provide an independent orientation check. A classical commentary witness states that Zhen and Dui have yin above and yang below, while Gen and Xun have yang above and yin below: Chinese Text Project, https://ctext.org/wiki.pl?chapter=756029&if=gb&remap=gb .
+
+Public V1 tests independently lock all eight doubled trigrams, asymmetric hexagrams including 38 (Fire over Lake) and 49 (Lake over Fire), and every single-line change from Hexagram 1 and Hexagram 2. This prevents symmetric Qian/Kun/Li/Kan fixtures from masking a bottom/top reversal in Dui, Zhen, Xun, or Gen.
+
+Public V1 does not publish modern copyrighted Judgment or Line translations. The short English hexagram labels are brief identifiers; the explanatory Basic Interpretation prose is original Quick I Ching text.
 
 ## Yarrow Stalk Method
 
@@ -40,6 +51,8 @@ The resulting line probabilities are exactly:
 - 7: 5/16
 - 8: 7/16
 - 9: 3/16
+
+The implementation consumes one unbiased integer sample per change from a sample space divisible by the reachable conditional split counts. The same draw determines both the target removal class and a valid split inside that class, avoiding a hidden modulo bias while preserving the existing replay/idempotency expectation that one random integer is consumed per change.
 
 The implementation records conservation data for every change and Public V1 persists unfinished progress only in browser `sessionStorage`.
 
