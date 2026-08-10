@@ -24,24 +24,57 @@ function queuedRandom(values: number[]) {
   };
 }
 
+function primary(lines: LineValue[]): number {
+  return buildHexagramResult({ lineValuesBottomUp: lines, method: "three_coin" }).primaryHexagramNumber;
+}
+
 describe("King Wen mapping", () => {
   it("contains exactly 64 unique hexagrams and all 64 binary patterns", () => {
     expect(KING_WEN_HEXAGRAMS).toHaveLength(64);
     expect(new Set(KING_WEN_HEXAGRAMS.map((hexagram) => hexagram.number)).size).toBe(64);
     expect(BINARY_TO_KING_WEN.size).toBe(64);
-    expect(Object.values(TRIGRAM_BITS).sort()).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    expect(Object.values(TRIGRAM_BITS).sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   });
 
-  it("maps all-yang to 1, all-yin to 2, and a known Li/Kan structure to 63", () => {
-    expect(buildHexagramResult({ lineValuesBottomUp: [7, 7, 7, 7, 7, 7], method: "three_coin" }).primaryHexagramNumber).toBe(1);
-    expect(buildHexagramResult({ lineValuesBottomUp: [8, 8, 8, 8, 8, 8], method: "three_coin" }).primaryHexagramNumber).toBe(2);
-    expect(buildHexagramResult({ lineValuesBottomUp: [7, 8, 7, 8, 7, 8], method: "three_coin" }).primaryHexagramNumber).toBe(63);
+  it("uses bottom-up bit orientation for all eight doubled trigrams", () => {
+    expect(primary([7, 7, 7, 7, 7, 7])).toBe(1); // Qian ☰ / Qian ☰
+    expect(primary([8, 8, 8, 8, 8, 8])).toBe(2); // Kun ☷ / Kun ☷
+    expect(primary([8, 7, 8, 8, 7, 8])).toBe(29); // Kan ☵ / Kan ☵
+    expect(primary([7, 8, 7, 7, 8, 7])).toBe(30); // Li ☲ / Li ☲
+    expect(primary([7, 8, 8, 7, 8, 8])).toBe(51); // Zhen ☳ / Zhen ☳
+    expect(primary([8, 8, 7, 8, 8, 7])).toBe(52); // Gen ☶ / Gen ☶
+    expect(primary([8, 7, 7, 8, 7, 7])).toBe(57); // Xun ☴ / Xun ☴
+    expect(primary([7, 7, 8, 7, 7, 8])).toBe(58); // Dui ☱ / Dui ☱
   });
 
-  it("flips only moving lines and derives the relating hexagram", () => {
-    const result = buildHexagramResult({ lineValuesBottomUp: [9, 7, 7, 7, 7, 7], method: "three_coin" });
-    expect(result.movingLinePositions).toEqual([1]);
-    expect(result.relatingHexagramNumber).toBe(10);
+  it("maps known asymmetric King Wen structures including Opposition and Revolution", () => {
+    expect(primary([7, 8, 7, 8, 7, 8])).toBe(63); // Water over Fire
+    expect(primary([7, 7, 8, 7, 8, 7])).toBe(38); // Fire over Lake
+    expect(primary([7, 8, 7, 7, 7, 8])).toBe(49); // Lake over Fire
+  });
+
+  it("derives all six single-line changes from Qian correctly", () => {
+    const expectedRelating = [44, 13, 10, 9, 14, 43];
+    for (let movingIndex = 0; movingIndex < 6; movingIndex += 1) {
+      const lines = [7, 7, 7, 7, 7, 7] as LineValue[];
+      lines[movingIndex] = 9;
+      const result = buildHexagramResult({ lineValuesBottomUp: lines, method: "three_coin" });
+      expect(result.primaryHexagramNumber).toBe(1);
+      expect(result.movingLinePositions).toEqual([movingIndex + 1]);
+      expect(result.relatingHexagramNumber).toBe(expectedRelating[movingIndex]);
+    }
+  });
+
+  it("derives all six single-line changes from Kun correctly", () => {
+    const expectedRelating = [24, 7, 15, 16, 8, 23];
+    for (let movingIndex = 0; movingIndex < 6; movingIndex += 1) {
+      const lines = [8, 8, 8, 8, 8, 8] as LineValue[];
+      lines[movingIndex] = 6;
+      const result = buildHexagramResult({ lineValuesBottomUp: lines, method: "three_coin" });
+      expect(result.primaryHexagramNumber).toBe(2);
+      expect(result.movingLinePositions).toEqual([movingIndex + 1]);
+      expect(result.relatingHexagramNumber).toBe(expectedRelating[movingIndex]);
+    }
   });
 
   it("treats only 6 and 9 as moving", () => {
@@ -146,7 +179,7 @@ describe("Mei Hua Gregorian current-time v2", () => {
     expect(meiHua.lineValuesBottomUp).toEqual([7, 7, 9, 7, 7, 7]);
     const result = buildHexagramResult({ lineValuesBottomUp: meiHua.lineValuesBottomUp, method: "mei_hua_current_time", algorithmVersion: meiHua.algorithmVersion });
     expect(result.primaryHexagramNumber).toBe(1);
-    expect(result.relatingHexagramNumber).toBe(44);
+    expect(result.relatingHexagramNumber).toBe(10);
   });
 
   it("rolls 23:xx into the next Gregorian formula date but leaves 00:xx on its civil date", () => {
