@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/", "/account", "/checkout/", "/result/", "/signin", "/cast/"],
+      disallow: ["/api/"],
     },
     sitemap: absoluteUrl("/sitemap.xml"),
     host: "www.quickiching.com",
