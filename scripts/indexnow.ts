@@ -3,7 +3,8 @@ import {
   INDEXNOW_KEY_LOCATION,
   buildIndexNowPayload,
   defaultIndexNowUrls,
-  uniqueIndexNowUrls,
+  uniqueDeletedIndexNowUrls,
+  uniqueLiveIndexNowUrls,
 } from "../src/lib/indexnow";
 
 function valuesAfter(flag: string, args: string[]): string[] {
@@ -17,14 +18,18 @@ function valuesAfter(flag: string, args: string[]): string[] {
 async function main() {
   const args = process.argv.slice(2);
   const submit = args.includes("--submit");
-  const explicit = [...valuesAfter("--url", args), ...valuesAfter("--deleted", args)];
-  const urls = explicit.length > 0 ? uniqueIndexNowUrls(explicit) : defaultIndexNowUrls();
-  const payload = buildIndexNowPayload(urls);
+  const explicitLive = valuesAfter("--url", args);
+  const explicitDeleted = valuesAfter("--deleted", args);
+  const hasExplicit = explicitLive.length > 0 || explicitDeleted.length > 0;
+
+  const liveUrls = hasExplicit ? uniqueLiveIndexNowUrls(explicitLive) : defaultIndexNowUrls();
+  const deletedUrls = uniqueDeletedIndexNowUrls(explicitDeleted);
+  const payload = buildIndexNowPayload([...liveUrls, ...deletedUrls]);
 
   console.log(`[IndexNow] mode=${submit ? "SUBMIT" : "DRY_RUN"}`);
   console.log(`[IndexNow] endpoint=${INDEXNOW_ENDPOINT}`);
   console.log(`[IndexNow] keyLocation=${INDEXNOW_KEY_LOCATION}`);
-  console.log(`[IndexNow] urls=${payload.urlList.length}`);
+  console.log(`[IndexNow] live=${liveUrls.length} deleted=${deletedUrls.length} total=${payload.urlList.length}`);
   for (const url of payload.urlList) console.log(`  ${url}`);
 
   if (!submit) {
