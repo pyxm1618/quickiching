@@ -5,10 +5,10 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { HOME_DESCRIPTION, HOME_TITLE, SITE_ORIGIN } from "@/lib/seo";
 
-const fraunces = Fraunces({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-fraunces" });
+const fraunces = Fraunces({ subsets: ["latin"], style: ["normal"], axes: ["opsz"], variable: "--font-fraunces" });
 const instrument = Instrument_Sans({ subsets: ["latin"], variable: "--font-instrument" });
-const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-plex" });
-const notoSerifSC = Noto_Serif_SC({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-noto-sc" });
+const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-plex", preload: false });
+const notoSerifSC = Noto_Serif_SC({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-noto-sc", preload: false });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
