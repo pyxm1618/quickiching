@@ -133,10 +133,3 @@ export function generateYarrowLine(
 
   return { lineIndex, lineValue, changes, algorithmVersion: ALGORITHM_VERSIONS.yarrow_stalk };
 }
-
-export function cryptoRandomInt(maxExclusive: number): number {
-  if (!Number.isSafeInteger(maxExclusive) || maxExclusive <= 0) throw new Error("RANDOM_INVALID_RANGE");
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { randomInt } = require("node:crypto");
-  return randomInt(0, maxExclusive);
-}
