@@ -4,7 +4,7 @@ import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
 import { HOME_DESCRIPTION, HOME_H1, HOME_TITLE, SITE_ORIGIN } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: HOME_TITLE,
+  title: { absolute: HOME_TITLE },
   description: HOME_DESCRIPTION,
   alternates: { canonical: "/" },
   openGraph: { title: HOME_TITLE, description: HOME_DESCRIPTION, url: SITE_ORIGIN, type: "website" },
