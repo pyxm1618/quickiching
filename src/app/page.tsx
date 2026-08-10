@@ -49,7 +49,7 @@ export default function HomePage() {
           </article>
           <article className="rounded-2xl border border-[var(--line)] bg-[var(--paper-raised)] p-6">
             <h3 className="font-display text-xl font-medium">Mei Hua Yi Shu</h3>
-            <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">Use Plum Blossom Divination with Quick I Ching's documented Gregorian current-time convention, including timezone, hour branch, and Zi-hour handling.</p>
+            <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">Use Plum Blossom Divination with Quick I Ching’s documented Gregorian current-time convention, including timezone, hour branch, and Zi-hour handling.</p>
             <Link href="/methods/mei-hua-yi-shu" className="mt-5 inline-flex min-h-11 items-center font-semibold text-[var(--jade)] hover:underline">Cast with the current time →</Link>
           </article>
         </div>
@@ -60,7 +60,7 @@ export default function HomePage() {
         <h2 className="font-display text-3xl font-medium">How I Ching Online Readings Work</h2>
         <div className="mt-6 grid gap-5 md:grid-cols-3">
           <article className="rounded-xl border border-[var(--line)] p-6"><p className="font-mono text-xs text-[var(--bronze)]">01</p><h3 className="mt-3 font-display text-xl font-medium">Cast a six-line pattern</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">Three coins and yarrow generate 6/7/8/9 line values from bottom to top. Mei Hua derives the trigrams and one changing line from the current time convention.</p></article>
-          <article className="rounded-xl border border-[var(--line)] p-6"><p className="font-mono text-xs text-[var(--bronze)]">02</p><h3 className="mt-3 font-display text-xl font-medium">Identify the primary hexagram</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">The yin and yang structure maps to one of the 64 King Wen hexagrams. This is the primary hexagram—the reading's starting pattern.</p></article>
+          <article className="rounded-xl border border-[var(--line)] p-6"><p className="font-mono text-xs text-[var(--bronze)]">02</p><h3 className="mt-3 font-display text-xl font-medium">Identify the primary hexagram</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">The yin and yang structure maps to one of the 64 King Wen hexagrams. This is the primary hexagram—the reading’s starting pattern.</p></article>
           <article className="rounded-xl border border-[var(--line)] p-6"><p className="font-mono text-xs text-[var(--bronze)]">03</p><h3 className="mt-3 font-display text-xl font-medium">Read change without certainty claims</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">Values 6 and 9 are changing lines. Reversing them produces a relating hexagram, which offers another structure for reflection rather than a fixed prediction.</p></article>
         </div>
       </section>
