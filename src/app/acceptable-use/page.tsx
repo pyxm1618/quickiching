@@ -18,7 +18,7 @@ export default function AcceptableUsePage() {
         <li>Do not present a reading as proof that a future event must occur or that another person has committed an act, has a hidden motive, or has a health condition.</li>
         <li>Do not use repeated casting to manufacture anxiety, dependency, or pressure to continue consulting the tool.</li>
         <li>Do not attempt to compromise, overload, scrape at abusive scale, or bypass technical or safety controls.</li>
-        <li>Do not submit or expose another person's unnecessary private or confidential information.</li>
+        <li>Do not submit or expose another person’s unnecessary private or confidential information.</li>
         <li>Do not use the service for harassment, coercion, fraud, discrimination, or other unlawful activity.</li>
       </ul>
       <p className="mt-8 text-sm leading-7 text-[var(--ink-2)]">If a real-world decision has serious consequences, use appropriate evidence and qualified professional support. An I Ching reading can remain a reflective framework without replacing those safeguards.</p>
