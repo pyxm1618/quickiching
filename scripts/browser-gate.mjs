@@ -100,19 +100,24 @@ async function verifyHttpAndSeo() {
     assert(!/name="robots" content="[^"]*noindex/i.test(html), `${path}: indexable page unexpectedly noindex`);
   }
 
-  const noindexPaths = ["/pricing", "/help", "/privacy", "/terms", "/acceptable-use"];
+  const noindexPaths = ["/pricing", "/help", "/privacy", "/terms", "/acceptable-use", "/readings/three-coin/result"];
   for (const path of noindexPaths) {
     const response = await expectStatus(path, 200);
     const html = await response.text();
     assert(/name="robots" content="[^"]*noindex/i.test(html), `${path}: expected noindex metadata`);
   }
 
+  const resultHtml = await (await expectStatus("/readings/three-coin/result", 200)).text();
+  assert(/name="robots" content="[^"]*noindex[^\"]*follow/i.test(resultHtml), "Result route must emit noindex, follow");
+  assert(!resultHtml.includes(HOME_TITLE), "Result route must not inherit homepage title");
+  assert(!resultHtml.includes(HOME_DESCRIPTION), "Result route must not inherit homepage description");
+
   const sitemap = await expectStatus("/sitemap.xml", 200);
   const sitemapXml = await sitemap.text();
   const locs = [...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]).sort();
   const expectedLocs = INDEXABLE_PATHS.map((path) => new URL(path, "https://www.quickiching.com").toString()).sort();
   assert.deepEqual(locs, expectedLocs, "Sitemap must contain exactly the eight canonical Public V1 pages");
-  for (const forbidden of ["/pricing", "/signin", "/three-coin-method", "/checkout", "vercel.app"]) {
+  for (const forbidden of ["/pricing", "/signin", "/three-coin-method", "/checkout", "/readings/three-coin/result", "vercel.app"]) {
     assert(!sitemapXml.includes(forbidden), `Sitemap contains forbidden entry: ${forbidden}`);
   }
 
@@ -197,6 +202,16 @@ async function clickButton(page, label) {
   assert(clicked, `Unable to click enabled button: ${label}`);
 }
 
+async function clickLink(page, label) {
+  const clicked = await page.evaluate((wanted) => {
+    const link = [...document.querySelectorAll("a")].find((node) => node.textContent?.trim() === wanted);
+    if (!(link instanceof HTMLAnchorElement)) return false;
+    link.click();
+    return true;
+  }, label);
+  assert(clicked, `Unable to click link: ${label}`);
+}
+
 async function dispatchThreeCoinPointer(page, type, pointerId = 41) {
   const dispatched = await page.evaluate(({ eventType, id }) => {
     const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Toss three coins");
@@ -243,7 +258,7 @@ async function assertNoOverflow(page) {
   assert(overflow.scrollWidth <= overflow.clientWidth + 1, `Horizontal overflow: ${overflow.scrollWidth} > ${overflow.clientWidth}`);
 }
 
-async function assertResult(page) {
+async function assertBasicResult(page) {
   await waitForText(page, "Your I Ching reading");
   const resultText = await page.$eval('[aria-labelledby="reading-result-title"]', (node) => node.textContent || "");
   for (const expected of ["Free basic interpretation", "Primary Hexagram", "Changing Lines", "Relating Hexagram", "general interpretive framework for reflection"]) {
@@ -290,6 +305,7 @@ async function verifyThreeCoinTransactionSemantics(page) {
 }
 
 async function finishThreeCoin(page) {
+  const storageKey = "quickiching:public-v1:three-coin";
   await waitForText(page, "0 / 6 lines");
   const focused = await page.evaluate(() => {
     const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Toss three coins");
@@ -304,9 +320,39 @@ async function finishThreeCoin(page) {
     await clickButton(page, "Toss three coins");
     await waitForText(page, `${line} / 6 lines`);
   }
-  await assertResult(page);
-  await clickButton(page, "New reading");
+
+  await waitForText(page, "Your hexagram is formed");
+  await waitForText(page, "Reveal Your Reading");
+  const sealedBeforeReveal = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
+  assert(sealedBeforeReveal, "Completed Three-Coin reading must remain sealed before reveal navigation");
+
+  await clickLink(page, "Reveal Your Reading");
+  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  const locationAfterReveal = await page.evaluate(() => ({ pathname: location.pathname, search: location.search }));
+  assert.equal(locationAfterReveal.pathname, "/readings/three-coin/result");
+  assert.equal(locationAfterReveal.search, "", "Three-Coin result URL must carry no cast state in query parameters");
+  await waitForText(page, "Your Three-Coin Reading");
+  for (const expected of [
+    "The Primary Hexagram",
+    "Understanding the Structure",
+    "Changing Lines",
+    "Bringing the Reading Together",
+    "Bottom Line",
+    "Questions to Sit With",
+    "What to Watch",
+  ]) await waitForText(page, expected);
+
+  const readingBeforeRefresh = await page.$eval("main", (node) => node.textContent ?? "");
+  await page.reload({ waitUntil: "networkidle0" });
+  await waitForText(page, "Bottom Line");
+  assert.equal(await page.$eval("main", (node) => node.textContent ?? ""), readingBeforeRefresh, "Three-Coin refresh must preserve the exact visible reading");
+  const sealedAfterRefresh = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
+  assert.equal(sealedAfterRefresh, sealedBeforeReveal, "Result refresh must not alter the sealed six-line cast");
+
+  await clickButton(page, "Start a New Reading");
+  await page.waitForFunction(() => location.pathname === "/" && location.hash === "#three-coin-reading", { timeout: 15_000 });
   await waitForText(page, "0 / 6 lines");
+  assert.equal(await page.evaluate((key) => sessionStorage.getItem(key), storageKey), null, "Explicit Start a New Reading must clear Three-Coin storage");
 }
 
 async function finishYarrow(page, verifyResume) {
@@ -325,7 +371,7 @@ async function finishYarrow(page, verifyResume) {
     await clickButton(page, "Perform change");
     await waitForText(page, `${change} / 18 changes`);
   }
-  await assertResult(page);
+  await assertBasicResult(page);
   await clickButton(page, "New reading");
   await waitForText(page, "0 / 18 changes");
 }
@@ -342,7 +388,7 @@ async function finishMeiHua(page) {
   await clickButton(page, "Cast current time");
   await waitForText(page, "Recorded calculation");
   await waitForText(page, "quickiching-gregorian-current-time-v2");
-  await assertResult(page);
+  await assertBasicResult(page);
   await clickButton(page, "New reading");
   await waitForText(page, "Cast current time");
 }
@@ -378,13 +424,13 @@ async function verifyBrowserFlows() {
     const desktop = { width: 1440, height: 1000 };
     const mobile = { width: 375, height: 812 };
     await runPage(browser, { path: "/", viewport: desktop, flow: verifyThreeCoinTransactionSemantics, label: "Desktop Three Coin → commit/reveal/cancel semantics" });
-    await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → result/reset" });
-    await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → result/reset" });
-    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → result/reset" });
+    await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → Reveal → V2 result/refresh/reset" });
+    await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → V1 result/reset" });
+    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → V1 result/reset" });
 
-    await runPage(browser, { path: "/", viewport: mobile, flow: finishThreeCoin, label: "375px homepage → Three Coin → result" });
-    await runPage(browser, { path: "/methods/yarrow-stalks", viewport: mobile, flow: (page) => finishYarrow(page, false), label: "375px Yarrow → result" });
-    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → result" });
+    await runPage(browser, { path: "/", viewport: mobile, flow: finishThreeCoin, label: "375px homepage → Three Coin → V2 result" });
+    await runPage(browser, { path: "/methods/yarrow-stalks", viewport: mobile, flow: (page) => finishYarrow(page, false), label: "375px Yarrow → V1 result" });
+    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → V1 result" });
 
     for (const viewport of [{ width: 320, height: 800 }, { width: 390, height: 844 }]) {
       await runPage(browser, {
