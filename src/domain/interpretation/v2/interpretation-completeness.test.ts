@@ -4,8 +4,16 @@ import { loadHexagramInterpretation } from "./load-interpretation";
 const PLACEHOLDER = /\b(?:TODO|TBD|Lorem ipsum|placeholder)\b/i;
 const PROPHECY = /\b(?:will happen|your future will|guarantees?)\b/i;
 
+function words(value: string): string[] {
+  return value.trim().split(/\s+/).filter(Boolean);
+}
+
 function wordCount(value: string): number {
-  return value.trim().split(/\s+/).filter(Boolean).length;
+  return words(value).length;
+}
+
+function openingSignature(value: string): string {
+  return words(value).slice(0, 12).join(" ").toLowerCase();
 }
 
 describe("Free Reading V2 interpretation catalog", () => {
@@ -75,7 +83,7 @@ describe("Free Reading V2 interpretation catalog", () => {
     }
   });
 
-  it("guards against a mechanically duplicated catalog", async () => {
+  it("guards against duplicate content and a highly repetitive line template", async () => {
     const bundles = await Promise.all(
       Array.from({ length: 64 }, (_, index) => loadHexagramInterpretation(index + 1)),
     );
@@ -86,6 +94,9 @@ describe("Free Reading V2 interpretation catalog", () => {
     expect(new Set(allLines.map((line) => line.changeDynamic)).size).toBe(384);
     expect(new Set(allLines.map((line) => line.caution)).size).toBeGreaterThanOrEqual(360);
     expect(new Set(bundles.map(({ hexagram }) => hexagram.reflectionQuestions.join("|"))).size).toBe(64);
+
+    expect(new Set(allLines.map((line) => openingSignature(line.meaning))).size).toBeGreaterThanOrEqual(300);
+    expect(new Set(allLines.map((line) => openingSignature(line.changeDynamic))).size).toBeGreaterThanOrEqual(300);
   });
 
   it("fails fast for an out-of-range hexagram lookup", async () => {
