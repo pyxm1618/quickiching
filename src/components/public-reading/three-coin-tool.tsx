@@ -14,12 +14,17 @@ import {
 const ROMAN = ["I", "II", "III", "IV", "V", "VI"] as const;
 
 type MotionState = "idle" | "holding" | "casting" | "settled";
+type UnpersistedCommit = { steps: ThreeCoinStep[]; step: ThreeCoinStep };
 
 function lineName(value: number): string {
   if (value === 6) return "Old yin · changing";
   if (value === 7) return "Young yang";
   if (value === 8) return "Young yin";
   return "Old yang · changing";
+}
+
+function storageErrorCode(error: unknown): string {
+  return error instanceof Error ? error.message : "THREE_COIN_SESSION_UNAVAILABLE";
 }
 
 function CashCoin({ face, index }: { face: CoinFace; index: number }) {
@@ -49,6 +54,8 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
   const [restored, setRestored] = useState(false);
   const [motion, setMotion] = useState<MotionState>("idle");
   const [pendingStep, setPendingStep] = useState<ThreeCoinStep | null>(null);
+  const [unpersistedCommit, setUnpersistedCommit] = useState<UnpersistedCommit | null>(null);
+  const [storageError, setStorageError] = useState<string | null>(null);
   const [soundOn, setSoundOn] = useState(true);
   const holdingRef = useRef(false);
   const ignoreSyntheticClickRef = useRef(false);
@@ -57,16 +64,17 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const stored = readThreeCoinSteps();
-    setSteps(stored);
-    setRevealedCount(stored.length);
-    setRestored(true);
+    try {
+      const stored = readThreeCoinSteps();
+      setSteps(stored);
+      setRevealedCount(stored.length);
+      setStorageError(null);
+    } catch (error: unknown) {
+      setStorageError(storageErrorCode(error));
+    } finally {
+      setRestored(true);
+    }
   }, []);
-
-  useEffect(() => {
-    if (!restored) return;
-    writeThreeCoinSteps(steps);
-  }, [steps, restored]);
 
   useEffect(() => () => {
     if (shakeIntervalRef.current) clearInterval(shakeIntervalRef.current);
@@ -79,14 +87,17 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
   const revealedLines = useMemo(() => revealedSteps.map((step) => step.lineValue), [revealedSteps]);
   const complete = lines.length === 6;
   const visuallyComplete = revealedCount === 6;
-  const visibleStep = pendingStep ?? revealedSteps.at(-1) ?? null;
+  const visibleStep = unpersistedCommit?.step ?? pendingStep ?? revealedSteps.at(-1) ?? null;
   const visibleFaces: readonly [CoinFace, CoinFace, CoinFace] = visibleStep?.coinFaces ?? ["yang", "yang", "yang"];
-  const busy = motion === "holding" || motion === "casting";
-  const visualButtonLabel = motion === "casting"
-    ? "Coins are settling…"
-    : complete
-      ? "Reading complete"
-      : "Press & hold to shake · release to cast";
+  const storageBlocked = storageError !== null;
+  const busy = motion === "holding" || motion === "casting" || storageBlocked || !restored;
+  const visualButtonLabel = storageBlocked
+    ? "Browser storage unavailable"
+    : motion === "casting"
+      ? "Coins are settling…"
+      : complete
+        ? "Reading complete"
+        : "Press & hold to shake · release to cast";
 
   function audio(): AudioContext | null {
     if (!soundOn || typeof window === "undefined") return null;
@@ -137,7 +148,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
   }
 
   function beginHold() {
-    if (complete || motion === "casting" || holdingRef.current) return;
+    if (!restored || storageBlocked || complete || motion === "casting" || holdingRef.current) return;
     holdingRef.current = true;
     setPendingStep(null);
     setMotion("holding");
@@ -152,17 +163,10 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     setMotion("idle");
   }
 
-  function releaseCast() {
-    if (!holdingRef.current || complete) return;
-    stopShake();
-
-    const lineIndex = steps.length as 0 | 1 | 2 | 3 | 4 | 5;
-    const next = generateThreeCoinLine(lineIndex, browserRandomBit);
-    const committedSteps = [...steps, next];
-
-    // The domain result becomes authoritative at release. Motion F only delays its visual reveal.
+  function beginVisualSettlement(committedSteps: ThreeCoinStep[], next: ThreeCoinStep) {
     setSteps(committedSteps);
-    writeThreeCoinSteps(committedSteps);
+    setUnpersistedCommit(null);
+    setStorageError(null);
     setPendingStep(next);
     setMotion("casting");
 
@@ -184,7 +188,55 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     }, reducedMotion ? 120 : 2200);
   }
 
+  function persistCast(committedSteps: ThreeCoinStep[], next: ThreeCoinStep) {
+    try {
+      writeThreeCoinSteps(committedSteps);
+      beginVisualSettlement(committedSteps, next);
+    } catch (error: unknown) {
+      setPendingStep(null);
+      setMotion("idle");
+      setUnpersistedCommit({ steps: committedSteps, step: next });
+      setStorageError(storageErrorCode(error));
+    }
+  }
+
+  function releaseCast() {
+    if (!holdingRef.current || complete || storageBlocked) return;
+    stopShake();
+
+    const lineIndex = steps.length as 0 | 1 | 2 | 3 | 4 | 5;
+    const next = generateThreeCoinLine(lineIndex, browserRandomBit);
+    const committedSteps = [...steps, next];
+
+    // The cast becomes authoritative at release. It is not shown as sealed until the same
+    // result is durably written to this browser session; a failed write is retried, not rerolled.
+    persistCast(committedSteps, next);
+  }
+
+  function retryStorage() {
+    if (unpersistedCommit) {
+      persistCast(unpersistedCommit.steps, unpersistedCommit.step);
+      return;
+    }
+
+    try {
+      const stored = readThreeCoinSteps();
+      setSteps(stored);
+      setRevealedCount(stored.length);
+      setStorageError(null);
+    } catch (error: unknown) {
+      setStorageError(storageErrorCode(error));
+    }
+  }
+
   function reset() {
+    try {
+      clearThreeCoinReading();
+    } catch (error: unknown) {
+      setStorageError(storageErrorCode(error));
+      return;
+    }
+
     holdingRef.current = false;
     ignoreSyntheticClickRef.current = false;
     if (shakeIntervalRef.current) clearInterval(shakeIntervalRef.current);
@@ -192,10 +244,11 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     shakeIntervalRef.current = null;
     settleTimerRef.current = null;
     setPendingStep(null);
+    setUnpersistedCommit(null);
+    setStorageError(null);
     setMotion("idle");
     setRevealedCount(0);
     setSteps([]);
-    clearThreeCoinReading();
   }
 
   function onPointerDown(event: PointerEvent<HTMLButtonElement>) {
@@ -237,19 +290,19 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
       ignoreSyntheticClickRef.current = false;
       return;
     }
-    if (holdingRef.current || complete || motion === "casting") return;
+    if (!restored || storageBlocked || holdingRef.current || complete || motion === "casting") return;
     beginHold();
     releaseCast();
   }
 
   return (
-    <section id="three-coin-reading" data-realm="chamber" aria-labelledby="three-coin-tool-title">
+    <section data-realm="chamber" aria-labelledby="three-coin-tool-title">
       <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="mystic-kicker">Three-Coin Method</p>
           <h2 id="three-coin-tool-title" className="mt-2 font-display text-3xl font-normal tracking-[-0.03em] sm:text-4xl">Cast six lines, bottom to top</h2>
           {!compactIntro ? (
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ink-2)]">Each toss uses three fair browser-crypto bits. Heads/yang count as 3, tails/yin as 2, producing 6, 7, 8, or 9. A completed line is sealed; only a full reset starts a new reading.</p>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ink-2)]">Each toss uses three fair browser-crypto bits. Heads/yang count as 3, tails/yin as 2, producing 6, 7, 8, or 9. Repeat six times from the bottom upward; a line is sealed only after its browser-session write succeeds.</p>
           ) : null}
         </div>
         <div className="flex items-center gap-3">
@@ -257,6 +310,19 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
           <button type="button" className="sound-toggle" onClick={() => setSoundOn((value) => !value)} aria-pressed={soundOn}>{soundOn ? "Sound on" : "Sound off"}</button>
         </div>
       </div>
+
+      {storageError ? (
+        <div className="mb-6 rounded-[1.2rem] border border-[rgba(239,129,112,0.36)] bg-[rgba(239,129,112,0.08)] px-5 py-4" role="alert" data-three-coin-storage-error={storageError}>
+          <p className="text-sm font-semibold text-[var(--danger)]">This cast cannot safely continue until browser session storage is available.</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">
+            {unpersistedCommit
+              ? `Line ${unpersistedCommit.step.lineIndex + 1} was cast as ${unpersistedCommit.step.lineValue}, but it was not sealed. Retrying saves this same cast; it does not toss again.`
+              : "Quick I Ching could not read or clear the sealed browser session. Your in-memory reading has not been replaced."}
+          </p>
+          <p className="mt-2 font-mono text-xs text-[var(--ink-3)]">{storageError}</p>
+          <button type="button" className="sound-toggle mt-3" onClick={retryStorage}>{unpersistedCommit ? "Retry saving this cast" : "Retry browser storage"}</button>
+        </div>
+      ) : null}
 
       <div className="ritual-wrap">
         <div className="ritual-stage">
@@ -276,7 +342,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
             {visibleFaces.map((face, index) => <CashCoin key={index} face={face} index={index} />)}
             <div className="coin-energy" aria-hidden="true" />
             <div className="coin-motion-result" aria-live="polite">
-              {motion !== "casting" && visibleStep ? <><strong>{visibleStep.lineValue} · {lineName(visibleStep.lineValue)}</strong><span>line {visibleStep.lineIndex + 1} sealed</span></> : null}
+              {!unpersistedCommit && motion !== "casting" && visibleStep ? <><strong>{visibleStep.lineValue} · {lineName(visibleStep.lineValue)}</strong><span>line {visibleStep.lineIndex + 1} sealed</span></> : null}
             </div>
           </div>
 
@@ -301,14 +367,14 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
                 className="hold-button after:relative after:z-[2] after:content-[attr(data-visual-label)]"
                 data-holding={motion === "holding"}
                 data-visual-label={visualButtonLabel}
-                aria-label={complete ? "Reading complete" : "Toss three coins. Press and hold to shake, then release to cast."}
+                aria-label={storageBlocked ? "Browser session storage unavailable. Resolve the storage error before casting." : complete ? "Reading complete" : "Toss three coins. Press and hold to shake, then release to cast."}
                 onPointerDown={onPointerDown}
                 onPointerUp={onPointerUp}
                 onPointerCancel={onPointerCancel}
                 onKeyDown={onKeyDown}
                 onKeyUp={onKeyUp}
                 onClick={onAccessibleClick}
-                disabled={complete || motion === "casting"}
+                disabled={!restored || storageBlocked || complete || motion === "casting"}
               >
                 <span className="sr-only">Toss three coins</span>
               </button>
@@ -338,7 +404,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
           <div className="cast-history">
             <div className="flex items-center justify-between gap-3">
               <p className="mystic-kicker">Completed tosses</p>
-              <button type="button" onClick={reset} disabled={steps.length === 0 || busy} className="sound-toggle">New reading</button>
+              {!visuallyComplete ? <button type="button" onClick={reset} disabled={steps.length === 0 || busy} className="sound-toggle">New reading</button> : null}
             </div>
             {revealedSteps.length === 0 ? (
               <p className="mt-3 text-xs leading-6 text-[var(--ink-3)]">The first toss becomes line 1 at the bottom of the hexagram.</p>
