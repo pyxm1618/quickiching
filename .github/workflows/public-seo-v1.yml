@@ -18,8 +18,9 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
-      - name: Install Bun
-        run: npm install --global bun@1.3.12
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
       - name: Tool versions
         run: |
           node --version
