@@ -3,6 +3,7 @@ import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
+const BASE_ORIGIN = new URL(BASE).origin;
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
 const FIXTURE_STEPS = [
   { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
@@ -29,7 +30,7 @@ async function loadedJavascript(page) {
       .map((entry) => entry.name)
       .filter((name) => name.includes("/_next/") && name.includes(".js")),
   ])]);
-  const sameOriginUrls = urls.filter((url) => new URL(url, location.href).origin === location.origin);
+  const sameOriginUrls = urls.filter((url) => new URL(url, BASE).origin === BASE_ORIGIN);
   const payloads = await page.evaluate(async (resourceUrls) => Promise.all(resourceUrls.map(async (url) => {
     const response = await fetch(url);
     return { url, text: await response.text() };
