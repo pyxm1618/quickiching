@@ -85,7 +85,7 @@ export function YarrowTool() {
           <h2 id="yarrow-tool-title" className="mt-2 font-display text-3xl font-normal tracking-[-.03em]">Complete 18 yarrow changes</h2>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ink-2)]">Three changes form one line; six lines form the hexagram. Each completed change is saved in this browser session so a refresh can resume the ritual.</p>
         </div>
-        <span className="ritual-progress-badge">{changes.length} / 18 changes</span>
+        <span className="ritual-progress-badge" style={{ textTransform: "none" }}>{changes.length} / 18 changes</span>
       </div>
 
       <div className="mt-7 grid gap-6 md:grid-cols-[minmax(0,1fr),minmax(15rem,.9fr)] md:items-stretch">
