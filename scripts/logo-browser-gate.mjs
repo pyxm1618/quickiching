@@ -28,9 +28,31 @@ async function assertImageEndpoint(path, expectedType) {
   assert(bytes.length > 0, `${path}: empty image response`);
 }
 
+async function waitForDecodedBrandImage(page, selector) {
+  await page.waitForFunction(
+    (imageSelector) => {
+      const image = document.querySelector(imageSelector);
+      return image instanceof HTMLImageElement
+        && image.complete
+        && image.naturalWidth > 0
+        && image.naturalHeight > 0;
+    },
+    { timeout: 15_000 },
+    selector,
+  );
+}
+
 async function inspectBrandChrome(page, label) {
-  await page.waitForSelector(`header img[alt="${BRAND_ALT}"]`, { timeout: 15_000 });
-  await page.waitForSelector(`footer img[alt="${BRAND_ALT}"]`, { timeout: 15_000 });
+  const headerSelector = `header img[alt="${BRAND_ALT}"]`;
+  const footerSelector = `footer img[alt="${BRAND_ALT}"]`;
+  await page.waitForSelector(headerSelector, { timeout: 15_000 });
+  await page.waitForSelector(footerSelector, { timeout: 15_000 });
+  await waitForDecodedBrandImage(page, headerSelector);
+
+  // The footer BrandMark intentionally uses Next/Image lazy loading. Bring it into
+  // the viewport and wait on the real decode condition instead of adding an arbitrary delay.
+  await page.$eval("footer", (node) => node.scrollIntoView({ block: "center" }));
+  await waitForDecodedBrandImage(page, footerSelector);
 
   const state = await page.evaluate(({ alt, asset }) => {
     const header = document.querySelector("header");
@@ -86,8 +108,6 @@ async function inspectBrandChrome(page, label) {
   assert.equal(state.oldFooterSeal, false, `${label}: old Footer SealMark still present`);
   assert(state.scrollWidth <= state.clientWidth + 1, `${label}: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
 
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await new Promise((resolve) => setTimeout(resolve, 100));
   const footerVisible = await page.$eval("footer", (node) => {
     const rect = node.getBoundingClientRect();
     return rect.top < window.innerHeight && rect.bottom > 0;
