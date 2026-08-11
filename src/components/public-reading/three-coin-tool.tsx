@@ -215,6 +215,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     if (event.key === " " || event.key === "Enter") {
       event.preventDefault();
       releaseCast();
+      ignoreSyntheticClickRef.current = false;
     }
   }
 
