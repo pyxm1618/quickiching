@@ -3,35 +3,30 @@ import { cn } from "@/lib/utils";
 
 type Size = "sm" | "md" | "lg";
 
-const SIZES: Record<Size, string> = {
-  sm: "h-7 w-7",
-  md: "h-8 w-8",
-  lg: "h-11 w-11",
+const PIXELS: Record<Size, number> = {
+  sm: 28,
+  md: 32,
+  lg: 44,
 };
 
 export type BrandMarkProps = {
   size?: Size;
+  priority?: boolean;
   className?: string;
 };
 
-export function BrandMark({ size = "md", className }: BrandMarkProps) {
+export function BrandMark({ size = "md", priority = false, className }: BrandMarkProps) {
+  const pixels = PIXELS[size];
+
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 select-none items-center justify-center",
-        SIZES[size],
-        className,
-      )}
-    >
-      <Image
-        src="/quick-i-ching-logo-mark-inverse.png"
-        alt="Quick I Ching logo"
-        width={320}
-        height={320}
-        sizes="44px"
-        className="block h-full w-full object-contain"
-        draggable={false}
-      />
-    </span>
+    <Image
+      aria-hidden="true"
+      alt=""
+      src="/quick-i-ching-logo-mark.png"
+      width={pixels}
+      height={pixels}
+      priority={priority}
+      className={cn("shrink-0 object-contain brightness-0 invert", className)}
+    />
   );
 }
