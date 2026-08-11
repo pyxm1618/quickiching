@@ -17,52 +17,54 @@ export function ReadingResult({ result }: { result: HexagramResult }) {
     : "None";
 
   return (
-    <section className="mt-8 rounded-2xl border border-[var(--line-strong)] bg-[var(--paper-raised)] p-5 sm:p-8" aria-live="polite" aria-labelledby="reading-result-title">
-      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Free basic interpretation</p>
-      <h3 id="reading-result-title" className="mt-2 font-display text-2xl font-medium">Your I Ching reading</h3>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <article className="rounded-xl border border-[var(--line)] bg-[var(--paper)] p-5">
-          <p className="font-mono text-xs uppercase tracking-[0.12em] text-[var(--bronze)]">Primary Hexagram</p>
-          <h4 className="mt-2 font-display text-xl font-medium">
-            {reading.primary.number}. {reading.primary.englishName} <span className="font-cjk">{reading.primary.chineseName}</span>
-          </h4>
-          <HexagramLines lines={[...result.lineValuesBottomUp]} size="lg" showLabels className="mt-6 max-w-sm" />
-          <p className="mt-5 text-sm leading-7 text-[var(--ink-2)]">
-            <strong className="text-[var(--ink)]">{reading.primaryInterpretation.theme}.</strong>{" "}
-            {reading.primaryInterpretation.summary}
-          </p>
-        </article>
-
-        <div className="space-y-6">
-          <article className="rounded-xl border border-[var(--line)] bg-[var(--paper)] p-5">
-            <p className="font-mono text-xs uppercase tracking-[0.12em] text-[var(--bronze)]">Changing Lines</p>
-            <p className="mt-2 text-sm font-semibold text-[var(--ink)]">{movingLabel}</p>
-            <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">{reading.changeExplanation}</p>
-          </article>
-
-          {reading.relating && reading.relatingInterpretation ? (
-            <article className="rounded-xl border border-[var(--line)] bg-[var(--paper)] p-5">
-              <p className="font-mono text-xs uppercase tracking-[0.12em] text-[var(--bronze)]">Relating Hexagram</p>
-              <h4 className="mt-2 font-display text-xl font-medium">
-                {reading.relating.number}. {reading.relating.englishName} <span className="font-cjk">{reading.relating.chineseName}</span>
-              </h4>
-              <HexagramLines lines={relatingLines(result.lineValuesBottomUp)} size="md" className="mt-5 max-w-xs" />
-              <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">
-                <strong className="text-[var(--ink)]">{reading.relatingInterpretation.theme}.</strong>{" "}
-                {reading.relatingInterpretation.summary}
-              </p>
-            </article>
-          ) : (
-            <article className="rounded-xl border border-[var(--line)] bg-[var(--paper)] p-5">
-              <p className="font-mono text-xs uppercase tracking-[0.12em] text-[var(--bronze)]">Relating Hexagram</p>
-              <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">No relating hexagram is produced when there are no changing lines.</p>
-            </article>
-          )}
-        </div>
+    <section className="reading-reveal" aria-live="polite" aria-labelledby="reading-result-title">
+      <div className="text-center">
+        <p className="mystic-kicker">Free basic interpretation</p>
+        <h3 id="reading-result-title" className="mt-2 font-display text-3xl font-normal tracking-[-0.03em] sm:text-4xl">Your I Ching reading</h3>
       </div>
 
-      <p className="mt-6 border-t border-[var(--line)] pt-5 text-xs leading-6 text-[var(--ink-3)]">
+      <div className="reading-path">
+        <article className="reading-card-a">
+          <p className="mystic-kicker">Primary Hexagram</p>
+          <div className="reading-number mt-5">{reading.primary.number}</div>
+          <h4 className="reading-title">{reading.primary.englishName}</h4>
+          <p className="reading-cn mt-2">{reading.primary.chineseName}</p>
+          <HexagramLines lines={[...result.lineValuesBottomUp]} size="lg" showLabels className="mt-8 max-w-sm" />
+          <p className="reading-theme">{reading.primaryInterpretation.theme}</p>
+          <p className="reading-copy">{reading.primaryInterpretation.summary}</p>
+        </article>
+
+        <div className="change-bridge" aria-label={`Changing lines: ${movingLabel}`}>
+          <div className="change-orb">{movingLabel}</div>
+          <small>Changing lines</small>
+        </div>
+
+        {reading.relating && reading.relatingInterpretation ? (
+          <article className="reading-card-a">
+            <p className="mystic-kicker">Relating Hexagram</p>
+            <div className="reading-number mt-5">{reading.relating.number}</div>
+            <h4 className="reading-title">{reading.relating.englishName}</h4>
+            <p className="reading-cn mt-2">{reading.relating.chineseName}</p>
+            <HexagramLines lines={relatingLines(result.lineValuesBottomUp)} size="lg" showLabels className="mt-8 max-w-sm" />
+            <p className="reading-theme">{reading.relatingInterpretation.theme}</p>
+            <p className="reading-copy">{reading.relatingInterpretation.summary}</p>
+          </article>
+        ) : (
+          <article className="reading-card-a flex min-h-[360px] flex-col justify-center">
+            <p className="mystic-kicker">Relating Hexagram</p>
+            <h4 className="mt-5 font-display text-2xl font-normal">No relating hexagram</h4>
+            <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">No relating hexagram is produced when there are no changing lines.</p>
+          </article>
+        )}
+      </div>
+
+      <div className="change-detail">
+        <strong className="text-white">Changing Lines: {movingLabel}</strong>
+        <span className="mx-2 text-[var(--gold)]">◇</span>
+        {reading.changeExplanation}
+      </div>
+
+      <p className="mt-7 border-t border-white/[0.08] pt-5 text-xs leading-6 text-[var(--ink-3)]">
         This is a general interpretive framework for reflection, not a deterministic prediction and not medical, legal, financial, or safety advice. Keep real-world evidence and your own judgment in the decision.
       </p>
     </section>

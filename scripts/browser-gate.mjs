@@ -197,6 +197,27 @@ async function clickButton(page, label) {
   assert(clicked, `Unable to click enabled button: ${label}`);
 }
 
+async function dispatchThreeCoinPointer(page, type, pointerId = 41) {
+  const dispatched = await page.evaluate(({ eventType, id }) => {
+    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Toss three coins");
+    if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
+    if (eventType === "pointerdown") {
+      button.setPointerCapture = () => {};
+    }
+    button.dispatchEvent(new PointerEvent(eventType, {
+      bubbles: true,
+      cancelable: true,
+      pointerId: id,
+      pointerType: "touch",
+      isPrimary: true,
+      button: 0,
+      buttons: eventType === "pointerdown" ? 1 : 0,
+    }));
+    return true;
+  }, { eventType: type, id: pointerId });
+  assert(dispatched, `Unable to dispatch Three-Coin ${type}`);
+}
+
 function attachFailureCollectors(page) {
   const consoleErrors = [];
   const pageErrors = [];
@@ -228,6 +249,44 @@ async function assertResult(page) {
   for (const expected of ["Free basic interpretation", "Primary Hexagram", "Changing Lines", "Relating Hexagram", "general interpretive framework for reflection"]) {
     assert(resultText.includes(expected), `Reading result missing: ${expected}`);
   }
+}
+
+async function verifyThreeCoinTransactionSemantics(page) {
+  const storageKey = "quickiching:public-v1:three-coin";
+  await waitForText(page, "0 / 6 lines");
+
+  await dispatchThreeCoinPointer(page, "pointerdown", 41);
+  await dispatchThreeCoinPointer(page, "pointercancel", 41);
+  const cancelled = await page.evaluate((key) => ({
+    motion: document.querySelector(".coin-motion-stage")?.getAttribute("data-motion"),
+    stored: sessionStorage.getItem(key),
+    body: document.body?.innerText ?? "",
+  }), storageKey);
+  assert.equal(cancelled.motion, "idle", "pointercancel must return the Three-Coin chamber to idle");
+  assert.equal(cancelled.stored, null, "pointercancel must not persist a Three-Coin line");
+  assert(cancelled.body.includes("0 / 6 lines"), "pointercancel must not advance Three-Coin progress");
+
+  await dispatchThreeCoinPointer(page, "pointerdown", 42);
+  await dispatchThreeCoinPointer(page, "pointerup", 42);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const duringReveal = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    return {
+      stored: raw ? JSON.parse(raw) : null,
+      body: document.body?.innerText ?? "",
+      motion: document.querySelector(".coin-motion-stage")?.getAttribute("data-motion"),
+    };
+  }, storageKey);
+  assert.equal(duringReveal.stored?.length, 1, "release must immediately persist the authoritative Three-Coin line before reveal completes");
+  assert.equal(duringReveal.motion, "casting", "release should still be visually revealing the committed line during Motion F");
+  assert(duringReveal.body.includes("0 / 6 lines"), "authoritative commit must not visually reveal the new line before Motion F settles");
+
+  await page.reload({ waitUntil: "networkidle0" });
+  await waitForText(page, "1 / 6 lines");
+  const restored = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "[]").length, storageKey);
+  assert.equal(restored, 1, "reload during Motion F must restore the already-committed Three-Coin line");
+  await clickButton(page, "New reading");
+  await waitForText(page, "0 / 6 lines");
 }
 
 async function finishThreeCoin(page) {
@@ -318,6 +377,7 @@ async function verifyBrowserFlows() {
   try {
     const desktop = { width: 1440, height: 1000 };
     const mobile = { width: 375, height: 812 };
+    await runPage(browser, { path: "/", viewport: desktop, flow: verifyThreeCoinTransactionSemantics, label: "Desktop Three Coin → commit/reveal/cancel semantics" });
     await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → result/reset" });
     await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → result/reset" });
     await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → result/reset" });
