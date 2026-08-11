@@ -78,41 +78,49 @@ export function YarrowTool() {
   }
 
   return (
-    <section className="rounded-2xl border border-[var(--line-strong)] bg-[var(--paper-raised)] p-5 sm:p-8" aria-labelledby="yarrow-tool-title">
+    <section className="mystic-card overflow-hidden p-5 sm:p-8" aria-labelledby="yarrow-tool-title">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Yarrow Stalk Method</p>
-          <h2 id="yarrow-tool-title" className="mt-2 font-display text-2xl font-medium">Complete 18 yarrow changes</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-7 text-[var(--ink-2)]">Three changes form one line; six lines form the hexagram. Each completed change is saved in this browser session so a refresh can resume the ritual.</p>
+          <p className="mystic-kicker">Yarrow Stalk Method</p>
+          <h2 id="yarrow-tool-title" className="mt-2 font-display text-3xl font-normal tracking-[-.03em]">Complete 18 yarrow changes</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ink-2)]">Three changes form one line; six lines form the hexagram. Each completed change is saved in this browser session so a refresh can resume the ritual.</p>
         </div>
-        <span className="rounded-full border border-[var(--line)] px-3 py-1 font-mono text-xs text-[var(--ink-3)]">{changes.length} / 18 changes</span>
+        <span className="ritual-progress-badge">{changes.length} / 18 changes</span>
       </div>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-[minmax(0,1fr),minmax(15rem,0.9fr)] md:items-center">
-        <div className="rounded-xl border border-[var(--line)] bg-[var(--paper)] p-5">
+      <div className="mt-7 grid gap-6 md:grid-cols-[minmax(0,1fr),minmax(15rem,.9fr)] md:items-stretch">
+        <div className="mystic-card-soft relative overflow-hidden p-5 sm:p-6">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_50%_0%,rgba(143,112,255,.16),transparent_70%)]" />
+          <div className="relative mx-auto mb-8 flex h-24 max-w-md items-center justify-center overflow-hidden" aria-hidden="true">
+            {Array.from({ length: 13 }, (_, index) => (
+              <span key={index} className="mx-[2px] h-20 w-px origin-bottom bg-gradient-to-b from-[var(--gold-2)] to-[#7c5d2b] opacity-70" style={{ transform: `rotate(${(index - 6) * 2.2}deg) translateY(${Math.abs(index - 6) * 1.2}px)` }} />
+            ))}
+          </div>
           <HexagramLines lines={lines} sealedCount={lines.length} animateLast size="lg" showLabels />
         </div>
-        <div className="text-sm leading-7 text-[var(--ink-2)]">
-          <p><strong className="text-[var(--ink)]">Current position:</strong> line {currentLine}, change {currentChange}</p>
+
+        <div className="mystic-card-soft p-5 text-sm leading-7 text-[var(--ink-2)] sm:p-6">
+          <p className="mystic-kicker">Current change</p>
+          <p className="mt-3"><strong className="text-[var(--ink)]">Current position:</strong> line {currentLine}, change {currentChange}</p>
           {latest ? (
-            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border border-[var(--line)] p-4">
-              <dt>Started</dt><dd className="text-right font-mono">{latest.startingStalks}</dd>
-              <dt>Left / right</dt><dd className="text-right font-mono">{latest.leftGroup} / {latest.rightGroup}</dd>
-              <dt>Remainders</dt><dd className="text-right font-mono">{latest.leftRemainder} / {latest.rightRemainder}</dd>
-              <dt>Remaining</dt><dd className="text-right font-mono">{latest.endingStalks}</dd>
+            <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+              <dt>Started</dt><dd className="text-right font-mono text-[var(--gold-2)]">{latest.startingStalks}</dd>
+              <dt>Left / right</dt><dd className="text-right font-mono text-[var(--gold-2)]">{latest.leftGroup} / {latest.rightGroup}</dd>
+              <dt>Remainders</dt><dd className="text-right font-mono text-[var(--gold-2)]">{latest.leftRemainder} / {latest.rightRemainder}</dd>
+              <dt>Remaining</dt><dd className="text-right font-mono text-[var(--gold-2)]">{latest.endingStalks}</dd>
             </dl>
           ) : (
             <p className="mt-4">Begin with 49 working stalks. The digital convention records a valid split and remainder calculation for every change.</p>
           )}
-          <p className="mt-4 text-xs leading-6 text-[var(--ink-3)]">Quick I Ching uses an explicit Zhu Xi-style digital probability convention: the first change removes 5 or 9; later changes remove 4 or 8. This preserves the standard 6/7/8/9 line distribution while keeping every stalk calculation auditable.</p>
+          <p className="mt-5 text-xs leading-6 text-[var(--ink-3)]">Quick I Ching uses an explicit Zhu Xi-style digital probability convention: the first change removes 5 or 9; later changes remove 4 or 8. This preserves the standard 6/7/8/9 line distribution while keeping every stalk calculation auditable.</p>
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-3">
-        <button type="button" onClick={performChange} disabled={complete} className="min-h-11 rounded-md bg-[var(--cinnabar)] px-5 py-3 text-sm font-semibold text-white hover:bg-[var(--cinnabar-deep)] disabled:cursor-not-allowed disabled:opacity-50">
+      <div className="mt-7 flex flex-wrap gap-3">
+        <button type="button" onClick={performChange} disabled={complete} className="mystic-button">
           {complete ? "Reading complete" : `Perform change ${changes.length + 1}`}
         </button>
-        <button type="button" onClick={reset} disabled={changes.length === 0} className="min-h-11 rounded-md border border-[var(--line-strong)] px-5 py-3 text-sm font-semibold text-[var(--ink-2)] disabled:cursor-not-allowed disabled:opacity-50">New reading</button>
+        <button type="button" onClick={reset} disabled={changes.length === 0} className="mystic-button-secondary">New reading</button>
       </div>
 
       {result ? <ReadingResult result={result} /> : null}
