@@ -91,6 +91,16 @@ async function waitForText(page, text, timeout = 15_000) {
   await page.waitForFunction((value) => document.body?.innerText.includes(value), { timeout }, text);
 }
 
+async function clickButton(page, label) {
+  const clicked = await page.evaluate((wanted) => {
+    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === wanted);
+    if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
+    button.click();
+    return true;
+  }, label);
+  assert(clicked, `Unable to click enabled button: ${label}`);
+}
+
 async function seedCompletedReading(page) {
   // Seed on a same-origin non-app document first so the homepage's initial mount reads the
   // completed session. Seeding after the homepage mounts would leave its React state at 0/6,
@@ -102,6 +112,15 @@ async function seedCompletedReading(page) {
   });
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
   await waitForText(page, "6 / 6 lines");
+
+  const completedState = await page.evaluate(() => ({
+    anchorCount: document.querySelectorAll("#three-coin-reading").length,
+    sidebarResetCount: [...document.querySelectorAll("button")].filter((node) => node.textContent?.trim() === "New reading").length,
+    hasReveal: [...document.querySelectorAll("a")].some((node) => node.textContent?.trim() === "Reveal Your Reading"),
+  }));
+  assert.equal(completedState.anchorCount, 1, "Homepage must contain exactly one #three-coin-reading anchor");
+  assert.equal(completedState.sidebarResetCount, 0, "Completed Three-Coin chamber must not expose the sidebar destructive New reading control");
+  assert(completedState.hasReveal, "Completed Three-Coin chamber must expose Reveal Your Reading");
 }
 
 async function assertNoHorizontalOverflow(page) {
@@ -129,6 +148,80 @@ async function verifyInvalidResult(browser) {
     const href = await page.$eval('a[href="/#three-coin-reading"]', (node) => node.getAttribute("href"));
     assert.equal(href, "/#three-coin-reading");
     log("Invalid direct result URL PASS");
+  } finally {
+    await context.close();
+  }
+}
+
+async function verifyStorageReadFailure(browser) {
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  await page.evaluateOnNewDocument((key) => {
+    const originalGetItem = Storage.prototype.getItem;
+    Storage.prototype.getItem = function getItem(itemKey) {
+      if (itemKey === key) throw new DOMException("Storage blocked", "SecurityError");
+      return originalGetItem.call(this, itemKey);
+    };
+  }, STORAGE_KEY);
+  try {
+    await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await waitForText(page, "THREE_COIN_SESSION_READ_FAILED");
+    const state = await page.evaluate(() => ({
+      anchorCount: document.querySelectorAll("#three-coin-reading").length,
+      castDisabled: [...document.querySelectorAll("button")].some((node) => node.textContent?.trim() === "Toss three coins" && node.disabled),
+      revealCount: [...document.querySelectorAll("a")].filter((node) => node.textContent?.trim() === "Reveal Your Reading").length,
+    }));
+    assert.equal(state.anchorCount, 1, "Storage failure state must retain one Three-Coin anchor");
+    assert(state.castDisabled, "Three-Coin cast control must be disabled when browser storage cannot be read");
+    assert.equal(state.revealCount, 0, "Storage read failure must never expose Reveal Your Reading");
+    log("sessionStorage getItem fail-fast PASS");
+  } finally {
+    await context.close();
+  }
+}
+
+async function verifyStorageWriteFailureRetry(browser) {
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  await page.evaluateOnNewDocument((key) => {
+    const originalSetItem = Storage.prototype.setItem;
+    Object.defineProperty(window, "__restoreThreeCoinSetItem", {
+      configurable: true,
+      value: () => { Storage.prototype.setItem = originalSetItem; },
+    });
+    Storage.prototype.setItem = function setItem(itemKey, value) {
+      if (itemKey === key) throw new DOMException("Storage blocked", "QuotaExceededError");
+      return originalSetItem.call(this, itemKey, value);
+    };
+  }, STORAGE_KEY);
+  try {
+    await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await waitForText(page, "0 / 6 lines");
+    await clickButton(page, "Toss three coins");
+    await waitForText(page, "THREE_COIN_SESSION_WRITE_FAILED");
+    await waitForText(page, "Retry saving this cast");
+
+    const failedState = await page.evaluate((key) => {
+      const errorBox = document.querySelector("[data-three-coin-storage-error]");
+      const match = errorBox?.textContent?.match(/Line 1 was cast as ([6789])/);
+      return {
+        castValue: match ? Number(match[1]) : null,
+        progress: document.body?.innerText.includes("0 / 6 lines"),
+        stored: sessionStorage.getItem(key),
+        revealCount: [...document.querySelectorAll("a")].filter((node) => node.textContent?.trim() === "Reveal Your Reading").length,
+      };
+    }, STORAGE_KEY);
+    assert([6, 7, 8, 9].includes(failedState.castValue), "Failed write state must retain the authoritative cast value in memory");
+    assert(failedState.progress, "Failed write must not visually advance sealed progress");
+    assert.equal(failedState.stored, null, "Failed write must not manufacture persisted session data");
+    assert.equal(failedState.revealCount, 0, "Failed write must not expose Reveal Your Reading");
+
+    await page.evaluate(() => window.__restoreThreeCoinSetItem());
+    await clickButton(page, "Retry saving this cast");
+    await waitForText(page, "1 / 6 lines");
+    const storedValue = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "[]")[0]?.lineValue ?? null, STORAGE_KEY);
+    assert.equal(storedValue, failedState.castValue, "Retry must persist the same cast value rather than rerolling the line");
+    log("sessionStorage setItem fail-fast + same-cast retry PASS");
   } finally {
     await context.close();
   }
@@ -178,6 +271,41 @@ async function verifySeededResult(browser, viewport) {
   }
 }
 
+async function verifyClearFailure(browser) {
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  try {
+    await seedCompletedReading(page);
+    await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await waitForText(page, "Your Three-Coin Reading");
+    await page.evaluate((key) => {
+      const originalRemoveItem = Storage.prototype.removeItem;
+      Object.defineProperty(window, "__restoreThreeCoinRemoveItem", {
+        configurable: true,
+        value: () => { Storage.prototype.removeItem = originalRemoveItem; },
+      });
+      Storage.prototype.removeItem = function removeItem(itemKey) {
+        if (itemKey === key) throw new DOMException("Storage blocked", "SecurityError");
+        return originalRemoveItem.call(this, itemKey);
+      };
+    }, STORAGE_KEY);
+
+    await clickButton(page, "Start a New Reading");
+    await waitForText(page, "THREE_COIN_SESSION_CLEAR_FAILED");
+    const failureState = await page.evaluate((key) => ({
+      pathname: location.pathname,
+      stored: sessionStorage.getItem(key),
+      stillShowsResult: document.body?.innerText.includes("Your Three-Coin Reading"),
+    }), STORAGE_KEY);
+    assert.equal(failureState.pathname, RESULT_PATH, "Clear failure must keep the user on the existing result page");
+    assert(failureState.stored, "Clear failure must preserve the sealed reading");
+    assert(failureState.stillShowsResult, "Clear failure must keep the current reading visible");
+    log("sessionStorage removeItem fail-fast PASS");
+  } finally {
+    await context.close();
+  }
+}
+
 async function verifyExplicitReset(browser) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
@@ -185,13 +313,7 @@ async function verifyExplicitReset(browser) {
     await seedCompletedReading(page);
     await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
     await waitForText(page, "Start a New Reading");
-    const clicked = await page.evaluate(() => {
-      const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Start a New Reading");
-      if (!(button instanceof HTMLButtonElement)) return false;
-      button.click();
-      return true;
-    });
-    assert(clicked, "Start a New Reading button missing");
+    await clickButton(page, "Start a New Reading");
     await page.waitForFunction(() => location.pathname === "/" && location.hash === "#three-coin-reading", { timeout: 15_000 });
     await waitForText(page, "0 / 6 lines");
     const stored = await page.evaluate((key) => sessionStorage.getItem(key), STORAGE_KEY);
@@ -211,10 +333,13 @@ const browser = await puppeteer.launch({
 });
 try {
   await verifyInvalidResult(browser);
+  await verifyStorageReadFailure(browser);
+  await verifyStorageWriteFailureRetry(browser);
   await verifySeededResult(browser, { width: 1440, height: 1000 });
   for (const width of [320, 375, 390]) {
     await verifySeededResult(browser, { width, height: 844 });
   }
+  await verifyClearFailure(browser);
   await verifyExplicitReset(browser);
   log("ALL THREE-COIN V2 RESULT GATES PASS");
 } finally {
