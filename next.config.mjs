@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: {
+    globalNotFound: true,
+  },
   // Next 15's embedded ESLint runner is incompatible with this repository's ESLint 8 API options.
   // Public V1 runs `bun run lint` explicitly before every Vercel build, so the redundant embedded
   // lint pass is disabled while TypeScript checking remains part of `next build`.
