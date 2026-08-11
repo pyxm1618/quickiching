@@ -54,6 +54,7 @@ function CashCoin({ face, index }: { face: CoinFace; index: number }) {
 
 export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean }) {
   const [steps, setSteps] = useState<ThreeCoinStep[]>([]);
+  const [revealedCount, setRevealedCount] = useState(0);
   const [restored, setRestored] = useState(false);
   const [motion, setMotion] = useState<MotionState>("idle");
   const [pendingStep, setPendingStep] = useState<ThreeCoinStep | null>(null);
@@ -65,7 +66,9 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setSteps(readStoredSteps());
+    const stored = readStoredSteps();
+    setSteps(stored);
+    setRevealedCount(stored.length);
     setRestored(true);
   }, []);
 
@@ -82,15 +85,18 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
   }, []);
 
   const lines = useMemo(() => steps.map((step) => step.lineValue), [steps]);
+  const revealedSteps = useMemo(() => steps.slice(0, revealedCount), [steps, revealedCount]);
+  const revealedLines = useMemo(() => revealedSteps.map((step) => step.lineValue), [revealedSteps]);
   const complete = lines.length === 6;
-  const result = complete ? buildHexagramResult({ lineValuesBottomUp: lines, method: "three_coin" }) : null;
-  const visibleStep = pendingStep ?? steps.at(-1) ?? null;
+  const visuallyComplete = revealedCount === 6;
+  const result = visuallyComplete ? buildHexagramResult({ lineValuesBottomUp: revealedLines, method: "three_coin" }) : null;
+  const visibleStep = pendingStep ?? revealedSteps.at(-1) ?? null;
   const visibleFaces: readonly [CoinFace, CoinFace, CoinFace] = visibleStep?.coinFaces ?? ["yang", "yang", "yang"];
   const busy = motion === "holding" || motion === "casting";
-  const visualButtonLabel = complete
-    ? "Reading complete"
-    : motion === "casting"
-      ? "Coins are settling…"
+  const visualButtonLabel = motion === "casting"
+    ? "Coins are settling…"
+    : complete
+      ? "Reading complete"
       : "Press & hold to shake · release to cast";
 
   function audio(): AudioContext | null {
@@ -133,6 +139,14 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     tone(1510, 0.025, 0.005, 0.018, "sine");
   }
 
+  function stopShake() {
+    holdingRef.current = false;
+    if (shakeIntervalRef.current) {
+      clearInterval(shakeIntervalRef.current);
+      shakeIntervalRef.current = null;
+    }
+  }
+
   function beginHold() {
     if (complete || motion === "casting" || holdingRef.current) return;
     holdingRef.current = true;
@@ -142,16 +156,28 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     shakeIntervalRef.current = setInterval(shakeTick, 155);
   }
 
+  function cancelHold() {
+    if (!holdingRef.current) return;
+    stopShake();
+    setPendingStep(null);
+    setMotion("idle");
+  }
+
   function releaseCast() {
     if (!holdingRef.current || complete) return;
-    holdingRef.current = false;
-    if (shakeIntervalRef.current) {
-      clearInterval(shakeIntervalRef.current);
-      shakeIntervalRef.current = null;
-    }
+    stopShake();
 
     const lineIndex = steps.length as 0 | 1 | 2 | 3 | 4 | 5;
     const next = generateThreeCoinLine(lineIndex, browserRandomBit);
+    const committedSteps = [...steps, next];
+
+    // The domain result becomes authoritative at release. Motion F only delays its visual reveal.
+    setSteps(committedSteps);
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(committedSteps));
+    } catch {
+      // React state remains authoritative for the current page if browser storage is unavailable.
+    }
     setPendingStep(next);
     setMotion("casting");
 
@@ -164,7 +190,8 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     settleTimerRef.current = setTimeout(() => {
-      setSteps((current) => [...current, next]);
+      setRevealedCount(committedSteps.length);
+      setPendingStep(null);
       setMotion("settled");
       tone(360, 0.34, 0.023, 0, "sine");
       tone(720, 0.42, 0.01, 0.03, "sine");
@@ -181,6 +208,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     settleTimerRef.current = null;
     setPendingStep(null);
     setMotion("idle");
+    setRevealedCount(0);
     setSteps([]);
     sessionStorage.removeItem(STORAGE_KEY);
   }
@@ -199,8 +227,8 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
 
   function onPointerCancel(event: PointerEvent<HTMLButtonElement>) {
     event.preventDefault();
-    ignoreSyntheticClickRef.current = false;
-    releaseCast();
+    ignoreSyntheticClickRef.current = true;
+    cancelHold();
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
@@ -240,7 +268,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
           ) : null}
         </div>
         <div className="flex items-center gap-3">
-          <span className="ritual-progress-badge" style={{ textTransform: "none" }}>{steps.length} / 6 lines</span>
+          <span className="ritual-progress-badge" style={{ textTransform: "none" }}>{revealedCount} / 6 lines</span>
           <button type="button" className="sound-toggle" onClick={() => setSoundOn((value) => !value)} aria-pressed={soundOn}>{soundOn ? "Sound on" : "Sound off"}</button>
         </div>
       </div>
@@ -249,13 +277,13 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
         <div className="ritual-stage">
           <div className="ritual-progress">
             <div>
-              <p className="mystic-kicker">{complete ? "Reading formed" : "Casting in progress"}</p>
-              <p className="mt-1 text-sm text-[var(--ink-2)]"><strong className="text-white">{complete ? "Six lines sealed" : `Line ${steps.length + 1} of 6`}</strong>{!complete && steps.length < 3 ? " · forming the lower trigram" : !complete ? " · forming the upper trigram" : ""}</p>
+              <p className="mystic-kicker">{visuallyComplete ? "Reading formed" : "Casting in progress"}</p>
+              <p className="mt-1 text-sm text-[var(--ink-2)]"><strong className="text-white">{visuallyComplete ? "Six lines sealed" : `Line ${revealedCount + 1} of 6`}</strong>{!visuallyComplete && revealedCount < 3 ? " · forming the lower trigram" : !visuallyComplete ? " · forming the upper trigram" : ""}</p>
             </div>
           </div>
 
           <div className="mx-auto mt-7 w-full max-w-[440px]">
-            <HexagramLines lines={lines} sealedCount={steps.length} animateLast size="lg" showLabels />
+            <HexagramLines lines={revealedLines} sealedCount={revealedCount} animateLast size="lg" showLabels />
           </div>
 
           <div className="coin-motion-stage" data-motion={motion} aria-label="Three-coin casting chamber">
@@ -263,7 +291,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
             {visibleFaces.map((face, index) => <CashCoin key={index} face={face} index={index} />)}
             <div className="coin-energy" aria-hidden="true" />
             <div className="coin-motion-result" aria-live="polite">
-              {visibleStep ? <><strong>{visibleStep.lineValue} · {lineName(visibleStep.lineValue)}</strong><span>line {visibleStep.lineIndex + 1} sealed</span></> : null}
+              {motion !== "casting" && visibleStep ? <><strong>{visibleStep.lineValue} · {lineName(visibleStep.lineValue)}</strong><span>line {visibleStep.lineIndex + 1} sealed</span></> : null}
             </div>
           </div>
 
@@ -292,13 +320,13 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
           <p className="mystic-kicker">Ritual map</p>
           <div className="ritual-map">
             {Array.from({ length: 6 }, (_, index) => {
-              const step = steps[index];
-              const state = step ? "done" : index === steps.length && !complete ? "current" : "waiting";
+              const step = revealedSteps[index];
+              const state = step ? "done" : index === revealedCount && !visuallyComplete ? "current" : "waiting";
               return (
                 <div key={index} className="ritual-map-step" data-state={state}>
                   <span className="ritual-map-n">{ROMAN[index]}</span>
                   <div>
-                    <h4>{step ? `Line ${index + 1} sealed` : index === steps.length && !complete ? `Line ${index + 1} awaiting cast` : `Line ${index + 1}`}</h4>
+                    <h4>{step ? `Line ${index + 1} sealed` : index === revealedCount && !visuallyComplete ? `Line ${index + 1} awaiting cast` : `Line ${index + 1}`}</h4>
                     <p>{step ? `${lineName(step.lineValue)} · value ${step.lineValue}` : index === 2 ? "Completes the lower trigram" : index === 5 ? "Completes the upper trigram" : "Bottom → top"}</p>
                   </div>
                 </div>
@@ -311,11 +339,11 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
               <p className="mystic-kicker">Completed tosses</p>
               <button type="button" onClick={reset} disabled={steps.length === 0 || busy} className="sound-toggle">New reading</button>
             </div>
-            {steps.length === 0 ? (
+            {revealedSteps.length === 0 ? (
               <p className="mt-3 text-xs leading-6 text-[var(--ink-3)]">The first toss becomes line 1 at the bottom of the hexagram.</p>
             ) : (
               <ol aria-label="Completed coin tosses">
-                {steps.map((step) => (
+                {revealedSteps.map((step) => (
                   <li key={step.lineIndex}>
                     <span>Line {step.lineIndex + 1}: {step.coinFaces.join(" · ")}</span>
                     <strong>{step.lineValue}</strong>
