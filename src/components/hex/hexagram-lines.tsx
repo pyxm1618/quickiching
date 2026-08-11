@@ -1,13 +1,5 @@
 import { cn } from "@/lib/utils";
 
-/**
- * 卦画 —— 「明室 · 暗室」设计语言的唯一图形母题（phototype/UI设计方案.md §5.1）
- *
- * 阳爻整段（———），阴爻两分（—— ——，中段留 12% 缺口）；
- * 动爻（6 老阴 / 9 老阳）染朱砂，尾端以 ○（老阳）／×（老阴）标记。
- * 六爻自下而上构建、自上而下展示。
- */
-
 type Size = "sm" | "md" | "lg";
 
 const YANG_LABELS = ["初九", "九二", "九三", "九四", "九五", "上九"] as const;
@@ -26,13 +18,11 @@ const MARK_SIZE: Record<Size, string> = {
   lg: "text-[13px] w-5",
 };
 
-/** 爻题：position 自下而上 1–6；value 6/7/8/9。 */
 export function lineLabel(position: number, value: number): string {
   const yang = value === 7 || value === 9;
   return (yang ? YANG_LABELS : YIN_LABELS)[position - 1] ?? "";
 }
 
-/** 动爻标记：老阳 ○，老阴 ×；非动爻返回 null。 */
 export function movingMark(value: number): "○" | "×" | null {
   if (value === 9) return "○";
   if (value === 6) return "×";
@@ -42,10 +32,16 @@ export function movingMark(value: number): "○" | "×" | null {
 function YinYangBar({ value, size }: { value: number; size: Size }) {
   const yang = value === 7 || value === 9;
   const moving = value === 6 || value === 9;
-  const bar = cn(BAR_HEIGHT[size], "rounded-[1px]", moving ? "bg-[var(--cinnabar)]" : "bg-[var(--ink)]");
-  if (yang) {
-    return <div className={cn(bar, "w-full")} />;
-  }
+  const bar = cn(
+    BAR_HEIGHT[size],
+    "rounded-full transition-[filter,box-shadow]",
+    moving
+      ? "bg-[var(--cyan)] shadow-[0_0_18px_rgba(137,233,227,.28)]"
+      : "bg-gradient-to-r from-[#ad9259] to-[var(--gold-2)] shadow-[0_0_14px_rgba(232,198,122,.12)]",
+  );
+
+  if (yang) return <div className={cn(bar, "w-full")} />;
+
   return (
     <div className="flex w-full items-center">
       <div className={cn(bar, "flex-1")} />
@@ -56,17 +52,10 @@ function YinYangBar({ value, size }: { value: number; size: Size }) {
 }
 
 export type HexagramLinesProps = {
-  /** 六爻数值，自下而上（index 0 = 初爻），取 6/7/8/9。 */
   lines: number[];
   size?: Size;
-  /** 显示爻题（初九 / 六二 …）。 */
   showLabels?: boolean;
-  /**
-   * 仪式模式：仅前 sealedCount 爻（自下而上）已封存实线展示，
-   * 其余爻位以虚线导轨预显「尚未成爻」。
-   */
   sealedCount?: number;
-  /** 为最后一条封存爻播放松 480ms 落定动画。 */
   animateLast?: boolean;
   className?: string;
 };
@@ -81,31 +70,28 @@ export function HexagramLines({
 }: HexagramLinesProps) {
   const total = 6;
   const ritual = sealedCount !== undefined;
-  // 自上而下渲染：上爻（6）在前，初爻（1）在后。
-  const positions = Array.from({ length: total }, (_, i) => total - i); // [6,5,4,3,2,1]
+  const positions = Array.from({ length: total }, (_, i) => total - i);
 
   return (
-    <div className={cn("flex flex-col", size === "lg" ? "gap-2.5" : size === "md" ? "gap-2" : "gap-1", className)}>
+    <div className={cn("flex flex-col", size === "lg" ? "gap-3" : size === "md" ? "gap-2.5" : "gap-1.5", className)}>
       {positions.map((pos) => {
         const value = lines[pos - 1];
         const sealed = ritual ? pos <= (sealedCount ?? 0) : value !== undefined;
         const mark = sealed && value !== undefined ? movingMark(value) : null;
         const isLastSealed = ritual && animateLast && pos === sealedCount;
-        const label =
-          sealed && value !== undefined ? lineLabel(pos, value) : ritual ? ORDINALS[pos - 1] : "";
-        const english =
-          sealed && value !== undefined
-            ? `Line ${pos}: ${value === 7 || value === 9 ? "yang" : "yin"}${mark ? ", moving" : ""}`
-            : `Line ${pos}: not yet cast`;
+        const label = sealed && value !== undefined ? lineLabel(pos, value) : ritual ? ORDINALS[pos - 1] : "";
+        const english = sealed && value !== undefined
+          ? `Line ${pos}: ${value === 7 || value === 9 ? "yang" : "yin"}${mark ? ", moving" : ""}`
+          : `Line ${pos}: not yet cast`;
 
         return (
-          <div key={pos} className="flex items-center gap-3" role="img" aria-label={english}>
+          <div key={pos} className={cn("flex items-center gap-3", sealed ? "opacity-100" : "opacity-35")} role="img" aria-label={english}>
             {showLabels && (
               <span
                 className={cn(
-                  "shrink-0 font-cjk text-right",
+                  "shrink-0 font-cjk text-right tracking-wide",
                   size === "lg" ? "w-9 text-sm" : "w-7 text-xs",
-                  sealed ? "text-[var(--ink-3)]" : "text-[var(--line-strong)]",
+                  sealed ? "text-[var(--ink-3)]" : "text-[var(--ink-3)]",
                 )}
               >
                 {label}
@@ -117,16 +103,15 @@ export function HexagramLines({
                   <YinYangBar value={value} size={size} />
                 </div>
               ) : (
-                /* 未成爻导轨：1.5px 虚位线 */
-                <div className="flex h-full items-center">
-                  <div className="h-[1.5px] w-full bg-[var(--line)]" />
+                <div className="flex h-full items-center py-1">
+                  <div className="h-px w-full bg-white/[0.12]" />
                 </div>
               )}
             </div>
             <span
               aria-hidden={!mark}
               className={cn(
-                "shrink-0 text-center leading-none text-[var(--cinnabar)]",
+                "shrink-0 text-center leading-none text-[var(--cyan)] [text-shadow:0_0_12px_rgba(137,233,227,.5)]",
                 MARK_SIZE[size],
               )}
             >
