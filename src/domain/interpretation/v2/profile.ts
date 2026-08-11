@@ -5,10 +5,9 @@ import type {
   LinePosition,
 } from "./types";
 
-export type HexagramInterpretationProfile = {
+type SharedProfileFields = {
   number: number;
   coreTheme: string;
-  legacySummary: string;
   strength: string;
   challenge: string;
   orientation: string;
@@ -16,8 +15,38 @@ export type HexagramInterpretationProfile = {
   stabilityTheme: string;
   lowerTrigram: Trigram;
   upperTrigram: Trigram;
-  lineEmphases: readonly [string, string, string, string, string, string];
 };
+
+export type AuthoredLineContent = Omit<LineInterpretation, "hexagramNumber" | "position">;
+
+type AuthoredProfile = SharedProfileFields & {
+  coreMeaning: string;
+  structureInterpretation: string;
+  reflectionQuestions: readonly [string, string, string];
+  watchFor: readonly [string, string, string];
+  lines: readonly [
+    AuthoredLineContent,
+    AuthoredLineContent,
+    AuthoredLineContent,
+    AuthoredLineContent,
+    AuthoredLineContent,
+    AuthoredLineContent,
+  ];
+  legacySummary?: never;
+  lineEmphases?: never;
+};
+
+type LegacyProfile = SharedProfileFields & {
+  legacySummary: string;
+  lineEmphases: readonly [string, string, string, string, string, string];
+  coreMeaning?: never;
+  structureInterpretation?: never;
+  reflectionQuestions?: never;
+  watchFor?: never;
+  lines?: never;
+};
+
+export type HexagramInterpretationProfile = AuthoredProfile | LegacyProfile;
 
 const TRIGRAM_PRESENTATION: Record<Trigram, { label: string; meaning: string }> = {
   qian: { label: "Qian ☰ · Heaven", meaning: "initiative, direction, and creative force" },
@@ -67,20 +96,31 @@ function sentenceCase(value: string): string {
   return value.length === 0 ? value : `${value[0].toUpperCase()}${value.slice(1)}`;
 }
 
-function buildCoreMeaning(profile: HexagramInterpretationProfile): string {
+export function authoredLine(
+  theme: string,
+  meaning: string,
+  changeDynamic: string,
+  caution: string,
+  reflection: string,
+  synthesisPhrase: string,
+): AuthoredLineContent {
+  return { theme, meaning, changeDynamic, caution, reflection, synthesisPhrase };
+}
+
+function buildLegacyCoreMeaning(profile: LegacyProfile): string {
   const lower = TRIGRAM_PRESENTATION[profile.lowerTrigram];
   const upper = TRIGRAM_PRESENTATION[profile.upperTrigram];
   return `${profile.legacySummary} Quick I Ching reads ${profile.coreTheme.toLowerCase()} as a whole-situation pattern rather than a prediction about a single event. At its best, the pattern makes use of ${profile.strength}; its main distortion appears when ${profile.challenge}. The lower trigram, ${lower.label}, describes an inner field of ${lower.meaning}, while the upper trigram, ${upper.label}, places that inner condition within an outer field of ${upper.meaning}. Together they suggest that the useful task is to ${profile.orientation}. The reading is therefore less about forcing a fixed outcome than about recognizing the structure now present, using its available strength, and watching whether your response improves or worsens that structure.`;
 }
 
-function buildStructureInterpretation(profile: HexagramInterpretationProfile): string {
+function buildLegacyStructureInterpretation(profile: LegacyProfile): string {
   const lower = TRIGRAM_PRESENTATION[profile.lowerTrigram];
   const upper = TRIGRAM_PRESENTATION[profile.upperTrigram];
   return `Lower ${lower.label} sets the inner condition as ${lower.meaning}; upper ${upper.label} describes the outer field as ${upper.meaning}. Quick I Ching reads their relationship through the theme of ${profile.coreTheme.toLowerCase()}: the inner response must meet the outer condition without losing proportion.`;
 }
 
-function buildLineInterpretation(
-  profile: HexagramInterpretationProfile,
+function buildLegacyLine(
+  profile: LegacyProfile,
   position: LinePosition,
   emphasis: string,
 ): LineInterpretation {
@@ -98,40 +138,71 @@ function buildLineInterpretation(
   };
 }
 
-export function buildInterpretationBundle(profile: HexagramInterpretationProfile): HexagramInterpretationBundle {
-  if (!Number.isInteger(profile.number) || profile.number < 1 || profile.number > 64) {
-    throw new Error(`HEXAGRAM_INTERPRETATION_INVALID_NUMBER: number=${profile.number}`);
-  }
+function authoredLines(profile: AuthoredProfile): HexagramInterpretationBundle["lines"] {
+  return profile.lines.map((line, index) => ({
+    hexagramNumber: profile.number,
+    position: (index + 1) as LinePosition,
+    ...line,
+  })) as unknown as HexagramInterpretationBundle["lines"];
+}
+
+function legacyLines(profile: LegacyProfile): HexagramInterpretationBundle["lines"] {
   const positions = [1, 2, 3, 4, 5, 6] as const;
-  const lines = positions.map((position) => buildLineInterpretation(
+  return positions.map((position) => buildLegacyLine(
     profile,
     position,
     profile.lineEmphases[position - 1],
   )) as unknown as HexagramInterpretationBundle["lines"];
+}
 
+export function buildInterpretationBundle(profile: HexagramInterpretationProfile): HexagramInterpretationBundle {
+  if (!Number.isInteger(profile.number) || profile.number < 1 || profile.number > 64) {
+    throw new Error(`HEXAGRAM_INTERPRETATION_INVALID_NUMBER: number=${profile.number}`);
+  }
+
+  if ("lines" in profile && profile.lines) {
+    return {
+      hexagram: {
+        number: profile.number,
+        coreTheme: profile.coreTheme,
+        coreMeaning: profile.coreMeaning,
+        strength: `${sentenceCase(profile.strength)}.`,
+        challenge: `${sentenceCase(profile.challenge)}.`,
+        orientation: `${sentenceCase(profile.orientation)}.`,
+        structureInterpretation: profile.structureInterpretation,
+        reflectionQuestions: profile.reflectionQuestions,
+        watchFor: profile.watchFor,
+        transitionTheme: `${sentenceCase(profile.transitionTheme)}.`,
+        stabilityTheme: `${sentenceCase(profile.stabilityTheme)}.`,
+      },
+      lines: authoredLines(profile),
+    };
+  }
+
+  const legacy = profile as LegacyProfile;
   return {
     hexagram: {
-      number: profile.number,
-      coreTheme: profile.coreTheme,
-      coreMeaning: buildCoreMeaning(profile),
-      strength: `${sentenceCase(profile.strength)}.`,
-      challenge: `${sentenceCase(profile.challenge)}.`,
-      orientation: `${sentenceCase(profile.orientation)}.`,
-      structureInterpretation: buildStructureInterpretation(profile),
+      number: legacy.number,
+      coreTheme: legacy.coreTheme,
+      coreMeaning: buildLegacyCoreMeaning(legacy),
+      strength: `${sentenceCase(legacy.strength)}.`,
+      challenge: `${sentenceCase(legacy.challenge)}.`,
+      orientation: `${sentenceCase(legacy.orientation)}.`,
+      structureInterpretation: buildLegacyStructureInterpretation(legacy),
       reflectionQuestions: [
-        `Where is ${profile.strength} already present, and what evidence shows it is genuinely useful rather than merely appealing?`,
-        `Where might ${profile.challenge} be distorting how you read the current situation?`,
-        `What would it look like, in one concrete decision, to ${profile.orientation}?`,
+        `Where is ${legacy.strength} already present, and what evidence shows it is genuinely useful rather than merely appealing?`,
+        `Where might ${legacy.challenge} be distorting how you read the current situation?`,
+        `What would it look like, in one concrete decision, to ${legacy.orientation}?`,
       ],
       watchFor: [
-        `Concrete signs that ${profile.strength} is becoming easier to sustain in practice.`,
-        `Repeated situations where ${profile.challenge} appears and changes the quality of the outcome.`,
-        `Moments when circumstances make it possible to ${profile.orientation}.`,
+        `Concrete signs that ${legacy.strength} is becoming easier to sustain in practice.`,
+        `Repeated situations where ${legacy.challenge} appears and changes the quality of the outcome.`,
+        `Moments when circumstances make it possible to ${legacy.orientation}.`,
       ],
-      transitionTheme: `${sentenceCase(profile.transitionTheme)}.`,
-      stabilityTheme: `${sentenceCase(profile.stabilityTheme)}.`,
+      transitionTheme: `${sentenceCase(legacy.transitionTheme)}.`,
+      stabilityTheme: `${sentenceCase(legacy.stabilityTheme)}.`,
     },
-    lines,
+    lines: legacyLines(legacy),
   };
 }
 
