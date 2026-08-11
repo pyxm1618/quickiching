@@ -3,6 +3,8 @@ import sitemap from "@/app/sitemap";
 import robots from "@/app/robots";
 import { HOME_DESCRIPTION, HOME_H1, HOME_TITLE, INDEXABLE_PATHS, LEGACY_REDIRECTS, SITE_ORIGIN, absoluteUrl, isPrivateOrCommercialPath } from "./seo";
 
+const THREE_COIN_RESULT_PATH = "/readings/three-coin/result";
+
 describe("Public SEO V1 constants", () => {
   it("locks the approved homepage title, description, H1 and canonical host", () => {
     expect(HOME_TITLE).toBe("I Ching Online — Free Hexagram Reading | Quick I Ching");
@@ -16,6 +18,12 @@ describe("Public SEO V1 constants", () => {
     expect(entries.map((entry) => entry.url)).toEqual(INDEXABLE_PATHS.map(absoluteUrl));
     expect(entries.every((entry) => entry.url.startsWith(`${SITE_ORIGIN}/`))).toBe(true);
     for (const path of INDEXABLE_PATHS) expect(isPrivateOrCommercialPath(path)).toBe(false);
+  });
+
+  it("keeps the Three-Coin product result outside the public SEO URL set", () => {
+    expect(INDEXABLE_PATHS).not.toContain(THREE_COIN_RESULT_PATH);
+    expect(sitemap().map((entry) => entry.url)).not.toContain(absoluteUrl(THREE_COIN_RESULT_PATH));
+    expect(isPrivateOrCommercialPath(THREE_COIN_RESULT_PATH)).toBe(true);
   });
 
   it("publishes the canonical sitemap in robots without blocking noindex legal pages", () => {
