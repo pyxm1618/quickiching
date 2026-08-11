@@ -87,6 +87,11 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
   const visibleStep = pendingStep ?? steps.at(-1) ?? null;
   const visibleFaces: readonly [CoinFace, CoinFace, CoinFace] = visibleStep?.coinFaces ?? ["yang", "yang", "yang"];
   const busy = motion === "holding" || motion === "casting";
+  const visualButtonLabel = complete
+    ? "Reading complete"
+    : motion === "casting"
+      ? "Coins are settling…"
+      : "Press & hold to shake · release to cast";
 
   function audio(): AudioContext | null {
     if (!soundOn || typeof window === "undefined") return null;
@@ -264,8 +269,10 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
           <div className="hold-zone">
             <button
               type="button"
-              className="hold-button"
+              className="hold-button after:relative after:z-[2] after:content-[attr(data-visual-label)]"
               data-holding={motion === "holding"}
+              data-visual-label={visualButtonLabel}
+              aria-label={complete ? "Reading complete" : "Toss three coins. Press and hold to shake, then release to cast."}
               onPointerDown={onPointerDown}
               onPointerUp={onPointerUp}
               onPointerCancel={onPointerCancel}
@@ -275,7 +282,6 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
               disabled={complete || motion === "casting"}
             >
               <span className="sr-only">Toss three coins</span>
-              <span aria-hidden="true">{complete ? "Reading complete" : motion === "casting" ? "Coins are settling…" : "Press & hold to shake · release to cast"}</span>
             </button>
             <p className="hold-hint">All three coins remain together until you release them.</p>
           </div>
