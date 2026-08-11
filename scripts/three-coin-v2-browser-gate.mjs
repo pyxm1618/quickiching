@@ -92,11 +92,16 @@ async function waitForText(page, text, timeout = 15_000) {
 }
 
 async function seedCompletedReading(page) {
-  await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
+  // Seed on a same-origin non-app document first so the homepage's initial mount reads the
+  // completed session. Seeding after the homepage mounts would leave its React state at 0/6,
+  // and Back/Forward cache restoration would test an artificial state that users cannot create.
+  await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(({ key, steps }) => sessionStorage.setItem(key, JSON.stringify(steps)), {
     key: STORAGE_KEY,
     steps: FIXTURE_STEPS,
   });
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await waitForText(page, "6 / 6 lines");
 }
 
 async function assertNoHorizontalOverflow(page) {
