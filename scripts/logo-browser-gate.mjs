@@ -42,6 +42,25 @@ async function waitForDecodedBrandImage(page, selector) {
   );
 }
 
+async function waitForFooterInViewport(page) {
+  await page.$eval("footer", (node) => {
+    const root = document.documentElement;
+    const previous = root.style.scrollBehavior;
+    root.style.scrollBehavior = "auto";
+    node.scrollIntoView({ block: "center", behavior: "auto" });
+    root.style.scrollBehavior = previous;
+  });
+  await page.waitForFunction(
+    () => {
+      const footer = document.querySelector("footer");
+      if (!(footer instanceof HTMLElement)) return false;
+      const rect = footer.getBoundingClientRect();
+      return rect.top < window.innerHeight && rect.bottom > 0;
+    },
+    { timeout: 15_000 },
+  );
+}
+
 async function inspectBrandChrome(page, label) {
   const headerSelector = `header img[alt="${BRAND_ALT}"]`;
   const footerSelector = `footer img[alt="${BRAND_ALT}"]`;
@@ -49,9 +68,9 @@ async function inspectBrandChrome(page, label) {
   await page.waitForSelector(footerSelector, { timeout: 15_000 });
   await waitForDecodedBrandImage(page, headerSelector);
 
-  // The footer BrandMark intentionally uses Next/Image lazy loading. Bring it into
-  // the viewport and wait on the real decode condition instead of adding an arbitrary delay.
-  await page.$eval("footer", (node) => node.scrollIntoView({ block: "center" }));
+  // The footer BrandMark intentionally uses Next/Image lazy loading. First make
+  // the Footer truly visible, then wait for the browser's real image decode state.
+  await waitForFooterInViewport(page);
   await waitForDecodedBrandImage(page, footerSelector);
 
   const state = await page.evaluate(({ alt, asset }) => {
@@ -107,12 +126,6 @@ async function inspectBrandChrome(page, label) {
   assert.equal(state.oldHeaderSeal, false, `${label}: old Header SealMark still present`);
   assert.equal(state.oldFooterSeal, false, `${label}: old Footer SealMark still present`);
   assert(state.scrollWidth <= state.clientWidth + 1, `${label}: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
-
-  const footerVisible = await page.$eval("footer", (node) => {
-    const rect = node.getBoundingClientRect();
-    return rect.top < window.innerHeight && rect.bottom > 0;
-  });
-  assert(footerVisible, `${label}: Footer not visible after scroll`);
 }
 
 async function runRoute(browser, path, label, viewport) {
