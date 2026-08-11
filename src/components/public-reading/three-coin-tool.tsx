@@ -1,28 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
-import { ReadingResult } from "@/components/public-reading/reading-result";
-import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { generateThreeCoinLine, type CoinFace, type ThreeCoinStep } from "@/domain/casting/three-coin/algorithm";
 import { browserRandomBit } from "@/lib/browser-random";
+import {
+  clearThreeCoinReading,
+  readThreeCoinSteps,
+  writeThreeCoinSteps,
+} from "@/lib/three-coin-session";
 
-const STORAGE_KEY = "quickiching:public-v1:three-coin";
 const ROMAN = ["I", "II", "III", "IV", "V", "VI"] as const;
 
 type MotionState = "idle" | "holding" | "casting" | "settled";
-
-function readStoredSteps(): ThreeCoinStep[] {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as ThreeCoinStep[];
-    if (!Array.isArray(parsed) || parsed.length > 6) return [];
-    return parsed.every((step, index) => step.lineIndex === index && [6, 7, 8, 9].includes(step.lineValue)) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function lineName(value: number): string {
   if (value === 6) return "Old yin · changing";
@@ -66,7 +57,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const stored = readStoredSteps();
+    const stored = readThreeCoinSteps();
     setSteps(stored);
     setRevealedCount(stored.length);
     setRestored(true);
@@ -74,8 +65,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
 
   useEffect(() => {
     if (!restored) return;
-    if (steps.length === 0) sessionStorage.removeItem(STORAGE_KEY);
-    else sessionStorage.setItem(STORAGE_KEY, JSON.stringify(steps));
+    writeThreeCoinSteps(steps);
   }, [steps, restored]);
 
   useEffect(() => () => {
@@ -89,7 +79,6 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
   const revealedLines = useMemo(() => revealedSteps.map((step) => step.lineValue), [revealedSteps]);
   const complete = lines.length === 6;
   const visuallyComplete = revealedCount === 6;
-  const result = visuallyComplete ? buildHexagramResult({ lineValuesBottomUp: revealedLines, method: "three_coin" }) : null;
   const visibleStep = pendingStep ?? revealedSteps.at(-1) ?? null;
   const visibleFaces: readonly [CoinFace, CoinFace, CoinFace] = visibleStep?.coinFaces ?? ["yang", "yang", "yang"];
   const busy = motion === "holding" || motion === "casting";
@@ -173,11 +162,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
 
     // The domain result becomes authoritative at release. Motion F only delays its visual reveal.
     setSteps(committedSteps);
-    try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(committedSteps));
-    } catch {
-      // React state remains authoritative for the current page if browser storage is unavailable.
-    }
+    writeThreeCoinSteps(committedSteps);
     setPendingStep(next);
     setMotion("casting");
 
@@ -210,7 +195,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     setMotion("idle");
     setRevealedCount(0);
     setSteps([]);
-    sessionStorage.removeItem(STORAGE_KEY);
+    clearThreeCoinReading();
   }
 
   function onPointerDown(event: PointerEvent<HTMLButtonElement>) {
@@ -258,7 +243,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
   }
 
   return (
-    <section data-realm="chamber" aria-labelledby="three-coin-tool-title">
+    <section id="three-coin-reading" data-realm="chamber" aria-labelledby="three-coin-tool-title">
       <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="mystic-kicker">Three-Coin Method</p>
@@ -277,7 +262,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
         <div className="ritual-stage">
           <div className="ritual-progress">
             <div>
-              <p className="mystic-kicker">{visuallyComplete ? "Reading formed" : "Casting in progress"}</p>
+              <p className="mystic-kicker">{visuallyComplete ? "Your hexagram is formed" : "Casting in progress"}</p>
               <p className="mt-1 text-sm text-[var(--ink-2)]"><strong className="text-white">{visuallyComplete ? "Six lines sealed" : `Line ${revealedCount + 1} of 6`}</strong>{!visuallyComplete && revealedCount < 3 ? " · forming the lower trigram" : !visuallyComplete ? " · forming the upper trigram" : ""}</p>
             </div>
           </div>
@@ -295,25 +280,41 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
             </div>
           </div>
 
-          <div className="hold-zone">
-            <button
-              type="button"
-              className="hold-button after:relative after:z-[2] after:content-[attr(data-visual-label)]"
-              data-holding={motion === "holding"}
-              data-visual-label={visualButtonLabel}
-              aria-label={complete ? "Reading complete" : "Toss three coins. Press and hold to shake, then release to cast."}
-              onPointerDown={onPointerDown}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerCancel}
-              onKeyDown={onKeyDown}
-              onKeyUp={onKeyUp}
-              onClick={onAccessibleClick}
-              disabled={complete || motion === "casting"}
-            >
-              <span className="sr-only">Toss three coins</span>
-            </button>
-            <p className="hold-hint">All three coins remain together until you release them.</p>
-          </div>
+          {visuallyComplete ? (
+            <div className="hold-zone">
+              <div className="mx-auto max-w-xl rounded-[1.4rem] border border-[rgba(232,198,122,0.24)] bg-[rgba(232,198,122,0.055)] px-5 py-6 text-center">
+                <p className="mystic-kicker">Six lines complete</p>
+                <h3 className="mt-2 font-display text-2xl font-normal text-[var(--gold-2)] sm:text-3xl">Your hexagram is formed</h3>
+                <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[var(--ink-2)]">The six sealed lines are ready. Open the full free reading without changing this cast.</p>
+                <Link
+                  href="/readings/three-coin/result"
+                  className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full border border-[rgba(232,198,122,0.46)] bg-[linear-gradient(135deg,rgba(232,198,122,0.18),rgba(137,233,227,0.07))] px-6 py-3 font-semibold text-[var(--gold-2)] transition hover:-translate-y-px hover:border-[rgba(232,198,122,0.72)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--cyan)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+                >
+                  Reveal Your Reading
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="hold-zone">
+              <button
+                type="button"
+                className="hold-button after:relative after:z-[2] after:content-[attr(data-visual-label)]"
+                data-holding={motion === "holding"}
+                data-visual-label={visualButtonLabel}
+                aria-label={complete ? "Reading complete" : "Toss three coins. Press and hold to shake, then release to cast."}
+                onPointerDown={onPointerDown}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerCancel}
+                onKeyDown={onKeyDown}
+                onKeyUp={onKeyUp}
+                onClick={onAccessibleClick}
+                disabled={complete || motion === "casting"}
+              >
+                <span className="sr-only">Toss three coins</span>
+              </button>
+              <p className="hold-hint">All three coins remain together until you release them.</p>
+            </div>
+          )}
         </div>
 
         <aside className="ritual-sidebar" aria-label="Casting progress and completed toss history">
@@ -354,8 +355,6 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
           </div>
         </aside>
       </div>
-
-      {result ? <ReadingResult result={result} /> : null}
     </section>
   );
 }
