@@ -85,14 +85,15 @@ function buildLineInterpretation(
   emphasis: string,
 ): LineInterpretation {
   const positionPresentation = POSITION_PRESENTATION[position];
+  const positionTheme = positionPresentation.title.toLowerCase();
   return {
     hexagramNumber: profile.number,
     position,
     theme: `${positionPresentation.title}: ${profile.coreTheme}`,
-    meaning: `At ${positionPresentation.role}, this line highlights the need to ${emphasis}. Within ${profile.coreTheme.toLowerCase()}, that emphasis is a concrete way to test whether ${profile.strength} is actually operating in the situation rather than existing only as an intention or ideal.`,
-    changeDynamic: `When this position changes, the reading puts extra weight on the move to ${emphasis}. It contributes to ${profile.transitionTheme}, with the line's position showing where the transformation is being tested inside the six-line structure.`,
-    caution: `Watch for ${profile.challenge} while trying to ${emphasis}. ${positionPresentation.cautionFrame}`,
-    reflection: `Where in the current situation would it matter most to ${emphasis}, and what observable evidence would show that this reading fits?`,
+    meaning: `For ${profile.coreTheme.toLowerCase()}, the ${positionTheme} centers on one practical test: ${emphasis}. Because this position represents ${positionPresentation.role}, the emphasis shows where ${profile.strength} needs to become observable in conduct rather than remain only an intention or ideal.`,
+    changeDynamic: `Within ${profile.coreTheme.toLowerCase()}, change at the ${positionTheme} sharpens this issue: ${emphasis}. The reversal contributes to ${profile.transitionTheme}, and this exact position identifies where that broader transition is being tested inside the six-line structure.`,
+    caution: `The risk at the ${positionTheme} is ${profile.challenge}, especially while trying to ${emphasis}. ${positionPresentation.cautionFrame}`,
+    reflection: `At this ${positionTheme}, where would it matter most to ${emphasis}, and what observable evidence would show that this reading fits?`,
     synthesisPhrase: `${positionPresentation.title.toLowerCase()} change emphasizes the need to ${emphasis}`,
   };
 }
