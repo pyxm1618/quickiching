@@ -1,10 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ALGORITHM_VERSIONS } from "@/domain/casting/types";
 import type { ThreeCoinStep } from "@/domain/casting/three-coin/algorithm";
 import {
+  clearThreeCoinReading,
   completedThreeCoinSteps,
   parseThreeCoinSteps,
+  readThreeCoinSteps,
   THREE_COIN_SESSION_STORAGE_KEY,
+  writeThreeCoinSteps,
 } from "./three-coin-session";
 
 function step(lineIndex: number, lineValue: 6 | 7 | 8 | 9 = 7): ThreeCoinStep {
@@ -25,6 +28,26 @@ function step(lineIndex: number, lineValue: 6 | 7 | 8 | 9 = 7): ThreeCoinStep {
 function validSteps(count = 6): ThreeCoinStep[] {
   return Array.from({ length: count }, (_, index) => step(index, ([7, 8, 9, 6, 7, 8] as const)[index] ?? 7));
 }
+
+function storageWith(overrides: Partial<Storage>): Storage {
+  return {
+    length: 0,
+    clear() {},
+    getItem() { return null; },
+    key() { return null; },
+    removeItem() {},
+    setItem() {},
+    ...overrides,
+  } as Storage;
+}
+
+function stubWindowStorage(storage: Storage) {
+  vi.stubGlobal("window", { sessionStorage: storage });
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("Three-Coin browser session contract", () => {
   it("keeps the established storage key stable", () => {
@@ -59,5 +82,35 @@ describe("Three-Coin browser session contract", () => {
 
   it("rejects a line value that does not agree with the stored coin faces", () => {
     expect(parseThreeCoinSteps(JSON.stringify([{ ...step(0, 7), lineValue: 9 }]))).toEqual([]);
+  });
+
+  it("throws a specific error when sessionStorage.getItem is unavailable", () => {
+    stubWindowStorage(storageWith({
+      getItem() {
+        throw new Error("storage blocked");
+      },
+    }));
+
+    expect(() => readThreeCoinSteps()).toThrowError("THREE_COIN_SESSION_READ_FAILED");
+  });
+
+  it("throws a specific error when sessionStorage.setItem fails", () => {
+    stubWindowStorage(storageWith({
+      setItem() {
+        throw new Error("quota exceeded");
+      },
+    }));
+
+    expect(() => writeThreeCoinSteps(validSteps(1))).toThrowError("THREE_COIN_SESSION_WRITE_FAILED");
+  });
+
+  it("throws a specific error when sessionStorage.removeItem fails during clear", () => {
+    stubWindowStorage(storageWith({
+      removeItem() {
+        throw new Error("storage blocked");
+      },
+    }));
+
+    expect(() => clearThreeCoinReading()).toThrowError("THREE_COIN_SESSION_CLEAR_FAILED");
   });
 });
