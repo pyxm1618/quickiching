@@ -44,6 +44,7 @@ async function restoreCompletedReading(): Promise<ResultState> {
 
 export function ThreeCoinResultClient() {
   const [state, setState] = useState<ResultState>({ kind: "loading" });
+  const [clearError, setClearError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -60,8 +61,13 @@ export function ThreeCoinResultClient() {
   }, []);
 
   function startNewReading() {
-    clearThreeCoinReading();
-    window.location.assign("/#three-coin-reading");
+    try {
+      clearThreeCoinReading();
+      setClearError(null);
+      window.location.assign("/#three-coin-reading");
+    } catch (error: unknown) {
+      setClearError(errorCode(error));
+    }
   }
 
   if (state.kind === "loading") {
@@ -102,5 +108,20 @@ export function ThreeCoinResultClient() {
     );
   }
 
-  return <ReadingResultView reading={state.reading} onStartNewReading={startNewReading} />;
+  return (
+    <>
+      <ReadingResultView reading={state.reading} onStartNewReading={startNewReading} />
+      {clearError ? (
+        <div
+          role="alert"
+          data-three-coin-clear-error={clearError}
+          className="fixed bottom-5 left-1/2 z-50 w-[min(92vw,620px)] -translate-x-1/2 rounded-2xl border border-[rgba(239,129,112,0.42)] bg-[rgba(23,14,25,0.96)] px-5 py-4 shadow-2xl"
+        >
+          <p className="text-sm font-semibold text-[var(--danger)]">The sealed reading could not be cleared, so Quick I Ching kept this result open.</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">No new reading has started. You can retry the button after browser session storage becomes available.</p>
+          <p className="mt-2 font-mono text-xs text-[var(--ink-3)]">{clearError}</p>
+        </div>
+      ) : null}
+    </>
+  );
 }
