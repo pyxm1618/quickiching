@@ -5,6 +5,9 @@ import chromium from "@sparticuz/chromium";
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
 const RESULT_PATH = "/readings/three-coin/result";
+const HOME_TITLE = "I Ching Online — Free Hexagram Reading | Quick I Ching";
+const HOME_DESCRIPTION = "Use the I Ching online with three coins, yarrow stalks, or Mei Hua Yi Shu. Cast your hexagram, see changing lines, and get a free basic interpretation.";
+const NOT_FOUND_TITLE = "Page Not Found | Quick I Ching";
 const FIXTURE_STEPS = [
   { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
   { lineIndex: 1, coinFaces: ["yin", "yin", "yin"], lineValue: 6, algorithmVersion: "three-coin-v1" },
@@ -16,6 +19,72 @@ const FIXTURE_STEPS = [
 
 function log(message) {
   console.log(`[Three-Coin V2 Browser Gate] ${message}`);
+}
+
+function metadataContents(html, name) {
+  const values = [];
+  for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
+    const tag = match[0];
+    const metaName = /\bname=["']([^"']+)["']/i.exec(tag)?.[1];
+    if (metaName?.toLowerCase() !== name.toLowerCase()) continue;
+    values.push(/\bcontent=["']([^"']*)["']/i.exec(tag)?.[1] ?? "");
+  }
+  return values;
+}
+
+function propertyContents(html, property) {
+  const values = [];
+  for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
+    const tag = match[0];
+    const metaProperty = /\bproperty=["']([^"']+)["']/i.exec(tag)?.[1];
+    if (metaProperty?.toLowerCase() !== property.toLowerCase()) continue;
+    values.push(/\bcontent=["']([^"']*)["']/i.exec(tag)?.[1] ?? "");
+  }
+  return values;
+}
+
+function titleValues(html) {
+  return [...html.matchAll(/<title>([^<]*)<\/title>/gi)].map((match) => match[1]);
+}
+
+function canonicalValues(html) {
+  const values = [];
+  for (const match of html.matchAll(/<link\b[^>]*>/gi)) {
+    const tag = match[0];
+    const rel = /\brel=["']([^"']+)["']/i.exec(tag)?.[1] ?? "";
+    if (!rel.split(/\s+/).some((value) => value.toLowerCase() === "canonical")) continue;
+    values.push(/\bhref=["']([^"']*)["']/i.exec(tag)?.[1] ?? "");
+  }
+  return values;
+}
+
+async function verifySeoAnd404() {
+  const resultResponse = await fetch(`${BASE}${RESULT_PATH}`);
+  assert.equal(resultResponse.status, 200, "Three-Coin result route must be HTTP 200");
+  const resultHtml = await resultResponse.text();
+  const resultRobots = metadataContents(resultHtml, "robots");
+  assert.equal(resultRobots.length, 1, `Result page must emit one robots meta, received ${resultRobots.length}`);
+  assert(/\bnoindex\b/i.test(resultRobots[0]), "Result page must be noindex");
+  assert(/\bfollow\b/i.test(resultRobots[0]) && !/\bnofollow\b/i.test(resultRobots[0]), "Result page must be follow");
+  assert.deepEqual(canonicalValues(resultHtml), [], "Result page must not emit a canonical URL");
+  assert(!resultHtml.includes(HOME_TITLE), "Result page must not inherit homepage title");
+  assert(!resultHtml.includes(HOME_DESCRIPTION), "Result page must not inherit homepage description");
+
+  const missingResponse = await fetch(`${BASE}/this-page-must-not-exist`);
+  assert.equal(missingResponse.status, 404, "Random missing URL must remain HTTP 404");
+  const missingHtml = await missingResponse.text();
+  assert.deepEqual(titleValues(missingHtml), [NOT_FOUND_TITLE], "404 must emit exactly one explicit 404 title");
+  const missingRobots = metadataContents(missingHtml, "robots");
+  assert.equal(missingRobots.length, 1, `404 must emit one robots meta, received ${missingRobots.length}`);
+  assert(/\bnoindex\b/i.test(missingRobots[0]), "404 must be noindex");
+  assert(!/(^|[,\s])index([,\s]|$)/i.test(missingRobots[0].replace(/noindex/gi, "")), "404 must not emit index");
+  assert(!missingHtml.includes(HOME_TITLE), "404 must not inherit homepage title");
+  assert(!missingHtml.includes(HOME_DESCRIPTION), "404 must not inherit homepage description");
+  assert.deepEqual(canonicalValues(missingHtml), [], "404 must not emit homepage canonical");
+  assert(!propertyContents(missingHtml, "og:title").includes(HOME_TITLE), "404 must not inherit homepage OG title");
+  assert(!propertyContents(missingHtml, "og:description").includes(HOME_DESCRIPTION), "404 must not inherit homepage OG description");
+  assert(!propertyContents(missingHtml, "og:url").includes("https://www.quickiching.com"), "404 must not inherit homepage OG URL");
+  log("Result SEO + clean 404 metadata PASS");
 }
 
 async function waitForText(page, text, timeout = 15_000) {
@@ -51,7 +120,7 @@ async function verifyInvalidResult(browser) {
     await waitForText(page, "No completed reading found");
     await waitForText(page, "Complete a six-line Three-Coin reading before opening a result.");
     const body = await resultText(page);
-    assert(!body.includes("Primary Hexagram 13"), "Invalid result state must not manufacture a reading");
+    assert(!body.includes("Fellowship"), "Invalid result state must not manufacture a reading");
     const href = await page.$eval('a[href="/#three-coin-reading"]', (node) => node.getAttribute("href"));
     assert.equal(href, "/#three-coin-reading");
     log("Invalid direct result URL PASS");
@@ -72,7 +141,7 @@ async function verifySeededResult(browser, viewport) {
     await waitForText(page, "Changing Line 1");
     await waitForText(page, "Changing Line 2");
     await waitForText(page, "Changing Line 4");
-    await waitForText(page, "Gentle Penetration");
+    await waitForText(page, "Gentle penetration");
     for (const heading of [
       "The Primary Hexagram",
       "Understanding the Structure",
@@ -128,6 +197,7 @@ async function verifyExplicitReset(browser) {
   }
 }
 
+await verifySeoAnd404();
 const executablePath = process.env.CHROME_PATH || await chromium.executablePath();
 const browser = await puppeteer.launch({
   args: process.env.CHROME_PATH ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
