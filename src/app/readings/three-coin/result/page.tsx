@@ -18,8 +18,8 @@ export const metadata: Metadata = {
 
 export default function ThreeCoinResultPage() {
   return (
-    <main data-realm="chamber">
+    <div data-realm="chamber">
       <ThreeCoinResultClient />
-    </main>
+    </div>
   );
 }
