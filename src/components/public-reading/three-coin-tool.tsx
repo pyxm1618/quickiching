@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { ReadingResult } from "@/components/public-reading/reading-result";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
@@ -181,6 +181,11 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     releaseCast();
   }
 
+  function onPointerCancel(event: PointerEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    releaseCast();
+  }
+
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     if ((event.key === " " || event.key === "Enter") && !event.repeat) {
       event.preventDefault();
@@ -193,6 +198,12 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
       event.preventDefault();
       releaseCast();
     }
+  }
+
+  function onProgrammaticClick(event: MouseEvent<HTMLButtonElement>) {
+    if (event.detail !== 0 || holdingRef.current || complete || motion === "casting") return;
+    beginHold();
+    window.setTimeout(releaseCast, 0);
   }
 
   return (
@@ -240,12 +251,14 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
               data-holding={motion === "holding"}
               onPointerDown={onPointerDown}
               onPointerUp={onPointerUp}
-              onPointerCancel={releaseCast}
+              onPointerCancel={onPointerCancel}
               onKeyDown={onKeyDown}
               onKeyUp={onKeyUp}
+              onClick={onProgrammaticClick}
               disabled={complete || motion === "casting"}
             >
-              <span>{complete ? "Reading complete" : motion === "casting" ? "Coins are settling…" : "Press & hold to shake · release to cast"}</span>
+              <span className="sr-only">Toss three coins</span>
+              <span aria-hidden="true">{complete ? "Reading complete" : motion === "casting" ? "Coins are settling…" : "Press & hold to shake · release to cast"}</span>
             </button>
             <p className="hold-hint">All three coins remain together until you release them.</p>
           </div>
