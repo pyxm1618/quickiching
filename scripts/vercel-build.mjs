@@ -127,6 +127,9 @@ try {
   run("node", ["scripts/browser-gate.mjs"], {
     env: { PUBLIC_V1_TEST_BASE_URL: BASE, CHROME_PATH: chromePath },
   });
+  run("node", ["scripts/logo-browser-gate.mjs"], {
+    env: { PUBLIC_V1_TEST_BASE_URL: BASE, CHROME_PATH: chromePath },
+  });
 
   log(`Running Lighthouse with Chrome: ${chromePath}`);
   const lighthouseEnv = { CHROME_PATH: chromePath };
