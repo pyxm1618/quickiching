@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SealMark } from "@/components/hex/seal-mark";
+import { BrandMark } from "@/components/brand-mark";
 
 const LINK = "text-[var(--ink-3)] transition-colors hover:text-[var(--gold-2)]";
 
@@ -8,7 +8,7 @@ export function SiteFooter() {
     <footer className="mt-20 border-t border-white/[0.08] bg-black/10">
       <div className="mx-auto grid max-w-[1240px] gap-9 px-5 py-14 sm:grid-cols-2 sm:px-7 lg:grid-cols-4">
         <div>
-          <p className="flex items-center gap-3 font-semibold tracking-[0.02em]"><SealMark size="md" />Quick I Ching</p>
+          <p className="flex items-center gap-3 font-semibold tracking-[0.02em]"><BrandMark size="md" />Quick I Ching</p>
           <p className="mt-4 max-w-md text-sm leading-7 text-[var(--ink-3)]">A free I Ching online casting and reflection platform with Three Coin, Yarrow Stalk, and Mei Hua Yi Shu current-time methods.</p>
         </div>
         <div>
