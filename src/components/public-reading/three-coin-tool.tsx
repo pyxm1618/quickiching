@@ -59,6 +59,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
   const [pendingStep, setPendingStep] = useState<ThreeCoinStep | null>(null);
   const [soundOn, setSoundOn] = useState(true);
   const holdingRef = useRef(false);
+  const ignoreSyntheticClickRef = useRef(false);
   const audioRef = useRef<AudioContext | null>(null);
   const shakeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -89,29 +90,37 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
 
   function audio(): AudioContext | null {
     if (!soundOn || typeof window === "undefined") return null;
-    if (!audioRef.current) {
-      const AudioCtor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioCtor) return null;
-      audioRef.current = new AudioCtor();
+    try {
+      if (!audioRef.current) {
+        const AudioCtor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioCtor) return null;
+        audioRef.current = new AudioCtor();
+      }
+      if (audioRef.current.state === "suspended") void audioRef.current.resume();
+      return audioRef.current;
+    } catch {
+      return null;
     }
-    if (audioRef.current.state === "suspended") void audioRef.current.resume();
-    return audioRef.current;
   }
 
   function tone(pitch = 900, duration = 0.07, gain = 0.035, delay = 0, type: OscillatorType = "triangle") {
-    const context = audio();
-    if (!context) return;
-    const start = context.currentTime + delay;
-    const oscillator = context.createOscillator();
-    const volume = context.createGain();
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(pitch, start);
-    oscillator.frequency.exponentialRampToValueAtTime(Math.max(80, pitch * 0.55), start + duration);
-    volume.gain.setValueAtTime(gain, start);
-    volume.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-    oscillator.connect(volume).connect(context.destination);
-    oscillator.start(start);
-    oscillator.stop(start + duration);
+    try {
+      const context = audio();
+      if (!context) return;
+      const start = context.currentTime + delay;
+      const oscillator = context.createOscillator();
+      const volume = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(pitch, start);
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(80, pitch * 0.55), start + duration);
+      volume.gain.setValueAtTime(gain, start);
+      volume.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      oscillator.connect(volume).connect(context.destination);
+      oscillator.start(start);
+      oscillator.stop(start + duration);
+    } catch {
+      // Sound is optional UI feedback and must never block the cast.
+    }
   }
 
   function shakeTick() {
@@ -160,6 +169,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
 
   function reset() {
     holdingRef.current = false;
+    ignoreSyntheticClickRef.current = false;
     if (shakeIntervalRef.current) clearInterval(shakeIntervalRef.current);
     if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
     shakeIntervalRef.current = null;
@@ -172,6 +182,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
 
   function onPointerDown(event: PointerEvent<HTMLButtonElement>) {
     event.preventDefault();
+    ignoreSyntheticClickRef.current = true;
     event.currentTarget.setPointerCapture?.(event.pointerId);
     beginHold();
   }
@@ -183,12 +194,14 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
 
   function onPointerCancel(event: PointerEvent<HTMLButtonElement>) {
     event.preventDefault();
+    ignoreSyntheticClickRef.current = false;
     releaseCast();
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     if ((event.key === " " || event.key === "Enter") && !event.repeat) {
       event.preventDefault();
+      ignoreSyntheticClickRef.current = true;
       beginHold();
     }
   }
@@ -200,10 +213,14 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     }
   }
 
-  function onProgrammaticClick(event: MouseEvent<HTMLButtonElement>) {
-    if (event.detail !== 0 || holdingRef.current || complete || motion === "casting") return;
+  function onAccessibleClick(_event: MouseEvent<HTMLButtonElement>) {
+    if (ignoreSyntheticClickRef.current) {
+      ignoreSyntheticClickRef.current = false;
+      return;
+    }
+    if (holdingRef.current || complete || motion === "casting") return;
     beginHold();
-    window.setTimeout(releaseCast, 0);
+    releaseCast();
   }
 
   return (
@@ -254,7 +271,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
               onPointerCancel={onPointerCancel}
               onKeyDown={onKeyDown}
               onKeyUp={onKeyUp}
-              onClick={onProgrammaticClick}
+              onClick={onAccessibleClick}
               disabled={complete || motion === "casting"}
             >
               <span className="sr-only">Toss three coins</span>
