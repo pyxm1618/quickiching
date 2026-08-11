@@ -66,7 +66,7 @@ export function ThreeCoinResultClient() {
 
   if (state.kind === "loading") {
     return (
-      <div className={`${styles.page} mx-auto w-full max-w-[1180px] px-4 sm:px-6`}>
+      <div className={`${styles.page} mx-auto min-h-[100svh] w-full max-w-[1180px] px-4 sm:px-6`}>
         <div className={styles.loadingState} role="status" aria-label="Loading your completed reading">
           <p className="mystic-kicker">Three-Coin Method</p>
           <p className="mt-3 font-display text-3xl font-normal text-white">Restoring your sealed reading…</p>
