@@ -11,7 +11,7 @@ permissions:
 jobs:
   launch-gate:
     name: Bun + Production Browser + Lighthouse
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
