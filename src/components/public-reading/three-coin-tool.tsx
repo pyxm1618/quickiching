@@ -240,7 +240,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
           ) : null}
         </div>
         <div className="flex items-center gap-3">
-          <span className="ritual-progress-badge">{steps.length} / 6 lines</span>
+          <span className="ritual-progress-badge" style={{ textTransform: "none" }}>{steps.length} / 6 lines</span>
           <button type="button" className="sound-toggle" onClick={() => setSoundOn((value) => !value)} aria-pressed={soundOn}>{soundOn ? "Sound on" : "Sound off"}</button>
         </div>
       </div>
