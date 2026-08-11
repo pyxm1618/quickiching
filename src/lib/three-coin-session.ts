@@ -37,6 +37,13 @@ function isValidThreeCoinStep(value: unknown, expectedIndex: number): value is T
   return lineValue === value.lineValue;
 }
 
+function browserStorage(): Storage {
+  if (typeof window === "undefined") {
+    throw new Error("THREE_COIN_SESSION_UNAVAILABLE");
+  }
+  return window.sessionStorage;
+}
+
 export function parseThreeCoinSteps(raw: string | null): ThreeCoinStep[] {
   if (!raw) return [];
   try {
@@ -57,36 +64,38 @@ export function completedThreeCoinSteps(steps: readonly ThreeCoinStep[]): Comple
 }
 
 export function readThreeCoinSteps(): ThreeCoinStep[] {
-  if (typeof window === "undefined") return [];
+  let raw: string | null;
   try {
-    return parseThreeCoinSteps(window.sessionStorage.getItem(THREE_COIN_SESSION_STORAGE_KEY));
+    raw = browserStorage().getItem(THREE_COIN_SESSION_STORAGE_KEY);
   } catch {
-    return [];
+    throw new Error("THREE_COIN_SESSION_READ_FAILED");
   }
+  return parseThreeCoinSteps(raw);
 }
 
-export function writeThreeCoinSteps(steps: readonly ThreeCoinStep[]): boolean {
-  if (typeof window === "undefined") return false;
+export function writeThreeCoinSteps(steps: readonly ThreeCoinStep[]): void {
   if (steps.length > 6 || !steps.every((entry, index) => isValidThreeCoinStep(entry, index))) {
     throw new Error("THREE_COIN_SESSION_INVALID_STEPS");
   }
+
   try {
+    const storage = browserStorage();
     if (steps.length === 0) {
-      window.sessionStorage.removeItem(THREE_COIN_SESSION_STORAGE_KEY);
+      storage.removeItem(THREE_COIN_SESSION_STORAGE_KEY);
     } else {
-      window.sessionStorage.setItem(THREE_COIN_SESSION_STORAGE_KEY, JSON.stringify(steps));
+      storage.setItem(THREE_COIN_SESSION_STORAGE_KEY, JSON.stringify(steps));
     }
-    return true;
-  } catch {
-    return false;
+  } catch (error) {
+    if (error instanceof Error && error.message === "THREE_COIN_SESSION_UNAVAILABLE") throw error;
+    throw new Error("THREE_COIN_SESSION_WRITE_FAILED");
   }
 }
 
 export function clearThreeCoinReading(): void {
-  if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.removeItem(THREE_COIN_SESSION_STORAGE_KEY);
-  } catch {
-    // Browser storage can be unavailable; callers still reset their in-memory UI state.
+    browserStorage().removeItem(THREE_COIN_SESSION_STORAGE_KEY);
+  } catch (error) {
+    if (error instanceof Error && error.message === "THREE_COIN_SESSION_UNAVAILABLE") throw error;
+    throw new Error("THREE_COIN_SESSION_CLEAR_FAILED");
   }
 }
