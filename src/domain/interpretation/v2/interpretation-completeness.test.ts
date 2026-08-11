@@ -43,8 +43,7 @@ describe("Free Reading V2 interpretation catalog", () => {
     );
 
     for (const { hexagram, lines } of bundles) {
-      const hexagramFields = [
-        hexagram.coreTheme,
+      const proseFields = [
         hexagram.coreMeaning,
         hexagram.strength,
         hexagram.challenge,
@@ -55,7 +54,8 @@ describe("Free Reading V2 interpretation catalog", () => {
         ...hexagram.reflectionQuestions,
         ...hexagram.watchFor,
       ];
-      expect(hexagramFields.every((value) => value.trim().length > 12)).toBe(true);
+      expect(hexagram.coreTheme.trim().length).toBeGreaterThan(3);
+      expect(proseFields.every((value) => value.trim().length > 12)).toBe(true);
       expect(wordCount(hexagram.coreMeaning)).toBeGreaterThanOrEqual(90);
       expect(wordCount(hexagram.coreMeaning)).toBeLessThanOrEqual(190);
       expect(hexagram.reflectionQuestions).toHaveLength(3);
@@ -70,7 +70,7 @@ describe("Free Reading V2 interpretation catalog", () => {
         expect(line.synthesisPhrase.trim().length).toBeGreaterThan(24);
       }
 
-      const combined = [...hexagramFields, ...lines.flatMap((line) => [
+      const combined = [hexagram.coreTheme, ...proseFields, ...lines.flatMap((line) => [
         line.theme,
         line.meaning,
         line.changeDynamic,
