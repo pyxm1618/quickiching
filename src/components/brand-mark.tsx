@@ -17,7 +17,6 @@ export type BrandMarkProps = {
 export function BrandMark({ size = "md", className }: BrandMarkProps) {
   return (
     <span
-      aria-hidden="true"
       className={cn(
         "inline-flex shrink-0 select-none items-center justify-center",
         SIZES[size],
@@ -26,7 +25,7 @@ export function BrandMark({ size = "md", className }: BrandMarkProps) {
     >
       <Image
         src="/quick-i-ching-logo-mark-inverse.png"
-        alt=""
+        alt="Quick I Ching logo"
         width={320}
         height={320}
         sizes="44px"
