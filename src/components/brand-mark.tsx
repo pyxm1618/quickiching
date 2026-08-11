@@ -20,8 +20,7 @@ export function BrandMark({ size = "md", priority = false, className }: BrandMar
 
   return (
     <Image
-      aria-hidden="true"
-      alt=""
+      alt="Quick I Ching logo"
       src="/quick-i-ching-logo-mark.png"
       width={pixels}
       height={pixels}
