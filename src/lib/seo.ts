@@ -40,7 +40,12 @@ export function isIndexablePath(path: string): path is IndexablePath {
 }
 
 export function isPrivateOrCommercialPath(path: string): boolean {
-  return ["/api", "/signin", "/account", "/checkout", "/result"].some(
-    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
-  );
+  return [
+    "/api",
+    "/signin",
+    "/account",
+    "/checkout",
+    "/result",
+    "/readings/three-coin/result",
+  ].some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
