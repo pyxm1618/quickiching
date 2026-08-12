@@ -10,9 +10,16 @@ export const metadata: Metadata = {
   openGraph: { title: HOME_TITLE, description: HOME_DESCRIPTION, url: SITE_ORIGIN, type: "website" },
 };
 
+const WEBSITE_STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Quick I Ching",
+  url: `${SITE_ORIGIN}/`,
+};
+
 const FAQ = [
   ["What is an I Ching reading?", "An I Ching reading uses a six-line hexagram from the Book of Changes as a structured framework for reflection. The primary hexagram describes the main pattern; moving lines, when present, create a relating hexagram."],
-  ["How does an online I Ching reading work?", "Quick I Ching performs the casting rules in your browser. Choose a method, complete its steps, then read the primary hexagram, changing lines, relating hexagram when present, and a free basic interpretation."],
+  ["How does an online I Ching reading work?", "An I Ching online reading on Quick I Ching follows the casting rules for the method you choose. Complete its steps, then read the primary hexagram, changing lines, relating hexagram when present, and a free basic interpretation."],
   ["Is the I Ching reading free?", "Yes. The three launch methods provide a complete free basic reading without sign-in, payment, or a production AI service. Future personalized deep readings are a separate commercial feature and are not required here."],
   ["How does the three-coin method work?", "Each of three coins contributes 2 for yin or 3 for yang. The total is 6, 7, 8, or 9. Repeat six times from the bottom line upward; 6 and 9 are changing lines."],
   ["What are changing lines?", "Changing lines are line values 6 or 9. They mark positions that reverse from yin to yang or yang to yin when the relating hexagram is calculated."],
@@ -26,6 +33,11 @@ const FAQ = [
 export default function HomePage() {
   return (
     <article className="home-oracle">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_STRUCTURED_DATA) }}
+      />
+
       <section className="relative overflow-hidden border-b border-white/[0.07]">
         <div className="mystic-shell grid min-h-[720px] items-center gap-10 py-16 lg:grid-cols-[1.05fr_.95fr] lg:gap-16 lg:py-20">
           <div className="relative z-10">
@@ -61,8 +73,9 @@ export default function HomePage() {
         <div className="grid items-end gap-8 md:grid-cols-[.72fr_1.28fr] md:gap-14">
           <div>
             <p className="mystic-kicker">Other I Ching Casting Methods</p>
-            <h2 className="mt-2 font-display text-4xl font-normal tracking-[-.04em] sm:text-5xl">Choose the ritual that fits your reading</h2>
+            <h2 className="mt-2 font-display text-4xl font-normal tracking-[-.04em] sm:text-5xl">Choose how you want to cast your I Ching reading</h2>
           </div>
+          <p className="max-w-2xl text-sm leading-7 text-[var(--ink-2)]">An I Ching online reading can begin with the quick three-coin ritual, the slower yarrow-stalk process, or Quick I Ching’s documented Mei Hua Yi Shu current-time convention. Each method produces the same core hexagram structure while preserving its own casting steps.</p>
         </div>
 
         <div className="mt-10 grid gap-5 md:grid-cols-3">
@@ -89,14 +102,15 @@ export default function HomePage() {
       <section id="how-it-works" className="mystic-shell scroll-mt-24 py-16 sm:py-20">
         <h2 className="font-display text-4xl font-normal tracking-[-.04em] sm:text-5xl">How I Ching Online Readings Work</h2>
         <div className="how-strip mt-9">
-          <article><p className="font-display text-3xl text-[var(--gold)]">01</p><h3 className="mt-5 font-display text-xl font-normal">Cast a six-line pattern</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">Three coins and yarrow generate 6/7/8/9 line values from bottom to top. Mei Hua derives the trigrams and one changing line from the current time convention.</p></article>
+          <article><p className="font-display text-3xl text-[var(--gold)]">01</p><h3 className="mt-5 font-display text-xl font-normal">Cast a six-line pattern</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">An I Ching online reading starts by forming the six-line structure from bottom to top. Three coins and yarrow generate 6/7/8/9 line values; Mei Hua derives the trigrams and one changing line from the current-time convention.</p></article>
           <article><p className="font-display text-3xl text-[var(--gold)]">02</p><h3 className="mt-5 font-display text-xl font-normal">Identify the primary hexagram</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">The yin and yang structure maps to one of the 64 King Wen hexagrams. This is the primary hexagram—the reading’s starting pattern.</p></article>
           <article><p className="font-display text-3xl text-[var(--gold)]">03</p><h3 className="mt-5 font-display text-xl font-normal">Read change without certainty claims</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">Values 6 and 9 are changing lines. Reversing them produces a relating hexagram, which offers another structure for reflection rather than a fixed prediction.</p></article>
         </div>
       </section>
 
       <section className="mystic-shell py-16 sm:py-20">
-        <h2 className="font-display text-4xl font-normal tracking-[-.04em] sm:text-5xl">Understanding Your Reading</h2>
+        <h2 className="font-display text-4xl font-normal tracking-[-.04em] sm:text-5xl">Understanding Your I Ching Reading</h2>
+        <p className="mt-5 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">After you cast the I Ching online, read the result in layers: start with the primary hexagram, then consider any changing lines, and then compare the relating hexagram when change is present.</p>
         <div className="mt-9 grid gap-5 md:grid-cols-3">
           <article className="method-card-a"><h3>Primary Hexagram</h3><p className="mt-4">The six-line figure before any moving line changes. It is the main structural reference for the reading.</p><Link href="/hexagrams" className="mt-5 inline-block font-semibold text-[var(--cyan)] hover:underline">Explore the 64 hexagrams</Link></article>
           <article className="method-card-a"><h3>Changing Lines</h3><p className="mt-4">Old yin (6) and old yang (9) are the positions where the primary pattern changes.</p><Link href="/guides/changing-lines" className="mt-5 inline-block font-semibold text-[var(--cyan)] hover:underline">Learn about changing lines</Link></article>
