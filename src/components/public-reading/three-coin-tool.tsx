@@ -33,15 +33,15 @@ function CashCoin({ face, index }: { face: CoinFace; index: number }) {
       <div className="ritual-coin" data-face={face}>
         <div className="ritual-coin-face front">
           <span className="ritual-coin-hole" />
-          <span className="ritual-coin-char top">乾</span>
-          <span className="ritual-coin-char right">通</span>
-          <span className="ritual-coin-char bottom">寶</span>
-          <span className="ritual-coin-char left">隆</span>
+          <span className="ritual-coin-char top before:content-[attr(data-visual-label)]" data-visual-label="乾" />
+          <span className="ritual-coin-char right before:content-[attr(data-visual-label)]" data-visual-label="通" />
+          <span className="ritual-coin-char bottom before:content-[attr(data-visual-label)]" data-visual-label="寶" />
+          <span className="ritual-coin-char left before:content-[attr(data-visual-label)]" data-visual-label="隆" />
         </div>
         <div className="ritual-coin-face back">
           <span className="ritual-coin-hole" />
-          <span className="ritual-coin-mint m1">BOO</span>
-          <span className="ritual-coin-mint m2">YUN</span>
+          <span className="ritual-coin-mint m1 before:content-[attr(data-visual-label)]" data-visual-label="BOO" />
+          <span className="ritual-coin-mint m2 before:content-[attr(data-visual-label)]" data-visual-label="YUN" />
         </div>
       </div>
     </div>
@@ -393,7 +393,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
                 <div key={index} className="ritual-map-step" data-state={state}>
                   <span className="ritual-map-n">{ROMAN[index]}</span>
                   <div>
-                    <h4>{step ? `Line ${index + 1} sealed` : index === revealedCount && !visuallyComplete ? `Line ${index + 1} awaiting cast` : `Line ${index + 1}`}</h4>
+                    <p style={{ margin: "1px 0 3px", color: "inherit", fontSize: 13, fontWeight: 650, lineHeight: "inherit" }}>{step ? `Line ${index + 1} sealed` : index === revealedCount && !visuallyComplete ? `Line ${index + 1} awaiting cast` : `Line ${index + 1}`}</p>
                     <p>{step ? `${lineName(step.lineValue)} · value ${step.lineValue}` : index === 2 ? "Completes the lower trigram" : index === 5 ? "Completes the upper trigram" : "Bottom → top"}</p>
                   </div>
                 </div>
