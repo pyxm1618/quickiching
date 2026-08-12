@@ -58,7 +58,7 @@ function buildBottomLine(
   const relatingClause = relating
     ? `The resulting contrast with ${relating.coreTheme} shifts attention toward ${relating.orientation.toLowerCase()}`
     : `The active lines still identify where the primary pattern is changing`;
-  return `This cast begins with ${primary.coreTheme.toLowerCase()}, with change concentrated at line${activeLines.length > 1 ? "s" : ""} ${positions}. The main task is to keep ${primary.strength.toLowerCase()} from being distorted by ${primary.challenge.toLowerCase()} ${relatingClause} Read that movement as a structural direction to test against real evidence. The value of the reading is in clarifying what to notice and how to respond proportionately, not in declaring a fixed future.`;
+  return `This cast begins with ${primary.coreTheme.toLowerCase()}, with change concentrated at line${activeLines.length > 1 ? "s" : ""} ${positions}. The main task is to keep ${primary.strength.toLowerCase()} from being distorted by ${primary.challenge.toLowerCase()} ${relatingClause} Read that movement as a structural direction to test against real evidence. Use the reading to clarify what to notice and how to respond proportionately, not to declare a fixed future.`;
 }
 
 export function buildReadingSynthesis({
