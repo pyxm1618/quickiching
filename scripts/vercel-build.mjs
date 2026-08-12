@@ -5,7 +5,7 @@ import { spawn, spawnSync } from "node:child_process";
 const BASE = "http://127.0.0.1:3000";
 
 function log(message) {
-  console.log(`[Public V1 Gate] ${message}`);
+  console.log(`[Public V1 + Free Reading V2 Gate] ${message}`);
 }
 
 function run(command, args, options = {}) {
@@ -123,24 +123,26 @@ const server = spawn("bun", ["run", "start"], {
 
 try {
   await waitForServer();
+  const browserEnv = { PUBLIC_V1_TEST_BASE_URL: BASE, CHROME_PATH: chromePath };
   log("Production Next server is ready; running real Chromium E2E");
-  run("node", ["scripts/browser-gate.mjs"], {
-    env: { PUBLIC_V1_TEST_BASE_URL: BASE, CHROME_PATH: chromePath },
-  });
-  run("node", ["scripts/logo-browser-gate.mjs"], {
-    env: { PUBLIC_V1_TEST_BASE_URL: BASE, CHROME_PATH: chromePath },
-  });
+  run("node", ["scripts/browser-gate.mjs"], { env: browserEnv });
+  run("node", ["scripts/three-coin-v2-browser-gate.mjs"], { env: browserEnv });
+  run("node", ["scripts/interpretation-bundle-gate.mjs"], { env: browserEnv });
+  run("node", ["scripts/logo-browser-gate.mjs"], { env: browserEnv });
 
-  log(`Running Lighthouse with Chrome: ${chromePath}`);
+  log(`Running homepage Lighthouse with Chrome: ${chromePath}`);
   const lighthouseEnv = { CHROME_PATH: chromePath };
   const mobilePath = "/tmp/quickiching-lighthouse-mobile.json";
   const desktopPath = "/tmp/quickiching-lighthouse-desktop.json";
   run("./node_modules/.bin/lighthouse", lighthouseArgs(mobilePath), { env: lighthouseEnv });
   run("./node_modules/.bin/lighthouse", lighthouseArgs(desktopPath, true), { env: lighthouseEnv });
-  const mobile = await summarizeLighthouse("MOBILE", mobilePath);
-  const desktop = await summarizeLighthouse("DESKTOP", desktopPath);
+  const mobile = await summarizeLighthouse("HOME_MOBILE", mobilePath);
+  const desktop = await summarizeLighthouse("HOME_DESKTOP", desktopPath);
   assertLighthouse([mobile, desktop]);
-  log("ALL PUBLIC SEO V1 QUALITY / BUILD / BROWSER / LIGHTHOUSE GATES PASS");
+
+  log("Running populated Three-Coin result Lighthouse with preserved sessionStorage");
+  run("node", ["scripts/result-lighthouse-gate.mjs"], { env: browserEnv });
+  log("ALL PUBLIC SEO V1 + THREE-COIN FREE READING V2 QUALITY / BUILD / BROWSER / BUNDLE / LIGHTHOUSE GATES PASS");
 } finally {
   server.kill("SIGTERM");
 }

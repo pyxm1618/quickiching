@@ -12,6 +12,8 @@ import {
 } from "./indexnow";
 import { INDEXABLE_PATHS, SITE_ORIGIN, absoluteUrl } from "./seo";
 
+const THREE_COIN_RESULT_PATH = "/readings/three-coin/result";
+
 describe("IndexNow Public V1 generation", () => {
   it("uses a stable key hosted on the canonical origin", () => {
     expect(INDEXNOW_KEY).toBe("0458fb9ef2ef723618b52f6861b3b2f7");
@@ -21,6 +23,7 @@ describe("IndexNow Public V1 generation", () => {
 
   it("defaults to only canonical indexable URLs", () => {
     expect(defaultIndexNowUrls()).toEqual(INDEXABLE_PATHS.map(absoluteUrl));
+    expect(defaultIndexNowUrls()).not.toContain(absoluteUrl(THREE_COIN_RESULT_PATH));
   });
 
   it("normalizes live paths, strips fragments, and deduplicates", () => {
@@ -36,6 +39,7 @@ describe("IndexNow Public V1 generation", () => {
     expect(() => normalizeIndexNowLiveUrl("/pricing")).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
     expect(() => normalizeIndexNowLiveUrl("/three-coin-method")).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
     expect(() => normalizeIndexNowLiveUrl("/account")).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
+    expect(() => normalizeIndexNowLiveUrl(THREE_COIN_RESULT_PATH)).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
     expect(() => normalizeIndexNowLiveUrl("/methods/three-coin?utm_source=test")).toThrow("INDEXNOW_QUERY_URL_FORBIDDEN");
   });
 
