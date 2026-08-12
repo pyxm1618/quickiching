@@ -15,7 +15,7 @@ export default function MeiHuaPage() {
       <header className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Plum Blossom Divination · Current Time</p>
         <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">Mei Hua Yi Shu — Current-Time Casting</h1>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">Mei Hua Yi Shu includes multiple ways to form a hexagram from observed numbers and circumstances. Public V1 implements one current-time convention and states its calendar choices explicitly rather than presenting them as the only traditional rule.</p>
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">Mei Hua Yi Shu includes multiple ways to form a hexagram from observed numbers and circumstances. Quick I Ching implements one current-time convention and states its calendar choices explicitly rather than presenting them as the only traditional rule.</p>
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-12"><MeiHuaTool /></section>
