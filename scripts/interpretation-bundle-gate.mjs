@@ -14,10 +14,12 @@ const FIXTURE_STEPS = [
   { lineIndex: 5, coinFaces: ["yang", "yin", "yin"], lineValue: 7, algorithmVersion: "three-coin-v1" },
 ];
 
-const H1_CATALOG_SENTINEL = "test the first impulse before turning initiative into commitment";
-const H13_CATALOG_SENTINEL = "state the common purpose before inviting people to identify with the group";
-const H57_CATALOG_SENTINEL = "choose the first direction clearly before beginning subtle or repeated influence";
-const H61_CATALOG_SENTINEL = "check the first inward conviction against evidence before asking others to trust it";
+// These are stable authored-prose sentinels from four different dynamic catalog chunks.
+// The fixture resolves to H13 → H57, so those chunks must load while unrelated H1/H61 stay absent.
+const H1_CATALOG_SENTINEL = "Creative force describes a situation with strong capacity to initiate, shape, and sustain movement.";
+const H13_CATALOG_SENTINEL = "Fellowship describes cooperation built around a purpose that can be stated in the open.";
+const H57_CATALOG_SENTINEL = "Gentle penetration describes influence that becomes effective through repeated, small entry rather than one dramatic push.";
+const H61_CATALOG_SENTINEL = "Inner truth describes credibility produced when belief, speech, and conduct become congruent enough that trust does not depend on performance.";
 
 function log(message) {
   console.log(`[Interpretation Bundle Gate] ${message}`);
