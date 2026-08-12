@@ -2,11 +2,11 @@
 
 ## Purpose
 
-This document records the provenance and authorship policy for the interpretation content introduced by Three-Coin Free Reading V2. The V2 catalog belongs to the I Ching interpretation domain and is method-independent; Three-Coin is only the first product flow that renders it.
+This document records the provenance and authorship policy for the interpretation content used by Three-Coin Free Reading V2. The catalog belongs to the I Ching interpretation domain and is method-independent; Three-Coin is only the first product flow that renders it.
 
 ## Structural authority inside Quick I Ching
 
-The product's existing casting domain remains authoritative for computational facts:
+The existing casting domain remains authoritative for computational facts:
 
 - King Wen number and hexagram identity: `src/domain/casting/hexagrams/king-wen.ts`
 - lower/upper trigram composition: `src/domain/casting/hexagrams/king-wen.ts`
@@ -17,98 +17,92 @@ V2 interpretation code does not redefine or override those facts.
 
 ## Historical / classical reference material consulted
 
-### 1. Chinese Text Project — 《周易 / Book of Changes》
+### Chinese Text Project — 《周易 / Book of Changes》
 
 Reference: https://ctext.org/book-of-changes
 
-Use in this project:
+Used to cross-check the received King Wen sequence, the six-line order, and broad classical context while reviewing modern Quick I Ching themes. The Chinese Text Project is reference material; its modern editorial prose and site presentation are not production copy.
 
-- cross-check the received hexagram sequence and the existence/order of six line texts for each hexagram;
-- inspect the classical Chinese material when checking that a modern Quick I Ching line theme does not contradict the broad received context;
-- distinguish classical source material from Quick I Ching's modern explanatory prose.
-
-The Chinese Text Project identifies its digital base text for this work and provides scanned-source information. Quick I Ching does **not** copy the site's modern editorial prose or site presentation.
-
-### 2. James Legge, *The I Ching*, Sacred Books of the East, vol. XVI (1899 edition)
+### James Legge, *The I Ching*, Sacred Books of the East, vol. XVI (1899)
 
 Bibliographic cross-check: https://openlibrary.org/works/OL1151029W/I_Ching
 
-Use in this project:
-
-- historical English reference for checking names, sequence, and broad received line context when a second lens was useful;
-- not a prose source for V2 output.
-
-No Legge passage is reproduced as V2 interpretation text.
+Used as a historical English cross-check for sequence and broad received context where a second lens was useful. No Legge passage is reproduced as V2 interpretation text.
 
 ## Existing Quick I Ching material retained as migration input
 
-`src/domain/interpretation/basic.ts` already contained 64 original Quick I Ching V1 theme/summary records. V2 keeps that file intact for existing Yarrow and Mei Hua result flows.
+`src/domain/interpretation/basic.ts` already contains 64 Quick I Ching V1 theme/summary records and remains intact for existing Yarrow and Mei Hua result flows.
 
-For V2, those established Quick I Ching themes and summaries were used as semantic anchors while expanding each hexagram into:
+Those established themes were used as semantic anchors while the V2 catalog was expanded. V2 does not delete or silently rewrite the V1 catalog.
 
-- core theme and 100–180 word core meaning;
-- strength;
-- challenge;
-- orientation;
-- structural interpretation;
-- stability / transition composition fields;
-- three reflection questions;
-- three observable `What to Watch` prompts;
-- six position-specific line interpretation records.
+## V2 hexagram authorship model
 
-V2 does not delete or silently rewrite the V1 catalog.
+Each of the 64 V2 hexagram records now directly stores its own authored:
 
-## 384-line authorship method
+- `coreTheme`
+- `coreMeaning`
+- `strength`
+- `challenge`
+- `orientation`
+- `structureInterpretation`
+- three `reflectionQuestions`
+- three `watchFor` observations
+- `transitionTheme`
+- `stabilityTheme`
 
-The V2 line catalog contains exactly `64 × 6 = 384` interpretation records.
+These user-facing fields are static TypeScript content. They are not generated at runtime from a shared prose template.
 
-Each record is produced from two explicit semantic inputs maintained in the repository:
+## 384-line authorship model
 
-1. the hexagram-specific V2 profile: theme, strength, challenge, orientation, transition/stability framing, and trigram structure;
-2. one manually authored, hexagram-specific emphasis for that exact line position.
+The V2 line catalog contains exactly `64 × 6 = 384` records.
 
-The shared line-content builder then turns those semantic inputs into the product fields required by the result page: theme, what the line highlights, change dynamic, caution, reflection question, and a synthesis phrase.
+Each line record directly stores six line-specific authored semantic fields:
 
-The six structural positions are intentionally distinguished as:
+- `theme`
+- `meaning`
+- `changeDynamic`
+- `caution`
+- `reflection`
+- `synthesisPhrase`
 
-1. foundation / first emergence;
-2. inner center / ordinary practice;
-3. inner threshold / pressure before moving outward;
-4. outer entry / first contact with wider conditions;
-5. outer center / visible responsibility and influence;
-6. culmination / completion, excess, or release.
+The shared `authoredLine()` function is deliberately non-semantic: it only assembles those six supplied strings into a typed object. The shared catalog builder only attaches the objective `(hexagramNumber, position)` identity and groups the records with their hexagram. It does **not** manufacture line meaning from a generic line-position paragraph, sentence template, or rule engine.
 
-This positional model is a **Quick I Ching presentation convention**. It is not presented as a quotation from the Zhouyi, a universal ancient line-selection rule, or the only correct interpretation.
+The six positions are still treated with awareness of their structural movement from beginning to culmination, but position is context rather than the interpretation itself. Each record is written for the particular hexagram and particular changing line. For example, Hexagram 24 preserves distinct return dynamics across early return, supported return, repeated return, returning against the surrounding current, sincere return, and missing the moment to return. Hexagram 1 likewise distinguishes hidden potential, emergence into the field, sustained effort, testing the leap, visible creative leadership, and strength carried beyond proper height.
 
-Every hexagram's six emphasis phrases are separately authored. The deterministic quality gate verifies all 384 expanded line meanings are distinct and that the catalog has no missing or duplicate `(hexagramNumber, position)` keys.
+## Quick I Ching presentation convention
+
+Quick I Ching shows every actual changing line in bottom-to-top order and synthesizes all of them. It does not currently apply an ancient line-selection hierarchy that suppresses some moving lines in favor of one selected line.
+
+That is a Quick I Ching presentation convention. It is not presented as a quotation from the Zhouyi, a universal ancient rule, or the only correct interpretation method.
 
 ## Original-prose policy
 
 All user-facing English added by V2 is Quick I Ching original prose.
 
-The writing policy is:
+The policy is to:
 
-- describe structure and reflection rather than claim supernatural certainty;
-- prefer language such as “this line highlights,” “Quick I Ching reads,” “emerging pattern,” and “for reflection”;
-- do not claim “the ancient text definitively says” when the product is providing a modern synthesis;
-- do not turn the relating hexagram into a guaranteed future;
-- do not provide medical, legal, financial, or safety directives;
-- keep the result useful without AI, login, or payment.
+- describe structure, change, and reflection rather than claim supernatural certainty;
+- use classical material as semantic context, not as copy to be rewritten sentence-by-sentence;
+- distinguish objective casting structure from Quick I Ching interpretation;
+- avoid claims such as “the ancient text definitively says” where the product is offering a modern synthesis;
+- treat the relating hexagram as an emerging pattern or direction of change, never a guaranteed future;
+- avoid medical, legal, financial, or safety directives;
+- keep the free reading useful without AI, login, or payment.
 
 ## Modern translation copyright boundary
 
-V2 prose was not sourced from or copied from modern copyrighted English translations or modern I Ching websites. In particular, the content process does not use passages from modern editions such as Wilhelm/Baynes, Blofeld, or other contemporary commercial translations as production copy.
+V2 prose was not sourced from or copied from modern copyrighted English translations or modern I Ching websites. In particular, the content process does not use production passages from modern editions such as Wilhelm/Baynes, Blofeld, or contemporary commercial translations.
 
-Historical/classical materials are used for semantic cross-checking only. The shipped text is written in the project's own vocabulary and organized around the product's explicit structure/reflection model.
+Historical/classical materials are used for semantic cross-checking only. The shipped prose is written in Quick I Ching's own vocabulary and organized around the product's structure-and-reflection model.
 
-## Determinism and content ownership boundary
+## Determinism and ownership boundaries
 
-The catalog is static TypeScript content. There is no LLM/API call, random prose generation, CMS lookup, or runtime retrieval.
+The catalog is static TypeScript content. There is no LLM/API call, random prose generation, CMS lookup, or runtime content retrieval.
 
 Given the same six line values:
 
-- the casting domain produces the same primary/moving/relating facts;
-- the same interpretation records are loaded;
+- the casting domain produces the same primary, moving, and relating facts;
+- the same static interpretation records are loaded;
 - the same deterministic synthesis functions run;
 - the same free-reading text is produced.
 
