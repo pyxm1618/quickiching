@@ -48,9 +48,9 @@ async function waitForServer() {
   throw new Error("Production Next server did not become ready");
 }
 
-function lighthouseArgs(outputPath, desktop = false) {
+function lighthouseArgs(url, outputPath, desktop = false) {
   return [
-    BASE,
+    url,
     "--quiet",
     ...(desktop ? ["--preset=desktop"] : []),
     "--chrome-flags=--headless --no-sandbox --disable-dev-shm-usage",
@@ -116,6 +116,15 @@ const { default: chromium } = await import("@sparticuz/chromium");
 const chromePath = systemChromePath ?? await chromium.executablePath();
 log(`Browser audit Chrome: ${chromePath} (${systemChromePath ? "system runner" : "serverless fallback"})`);
 
+log("Capturing homepage SEO baseline from the verified production main deployment");
+run("node", ["scripts/homepage-seo-audit.mjs"], {
+  env: {
+    PUBLIC_V1_TEST_BASE_URL: "https://www.quickiching.com",
+    CHROME_PATH: chromePath,
+    SEO_AUDIT_LABEL: "BEFORE",
+  },
+});
+
 const server = spawn("bun", ["run", "start"], {
   env: { ...process.env, PORT: "3000", HOSTNAME: "127.0.0.1" },
   stdio: ["ignore", "inherit", "inherit"],
@@ -124,8 +133,14 @@ const server = spawn("bun", ["run", "start"], {
 try {
   await waitForServer();
   const browserEnv = { PUBLIC_V1_TEST_BASE_URL: BASE, CHROME_PATH: chromePath };
-  log("Production Next server is ready; running real Chromium E2E");
+  log("Production Next server is ready; running homepage SEO semantic audit");
+  run("node", ["scripts/homepage-seo-audit.mjs"], {
+    env: { ...browserEnv, SEO_AUDIT_LABEL: "AFTER", SEO_AUDIT_ASSERT: "1" },
+  });
+
+  log("Running real Chromium E2E and on-page SEO acceptance");
   run("node", ["scripts/browser-gate.mjs"], { env: browserEnv });
+  run("node", ["scripts/on-page-seo-browser-gate.mjs"], { env: browserEnv });
   run("node", ["scripts/three-coin-v2-browser-gate.mjs"], { env: browserEnv });
   run("node", ["scripts/interpretation-bundle-gate.mjs"], { env: browserEnv });
   run("node", ["scripts/logo-browser-gate.mjs"], { env: browserEnv });
@@ -134,15 +149,18 @@ try {
   const lighthouseEnv = { CHROME_PATH: chromePath };
   const mobilePath = "/tmp/quickiching-lighthouse-mobile.json";
   const desktopPath = "/tmp/quickiching-lighthouse-desktop.json";
-  run("./node_modules/.bin/lighthouse", lighthouseArgs(mobilePath), { env: lighthouseEnv });
-  run("./node_modules/.bin/lighthouse", lighthouseArgs(desktopPath, true), { env: lighthouseEnv });
+  const guideMobilePath = "/tmp/quickiching-lighthouse-guide-mobile.json";
+  run("./node_modules/.bin/lighthouse", lighthouseArgs(BASE, mobilePath), { env: lighthouseEnv });
+  run("./node_modules/.bin/lighthouse", lighthouseArgs(BASE, desktopPath, true), { env: lighthouseEnv });
+  run("./node_modules/.bin/lighthouse", lighthouseArgs(`${BASE}/guides/how-to-ask-the-i-ching`, guideMobilePath), { env: lighthouseEnv });
   const mobile = await summarizeLighthouse("HOME_MOBILE", mobilePath);
   const desktop = await summarizeLighthouse("HOME_DESKTOP", desktopPath);
-  assertLighthouse([mobile, desktop]);
+  const guideMobile = await summarizeLighthouse("HOW_TO_ASK_MOBILE", guideMobilePath);
+  assertLighthouse([mobile, desktop, guideMobile]);
 
   log("Running populated Three-Coin result Lighthouse with preserved sessionStorage");
   run("node", ["scripts/result-lighthouse-gate.mjs"], { env: browserEnv });
-  log("ALL PUBLIC SEO V1 + THREE-COIN FREE READING V2 QUALITY / BUILD / BROWSER / BUNDLE / LIGHTHOUSE GATES PASS");
+  log("ALL PUBLIC SEO V1 + THREE-COIN FREE READING V2 + ON-PAGE SEO QUALITY / BUILD / BROWSER / BUNDLE / LIGHTHOUSE GATES PASS");
 } finally {
   server.kill("SIGTERM");
 }
