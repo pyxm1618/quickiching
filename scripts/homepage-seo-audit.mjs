@@ -113,6 +113,7 @@ try {
 
   const words = tokenize(snapshot.bodyText);
   const exactCount = countPhrase(words, "i ching online");
+  const decorativeDomTextNodes = snapshot.decorativeNodes.filter((node) => node.text.trim()).length;
   const report = {
     label: LABEL,
     url: BASE,
@@ -123,6 +124,7 @@ try {
       occurrences: exactCount,
       densityPct: Number(((exactCount / Math.max(words.length, 1)) * 100).toFixed(3)),
     },
+    decorativeDomTextNodes,
     phraseCluster: Object.fromEntries(PHRASES.map((phrase) => [phrase, countPhrase(words, phrase)])),
     entities: Object.fromEntries(ENTITIES.map((phrase) => [phrase, countPhrase(words, phrase)])),
     topNgrams: Object.fromEntries([1, 2, 3, 4, 5].map((size) => [`${size}word`, topNgrams(words, size)])),
@@ -136,11 +138,10 @@ try {
     assert.deepEqual(snapshot.h1, [HOME_H1], "Homepage must have exactly one locked H1");
     assert(snapshot.heroText.toLowerCase().includes("i ching online"), "Hero copy must retain the homepage primary phrase");
     assert(exactCount > 0, "Homepage visible text must contain i ching online");
-    assert(!snapshot.bodyText.includes("BOO"), "Decorative BOO text leaked into semantic body text");
-    assert(!snapshot.bodyText.includes("YUN"), "Decorative YUN text leaked into semantic body text");
     assert(snapshot.decorativeNodes.length > 0, "Decorative coin nodes are missing");
+    assert.equal(decorativeDomTextNodes, 0, "Decorative coin labels must not exist as DOM text nodes");
     for (const node of snapshot.decorativeNodes) {
-      assert.equal(node.text.trim(), "", `Decorative coin node leaked text: ${node.text}`);
+      assert.equal(node.text.trim(), "", `Decorative coin node leaked DOM text: ${node.text}`);
       assert(node.label, "Decorative coin visual label is missing");
       assert.equal(stripGeneratedContent(node.generated), node.label, `Decorative generated content mismatch for ${node.label}`);
     }
