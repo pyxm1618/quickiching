@@ -15,7 +15,7 @@ export default function HexagramsHubPage() {
     <article className="mx-auto max-w-6xl px-4 py-12 sm:py-16">
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Book of Changes</p>
       <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">The 64 I Ching Hexagrams</h1>
-      <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">This hub lists the 64 hexagrams in the King Wen sequence. The short English theme summaries are original Quick I Ching prose for basic orientation; Public V1 intentionally does not create 64 thin detail pages.</p>
+      <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">This hub lists the 64 hexagrams in the King Wen sequence. The short English theme summaries are original Quick I Ching prose for basic orientation, kept together so you can compare the sequence without treating each entry as a standalone prediction.</p>
 
       <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {KING_WEN_HEXAGRAMS.map((hexagram) => {
