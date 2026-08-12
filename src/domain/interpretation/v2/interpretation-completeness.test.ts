@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { loadHexagramInterpretation } from "./load-interpretation";
 
 const PLACEHOLDER = /\b(?:TODO|TBD|Lorem ipsum|placeholder)\b/i;
-const PROPHECY = /\b(?:will happen|your future will|(?:this|the) (?:reading|hexagram|line|cast) guarantees?|guarantees? (?:success|a result|an outcome|the future))\b/i;
+const PROPHECY = /\b(?:will happen|your future will|(?:this|the) (?:reading|hexagram|line|cast) (?:guarantees?|will (?:bring|cause|ensure|produce)))\b/i;
 const OLD_LINE_TEMPLATES = [
   /^For .+, the (?:foundation|inner center|inner threshold|outer entry|outer center|culmination) centers on one practical test:/i,
   /^Within .+, change at the (?:foundation|inner center|inner threshold|outer entry|outer center|culmination) sharpens this issue:/i,
@@ -35,8 +35,10 @@ function openingSignature(value: string): string {
 describe("Free Reading V2 interpretation catalog", () => {
   it("keeps the prophecy gate focused on deterministic product claims rather than warnings against certainty", () => {
     expect("This reading guarantees success.").toMatch(PROPHECY);
+    expect("The hexagram will produce a favorable outcome.").toMatch(PROPHECY);
     expect("Your future will improve.").toMatch(PROPHECY);
     expect("Do not assume that energy guarantees correctness.").not.toMatch(PROPHECY);
+    expect("Commitment should not try to guarantee the future.").not.toMatch(PROPHECY);
   });
 
   it("contains exactly 64 complete hexagrams and 384 complete line interpretations", async () => {
