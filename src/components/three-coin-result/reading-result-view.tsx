@@ -1,3 +1,4 @@
+import { AdsterraResultAd } from "@/components/ads/adsterra-result-ad";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import type { Trigram } from "@/domain/casting/hexagrams/king-wen";
 import type { FreeReading } from "@/domain/interpretation/v2/types";
@@ -225,6 +226,8 @@ export function ReadingResultView({
         <h2 id="bottom-line-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] text-[var(--gold-2)] sm:text-4xl">Bottom Line</h2>
         <p className="mt-5 max-w-4xl text-base leading-8 text-[var(--ink-2)] sm:text-lg sm:leading-9">{reading.synthesis.bottomLine}</p>
       </section>
+
+      <AdsterraResultAd />
 
       <div className="mt-12 grid gap-6 lg:grid-cols-2">
         <section className={`${styles.surface} p-5 sm:p-8`} aria-labelledby="reflection-heading">
