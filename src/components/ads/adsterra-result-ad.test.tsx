@@ -28,8 +28,8 @@ describe("AdsterraResultAd", () => {
 
     expect(html).toContain('data-adsterra-result-slot="true"');
     expect(html).toContain("Advertisement");
-    expect(html).toContain('id="container-98a6d22e22a68bd3f38e4eedda19cd18"');
-    expect(html).toContain('id="adsterra-result-native-loader"');
+    expect(html.match(/container-98a6d22e22a68bd3f38e4eedda19cd18/g)).toHaveLength(1);
+    expect(html.match(/adsterra-result-native-loader/g)).toHaveLength(1);
     expect(html).toContain('src="https://pl30822164.effectivecpmnetwork.com/98a6d22e22a68bd3f38e4eedda19cd18/invoke.js"');
     expect(html).toContain('data-cfasync="false"');
     expect(html).toContain('data-next-strategy="lazyOnload"');
