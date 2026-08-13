@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import nextConfig from "./next.config.mjs";
+import nextConfig, { buildContentSecurityPolicy } from "./next.config.mjs";
 
 describe("Next.js redirect policy", () => {
   it("permanently redirects the bare domain and named Vercel alias to www", async () => {
@@ -31,7 +31,7 @@ describe("Next.js redirect policy", () => {
 });
 
 describe("Next.js security headers", () => {
-  it("allows only the external origins required by GA4 and Microsoft Clarity", async () => {
+  it("allows only the external origins required by GA4 and Microsoft Clarity by default", async () => {
     const headerGroups = await nextConfig.headers();
     const globalHeaders = headerGroups.find((group) => group.source === "/:path*")?.headers ?? [];
     const csp = globalHeaders.find((header) => header.key === "Content-Security-Policy")?.value;
@@ -40,5 +40,18 @@ describe("Next.js security headers", () => {
     expect(csp).toContain("https://*.google-analytics.com");
     expect(csp).toContain("https://*.analytics.google.com");
     expect(csp).toContain("https://c.bing.com");
+    expect(csp).not.toContain("effectivecpmnetwork.com");
+  });
+
+  it("adds only the reviewed Adsterra script origin when the feature flag is enabled", () => {
+    const csp = buildContentSecurityPolicy({ NEXT_PUBLIC_ADSTERRA_ENABLED: "true" });
+
+    expect(csp).toContain("script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms https://pl30822164.effectivecpmnetwork.com");
+    expect(csp).not.toContain("effectivecpmnetwork.com*");
+  });
+
+  it("keeps the Adsterra origin out for missing and false flags", () => {
+    expect(buildContentSecurityPolicy({})).not.toContain("effectivecpmnetwork.com");
+    expect(buildContentSecurityPolicy({ NEXT_PUBLIC_ADSTERRA_ENABLED: "false" })).not.toContain("effectivecpmnetwork.com");
   });
 });
