@@ -5,7 +5,7 @@ import { getAnalyticsConfig } from "@/lib/analytics";
 function GoogleAnalytics({ measurementId }: { measurementId: string }) {
   return (
     <>
-      <Script id="google-analytics-bootstrap" strategy="beforeInteractive">
+      <Script id="google-analytics-bootstrap" strategy="afterInteractive">
         {`window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments);};window.gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied'});window.gtag('js',new Date());window.gtag('config','${measurementId}',{send_page_view:false});`}
       </Script>
       <Script
