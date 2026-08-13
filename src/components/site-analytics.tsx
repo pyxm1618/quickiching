@@ -6,7 +6,7 @@ function GoogleAnalytics({ measurementId }: { measurementId: string }) {
   return (
     <>
       <Script id="google-analytics-bootstrap" strategy="beforeInteractive">
-        {`window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments);};window.gtag('js',new Date());window.gtag('config','${measurementId}',{send_page_view:false});`}
+        {`window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments);};window.gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied'});window.gtag('js',new Date());window.gtag('config','${measurementId}',{send_page_view:false});`}
       </Script>
       <Script
         id="google-analytics-loader"
@@ -21,7 +21,7 @@ function GoogleAnalytics({ measurementId }: { measurementId: string }) {
 function MicrosoftClarity({ projectId }: { projectId: string }) {
   return (
     <Script id="microsoft-clarity" strategy="afterInteractive">
-      {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments);};t=l.createElement(r);t.async=1;t.src='https://www.clarity.ms/tag/'+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,'clarity','script','${projectId}');`}
+      {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments);};c[a]('consentv2',{ad_Storage:'denied',analytics_Storage:'denied'});t=l.createElement(r);t.async=1;t.src='https://www.clarity.ms/tag/'+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,'clarity','script','${projectId}');`}
     </Script>
   );
 }
