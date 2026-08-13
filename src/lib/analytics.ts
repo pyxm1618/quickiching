@@ -1,11 +1,4 @@
-type AnalyticsEnvironment = Partial<
-  Record<
-    | "NEXT_PUBLIC_GA_MEASUREMENT_ID"
-    | "NEXT_PUBLIC_CLARITY_PROJECT_ID"
-    | "VERCEL_ENV",
-    string | undefined
-  >
->;
+type AnalyticsEnvironment = Record<string, string | undefined>;
 
 export type AnalyticsConfig = {
   gaMeasurementId: string | null;
@@ -22,7 +15,7 @@ const PRODUCTION_GA_MEASUREMENT_ID = "G-NLFCDYQSJQ";
 const PRODUCTION_CLARITY_PROJECT_ID = "xvz3gv8ics";
 
 function readOptionalAnalyticsId(
-  name: keyof AnalyticsEnvironment,
+  name: string,
   rawValue: string | undefined,
   pattern: RegExp,
 ): string | null {
