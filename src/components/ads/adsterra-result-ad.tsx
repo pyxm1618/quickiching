@@ -8,7 +8,7 @@ export function AdsterraResultAd() {
   return (
     <aside
       aria-label="Advertisement"
-      data-adsterra-result-slot
+      data-adsterra-result-slot="true"
       className="mt-8 min-w-0 overflow-hidden rounded-2xl border border-white/[0.07] bg-black/10 px-3 py-4 sm:px-5"
     >
       <p className="mb-3 text-center font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[var(--ink-3)]">
