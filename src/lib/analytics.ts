@@ -1,6 +1,8 @@
-type AnalyticsEnvironment = Pick<
-  NodeJS.ProcessEnv,
-  "NEXT_PUBLIC_GA_MEASUREMENT_ID" | "NEXT_PUBLIC_CLARITY_PROJECT_ID"
+type AnalyticsEnvironment = Partial<
+  Record<
+    "NEXT_PUBLIC_GA_MEASUREMENT_ID" | "NEXT_PUBLIC_CLARITY_PROJECT_ID",
+    string | undefined
+  >
 >;
 
 export type AnalyticsConfig = {
