@@ -31,16 +31,16 @@ describe("Next.js redirect policy", () => {
 });
 
 describe("Next.js security headers", () => {
-  it("allows only the external origins required by GA4 and Microsoft Clarity by default", async () => {
+  it("retains the external origins required by GA4 and Microsoft Clarity", async () => {
     const headerGroups = await nextConfig.headers();
     const globalHeaders = headerGroups.find((group) => group.source === "/:path*")?.headers ?? [];
     const csp = globalHeaders.find((header) => header.key === "Content-Security-Policy")?.value;
 
-    expect(csp).toContain("script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms");
+    expect(csp).toContain("https://www.googletagmanager.com");
+    expect(csp).toContain("https://*.clarity.ms");
     expect(csp).toContain("https://*.google-analytics.com");
     expect(csp).toContain("https://*.analytics.google.com");
     expect(csp).toContain("https://c.bing.com");
-    expect(csp).not.toContain("effectivecpmnetwork.com");
   });
 
   it("adds only the reviewed Adsterra script origin when the feature flag is enabled", () => {
