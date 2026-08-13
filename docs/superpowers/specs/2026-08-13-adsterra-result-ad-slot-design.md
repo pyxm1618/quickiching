@@ -74,8 +74,8 @@ NEXT_PUBLIC_ADSTERRA_ENABLED=false
 Activation semantics are strict:
 
 - Missing value => disabled.
-- `false` => disabled.
-- Only the exact normalized value `true` => enabled.
+- Any value other than a string whose `trim().toLowerCase()` result is exactly `true` => disabled.
+- Only a value whose `trim().toLowerCase()` result is exactly `true` => enabled.
 
 When disabled, the application must render **no Adsterra slot, no provider container, no provider script, and make no Adsterra network request**.
 
@@ -86,6 +86,8 @@ The implementation must not hard-code a production auto-enable based on `VERCEL_
 ### Script loading
 
 When the feature flag is enabled, load the supplied external script after the result UI is available, using a non-critical/deferred loading strategy rather than putting the provider in the initial render-critical path.
+
+Preserve the supplied provider requirements, including the exact script URL and `data-cfasync="false"`. The loading mechanism may be framework-managed rather than parser-blocking, but it must retain asynchronous/non-critical behavior.
 
 The component must not create more than one provider script element for the same unit during normal App Router rendering, re-rendering, or React Strict Mode behavior.
 
@@ -143,7 +145,7 @@ A targeted test/build with `NEXT_PUBLIC_ADSTERRA_ENABLED=true` must prove:
 - exactly one advertisement disclosure/slot is rendered in the locked position;
 - the exact container ID is present once;
 - the exact supplied `invoke.js` URL is used;
-- the script is deferred/non-critical;
+- the provider script retains `data-cfasync="false"` and asynchronous/non-critical loading semantics;
 - the unit does not render on homepage, method pages, guides, or the hexagram hub;
 - 320/375/390px layouts do not horizontally overflow.
 
