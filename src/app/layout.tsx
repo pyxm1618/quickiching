@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { SiteAnalytics } from "@/components/site-analytics";
 import { HOME_DESCRIPTION, HOME_TITLE, SITE_ORIGIN } from "@/lib/seo";
 
 const systemFontVariables = {
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />
+        <SiteAnalytics />
       </body>
     </html>
   );
