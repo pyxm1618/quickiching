@@ -8,9 +8,9 @@ export type AnalyticsConfig = {
 const GA_MEASUREMENT_ID_PATTERN = /^G-[A-Z0-9]+$/;
 const CLARITY_PROJECT_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
-// Public browser identifiers supplied for the Quick I Ching properties. They are
-// intentionally activated only on Vercel production. Preview/local stay off unless
-// explicit env overrides are provided, which prevents contaminating live analytics.
+// Reviewed public browser identifiers for the canonical Quick I Ching production site.
+// Production intentionally ignores any stale project-level public analytics overrides;
+// local and Preview may still use explicit env values for isolated testing.
 const PRODUCTION_GA_MEASUREMENT_ID = "G-NLFCDYQSJQ";
 const PRODUCTION_CLARITY_PROJECT_ID = "xvz3gv8ics";
 
@@ -30,19 +30,22 @@ function readOptionalAnalyticsId(
 export function getAnalyticsConfig(
   environment: AnalyticsEnvironment = process.env,
 ): AnalyticsConfig {
-  const useProductionDefaults = environment.VERCEL_ENV === "production";
+  if (environment.VERCEL_ENV === "production") {
+    return {
+      gaMeasurementId: PRODUCTION_GA_MEASUREMENT_ID,
+      clarityProjectId: PRODUCTION_CLARITY_PROJECT_ID,
+    };
+  }
 
   return {
     gaMeasurementId: readOptionalAnalyticsId(
       "NEXT_PUBLIC_GA_MEASUREMENT_ID",
-      environment.NEXT_PUBLIC_GA_MEASUREMENT_ID ??
-        (useProductionDefaults ? PRODUCTION_GA_MEASUREMENT_ID : undefined),
+      environment.NEXT_PUBLIC_GA_MEASUREMENT_ID,
       GA_MEASUREMENT_ID_PATTERN,
     ),
     clarityProjectId: readOptionalAnalyticsId(
       "NEXT_PUBLIC_CLARITY_PROJECT_ID",
-      environment.NEXT_PUBLIC_CLARITY_PROJECT_ID ??
-        (useProductionDefaults ? PRODUCTION_CLARITY_PROJECT_ID : undefined),
+      environment.NEXT_PUBLIC_CLARITY_PROJECT_ID,
       CLARITY_PROJECT_ID_PATTERN,
     ),
   };
