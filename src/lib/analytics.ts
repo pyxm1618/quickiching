@@ -15,9 +15,9 @@ export type AnalyticsConfig = {
 const GA_MEASUREMENT_ID_PATTERN = /^G-[A-Z0-9]+$/;
 const CLARITY_PROJECT_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
-// These are public browser identifiers, not secrets. Production defaults let the
-// canonical Vercel deployment activate analytics without relying on project-level
-// env configuration. Env vars remain explicit overrides. Preview/local stay off.
+// Public browser identifiers supplied for the Quick I Ching properties. They are
+// intentionally activated only on Vercel production. Preview/local stay off unless
+// explicit env overrides are provided, which prevents contaminating live analytics.
 const PRODUCTION_GA_MEASUREMENT_ID = "G-NLFCDYQSJQ";
 const PRODUCTION_CLARITY_PROJECT_ID = "xvz3gv8ics";
 
