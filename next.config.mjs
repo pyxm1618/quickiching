@@ -1,4 +1,34 @@
 /** @type {import('next').NextConfig} */
+
+const ADSTERRA_SCRIPT_ORIGIN = "https://pl30822164.effectivecpmnetwork.com";
+
+function isAdsterraEnabled(environment) {
+  return environment.NEXT_PUBLIC_ADSTERRA_ENABLED?.trim().toLowerCase() === "true";
+}
+
+export function buildContentSecurityPolicy(environment = process.env) {
+  const scriptSources = [
+    "'self'",
+    "'unsafe-inline'",
+    "https://www.googletagmanager.com",
+    "https://*.clarity.ms",
+  ];
+
+  if (isAdsterraEnabled(environment)) scriptSources.push(ADSTERRA_SCRIPT_ORIGIN);
+
+  return [
+    "default-src 'self'",
+    `script-src ${scriptSources.join(" ")}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https://*.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms https://c.bing.com",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.clarity.ms https://c.bing.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+}
+
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -46,7 +76,7 @@ const nextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms https://c.bing.com; font-src 'self' data:; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+            value: buildContentSecurityPolicy(),
           },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
