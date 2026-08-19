@@ -6,7 +6,7 @@ import type { RiskStatus, Scene } from "../casting/types";
 // These rules are fail-closed: on any ambiguity we must not silently pass to the LLM in
 // a way that violates the boundary; the product path is allowed only when clearly safe.
 
-export const RISK_RULE_VERSION = "risk-v1";
+export const RISK_RULE_VERSION = "risk-v2";
 
 export type RiskDecision = {
   status: RiskStatus;
@@ -18,28 +18,29 @@ export type RiskDecision = {
 const EMERGENCY_PATTERNS: RegExp[] = [
   /\b(kill myself|suicid\w*|end my life|take my (own )?life|hurt myself|harm myself|self[\s-]?harm|cut myself)\b/i,
   /\b(kill (him|her|them|someone|people)|hurt (him|her|them|someone|people)|harm (him|her|them|others|someone))\b/i,
+  /(自杀|结束(?:我)?(?:自己的)?生命|不想活|伤害自己|自残|杀死(?:他|她|他们|别人|人)|伤害(?:他|她|他们|别人))/i,
 ];
 
 const MEDICAL_OBJECT: RegExp =
-  /\b(chemotherap\w*|chemo|medication|medicines?|meds|antidepressant\w*|dosage|dose|prescription|prescribed|drug(s|s treatment)?|surgery|surgical|diagnos\w*|treatment|vaccine|vaccination|mental health (treatment|care))\b/i;
+  /\b(chemotherap\w*|chemo|medication|medicines?|meds|insulin|antidepressant\w*|dosage|dose|prescription|prescribed|drug(s|s treatment)?|surgery|surgical|diagnos\w*|treatment|vaccine|vaccination|doctor|physician|hospital|emergency room|medical care|mental health (treatment|care))\b|(?:胰岛素|化疗|药物|用药|剂量|处方药|手术|诊断|治疗|疫苗|心理治疗|医生|医院|急诊)/i;
 
 const INVESTMENT_OBJECT: RegExp =
-  /\b(bitcoin|crypto(currency)?|stock(s)?|etf|forex|option(s)?|share(s)?|bond(s)?|mutual fund|investment fund)\b/i;
+  /\b(bitcoin|crypto(currency)?|stock(s)?|etf|forex|option(s)?|share(s)?|bond(s)?|mutual fund|investment fund|nvidia)\b|(?:比特币|加密货币|虚拟货币|股票|英伟达|基金|外汇|期权|债券|投资)/i;
 
 const LEGAL_OBJECT: RegExp =
-  /\b(lawsuit|sue|suing|divorce|court case|litigation|custody battle|legal action)\b/i;
+  /\b(lawsuit|sue|suing|divorce|court case|litigation|custody battle|legal action|plead guilty|guilty plea|criminal charge|lawyer|attorney)\b|(?:诉讼|起诉|离婚|法庭|官司|认罪|刑事指控|抚养权|律师)/i;
 
 const DECISION_ACTION: RegExp =
-  /\b(should i|should we|should he|should she|recommend|advise|tell me (to|whether)|is it (wise|ok|safe|right) to|can i|ought i|do you think i should)\b|\b(stop|start|take|buy|sell|quit|leave|accept|file|pursue|settle|begin|switch)\b/i;
+  /\b(should i|should we|should he|should she|recommend|advise|tell me (to|whether)|is it (wise|ok|safe|right) to|can i|ought i|do you think i should)\b|\b(stop|start|take|buy|sell|quit|leave|accept|file|pursue|settle|begin|switch|plead)\b|(?:应该|是否应该|能否|可以吗|建议|告诉我是否|停止|停用|开始|服用|购买|买入|卖出|投入|投资|认罪|和解|起诉|离婚)/i;
 
 const EMPLOYMENT_OR_PROJECT: RegExp =
-  /\b(work(ing)? at|company|companies|role|job|career|project|marketing|business|employer)\b/i;
+  /\b(work(ing)? at|company|companies|role|job|career|project|marketing|business|employer)\b|(?:工作|公司|职位|职业|项目|营销|雇主)/i;
 
 const AMBIGUOUS_HIGH_RISK_REQUEST: RegExp =
-  /\b(need guidance|need help|what should i do|what do i do|please help)\b/i;
+  /\b(need guidance|need help|what should i do|what do i do|please help)\b|(?:需要指导|需要帮助|我该怎么办|请帮帮我)/i;
 
 const DIRECT_INVESTMENT_ACTION: RegExp =
-  /\b(buy|sell|invest in|hold|trade)\b.{0,40}\b(bitcoin|crypto(currency)?|stock(s)?|etf|forex|option(s)?|share(s)?|bond(s)?|mutual fund|investment fund)\b/i;
+  /\b(buy|sell|invest in|hold|trade)\b.{0,40}\b(bitcoin|crypto(currency)?|stock(s)?|etf|forex|option(s)?|share(s)?|bond(s)?|mutual fund|investment fund|nvidia)\b|(?:买入|购买|卖出|投资|持有|交易).{0,40}(?:比特币|加密货币|虚拟货币|股票|英伟达|基金|外汇|期权|债券)/i;
 
 function normalize(text: string): string {
   // NFKC + lowercase for stable matching (Unicode variant cases are covered by tests).
@@ -49,6 +50,11 @@ function normalize(text: string): string {
 export function detectEmergency(text: string): boolean {
   const t = normalize(text);
   return EMERGENCY_PATTERNS.some((re) => re.test(t));
+}
+
+export function containsHighRiskTopic(text: string): boolean {
+  const t = normalize(text);
+  return detectEmergency(t) || MEDICAL_OBJECT.test(t) || INVESTMENT_OBJECT.test(t) || LEGAL_OBJECT.test(t);
 }
 
 // Deterministic evaluation. `scene` is provided to support context-aware exclusion.

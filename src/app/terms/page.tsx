@@ -16,7 +16,7 @@ export default function TermsPage() {
       <p className="mt-4 text-sm text-[var(--ink-3)]">Last updated: August 10, 2026</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">What the current service provides</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching Public V1 provides three browser-accessible I Ching casting methods—Three Coin, Yarrow Stalk, and one documented Mei Hua Yi Shu current-time convention—plus general hexagram information and free basic interpretations. Production user accounts, saved history, personalized AI deep readings, credits, and checkout are not currently offered as active services.</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching Public V1 provides four browser-accessible I Ching casting methods—Three Coin, Yarrow Stalk, one documented Mei Hua Yi Shu current-time convention, and Manual Cast—plus general hexagram information, local browser history, and free static interpretations. Production user accounts, cloud history, payment, credits, and an activated personalized AI provider are not currently offered as active services.</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">Reflection, not deterministic prediction or professional advice</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">The site is for cultural exploration and personal reflection. A reading does not establish facts, guarantee future outcomes, diagnose a condition, determine legal rights, or provide medical, legal, financial, investment, tax, emergency, or safety advice. You remain responsible for decisions and should use qualified professionals and real-world evidence where appropriate.</p>

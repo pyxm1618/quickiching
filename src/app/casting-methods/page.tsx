@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Casting Methods",
   description:
-    "Compare the three I Ching casting methods: Three-Coin, Yarrow Stalk, and Mei Hua Yi Shu (current-time).",
+    "Compare the four I Ching casting methods: Three-Coin, Yarrow Stalk, Mei Hua Yi Shu (current-time), and Manual Cast.",
   alternates: { canonical: "/casting-methods" },
 };
 
@@ -33,24 +33,32 @@ const METHODS = [
     cast: "/cast/mei_hua_current_time",
     blurb: "Form a hexagram from the current time and your confirmed timezone.",
   },
+  {
+    idx: "04",
+    name: "Manual Cast",
+    zh: "手动起卦",
+    href: "/methods/manual-cast",
+    cast: "/methods/manual-cast",
+    blurb: "Enter six known line values or choose a primary hexagram and moving positions.",
+  },
 ] as const;
 
 export default function CastingMethodsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
       <p className="font-mono text-[11.5px] uppercase tracking-[0.16em] text-[var(--bronze)]">
-        Three rituals · one result
+        Four methods · one result
       </p>
       <h1 className="mt-4 font-display text-[clamp(1.9rem,3vw,2.6rem)] font-medium tracking-[-0.015em]">
         Casting Methods
       </h1>
       <p className="mt-4 max-w-2xl leading-relaxed text-[var(--ink-2)]">
-        All three methods produce the same unified hexagram result and share one entitlement system.
+        All four methods produce the same unified hexagram result.
         The method shapes the ritual and how the hexagram is formed — it is never falsely tied to a
         particular kind of question.
       </p>
 
-      <div className="mt-12 grid divide-y divide-[var(--line)] border-y border-[var(--line)] md:grid-cols-3 md:divide-x md:divide-y-0">
+      <div className="mt-12 grid divide-y divide-[var(--line)] border-y border-[var(--line)] md:grid-cols-4 md:divide-x md:divide-y-0">
         {METHODS.map((m) => (
           <div key={m.idx} className="px-2 py-10 md:px-8">
             <p className="font-mono text-xs tracking-[0.1em] text-[var(--bronze)]">{m.idx}</p>

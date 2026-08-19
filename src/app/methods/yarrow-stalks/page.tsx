@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { QuestionFirst } from "@/components/public-reading/question-first";
 import { YarrowTool } from "@/components/public-reading/yarrow-tool";
 
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ export default function YarrowStalksPage() {
         <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">The yarrow stalk method forms each line through three changes. Quick I Ching makes all eighteen changes visible and resumable in your browser instead of replacing the ritual with a single random button.</p>
       </header>
 
-      <section className="mx-auto max-w-6xl px-4 pb-12"><YarrowTool /></section>
+      <section className="mx-auto max-w-6xl px-4 pb-12"><QuestionFirst storageKey="quickiching:public-v1:yarrow-v2" legacyStorageKeys={["quickiching:question:yarrow-stalks"]}><YarrowTool /></QuestionFirst></section>
 
       <section className="mx-auto grid max-w-5xl gap-8 px-4 py-12 md:grid-cols-2">
         <div><h2 className="font-display text-2xl font-medium">The 49-stalk procedure used here</h2><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">A change records a valid split of the working stalks, one stalk taken from the right, and the remainders after counting the left and right groups by fours. After three changes, the remaining count divided by four gives a line value of 6, 7, 8, or 9.</p><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching’s digital convention explicitly samples the conventional Zhu Xi-style change outcomes: the first change removes 5 or 9 with 3:1 weighting; the next two remove 4 or 8 equally. This yields line probabilities 1/16, 5/16, 7/16, and 3/16 for 6, 7, 8, and 9.</p></div>

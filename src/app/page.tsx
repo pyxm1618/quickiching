@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { QuestionFirst } from "@/components/public-reading/question-first";
 import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
 import { HOME_DESCRIPTION, HOME_H1, HOME_TITLE, SITE_ORIGIN } from "@/lib/seo";
 
@@ -20,7 +21,7 @@ const WEBSITE_STRUCTURED_DATA = {
 const FAQ = [
   ["What is an I Ching reading?", "An I Ching reading uses a six-line hexagram from the Book of Changes as a structured framework for reflection. The primary hexagram describes the main pattern; moving lines, when present, create a relating hexagram."],
   ["How does an online I Ching reading work?", "An I Ching online reading on Quick I Ching follows the casting rules for the method you choose. Complete its steps, then read the primary hexagram, changing lines, relating hexagram when present, and a free basic interpretation."],
-  ["Is the I Ching reading free?", "Yes. The three launch methods provide a complete free basic reading without sign-in, payment, or a production AI service. Future personalized deep readings are a separate commercial feature and are not required here."],
+  ["Is the I Ching reading free?", "Yes. The four public methods provide a complete free reading without sign-in or payment. An optional question interpreter is a separate, fail-closed feature and is not required for the static reading."],
   ["How does the three-coin method work?", "Each of three coins contributes 2 for yin or 3 for yang. The total is 6, 7, 8, or 9. Repeat six times from the bottom line upward; 6 and 9 are changing lines."],
   ["What are changing lines?", "Changing lines are line values 6 or 9. They mark positions that reverse from yin to yang or yang to yin when the relating hexagram is calculated."],
   ["What is a relating hexagram?", "When one or more lines change, those reversals form a second hexagram. It is useful for considering how the primary pattern is changing, not as a guaranteed future outcome."],
@@ -39,11 +40,11 @@ export default function HomePage() {
       />
 
       <section className="relative overflow-hidden border-b border-white/[0.07]">
-        <div className="mystic-shell grid min-h-[720px] items-center gap-10 py-16 lg:grid-cols-[1.05fr_.95fr] lg:gap-16 lg:py-20">
+        <div className="mystic-shell grid min-h-[560px] items-center gap-10 py-16 lg:grid-cols-[1.05fr_.95fr] lg:gap-16 lg:py-20">
           <div className="relative z-10">
             <p className="mystic-kicker">Quick I Ching · Book of Changes</p>
             <h1 className="mt-5 max-w-4xl font-display text-[clamp(3.25rem,6vw,5.9rem)] font-normal leading-[.99] tracking-[-.055em] [text-shadow:0_0_70px_rgba(143,112,255,.12)]">{HOME_H1}</h1>
-            <p className="mt-7 max-w-3xl text-[17px] leading-8 text-[var(--ink-2)] sm:text-lg">Use the I Ching online without an account. The Three-Coin Method is ready below, with Yarrow Stalk and Mei Hua Yi Shu current-time casting available as complete alternatives. Every method ends with the hexagram structure and a free basic interpretation.</p>
+            <p className="mt-7 max-w-3xl text-[17px] leading-8 text-[var(--ink-2)] sm:text-lg">Use the I Ching online through one reflective loop: Ask → Cast → Understand → Reflect → Return. Choose Three-Coin, Yarrow Stalks, Mei Hua Yi Shu, or Manual Cast; every method keeps the six-line facts visible and ends with the same free, grounded reading.</p>
           </div>
 
           <div className="oracle-stage" aria-hidden="true">
@@ -66,7 +67,7 @@ export default function HomePage() {
       </section>
 
       <section id="three-coin-reading" className="mystic-shell scroll-mt-24 py-16 sm:py-20">
-        <ThreeCoinTool compactIntro />
+        <QuestionFirst storageKey="quickiching:public-v1:three-coin" legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]}><ThreeCoinTool compactIntro /></QuestionFirst>
       </section>
 
       <section id="other-casting-methods" className="mystic-shell scroll-mt-24 py-16 sm:py-20">
@@ -75,14 +76,20 @@ export default function HomePage() {
             <p className="mystic-kicker">Other I Ching Casting Methods</p>
             <h2 className="mt-2 font-display text-4xl font-normal tracking-[-.04em] sm:text-5xl">Choose how you want to cast your I Ching reading</h2>
           </div>
-          <p className="max-w-2xl text-sm leading-7 text-[var(--ink-2)]">An I Ching online reading can begin with the quick three-coin ritual, the slower yarrow-stalk process, or Quick I Ching’s documented Mei Hua Yi Shu current-time convention. Each method produces the same core hexagram structure while preserving its own casting steps.</p>
+            <p className="max-w-2xl text-sm leading-7 text-[var(--ink-2)]">An I Ching online reading can begin with coins, yarrow stalks, the documented Mei Hua current-time convention, or direct Manual Cast. Each method produces the same core hexagram structure while preserving its own facts and steps.</p>
         </div>
 
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
+        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           <article className="method-card-a">
             <div className="mb-8 font-display text-4xl text-[var(--gold)]" aria-hidden="true">◉ ◉ ◉</div>
             <h3>Three-Coin Method</h3>
             <p className="mt-4">Prefer the coin rules on their own page? <Link href="/methods/three-coin" className="font-semibold text-[var(--cyan)] hover:underline">Open the Three-Coin Method guide and tool.</Link></p>
+          </article>
+          <article className="method-card-a">
+            <div className="mb-5 font-mono text-4xl text-[var(--gold)]" aria-hidden="true">6·7·8·9</div>
+            <h3>Manual Cast</h3>
+            <p className="mt-4">Enter six line values directly or choose a primary hexagram and moving lines. Both modes use the same deterministic transformation engine.</p>
+            <Link href="/methods/manual-cast" className="mt-5 inline-flex min-h-11 items-center font-semibold text-[var(--cyan)] hover:underline">Open Manual Cast →</Link>
           </article>
           <article className="method-card-a">
             <div className="mb-8 h-12 origin-left -rotate-6 font-display text-4xl tracking-[-.45em] text-[var(--gold)]" aria-hidden="true">||||||||||||</div>
@@ -102,9 +109,10 @@ export default function HomePage() {
       <section id="how-it-works" className="mystic-shell scroll-mt-24 py-16 sm:py-20">
         <h2 className="font-display text-4xl font-normal tracking-[-.04em] sm:text-5xl">How I Ching Online Readings Work</h2>
         <div className="how-strip mt-9">
-          <article><p className="font-display text-3xl text-[var(--gold)]">01</p><h3 className="mt-5 font-display text-xl font-normal">Cast a six-line pattern</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">An I Ching online reading starts by forming the six-line structure from bottom to top. Three coins and yarrow generate 6/7/8/9 line values; Mei Hua derives the trigrams and one changing line from the current-time convention.</p></article>
-          <article><p className="font-display text-3xl text-[var(--gold)]">02</p><h3 className="mt-5 font-display text-xl font-normal">Identify the primary hexagram</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">The yin and yang structure maps to one of the 64 King Wen hexagrams. This is the primary hexagram—the reading’s starting pattern.</p></article>
-          <article><p className="font-display text-3xl text-[var(--gold)]">03</p><h3 className="mt-5 font-display text-xl font-normal">Read change without certainty claims</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">Values 6 and 9 are changing lines. Reversing them produces a relating hexagram, which offers another structure for reflection rather than a fixed prediction.</p></article>
+          <article><p className="font-display text-3xl text-[var(--gold)]">01</p><h3 className="mt-5 font-display text-xl font-normal">Ask</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">Frame an optional question in this browser. It never changes the casting facts and remains out of URLs, metadata, and analytics.</p></article>
+          <article><p className="font-display text-3xl text-[var(--gold)]">02</p><h3 className="mt-5 font-display text-xl font-normal">Cast</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">Form six lines from bottom to top with one of four documented methods, or enter a manual structure without randomness.</p></article>
+          <article><p className="font-display text-3xl text-[var(--gold)]">03</p><h3 className="mt-5 font-display text-xl font-normal">Understand</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">Read the primary hexagram, moving lines, and relating hexagram only when movement exists.</p></article>
+          <article><p className="font-display text-3xl text-[var(--gold)]">04</p><h3 className="mt-5 font-display text-xl font-normal">Reflect → Return</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">Save locally, return to the question, and compare the symbolic frame with real-world evidence over time.</p></article>
         </div>
       </section>
 

@@ -25,10 +25,11 @@
 1. Three-Coin Method
 2. Yarrow Stalk Method
 3. Mei Hua Yi Shu — Current-Time Casting
+4. Manual Cast — deterministic line input
 
-三种方法的免费闭环统一为：
+四种方法的免费闭环统一为：
 
-开始起卦 → 完成六爻 → Primary Hexagram → Changing Lines → Relating Hexagram（存在动爻时）→ Free Basic Interpretation。
+可选 Question-first → 完成六爻 → Primary Hexagram → Changing Lines → Relating Hexagram（存在动爻时）→ Free Basic Interpretation → 可选本地 History 保存。
 
 免费层至少展示：
 
@@ -41,7 +42,7 @@
 - 之卦简洁基础解释（如存在）
 - reflection / interpretive framework / not deterministic prediction / not professional advice 边界
 
-免费层解释**卦象本身**，不结合用户职业、感情、财富等具体私密情境做个性化 AI 报告。
+免费层解释**卦象本身**，不依赖 AI。用户明确点击后，才允许进入独立的 personalized interpretation seam；它必须经过风险检查、Turnstile 和 AI Gateway 配置，生产未激活或失败时 fail-closed 并保留完整静态结果。
 
 ### 1.2 Commercial V2 — 保留的未来商业产品
 
@@ -72,10 +73,13 @@ Commercial V2 上线前必须重新完成法律、支付、隐私、AI、账户�
 - `/methods/three-coin` — `i ching coin` / `three coin i ching` / `i ching coin toss` cluster
 - `/methods/yarrow-stalks` — yarrow stalk cluster
 - `/methods/mei-hua-yi-shu` — mei hua / plum blossom cluster
+- `/methods/manual-cast` — deterministic manual input cluster
 - `/guides/how-to-ask-the-i-ching`
 - `/guides/changing-lines`
 - `/guides/primary-relating-hexagrams`
 - `/hexagrams` — 64 Hexagrams Hub
+- `/hexagrams/[fixed-slug]` — 64 fixed entity pages with six line anchors
+- `/history` — browser-only saved readings; private, noindex, excluded from sitemap
 
 原则：**One primary intent = one canonical URL**，不是 one keyword = one URL。
 
@@ -89,7 +93,7 @@ Title:
 
 Meta Description:
 
-`Use the I Ching online with three coins, yarrow stalks, or Mei Hua Yi Shu. Cast your hexagram, see changing lines, and get a free basic interpretation.`
+`Use the I Ching online with Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, or Manual Cast. See changing lines and get a free grounded interpretation.`
 
 H1:
 
@@ -99,7 +103,7 @@ H1:
 
 1. Header
 2. H1 + 极简介绍
-3. 完整 Three-Coin Tool
+3. Optional Question-first + 完整 Three-Coin Tool
 4. 免费结果区域
 5. Other I Ching Casting Methods
 6. How I Ching Online Readings Work
@@ -181,7 +185,7 @@ Public V1 不公开复制未经许可的现代英文 I Ching 译文。
 - 不制造焦虑依赖
 - 不鼓励为了追求喜欢的答案不断重复占问
 
-Public V1 Legal / Help 页面必须描述当前真实状态，不得写成 production auth/payment/AI/history 已经开放。
+Public V1 Legal / Help 页面必须描述当前真实状态：browser-only History 可以显式保存，但 production auth/payment/cloud history 未开放；personalized AI 只有在全部 provider/safety activation 条件满足时才可使用。
 
 ---
 
@@ -205,21 +209,21 @@ Canonical production host：`https://www.quickiching.com`。
 
 ## 7. 本阶段明确不扩展
 
-Public SEO V1 不为了“完整”而启用：
+Public SEO V1 不为了“完整”而默认启用：
 
-- production AI deep reading
+- 未配置并未通过安全门禁的 production AI deep reading
 - payment / credits / checkout
-- production auth / account / history
+- production auth / account / cloud history（browser-only local History 属于 Public P0）
 - Liu Yao / Wen Wang Gua / 数字起卦 / 每日一卦
 - AI chat oracle
 - community / subscription / CMS / multilingual / hreflang
-- 64 个低质量自动生成详情页
+- 384 个爻级运行时详情页或 4096 个卦变详情页
 
 ---
 
 ## 8. Public SEO V1 完成定义
 
-只有三种方法都完成真实免费闭环、技术 SEO 干净、desktop/mobile 核心路径通过、构建和自动化测试通过，才能标记 `READY FOR FINAL SEO AUDIT`。
+只有四种方法都完成真实免费闭环、73 个 indexable URL 技术 SEO 干净、desktop/mobile 核心路径通过、构建和自动化测试通过，才能标记 `READY FOR FINAL SEO AUDIT`。Question-first、Manual A/B、local History、隐私边界和 personalized fail-closed 也必须有对应门禁证据。
 
 独立最终审核通过前：
 

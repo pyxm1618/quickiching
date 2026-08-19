@@ -9,11 +9,11 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-[1240px] gap-9 px-5 py-14 sm:grid-cols-2 sm:px-7 lg:grid-cols-4">
         <div>
           <p className="flex items-center gap-3 font-semibold tracking-[0.02em]"><BrandMark size="md" />Quick I Ching</p>
-          <p className="mt-4 max-w-md text-sm leading-7 text-[var(--ink-3)]">A free I Ching online casting and reflection platform with Three Coin, Yarrow Stalk, and Mei Hua Yi Shu current-time methods.</p>
+          <p className="mt-4 max-w-md text-sm leading-7 text-[var(--ink-3)]">A free I Ching online casting and reflection platform with Three-Coin, Yarrow Stalks, Mei Hua Yi Shu, and Manual Cast methods.</p>
         </div>
         <div>
           <p className="mystic-kicker">Casting</p>
-          <ul className="mt-4 space-y-2 text-sm"><li><Link href="/methods/three-coin" className={LINK}>Three-Coin Method</Link></li><li><Link href="/methods/yarrow-stalks" className={LINK}>Yarrow Stalk Method</Link></li><li><Link href="/methods/mei-hua-yi-shu" className={LINK}>Mei Hua Yi Shu</Link></li><li><Link href="/hexagrams" className={LINK}>64 Hexagrams</Link></li></ul>
+          <ul className="mt-4 space-y-2 text-sm"><li><Link href="/methods/three-coin" className={LINK}>Three-Coin Method</Link></li><li><Link href="/methods/yarrow-stalks" className={LINK}>Yarrow Stalk Method</Link></li><li><Link href="/methods/mei-hua-yi-shu" className={LINK}>Mei Hua Yi Shu</Link></li><li><Link href="/methods/manual-cast" className={LINK}>Manual Cast</Link></li><li><Link href="/history" className={LINK}>Local History</Link></li><li><Link href="/hexagrams" className={LINK}>64 Hexagrams</Link></li></ul>
         </div>
         <div>
           <p className="mystic-kicker">Guides</p>

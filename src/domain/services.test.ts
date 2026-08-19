@@ -52,6 +52,18 @@ describe("Risk engine (§11.1 regression contract)", () => {
   it("detects emergency self-harm and blocks before any decision logic", () => {
     expect(evaluateRisk("I want to kill myself", "other").status).toBe("emergency_blocked");
   });
+  it.each([
+    ["我想自杀", "emergency_blocked"],
+    ["我应该停止服用胰岛素吗？", "professional_decision_blocked"],
+    ["我应该把全部积蓄买英伟达股票吗？", "professional_decision_blocked"],
+    ["Should I stop taking insulin?", "professional_decision_blocked"],
+    ["Should I plead guilty?", "professional_decision_blocked"],
+  ] as const)("blocks multilingual high-risk request: %s", (question, expected) => {
+    expect(evaluateRisk(question, "other").status).toBe(expected);
+  });
+  it("does not block an ordinary Chinese career reflection", () => {
+    expect(evaluateRisk("我是否应该调整职业发展方向？", "career").status).toBe("allowed");
+  });
   it("ordinary question is allowed with no codes", () => {
     const d = evaluateRisk("Should I change my career path?", "career");
     expect(d.status).toBe("allowed");

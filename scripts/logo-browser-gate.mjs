@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const BRAND_ALT = "Quick I Ching logo";
@@ -159,8 +160,7 @@ await assertImageEndpoint("/favicon-48x48.png", "image/png");
 await assertImageEndpoint("/icon.png", "image/png");
 log("Favicon/icon endpoints PASS");
 
-const executablePath = process.env.CHROME_PATH || await chromium.executablePath();
-const usingSystemChrome = Boolean(process.env.CHROME_PATH);
+const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
 const browser = await puppeteer.launch({
   args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
   executablePath,

@@ -2,20 +2,41 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const HOME_TITLE = "I Ching Online — Free Hexagram Reading | Quick I Ching";
-const HOME_DESCRIPTION = "Use the I Ching online with three coins, yarrow stalks, or Mei Hua Yi Shu. Cast your hexagram, see changing lines, and get a free basic interpretation.";
+const HOME_DESCRIPTION = "Use the I Ching online with Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, or Manual Cast. See changing lines and get a free grounded interpretation.";
 const HOME_H1 = "I Ching Online — Cast Your Hexagram";
+const HEXAGRAM_PATHS = [
+  "/hexagrams/1-the-creative", "/hexagrams/2-the-receptive", "/hexagrams/3-difficulty-at-the-beginning", "/hexagrams/4-youthful-folly",
+  "/hexagrams/5-waiting", "/hexagrams/6-conflict", "/hexagrams/7-the-army", "/hexagrams/8-holding-together",
+  "/hexagrams/9-small-taming", "/hexagrams/10-treading", "/hexagrams/11-peace", "/hexagrams/12-standstill",
+  "/hexagrams/13-fellowship", "/hexagrams/14-great-possession", "/hexagrams/15-modesty", "/hexagrams/16-enthusiasm",
+  "/hexagrams/17-following", "/hexagrams/18-work-on-the-decayed", "/hexagrams/19-approach", "/hexagrams/20-contemplation",
+  "/hexagrams/21-biting-through", "/hexagrams/22-grace", "/hexagrams/23-splitting-apart", "/hexagrams/24-return",
+  "/hexagrams/25-innocence", "/hexagrams/26-great-taming", "/hexagrams/27-nourishment", "/hexagrams/28-great-exceeding",
+  "/hexagrams/29-the-abysmal-water", "/hexagrams/30-the-clinging-fire", "/hexagrams/31-influence", "/hexagrams/32-duration",
+  "/hexagrams/33-retreat", "/hexagrams/34-great-power", "/hexagrams/35-progress", "/hexagrams/36-darkening-of-the-light",
+  "/hexagrams/37-the-family", "/hexagrams/38-opposition", "/hexagrams/39-obstruction", "/hexagrams/40-deliverance",
+  "/hexagrams/41-decrease", "/hexagrams/42-increase", "/hexagrams/43-breakthrough", "/hexagrams/44-coming-to-meet",
+  "/hexagrams/45-gathering-together", "/hexagrams/46-pushing-upward", "/hexagrams/47-oppression", "/hexagrams/48-the-well",
+  "/hexagrams/49-revolution", "/hexagrams/50-the-cauldron", "/hexagrams/51-the-arousing-thunder", "/hexagrams/52-keeping-still-mountain",
+  "/hexagrams/53-development", "/hexagrams/54-the-marrying-maiden", "/hexagrams/55-abundance", "/hexagrams/56-the-wanderer",
+  "/hexagrams/57-the-gentle-wind", "/hexagrams/58-the-joyous-lake", "/hexagrams/59-dispersion", "/hexagrams/60-limitation",
+  "/hexagrams/61-inner-truth", "/hexagrams/62-small-exceeding", "/hexagrams/63-after-completion", "/hexagrams/64-before-completion",
+];
 const INDEXABLE_PATHS = [
   "/",
   "/methods/three-coin",
   "/methods/yarrow-stalks",
   "/methods/mei-hua-yi-shu",
+  "/methods/manual-cast",
   "/guides/how-to-ask-the-i-ching",
   "/guides/changing-lines",
   "/guides/primary-relating-hexagrams",
   "/hexagrams",
+  ...HEXAGRAM_PATHS,
 ];
 
 function log(message) {
@@ -83,6 +104,7 @@ async function verifyHttpAndSeo() {
   assert(homeHtml.includes(HOME_H1), "Exact homepage H1 is missing from initial HTML");
   assert(homeHtml.includes('href="/methods/yarrow-stalks"'), "Yarrow crawlable link missing from initial HTML");
   assert(homeHtml.includes('href="/methods/mei-hua-yi-shu"'), "Mei Hua crawlable link missing from initial HTML");
+  assert(homeHtml.includes('href="/methods/manual-cast"'), "Manual Cast crawlable link missing from initial HTML");
   assert(homeHtml.includes('href="/guides/changing-lines"'), "Changing-lines crawlable link missing from initial HTML");
   assert(homeHtml.includes('href="/hexagrams"'), "Hexagrams crawlable link missing from initial HTML");
 
@@ -116,7 +138,7 @@ async function verifyHttpAndSeo() {
   const sitemapXml = await sitemap.text();
   const locs = [...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]).sort();
   const expectedLocs = INDEXABLE_PATHS.map((path) => new URL(path, "https://www.quickiching.com").toString()).sort();
-  assert.deepEqual(locs, expectedLocs, "Sitemap must contain exactly the eight canonical Public V1 pages");
+  assert.deepEqual(locs, expectedLocs, "Sitemap must contain exactly the 73 canonical Public V1 pages");
   for (const forbidden of ["/pricing", "/signin", "/three-coin-method", "/checkout", "/readings/three-coin/result", "vercel.app"]) {
     assert(!sitemapXml.includes(forbidden), `Sitemap contains forbidden entry: ${forbidden}`);
   }
@@ -189,7 +211,7 @@ async function verifyHttpAndSeo() {
 }
 
 async function waitForText(page, text, timeout = 15_000) {
-  await page.waitForFunction((value) => document.body?.innerText.includes(value), { timeout }, text);
+  await page.waitForFunction((value) => document.body?.innerText.toLocaleLowerCase().includes(value.toLocaleLowerCase()), { timeout }, text);
 }
 
 async function clickButton(page, label) {
@@ -260,10 +282,20 @@ async function assertNoOverflow(page) {
 
 async function assertBasicResult(page) {
   await waitForText(page, "Your I Ching reading");
-  const resultText = await page.$eval('[aria-labelledby="reading-result-title"]', (node) => node.textContent || "");
-  for (const expected of ["Free basic interpretation", "Primary Hexagram", "Changing Lines", "Relating Hexagram", "general interpretive framework for reflection"]) {
+  const resultText = await page.$eval("[data-public-reading-result]", (node) => node.textContent || "");
+  for (const expected of ["Primary Hexagram", "Changing Lines", "Core meaning", "Reflect", "Save reading"]) {
     assert(resultText.includes(expected), `Reading result missing: ${expected}`);
   }
+}
+
+async function skipOptionalQuestion(page) {
+  const skipped = await page.evaluate(() => {
+    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Skip for now");
+    if (!(button instanceof HTMLButtonElement)) return false;
+    button.click();
+    return true;
+  });
+  if (skipped) await waitForText(page, "Ask · editable before the result");
 }
 
 async function verifyThreeCoinTransactionSemantics(page) {
@@ -274,11 +306,16 @@ async function verifyThreeCoinTransactionSemantics(page) {
   await dispatchThreeCoinPointer(page, "pointercancel", 41);
   const cancelled = await page.evaluate((key) => ({
     motion: document.querySelector(".coin-motion-stage")?.getAttribute("data-motion"),
-    stored: sessionStorage.getItem(key),
+    storedSteps: (() => {
+      const raw = sessionStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : Array.isArray(parsed?.data?.steps) ? parsed.data.steps : null;
+    })(),
     body: document.body?.innerText ?? "",
   }), storageKey);
   assert.equal(cancelled.motion, "idle", "pointercancel must return the Three-Coin chamber to idle");
-  assert.equal(cancelled.stored, null, "pointercancel must not persist a Three-Coin line");
+  assert.equal(cancelled.storedSteps, null, "pointercancel must not persist a Three-Coin line");
   assert(cancelled.body.includes("0 / 6 lines"), "pointercancel must not advance Three-Coin progress");
 
   await dispatchThreeCoinPointer(page, "pointerdown", 42);
@@ -286,8 +323,9 @@ async function verifyThreeCoinTransactionSemantics(page) {
   await new Promise((resolve) => setTimeout(resolve, 100));
   const duringReveal = await page.evaluate((key) => {
     const raw = sessionStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : null;
     return {
-      stored: raw ? JSON.parse(raw) : null,
+      stored: Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? null,
       body: document.body?.innerText ?? "",
       motion: document.querySelector(".coin-motion-stage")?.getAttribute("data-motion"),
     };
@@ -298,9 +336,14 @@ async function verifyThreeCoinTransactionSemantics(page) {
 
   await page.reload({ waitUntil: "networkidle0" });
   await waitForText(page, "1 / 6 lines");
-  const restored = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "[]").length, storageKey);
+  const restored = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw);
+    return (Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? []).length;
+  }, storageKey);
   assert.equal(restored, 1, "reload during Motion F must restore the already-committed Three-Coin line");
-  await clickButton(page, "New reading");
+  await clickButton(page, "Restart casting");
   await waitForText(page, "0 / 6 lines");
 }
 
@@ -351,8 +394,15 @@ async function finishThreeCoin(page) {
 
   await clickButton(page, "Start a New Reading");
   await page.waitForFunction(() => location.pathname === "/" && location.hash === "#three-coin-reading", { timeout: 15_000 });
+  await skipOptionalQuestion(page);
   await waitForText(page, "0 / 6 lines");
-  assert.equal(await page.evaluate((key) => sessionStorage.getItem(key), storageKey), null, "Explicit Start a New Reading must clear Three-Coin storage");
+  const resetSteps = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? null;
+  }, storageKey);
+  assert.equal(resetSteps, null, "Explicit Start a New Reading must clear sealed Three-Coin line data");
 }
 
 async function finishYarrow(page, verifyResume) {
@@ -373,6 +423,7 @@ async function finishYarrow(page, verifyResume) {
   }
   await assertBasicResult(page);
   await clickButton(page, "New reading");
+  await skipOptionalQuestion(page);
   await waitForText(page, "0 / 18 changes");
 }
 
@@ -380,16 +431,13 @@ async function finishMeiHua(page) {
   await page.waitForSelector("#mei-hua-timezone");
   const labelExists = await page.evaluate(() => Boolean(document.querySelector('label[for="mei-hua-timezone"]')));
   assert(labelExists, "Mei Hua timezone input is missing its label");
-  await page.click("#mei-hua-timezone");
-  await page.keyboard.down("Control");
-  await page.keyboard.press("A");
-  await page.keyboard.up("Control");
-  await page.keyboard.type("Asia/Singapore");
+  await page.locator("#mei-hua-timezone").fill("Asia/Singapore");
   await clickButton(page, "Cast current time");
   await waitForText(page, "Recorded calculation");
   await waitForText(page, "quickiching-gregorian-current-time-v2");
   await assertBasicResult(page);
   await clickButton(page, "New reading");
+  await skipOptionalQuestion(page);
   await waitForText(page, "Cast current time");
 }
 
@@ -400,6 +448,7 @@ async function runPage(browser, { path, viewport, flow, label }) {
   const failures = attachFailureCollectors(page);
   try {
     await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await skipOptionalQuestion(page);
     await flow(page);
     await assertNoOverflow(page);
     assert.deepEqual(failures.consoleErrors, [], `${label}: console errors: ${failures.consoleErrors.join(" | ")}`);
@@ -412,8 +461,7 @@ async function runPage(browser, { path, viewport, flow, label }) {
 }
 
 async function verifyBrowserFlows() {
-  const executablePath = process.env.CHROME_PATH || await chromium.executablePath();
-  const usingSystemChrome = Boolean(process.env.CHROME_PATH);
+  const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
   log(`Launching Chromium at ${executablePath}${usingSystemChrome ? " (system runner)" : " (serverless fallback)"}`);
   const browser = await puppeteer.launch({
     args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],

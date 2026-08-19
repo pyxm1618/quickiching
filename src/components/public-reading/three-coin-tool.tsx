@@ -1,13 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
+import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
+import { useQuestionFirstContext } from "@/components/public-reading/question-first";
 import { generateThreeCoinLine, type CoinFace, type ThreeCoinStep } from "@/domain/casting/three-coin/algorithm";
+import { buildPublicReading } from "@/domain/public-reading/reading";
 import { browserRandomBit } from "@/lib/browser-random";
 import {
   clearThreeCoinReading,
+  readThreeCoinSession,
   readThreeCoinSteps,
+  restartThreeCoinReading,
   writeThreeCoinSteps,
 } from "@/lib/three-coin-session";
 
@@ -48,8 +52,12 @@ function CashCoin({ face, index }: { face: CoinFace; index: number }) {
   );
 }
 
-export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean }) {
+export function ThreeCoinTool({ compactIntro = false, question: questionProp, onNewReading: onNewReadingProp }: { compactIntro?: boolean; question?: string; onNewReading?: () => void }) {
+  const questionContext = useQuestionFirstContext();
+  const question = questionProp ?? questionContext?.question;
+  const onNewReading = onNewReadingProp ?? questionContext?.restartQuestion;
   const [steps, setSteps] = useState<ThreeCoinStep[]>([]);
+  const [readingMeta, setReadingMeta] = useState<{ id: string; createdAt: string } | null>(null);
   const [revealedCount, setRevealedCount] = useState(0);
   const [restored, setRestored] = useState(false);
   const [motion, setMotion] = useState<MotionState>("idle");
@@ -65,8 +73,11 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
 
   useEffect(() => {
     try {
-      const stored = readThreeCoinSteps();
+      const session = readThreeCoinSession();
+      const stored = session?.data?.steps ?? readThreeCoinSteps();
+      const migrated = stored.length > 0 ? writeThreeCoinSteps(stored) : session;
       setSteps(stored);
+      setReadingMeta(migrated ? { id: migrated.id, createdAt: migrated.createdAt } : null);
       setRevealedCount(stored.length);
       setStorageError(null);
     } catch (error: unknown) {
@@ -98,6 +109,16 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
       : complete
         ? "Reading complete"
         : "Press & hold to shake · release to cast";
+  const publicReading = useMemo(() => complete && readingMeta
+    ? buildPublicReading({
+        id: readingMeta.id,
+        createdAt: readingMeta.createdAt,
+        method: "three-coin",
+        question,
+        lineValuesBottomUp: lines,
+        evidence: { kind: "three-coin", steps },
+      })
+    : null, [complete, question, readingMeta, steps, lines]);
 
   function audio(): AudioContext | null {
     if (!soundOn || typeof window === "undefined") return null;
@@ -190,7 +211,8 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
 
   function persistCast(committedSteps: ThreeCoinStep[], next: ThreeCoinStep) {
     try {
-      writeThreeCoinSteps(committedSteps);
+      const session = writeThreeCoinSteps(committedSteps);
+      setReadingMeta({ id: session.id, createdAt: session.createdAt });
       beginVisualSettlement(committedSteps, next);
     } catch (error: unknown) {
       setPendingStep(null);
@@ -220,8 +242,10 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     }
 
     try {
-      const stored = readThreeCoinSteps();
+      const session = readThreeCoinSession();
+      const stored = session?.data?.steps ?? readThreeCoinSteps();
       setSteps(stored);
+      setReadingMeta(session ? { id: session.id, createdAt: session.createdAt } : null);
       setRevealedCount(stored.length);
       setStorageError(null);
     } catch (error: unknown) {
@@ -229,9 +253,10 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     }
   }
 
-  function reset() {
+  function reset(preserveQuestion = false) {
     try {
-      clearThreeCoinReading();
+      if (preserveQuestion) restartThreeCoinReading();
+      else clearThreeCoinReading();
     } catch (error: unknown) {
       setStorageError(storageErrorCode(error));
       return;
@@ -248,7 +273,13 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
     setStorageError(null);
     setMotion("idle");
     setRevealedCount(0);
+    setReadingMeta(null);
     setSteps([]);
+  }
+
+  function startNewReading() {
+    reset(false);
+    onNewReading?.();
   }
 
   function onPointerDown(event: PointerEvent<HTMLButtonElement>) {
@@ -351,13 +382,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
               <div className="mx-auto max-w-xl rounded-[1.4rem] border border-[rgba(232,198,122,0.24)] bg-[rgba(232,198,122,0.055)] px-5 py-6 text-center">
                 <p className="mystic-kicker">Six lines complete</p>
                 <h3 className="mt-2 font-display text-2xl font-normal text-[var(--gold-2)] sm:text-3xl">Your hexagram is formed</h3>
-                <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[var(--ink-2)]">The six sealed lines are ready. Open the full free reading without changing this cast.</p>
-                <Link
-                  href="/readings/three-coin/result"
-                  className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full border border-[rgba(232,198,122,0.46)] bg-[linear-gradient(135deg,rgba(232,198,122,0.18),rgba(137,233,227,0.07))] px-6 py-3 font-semibold text-[var(--gold-2)] transition hover:-translate-y-px hover:border-[rgba(232,198,122,0.72)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--cyan)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
-                >
-                  Reveal Your Reading
-                </Link>
+                <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[var(--ink-2)]">The six sealed lines are ready. Your facts are fixed; the question can still be edited above.</p>
               </div>
             </div>
           ) : (
@@ -404,7 +429,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
           <div className="cast-history">
             <div className="flex items-center justify-between gap-3">
               <p className="mystic-kicker">Completed tosses</p>
-              {!visuallyComplete ? <button type="button" onClick={reset} disabled={steps.length === 0 || busy} className="sound-toggle">New reading</button> : null}
+              {!visuallyComplete ? <button type="button" onClick={() => reset(true)} disabled={steps.length === 0 || busy} className="sound-toggle">Restart casting</button> : null}
             </div>
             {revealedSteps.length === 0 ? (
               <p className="mt-3 text-xs leading-6 text-[var(--ink-3)]">The first toss becomes line 1 at the bottom of the hexagram.</p>
@@ -421,6 +446,7 @@ export function ThreeCoinTool({ compactIntro = false }: { compactIntro?: boolean
           </div>
         </aside>
       </div>
+      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} /> : null}
     </section>
   );
 }

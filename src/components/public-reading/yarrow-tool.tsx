@@ -2,13 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
-import { ReadingResult } from "@/components/public-reading/reading-result";
-import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
-import { generateYarrowChange, type YarrowChange } from "@/domain/casting/yarrow/algorithm";
+import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
+import { useQuestionFirstContext } from "@/components/public-reading/question-first";
+import { generateYarrowChange, type YarrowChange, type YarrowLineResult } from "@/domain/casting/yarrow/algorithm";
 import type { LineValue } from "@/domain/casting/types";
+import { buildPublicReading } from "@/domain/public-reading/reading";
 import { browserRandomInt } from "@/lib/browser-random";
+import { clearPublicReadingSession, readPublicReadingSession, restartPublicReadingSession, writePublicReadingSession } from "@/lib/public-reading-session";
 
 const STORAGE_KEY = "quickiching:public-v1:yarrow-v2";
+type YarrowSessionData = { changes: YarrowChange[] };
 
 function isStoredChange(value: unknown): value is YarrowChange {
   if (!value || typeof value !== "object") return false;
@@ -16,18 +19,27 @@ function isStoredChange(value: unknown): value is YarrowChange {
   return Number.isInteger(change.lineIndex) && Number.isInteger(change.changeIndex) && Number.isInteger(change.startingStalks) && Number.isInteger(change.endingStalks);
 }
 
-function readStoredChanges(): YarrowChange[] {
+function parseStoredChanges(value: unknown): YarrowChange[] | null {
+  const parsed = Array.isArray(value)
+    ? value
+    : value && typeof value === "object" && Array.isArray((value as { changes?: unknown }).changes)
+      ? (value as { changes: unknown[] }).changes
+      : null;
+  if (!parsed || parsed.length > 18 || !parsed.every(isStoredChange)) return null;
+  for (let index = 0; index < parsed.length; index += 1) {
+    if (parsed[index].lineIndex !== Math.floor(index / 3) || parsed[index].changeIndex !== index % 3) return null;
+  }
+  return parsed;
+}
+
+function readYarrowSession() {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed) || parsed.length > 18 || !parsed.every(isStoredChange)) return [];
-    for (let index = 0; index < parsed.length; index += 1) {
-      if (parsed[index].lineIndex !== Math.floor(index / 3) || parsed[index].changeIndex !== index % 3) return [];
-    }
-    return parsed;
+    return readPublicReadingSession(STORAGE_KEY, (value): YarrowSessionData | null => {
+      const changes = parseStoredChanges(value);
+      return changes ? { changes } : null;
+    });
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -41,27 +53,61 @@ function completedLineValues(changes: YarrowChange[]): LineValue[] {
   return values;
 }
 
-export function YarrowTool() {
+export function YarrowTool({ question: questionProp, onNewReading: onNewReadingProp }: { question?: string; onNewReading?: () => void }) {
+  const questionContext = useQuestionFirstContext();
+  const question = questionProp ?? questionContext?.question;
+  const onNewReading = onNewReadingProp ?? questionContext?.restartQuestion;
   const [changes, setChanges] = useState<YarrowChange[]>([]);
-  const [restored, setRestored] = useState(false);
+  const [readingMeta, setReadingMeta] = useState<{ id: string; createdAt: string } | null>(null);
 
   useEffect(() => {
-    setChanges(readStoredChanges());
-    setRestored(true);
+    const session = readYarrowSession();
+    const stored = session?.data?.changes ?? [];
+    try {
+      const migrated = stored.length > 0 ? writePublicReadingSession(STORAGE_KEY, { changes: stored }) : session;
+      setReadingMeta(migrated ? { id: migrated.id, createdAt: migrated.createdAt } : null);
+    } catch {
+      setReadingMeta(session ? { id: session.id, createdAt: session.createdAt } : null);
+    }
+    setChanges(stored);
   }, []);
-
-  useEffect(() => {
-    if (!restored) return;
-    if (changes.length === 0) sessionStorage.removeItem(STORAGE_KEY);
-    else sessionStorage.setItem(STORAGE_KEY, JSON.stringify(changes));
-  }, [changes, restored]);
 
   const lines = useMemo(() => completedLineValues(changes), [changes]);
   const complete = changes.length === 18;
-  const result = complete ? buildHexagramResult({ lineValuesBottomUp: lines, method: "yarrow_stalk" }) : null;
+  const yarrowLines = useMemo<YarrowLineResult[]>(() => Array.from({ length: Math.floor(changes.length / 3) }, (_, index) => {
+    const lineChanges = changes.slice(index * 3, index * 3 + 3);
+    const finalChange = lineChanges[2];
+    if (!finalChange) throw new Error("YARROW_INCOMPLETE_LINE");
+    return {
+      lineIndex: index as 0 | 1 | 2 | 3 | 4 | 5,
+      lineValue: (finalChange.endingStalks / 4) as LineValue,
+      changes: lineChanges,
+      algorithmVersion: finalChange.algorithmVersion,
+    };
+  }), [changes]);
+  const publicReading = useMemo(() => complete && readingMeta
+    ? buildPublicReading({
+        id: readingMeta.id,
+        createdAt: readingMeta.createdAt,
+        method: "yarrow-stalks",
+        question,
+        lineValuesBottomUp: lines,
+        evidence: { kind: "yarrow-stalks", lines: yarrowLines },
+      })
+    : null, [complete, question, readingMeta, yarrowLines, lines]);
   const latest = changes.at(-1);
   const currentLine = complete ? 6 : Math.floor(changes.length / 3) + 1;
   const currentChange = complete ? 3 : (changes.length % 3) + 1;
+
+  function commitChanges(next: YarrowChange[]) {
+    try {
+      const session = writePublicReadingSession(STORAGE_KEY, { changes: next });
+      setReadingMeta({ id: session.id, createdAt: session.createdAt });
+    } catch {
+      // The cast stays visible in memory; a later refresh can only resume a durable session.
+    }
+    setChanges(next);
+  }
 
   function performChange() {
     if (complete) return;
@@ -69,12 +115,23 @@ export function YarrowTool() {
     const changeIndex = (changes.length % 3) as 0 | 1 | 2;
     const startingStalks = changeIndex === 0 ? 49 : changes[changes.length - 1].endingStalks;
     const next = generateYarrowChange(lineIndex, changeIndex, startingStalks, browserRandomInt);
-    setChanges((current) => [...current, next]);
+    commitChanges([...changes, next]);
   }
 
-  function reset() {
+  function reset(preserveQuestion = false) {
+    try {
+      if (preserveQuestion) restartPublicReadingSession(STORAGE_KEY);
+      else clearPublicReadingSession(STORAGE_KEY);
+    } catch {
+      // The in-memory reset still gives the user a clean new reading.
+    }
+    setReadingMeta(null);
     setChanges([]);
-    sessionStorage.removeItem(STORAGE_KEY);
+  }
+
+  function startNewReading() {
+    reset(false);
+    onNewReading?.();
   }
 
   return (
@@ -120,10 +177,10 @@ export function YarrowTool() {
         <button type="button" onClick={performChange} disabled={complete} className="mystic-button">
           {complete ? "Reading complete" : `Perform change ${changes.length + 1}`}
         </button>
-        <button type="button" onClick={reset} disabled={changes.length === 0} className="mystic-button-secondary">New reading</button>
+        <button type="button" onClick={() => reset(true)} disabled={changes.length === 0 || complete} className="mystic-button-secondary">Restart casting</button>
       </div>
 
-      {result ? <ReadingResult result={result} /> : null}
+      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} /> : null}
     </section>
   );
 }

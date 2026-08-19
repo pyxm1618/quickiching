@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ReadingResult } from "@/components/public-reading/reading-result";
-import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
+import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
+import { useQuestionFirstContext } from "@/components/public-reading/question-first";
 import { MEI_HUA_CONVENTION_ID, meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
+import { buildPublicReading } from "@/domain/public-reading/reading";
+import { clearPublicReadingSession, readPublicReadingSession, writePublicReadingSession } from "@/lib/public-reading-session";
 
 const STORAGE_KEY = "quickiching:public-v1:mei-hua-v2";
 
 type StoredCast = { utcMillis: number; ianaTimeZone: string };
+type MeiHuaSessionData = { cast: StoredCast };
 
 function validTimeZone(value: string): boolean {
   try {
@@ -22,29 +25,50 @@ function detectedTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 }
 
-function readStoredCast(): StoredCast | null {
+function parseStoredCast(value: unknown): StoredCast | null {
+  const candidate = value && typeof value === "object" && "cast" in value
+    ? (value as { cast?: unknown }).cast
+    : value;
+  if (!candidate || typeof candidate !== "object") return null;
+  const parsed = candidate as Partial<StoredCast>;
+  if (!Number.isFinite(parsed.utcMillis) || typeof parsed.ianaTimeZone !== "string" || !validTimeZone(parsed.ianaTimeZone)) return null;
+  return { utcMillis: Number(parsed.utcMillis), ianaTimeZone: parsed.ianaTimeZone };
+}
+
+function readMeiHuaSession() {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as StoredCast;
-    if (!Number.isFinite(parsed.utcMillis) || !validTimeZone(parsed.ianaTimeZone)) return null;
-    return parsed;
+    return readPublicReadingSession(STORAGE_KEY, (value): MeiHuaSessionData | null => {
+      const cast = parseStoredCast(value);
+      return cast ? { cast } : null;
+    });
   } catch {
     return null;
   }
 }
 
-export function MeiHuaTool() {
+export function MeiHuaTool({ question: questionProp, onNewReading: onNewReadingProp }: { question?: string; onNewReading?: () => void }) {
+  const questionContext = useQuestionFirstContext();
+  const question = questionProp ?? questionContext?.question;
+  const onNewReading = onNewReadingProp ?? questionContext?.restartQuestion;
   const [timeZone, setTimeZone] = useState("UTC");
   const [cast, setCast] = useState<StoredCast | null>(null);
+  const [readingMeta, setReadingMeta] = useState<{ id: string; createdAt: string } | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const stored = readStoredCast();
+    const session = readMeiHuaSession();
+    const stored = session?.data?.cast ?? null;
     if (stored) {
       setCast(stored);
+      try {
+        const migrated = writePublicReadingSession(STORAGE_KEY, { cast: stored });
+        setReadingMeta({ id: migrated.id, createdAt: migrated.createdAt });
+      } catch {
+        setReadingMeta(session ? { id: session.id, createdAt: session.createdAt } : null);
+      }
       setTimeZone(stored.ianaTimeZone);
     } else {
+      setReadingMeta(session ? { id: session.id, createdAt: session.createdAt } : null);
       setTimeZone(detectedTimeZone());
     }
   }, []);
@@ -54,13 +78,17 @@ export function MeiHuaTool() {
     return meiHuaFromUtc(cast.utcMillis, cast.ianaTimeZone);
   }, [cast]);
 
-  const result = meiHua
-    ? buildHexagramResult({
+  const publicReading = useMemo(() => meiHua && readingMeta
+    ? buildPublicReading({
+        id: readingMeta.id,
+        createdAt: readingMeta.createdAt,
+        method: "mei-hua-yi-shu",
+        methodVersion: meiHua.algorithmVersion,
+        question,
         lineValuesBottomUp: meiHua.lineValuesBottomUp,
-        method: "mei_hua_current_time",
-        algorithmVersion: meiHua.algorithmVersion,
+        evidence: { kind: "mei-hua-yi-shu", calculation: meiHua },
       })
-    : null;
+    : null, [meiHua, question, readingMeta]);
 
   function castCurrentTime() {
     const zone = timeZone.trim();
@@ -69,16 +97,23 @@ export function MeiHuaTool() {
       return;
     }
     const next = { utcMillis: Date.now(), ianaTimeZone: zone };
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    const session = writePublicReadingSession(STORAGE_KEY, { cast: next });
+    setReadingMeta({ id: session.id, createdAt: session.createdAt });
     setError("");
     setCast(next);
   }
 
   function reset() {
-    sessionStorage.removeItem(STORAGE_KEY);
+    try {
+      clearPublicReadingSession(STORAGE_KEY);
+    } catch {
+      // The in-memory reset still gives the user a clean new reading.
+    }
+    setReadingMeta(null);
     setCast(null);
     setError("");
     setTimeZone(detectedTimeZone());
+    onNewReading?.();
   }
 
   const calculation = meiHua?.methodCalculation;
@@ -131,7 +166,7 @@ export function MeiHuaTool() {
         </div>
       ) : null}
 
-      {result ? <ReadingResult result={result} /> : null}
+      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={reset} /> : null}
     </section>
   );
 }
