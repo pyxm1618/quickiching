@@ -2,20 +2,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { QuestionFirst } from "@/components/public-reading/question-first";
 import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
-import { HOME_DESCRIPTION, HOME_H1, HOME_TITLE, SITE_ORIGIN } from "@/lib/seo";
+import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
+import { HOME_DESCRIPTION, HOME_H1, HOME_TITLE } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: { absolute: HOME_TITLE },
   description: HOME_DESCRIPTION,
-  alternates: { canonical: `${SITE_ORIGIN}/` },
-  openGraph: { title: HOME_TITLE, description: HOME_DESCRIPTION, url: SITE_ORIGIN, type: "website" },
+  alternates: { canonical: canonicalUrl("/"), languages: alternateLanguages("homepage") },
+  openGraph: { title: HOME_TITLE, description: HOME_DESCRIPTION, url: canonicalUrl("/"), type: "website" },
 };
 
 const WEBSITE_STRUCTURED_DATA = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: "Quick I Ching",
-  url: `${SITE_ORIGIN}/`,
+  url: canonicalUrl("/"),
 };
 
 const FAQ = [

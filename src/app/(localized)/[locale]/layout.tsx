@@ -46,9 +46,9 @@ export default async function LocalizedRootLayout({
   return (
     <html lang="zh-Hans" style={systemFontVariables}>
       <body className="flex min-h-screen flex-col">
-        <SiteHeader />
+        <SiteHeader locale="zh-Hans" />
         <main className="flex-1">{children}</main>
-        <SiteFooter />
+        <SiteFooter locale="zh-Hans" />
         <SiteAnalytics />
       </body>
     </html>

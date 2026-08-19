@@ -2,21 +2,24 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { QuestionFirst } from "@/components/public-reading/question-first";
 import { MeiHuaTool } from "@/components/public-reading/mei-hua-tool";
+import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
+import { EN_MEI_HUA_CONTENT } from "@/content/mei-hua-yi-shu/en";
 
+const CONTENT = EN_MEI_HUA_CONTENT;
 export const metadata: Metadata = {
-  title: "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting",
-  description: "Use Mei Hua Yi Shu online with Quick I Ching's documented current-time convention. See the trigrams, changing line, hexagrams, and a free basic interpretation.",
-  alternates: { canonical: "/methods/mei-hua-yi-shu" },
-  openGraph: { title: "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting", description: "Cast a Plum Blossom I Ching hexagram from the current time using a documented convention.", url: "/methods/mei-hua-yi-shu", type: "website" },
+  title: CONTENT.metadata.title,
+  description: CONTENT.metadata.description,
+  alternates: { canonical: canonicalUrl("/methods/mei-hua-yi-shu"), languages: alternateLanguages("mei-hua-yi-shu") },
+  openGraph: { title: CONTENT.metadata.title, description: "Cast a Plum Blossom I Ching hexagram from the current time using a documented convention.", url: canonicalUrl("/methods/mei-hua-yi-shu"), type: "website" },
 };
 
 export default function MeiHuaPage() {
   return (
     <article>
       <header className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Plum Blossom Divination · Current Time</p>
-        <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">Mei Hua Yi Shu — Current-Time Casting</h1>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">Mei Hua Yi Shu includes multiple ways to form a hexagram from observed numbers and circumstances. Quick I Ching implements one current-time convention and states its calendar choices explicitly rather than presenting them as the only traditional rule.</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">{CONTENT.eyebrow}</p>
+        <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{CONTENT.h1}</h1>
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">{CONTENT.introduction}</p>
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-12"><QuestionFirst storageKey="quickiching:public-v1:mei-hua-v2" legacyStorageKeys={["quickiching:question:mei-hua-yi-shu"]}><MeiHuaTool /></QuestionFirst></section>

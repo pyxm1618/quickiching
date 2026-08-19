@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
-import { absoluteUrl, INDEXABLE_PATHS } from "@/lib/seo";
+import { sitemapUrlInventory } from "@/i18n/helpers";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return INDEXABLE_PATHS.map((path) => ({ url: absoluteUrl(path) }));
+  return sitemapUrlInventory().map((url) => ({ url }));
 }

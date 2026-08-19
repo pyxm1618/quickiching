@@ -38,6 +38,8 @@ const INDEXABLE_PATHS = [
   "/hexagrams",
   ...HEXAGRAM_PATHS,
 ];
+const CHINESE_INDEXABLE_PATHS = ["/zh", "/zh/methods/mei-hua-yi-shu"];
+const SITEMAP_PATHS = [...INDEXABLE_PATHS, ...CHINESE_INDEXABLE_PATHS];
 
 function log(message) {
   console.log(`[Browser Gate] ${message}`);
@@ -137,9 +139,9 @@ async function verifyHttpAndSeo() {
   const sitemap = await expectStatus("/sitemap.xml", 200);
   const sitemapXml = await sitemap.text();
   const locs = [...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]).sort();
-  const expectedLocs = INDEXABLE_PATHS.map((path) => new URL(path, "https://www.quickiching.com").toString()).sort();
-  assert.deepEqual(locs, expectedLocs, "Sitemap must contain exactly the 73 canonical Public V1 pages");
-  for (const forbidden of ["/pricing", "/signin", "/three-coin-method", "/checkout", "/readings/three-coin/result", "vercel.app"]) {
+  const expectedLocs = SITEMAP_PATHS.map((path) => new URL(path, "https://www.quickiching.com").toString()).sort();
+  assert.deepEqual(locs, expectedLocs, "Sitemap must contain exactly the 73 English and 2 Chinese canonical Public V1 pages");
+  for (const forbidden of ["/pricing", "/signin", "/three-coin-method", "/checkout", "/readings/three-coin/result", "/en", "vercel.app"]) {
     assert(!sitemapXml.includes(forbidden), `Sitemap contains forbidden entry: ${forbidden}`);
   }
 
@@ -192,7 +194,7 @@ async function verifyHttpAndSeo() {
   assert.equal(alias.status, 308, "Vercel alias must permanently redirect");
   assert.equal(alias.headers.location, "https://www.quickiching.com/hexagrams?source=gate", "Vercel-alias redirect must preserve path/query");
 
-  const crawlPages = [...INDEXABLE_PATHS, ...noindexPaths];
+  const crawlPages = [...SITEMAP_PATHS, ...noindexPaths];
   const discovered = new Set();
   for (const path of crawlPages) {
     const response = await expectStatus(path, 200);

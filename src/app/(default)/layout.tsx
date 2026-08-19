@@ -31,9 +31,9 @@ export default function DefaultRootLayout({ children }: { children: React.ReactN
   return (
     <html lang="en" style={systemFontVariables}>
       <body className="flex min-h-screen flex-col">
-        <SiteHeader />
+        <SiteHeader locale="en" />
         <main className="flex-1">{children}</main>
-        <SiteFooter />
+        <SiteFooter locale="en" />
         <SiteAnalytics />
       </body>
     </html>
