@@ -141,7 +141,7 @@
 - `sitemap()` maps registry inventory and contains exactly 75 URLs: the stable 73 English URLs plus `/zh` and `/zh/methods/mei-hua-yi-shu`.
 
 - [ ] **Step 1: Add failing metadata/sitemap/redirect tests** for exact URL sets, absolute canonical output, alternates, no `/en`, no nonexistent `/zh` entries, and no trailing slash except root.
-- [ ] **Step 2: Run focused tests and confirm the current metadata/sitemap behavior fails the new requirements.
+- [ ] **Step 2: Run focused tests and confirm the current metadata/sitemap behavior fails the new requirements.**
 - [ ] **Step 3: Wire route registry helpers into metadata/sitemap/robots and normalize only in-scope trailing-slash links; add the permanent `/en` redirect rules.
 - [ ] **Step 4: Run full unit tests and inspect rendered metadata in a production server.
 - [ ] **Step 5: Commit SEO integration with `git add src/app src/i18n src/lib/seo.ts next.config.mjs src/middleware.ts && git commit -m "feat: integrate multilingual SEO routes"`.
@@ -158,7 +158,7 @@
 - Browser gate uses `PUBLIC_V1_TEST_BASE_URL` and the existing Chrome resolution convention, emits text only, and verifies status/headers/source HTML/flow text at desktop, iPhone-width, and Android-width viewports.
 
 - [ ] **Step 1: Write the browser/regression assertions** for English `lang`, Chinese `lang`, no Accept-Language redirect, metadata source HTML, `/en` redirects, unsupported 404s, Chinese question→cast→primary/moving/relating result, stable result fingerprint across language targets, all existing English method routes, sitemap, and robots.
-- [ ] **Step 2: Run the new gate against the current implementation and confirm failures identify missing V1 behavior.
+- [ ] **Step 2: Run the new gate against the current implementation and confirm failures identify missing V1 behavior.**
 - [ ] **Step 3: Fix only failures caused by this V1 change; preserve public reading algorithm inputs/outputs and existing private/API route closure.
 - [ ] **Step 4: Run lint, typecheck, all unit tests, a clean production build, the multilingual browser gate, relevant existing browser gates, and Lighthouse/bundle gates.
 - [ ] **Step 5: Review `git diff`, verify only intended files are staged/committed, and record any pre-existing build/performance blocker separately from V1 findings.
