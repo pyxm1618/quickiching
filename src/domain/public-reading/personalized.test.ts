@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET, POST } from "@/app/api/personalized-interpretation/route";
 import {
   PERSONALIZED_REQUEST_SCHEMA_VERSION,
@@ -81,6 +81,24 @@ function gatewayResponse(
     }],
   }), { status: 200, headers: { "content-type": "application/json" } });
 }
+
+beforeEach(() => {
+  for (const name of [
+    "VERCEL",
+    "PERSONALIZED_INTERPRETATION_ENABLED",
+    "AI_ADAPTER_MODE",
+    "AI_GATEWAY_API_KEY",
+    "AI_GATEWAY_BASE_URL",
+    "AI_MODEL_DEEP_READING",
+    "VERCEL_OIDC_TOKEN",
+    "TURNSTILE_SECRET_KEY",
+    "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+    "TURNSTILE_ALLOWED_HOSTNAMES",
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN",
+  ]) vi.stubEnv(name, "");
+  vi.stubEnv("NODE_ENV", "test");
+});
 
 afterEach(() => {
   vi.unstubAllEnvs();
