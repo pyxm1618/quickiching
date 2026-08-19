@@ -23,7 +23,14 @@ function run(command, args, options = {}) {
 }
 
 function findSystemChrome() {
-  for (const command of ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]) {
+  for (const command of [
+    "google-chrome",
+    "google-chrome-stable",
+    "chromium",
+    "chromium-browser",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+  ]) {
     const result = spawnSync("which", [command], { encoding: "utf8" });
     const path = result.status === 0 ? result.stdout.trim() : "";
     if (path) return path;

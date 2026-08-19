@@ -380,11 +380,7 @@ async function finishMeiHua(page) {
   await page.waitForSelector("#mei-hua-timezone");
   const labelExists = await page.evaluate(() => Boolean(document.querySelector('label[for="mei-hua-timezone"]')));
   assert(labelExists, "Mei Hua timezone input is missing its label");
-  await page.click("#mei-hua-timezone");
-  await page.keyboard.down("Control");
-  await page.keyboard.press("A");
-  await page.keyboard.up("Control");
-  await page.keyboard.type("Asia/Singapore");
+  await page.locator("#mei-hua-timezone").fill("Asia/Singapore");
   await clickButton(page, "Cast current time");
   await waitForText(page, "Recorded calculation");
   await waitForText(page, "quickiching-gregorian-current-time-v2");
