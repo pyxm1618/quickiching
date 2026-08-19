@@ -1,6 +1,6 @@
 # Public SEO V1 provenance
 
-Updated: 2026-08-10
+Updated: 2026-08-19
 
 This file records the rules and content provenance used by the credential-free Public SEO V1. It is intentionally narrower than the future Commercial V2 design.
 
@@ -12,7 +12,7 @@ No `Math.random()` production path is used.
 
 ## King Wen mapping and line orientation
 
-`src/domain/casting/hexagrams/king-wen.ts` is the single 64-hexagram mapping used by all three methods. `src/domain/casting/hexagrams/compute.ts` converts six bottom-up yin/yang line states into the primary King Wen number, identifies moving positions, flips only those positions, and derives the relating number.
+`src/domain/casting/hexagrams/king-wen.ts` is the single 64-hexagram mapping used by all four public methods. `src/domain/casting/hexagrams/compute.ts` converts six bottom-up yin/yang line states into the primary King Wen number, identifies moving positions, flips only those positions, and derives the relating number. Manual Cast supplies deterministic line values to the same engine; it never samples randomness.
 
 The bit convention is deliberately explicit because reversing a trigram silently produces valid-looking but wrong King Wen numbers:
 
@@ -54,7 +54,7 @@ The resulting line probabilities are exactly:
 
 The implementation consumes one unbiased integer sample per change from a sample space divisible by the reachable conditional split counts. The same draw determines both the target removal class and a valid split inside that class, avoiding a hidden modulo bias while preserving the existing replay/idempotency expectation that one random integer is consumed per change.
 
-The implementation records conservation data for every change and Public V1 persists unfinished progress only in browser `sessionStorage`.
+The implementation records conservation data for every change and Public V1 persists unfinished progress only in browser `sessionStorage`. Completed readings are saved only after an explicit user action into browser `localStorage`, capped at 50 records; there is no database, account, cloud history, or `/readings/[local-id]` route.
 
 ## Mei Hua Yi Shu — Current-Time Casting
 
@@ -101,7 +101,11 @@ Public V1 free output includes:
 - a structural explanation of change;
 - a reflection / non-deterministic / non-professional-advice boundary.
 
-Future Commercial V2 personalized AI deep reading is a separate product boundary and is not enabled by Public V1.
+The optional personalized interpreter is a separate, explicit-click boundary. It receives only verified reading facts plus the normalized question, is schema-validated and risk-checked, and is production fail-closed until the feature flag, AI Gateway credentials/model, Turnstile configuration, Upstash distributed rate limit, and provider controls are all present. Request cancellation propagates to provider work. Static interpretation remains complete without it.
+
+## Classical hexagram source records
+
+`src/domain/public-reading/classical.ts` stores one record for each of the 64 hexagrams, including the classical Chinese Judgment and Image text, fixed entity slug, source URLs, six stable line positions, and attribution metadata. The Judgment/Image source record is documented in `docs/PUBLIC_READING_CLASSICAL_PROVENANCE.md`; the public entity pages link to Wikisource and do not claim AI-generated classical text.
 
 ## Search-engine implementation references
 

@@ -8,13 +8,15 @@ const THREE_COIN_RESULT_PATH = "/readings/three-coin/result";
 describe("Public SEO V1 constants", () => {
   it("locks the approved homepage title, description, H1 and canonical host", () => {
     expect(HOME_TITLE).toBe("I Ching Online — Free Hexagram Reading | Quick I Ching");
-    expect(HOME_DESCRIPTION).toBe("Use the I Ching online with three coins, yarrow stalks, or Mei Hua Yi Shu. Cast your hexagram, see changing lines, and get a free basic interpretation.");
+    expect(HOME_DESCRIPTION).toBe("Use the I Ching online with Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, or Manual Cast. See changing lines and get a free grounded interpretation.");
     expect(HOME_H1).toBe("I Ching Online — Cast Your Hexagram");
     expect(SITE_ORIGIN).toBe("https://www.quickiching.com");
   });
 
   it("keeps the sitemap limited to canonical indexable URLs", () => {
     const entries = sitemap();
+    expect(INDEXABLE_PATHS).toHaveLength(73);
+    expect(new Set(INDEXABLE_PATHS).size).toBe(73);
     expect(entries.map((entry) => entry.url)).toEqual(INDEXABLE_PATHS.map(absoluteUrl));
     expect(entries.every((entry) => entry.url.startsWith(`${SITE_ORIGIN}/`))).toBe(true);
     for (const path of INDEXABLE_PATHS) expect(isPrivateOrCommercialPath(path)).toBe(false);
@@ -32,6 +34,8 @@ describe("Public SEO V1 constants", () => {
     expect(policy.host).toBe("www.quickiching.com");
     expect(JSON.stringify(policy.rules)).not.toContain("/privacy");
     expect(JSON.stringify(policy.rules)).not.toContain("/terms");
+    expect(JSON.stringify(policy.rules)).not.toContain("/history/");
+    expect(JSON.stringify(policy.rules)).not.toContain("/readings/");
     expect(JSON.stringify(policy.rules)).toContain("/api/");
   });
 

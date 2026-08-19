@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { QuestionFirst } from "@/components/public-reading/question-first";
 import { MeiHuaTool } from "@/components/public-reading/mei-hua-tool";
 
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ export default function MeiHuaPage() {
         <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">Mei Hua Yi Shu includes multiple ways to form a hexagram from observed numbers and circumstances. Quick I Ching implements one current-time convention and states its calendar choices explicitly rather than presenting them as the only traditional rule.</p>
       </header>
 
-      <section className="mx-auto max-w-6xl px-4 pb-12"><MeiHuaTool /></section>
+      <section className="mx-auto max-w-6xl px-4 pb-12"><QuestionFirst storageKey="quickiching:public-v1:mei-hua-v2" legacyStorageKeys={["quickiching:question:mei-hua-yi-shu"]}><MeiHuaTool /></QuestionFirst></section>
 
       <section className="mx-auto grid max-w-5xl gap-8 px-4 py-12 md:grid-cols-2">
         <div><h2 className="font-display text-2xl font-medium">Classical arithmetic behind the convention</h2><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">The current-time rule uses a 1–12 year number, month and day for the upper trigram; adding the 1–12 hour branch gives the lower trigram and moving line. Division remainders map to the eight trigrams and six line positions.</p><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching preserves that arithmetic while making a specific civil-calendar choice for an international web tool.</p></div>

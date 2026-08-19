@@ -15,6 +15,8 @@ export function SiteHeader() {
           <Link href="/#three-coin-reading" className={NAV_LINK}>Read online</Link>
           <Link href="/methods/yarrow-stalks" className={NAV_LINK}>Yarrow</Link>
           <Link href="/methods/mei-hua-yi-shu" className={NAV_LINK}>Mei Hua</Link>
+          <Link href="/methods/manual-cast" className={NAV_LINK}>Manual</Link>
+          <Link href="/history" className={NAV_LINK}>History</Link>
           <Link href="/hexagrams" className={NAV_LINK}>Hexagrams</Link>
           <Link href="/guides/how-to-ask-the-i-ching" className={NAV_LINK}>Guides</Link>
         </nav>

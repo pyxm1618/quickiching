@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
@@ -88,7 +89,7 @@ async function verifySeoAnd404() {
 }
 
 async function waitForText(page, text, timeout = 15_000) {
-  await page.waitForFunction((value) => document.body?.innerText.includes(value), { timeout }, text);
+  await page.waitForFunction((value) => document.body?.innerText.toLocaleLowerCase().includes(value.toLocaleLowerCase()), { timeout }, text);
 }
 
 async function clickButton(page, label) {
@@ -111,11 +112,13 @@ async function seedCompletedReading(page) {
     steps: FIXTURE_STEPS,
   });
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await clickButton(page, "Skip for now");
+  await waitForText(page, "Ask · editable before the result");
   await waitForText(page, "6 / 6 lines");
 
   const completedState = await page.evaluate(() => ({
     anchorCount: document.querySelectorAll("#three-coin-reading").length,
-    sidebarResetCount: [...document.querySelectorAll("button")].filter((node) => node.textContent?.trim() === "New reading").length,
+    sidebarResetCount: [...document.querySelectorAll(".ritual-sidebar button")].filter((node) => node.textContent?.trim() === "New reading").length,
     hasReveal: [...document.querySelectorAll("a")].some((node) => node.textContent?.trim() === "Reveal Your Reading"),
   }));
   assert.equal(completedState.anchorCount, 1, "Homepage must contain exactly one #three-coin-reading anchor");
@@ -165,6 +168,8 @@ async function verifyStorageReadFailure(browser) {
   }, STORAGE_KEY);
   try {
     await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await clickButton(page, "Skip for now");
+  await waitForText(page, "Ask · editable before the result");
     await waitForText(page, "THREE_COIN_SESSION_READ_FAILED");
     const state = await page.evaluate(() => ({
       anchorCount: document.querySelectorAll("#three-coin-reading").length,
@@ -196,6 +201,8 @@ async function verifyStorageWriteFailureRetry(browser) {
   }, STORAGE_KEY);
   try {
     await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await clickButton(page, "Skip for now");
+  await waitForText(page, "Ask · editable before the result");
     await waitForText(page, "0 / 6 lines");
     await clickButton(page, "Toss three coins");
     await waitForText(page, "THREE_COIN_SESSION_WRITE_FAILED");
@@ -204,22 +211,30 @@ async function verifyStorageWriteFailureRetry(browser) {
     const failedState = await page.evaluate((key) => {
       const errorBox = document.querySelector("[data-three-coin-storage-error]");
       const match = errorBox?.textContent?.match(/Line 1 was cast as ([6789])/);
+      const raw = sessionStorage.getItem(key);
+      const parsed = raw ? JSON.parse(raw) : null;
       return {
         castValue: match ? Number(match[1]) : null,
         progress: document.body?.innerText.includes("0 / 6 lines"),
-        stored: sessionStorage.getItem(key),
+        storedSteps: Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? null,
         revealCount: [...document.querySelectorAll("a")].filter((node) => node.textContent?.trim() === "Reveal Your Reading").length,
       };
     }, STORAGE_KEY);
     assert([6, 7, 8, 9].includes(failedState.castValue), "Failed write state must retain the authoritative cast value in memory");
     assert(failedState.progress, "Failed write must not visually advance sealed progress");
-    assert.equal(failedState.stored, null, "Failed write must not manufacture persisted session data");
+    assert.equal(failedState.storedSteps, null, "Failed write must not manufacture persisted line data");
     assert.equal(failedState.revealCount, 0, "Failed write must not expose Reveal Your Reading");
 
     await page.evaluate(() => window.__restoreThreeCoinSetItem());
     await clickButton(page, "Retry saving this cast");
     await waitForText(page, "1 / 6 lines");
-    const storedValue = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "[]")[0]?.lineValue ?? null, STORAGE_KEY);
+    const storedValue = await page.evaluate((key) => {
+      const raw = sessionStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const steps = Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? [];
+      return steps[0]?.lineValue ?? null;
+    }, STORAGE_KEY);
     assert.equal(storedValue, failedState.castValue, "Retry must persist the same cast value rather than rerolling the line");
     log("sessionStorage setItem fail-fast + same-cast retry PASS");
   } finally {
@@ -315,9 +330,15 @@ async function verifyExplicitReset(browser) {
     await waitForText(page, "Start a New Reading");
     await clickButton(page, "Start a New Reading");
     await page.waitForFunction(() => location.pathname === "/" && location.hash === "#three-coin-reading", { timeout: 15_000 });
+    await clickButton(page, "Skip for now");
     await waitForText(page, "0 / 6 lines");
-    const stored = await page.evaluate((key) => sessionStorage.getItem(key), STORAGE_KEY);
-    assert.equal(stored, null, "Start a New Reading must clear the sealed Three-Coin session");
+    const storedSteps = await page.evaluate((key) => {
+      const raw = sessionStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? null;
+    }, STORAGE_KEY);
+    assert.equal(storedSteps, null, "Start a New Reading must clear the sealed Three-Coin line data");
     log("Explicit reset PASS");
   } finally {
     await context.close();
@@ -325,9 +346,9 @@ async function verifyExplicitReset(browser) {
 }
 
 await verifySeoAnd404();
-const executablePath = process.env.CHROME_PATH || await chromium.executablePath();
+const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
 const browser = await puppeteer.launch({
-  args: process.env.CHROME_PATH ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
+  args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
   executablePath,
   headless: true,
 });

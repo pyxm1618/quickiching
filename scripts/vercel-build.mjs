@@ -107,9 +107,11 @@ run("bun", ["run", "build"]);
 const manifestHash = await fileHash("package.json");
 const lockHash = await fileHash("bun.lock");
 log("Installing ephemeral browser audit tooling without changing package.json or bun.lock");
+const browserAuditCacheDir = process.env.BUN_AUDIT_CACHE_DIR || "/tmp/quickiching-bun-cache";
 run("bun", [
   "install",
   "--no-save",
+  `--cache-dir=${browserAuditCacheDir}`,
   "puppeteer-core@25.1.0",
   "@sparticuz/chromium@149.0.0",
   "lighthouse@13.4.1",
@@ -149,6 +151,7 @@ try {
   run("node", ["scripts/browser-gate.mjs"], { env: browserEnv });
   run("node", ["scripts/on-page-seo-browser-gate.mjs"], { env: browserEnv });
   run("node", ["scripts/three-coin-v2-browser-gate.mjs"], { env: browserEnv });
+  run("node", ["scripts/public-p0-browser-gate.mjs"], { env: browserEnv });
   run("node", ["scripts/interpretation-bundle-gate.mjs"], { env: browserEnv });
   run("node", ["scripts/logo-browser-gate.mjs"], { env: browserEnv });
 
@@ -167,7 +170,11 @@ try {
 
   log("Running populated Three-Coin result Lighthouse with preserved sessionStorage");
   run("node", ["scripts/result-lighthouse-gate.mjs"], { env: browserEnv });
-  log("ALL PUBLIC SEO V1 + THREE-COIN FREE READING V2 + ON-PAGE SEO QUALITY / BUILD / BROWSER / BUNDLE / LIGHTHOUSE GATES PASS");
+  log("Running Public P0 before/after Lighthouse coverage for home, Three-Coin, populated unified result, hub, detail, and History");
+  run("node", ["scripts/public-p0-lighthouse-gate.mjs"], {
+    env: { ...browserEnv, PUBLIC_V1_LIGHTHOUSE_BASELINE_URL: process.env.PUBLIC_V1_LIGHTHOUSE_BASELINE_URL || "https://www.quickiching.com" },
+  });
+  log("ALL PUBLIC SEO V1 + PUBLIC READING P0 + THREE-COIN FREE READING V2 + ON-PAGE SEO QUALITY / BUILD / BROWSER / BUNDLE / LIGHTHOUSE GATES PASS");
 } finally {
   server.kill("SIGTERM");
 }

@@ -2,5 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "bun install --frozen-lockfile",
-  "buildCommand": "node scripts/vercel-build.mjs"
+  "buildCommand": "node scripts/vercel-build.mjs",
+  "functions": {
+    "src/app/api/personalized-interpretation/route.ts": {
+      "supportsCancellation": true
+    }
+  }
 }

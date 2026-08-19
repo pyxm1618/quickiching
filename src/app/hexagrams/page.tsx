@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { KING_WEN_HEXAGRAMS } from "@/domain/casting/hexagrams/king-wen";
 import { getBasicInterpretation } from "@/domain/interpretation/basic";
+import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
 
 export const metadata: Metadata = {
   title: "64 I Ching Hexagrams — King Wen Sequence Guide",
@@ -18,14 +18,15 @@ export default function HexagramsHubPage() {
       <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">This hub lists the 64 hexagrams in the King Wen sequence. The short English theme summaries are original Quick I Ching prose for basic orientation, kept together so you can compare the sequence without treating each entry as a standalone prediction.</p>
 
       <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {KING_WEN_HEXAGRAMS.map((hexagram) => {
+        {CLASSICAL_HEXAGRAMS.map((hexagram) => {
           const interpretation = getBasicInterpretation(hexagram.number);
           return (
             <li key={hexagram.number} className="rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-5">
               <p className="font-mono text-xs text-[var(--bronze)]">Hexagram {hexagram.number}</p>
-              <h2 className="mt-2 font-display text-lg font-medium">{hexagram.englishName} <span className="font-cjk">{hexagram.chineseName}</span></h2>
+              <h2 className="mt-2 font-display text-lg font-medium"><Link href={`/hexagrams/${hexagram.slug}`} className="hover:text-[var(--jade)]">{hexagram.englishName} <span className="font-cjk">{hexagram.chineseName}</span></Link></h2>
               <p className="mt-2 text-sm font-semibold text-[var(--ink)]">{interpretation.theme}</p>
               <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">{interpretation.summary}</p>
+              <Link href={`/hexagrams/${hexagram.slug}`} className="mt-4 inline-flex text-sm font-semibold text-[var(--jade)] hover:underline">Open hexagram detail →</Link>
             </li>
           );
         })}
@@ -33,7 +34,7 @@ export default function HexagramsHubPage() {
 
       <div className="mt-12 rounded-2xl border border-[var(--line)] bg-[var(--paper-raised)] p-6">
         <h2 className="font-display text-2xl font-medium">Use the hexagrams in a reading</h2>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">A hexagram is normally read in the context of a cast rather than selected as a standalone prediction. Start with the <Link href="/" className="font-semibold text-[var(--jade)] hover:underline">I Ching online three-coin tool</Link>, or use the <Link href="/methods/yarrow-stalks" className="font-semibold text-[var(--jade)] hover:underline">yarrow stalk method</Link> or <Link href="/methods/mei-hua-yi-shu" className="font-semibold text-[var(--jade)] hover:underline">Mei Hua Yi Shu current-time method</Link>.</p>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">A hexagram is normally read in the context of a cast rather than selected as a standalone prediction. Start with the <Link href="/" className="font-semibold text-[var(--jade)] hover:underline">I Ching online tool</Link>, or use the <Link href="/methods/yarrow-stalks" className="font-semibold text-[var(--jade)] hover:underline">yarrow stalk method</Link>, <Link href="/methods/mei-hua-yi-shu" className="font-semibold text-[var(--jade)] hover:underline">Mei Hua Yi Shu current-time method</Link>, or <Link href="/methods/manual-cast" className="font-semibold text-[var(--jade)] hover:underline">Manual Cast</Link>.</p>
       </div>
     </article>
   );

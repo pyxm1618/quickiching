@@ -18,8 +18,9 @@ The first Google + Bing indexing release is intentionally independent of product
 1. `/` and `/methods/three-coin` — Three-Coin Method
 2. `/methods/yarrow-stalks` — Yarrow Stalk Method
 3. `/methods/mei-hua-yi-shu` — Mei Hua Yi Shu current-time casting
+4. `/methods/manual-cast` — deterministic Manual Cast
 
-All three free flows end with:
+All four free flows end with:
 
 - complete six-line hexagram;
 - primary hexagram number/name;
@@ -28,6 +29,8 @@ All three free flows end with:
 - original free basic interpretation;
 - reflection / non-deterministic / non-professional-advice boundary.
 
+Completed readings can be saved explicitly to browser-only `/history/`; no account or cloud sync is involved. A question-first flow and a fail-closed optional question interpreter are present, but static readings do not depend on provider activation.
+
 No sign-in, payment, credit, database, or production AI call is required for the free flow.
 
 ### Public knowledge pages
@@ -35,7 +38,8 @@ No sign-in, payment, credit, database, or production AI call is required for the
 - `/guides/how-to-ask-the-i-ching`
 - `/guides/changing-lines`
 - `/guides/primary-relating-hexagrams`
-- `/hexagrams` — 64 Hexagrams hub (no mass-generated thin detail pages in V1)
+- `/hexagrams` — 64 Hexagrams hub
+- `/hexagrams/[fixed-slug]` — 64 fixed entity pages with six line anchors
 
 ### Technical SEO
 

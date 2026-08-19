@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import { resolveChromeExecutable } from "./browser-runtime.mjs";
 import { desktopConfig, navigation } from "lighthouse";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
@@ -71,9 +72,9 @@ async function auditResult(browser, desktop) {
   }
 }
 
-const executablePath = process.env.CHROME_PATH || await chromium.executablePath();
+const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
 const browser = await puppeteer.launch({
-  args: process.env.CHROME_PATH ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
+  args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
   executablePath,
   headless: true,
 });

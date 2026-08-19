@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { QuestionFirst } from "@/components/public-reading/question-first";
 import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
 
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ export default function ThreeCoinMethodPage() {
         <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">The three-coin I Ching method turns six coin tosses into a hexagram. Each completed toss is one line, built from the bottom upward; values 6 and 9 are changing lines.</p>
       </header>
 
-      <section className="mx-auto max-w-6xl px-4 pb-12"><ThreeCoinTool /></section>
+      <section className="mx-auto max-w-6xl px-4 pb-12"><QuestionFirst storageKey="quickiching:public-v1:three-coin" legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]}><ThreeCoinTool /></QuestionFirst></section>
 
       <section className="mx-auto grid max-w-5xl gap-8 px-4 py-12 md:grid-cols-2">
         <div><h2 className="font-display text-2xl font-medium">How the coin method works</h2><ol className="mt-4 list-decimal space-y-3 pl-6 text-sm leading-7 text-[var(--ink-2)]"><li>Three independent coin faces are generated with browser Web Crypto.</li><li>Yang/head contributes 3 and yin/tail contributes 2.</li><li>The total becomes 6, 7, 8, or 9.</li><li>Repeat six times, with the first result as the bottom line.</li><li>6 and 9 move; reversing those lines derives the relating hexagram.</li></ol></div>

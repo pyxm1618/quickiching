@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const LABEL = process.env.SEO_AUDIT_LABEL || "CURRENT";
 const ASSERT_SEMANTICS = process.env.SEO_AUDIT_ASSERT === "1";
 const HOME_TITLE = "I Ching Online — Free Hexagram Reading | Quick I Ching";
-const HOME_DESCRIPTION = "Use the I Ching online with three coins, yarrow stalks, or Mei Hua Yi Shu. Cast your hexagram, see changing lines, and get a free basic interpretation.";
+const HOME_DESCRIPTION = "Use the I Ching online with Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, or Manual Cast. See changing lines and get a free grounded interpretation.";
 const HOME_H1 = "I Ching Online — Cast Your Hexagram";
 const WEBSITE_SCHEMA = {
   "@context": "https://schema.org",
@@ -69,8 +70,7 @@ function stripGeneratedContent(value) {
   return value.replace(/^['"]|['"]$/g, "");
 }
 
-const executablePath = process.env.CHROME_PATH || await chromium.executablePath();
-const usingSystemChrome = Boolean(process.env.CHROME_PATH);
+const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
 const browser = await puppeteer.launch({
   args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
   executablePath,
@@ -90,6 +90,10 @@ try {
       label: node.getAttribute("data-visual-label") ?? "",
       generated: getComputedStyle(node, "::before").content,
     }));
+    const oracleNodes = [...document.querySelectorAll(".oracle-stage")].map((node) => ({
+      text: node.textContent ?? "",
+      hidden: node.getAttribute("aria-hidden") === "true",
+    }));
     const headings = [...document.querySelectorAll("h1,h2,h3,h4,h5,h6")].map((node) => node.textContent?.trim() ?? "");
     const schemas = [...document.querySelectorAll('script[type="application/ld+json"]')].flatMap((node) => {
       try {
@@ -106,6 +110,7 @@ try {
       bodyText: document.body?.innerText ?? "",
       heroText: document.querySelector(".home-oracle > section p.mt-7")?.textContent?.trim() ?? "",
       decorativeNodes,
+      oracleNodes,
       headings,
       schemas,
     };
@@ -138,12 +143,16 @@ try {
     assert.deepEqual(snapshot.h1, [HOME_H1], "Homepage must have exactly one locked H1");
     assert(snapshot.heroText.toLowerCase().includes("i ching online"), "Hero copy must retain the homepage primary phrase");
     assert(exactCount > 0, "Homepage visible text must contain i ching online");
-    assert(snapshot.decorativeNodes.length > 0, "Decorative coin nodes are missing");
-    assert.equal(decorativeDomTextNodes, 0, "Decorative coin labels must not exist as DOM text nodes");
-    for (const node of snapshot.decorativeNodes) {
-      assert.equal(node.text.trim(), "", `Decorative coin node leaked DOM text: ${node.text}`);
-      assert(node.label, "Decorative coin visual label is missing");
-      assert.equal(stripGeneratedContent(node.generated), node.label, `Decorative generated content mismatch for ${node.label}`);
+    if (snapshot.decorativeNodes.length > 0) {
+      assert.equal(decorativeDomTextNodes, 0, "Decorative coin labels must not exist as DOM text nodes");
+      for (const node of snapshot.decorativeNodes) {
+        assert.equal(node.text.trim(), "", `Decorative coin node leaked DOM text: ${node.text}`);
+        assert(node.label, "Decorative coin visual label is missing");
+        assert.equal(stripGeneratedContent(node.generated), node.label, `Decorative generated content mismatch for ${node.label}`);
+      }
+    } else {
+      assert(snapshot.oracleNodes.length > 0, "Homepage decorative hero is missing");
+      assert(snapshot.oracleNodes.every((node) => node.hidden && node.text.trim() === ""), "Decorative hero must remain aria-hidden and text-free");
     }
     assert(!snapshot.headings.some((heading) => /^Line \d(?: sealed| awaiting cast)?$/i.test(heading)), "Three-Coin UI status leaked into the heading tree");
     assert(
