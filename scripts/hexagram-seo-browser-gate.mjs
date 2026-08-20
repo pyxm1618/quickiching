@@ -147,7 +147,7 @@ try {
     assert(hubH1.length > 0, `${path}: Hub H1 missing`);
   }
   const chineseHubStatus = await page.goto(`${BASE}/zh/hexagrams`, { waitUntil: "networkidle0", timeout: 30_000 });
-  assert.equal(chineseHubStatus?.status(), 200, "Chinese Hub must be reachable");
+  assert([200, 304].includes(chineseHubStatus?.status() ?? 0), `Chinese Hub must be reachable, received ${chineseHubStatus?.status()}`);
   assert.equal(await page.$eval("[data-tdh-status]", (node) => node.getAttribute("data-tdh-status")), "PENDING_RESEARCH", "Chinese Hub TDH status must remain PENDING_RESEARCH");
   log("English and Chinese Hub → 64 detail links, reachable Chinese Hub, and PENDING_RESEARCH marker PASS");
 
