@@ -21,7 +21,6 @@ export function SiteHeader({ locale = "en" }: { locale?: ContentLocale }) {
             <>
               <Link href="/zh/methods/mei-hua-yi-shu" className={NAV_LINK}>{dictionary.nav.meiHua}</Link>
               <Link href="/zh" className={NAV_LINK}>{dictionary.nav.readOnline}</Link>
-              <Link href="/" className={NAV_LINK}>{dictionary.nav.englishSite}</Link>
             </>
           ) : (
             <>

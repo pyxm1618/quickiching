@@ -23,4 +23,10 @@ describe("multilingual metadata and sitemap integration", () => {
     expect((await chineseHome.generateMetadata({ params: Promise.resolve({ locale: "zh" }) })).alternates?.languages).toEqual(alternateLanguages("homepage"));
     expect((await chineseMeiHua.generateMetadata({ params: Promise.resolve({ locale: "zh" }) })).alternates?.languages).toEqual(alternateLanguages("mei-hua-yi-shu"));
   });
+
+  it("renders the Chinese Mei Hua title with the brand exactly once", async () => {
+    const chineseMeiHua = await import("@/app/(localized)/[locale]/methods/mei-hua-yi-shu/page");
+    const metadata = await chineseMeiHua.generateMetadata({ params: Promise.resolve({ locale: "zh" }) });
+    expect(metadata.title).toEqual({ absolute: "梅花易数时间起卦｜公历在线起卦 | Quick I Ching" });
+  });
 });

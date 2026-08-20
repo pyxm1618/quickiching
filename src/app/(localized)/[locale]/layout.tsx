@@ -23,11 +23,12 @@ export const metadata: Metadata = {
     description: "使用公开说明的公历时间约定进行梅花易数时间起卦。",
     type: "website",
     siteName: "Quick I Ching",
-    url: `${SITE_ORIGIN}/zh`,
     locale: "zh_CN",
   },
   robots: { index: true, follow: true },
 };
+
+export const dynamicParams = false;
 
 export function generateStaticParams() {
   return [{ locale: "zh" }];

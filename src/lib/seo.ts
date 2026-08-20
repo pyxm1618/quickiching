@@ -1,14 +1,15 @@
 import { SITE_ORIGIN } from "@/i18n/config";
 import { canonicalUrl } from "@/i18n/helpers";
-import { ENGLISH_INDEXABLE_PATHS as INDEXABLE_PATHS, HEXAGRAM_INDEXABLE_PATHS } from "@/i18n/routes";
+import { ENGLISH_INDEXABLE_PATHS as INDEXABLE_PATHS, HEXAGRAM_INDEXABLE_PATHS, indexablePathInventory } from "@/i18n/routes";
 
 export { SITE_ORIGIN, INDEXABLE_PATHS, HEXAGRAM_INDEXABLE_PATHS };
+export const INDEXABLE_INVENTORY = indexablePathInventory();
 
 export const HOME_TITLE = "I Ching Online — Free Hexagram Reading | Quick I Ching";
 export const HOME_DESCRIPTION = "Use the I Ching online with Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, or Manual Cast. See changing lines and get a free grounded interpretation.";
 export const HOME_H1 = "I Ching Online — Cast Your Hexagram";
 
-export type IndexablePath = (typeof INDEXABLE_PATHS)[number];
+export type IndexablePath = string;
 
 export const LEGACY_REDIRECTS = [
   { source: "/i-ching-coin", destination: "/methods/three-coin" },
@@ -29,7 +30,7 @@ export function absoluteUrl(path: string): string {
 }
 
 export function isIndexablePath(path: string): path is IndexablePath {
-  return (INDEXABLE_PATHS as readonly string[]).includes(path);
+  return INDEXABLE_INVENTORY.includes(path);
 }
 
 export function isPrivateOrCommercialPath(path: string): boolean {

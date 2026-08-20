@@ -43,6 +43,33 @@ function extractCanonical(html) {
   );
 }
 
+function extractTitles(html) {
+  return [...html.matchAll(/<title>([^<]*)<\/title>/gi)].map((match) => match[1]);
+}
+
+function extractRobots(html) {
+  return extractTagAttributes(html, "meta")
+    .filter((tag) => (attribute(tag, "name") ?? "").toLowerCase() === "robots")
+    .map((tag) => attribute(tag, "content") ?? "");
+}
+
+function extractOgUrls(html) {
+  return extractTagAttributes(html, "meta")
+    .filter((tag) => (attribute(tag, "property") ?? "").toLowerCase() === "og:url")
+    .map((tag) => attribute(tag, "content") ?? "");
+}
+
+function assert404Metadata(html, { label, title, lang, bodyText }) {
+  assert.deepEqual(extractTitles(html), [title], `${label}: 404 must emit exactly one exact title`);
+  assert.match(html, new RegExp(`<html[^>]+lang="${lang}"`, "i"), `${label}: wrong html lang`);
+  const robots = extractRobots(html);
+  assert(robots.length >= 1, `${label}: 404 must emit a robots meta`);
+  assert(robots.every((value) => /\bnoindex\b/i.test(value)), `${label}: every 404 robots meta must be noindex`);
+  assert.deepEqual(extractCanonical(html), undefined, `${label}: 404 must not emit canonical`);
+  assert.deepEqual(extractOgUrls(html), [], `${label}: 404 must not emit homepage OG URL`);
+  assert(html.includes(bodyText), `${label}: 404 body language/content is wrong`);
+}
+
 function extractAlternates(html) {
   return extractTagAttributes(html, "link")
     .filter((tag) => (attribute(tag, "rel") ?? "").split(/\s+/).includes("alternate"))
@@ -75,6 +102,10 @@ async function verifyHttpBoundaries() {
     await expectStatus(path, 404);
   }
 
+  for (const path of ["/this-page-must-not-exist", "/fr", "/de", "/zh-Hans", "/zh/does-not-exist", "/zh/methods/three-coin"]) {
+    await expectStatus(path, 404);
+  }
+
   const acceptLanguage = await expectStatus("/", 200, { headers: { "accept-language": "zh-CN,zh;q=0.9" } });
   const acceptLanguageHtml = await acceptLanguage.text();
   assert.match(acceptLanguageHtml, /<html[^>]+lang="en"/i, "Accept-Language must not redirect the English homepage");
@@ -88,13 +119,14 @@ async function verifyHttpBoundaries() {
   assert(!locs.some((url) => new URL(url).pathname.startsWith("/en")), "Sitemap must not contain /en URLs");
 
   const metadataChecks = [
-    ["/", "en", `${CANONICAL_ORIGIN}/`, "I Ching Online — Cast Your Hexagram"],
-    ["/methods/mei-hua-yi-shu", "en", `${CANONICAL_ORIGIN}/methods/mei-hua-yi-shu`, "Mei Hua Yi Shu"],
-    ["/zh", "zh-Hans", `${CANONICAL_ORIGIN}/zh`, "用易经整理问题，回到现实行动"],
-    ["/zh/methods/mei-hua-yi-shu", "zh-Hans", `${CANONICAL_ORIGIN}/zh/methods/mei-hua-yi-shu`, "梅花易数时间起卦"],
+    ["/", "en", `${CANONICAL_ORIGIN}/`, "I Ching Online — Cast Your Hexagram", "I Ching Online — Free Hexagram Reading | Quick I Ching"],
+    ["/methods/mei-hua-yi-shu", "en", `${CANONICAL_ORIGIN}/methods/mei-hua-yi-shu`, "Mei Hua Yi Shu", "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting | Quick I Ching"],
+    ["/zh", "zh-Hans", `${CANONICAL_ORIGIN}/zh`, "用易经整理问题，回到现实行动", "易经在线｜Quick I Ching 中文入口"],
+    ["/zh/methods/mei-hua-yi-shu", "zh-Hans", `${CANONICAL_ORIGIN}/zh/methods/mei-hua-yi-shu`, "梅花易数时间起卦", "梅花易数时间起卦｜公历在线起卦 | Quick I Ching"],
   ];
-  for (const [path, htmlLang, canonical, requiredText] of metadataChecks) {
+  for (const [path, htmlLang, canonical, requiredText, title] of metadataChecks) {
     const html = await (await expectStatus(path, 200)).text();
+    assert.deepEqual(extractTitles(html), [title], `${path}: title must render exactly once without duplication`);
     assert.match(html, new RegExp(`<html[^>]+lang="${htmlLang}"`, "i"), `${path}: wrong html lang`);
     assert.equal(normalizeAbsoluteUrl(attribute(extractCanonical(html) ?? "", "href") ?? ""), normalizeAbsoluteUrl(canonical), "wrong canonical: " + path);
     const alternates = Object.fromEntries(extractAlternates(html).map((entry) => [entry.hreflang, entry.href]));
@@ -110,6 +142,9 @@ async function verifyHttpBoundaries() {
   for (const forbidden of ["/zh/methods/three-coin", "/zh/methods/yarrow-stalks", "/zh/methods/manual-cast", "/zh/hexagrams"]) {
     assert(!zhHomeHtml.includes(`href="${forbidden}"`), `Chinese home exposes an unpublished localized path: ${forbidden}`);
   }
+
+  const chineseHomeHeaderLinks = [...zhHomeHtml.matchAll(/<header\b[\s\S]*?<\/header>/gi)][0]?.[0] ?? "";
+  assert.equal((chineseHomeHeaderLinks.match(/href="\/"/g) ?? []).length, 1, "Chinese header must expose exactly one root English link");
 
   log("HTTP redirects, locale 404s, Accept-Language stability, 75-URL sitemap, metadata, and Chinese scope PASS");
 }
@@ -166,8 +201,17 @@ async function verifyChineseReading(page, viewport) {
   await page.goto(`${BASE}/zh`, { waitUntil: "networkidle0", timeout: 30_000 });
   await waitForText(page, "用易经整理问题，回到现实行动");
   await assertNoOverflow(page, `${viewport.width}px Chinese home`);
+  assert.equal(await page.$$eval("header [data-language-switch]", (nodes) => nodes.length), 1, `${label}: Chinese header must have one language switcher`);
+  assert.equal(await page.$$eval('header a[href="/"]', (nodes) => nodes.length), 1, `${label}: Chinese home must have one root English header link`);
 
   await page.goto(`${BASE}/zh/methods/mei-hua-yi-shu`, { waitUntil: "networkidle0", timeout: 30_000 });
+  assert.equal(await page.$$eval("header [data-language-switch]", (nodes) => nodes.length), 1, `${label}: Chinese Mei Hua header must have one language switcher`);
+  assert((await page.$$eval('header a[href="/"]', (nodes) => nodes.length)) <= 1, `${label}: Chinese Mei Hua header has duplicate root English links`);
+  const labelledByReferences = await page.$$eval("[aria-labelledby]", (nodes) => {
+    const ids = new Map([...document.querySelectorAll("[id]")].map((node) => [node.id, (document.querySelectorAll(`#${CSS.escape(node.id)}`).length)]));
+    return nodes.flatMap((node) => (node.getAttribute("aria-labelledby") ?? "").split(/\s+/).filter(Boolean).map((id) => ({ id, count: ids.get(id) ?? 0 })));
+  });
+  assert(labelledByReferences.every(({ count }) => count === 1), `${label}: every aria-labelledby token must resolve to one unique element`);
   await page.waitForSelector("textarea[data-private-question]");
   await page.type("textarea[data-private-question]", CHINESE_QUESTION);
   await clickButton(page, "继续起卦");
@@ -227,6 +271,27 @@ async function verifyBrowserFlows() {
     headless: true,
   });
   try {
+    const missingCases = [
+      ["/this-page-must-not-exist", "Page Not Found | Quick I Ching", "en", "Page Not Found"],
+      ["/fr", "Page Not Found | Quick I Ching", "en", "Page Not Found"],
+      ["/de", "Page Not Found | Quick I Ching", "en", "Page Not Found"],
+      ["/zh-Hans", "Page Not Found | Quick I Ching", "en", "Page Not Found"],
+      ["/zh/does-not-exist", "页面不存在 | Quick I Ching", "zh-Hans", "找不到这个页面"],
+      ["/zh/methods/three-coin", "页面不存在 | Quick I Ching", "zh-Hans", "找不到这个页面"],
+    ];
+    const metadataContext = await browser.createBrowserContext();
+    const metadataPage = await metadataContext.newPage();
+    try {
+      for (const [path, title, lang, bodyText] of missingCases) {
+        const response = await metadataPage.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
+        assert.equal(response?.status(), 404, `${path}: browser navigation must remain HTTP 404`);
+        assert404Metadata(await metadataPage.content(), { label: path, title, lang, bodyText });
+      }
+    } finally {
+      await metadataContext.close();
+    }
+    log("Browser-rendered English/Chinese/invalid-locale 404 metadata PASS");
+
     for (const viewport of [
       { width: 1440, height: 1000 },
       { width: 390, height: 844 },

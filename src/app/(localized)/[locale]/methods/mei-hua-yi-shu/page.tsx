@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   await assertChinese(params);
   const canonical = canonicalUrl("/zh/methods/mei-hua-yi-shu");
   return {
-    title: ZH_HANS_MEI_HUA_CONTENT.metadata.title,
+    title: { absolute: ZH_HANS_MEI_HUA_CONTENT.metadata.title },
     description: ZH_HANS_MEI_HUA_CONTENT.metadata.description,
     alternates: { canonical, languages: alternateLanguages("mei-hua-yi-shu") },
     openGraph: { title: ZH_HANS_MEI_HUA_CONTENT.metadata.title, description: ZH_HANS_MEI_HUA_CONTENT.metadata.description, url: canonical, type: "article", locale: "zh_CN" },
@@ -39,7 +39,7 @@ export default async function ChineseMeiHuaPage({ params }: PageProps) {
         <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">{content.introduction}</p>
       </header>
 
-      <section className="mx-auto max-w-6xl px-4 pb-12" aria-labelledby="zh-mei-hua-tool-title">
+      <section className="mx-auto max-w-6xl px-4 pb-12">
         <QuestionFirst storageKey="quickiching:public-v1:mei-hua-v2" legacyStorageKeys={["quickiching:question:mei-hua-yi-shu"]} dictionary={dictionary}>
           <MeiHuaTool dictionary={dictionary} readingContent={content.reading} conventionContent={content.convention} />
         </QuestionFirst>

@@ -1,4 +1,4 @@
-import { INDEXABLE_PATHS, SITE_ORIGIN, absoluteUrl, isIndexablePath } from "@/lib/seo";
+import { INDEXABLE_INVENTORY, SITE_ORIGIN, absoluteUrl, isIndexablePath } from "@/lib/seo";
 
 export const INDEXNOW_KEY = "0458fb9ef2ef723618b52f6861b3b2f7";
 export const INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow";
@@ -30,7 +30,7 @@ export function normalizeIndexNowDeletedUrl(input: string): string {
 }
 
 export function defaultIndexNowUrls(): string[] {
-  return INDEXABLE_PATHS.map(absoluteUrl);
+  return INDEXABLE_INVENTORY.map(absoluteUrl);
 }
 
 export function uniqueLiveIndexNowUrls(inputs: readonly string[]): string[] {
