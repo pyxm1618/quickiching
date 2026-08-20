@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { CLASSICAL_HEXAGRAMS } from "./classical";
+import { CLASSICAL_SOURCE_SNAPSHOT_SHA256 } from "./classical-source-data";
 import { loadPublicHexagramKnowledge } from "./knowledge";
 
 describe("public hexagram knowledge", () => {
@@ -47,7 +48,8 @@ describe("public hexagram knowledge", () => {
     expect(snapshot).toHaveLength(64);
     expect(snapshot.every((entry) => entry.revision > 0)).toBe(true);
     expect(CLASSICAL_HEXAGRAMS.every((entry) => new URL(entry.source.textSourceUrl).searchParams.get("oldid"))).toBe(true);
-    expect(digest).toBe("a1ec4968bf5f5281865e4301b81d3130f5f86d0690c511bb2c19e3be525e11de");
+    expect(digest).toBe("8528b631e95bb53213222bc2fcd324f6853d143e1ddf4fe7a79f7e060ce4c49e");
+    expect(CLASSICAL_SOURCE_SNAPSHOT_SHA256).toBe("cafea16c8dba8319af91303f8dc4e0559970dc48fcb58097b8bf1b66b972f0ce");
   });
 
   it("reuses six authored v2 line records for every entity", async () => {

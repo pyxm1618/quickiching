@@ -1,3 +1,27 @@
+import { CLASSICAL_SOURCE_TEXT, type ClassicalSourceLineText } from "./classical-source-data";
+
+export type ClassicalSource = {
+  work: string;
+  textSourceUrl: string;
+  textSourceRevision: number;
+  sourceVariant: "zh-Hans";
+  sourceFormat: string;
+  conversion: string;
+  recordSourceUrl: string;
+  recordSourceLicense: string;
+  textStatus: string;
+};
+
+export type ClassicalLine = ClassicalSourceLineText & {
+  position: 1 | 2 | 3 | 4 | 5 | 6;
+  source: ClassicalSource;
+};
+
+export type ClassicalUseLine = ClassicalSourceLineText & {
+  label: "用九" | "用六";
+  source: ClassicalSource;
+};
+
 export type ClassicalHexagram = {
   number: number;
   slug: string;
@@ -8,10 +32,23 @@ export type ClassicalHexagram = {
   trigrams: { lower: string; upper: string };
   judgment: string;
   image: string;
-  source: { work: string; textSourceUrl: string; textSourceRevision: number; recordSourceUrl: string; recordSourceLicense: string; textStatus: string };
+  lines: readonly [ClassicalLine, ClassicalLine, ClassicalLine, ClassicalLine, ClassicalLine, ClassicalLine];
+  useLine?: ClassicalUseLine;
+  variantName?: string;
+  source: ClassicalSource;
 };
 
-const CLASSICAL_SOURCE = {"work":"周易","textSourceUrl":"https://zh.wikisource.org/zh-hans/周易","textSourceRevision":0,"recordSourceUrl":"https://github.com/godcong/yi/blob/master/data/gua.json","recordSourceLicense":"MIT","textStatus":"Classical Chinese source text; the Wikisource work page identifies the text as public domain."} as const;
+const CLASSICAL_SOURCE = {
+  work: "周易",
+  textSourceUrl: "https://zh.wikisource.org/zh-hans/周易",
+  textSourceRevision: 0,
+  sourceVariant: "zh-Hans",
+  sourceFormat: "Wikisource fixed oldid page rendered with variant=zh-hans",
+  conversion: "The repository stores the fixed page's Simplified Chinese rendering; it is not a modern translation.",
+  recordSourceUrl: "https://github.com/godcong/yi/blob/master/data/gua.json",
+  recordSourceLicense: "MIT",
+  textStatus: "Classical text is checked against the fixed Wikisource revision for this hexagram; professional philological review is not claimed.",
+} as const;
 
 const WIKISOURCE_HEXAGRAM_PATHS: Record<number, string> = {
   1: "乾", 2: "坤", 3: "屯", 4: "蒙", 5: "需", 6: "訟", 7: "師", 8: "比",
@@ -35,7 +72,7 @@ const WIKISOURCE_REVISIONS: Record<number, number> = {
   57: 2441563, 58: 2404993, 59: 2405023, 60: 2405027, 61: 2404990, 62: 2405007, 63: 2572417, 64: 2405020,
 };
 
-function sourceFor(number: number): ClassicalHexagram["source"] {
+function sourceFor(number: number): ClassicalSource {
   const path = WIKISOURCE_HEXAGRAM_PATHS[number];
   const revision = WIKISOURCE_REVISIONS[number];
   if (!path || !revision) throw new Error(`CLASSICAL_SOURCE_MISSING: ${number}`);
@@ -43,8 +80,23 @@ function sourceFor(number: number): ClassicalHexagram["source"] {
     ...CLASSICAL_SOURCE,
     textSourceUrl: `https://zh.wikisource.org/w/index.php?title=周易/${path}&oldid=${revision}&variant=zh-hans`,
     textSourceRevision: revision,
-    textStatus: `Judgment and Image are verified against fixed Wikisource revision ${revision}; the GitHub record supplies only symbol and trigram metadata.`,
+    textStatus: `Judgment, Image, six ordinary lines, and the optional use line are checked against fixed Wikisource revision ${revision}; the GitHub record supplies only symbol and trigram metadata.`,
   };
+}
+
+type ClassicalHexagramCatalogEntry = Omit<ClassicalHexagram, "lines" | "useLine" | "variantName">;
+type ClassicalPosition = 1 | 2 | 3 | 4 | 5 | 6;
+type ClassicalLineTuple = readonly [ClassicalLine, ClassicalLine, ClassicalLine, ClassicalLine, ClassicalLine, ClassicalLine];
+
+function positionFor(index: number): ClassicalPosition {
+  if (index < 0 || index > 5) throw new Error(`CLASSICAL_LINE_POSITION_INVALID: ${index + 1}`);
+  return (index + 1) as ClassicalPosition;
+}
+
+function linesFor(number: number, source: ClassicalSource): ClassicalLineTuple {
+  const sourceText = CLASSICAL_SOURCE_TEXT[number];
+  if (!sourceText || sourceText.lines.length !== 6) throw new Error(`CLASSICAL_LINE_DATA_MISSING: ${number}`);
+  return sourceText.lines.map((line, index) => ({ ...line, position: positionFor(index), source })) as unknown as ClassicalLineTuple;
 }
 
 const CLASSICAL_HEXAGRAM_DATA = [
@@ -80,7 +132,7 @@ const CLASSICAL_HEXAGRAM_DATA = [
   {"number":30,"slug":"30-the-clinging-fire","englishName":"The Clinging Fire","chineseName":"离","pinyin":"lí","symbol":"䷝","trigrams":{"lower":"li","upper":"li"},"judgment":"离：利贞。亨。畜牝牛，吉。","image":"明两作离，大人以继明照于四方。","source": CLASSICAL_SOURCE},
   {"number":31,"slug":"31-influence","englishName":"Influence","chineseName":"咸","pinyin":"xián","symbol":"䷞","trigrams":{"lower":"gen","upper":"dui"},"judgment":"咸：亨。利贞。取女吉。","image":"山上有泽，咸；君子以虚受人。","source": CLASSICAL_SOURCE},
   {"number":32,"slug":"32-duration","englishName":"Duration","chineseName":"恒","pinyin":"héng","symbol":"䷟","trigrams":{"lower":"xun","upper":"zhen"},"judgment":"恒：亨，无咎。利贞，利有攸往。","image":"雷风，恒；君子以立不易方。","source": CLASSICAL_SOURCE},
-  {"number":33,"slug":"33-retreat","englishName":"Retreat","chineseName":"遁、遯","pinyin":"dùn","symbol":"䷠","trigrams":{"lower":"gen","upper":"qian"},"judgment":"遁：亨。小利贞。","image":"天下有山，遁；君子以远小人，不恶而严。","source": CLASSICAL_SOURCE},
+  {"number":33,"slug":"33-retreat","englishName":"Retreat","chineseName":"遁","pinyin":"dùn","symbol":"䷠","trigrams":{"lower":"gen","upper":"qian"},"judgment":"遁：亨。小利贞。","image":"天下有山，遁；君子以远小人，不恶而严。","source": CLASSICAL_SOURCE},
   {"number":34,"slug":"34-great-power","englishName":"Great Power","chineseName":"大壮","pinyin":"dà zhuàng","symbol":"䷡","trigrams":{"lower":"qian","upper":"zhen"},"judgment":"大壮：利贞。","image":"雷在天上，大壮；君子以非礼弗履。","source": CLASSICAL_SOURCE},
   {"number":35,"slug":"35-progress","englishName":"Progress","chineseName":"晋","pinyin":"jìn","symbol":"䷢","trigrams":{"lower":"kun","upper":"li"},"judgment":"晋：康侯用锡马蕃庶，昼日三接。","image":"明出地上，晋；君子以自昭明德。","source": CLASSICAL_SOURCE},
   {"number":36,"slug":"36-darkening-of-the-light","englishName":"Darkening of the Light","chineseName":"明夷","pinyin":"míng yí","symbol":"䷣","trigrams":{"lower":"li","upper":"kun"},"judgment":"明夷：利艰贞。","image":"明入地中，明夷；君子以莅众，用晦而明。","source": CLASSICAL_SOURCE},
@@ -112,12 +164,22 @@ const CLASSICAL_HEXAGRAM_DATA = [
   {"number":62,"slug":"62-small-exceeding","englishName":"Small Exceeding","chineseName":"小过","pinyin":"xiǎo guò","symbol":"䷽","trigrams":{"lower":"gen","upper":"zhen"},"judgment":"小过：亨。利贞。可小事，不可大事。飞鸟遗之音，不宜上宜下，大吉。","image":"山上有雷，小过；君子以行过乎恭，丧过乎哀，用过乎俭。","source": CLASSICAL_SOURCE},
   {"number":63,"slug":"63-after-completion","englishName":"After Completion","chineseName":"既济","pinyin":"jì jì","symbol":"䷾","trigrams":{"lower":"li","upper":"kan"},"judgment":"既济：亨小。利贞。初吉终乱。","image":"水在火上，既济；君子以思患而豫防之。","source": CLASSICAL_SOURCE},
   {"number":64,"slug":"64-before-completion","englishName":"Before Completion","chineseName":"未济","pinyin":"wèi jì","symbol":"䷿","trigrams":{"lower":"kan","upper":"li"},"judgment":"未济：亨。小狐汔济，濡其尾，无攸利。","image":"火在水上，未济；君子以慎辨物居方。","source": CLASSICAL_SOURCE},
-] as const satisfies readonly ClassicalHexagram[];
+] as const satisfies readonly ClassicalHexagramCatalogEntry[];
 
-export const CLASSICAL_HEXAGRAMS = CLASSICAL_HEXAGRAM_DATA.map((hexagram) => ({
-  ...hexagram,
-  source: sourceFor(hexagram.number),
-})) satisfies readonly ClassicalHexagram[];
+export const CLASSICAL_HEXAGRAMS = CLASSICAL_HEXAGRAM_DATA.map((hexagram) => {
+  const source = sourceFor(hexagram.number);
+  const sourceText = CLASSICAL_SOURCE_TEXT[hexagram.number];
+  if (!sourceText) throw new Error(`CLASSICAL_SOURCE_TEXT_MISSING: ${hexagram.number}`);
+  return {
+    ...hexagram,
+    ...(hexagram.number === 33 ? { chineseName: "遁", variantName: "遯" } : {}),
+    judgment: sourceText.judgment,
+    image: sourceText.image,
+    source,
+    lines: linesFor(hexagram.number, source),
+    ...(sourceText.useLine ? { useLine: { ...sourceText.useLine, source } } : {}),
+  };
+}) satisfies readonly ClassicalHexagram[];
 
 export const CLASSICAL_HEXAGRAM_BY_NUMBER: Map<number, ClassicalHexagram> = new Map(
   CLASSICAL_HEXAGRAMS.map((hexagram) => [hexagram.number, hexagram]),
