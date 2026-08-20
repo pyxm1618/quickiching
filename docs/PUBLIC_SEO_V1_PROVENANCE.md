@@ -56,7 +56,7 @@ The implementation consumes one unbiased integer sample per change from a sample
 
 The implementation records conservation data for every change and Public V1 persists unfinished progress only in browser `sessionStorage`. Completed readings are saved only after an explicit user action into browser `localStorage`, capped at 50 records; there is no database, account, cloud history, or `/readings/[local-id]` route.
 
-## Mei Hua Yi Shu — Current-Time Casting
+## Mei Hua Yi Shu — Gregorian adapter for current-time casting
 
 Primary textual basis for the arithmetic:
 
@@ -86,7 +86,7 @@ Formula:
 - moving line = `(yearBranch + month + day + hourBranch) mod 6`, zero remainder => 6
 - trigram numbers: Qian 1, Dui 2, Li 3, Zhen 4, Xun 5, Kan 6, Gen 7, Kun 8
 
-This is a stable, testable Quick I Ching convention, not a claim of exclusivity across Mei Hua schools.
+This is a stable, testable Quick I Ching convention. The Chinese product label is “梅花易数公历适配版”; it is not a claim of exclusivity or equivalence across Mei Hua schools.
 
 ## Free Basic Interpretation
 
@@ -105,7 +105,7 @@ The optional personalized interpreter is a separate, explicit-click boundary. It
 
 ## Classical hexagram source records
 
-`src/domain/public-reading/classical.ts` stores one record for each of the 64 hexagrams, including the classical Chinese Judgment and Image text, fixed entity slug, source URLs, six stable line positions, and attribution metadata. The Judgment/Image source record is documented in `docs/PUBLIC_READING_CLASSICAL_PROVENANCE.md`; the public entity pages link to Wikisource and do not claim AI-generated classical text.
+`src/domain/public-reading/classical.ts` stores one record for each of the 64 hexagrams, including the classical Chinese Judgment and Image text, fixed entity slug, source URLs, six stable line positions, and attribution metadata. The 384 ordinary lines and 乾/坤 `用九`/`用六` snapshot are documented in `docs/PUBLIC_READING_CLASSICAL_PROVENANCE.md`; the public result labels them as classical text and links to the fixed Wikisource revision. QuickIChing summaries and line-position hints remain separate product content.
 
 ## Search-engine implementation references
 

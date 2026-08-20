@@ -1,20 +1,60 @@
-# Public Reading classical text provenance
+# Public Reading 经典文本来源与核对记录
 
-Updated: 2026-08-19
+更新：2026-08-20
 
-The 64 Public Reading entity pages separate classical Chinese text from Quick I Ching's original interpretation prose.
+本项目把三类内容分开保存和展示：固定来源的《周易》经典原文、QuickIChing 原创说明，以及适用于所有卦的爻位结构提示。本文件只记录来源和核对边界，不构成专家背书。
 
-## Judgment and Image
+## 固定来源
 
-- Judgment and Image text is verified against the Simplified Chinese (`zh-hans`) rendering of the individual [周易 pages on Wikisource](https://zh.wikisource.org/zh-hans/周易). Every page URL in `src/domain/public-reading/classical.ts` includes the exact Wikisource `oldid`, and every record stores that revision number.
-- The 64-record source snapshot is locked by a SHA-256 regression fixture. Updating an edition requires reviewing the source diff, changing the stored revisions and text together, and deliberately updating the fixture.
-- [godcong/yi `data/gua.json`](https://github.com/godcong/yi/blob/master/data/gua.json) is used only for compact symbol and upper/lower trigram metadata. It is not claimed as the source of the displayed Judgment or Image text. The repository is MIT licensed.
-- No modern copyrighted English Judgment or Line translation is copied into Public V1. The English names and Quick I Ching interpretation fields are separate original/product data.
+- 经典文本首选来源是 [Wikisource《周易》](https://zh.wikisource.org/zh-hans/周易) 的各卦页面。
+- `src/domain/public-reading/classical.ts` 为每卦保存页面路径和固定 `oldid`；最终 URL 形如 `https://zh.wikisource.org/w/index.php?title=周易/<卦名>&oldid=<revision>&variant=zh-hans`，不是可变的最新页面 URL。
+- 仓库请求的是固定修订版的 `zh-Hans` 页面渲染，并在 `ClassicalSource` 中记录 `sourceVariant`、`sourceFormat` 和 `conversion`。这不是现代商业译本，也不是来源不明的白话翻译；仓库没有把机械转换后文本宣称为经过专家人工审校。
+- `godcong/yi` 的 MIT 数据只提供符号、卦序和上下卦元数据，不是所展示经典文字的来源。
 
-## Interpretation data
+每个卦的经典记录都继承同一个卦级来源对象，包含 Wikisource URL、固定 revision、文本版本/渲染方式、记录来源和状态说明。每条普通爻也带有该来源对象，便于从显示内容追溯到固定页面。
 
-The six line sections and the richer English structure are reused from the existing authored `src/domain/interpretation/v2/catalog/` bundles through `loadPublicHexagramKnowledge`. The entity route exposes six stable `#line-1` through `#line-6` anchors; it does not create 384 changing-line pages.
+## 当前固定快照范围
 
-## Source-fidelity rule
+固定快照包含：
 
-If a source edition uses a textual variant, the repository keeps the recorded classical form and source attribution rather than silently substituting a modern translation. A character that cannot be verified from the recorded source must not be presented as a generated quotation.
+- 64/64 条卦辞；
+- 64/64 条大象（《象传》）整体文本；
+- 64 × 6 = 384/384 条普通爻辞，顺序严格为初爻至上爻；
+- 乾卦附加 `用九：见群龙无首，吉。`；
+- 坤卦附加 `用六：利永贞。`。
+
+`用九`、`用六` 是独立的可选附加字段，不计入六条普通爻，也不会被普通动爻位置索引选中。普通爻记录至少包含 `position`、`label`、`text` 和来源；`position` 为 1–6，标签和阴阳属性按本卦固定卦象复核。
+
+当前静态源数据快照保存在 `src/domain/public-reading/classical-source-data.ts`，快照 SHA-256 为：
+
+`f5f09f53d48f01e8f1fcef36fe9080f9ed967d0c403bdb4f656d8947f65adb5e`
+
+## 可重复来源核对
+
+网络核对脚本是 `scripts/verify-classical-sources.ts`，执行：
+
+```bash
+bun run verify:classical-sources
+```
+
+脚本逐卦请求固定 oldid URL，检查返回 HTML 中的 `wgRevisionId`，解析固定 `zh-Hans` 渲染中的卦辞、大象、六条普通爻和乾/坤特殊爻，再与仓库快照逐字比较。卦辞解析会收集“易经”标题下直到第一条爻位标签前的全部渲染行，覆盖坤卦等跨多个 HTML 列表项的情况，避免只取第一行造成截断。脚本只规范化来源页面因 HTML 排版产生的中文标点周围空白，字符和标点本身不改写。`--dump-json` 可输出固定修订版解析快照；脚本不依赖最新浮动页面。标准 Vitest 测试只检查仓库内的静态快照，因此不依赖实时网络。
+
+独立核对脚本的快照摘要为：
+
+`f5f09f53d48f01e8f1fcef36fe9080f9ed967d0c403bdb4f656d8947f65adb5e`
+
+摘要生成方式是对脚本从固定 revision 解析出的有序 JSON（含卦号、页面路径、revision、卦辞、大象、普通爻和特殊爻）执行 SHA-256。若更新任何固定 revision 或文本，应先审阅来源差异，再同步静态快照和回归断言。
+
+## 展示边界
+
+- 结果区把动爻的真实文本标为“经典爻辞”，并提供对应固定 revision 来源链接。
+- `SUMMARY_BY_NUMBER`、`coreMeaning`、动爻的原创说明和反思内容标为 QuickIChing 原创说明，不冒充古籍原文或权威今译。
+- 原有六个通用模板已经重命名为 `linePositionHints`，中文显示为“爻位结构提示”；它们只说明通用爻位结构，不能替代具体卦的经典爻辞。
+- 当前数据只有每卦整体大象，不包含六条完整小象，因此界面使用“大象（《象传》）”，不宣称展示完整《象传》。
+- 第 33 卦主显示名为“遁”；来源页面仍可使用经核对的异体页面名“遯”，该异体只保存在 `variantName` 元数据中。
+
+## 审核状态
+
+已完成的是：固定 revision 的自动抓取、revision 身份检查、64 条卦辞/64 条大象/384 条普通爻/2 条特殊爻的逐字自动核对，以及数据结构、位置、标签和展示层级的自动回归测试。
+
+尚未完成且必须如实保留的是：由可核验的专业易学或古籍校勘人员进行的逐条人工审校。项目不声称“已由易学专家审核”，也不把自动核对升级为专业人工认证。

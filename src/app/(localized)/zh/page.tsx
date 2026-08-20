@@ -40,7 +40,7 @@ export default function ChineseHomePage() {
             <ul className="mt-6 space-y-3 text-sm leading-7 text-[var(--ink-2)]">
               <li className="border-l border-[var(--gold)]/50 pl-4">中文提问与公历当前时间起卦</li>
               <li className="border-l border-[var(--gold)]/50 pl-4">本卦、一个动爻、之卦与基础中文说明</li>
-              <li className="border-l border-[var(--gold)]/50 pl-4">明确展示 IANA 时区、公式日期与十二时辰约定</li>
+              <li className="border-l border-[var(--gold)]/50 pl-4">明确展示 IANA 时区、起卦计算日期与十二时辰约定</li>
             </ul>
             <p className="mt-6 border-t border-white/[0.08] pt-5 text-xs leading-6 text-[var(--ink-3)]">中文三枚铜钱、蓍草、手动起卦、64 卦中文 SEO 页面、History 和 Personalized AI 尚未开放。中文用户可以通过英文完整网站访问这些英文功能。</p>
           </div>
@@ -71,14 +71,14 @@ export default function ChineseHomePage() {
         <div className="mystic-card p-6">
           <p className="mystic-kicker">梅花易数时间起卦</p>
           <h3 className="mt-2 font-display text-2xl font-normal">使用公历日期与十二时辰</h3>
-          <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">本工具采用一套公开说明、适合国际网站的公历时间约定，不宣称这是唯一传统规则。你可以在结果中复查时区、公式日期、上卦、下卦和动爻。</p>
+          <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">本工具采用一套公开说明、适合国际网站的公历时间约定，不宣称这是所有传统流派的唯一规则。你可以在结果中复查时区、起卦计算日期、上卦、下卦和动爻。</p>
           <Link href="/zh/methods/mei-hua-yi-shu" className="mt-5 inline-flex font-semibold text-[var(--cyan)] hover:underline">阅读说明并开始起卦 →</Link>
         </div>
       </section>
 
       <section className="mx-auto max-w-4xl px-5 py-16 sm:px-7 sm:py-20" aria-labelledby="zh-english-title">
         <p className="mystic-kicker">英文完整网站</p>
-        <h2 id="zh-english-title" className="mt-2 font-display text-3xl font-normal">当前没有中文版本的页面</h2>
+        <h2 id="zh-english-title" className="mt-2 font-display text-3xl font-normal">当前没有更多中文版本的页面</h2>
         <p className="mt-5 text-sm leading-7 text-[var(--ink-2)]">英文网站仍保留 Three-Coin、Yarrow Stalks、Manual Cast、64 卦英文详情、英文 History 和英文 Personalized Interpretation。语言切换器会把没有直接中文等价页的页面明确带回中文首页，而不会伪造中文正文。</p>
         <Link href="/" className="mt-6 inline-flex font-semibold text-[var(--cyan)] hover:underline">进入英文完整网站 →</Link>
       </section>

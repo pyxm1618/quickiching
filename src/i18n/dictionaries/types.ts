@@ -85,6 +85,12 @@ export type UiDictionary = {
     relating: string;
     noRelating: string;
     changingLines: string;
+    classicalLine: string;
+    originalExplanation: string;
+    positionHint: string;
+    judgment: string;
+    image: string;
+    source: string;
     linkPrimary: string;
     linkRelating: string;
     understandMovement: string;

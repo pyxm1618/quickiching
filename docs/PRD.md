@@ -1,8 +1,8 @@
 # Quick I Ching 产品需求文档
 
 **版本：** V3.0 Stage Split  
-**日期：** 2026-08-10  
-**首发语言：** English  
+**日期：** 2026-08-20
+**首发语言：** English + 简体中文（受限 Public V1）
 **产品形态：** 多玩法 I Ching 在线起卦、文化解释与自我反思平台  
 **当前发布阶段：** Public SEO V1  
 
@@ -19,6 +19,8 @@
 核心 SEO intent：`i ching online`。
 
 首页 `/` 是全站核心 SEO Landing Page，默认直接提供 Three-Coin Method；Quick I Ching 的长期定位仍是多种起卦方式的在线 I Ching 平台，不是单纯的 coin-only 网站。
+
+当前同时发布两个可索引的简体中文入口：`/zh` 中文首页和 `/zh/methods/mei-hua-yi-shu` 梅花易数公历适配版。中文范围是受限的 Public V1，不代表所有英文方法、卦库详情和账号功能已经本地化。
 
 首发必须真实可用：
 
@@ -79,7 +81,11 @@ Commercial V2 上线前必须重新完成法律、支付、隐私、AI、账户�
 - `/guides/primary-relating-hexagrams`
 - `/hexagrams` — 64 Hexagrams Hub
 - `/hexagrams/[fixed-slug]` — 64 fixed entity pages with six line anchors
+- `/zh` — 简体中文入口
+- `/zh/methods/mei-hua-yi-shu` — 简体中文梅花易数公历适配版
 - `/history` — browser-only saved readings; private, noindex, excluded from sitemap
+
+等价的英文/中文页面使用 self-canonical、双向 `hreflang` 和 `x-default`；没有中文等价页的英文页面不伪造中文 URL，语言切换会回到中文首页。
 
 原则：**One primary intent = one canonical URL**，不是 one keyword = one URL。
 
@@ -146,7 +152,7 @@ Public V1 使用 `yarrow-zhu-xi-digital-v2`：
 
 ### 3.3 Mei Hua Yi Shu
 
-Public V1 使用 `quickiching-gregorian-current-time-v2`，不是笼统的“唯一标准梅花易数”：
+Public V1 使用 `quickiching-gregorian-current-time-v2`，产品和中文界面统一称为“梅花易数公历适配版”，不是笼统的“唯一标准梅花易数”：
 
 - current-time only
 - user-confirmed IANA timezone
@@ -162,7 +168,7 @@ Public V1 使用 `quickiching-gregorian-current-time-v2`，不是笼统的“唯
 
 传统年月日時起例的数字结构保留：年月日取上卦；加时取下卦；总数除六取动爻。
 
-详细 provenance：`docs/PUBLIC_SEO_V1_PROVENANCE.md`。
+详细算法 provenance：`docs/PUBLIC_SEO_V1_PROVENANCE.md`；经典中文文本来源和 384 条爻辞核对记录：`docs/PUBLIC_READING_CLASSICAL_PROVENANCE.md`。
 
 ---
 
@@ -216,14 +222,14 @@ Public SEO V1 不为了“完整”而默认启用：
 - production auth / account / cloud history（browser-only local History 属于 Public P0）
 - Liu Yao / Wen Wang Gua / 数字起卦 / 每日一卦
 - AI chat oracle
-- community / subscription / CMS / multilingual / hreflang
+- community / subscription / CMS / 额外语言和中文全站本地化
 - 384 个爻级运行时详情页或 4096 个卦变详情页
 
 ---
 
 ## 8. Public SEO V1 完成定义
 
-只有四种方法都完成真实免费闭环、73 个 indexable URL 技术 SEO 干净、desktop/mobile 核心路径通过、构建和自动化测试通过，才能标记 `READY FOR FINAL SEO AUDIT`。Question-first、Manual A/B、local History、隐私边界和 personalized fail-closed 也必须有对应门禁证据。
+只有四种方法都完成真实免费闭环、75 个 indexable URL（73 个英文 + 2 个简体中文）技术 SEO 干净、desktop/mobile 核心路径通过、构建和自动化测试通过，才能标记 `READY FOR FINAL SEO AUDIT`。Question-first、Manual A/B、local History、隐私边界和 personalized fail-closed 也必须有对应门禁证据。
 
 独立最终审核通过前：
 

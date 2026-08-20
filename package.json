@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "verify:classical-sources": "bun scripts/verify-classical-sources.ts",
     "test:watch": "vitest",
     "indexnow": "bun scripts/indexnow.ts"
   },

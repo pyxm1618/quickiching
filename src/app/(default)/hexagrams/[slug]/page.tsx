@@ -68,6 +68,22 @@ export default async function HexagramDetailPage({ params }: PageProps) {
         <div className="mystic-card-soft p-5"><p className="mystic-kicker">Classical text</p><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--gold-2)]">Judgment · </strong>{knowledge.judgment}</p><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--gold-2)]">Image · </strong>{knowledge.image}</p><p className="mt-4 border-t border-white/[0.08] pt-4 text-xs leading-6 text-[var(--ink-3)]">Source: <a href={knowledge.source.textSourceUrl} rel="noreferrer" className="text-[var(--cyan)] hover:underline">周易 · Wikisource</a>. {knowledge.source.textStatus} Record attribution: <a href={knowledge.source.recordSourceUrl} rel="noreferrer" className="text-[var(--cyan)] hover:underline">MIT data record</a>.</p></div>
       </header>
 
+      <section className="mt-10" aria-labelledby="hexagram-classical-lines-title">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div><p className="mystic-kicker">Classical line text</p><h2 id="hexagram-classical-lines-title" className="mt-2 font-display text-3xl font-normal">Six lines from the fixed source</h2></div>
+          <p className="max-w-xl text-sm leading-7 text-[var(--ink-2)]">These are the classical line texts. The product explanations below are separate Quick I Ching content and are not presented as a modern translation.</p>
+        </div>
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          {knowledge.classicalLines.map((line) => (
+            <article key={line.position} className="rounded-2xl border border-[var(--gold)]/25 bg-[var(--gold)]/[0.04] p-5 sm:p-6">
+              <h3 className="font-display text-xl font-medium">{line.label}</h3>
+              <p className="mt-3 text-base leading-7 text-[var(--ink)]">{line.text}</p>
+              <a href={line.source.textSourceUrl} rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-[var(--jade)] hover:underline">Wikisource fixed revision · oldid {line.source.textSourceRevision}</a>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <div className="mt-10 grid gap-5 md:grid-cols-2">
         <section className="mystic-card p-6" aria-labelledby="hexagram-core-title"><p className="mystic-kicker">Core meaning · {knowledge.interpretation.coreTheme}</p><h2 id="hexagram-core-title" className="mt-2 font-display text-2xl font-normal">What this structure emphasizes</h2><dl className="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-2)]"><div><dt className="font-semibold text-[var(--gold-2)]">Strength</dt><dd>{knowledge.interpretation.strength}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Challenge</dt><dd>{knowledge.interpretation.challenge}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Practical meaning</dt><dd>{knowledge.practicalMeaning}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Structure</dt><dd>{knowledge.interpretation.structureInterpretation}</dd></div></dl><div className="mt-6 border-t border-white/[0.08] pt-5"><p className="mystic-kicker">Related concepts</p><ul className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--ink-2)]">{knowledge.relatedConcepts.map((concept) => <li key={concept} className="rounded-full border border-white/[0.1] px-3 py-1">{concept}</li>)}</ul></div></section>
         <section className="mystic-card p-6" aria-labelledby="hexagram-reflection-title"><p className="mystic-kicker">Practical reflection</p><h2 id="hexagram-reflection-title" className="mt-2 font-display text-2xl font-normal">Questions to carry</h2><ul className="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-2)]">{knowledge.interpretation.reflectionQuestions.map((question) => <li key={question} className="border-l border-[var(--gold)]/40 pl-4">{question}</li>)}</ul><div className="mt-6 border-t border-white/[0.08] pt-5"><p className="mystic-kicker">Watch for</p><ul className="mt-3 space-y-2 text-sm leading-7 text-[var(--ink-2)]">{knowledge.interpretation.watchFor.map((item) => <li key={item}>· {item}</li>)}</ul></div></section>

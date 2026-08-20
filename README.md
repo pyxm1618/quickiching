@@ -41,6 +41,12 @@ No sign-in, payment, credit, database, or production AI call is required for the
 - `/hexagrams` — 64 Hexagrams hub
 - `/hexagrams/[fixed-slug]` — 64 fixed entity pages with six line anchors
 
+### Simplified Chinese entry points
+
+- `/zh` — 中文首页
+- `/zh/methods/mei-hua-yi-shu` — 梅花易数公历适配版；结果区明确区分经典爻辞、QuickIChing 原创说明和爻位结构提示
+- 当前中文页面只覆盖上述入口和方法，不把英文页面伪装成中文本地化版本；没有等价中文页的语言切换会回到中文首页
+
 ### Technical SEO
 
 - `www.quickiching.com` is the canonical host.
@@ -48,6 +54,7 @@ No sign-in, payment, credit, database, or production AI call is required for the
 - Obsolete account/checkout routes do not soft-redirect to the homepage.
 - `/sitemap.xml` lists only canonical indexable Public V1 pages.
 - `/robots.txt` references the production sitemap.
+- The sitemap inventory contains 73 English URLs and the two published Chinese URLs; equivalent pages emit canonical and `hreflang` metadata.
 - IndexNow is implemented as a dry-run-first CLI; **do not use `--submit` before independent final audit approval**.
 
 ```bash
@@ -106,6 +113,7 @@ bun run lint
 bun run typecheck
 bun run test
 bun run build
+bun run verify:classical-sources  # fixed Wikisource oldid check; requires network
 bun run indexnow        # dry-run only
 ```
 
