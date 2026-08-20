@@ -59,9 +59,20 @@ function extractSnapshot(entry: (typeof CLASSICAL_HEXAGRAMS)[number], plainText:
   const path = sourceUrl.searchParams.get("title")?.replace(/^周易\//, "") ?? "";
   const judgmentStart = plainText.indexOf("易经：");
   const judgmentEnd = plainText.indexOf("彖曰：");
+  if (judgmentStart < 0) throw new Error(`CLASSICAL_JUDGMENT_NOT_FOUND: ${entry.number}@${revision}`);
   const judgmentSection = plainText.slice(judgmentStart, judgmentEnd < 0 ? undefined : judgmentEnd);
-  const judgmentLine = judgmentSection.split("\n").map((line) => line.trim()).find((line) => line && line !== "易经：");
-  if (!judgmentLine) throw new Error(`CLASSICAL_JUDGMENT_NOT_FOUND: ${entry.number}@${revision}`);
+  const judgmentSectionLines = judgmentSection
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && line !== "易经：");
+  const lineLabels = Array.from({ length: 6 }, (_, index) => expectedLineLabel(entry.number, index + 1));
+  if (entry.number === 1) lineLabels.push("用九");
+  if (entry.number === 2) lineLabels.push("用六");
+  const firstLineIndex = judgmentSectionLines.findIndex((line) =>
+    lineLabels.some((label) => line.startsWith(`${label}：`) || line.startsWith(`${label}，`)),
+  );
+  const judgmentLines = judgmentSectionLines.slice(0, firstLineIndex < 0 ? judgmentSectionLines.length : firstLineIndex);
+  if (judgmentLines.length === 0) throw new Error(`CLASSICAL_JUDGMENT_NOT_FOUND: ${entry.number}@${revision}`);
 
   const imageSection = plainText.slice(plainText.indexOf("象曰："));
   const imageMatch = imageSection.match(/象曰：\s*([^\n]+)/);
@@ -75,7 +86,7 @@ function extractSnapshot(entry: (typeof CLASSICAL_HEXAGRAMS)[number], plainText:
     number: entry.number,
     path,
     revision,
-    judgment: normalizeClassicalText(judgmentLine),
+    judgment: normalizeClassicalText(judgmentLines.join("")),
     image: normalizeClassicalText(imageMatch[1]),
     lines,
     ...(useLine ? { useLine } : {}),

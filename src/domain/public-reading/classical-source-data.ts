@@ -28,7 +28,7 @@ export type ClassicalSourceText = {
  * Source-side presentation whitespace around Chinese punctuation is normalized;
  * characters and punctuation are otherwise kept as rendered by the fixed page.
  */
-export const CLASSICAL_SOURCE_SNAPSHOT_SHA256 = "cafea16c8dba8319af91303f8dc4e0559970dc48fcb58097b8bf1b66b972f0ce";
+export const CLASSICAL_SOURCE_SNAPSHOT_SHA256 = "f5f09f53d48f01e8f1fcef36fe9080f9ed967d0c403bdb4f656d8947f65adb5e";
 
 export const CLASSICAL_SOURCE_TEXT: Readonly<Record<number, ClassicalSourceText>> = {
   1: {
@@ -45,7 +45,7 @@ export const CLASSICAL_SOURCE_TEXT: Readonly<Record<number, ClassicalSourceText>
     useLine: { label: "用九", text: "见群龙无首，吉。" },
   },
   2: {
-    judgment: "坤：元亨。利牝马之贞。",
+    judgment: "坤：元亨。利牝马之贞。君子有攸往，先迷后得主。利西南得朋，东北丧朋。安贞，吉。",
     image: "地势坤，君子以厚德载物。",
     lines: [
       { label: "初六", text: "履霜，坚冰至。" },

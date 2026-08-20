@@ -21,6 +21,7 @@ describe("public hexagram knowledge", () => {
 
   it("locks the corrected classical punctuation and character fixtures", () => {
     expect(CLASSICAL_HEXAGRAMS.find((entry) => entry.number === 3)?.judgment).toBe("屯：元亨，利贞。勿用有攸往，利建侯。");
+    expect(CLASSICAL_HEXAGRAMS.find((entry) => entry.number === 2)?.judgment).toBe("坤：元亨。利牝马之贞。君子有攸往，先迷后得主。利西南得朋，东北丧朋。安贞，吉。");
     expect(CLASSICAL_HEXAGRAMS.find((entry) => entry.number === 4)?.judgment).toContain("初筮告");
     expect(CLASSICAL_HEXAGRAMS.find((entry) => entry.number === 4)?.judgment).not.toContain("初噬告");
     expect(CLASSICAL_HEXAGRAMS.find((entry) => entry.number === 41)?.judgment).toContain("利有攸往。曷之用");
@@ -48,8 +49,8 @@ describe("public hexagram knowledge", () => {
     expect(snapshot).toHaveLength(64);
     expect(snapshot.every((entry) => entry.revision > 0)).toBe(true);
     expect(CLASSICAL_HEXAGRAMS.every((entry) => new URL(entry.source.textSourceUrl).searchParams.get("oldid"))).toBe(true);
-    expect(digest).toBe("8528b631e95bb53213222bc2fcd324f6853d143e1ddf4fe7a79f7e060ce4c49e");
-    expect(CLASSICAL_SOURCE_SNAPSHOT_SHA256).toBe("cafea16c8dba8319af91303f8dc4e0559970dc48fcb58097b8bf1b66b972f0ce");
+    expect(digest).toBe("11e1151c6e83816f31941fc8d0c70918356d319136c3b8bd8fb5a25ce5117e8b");
+    expect(CLASSICAL_SOURCE_SNAPSHOT_SHA256).toBe("f5f09f53d48f01e8f1fcef36fe9080f9ed967d0c403bdb4f656d8947f65adb5e");
   });
 
   it("reuses six authored v2 line records for every entity", async () => {

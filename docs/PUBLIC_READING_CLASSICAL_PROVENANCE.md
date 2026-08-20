@@ -27,7 +27,7 @@
 
 当前静态源数据快照保存在 `src/domain/public-reading/classical-source-data.ts`，快照 SHA-256 为：
 
-`cafea16c8dba8319af91303f8dc4e0559970dc48fcb58097b8bf1b66b972f0ce`
+`f5f09f53d48f01e8f1fcef36fe9080f9ed967d0c403bdb4f656d8947f65adb5e`
 
 ## 可重复来源核对
 
@@ -37,11 +37,11 @@
 bun run verify:classical-sources
 ```
 
-脚本逐卦请求固定 oldid URL，检查返回 HTML 中的 `wgRevisionId`，解析固定 `zh-Hans` 渲染中的卦辞、大象、六条普通爻和乾/坤特殊爻，再与仓库快照逐字比较。脚本只规范化来源页面因 HTML 排版产生的中文标点周围空白，字符和标点本身不改写。`--dump-json` 可输出固定修订版解析快照；脚本不依赖最新浮动页面。标准 Vitest 测试只检查仓库内的静态快照，因此不依赖实时网络。
+脚本逐卦请求固定 oldid URL，检查返回 HTML 中的 `wgRevisionId`，解析固定 `zh-Hans` 渲染中的卦辞、大象、六条普通爻和乾/坤特殊爻，再与仓库快照逐字比较。卦辞解析会收集“易经”标题下直到第一条爻位标签前的全部渲染行，覆盖坤卦等跨多个 HTML 列表项的情况，避免只取第一行造成截断。脚本只规范化来源页面因 HTML 排版产生的中文标点周围空白，字符和标点本身不改写。`--dump-json` 可输出固定修订版解析快照；脚本不依赖最新浮动页面。标准 Vitest 测试只检查仓库内的静态快照，因此不依赖实时网络。
 
 独立核对脚本的快照摘要为：
 
-`cafea16c8dba8319af91303f8dc4e0559970dc48fcb58097b8bf1b66b972f0ce`
+`f5f09f53d48f01e8f1fcef36fe9080f9ed967d0c403bdb4f656d8947f65adb5e`
 
 摘要生成方式是对脚本从固定 revision 解析出的有序 JSON（含卦号、页面路径、revision、卦辞、大象、普通爻和特殊爻）执行 SHA-256。若更新任何固定 revision 或文本，应先审阅来源差异，再同步静态快照和回归断言。
 
