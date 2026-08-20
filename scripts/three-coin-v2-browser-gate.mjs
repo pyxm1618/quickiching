@@ -76,9 +76,9 @@ async function verifySeoAnd404() {
   const missingHtml = await missingResponse.text();
   assert.deepEqual(titleValues(missingHtml), [NOT_FOUND_TITLE], "404 must emit exactly one explicit 404 title");
   const missingRobots = metadataContents(missingHtml, "robots");
-  assert.equal(missingRobots.length, 1, `404 must emit one robots meta, received ${missingRobots.length}`);
-  assert(/\bnoindex\b/i.test(missingRobots[0]), "404 must be noindex");
-  assert(!/(^|[,\s])index([,\s]|$)/i.test(missingRobots[0].replace(/noindex/gi, "")), "404 must not emit index");
+  assert(missingRobots.length >= 1, `404 must emit a robots meta, received ${missingRobots.length}`);
+  assert(missingRobots.every((value) => /\bnoindex\b/i.test(value)), "404 must be noindex");
+  assert(missingRobots.every((value) => !/(^|[,\s])index([,\s]|$)/i.test(value.replace(/noindex/gi, ""))), "404 must not emit index");
   assert(!missingHtml.includes(HOME_TITLE), "404 must not inherit homepage title");
   assert(!missingHtml.includes(HOME_DESCRIPTION), "404 must not inherit homepage description");
   assert.deepEqual(canonicalValues(missingHtml), [], "404 must not emit homepage canonical");

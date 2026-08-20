@@ -11,6 +11,8 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   async redirects() {
     return [
+      { source: "/en", destination: "/", permanent: true },
+      { source: "/en/:path*", destination: "/:path*", permanent: true },
       {
         source: "/:path*",
         has: [{ type: "host", value: "quickiching.com" }],

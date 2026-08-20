@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import sitemap from "@/app/sitemap";
 import robots from "@/app/robots";
+import { sitemapUrlInventory } from "@/i18n/helpers";
 import { HOME_DESCRIPTION, HOME_H1, HOME_TITLE, INDEXABLE_PATHS, LEGACY_REDIRECTS, SITE_ORIGIN, absoluteUrl, isPrivateOrCommercialPath } from "./seo";
 
 const THREE_COIN_RESULT_PATH = "/readings/three-coin/result";
@@ -17,7 +18,9 @@ describe("Public SEO V1 constants", () => {
     const entries = sitemap();
     expect(INDEXABLE_PATHS).toHaveLength(73);
     expect(new Set(INDEXABLE_PATHS).size).toBe(73);
-    expect(entries.map((entry) => entry.url)).toEqual(INDEXABLE_PATHS.map(absoluteUrl));
+    expect(entries).toHaveLength(75);
+    expect(entries.slice(0, INDEXABLE_PATHS.length).map((entry) => entry.url)).toEqual(INDEXABLE_PATHS.map(absoluteUrl));
+    expect(entries.map((entry) => entry.url)).toEqual(sitemapUrlInventory());
     expect(entries.every((entry) => entry.url.startsWith(`${SITE_ORIGIN}/`))).toBe(true);
     for (const path of INDEXABLE_PATHS) expect(isPrivateOrCommercialPath(path)).toBe(false);
   });

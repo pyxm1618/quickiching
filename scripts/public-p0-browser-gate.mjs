@@ -105,9 +105,11 @@ async function verifySeoAssets(page) {
   assert.equal(sitemapResponse.status, 200, "Sitemap must be reachable");
   const sitemap = await sitemapResponse.text();
   const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-  assert.equal(locs.length, 73, `Sitemap must contain 73 URLs, received ${locs.length}`);
+  assert.equal(locs.length, 75, `Sitemap must contain 75 URLs, received ${locs.length}`);
+  assert(sitemap.includes("https://www.quickiching.com/zh"), "Sitemap must include the Chinese homepage");
+  assert(sitemap.includes("https://www.quickiching.com/zh/methods/mei-hua-yi-shu"), "Sitemap must include the Chinese Mei Hua page");
   for (const path of HEXAGRAM_PATHS) assert(sitemap.includes(`https://www.quickiching.com${path}`), `Sitemap missing ${path}`);
-  for (const forbidden of ["/history", "/readings/", "/api/", "/zh/", "/trigrams/"]) assert(!sitemap.includes(forbidden), `Sitemap contains forbidden path ${forbidden}`);
+  for (const forbidden of ["/history", "/readings/", "/api/", "/zh/methods/three-coin", "/trigrams/", "/en/"]) assert(!sitemap.includes(forbidden), `Sitemap contains forbidden path ${forbidden}`);
 
   const hubResponse = await page.goto(`${BASE}/hexagrams`, { waitUntil: "networkidle0", timeout: 30_000 });
   assert.equal(hubResponse?.status(), 200, "Hexagram hub must be reachable");
@@ -133,7 +135,7 @@ async function verifySeoAssets(page) {
   assert.equal(getApi.headers.get("allow"), "POST", "Personalized endpoint must advertise POST only");
   const otherApi = await fetch(`${BASE}/api/not-a-route`);
   assert.equal(otherApi.status, 404, "Unlisted API routes must remain closed");
-  log("73-URL sitemap, hub, entity metadata/anchors, History noindex, and API closure PASS");
+  log("75-URL sitemap, hub, entity metadata/anchors, History noindex, and API closure PASS");
 }
 
 async function verifyQuestionReading(page) {
