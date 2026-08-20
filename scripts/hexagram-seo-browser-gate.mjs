@@ -143,7 +143,8 @@ try {
     await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
     const links = await page.$$eval(`a[href^="${expectedPrefix}"]`, (nodes) => nodes.map((node) => new URL(node.getAttribute("href") ?? "", location.href).pathname));
     assert.equal(new Set(links).size, 64, `${path}: Hub must link exactly 64 detail pages`);
-    assert.equal(await page.$eval("h1", (node) => node.textContent?.trim() ?? "").length > 0, true, `${path}: Hub H1 missing`);
+    const hubH1 = await page.$eval("h1", (node) => node.textContent?.trim() ?? "");
+    assert(hubH1.length > 0, `${path}: Hub H1 missing`);
   }
   const chineseHubStatus = await page.goto(`${BASE}/zh/hexagrams`, { waitUntil: "networkidle0", timeout: 30_000 });
   assert.equal(chineseHubStatus?.status(), 200, "Chinese Hub must be reachable");
