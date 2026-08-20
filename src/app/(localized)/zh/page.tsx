@@ -1,19 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { getDictionary } from "@/i18n/dictionaries";
 
-type PageProps = { params: Promise<{ locale: string }> };
-
-async function assertChinese(params: PageProps["params"]): Promise<"zh-Hans"> {
-  const { locale } = await params;
-  if (locale !== "zh") notFound();
-  return "zh-Hans";
-}
-
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  await assertChinese(params);
+export function generateMetadata(): Metadata {
   const canonical = canonicalUrl("/zh");
   return {
     title: "易经在线｜Quick I Ching 中文入口",
@@ -29,9 +19,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function ChineseHomePage({ params }: PageProps) {
-  const locale = await assertChinese(params);
-  const dictionary = getDictionary(locale);
+export default function ChineseHomePage() {
+  const dictionary = getDictionary("zh-Hans");
   return (
     <article>
       <section className="border-b border-white/[0.07]">

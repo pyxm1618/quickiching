@@ -4,10 +4,11 @@ import nextConfig from "../../next.config.mjs";
 
 const appRoot = new URL(".", import.meta.url).pathname;
 const defaultLayout = `${appRoot}(default)/layout.tsx`;
-const localizedLayout = `${appRoot}(localized)/[locale]/layout.tsx`;
+const localizedLayout = `${appRoot}(localized)/zh/layout.tsx`;
+const dynamicLocaleRoot = `${appRoot}(localized)/[locale]`;
 const globalNotFound = `${appRoot}global-not-found.tsx`;
-const localizedNotFound = `${appRoot}(localized)/[locale]/not-found.tsx`;
-const localizedCatchAll = `${appRoot}(localized)/[locale]/[...slug]/page.tsx`;
+const localizedNotFound = `${appRoot}(localized)/zh/not-found.tsx`;
+const localizedCatchAll = `${appRoot}(localized)/zh/[...slug]/page.tsx`;
 const legacyActionSource = new URL("../legacy/commercial/actions.ts", import.meta.url).pathname;
 
 describe("App Router multilingual architecture", () => {
@@ -18,10 +19,8 @@ describe("App Router multilingual architecture", () => {
     expect(readFileSync(localizedLayout, "utf8")).toContain('<html lang="zh-Hans"');
   });
 
-  it("keeps the localized route static and limited to zh", () => {
-    expect(readFileSync(localizedLayout, "utf8")).toContain('return [{ locale: "zh" }]');
-    expect(readFileSync(localizedLayout, "utf8")).toContain('if (locale !== "zh") notFound()');
-    expect(readFileSync(localizedLayout, "utf8")).toContain("export const dynamicParams = false");
+  it("uses a static zh segment so unknown English paths cannot be captured as locales", () => {
+    expect(existsSync(dynamicLocaleRoot)).toBe(false);
     expect(existsSync(localizedCatchAll)).toBe(true);
   });
 
@@ -36,7 +35,7 @@ describe("App Router multilingual architecture", () => {
 
   it("gives localized 404s their own noindex metadata", async () => {
     expect(existsSync(localizedNotFound)).toBe(true);
-    const localizedNotFoundModule = await import("./(localized)/[locale]/not-found");
+    const localizedNotFoundModule = await import("./(localized)/zh/not-found");
     expect(localizedNotFoundModule.metadata).toBeDefined();
     if (!localizedNotFoundModule.metadata) return;
     expect(localizedNotFoundModule.metadata.title).toEqual({ absolute: "页面不存在 | Quick I Ching" });
@@ -46,7 +45,7 @@ describe("App Router multilingual architecture", () => {
   });
 
   it("attaches localized 404 metadata to the catch-all route before notFound()", async () => {
-    const catchAllModule = await import("./(localized)/[locale]/[...slug]/page");
+    const catchAllModule = await import("./(localized)/zh/[...slug]/page");
     expect(catchAllModule.metadata).toBeDefined();
     if (!catchAllModule.metadata) return;
     expect(catchAllModule.metadata.title).toEqual({ absolute: "页面不存在 | Quick I Ching" });

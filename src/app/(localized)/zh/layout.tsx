@@ -1,6 +1,5 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import "../../globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -28,22 +27,11 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return [{ locale: "zh" }];
-}
-
-export default async function LocalizedRootLayout({
+export default function LocalizedRootLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
 }) {
-  const { locale } = await params;
-  if (locale !== "zh") notFound();
-
   return (
     <html lang="zh-Hans" style={systemFontVariables}>
       <body className="flex min-h-screen flex-col">

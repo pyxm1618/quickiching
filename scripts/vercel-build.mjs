@@ -104,6 +104,7 @@ log("IndexNow gate is DRY_RUN only; production submission is intentionally forbi
 run("bun", ["run", "indexnow"]);
 run("bun", ["run", "build"]);
 run("bun", ["scripts/public-v1-server-action-gate.ts"]);
+run("node", ["scripts/invalid-locale-server-log-gate.mjs"]);
 
 const manifestHash = await fileHash("package.json");
 const lockHash = await fileHash("bun.lock");

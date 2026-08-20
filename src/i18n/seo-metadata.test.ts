@@ -14,19 +14,19 @@ describe("multilingual metadata and sitemap integration", () => {
   it("keeps equivalent English and Chinese pages on one alternate-language set", async () => {
     const englishHome = await import("@/app/(default)/page");
     const englishMeiHua = await import("@/app/(default)/methods/mei-hua-yi-shu/page");
-    const chineseHome = await import("@/app/(localized)/[locale]/page");
-    const chineseMeiHua = await import("@/app/(localized)/[locale]/methods/mei-hua-yi-shu/page");
+    const chineseHome = await import("@/app/(localized)/zh/page");
+    const chineseMeiHua = await import("@/app/(localized)/zh/methods/mei-hua-yi-shu/page");
 
     expect(englishHome.metadata.alternates).toMatchObject({ canonical: canonicalUrl("/") });
     expect(englishHome.metadata.alternates?.languages).toEqual(alternateLanguages("homepage"));
     expect(englishMeiHua.metadata.alternates?.languages).toEqual(alternateLanguages("mei-hua-yi-shu"));
-    expect((await chineseHome.generateMetadata({ params: Promise.resolve({ locale: "zh" }) })).alternates?.languages).toEqual(alternateLanguages("homepage"));
-    expect((await chineseMeiHua.generateMetadata({ params: Promise.resolve({ locale: "zh" }) })).alternates?.languages).toEqual(alternateLanguages("mei-hua-yi-shu"));
+    expect(chineseHome.generateMetadata().alternates?.languages).toEqual(alternateLanguages("homepage"));
+    expect(chineseMeiHua.generateMetadata().alternates?.languages).toEqual(alternateLanguages("mei-hua-yi-shu"));
   });
 
   it("renders the Chinese Mei Hua title with the brand exactly once", async () => {
-    const chineseMeiHua = await import("@/app/(localized)/[locale]/methods/mei-hua-yi-shu/page");
-    const metadata = await chineseMeiHua.generateMetadata({ params: Promise.resolve({ locale: "zh" }) });
+    const chineseMeiHua = await import("@/app/(localized)/zh/methods/mei-hua-yi-shu/page");
+    const metadata = chineseMeiHua.generateMetadata();
     expect(metadata.title).toEqual({ absolute: "梅花易数时间起卦｜公历在线起卦 | Quick I Ching" });
   });
 });

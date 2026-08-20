@@ -1,22 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { MeiHuaTool } from "@/components/public-reading/mei-hua-tool";
 import { QuestionFirst } from "@/components/public-reading/question-first";
 import { getDictionary } from "@/i18n/dictionaries";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { ZH_HANS_MEI_HUA_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
 
-type PageProps = { params: Promise<{ locale: string }> };
-
-async function assertChinese(params: PageProps["params"]): Promise<"zh-Hans"> {
-  const { locale } = await params;
-  if (locale !== "zh") notFound();
-  return "zh-Hans";
-}
-
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  await assertChinese(params);
+export function generateMetadata(): Metadata {
   const canonical = canonicalUrl("/zh/methods/mei-hua-yi-shu");
   return {
     title: { absolute: ZH_HANS_MEI_HUA_CONTENT.metadata.title },
@@ -26,9 +16,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function ChineseMeiHuaPage({ params }: PageProps) {
-  const locale = await assertChinese(params);
-  const dictionary = getDictionary(locale);
+export default function ChineseMeiHuaPage() {
+  const dictionary = getDictionary("zh-Hans");
   const content = ZH_HANS_MEI_HUA_CONTENT;
 
   return (
