@@ -122,7 +122,7 @@ async function verifyHttpBoundaries() {
     ["/", "en", `${CANONICAL_ORIGIN}/`, "I Ching Online — Cast Your Hexagram", "I Ching Online — Free Hexagram Reading | Quick I Ching"],
     ["/methods/mei-hua-yi-shu", "en", `${CANONICAL_ORIGIN}/methods/mei-hua-yi-shu`, "Mei Hua Yi Shu", "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting | Quick I Ching"],
     ["/zh", "zh-Hans", `${CANONICAL_ORIGIN}/zh`, "用易经整理问题，回到现实行动", "易经在线｜Quick I Ching 中文入口"],
-    ["/zh/methods/mei-hua-yi-shu", "zh-Hans", `${CANONICAL_ORIGIN}/zh/methods/mei-hua-yi-shu`, "梅花易数时间起卦", "梅花易数时间起卦｜公历在线起卦 | Quick I Ching"],
+    ["/zh/methods/mei-hua-yi-shu", "zh-Hans", `${CANONICAL_ORIGIN}/zh/methods/mei-hua-yi-shu`, "梅花易数时间起卦", "梅花易数公历适配版｜在线起卦 | Quick I Ching"],
   ];
   for (const [path, htmlLang, canonical, requiredText, title] of metadataChecks) {
     const html = await (await expectStatus(path, 200)).text();
