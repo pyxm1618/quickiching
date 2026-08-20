@@ -12,6 +12,13 @@ function matchesPrefix(pathname: string, prefix: string): boolean {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (request.headers.has("next-action")) {
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
   if (GONE_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))) {
     return new NextResponse("This Commercial V2 route is not available in Public V1.", {
       status: 410,
@@ -37,5 +44,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/signin/:path*", "/account/:path*", "/checkout/:path*", "/result/:path*", "/cast/:path*", "/api/:path*"],
+  matcher: ["/:path*"],
 };

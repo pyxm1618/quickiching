@@ -13,13 +13,13 @@ import {
   revealCastingAction,
   startPreviewAction,
   startDeepReadingAction,
-} from "@/app/actions";
+} from "@/legacy/commercial/actions";
 import { SCENES, INTERPRETATION_GOALS, QUESTION_MIN_CHARS, QUESTION_MAX_CHARS, type CastingMethod } from "@/domain/casting/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Label } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { HexagramDisplay } from "@/components/cast/hexagram-display";
+import { HexagramDisplay } from "@/legacy/commercial/components/cast/hexagram-display";
 import { SealMark } from "@/components/hex/seal-mark";
 
 /**

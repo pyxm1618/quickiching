@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { loadCastingView } from "@/server/loaders";
-import { HexagramDisplay } from "@/components/cast/hexagram-display";
-import { DeleteCastButton } from "@/components/cast/delete-cast-button";
+import { HexagramDisplay } from "@/legacy/commercial/components/cast/hexagram-display";
+import { DeleteCastButton } from "@/legacy/commercial/components/cast/delete-cast-button";
 import { SealMark } from "@/components/hex/seal-mark";
 import { Card, CardContent } from "@/components/ui/card";
 

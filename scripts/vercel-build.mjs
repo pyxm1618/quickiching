@@ -103,6 +103,7 @@ run("bun", ["run", "test"]);
 log("IndexNow gate is DRY_RUN only; production submission is intentionally forbidden here");
 run("bun", ["run", "indexnow"]);
 run("bun", ["run", "build"]);
+run("bun", ["scripts/public-v1-server-action-gate.ts"]);
 
 const manifestHash = await fileHash("package.json");
 const lockHash = await fileHash("bun.lock");
@@ -151,6 +152,7 @@ try {
   run("node", ["scripts/browser-gate.mjs"], { env: browserEnv });
   run("node", ["scripts/on-page-seo-browser-gate.mjs"], { env: browserEnv });
   run("node", ["scripts/three-coin-v2-browser-gate.mjs"], { env: browserEnv });
+  run("node", ["scripts/multilingual-browser-gate.mjs"], { env: { MULTILINGUAL_TEST_BASE_URL: BASE, CHROME_PATH: chromePath } });
   run("node", ["scripts/public-p0-browser-gate.mjs"], { env: browserEnv });
   run("node", ["scripts/interpretation-bundle-gate.mjs"], { env: browserEnv });
   run("node", ["scripts/logo-browser-gate.mjs"], { env: browserEnv });

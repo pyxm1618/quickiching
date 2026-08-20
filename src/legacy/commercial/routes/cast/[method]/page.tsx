@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { CastingWizard } from "@/components/cast/casting-wizard";
+import { CastingWizard } from "@/legacy/commercial/components/cast/casting-wizard";
 import { CASTING_METHODS, type CastingMethod } from "@/domain/casting/types";
 
 export default async function CastPage({ params }: { params: Promise<{ method: string }> }) {

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createCheckoutAction } from "@/app/actions";
+import { createCheckoutAction } from "@/legacy/commercial/actions";
 import { Button } from "@/components/ui/button";
 import { PRODUCTS } from "@/domain/entitlements/pricing";
 

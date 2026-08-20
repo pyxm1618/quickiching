@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { requestCastingDeletionAction } from "@/app/actions";
+import { requestCastingDeletionAction } from "@/legacy/commercial/actions";
 import { Button } from "@/components/ui/button";
 
 export function DeleteCastButton({ castingId }: { castingId: string }) {
