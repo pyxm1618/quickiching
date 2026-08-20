@@ -5,10 +5,11 @@ import { alternateLanguages, canonicalUrl, sitemapUrlInventory } from "./helpers
 describe("multilingual metadata and sitemap integration", () => {
   it("publishes the registry inventory rather than a hand-maintained English-only sitemap", () => {
     expect(sitemap().map((entry) => entry.url)).toEqual(sitemapUrlInventory());
-    expect(sitemap()).toHaveLength(75);
+    expect(sitemap()).toHaveLength(140);
     expect(sitemap().map((entry) => entry.url)).toContain(canonicalUrl("/zh"));
     expect(sitemap().map((entry) => entry.url)).toContain(canonicalUrl("/zh/methods/mei-hua-yi-shu"));
     expect(sitemap().map((entry) => entry.url).some((url) => url.includes("/en"))).toBe(false);
+    expect(sitemap().map((entry) => entry.url)).toContain(canonicalUrl("/zh/hexagrams"));
   });
 
   it("keeps equivalent English and Chinese pages on one alternate-language set", async () => {
@@ -28,5 +29,14 @@ describe("multilingual metadata and sitemap integration", () => {
     const chineseMeiHua = await import("@/app/(localized)/zh/methods/mei-hua-yi-shu/page");
     const metadata = chineseMeiHua.generateMetadata();
     expect(metadata.title).toEqual({ absolute: "梅花易数公历适配版｜在线起卦 | Quick I Ching" });
+  });
+
+  it("keeps the Chinese Hub descriptive and outside the detail TDH registry", async () => {
+    const chineseHub = await import("@/app/(localized)/zh/hexagrams/page");
+    expect(chineseHub.metadata).toMatchObject({
+      alternates: { canonical: canonicalUrl("/zh/hexagrams") },
+      robots: { index: true, follow: true },
+    });
+    expect(chineseHub.metadata.title).toEqual({ absolute: "简体中文易经卦库｜Quick I Ching" });
   });
 });

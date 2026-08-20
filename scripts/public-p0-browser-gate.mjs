@@ -31,6 +31,7 @@ const HEXAGRAM_PATHS = [
   "/hexagrams/57-the-gentle-wind", "/hexagrams/58-the-joyous-lake", "/hexagrams/59-dispersion", "/hexagrams/60-limitation",
   "/hexagrams/61-inner-truth", "/hexagrams/62-small-exceeding", "/hexagrams/63-after-completion", "/hexagrams/64-before-completion",
 ];
+const CHINESE_HEXAGRAM_PATHS = HEXAGRAM_PATHS.map((path) => "/zh" + path);
 
 function log(message) {
   console.log(`[Public P0 Browser Gate] ${message}`);
@@ -105,17 +106,19 @@ async function verifySeoAssets(page) {
   assert.equal(sitemapResponse.status, 200, "Sitemap must be reachable");
   const sitemap = await sitemapResponse.text();
   const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-  assert.equal(locs.length, 75, `Sitemap must contain 75 URLs, received ${locs.length}`);
+  assert.equal(locs.length, 140, `Sitemap must contain 140 URLs, received ${locs.length}`);
   assert(sitemap.includes("https://www.quickiching.com/zh"), "Sitemap must include the Chinese homepage");
   assert(sitemap.includes("https://www.quickiching.com/zh/methods/mei-hua-yi-shu"), "Sitemap must include the Chinese Mei Hua page");
   for (const path of HEXAGRAM_PATHS) assert(sitemap.includes(`https://www.quickiching.com${path}`), `Sitemap missing ${path}`);
+  assert(sitemap.includes("https://www.quickiching.com/zh/hexagrams"), "Sitemap must include the Chinese Hexagram hub");
+  for (const path of CHINESE_HEXAGRAM_PATHS) assert(sitemap.includes(`https://www.quickiching.com${path}`), `Sitemap missing ${path}`);
   for (const forbidden of ["/history", "/readings/", "/api/", "/zh/methods/three-coin", "/trigrams/", "/en/"]) assert(!sitemap.includes(forbidden), `Sitemap contains forbidden path ${forbidden}`);
 
   const hubResponse = await page.goto(`${BASE}/hexagrams`, { waitUntil: "networkidle0", timeout: 30_000 });
   assert.equal(hubResponse?.status(), 200, "Hexagram hub must be reachable");
   const hub = await page.evaluate(() => [...document.querySelectorAll('a[href^="/hexagrams/"]')].map((node) => new URL(node.getAttribute("href") ?? "", location.href).pathname).filter((path) => path !== "/hexagrams"));
   assert.equal(new Set(hub).size, 64, `Hub must link exactly 64 entity pages, received ${new Set(hub).size}`);
-  for (const path of ["/hexagrams/1-the-creative", "/hexagrams/2-the-receptive", "/hexagrams/24-return", "/hexagrams/64-before-completion"]) {
+  for (const path of ["/hexagrams/1-the-creative", "/hexagrams/2-the-receptive", "/hexagrams/24-return", "/hexagrams/64-before-completion", "/zh/hexagrams/1-the-creative", "/zh/hexagrams/64-before-completion"]) {
     const response = await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
     assert.equal(response?.status(), 200, `${path} must be reachable`);
     const snapshot = await page.evaluate(() => ({
@@ -125,7 +128,7 @@ async function verifySeoAssets(page) {
     }));
     assert(snapshot.canonical.endsWith(path), `${path}: canonical is not self-referencing`);
     assert(snapshot.lineAnchors.every(Boolean), `${path}: six line anchors are incomplete`);
-    assert(snapshot.text.includes("Judgment") && snapshot.text.includes("Image"), `${path}: classical text is missing`);
+    assert(snapshot.text.includes(path.startsWith("/zh/") ? "卦辞" : "Judgment") && snapshot.text.includes(path.startsWith("/zh/") ? "大象" : "Image"), `${path}: classical text is missing`);
   }
 
   const historyHtml = await (await fetch(`${BASE}/history/`)).text();
@@ -135,7 +138,7 @@ async function verifySeoAssets(page) {
   assert.equal(getApi.headers.get("allow"), "POST", "Personalized endpoint must advertise POST only");
   const otherApi = await fetch(`${BASE}/api/not-a-route`);
   assert.equal(otherApi.status, 404, "Unlisted API routes must remain closed");
-  log("75-URL sitemap, hub, entity metadata/anchors, History noindex, and API closure PASS");
+  log("140-URL sitemap, English/Chinese hubs, entity metadata/anchors, History noindex, and API closure PASS");
 }
 
 async function verifyQuestionReading(page) {

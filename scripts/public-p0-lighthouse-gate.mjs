@@ -91,12 +91,14 @@ try {
   after.populatedResult = await audit(browser, { origin: BASE, path: "/methods/manual-cast", label: "AFTER_POPULATED_RESULT", seed: true, indexable: true });
   after.hub = await audit(browser, { origin: BASE, path: "/hexagrams", label: "AFTER_HEXAGRAM_HUB", desktop: true });
   after.detail = await audit(browser, { origin: BASE, path: "/hexagrams/24-return", label: "AFTER_HEXAGRAM_DETAIL" });
+  after.chineseHub = await audit(browser, { origin: BASE, path: "/zh/hexagrams", label: "AFTER_CHINESE_HEXAGRAM_HUB", desktop: true });
+  after.chineseDetail = await audit(browser, { origin: BASE, path: "/zh/hexagrams/24-return", label: "AFTER_CHINESE_HEXAGRAM_DETAIL" });
   after.history = await audit(browser, { origin: BASE, path: "/history/", label: "AFTER_HISTORY", indexable: false });
 
   for (const key of ["home", "threeCoin", "hub"]) {
     assert(after[key].performance >= baseline[key].performance - 5, `${key}: performance dropped by more than five points (${baseline[key].performance} → ${after[key].performance})`);
   }
-  log("Before/after comparable Lighthouse gates, populated result, entity detail, and History PASS; CLS target <= 0.10");
+  log("Before/after comparable Lighthouse gates, English/Chinese Hub and detail pages, populated result, and History PASS; CLS target <= 0.10");
 } finally {
   await browser.close();
 }
