@@ -2,13 +2,14 @@ import { classicalHexagramByNumber, type ClassicalHexagram } from "./classical";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 import type { HexagramInterpretation, LineInterpretation } from "@/domain/interpretation/v2/types";
 
-export type PublicHexagramKnowledge = ClassicalHexagram & {
+export type PublicHexagramKnowledge = Omit<ClassicalHexagram, "lines"> & {
   seoTitle: string;
   seoDescription: string;
   practicalMeaning: string;
   relatedConcepts: readonly [string, string, string];
   interpretation: HexagramInterpretation;
   lines: readonly [LineInterpretation, LineInterpretation, LineInterpretation, LineInterpretation, LineInterpretation, LineInterpretation];
+  classicalLines: ClassicalHexagram["lines"];
 };
 
 export async function loadPublicHexagramKnowledge(number: number): Promise<PublicHexagramKnowledge> {
@@ -18,6 +19,7 @@ export async function loadPublicHexagramKnowledge(number: number): Promise<Publi
   ]);
   return {
     ...classical,
+    classicalLines: classical.lines,
     seoTitle: `Hexagram ${classical.number} ${classical.chineseName} · ${classical.englishName}`,
     seoDescription: `${classical.judgment} ${classical.image} Explore the primary meaning, six changing-line anchors, and classical source metadata for Hexagram ${classical.number}.`,
     practicalMeaning: bundle.hexagram.orientation,

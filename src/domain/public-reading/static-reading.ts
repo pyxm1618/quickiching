@@ -18,6 +18,8 @@ export type PublicHexagramSummary = {
   coreMeaning: string;
   judgment: string;
   image: string;
+  sourceUrl: string;
+  sourceRevision: number;
   href: string;
 };
 
@@ -26,8 +28,14 @@ export type PublicActiveLine = {
   lineValue: 6 | 9;
   lineType: string;
   changeDirection: string;
-  theme: string;
-  meaning: string;
+  classicalLine: {
+    label: string;
+    text: string;
+    sourceUrl: string;
+    sourceRevision: number;
+  };
+  positionHint: string;
+  originalExplanation: string;
   caution: string;
   reflection: string;
   href: string;
@@ -67,6 +75,8 @@ function summaryFor(number: number, interpretation?: HexagramInterpretation): Pu
     coreMeaning: interpretation?.coreMeaning ?? fallback.summary,
     judgment: classical.judgment,
     image: classical.image,
+    sourceUrl: classical.source.textSourceUrl,
+    sourceRevision: classical.source.textSourceRevision,
     href: `/hexagrams/${classical.slug}`,
   };
 }
@@ -102,10 +112,13 @@ function activeLineFor(
   const value = reading.lineValuesBottomUp[position - 1];
   if (value !== 6 && value !== 9) throw new Error(`PUBLIC_ACTIVE_LINE_VALUE_MISMATCH: ${position}`);
   const primary = summaryFor(reading.primaryHexagram);
+  const classical = classicalHexagramByNumber(reading.primaryHexagram);
+  const classicalLine = classical.lines[position - 1];
+  if (!classicalLine) throw new Error(`PUBLIC_CLASSICAL_LINE_MISSING: ${reading.primaryHexagram}:${position}`);
   const direction = localizedContent
     ? value === 6 ? localizedContent.activeLine.yinToYang : localizedContent.activeLine.yangToYin
     : value === 6 ? "yin → yang" : "yang → yin";
-  const linePhase = [
+  const linePositionHint = [
     "The first movement changes how the situation takes root.",
     "The second movement changes the way the situation responds.",
     "The third movement changes the hinge between inner and outer conditions.",
@@ -114,14 +127,20 @@ function activeLineFor(
     "The sixth movement changes how the present cycle reaches its edge.",
   ][position - 1];
   if (localizedContent) {
-    const phase = localizedContent.linePhases[position - 1];
+    const phase = localizedContent.linePositionHints[position - 1];
     return {
       position,
       lineValue: value,
       lineType: value === 6 ? localizedContent.activeLine.oldYin : localizedContent.activeLine.oldYang,
       changeDirection: direction,
-      theme: phase,
-      meaning: fillTemplate(localizedContent.activeLine.meaningTemplate, { position, phase }),
+      classicalLine: {
+        label: classicalLine.label,
+        text: classicalLine.text,
+        sourceUrl: classicalLine.source.textSourceUrl,
+        sourceRevision: classicalLine.source.textSourceRevision,
+      },
+      positionHint: phase,
+      originalExplanation: fillTemplate(localizedContent.activeLine.originalExplanationTemplate, { position, phase }),
       caution: value === 6 ? localizedContent.activeLine.oldYinCaution : localizedContent.activeLine.oldYangCaution,
       reflection: fillTemplate(localizedContent.activeLine.reflectionTemplate, { position }),
       href: `${primary.href}#line-${position}`,
@@ -133,8 +152,14 @@ function activeLineFor(
     lineValue: value,
     lineType: value === 6 ? "Old yin" : "Old yang",
     changeDirection: direction,
-    theme: lineInterpretation?.theme ?? `${primary.chineseName} line ${position} · ${direction}`,
-    meaning: lineInterpretation?.meaning ?? `${linePhase} Read it with the primary hexagram's core meaning: ${primary.coreMeaning}`,
+    classicalLine: {
+      label: classicalLine.label,
+      text: classicalLine.text,
+      sourceUrl: classicalLine.source.textSourceUrl,
+      sourceRevision: classicalLine.source.textSourceRevision,
+    },
+    positionHint: linePositionHint,
+    originalExplanation: lineInterpretation?.meaning ?? `${linePositionHint} Read it with the primary hexagram's core meaning: ${primary.coreMeaning}`,
     caution: lineInterpretation?.caution ?? (value === 6
       ? "A receptive pattern is opening into action; do not confuse movement with certainty."
       : "A forceful pattern is changing into receptivity; do not treat momentum as permission to overreach."),
@@ -209,7 +234,7 @@ export function buildStaticReading(
           : fillTemplate(localizedMessages.whereChangeSome, { items: activeLines.map((line) => line.position).join("、") })
         : activeLines.length === 0
           ? "No moving line was recorded; the emphasis remains on the primary structure."
-          : activeLines.map((line) => `Line ${line.position}: ${line.theme}`).join(" · "),
+          : activeLines.map((line) => `Line ${line.position}: ${line.positionHint}`).join(" · "),
       directionOfChange: localizedMessages
         ? direction
         : bundles?.primary

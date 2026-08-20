@@ -90,11 +90,13 @@ export function PublicReadingResult({
           <h4 className="reading-title">{model.primary.englishName}</h4>
           <p className="reading-cn mt-2">{model.primary.chineseName} · {model.primary.pinyin}</p>
           <HexagramLines lines={[...reading.lineValuesBottomUp]} size="lg" showLabels className="mt-8 max-w-sm" />
+          <p className="mystic-kicker mt-8">{dictionary.reading.originalExplanation}</p>
           <p className="reading-theme">{model.primary.theme}</p>
           <p className="reading-copy">{model.primary.coreMeaning}</p>
           <Link href={model.primary.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--cyan)] hover:underline">{formatCopy(dictionary.reading.linkPrimary, { number: model.primary.number })}</Link>
-          <p className="mt-5 border-t border-white/[0.08] pt-4 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--gold-2)]">{dictionary.locale === "zh-Hans" ? "卦辞 · " : "Judgment · "}</strong>{model.primary.judgment}</p>
-          <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--gold-2)]">{dictionary.locale === "zh-Hans" ? "象辞 · " : "Image · "}</strong>{model.primary.image}</p>
+          <p className="mt-5 border-t border-white/[0.08] pt-4 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--gold-2)]">{dictionary.reading.judgment} · </strong>{model.primary.judgment}</p>
+          <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--gold-2)]">{dictionary.reading.image} · </strong>{model.primary.image}</p>
+          <a href={model.primary.sourceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-[var(--cyan)] hover:underline">{dictionary.reading.source} · oldid {model.primary.sourceRevision}</a>
         </article>
 
         <div className="change-bridge" aria-label={`${dictionary.reading.changingLines}: ${movingLabel}`}>
@@ -109,6 +111,7 @@ export function PublicReadingResult({
             <h4 className="reading-title">{model.relating.englishName}</h4>
             <p className="reading-cn mt-2">{model.relating.chineseName} · {model.relating.pinyin}</p>
             <HexagramLines lines={relatingLines(reading)} size="lg" showLabels className="mt-8 max-w-sm" />
+            <p className="mystic-kicker mt-8">{dictionary.reading.originalExplanation}</p>
             <p className="reading-theme">{model.relating.theme}</p>
             <p className="reading-copy">{model.relating.coreMeaning}</p>
             <Link href={model.relating.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--cyan)] hover:underline">{dictionary.reading.linkRelating}</Link>
@@ -131,7 +134,19 @@ export function PublicReadingResult({
                 <h5 className="font-display text-xl font-normal text-[var(--gold-2)]">{dictionary.locale === "zh-Hans" ? `${dictionary.reading.line}${line.position}爻` : `${dictionary.reading.line} ${line.position}`} · {line.lineType}</h5>
                 <span className="font-mono text-xs text-[var(--cyan)]">{line.changeDirection} · {line.lineValue}</span>
               </div>
-              <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">{line.meaning}</p>
+              <div className="mt-4 rounded-2xl border border-[var(--gold)]/25 bg-[var(--gold)]/[0.05] p-4">
+                <p className="mystic-kicker">{dictionary.reading.classicalLine}</p>
+                <p className="mt-2 text-base leading-7 text-[var(--ink)]"><strong className="text-[var(--gold-2)]">{line.classicalLine.label}：</strong>{line.classicalLine.text}</p>
+                <a href={line.classicalLine.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-xs font-semibold text-[var(--cyan)] hover:underline">{dictionary.reading.source} · oldid {line.classicalLine.sourceRevision}</a>
+              </div>
+              <div className="mt-4 rounded-2xl border border-white/[0.08] p-4">
+                <p className="mystic-kicker">{dictionary.reading.originalExplanation}</p>
+                <p className="mt-2 text-sm leading-7 text-[var(--ink-2)]">{line.originalExplanation}</p>
+              </div>
+              <div className="mt-4 rounded-2xl border border-[var(--cyan)]/20 p-4">
+                <p className="mystic-kicker">{dictionary.reading.positionHint}</p>
+                <p className="mt-2 text-sm leading-7 text-[var(--ink-2)]">{line.positionHint}</p>
+              </div>
               <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--gold-2)]">{dictionary.reading.caution} </strong>{line.caution}</p>
               <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--gold-2)]">{dictionary.reading.reflection} </strong>{line.reflection}</p>
               <Link href={line.href} className="mt-4 inline-flex text-xs font-semibold text-[var(--cyan)] hover:underline">{formatCopy(dictionary.reading.readFullLine, { number: model.primary.number })}</Link>

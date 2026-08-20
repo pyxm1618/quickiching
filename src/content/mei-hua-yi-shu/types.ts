@@ -8,13 +8,13 @@ export type LocalizedHexagramContent = {
 
 export type LocalizedReadingContent = {
   hexagrams: Readonly<Record<number, LocalizedHexagramContent>>;
-  linePhases: readonly [string, string, string, string, string, string];
+  linePositionHints: readonly [string, string, string, string, string, string];
   activeLine: {
     oldYin: string;
     oldYang: string;
     yinToYang: string;
     yangToYin: string;
-    meaningTemplate: string;
+    originalExplanationTemplate: string;
     oldYinCaution: string;
     oldYangCaution: string;
     reflectionTemplate: string;
