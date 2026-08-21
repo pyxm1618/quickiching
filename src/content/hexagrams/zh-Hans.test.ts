@@ -5,6 +5,11 @@ import { ZH_HANS_HEXAGRAM_CONTENT, zhHansHexagramContent } from "./zh-Hans";
 const RELATIONSHIP_NUMBERS = new Set([8, 13, 16, 22, 24, 25, 39, 43, 44, 45, 56]);
 const CAREER_NUMBERS = new Set([15, 28]);
 const FORTUNE_NUMBERS = new Set([48]);
+const MODERN_FIELDS = ["coreMeaning", "practicalUnderstanding", "supports", "watchFor", "unchanging", "reflectionQuestions", "lineNotes"] as const;
+
+function sentences(value: string): string[] {
+  return value.split(/[。！？!?；;]\s*/u).map((sentence) => sentence.trim()).filter(Boolean);
+}
 
 describe("Simplified Chinese hexagram detail content", () => {
   it("contains one complete, six-line record for every King Wen entity", () => {
@@ -65,5 +70,24 @@ describe("Simplified Chinese hexagram detail content", () => {
     expect(new Set(practical).size).toBe(64);
     const lineSets = Object.values(ZH_HANS_HEXAGRAM_CONTENT).map((content) => content.lineNotes.join("|"));
     expect(new Set(lineSets).size).toBe(64);
+  });
+
+  it("does not reuse a complete modern-explanation sentence across ten or more pages", () => {
+    const sentenceCounts = new Map<string, number>();
+    for (const classical of CLASSICAL_HEXAGRAMS) {
+      const content = zhHansHexagramContent(classical.number);
+      for (const field of MODERN_FIELDS) {
+        const value = content[field];
+        const values = Array.isArray(value) ? value : [value];
+        for (const item of values) {
+          for (const sentence of sentences(String(item))) {
+            sentenceCounts.set(sentence, (sentenceCounts.get(sentence) ?? 0) + 1);
+          }
+        }
+      }
+    }
+
+    const repeated = [...sentenceCounts.entries()].filter(([, count]) => count >= 10);
+    expect(repeated, repeated.map(([sentence, count]) => `${count}x ${sentence}`).join("\n")).toEqual([]);
   });
 });

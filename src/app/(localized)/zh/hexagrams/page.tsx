@@ -1,3 +1,4 @@
+import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
@@ -47,7 +48,7 @@ export default function ChineseHexagramsHubPage() {
           return (
             <li key={hexagram.number} className="rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-5">
               <p className="font-mono text-xs text-[var(--bronze)]">第 {hexagram.number} 卦 · {hexagram.symbol}</p>
-              <h2 className="mt-2 font-display text-lg font-medium"><Link href={"/zh/hexagrams/" + hexagram.slug} className="hover:text-[var(--jade)]">{fullName}（{hexagram.chineseName}）</Link></h2>
+              <h2 className="mt-2 font-display text-lg font-medium"><Link href={"/zh/hexagrams/" + hexagram.slug} data-seo-inbound-anchor={seo.primaryKeyword} className="hover:text-[var(--jade)]">{seo.primaryKeyword}：{fullName}（{hexagram.chineseName}）</Link></h2>
               <p className="mt-2 text-sm font-semibold text-[var(--ink)]">{content.theme}</p>
               <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">{content.coreMeaning}</p>
               <Link href={"/zh/hexagrams/" + hexagram.slug} className="mt-4 inline-flex text-sm font-semibold text-[var(--jade)] hover:underline">查看第 {hexagram.number} 卦详情 →</Link>

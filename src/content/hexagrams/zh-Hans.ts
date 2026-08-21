@@ -9,15 +9,6 @@ type GuidanceSeed = {
   lineFocus: readonly [string, string, string, string, string, string];
 };
 
-const LINE_POSITION_HINTS = [
-  "它更接近事情的起点和落脚处。",
-  "它常反映你回应局面的方式。",
-  "它位于内在条件与外在行动的交界处。",
-  "它涉及事情进入更大环境的方式。",
-  "它触及最可见的责任与判断位置。",
-  "它提示当前阶段接近边界或转折点。",
-] as const;
-
 const GUIDANCE_BY_NUMBER: Record<number, GuidanceSeed> = {
   1: { practical: "把开创力拆成可承担的步骤，先确认边界、资源与长期责任，再让行动逐渐形成声势。", watch: "强烈的主动性可能让你忽略他人的节奏或现实限制。", stable: "即使没有动爻，乾卦也可作为持续修养和承担责任的本卦框架；稳定不等于必须不断加速。", lineFocus: ["意图是否清楚并愿意开始", "把能力放到可见的行动上", "检查坚持是否带着警觉", "在风险边缘保留回旋", "让影响力接受共同规则", "知道何时收住过高的姿态"] },
   2: { practical: "先接住现实条件、他人的需要和事情的次序，再选择具体而有边界的配合方式。", watch: "顺势容易被误读为放弃判断，或把过多责任全部放到自己身上。", stable: "没有动爻时，坤卦强调稳定承载、辨认边界和耐心培育，而不是被动等待别人替你决定。", lineFocus: ["留意最早出现的信号", "让承接方式保持端正", "在责任中保留自己的判断", "知道什么需要暂时收口", "在可见位置维持分寸", "避免在冲突中耗尽承载力"] },
@@ -106,8 +97,7 @@ const POSITIONS = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"] a
 
 function buildLineNotes(focus: GuidanceSeed["lineFocus"]): ZhHansHexagramDetailContent["lineNotes"] {
   return focus.map((lineFocus, index) =>
-    POSITIONS[index] + "：" + lineFocus + "。" + LINE_POSITION_HINTS[index] +
-    " 如果起卦时这一位置发生变化，可以把它当作变化线索，用现实证据和后续行动复核，而不是把爻辞当作确定答案。",
+    POSITIONS[index] + "：" + lineFocus + "。先在现实中记录“" + lineFocus + "”如何出现，再与“" + focus[(index + 1) % focus.length] + "”对照；若该位置在起卦时变化，检验它是否改变了“" + lineFocus + "”所指的现实安排。",
   ) as unknown as ZhHansHexagramDetailContent["lineNotes"];
 }
 
@@ -121,20 +111,20 @@ function buildContent(number: number): ZhHansHexagramDetailContent {
     number,
     theme: summary.theme,
     coreMeaning: summary.coreMeaning,
-    practicalUnderstanding: "在易经起卦的阅读中，" + guidance.practical + " 先把" + summary.theme + "放回本卦、动爻和之卦的结构，再回到现实处境。",
+    practicalUnderstanding: "在易经起卦的阅读中，" + guidance.practical + " 先把" + summary.theme + "放回本卦、动爻和之卦的结构，再回到现实处境。可以先从“" + guidance.lineFocus[0] + "”入手，最后用“" + guidance.lineFocus[5] + "”复查是否仍然适合。",
     supports: [
-      "可以把" + summary.theme + "作为观察入口，先记录能够验证的事实，再用周易卦辞与大象提出一个具体问题。",
-      "起卦之后，动爻提示变化位置，之卦提供比较方向；它们适合帮助整理思路，不替代本人和他人的自主选择。",
+      "可先把“" + guidance.lineFocus[0] + "”写成一个现实观察点，再用周易的卦辞与大象核对它是否真的发生。",
+      "如果“" + guidance.lineFocus[1] + "”已经有迹可循，就把它变成一次具体、可回看的起卦后行动，并用之卦把“" + guidance.lineFocus[4] + "”与本卦并读。",
     ],
     watchFor: [
       guidance.watch,
-      "如果解释开始替代事实、专业意见或安全判断，就应暂停，把注意力放回现实信息和可承担的下一步。",
+      "特别留意“" + guidance.lineFocus[2] + "”是否被压力或期待遮住，解释应当回到事实、边界和可承担的下一步。",
     ],
-    unchanging: guidance.stable + " 没有动爻时，不生成之卦；可以安静阅读本卦的卦辞、大象与六条爻辞，并观察它们如何对应当前问题。",
+    unchanging: guidance.stable + " 无动爻时，可以回看本卦的卦辞和爻辞，并把“" + guidance.lineFocus[4] + "”作为观察线索，而若有之卦，则与本卦并读，不把它当成确定答案。",
     reflectionQuestions: [
-      "面对“" + summary.theme + "”，现在最值得先核对的事实是什么？",
-      "如果本卦只是一个反思框架，下一步哪个小行动最容易被观察？",
-      "过一段时间后，我想用什么现实证据回看这次起卦？",
+      "关于“" + guidance.lineFocus[0] + "”，现在最值得先核对的事实是什么？",
+      "如果要检验“" + guidance.lineFocus[3] + "”，你愿意安排哪个小而可逆的行动？",
+      "当“" + guidance.lineFocus[5] + "”出现时，什么证据会让你调整判断？",
     ],
     lineNotes: buildLineNotes(guidance.lineFocus),
     ...(SCENE_MODULES[number] ? { sceneModule: SCENE_MODULES[number] } : {}),

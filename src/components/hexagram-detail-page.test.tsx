@@ -81,10 +81,26 @@ describe("static hexagram detail page", () => {
         />,
       );
     };
-    expect(render(23, knowledge23)).toContain("Bo (Splitting Apart)");
+    const hexagram23Html = render(23, knowledge23);
+    expect(hexagram23Html).toContain('data-special-serp-module="hexagram-23"');
+    expect(hexagram23Html).toContain("Bo (Splitting Apart)");
     expect(render(52, knowledge52)).toMatch(/Line 3[\s\S]{0,1000}purposeful stillness/i);
     expect(render(54, knowledge54)).toMatch(/relationships|romance/i);
     expect(render(61, knowledge61)).toMatch(/Line 5[\s\S]{0,1000}trust/i);
     expect(render(64, knowledge64)).not.toMatch(/64 hexagrams|all 64 hexagrams/i);
+  });
+
+  it("does not label a detail-to-hub link as an inbound anchor", async () => {
+    const knowledge = await loadPublicHexagramKnowledge(1);
+    const html = renderToStaticMarkup(
+      <HexagramDetailPageView
+        locale="en"
+        knowledge={knowledge}
+        seo={hexagramSeoFor(1, "en")}
+        previous={null}
+        next={CLASSICAL_HEXAGRAMS[1]}
+      />,
+    );
+    expect(html).not.toContain("data-seo-inbound-anchor");
   });
 });

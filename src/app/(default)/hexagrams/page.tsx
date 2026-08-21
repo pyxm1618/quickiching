@@ -1,7 +1,9 @@
+import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getBasicInterpretation } from "@/domain/interpretation/basic";
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
+import { hexagramSeoFor } from "@/content/hexagrams/seo";
 
 export const metadata: Metadata = {
   title: "64 I Ching Hexagrams — King Wen Sequence Guide",
@@ -20,10 +22,11 @@ export default function HexagramsHubPage() {
       <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CLASSICAL_HEXAGRAMS.map((hexagram) => {
           const interpretation = getBasicInterpretation(hexagram.number);
+          const seo = hexagramSeoFor(hexagram.number, "en");
           return (
             <li key={hexagram.number} className="rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-5">
               <p className="font-mono text-xs text-[var(--bronze)]">Hexagram {hexagram.number}</p>
-              <h2 className="mt-2 font-display text-lg font-medium"><Link href={`/hexagrams/${hexagram.slug}`} className="hover:text-[var(--jade)]">{hexagram.englishName} <span className="font-cjk">{hexagram.chineseName}</span></Link></h2>
+              <h2 className="mt-2 font-display text-lg font-medium"><Link href={`/hexagrams/${hexagram.slug}`} data-seo-inbound-anchor={seo.primaryKeyword} className="hover:text-[var(--jade)]">{seo.primaryKeyword}: {hexagram.englishName} <span className="font-cjk">{hexagram.chineseName}</span></Link></h2>
               <p className="mt-2 text-sm font-semibold text-[var(--ink)]">{interpretation.theme}</p>
               <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">{interpretation.summary}</p>
               <Link href={`/hexagrams/${hexagram.slug}`} className="mt-4 inline-flex text-sm font-semibold text-[var(--jade)] hover:underline">Open hexagram detail →</Link>

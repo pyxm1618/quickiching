@@ -29,7 +29,7 @@ function fullChineseName(seo: HexagramSeoEntry): string {
 function EnglishSpecialModule({ number, knowledge }: { number: number; knowledge: PublicHexagramKnowledge }) {
   if (number === 23) {
     return (
-      <section className="mystic-card mt-10 p-6" aria-labelledby="special-serp-module">
+      <section className="mystic-card mt-10 p-6" data-special-serp-module="hexagram-23" aria-labelledby="special-serp-module">
         <p className="mystic-kicker">Bo · Splitting Apart</p>
         <h2 id="special-serp-module" className="mt-2 font-display text-2xl font-normal">When support is eroding</h2>
         <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Bo, often rendered as Splitting Apart, is useful for examining what is losing support and what still deserves protection. It does not make decline a fate; it asks you to preserve the essential, reduce avoidable load, and look for a sounder base before expanding.</p>
@@ -38,7 +38,7 @@ function EnglishSpecialModule({ number, knowledge }: { number: number; knowledge
   }
   if (number === 52) {
     return (
-      <section className="mystic-card mt-10 p-6" aria-labelledby="special-serp-module">
+      <section className="mystic-card mt-10 p-6" data-special-serp-module="hexagram-52" aria-labelledby="special-serp-module">
         <p className="mystic-kicker">Purposeful stillness</p>
         <h2 id="special-serp-module" className="mt-2 font-display text-2xl font-normal">Line 3 · purposeful stillness in practice</h2>
         <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Line 3 is where inner pressure and outward movement meet. For Keeping Still Mountain, pause long enough to notice what your body, schedule, and commitments are carrying; a useful stillness can interrupt an automatic reaction without turning away from a responsibility that still needs a clear next step.</p>
@@ -48,7 +48,7 @@ function EnglishSpecialModule({ number, knowledge }: { number: number; knowledge
   }
   if (number === 54) {
     return (
-      <section className="mystic-card mt-10 p-6" aria-labelledby="special-serp-module">
+      <section className="mystic-card mt-10 p-6" data-special-serp-module="hexagram-54" aria-labelledby="special-serp-module">
         <p className="mystic-kicker">Relationships and romance</p>
         <h2 id="special-serp-module" className="mt-2 font-display text-2xl font-normal">Position, reciprocity, consent, and dignity</h2>
         <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">The Marrying Maiden can prompt a careful look at unequal positions, role expectations, and whether a relationship gives both people room to choose. In romance, attraction or a formal label is not proof of a durable outcome; watch for reciprocity, clear consent, dignity, and the freedom to say no.</p>
@@ -58,7 +58,7 @@ function EnglishSpecialModule({ number, knowledge }: { number: number; knowledge
   }
   if (number === 61) {
     return (
-      <section className="mystic-card mt-10 p-6" aria-labelledby="special-serp-module">
+      <section className="mystic-card mt-10 p-6" data-special-serp-module="hexagram-61" aria-labelledby="special-serp-module">
         <p className="mystic-kicker">Evidence-backed sincerity</p>
         <h2 id="special-serp-module" className="mt-2 font-display text-2xl font-normal">Line 5 · trust that can be checked</h2>
         <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Line 5 brings Inner Truth into a visible position of responsibility. Trust is stronger when words, repeated actions, and the other person’s freely given response agree; sincerity is not a demand that someone accept your story without evidence.</p>
@@ -68,7 +68,7 @@ function EnglishSpecialModule({ number, knowledge }: { number: number; knowledge
   }
   if (number === 64) {
     return (
-      <section className="mystic-card mt-10 p-6" aria-labelledby="special-serp-module">
+      <section className="mystic-card mt-10 p-6" data-special-serp-module="hexagram-64" aria-labelledby="special-serp-module">
         <p className="mystic-kicker">One unfinished entity</p>
         <h2 id="special-serp-module" className="mt-2 font-display text-2xl font-normal">Before Completion as a singular structure</h2>
         <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">This page addresses Before Completion itself: an unfinished transition that benefits from careful sequencing, attention to detail, and a final check before the next crossing. Keep the entity in view rather than turning it into a broad index or a promise about how a situation must end.</p>
@@ -197,7 +197,7 @@ export function HexagramDetailPageView({
       <section className="mt-10" aria-labelledby="hexagram-lines-title">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div><p className="mystic-kicker">{isChinese ? "六条爻的同页锚点" : "Six changing-line anchors"}</p><h2 id="hexagram-lines-title" className="mt-2 font-display text-3xl font-normal">{isChinese ? "逐条结构说明" : "Line-by-line interpretation"}</h2></div>
-          <p className="max-w-xl text-sm leading-7 text-[var(--ink-2)]">{isChinese ? "六条爻保留在本页的 #line-1 到 #line-6 锚点中；它们用于阅读结构，不创建独立爻 URL。" : "These six records are authored static content for this hexagram. Reading links target stable same-page anchors; no separate line pages are created."}</p>
+          <p className="max-w-xl text-sm leading-7 text-[var(--ink-2)]">{isChinese ? "六条爻保留在本页的 #line-1 到 #line-6 锚点中；它们用于阅读结构，不创建独立爻 URL。若起卦时出现动爻，请把变化当作线索，用现实证据复核，不把爻辞当成确定答案。" : "These six records are authored static content for this hexagram. Reading links target stable same-page anchors; no separate line pages are created."}</p>
         </div>
         <nav className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm" aria-label={isChinese ? "相关中文与英文指南" : "Reading structure guides"}>{isChinese ? <><Link href="/guides/changing-lines" className="font-semibold text-[var(--jade)] hover:underline">动爻说明（English）</Link><Link href="/guides/primary-relating-hexagrams" className="font-semibold text-[var(--jade)] hover:underline">本卦与之卦（English）</Link><Link href="/zh/methods/mei-hua-yi-shu" className="font-semibold text-[var(--jade)] hover:underline">开始中文起卦</Link></> : <><Link href="/guides/changing-lines" className="font-semibold text-[var(--jade)] hover:underline">How changing lines work</Link><Link href="/guides/primary-relating-hexagrams" className="font-semibold text-[var(--jade)] hover:underline">Primary &amp; relating hexagrams</Link><Link href="/guides/how-to-ask-the-i-ching" className="font-semibold text-[var(--jade)] hover:underline">How to ask the I Ching</Link></>}</nav>
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
@@ -238,7 +238,7 @@ export function HexagramDetailPageView({
         <p className="mt-5 border-t border-white/[0.08] pt-5 text-sm leading-7 text-[var(--ink-2)]" data-legal-disclaimer>{isChinese ? "这是用于反思的经典与结构性内容，不是确定性预言，也不能替代医疗、法律、财务或安全建议。" : "This page is a reflective interpretation of a classical structure. It is not deterministic prediction and does not replace medical, legal, financial, or safety advice."}</p>
       </section>
 
-      <div className="mt-6 text-sm" data-seo-inbound-anchor={linkLabel}><Link href={hubPath} className="font-semibold text-[var(--jade)] hover:underline">{linkLabel}</Link></div>
+      <div className="mt-6 text-sm"><Link href={hubPath} className="font-semibold text-[var(--jade)] hover:underline">{linkLabel}</Link></div>
     </article>
   );
 }

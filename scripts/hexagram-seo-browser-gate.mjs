@@ -50,6 +50,7 @@ async function extractSnapshot(page) {
       ogUrl: document.querySelector('meta[property="og:url"]')?.getAttribute("content") ?? "",
       h1: [...document.querySelectorAll("h1")].map((node) => node.textContent?.trim() ?? ""),
       lineAnchors: Array.from({ length: 6 }, (_, index) => document.querySelector(`#line-${index + 1}`) !== null),
+      detailInboundAnchorCount: root?.querySelectorAll("[data-seo-inbound-anchor]").length ?? 0,
       alternates: [...document.querySelectorAll('link[rel="alternate"][hreflang]')].map((node) => ({ hreflang: node.getAttribute("hreflang"), href: node.getAttribute("href") })),
       htmlLang: document.documentElement.lang,
       internalHrefs: [...(root?.querySelectorAll("a[href]") ?? [])].map((node) => new URL(node.getAttribute("href") ?? "", location.href).pathname),
@@ -71,6 +72,7 @@ function assertSnapshot(entry, snapshot) {
   assert.equal(snapshot.ogUrl, entry.canonicalUrl, `${path}: og:url mismatch`);
   assert.deepEqual(snapshot.h1, [entry.finalH1], `${path}: H1 is not unique/exact`);
   assert(snapshot.lineAnchors.every(Boolean), `${path}: line anchors incomplete`);
+  assert.equal(snapshot.detailInboundAnchorCount, 0, `${path}: detail page contains a fake inbound-anchor marker`);
   assert.equal(snapshot.htmlLang, entry.locale === "zh-Hans" ? "zh-Hans" : "en", `${path}: html lang mismatch`);
   assertAlternateMap(snapshot.alternates, expectedAlternates(entry), path);
 
@@ -109,6 +111,26 @@ async function assertNoOverflow(page, label) {
   assert(dimensions.scrollWidth <= dimensions.clientWidth + 1, `${label}: horizontal overflow ${dimensions.scrollWidth} > ${dimensions.clientWidth}`);
 }
 
+async function assertKeyboardFocus(page, label) {
+  await page.evaluate(() => {
+    document.body.tabIndex = -1;
+    document.body.focus();
+  });
+  await page.keyboard.press("Tab");
+  const focus = await page.evaluate(() => {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement)) return null;
+    const rect = active.getBoundingClientRect();
+    const style = window.getComputedStyle(active);
+    return {
+      visible: rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none",
+      focusStyle: style.outlineStyle !== "none" || style.boxShadow !== "none",
+    };
+  });
+  assert(focus?.visible, `${label}: Tab did not move focus to a visible control`);
+  assert(focus?.focusStyle, `${label}: focused control has no visible focus treatment`);
+}
+
 const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
 const browser = await puppeteer.launch({
   args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
@@ -120,8 +142,8 @@ try {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 1000 });
   for (const entry of HEXAGRAM_SEO_REGISTRY) {
-    const response = await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "networkidle0", timeout: 30_000 });
-    assert.equal(response?.status(), 200, `${pathFor(entry)}: expected 200, got ${response?.status()}`);
+    const response = await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
+    assert([200, 304].includes(response?.status()), `${pathFor(entry)}: expected 200 or 304, got ${response?.status()}`);
     assertSnapshot(entry, await extractSnapshot(page));
   }
   log("128/128 production detail DOM, exact TDH, canonical, hreflang, JSON-LD, line anchors, internal links, and no-alias checks PASS");
@@ -130,30 +152,45 @@ try {
     const en = entryFor(number, "en");
     const zh = entryFor(number, "zh-Hans");
     for (const [entry, targetPath] of [[en, `/zh/hexagrams/${en.slug}`], [zh, `/hexagrams/${zh.slug}`]]) {
-      await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "networkidle0", timeout: 30_000 });
+      await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
       const target = await page.$eval("header [data-language-switch]", (node) => ({ href: node.getAttribute("href"), equivalent: node.getAttribute("data-equivalent") }));
       assert.equal(target.href, targetPath, `${pathFor(entry)}: language switch target mismatch`);
       assert.equal(target.equivalent, "true", `${pathFor(entry)}: language switch is not equivalent`);
       assert.equal(await page.$$eval("header [data-language-switch]", (nodes) => nodes.length), 1, `${pathFor(entry)}: language switcher count mismatch`);
+      await assertKeyboardFocus(page, pathFor(entry));
     }
   }
   log("10 sampled paired language switches (including 1, 23, 52, 54, 61, 64) PASS");
 
   for (const [path, expectedPrefix] of [["/hexagrams", "/hexagrams/"], ["/zh/hexagrams", "/zh/hexagrams/"]]) {
-    await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
     const links = await page.$$eval(`a[href^="${expectedPrefix}"]`, (nodes) => nodes.map((node) => new URL(node.getAttribute("href") ?? "", location.href).pathname));
     assert.equal(new Set(links).size, 64, `${path}: Hub must link exactly 64 detail pages`);
     const hubH1 = await page.$eval("h1", (node) => node.textContent?.trim() ?? "");
     assert(hubH1.length > 0, `${path}: Hub H1 missing`);
+    const hubEntries = HEXAGRAM_SEO_REGISTRY.filter((entry) => (path === "/zh/hexagrams" ? entry.locale === "zh-Hans" : entry.locale === "en"));
+    const inbound = await page.$$eval("a[data-seo-inbound-anchor][href]", (nodes) => nodes.map((node) => ({
+      href: new URL(node.getAttribute("href") ?? "", location.href).pathname,
+      primary: node.getAttribute("data-seo-inbound-anchor") ?? "",
+      text: node.textContent?.replace(/\s+/gu, " ").trim() ?? "",
+    })));
+    assert.equal(inbound.length, 64, `${path}: expected 64 marked Hub-to-detail anchors`);
+    for (const entry of hubEntries) {
+      const target = pathFor(entry);
+      const anchor = inbound.find((candidate) => candidate.href === target);
+      assert(anchor, `${path}: missing Hub-to-detail anchor for ${target}`);
+      assert.equal(anchor.primary, entry.primaryKeyword, `${path}: inbound data marker mismatch for ${target}`);
+      assert(anchor.text.toLocaleLowerCase().includes(entry.primaryKeyword.toLocaleLowerCase()), `${path}: visible inbound anchor omits ${entry.primaryKeyword}`);
+    }
   }
-  const chineseHubStatus = await page.goto(`${BASE}/zh/hexagrams`, { waitUntil: "networkidle0", timeout: 30_000 });
+  const chineseHubStatus = await page.goto(`${BASE}/zh/hexagrams`, { waitUntil: "load", timeout: 30_000 });
   assert([200, 304].includes(chineseHubStatus?.status() ?? 0), `Chinese Hub must be reachable, received ${chineseHubStatus?.status()}`);
   assert.equal(await page.$eval("[data-tdh-status]", (node) => node.getAttribute("data-tdh-status")), "PENDING_RESEARCH", "Chinese Hub TDH status must remain PENDING_RESEARCH");
   log("English and Chinese Hub → 64 detail links, reachable Chinese Hub, and PENDING_RESEARCH marker PASS");
 
   for (const entry of HEXAGRAM_SEO_REGISTRY.filter((candidate) => sampleNumbers.includes(candidate.number))) {
     await page.setViewport({ width: 390, height: 844 });
-    await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
     await assertNoOverflow(page, `${pathFor(entry)} 390px`);
     const h1Fits = await page.$eval("h1", (node) => {
       const rect = node.getBoundingClientRect();

@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import { HEXAGRAM_SEO_REGISTRY } from "../src/content/hexagrams/seo.ts";
+import { densityReviewRulingFor } from "../src/content/hexagrams/density-rulings.ts";
 import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.HEXAGRAM_SEO_AUDIT_BASE_URL || process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
@@ -207,7 +209,6 @@ function staticSnapshot(html) {
     earlyCopy: htmlText(elementWithAttribute(root, "data-seo-early-copy")),
     h2,
     breadcrumb: htmlText(elementWithAttribute(root, "aria-label")),
-    inboundAnchor: htmlText(elementWithAttribute(root, "data-seo-inbound-anchor")),
     lineAnchors: Array.from({ length: 6 }, (_, index) => new RegExp(`\\bid=["']line-${index + 1}["']`, "iu").test(root)),
     alternates,
     htmlLang: html.match(/<html\b[^>]*>/iu)?.[0] ? htmlAttribute(html.match(/<html\b[^>]*>/iu)[0], "lang") : "",
@@ -217,25 +218,31 @@ function staticSnapshot(html) {
   };
 }
 
-function explainDensity(entry, bodyText, bodyTokenCount, familyMatches, density) {
-  const sections = entry.locale === "zh-Hans"
-    ? [
-      [bodyText.includes("卦辞"), "卦辞与大象"],
-      [bodyText.includes("六条爻"), "六条爻的逐条说明"],
-      [bodyText.includes("无动爻"), "无动爻阅读"],
-      [bodyText.includes("现实"), "现实反思"],
-      [bodyText.includes("反思问题"), "反思问题"],
-    ]
-    : [
-      [bodyText.includes("Judgment"), "Judgment and Image source"],
-      [bodyText.includes("Line-by-line"), "six line interpretation"],
-      [bodyText.includes("Unchanging reading"), "unchanging reading"],
-      [bodyText.includes("Practical"), "practical reflection"],
-      [bodyText.includes("Transition"), "transition and stability"],
-    ];
-  const present = sections.filter(([included]) => included).map(([, label]) => label);
-  const direction = density < entry.familyDensityMin ? "below" : density > entry.familyDensityMax ? "above" : "within";
-  return `${entry.locale} ${entry.number} ${entry.hexagramName}: approved family coverage is ${direction} the workbook soft range (${(density * 100).toFixed(3)}%; ${familyMatches}/${Math.max(bodyTokenCount, 1)} tokens). The page keeps ${present.join(", ")} as substantive content and repeats the exact entity only where the workbook placement requires it.`;
+function hubPathForLocale(locale) {
+  return locale === "zh-Hans" ? "/zh/hexagrams" : "/hexagrams";
+}
+
+function inboundAnchorsFromHtml(html, sourceUrl) {
+  return elementMatches(html, "a")
+    .map((anchor) => {
+      const openingTag = anchor.match(/^<a\b[^>]*>/iu)?.[0] ?? "";
+      return {
+        sourceUrl,
+        sourcePath: new URL(sourceUrl).pathname,
+        href: htmlAttribute(openingTag, "href"),
+        primary: htmlAttribute(openingTag, "data-seo-inbound-anchor"),
+        text: htmlText(anchor),
+      };
+    })
+    .filter((anchor) => anchor.href && anchor.primary);
+}
+
+function inboundAnchorFor(entry, hubAnchors) {
+  const targetPath = pagePath(entry);
+  return hubAnchors.find((anchor) => {
+    const hrefPath = new URL(anchor.href, CANONICAL_ORIGIN).pathname;
+    return hrefPath === targetPath && normalizeForMatch(anchor.text).includes(normalizeForMatch(entry.primaryKeyword));
+  }) ?? null;
 }
 
 async function snapshotPage(page, entry) {
@@ -244,7 +251,7 @@ async function snapshotPage(page, entry) {
     timeout: 30_000,
   });
   if (!STATIC_BUILD_DIR) {
-    assert.equal(response?.status(), 200, `${entry.canonicalUrl}: expected 200, received ${response?.status()}`);
+    assert([200, 304].includes(response?.status()), `${entry.canonicalUrl}: expected 200 or 304, received ${response?.status()}`);
   }
   return page.evaluate(() => {
     const root = document.querySelector("main article[data-hexagram-detail]");
@@ -265,7 +272,6 @@ async function snapshotPage(page, entry) {
       earlyCopy: root.querySelector("[data-seo-early-copy]")?.textContent?.replace(/\s+/gu, " ").trim() ?? "",
       h2: [...root.querySelectorAll("h2")].map((node) => node.textContent?.replace(/\s+/gu, " ").trim() ?? ""),
       breadcrumb: root.querySelector('nav[aria-label]')?.textContent?.replace(/\s+/gu, " ").trim() ?? "",
-      inboundAnchor: root.querySelector("[data-seo-inbound-anchor]")?.textContent?.replace(/\s+/gu, " ").trim() ?? "",
       lineAnchors: Array.from({ length: 6 }, (_, index) => root.querySelector(`#line-${index + 1}`) !== null),
       alternates: [...document.querySelectorAll('link[rel="alternate"][hreflang]')].map((node) => ({
         hreflang: node.getAttribute("hreflang") ?? "",
@@ -281,7 +287,29 @@ async function snapshotPage(page, entry) {
   });
 }
 
-function auditSnapshot(entry, snapshot) {
+async function snapshotHub(page, locale) {
+  const sourcePath = hubPathForLocale(locale);
+  const response = await page.goto(`${BASE}${sourcePath}`, {
+    waitUntil: "networkidle0",
+    timeout: 30_000,
+  });
+  assert([200, 304].includes(response?.status()), `${sourcePath}: expected 200 or 304, received ${response?.status()}`);
+  return page.evaluate((path) => [...document.querySelectorAll("main a[data-seo-inbound-anchor][href]")].map((node) => ({
+    sourceUrl: location.href,
+    sourcePath: path,
+    href: node.getAttribute("href") ?? "",
+    primary: node.getAttribute("data-seo-inbound-anchor") ?? "",
+    text: node.textContent?.replace(/\s+/gu, " ").trim() ?? "",
+  })), sourcePath);
+}
+
+function staticHubAnchors(locale) {
+  const sourcePath = hubPathForLocale(locale);
+  const html = readFileSync(resolve(STATIC_BUILD_DIR, `.${sourcePath}.html`), "utf8");
+  return inboundAnchorsFromHtml(html, CANONICAL_ORIGIN + sourcePath);
+}
+
+function auditSnapshot(entry, snapshot, inboundAnchor) {
   assert(snapshot, `${entry.canonicalUrl}: detail root missing from initial HTML`);
   const bodyText = normalize(snapshot.bodyText);
   const approvedPhrases = approvedDensityPhrases(entry);
@@ -300,6 +328,10 @@ function auditSnapshot(entry, snapshot) {
   const brandOccurrences = countPhraseOccurrences(bodyText, "Quick I Ching") + countPhraseOccurrences(bodyText, "QuickIChing");
   const expectedCanonical = entry.canonicalUrl;
   const alternateMap = Object.fromEntries(snapshot.alternates.map((alternate) => [alternate.hreflang, alternate.href]));
+  const inboundAnchorValid = Boolean(inboundAnchor
+    && inboundAnchor.sourcePath === hubPathForLocale(entry.locale)
+    && new URL(inboundAnchor.href, CANONICAL_ORIGIN).pathname === pagePath(entry)
+    && normalizeForMatch(inboundAnchor.text).includes(normalizeForMatch(entry.primaryKeyword)));
   const placement = {
     title: snapshot.title === entry.finalTitle,
     description: snapshot.description === entry.finalDescription,
@@ -311,7 +343,7 @@ function auditSnapshot(entry, snapshot) {
     earlyCopy: normalizeForMatch(snapshot.earlyCopy).includes(normalizeForMatch(entry.primaryKeyword)),
     h2: snapshot.h2.some((value) => normalizeForMatch(value).includes(normalizeForMatch(entry.primaryKeyword))),
     breadcrumb: normalizeForMatch(snapshot.breadcrumb).includes(normalizeForMatch(entry.primaryKeyword)),
-    inboundAnchor: normalizeForMatch(snapshot.inboundAnchor).includes(normalizeForMatch(entry.primaryKeyword)),
+    inboundAnchor: inboundAnchorValid,
   };
   const structuredGraph = snapshot.jsonLd.flatMap((entryValue) => Array.isArray(entryValue?.["@graph"]) ? entryValue["@graph"] : []);
   const webPage = structuredGraph.find((entryValue) => entryValue?.["@type"] === "WebPage");
@@ -327,6 +359,8 @@ function auditSnapshot(entry, snapshot) {
     zhHans: alternateMap["zh-Hans"] === CANONICAL_ORIGIN + "/zh/hexagrams/" + entry.slug,
     xDefault: alternateMap["x-default"] === CANONICAL_ORIGIN + "/hexagrams/" + entry.slug,
   };
+  const densityBand = familyDensity < entry.familyDensityMin ? "below-3%" : familyDensity > entry.familyDensityMax ? "above-5%" : "within-3%-5%";
+  const densityRuling = densityBand === "within-3%-5%" ? null : densityReviewRulingFor(entry.locale, entry.number);
   const hardFailures = [
     ...Object.entries(placement).filter(([, passed]) => !passed).map(([name]) => `placement:${name}`),
     snapshot.canonical !== expectedCanonical ? "canonical" : null,
@@ -338,9 +372,9 @@ function auditSnapshot(entry, snapshot) {
     snapshot.hiddenCount > 0 ? `hidden-content:${snapshot.hiddenCount}` : null,
     snapshot.keywordListCount > 0 ? `keyword-list:${snapshot.keywordListCount}` : null,
     brandOccurrences > entry.brandMentionsInBodyMax ? `brand-body:${brandOccurrences}` : null,
+    densityBand !== "within-3%-5%" && !densityRuling ? "density-review:unreviewed" : null,
   ].filter(Boolean);
-  const status = hardFailures.length > 0 ? "FAIL" : familyDensity < entry.familyDensityMin || familyDensity > entry.familyDensityMax ? "WARN" : "PASS";
-  const densityBand = familyDensity < entry.familyDensityMin ? "below-3%" : familyDensity > entry.familyDensityMax ? "above-5%" : "within-3%-5%";
+  const status = hardFailures.length > 0 ? "FAIL" : densityBand === "within-3%-5%" ? "PASS" : "WARN";
   return {
     url: expectedCanonical,
     path: pagePath(entry),
@@ -356,6 +390,13 @@ function auditSnapshot(entry, snapshot) {
     densityBand,
     brandBodyOccurrences: brandOccurrences,
     placements: placement,
+    inboundAnchor: inboundAnchor ? {
+      sourceUrl: inboundAnchor.sourceUrl,
+      sourcePath: inboundAnchor.sourcePath,
+      href: inboundAnchor.href,
+      primary: inboundAnchor.primary,
+      text: inboundAnchor.text,
+    } : null,
     canonical: snapshot.canonical,
     hreflang,
     jsonLd,
@@ -363,11 +404,18 @@ function auditSnapshot(entry, snapshot) {
     hiddenContentCount: snapshot.hiddenCount,
     status,
     failures: hardFailures,
-    densityExplanation: explainDensity(entry, bodyText, bodyTokenCount, familyMatchedCount, familyDensity),
+    densityRuling: densityRuling ? {
+      id: densityRuling.id,
+      rationale: densityRuling.rationale,
+      groupLocale: densityRuling.locale,
+      groupNumbers: densityRuling.numbers,
+    } : null,
+    densityExplanation: densityRuling?.rationale ?? null,
   };
 }
 
 async function writeReport(rows) {
+  const outOfBandRows = rows.filter((row) => row.densityBand !== "within-3%-5%");
   const summary = {
     base: BASE,
     staticBuildDir: STATIC_BUILD_DIR || null,
@@ -378,25 +426,27 @@ async function writeReport(rows) {
     warn: rows.filter((row) => row.status === "WARN").length,
     fail: rows.filter((row) => row.status === "FAIL").length,
     within3To5: rows.filter((row) => row.densityBand === "within-3%-5%").length,
-    below3: rows.filter((row) => row.densityBand === "below-3%").map((row) => ({ url: row.url, explanation: row.densityExplanation })),
-    above5: rows.filter((row) => row.densityBand === "above-5%").map((row) => ({ url: row.url, explanation: row.densityExplanation })),
+    densityRulingsComplete: outOfBandRows.every((row) => row.densityRuling !== null),
+    below3: rows.filter((row) => row.densityBand === "below-3%").map((row) => ({ url: row.url, ruling: row.densityRuling, explanation: row.densityExplanation })),
+    above5: rows.filter((row) => row.densityBand === "above-5%").map((row) => ({ url: row.url, ruling: row.densityRuling, explanation: row.densityExplanation })),
     brandOverCap: rows.filter((row) => row.brandBodyOccurrences > 2).map((row) => row.url),
     failures: rows.flatMap((row) => row.failures.map((failure) => ({ url: row.url, failure }))),
   };
   await mkdir(OUTPUT_DIR, { recursive: true });
   await writeFile(`${OUTPUT_DIR}/hexagram-seo-density.json`, JSON.stringify({ summary, rows }, null, 2) + "\n");
-  const columns = ["url", "path", "locale", "number", "primary", "bodyTokenCount", "exactPrimaryOccurrenceCount", "exactPrimaryDensity", "approvedFamilyMatchedCount", "familyDensity", "densityBand", "brandBodyOccurrences", "status", "failures", "densityExplanation"];
+  const columns = ["url", "path", "locale", "number", "primary", "bodyTokenCount", "exactPrimaryOccurrenceCount", "exactPrimaryDensity", "approvedFamilyMatchedCount", "familyDensity", "densityBand", "brandBodyOccurrences", "status", "failures", "inboundAnchor", "densityRuling", "densityExplanation"];
   const csv = [columns.join(","), ...rows.map((row) => columns.map((column) => csvEscape(Array.isArray(row[column]) ? row[column].join(";") : row[column])).join(","))].join("\n") + "\n";
   await writeFile(`${OUTPUT_DIR}/hexagram-seo-density.csv`, csv);
   console.log(JSON.stringify({ ...summary, outputJson: `${OUTPUT_DIR}/hexagram-seo-density.json`, outputCsv: `${OUTPUT_DIR}/hexagram-seo-density.csv` }));
-  if (summary.total !== 128 || summary.fail > 0 || summary.brandOverCap.length > 0) process.exitCode = 1;
+  if (summary.total !== 128 || summary.fail > 0 || summary.brandOverCap.length > 0 || !summary.densityRulingsComplete) process.exitCode = 1;
 }
 
 if (STATIC_BUILD_DIR) {
+  const hubAnchors = [staticHubAnchors("en"), staticHubAnchors("zh-Hans")].flat();
   const rows = [];
   for (const entry of HEXAGRAM_SEO_REGISTRY) {
     const html = await readFile(resolve(STATIC_BUILD_DIR, `.${pagePath(entry)}.html`), "utf8");
-    rows.push(auditSnapshot(entry, staticSnapshot(html)));
+    rows.push(auditSnapshot(entry, staticSnapshot(html), inboundAnchorFor(entry, hubAnchors)));
   }
   await writeReport(rows);
 } else {
@@ -410,10 +460,11 @@ if (STATIC_BUILD_DIR) {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 1000 });
     await page.setJavaScriptEnabled(false);
+    const hubAnchors = [...await snapshotHub(page, "en"), ...await snapshotHub(page, "zh-Hans")];
     const rows = [];
     for (const entry of HEXAGRAM_SEO_REGISTRY) {
       const snapshot = await snapshotPage(page, entry);
-      rows.push(auditSnapshot(entry, snapshot));
+      rows.push(auditSnapshot(entry, snapshot, inboundAnchorFor(entry, hubAnchors)));
     }
     await page.close();
     await writeReport(rows);
