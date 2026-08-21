@@ -1,11 +1,15 @@
-/* Generated from the workbook source of truth; do not hand-edit TDH or keyword decisions.
- * Workbook SHA-256: c53e446dc0b168bbb459edf11342b58bc67031ca1436e9fc27a92cd58dbd25bc
- * Source file: quickiching_128_hexagram_seo_implementation_spec.xlsx
+/* Generated from the two active workbook sources of truth; do not hand-edit TDH or keyword decisions.
+ * English SHA-256: 3924004150cc6190481a02257dd9e90731134cef417189c1b1e4a87e96da9a73
+ * Chinese SHA-256: c53e446dc0b168bbb459edf11342b58bc67031ca1436e9fc27a92cd58dbd25bc
  */
 
 import type { ContentLocale } from "@/i18n/config";
+import {
+  EN_GLOBAL_EXACT_SOURCE_SHA256,
+  englishGlobalExactRow,
+} from "./en-global-exact";
 
-export type HexagramSeoEntry = {
+type HexagramSeoBaseEntry = {
   number: number;
   locale: ContentLocale;
   canonicalUrl: string;
@@ -38,9 +42,21 @@ export type HexagramSeoEntry = {
   qaNotes: string | null;
 };
 
-export const HEXAGRAM_SEO_SOURCE_SHA256 = "c53e446dc0b168bbb459edf11342b58bc67031ca1436e9fc27a92cd58dbd25bc";
+export type HexagramSeoEntry = HexagramSeoBaseEntry & {
+  otherCoreVariant: string | null;
+  meaningKeyword: string;
+  loveKeyword: string | null;
+  unchangingKeyword: string;
+  relationshipKeyword: string | null;
+  specialKeywords: readonly string[];
+  recommendedModules: readonly string[];
+};
 
-export const HEXAGRAM_SEO_REGISTRY = [
+export const HEXAGRAM_SEO_EN_SOURCE_SHA256 = EN_GLOBAL_EXACT_SOURCE_SHA256;
+export const HEXAGRAM_SEO_ZH_SOURCE_SHA256 = "c53e446dc0b168bbb459edf11342b58bc67031ca1436e9fc27a92cd58dbd25bc";
+export const HEXAGRAM_SEO_SOURCE_SHA256 = HEXAGRAM_SEO_ZH_SOURCE_SHA256;
+
+const LEGACY_HEXAGRAM_SEO_REGISTRY = [
   {
     "number": 1,
     "locale": "en",
@@ -4137,7 +4153,91 @@ export const HEXAGRAM_SEO_REGISTRY = [
     "plannedTdhCheck": "PASS",
     "qaNotes": null
   }
-] as const satisfies readonly HexagramSeoEntry[];
+] as const satisfies readonly HexagramSeoBaseEntry[];
+
+const HARD_DENSITY_STANDARD = "Hard acceptance: exact Primary density must be 1.00%-2.00% and approved keyword-family density must be 3.00%-5.00% in eligible visible article copy.";
+
+function workbookPhrase(value: string, suffix: string, fallback: string): string {
+  return value
+    .split(/[;；]/u)
+    .map((phrase) => phrase.trim())
+    .find((phrase) => phrase.endsWith(suffix)) ?? fallback;
+}
+
+function buildEnglishMetaDescription(legacyDescription: string): string {
+  const firstStop = legacyDescription.indexOf(".");
+  const lead = (firstStop >= 0 ? legacyDescription.slice(0, firstStop) : legacyDescription).trim();
+  return `${lead}. Love, meaning, and unchanging guidance.`;
+}
+
+export const HEXAGRAM_SEO_REGISTRY: readonly HexagramSeoEntry[] = LEGACY_HEXAGRAM_SEO_REGISTRY.map((entry) => {
+  if (entry.locale === "en") {
+    const research = englishGlobalExactRow(entry.number);
+    const meaningKeyword = `hexagram ${entry.number} meaning`;
+    const loveKeyword = `hexagram ${entry.number} love`;
+    const unchangingKeyword = `hexagram ${entry.number} unchanging`;
+    const relationshipKeyword = research.recommendedModules.includes("relationship")
+      ? `hexagram ${entry.number} relationship`
+      : null;
+    const finalDescription = buildEnglishMetaDescription(entry.finalDescription);
+    const secondaryVariantFamily = [
+      research.otherCoreVariant,
+      meaningKeyword,
+      loveKeyword,
+      unchangingKeyword,
+      research.commonEnglishName,
+      relationshipKeyword,
+      ...research.specialKeywords,
+    ].filter((phrase): phrase is string => Boolean(phrase)).join("; ");
+
+    return {
+      ...entry,
+      hexagramName: research.commonEnglishName,
+      primaryKeyword: research.primaryKeyword,
+      secondaryCore: research.secondaryCore,
+      secondaryVariantFamily,
+      lineQueryFamily: Array.from({ length: 6 }, (_, index) => `hexagram ${entry.number} line ${index + 1}`).join("; "),
+      semanticEntityTerms: `I Ching; ${research.commonEnglishName}; meaning; love; unchanging; changing lines`,
+      finalTitle: research.titleTarget,
+      titleLength: research.titleTarget.length,
+      finalDescription,
+      descriptionLength: finalDescription.length,
+      finalH1: research.h1Target,
+      h1Length: research.h1Target.length,
+      densityScope: "Eligible visible article headings and prose only; exclude navigation, CTAs, legal copy, source attribution, hidden content, schema, scripts, and styles.",
+      familyDensityMin: 0.03,
+      familyDensityMax: 0.05,
+      exactPrimaryStandard: HARD_DENSITY_STANDARD,
+      brandMentionsInBodyMax: 0,
+      requiredContent: "English entity intro; unique meaning; page-specific love meaning; six #line-1…#line-6 sections; unchanging meaning; approved relationship/special modules only; source URLs; home and hub links.",
+      specialSerpModule: [...research.specialKeywords, relationshipKeyword].filter(Boolean).join("; ") || "None beyond the workbook-approved shared modules.",
+      researchEvidence: `Global Exact Primary ${research.globalExactVolume}; US ${research.usVolume}; US KD ${research.usKd}; secondary ${research.secondaryGlobal}; other core ${research.otherCoreGlobal}; meaning ${research.meaningGlobal}; love ${research.loveGlobal}; unchanging ${research.unchangingGlobal}; relationship ${research.relationshipGlobal}.`,
+      sourceNotes: `English FINAL GLOBAL EXACT workbook SHA-256 ${EN_GLOBAL_EXACT_SOURCE_SHA256}; exact_match=true country records only.`,
+      otherCoreVariant: research.otherCoreVariant,
+      meaningKeyword,
+      loveKeyword,
+      unchangingKeyword,
+      relationshipKeyword,
+      specialKeywords: research.specialKeywords,
+      recommendedModules: research.recommendedModules,
+    };
+  }
+
+  return {
+    ...entry,
+    familyDensityMin: 0.03,
+    familyDensityMax: 0.05,
+    exactPrimaryStandard: HARD_DENSITY_STANDARD,
+    brandMentionsInBodyMax: 0,
+    otherCoreVariant: null,
+    meaningKeyword: workbookPhrase(entry.secondaryVariantFamily, "含义", `${entry.primaryKeyword}含义`),
+    loveKeyword: null,
+    unchangingKeyword: workbookPhrase(entry.secondaryVariantFamily, "无动爻", `${entry.primaryKeyword}无动爻`),
+    relationshipKeyword: null,
+    specialKeywords: [],
+    recommendedModules: ["meaning", "unchanging", "six-lines"],
+  };
+});
 
 const BY_KEY = new Map(HEXAGRAM_SEO_REGISTRY.map((entry) => [String(entry.locale) + ":" + String(entry.number), entry]));
 
