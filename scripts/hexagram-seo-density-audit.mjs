@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import puppeteer from "puppeteer-core";
@@ -145,77 +145,6 @@ function htmlText(fragment) {
 
 function elementMatches(fragment, tagName) {
   return [...fragment.matchAll(new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\\/${tagName}>`, "giu"))].map((match) => match[0]);
-}
-
-function elementWithAttribute(fragment, attribute) {
-  const match = fragment.match(new RegExp(`<([a-z0-9]+)\\b[^>]*\\b${attribute}\\b[^>]*>[\\s\\S]*?<\\/\\1>`, "iu"));
-  return match?.[0] ?? "";
-}
-
-function removeBodyExcludedElements(fragment) {
-  let cleaned = fragment;
-  for (const tagName of ["nav", "button", "script", "style"]) {
-    cleaned = cleaned.replace(new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\\/${tagName}>`, "giu"), "");
-  }
-  cleaned = cleaned.replace(/<([a-z0-9]+)\b[^>]*(?:data-legal-disclaimer|data-cookie|aria-hidden=["']true["'])[^>]*>[\s\S]*?<\/\1>/giu, "");
-  return cleaned;
-}
-
-function extractBalancedElement(html, tagName, requiredAttribute) {
-  const openingMatch = html.match(new RegExp(`<${tagName}\\b[^>]*\\b${requiredAttribute}\\b[^>]*>`, "iu"));
-  if (!openingMatch || openingMatch.index === undefined) return "";
-  const start = openingMatch.index;
-  const tagPattern = new RegExp(`<\\/?${tagName}\\b[^>]*>`, "giu");
-  tagPattern.lastIndex = start;
-  let depth = 0;
-  for (const match of html.matchAll(tagPattern)) {
-    if (match[0].startsWith(`</${tagName}`)) depth -= 1;
-    else if (!match[0].endsWith("/>") && !match[0].startsWith(`<!--`)) depth += 1;
-    if (depth === 0) return html.slice(start, start + match.index + match[0].length - start);
-  }
-  return "";
-}
-
-function staticSnapshot(html) {
-  const root = extractBalancedElement(html, "article", "data-hexagram-detail");
-  const metaTags = [...html.matchAll(/<meta\b[^>]*>/giu)].map((match) => match[0]);
-  const linkTags = [...html.matchAll(/<link\b[^>]*>/giu)].map((match) => match[0]);
-  const metaValue = (attribute, value) => {
-    const tag = metaTags.find((candidate) => htmlAttribute(candidate, attribute).toLocaleLowerCase("en-US") === value);
-    return tag ? htmlAttribute(tag, "content") : "";
-  };
-  const alternates = linkTags
-    .filter((tag) => htmlAttribute(tag, "rel").toLocaleLowerCase("en-US") === "alternate" && htmlAttribute(tag, "hreflang"))
-    .map((tag) => ({ hreflang: htmlAttribute(tag, "hreflang"), href: htmlAttribute(tag, "href") }));
-  const jsonLd = elementMatches(html, "script")
-    .filter((element) => htmlAttribute(element.match(/^<script\b[^>]*>/iu)?.[0] ?? "", "type") === "application/ld+json")
-    .map((element) => {
-      try { return JSON.parse(element.replace(/^<script\b[^>]*>/iu, "").replace(/<\/script>$/iu, "")); } catch { return { __parseError: true }; }
-    });
-  const openingTags = [...root.matchAll(/<[a-z0-9]+\b[^>]*>/giu)].map((match) => match[0]);
-  const h1 = elementMatches(root, "h1").map(htmlText);
-  const h2 = elementMatches(root, "h2").map(htmlText);
-  const canonical = linkTags.find((tag) => htmlAttribute(tag, "rel").toLocaleLowerCase("en-US") === "canonical");
-  return {
-    bodyText: htmlText(removeBodyExcludedElements(root)),
-    title: htmlText(html.match(/<title\b[^>]*>[\s\S]*?<\/title>/iu)?.[0] ?? ""),
-    description: metaValue("name", "description"),
-    robots: metaValue("name", "robots"),
-    canonical: canonical ? htmlAttribute(canonical, "href") : "",
-    ogUrl: metaValue("property", "og:url"),
-    ogTitle: metaValue("property", "og:title"),
-    ogDescription: metaValue("property", "og:description"),
-    h1,
-    earlyCopy: htmlText(elementWithAttribute(root, "data-seo-early-copy")),
-    h2,
-    breadcrumb: htmlText(elementWithAttribute(root, "aria-label")),
-    lineAnchors: Array.from({ length: 6 }, (_, index) => new RegExp(`\\bid=["']line-${index + 1}["']`, "iu").test(root)),
-    alternates,
-    htmlLang: html.match(/<html\b[^>]*>/iu)?.[0] ? htmlAttribute(html.match(/<html\b[^>]*>/iu)[0], "lang") : "",
-    jsonLd,
-    hiddenCount: openingTags.filter((tag) => /\bhidden\b|style=["'][^"']*(?:display|visibility)\s*:/iu.test(tag)).length,
-    keywordListCount: openingTags.filter((tag) => /data-(?:keyword-list|seo-keywords)\b/iu.test(tag)).length,
-  };
 }
 
 function hubPathForLocale(locale) {
@@ -451,34 +380,26 @@ async function writeReport(rows) {
   if (summary.total !== 128 || summary.fail > 0 || summary.brandOverCap.length > 0 || !summary.densityRulingsComplete) process.exitCode = 1;
 }
 
-if (STATIC_BUILD_DIR) {
-  const hubAnchors = [staticHubAnchors("en"), staticHubAnchors("zh-Hans")].flat();
+const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
+const browser = await puppeteer.launch({
+  args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
+  executablePath,
+  headless: true,
+});
+try {
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1440, height: 1000 });
+  await page.setJavaScriptEnabled(false);
+  const hubAnchors = STATIC_BUILD_DIR
+    ? [staticHubAnchors("en"), staticHubAnchors("zh-Hans")].flat()
+    : [...await snapshotHub(page, "en"), ...await snapshotHub(page, "zh-Hans")];
   const rows = [];
   for (const entry of HEXAGRAM_SEO_REGISTRY) {
-    const html = await readFile(resolve(STATIC_BUILD_DIR, `.${pagePath(entry)}.html`), "utf8");
-    rows.push(auditSnapshot(entry, staticSnapshot(html), inboundAnchorFor(entry, hubAnchors)));
+    const snapshot = await snapshotPage(page, entry);
+    rows.push(auditSnapshot(entry, snapshot, inboundAnchorFor(entry, hubAnchors)));
   }
+  await page.close();
   await writeReport(rows);
-} else {
-  const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
-  const browser = await puppeteer.launch({
-    args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
-    executablePath,
-    headless: true,
-  });
-  try {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1440, height: 1000 });
-    await page.setJavaScriptEnabled(false);
-    const hubAnchors = [...await snapshotHub(page, "en"), ...await snapshotHub(page, "zh-Hans")];
-    const rows = [];
-    for (const entry of HEXAGRAM_SEO_REGISTRY) {
-      const snapshot = await snapshotPage(page, entry);
-      rows.push(auditSnapshot(entry, snapshot, inboundAnchorFor(entry, hubAnchors)));
-    }
-    await page.close();
-    await writeReport(rows);
-  } finally {
-    await browser.close();
-  }
+} finally {
+  await browser.close();
 }
