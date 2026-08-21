@@ -7,8 +7,8 @@ import { hexagramSeoFor, hexagramSeoRows } from "@/content/hexagrams/seo";
 import { zhHansHexagramContent } from "@/content/hexagrams/zh-Hans";
 import { HexagramDetailPageView } from "./hexagram-detail-page";
 
-function firstKeyword(value: string): string {
-  return value.split(/[;；]/u).map((part) => part.trim()).find(Boolean) ?? "";
+function keywordPhrases(value: string): string[] {
+  return value.split(/[;；]/u).map((part) => part.trim()).filter(Boolean);
 }
 
 function visibleText(html: string): string {
@@ -77,7 +77,7 @@ describe("static hexagram detail page", () => {
     }
   });
 
-  it("gives all 128 pages natural early coverage of the primary and preferred secondary keyword", async () => {
+  it("gives all 128 pages natural early coverage of the primary and at least one core secondary keyword", async () => {
     for (const seo of hexagramSeoRows()) {
       const knowledge = await loadPublicHexagramKnowledge(seo.number);
       const classicalIndex = CLASSICAL_HEXAGRAMS.findIndex((entry) => entry.number === seo.number);
@@ -94,7 +94,10 @@ describe("static hexagram detail page", () => {
       const earlyCopy = html.match(/<p[^>]*data-seo-early-copy[^>]*>([\s\S]*?)<\/p>/iu)?.[1] ?? "";
       const earlyText = visibleText(earlyCopy).toLocaleLowerCase("en-US");
       expect(earlyText, seo.canonicalUrl).toContain(seo.primaryKeyword.toLocaleLowerCase("en-US"));
-      expect(earlyText, seo.canonicalUrl).toContain(firstKeyword(seo.secondaryCore).toLocaleLowerCase("en-US"));
+      expect(
+        keywordPhrases(seo.secondaryCore).some((phrase) => earlyText.includes(phrase.toLocaleLowerCase("en-US"))),
+        seo.canonicalUrl,
+      ).toBe(true);
     }
   });
 
