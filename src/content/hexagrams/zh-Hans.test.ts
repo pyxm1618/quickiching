@@ -5,10 +5,17 @@ import { ZH_HANS_HEXAGRAM_CONTENT, zhHansHexagramContent } from "./zh-Hans";
 const RELATIONSHIP_NUMBERS = new Set([8, 13, 16, 22, 24, 25, 39, 43, 44, 45, 56]);
 const CAREER_NUMBERS = new Set([15, 28]);
 const FORTUNE_NUMBERS = new Set([48]);
-const MODERN_FIELDS = ["coreMeaning", "practicalUnderstanding", "supports", "watchFor", "unchanging", "reflectionQuestions", "lineNotes"] as const;
+const MODERN_FIELDS = ["coreMeaning", "practicalUnderstanding", "realityUnderstanding", "supports", "watchFor", "unchanging", "reflectionQuestions", "lineNotes"] as const;
 
 function sentences(value: string): string[] {
   return value.split(/[。！？!?；;]\s*/u).map((sentence) => sentence.trim()).filter(Boolean);
+}
+
+function structureSignature(value: string): string {
+  return value
+    .replace(/[“「『【][^”」』】]*[”」』】]/gu, "〈page-specific〉")
+    .replace(/\s+/gu, "")
+    .replace(/[，。！？!?；;：、]/gu, "");
 }
 
 describe("Simplified Chinese hexagram detail content", () => {
@@ -19,6 +26,7 @@ describe("Simplified Chinese hexagram detail content", () => {
       expect(content.number).toBe(classical.number);
       expect(content.coreMeaning.length).toBeGreaterThan(20);
       expect(content.practicalUnderstanding.length).toBeGreaterThan(20);
+      expect(content.realityUnderstanding.length).toBeGreaterThan(50);
       expect(content.unchanging.length).toBeGreaterThan(20);
       expect(content.reflectionQuestions).toHaveLength(3);
       expect(content.lineNotes).toHaveLength(6);
@@ -32,6 +40,7 @@ describe("Simplified Chinese hexagram detail content", () => {
         content.theme,
         content.coreMeaning,
         content.practicalUnderstanding,
+        content.realityUnderstanding,
         ...content.supports,
         ...content.watchFor,
         content.unchanging,
@@ -89,5 +98,35 @@ describe("Simplified Chinese hexagram detail content", () => {
 
     const repeated = [...sentenceCounts.entries()].filter(([, count]) => count >= 10);
     expect(repeated, repeated.map(([sentence, count]) => `${count}x ${sentence}`).join("\n")).toEqual([]);
+  });
+
+  it("does not reuse a page-independent sentence structure across ten or more pages", () => {
+    const structures = new Map<string, Set<number>>();
+    for (const classical of CLASSICAL_HEXAGRAMS) {
+      const content = zhHansHexagramContent(classical.number);
+      for (const field of MODERN_FIELDS) {
+        const value = content[field];
+        const values = Array.isArray(value) ? value : [value];
+        for (const item of values) {
+          const signature = structureSignature(String(item));
+          const pages = structures.get(signature) ?? new Set<number>();
+          pages.add(classical.number);
+          structures.set(signature, pages);
+        }
+      }
+    }
+
+    const repeated = [...structures.entries()]
+      .filter(([, pages]) => pages.size >= 10)
+      .sort(([, left], [, right]) => right.size - left.size);
+    expect(repeated, repeated.map(([signature, pages]) => `${pages.size} pages: ${signature}`).join("\n")).toEqual([]);
+  });
+
+  it("states that no-moving-line readings do not create a relating hexagram", () => {
+    for (const content of Object.values(ZH_HANS_HEXAGRAM_CONTENT)) {
+      expect(content.unchanging).toContain("没有动爻");
+      expect(content.unchanging).toMatch(/不生成之卦|不会生成之卦|不产生之卦/u);
+      expect(content.unchanging).not.toContain("而若有之卦");
+    }
   });
 });

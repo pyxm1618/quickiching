@@ -165,7 +165,7 @@ export function HexagramDetailPageView({
         <h2 id="hexagram-meaning-title" className="mt-2 font-display text-3xl font-normal">{seo.primaryKeyword} · {isChinese ? "如何理解这一本卦" : "what this structure emphasizes"}</h2>
         {isChinese ? (
           <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <section className="mystic-card p-6"><h3 className="font-display text-2xl font-normal">{content?.theme}</h3><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">{content?.coreMeaning}</p><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">{content?.practicalUnderstanding}</p></section>
+            <section className="mystic-card p-6"><h3 className="font-display text-2xl font-normal">{content?.theme}</h3><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">{content?.coreMeaning}</p><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">{content?.practicalUnderstanding}</p><p className="mt-4 border-t border-white/[0.08] pt-4 text-sm leading-7 text-[var(--ink-2)]">{content?.realityUnderstanding}</p></section>
             <section className="mystic-card p-6"><h3 className="font-display text-2xl font-normal">可以支持什么，需警惕什么</h3><ul className="mt-4 space-y-3 text-sm leading-7 text-[var(--ink-2)]"><li>{content?.supports[0]}</li><li>{content?.supports[1]}</li><li>{content?.watchFor[0]}</li><li>{content?.watchFor[1]}</li></ul></section>
           </div>
         ) : (

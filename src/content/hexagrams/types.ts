@@ -11,6 +11,7 @@ export type ZhHansHexagramDetailContent = {
   theme: string;
   coreMeaning: string;
   practicalUnderstanding: string;
+  realityUnderstanding: string;
   supports: readonly [string, string];
   watchFor: readonly [string, string];
   unchanging: string;

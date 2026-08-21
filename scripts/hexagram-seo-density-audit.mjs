@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import { HEXAGRAM_SEO_REGISTRY } from "../src/content/hexagrams/seo.ts";
-import { densityReviewRulingFor } from "../src/content/hexagrams/density-rulings.ts";
+import { DENSITY_REVIEW_RULINGS, densityReviewRulingFor } from "../src/content/hexagrams/density-rulings.ts";
 import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.HEXAGRAM_SEO_AUDIT_BASE_URL || process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
@@ -373,6 +373,7 @@ function auditSnapshot(entry, snapshot, inboundAnchor) {
     snapshot.keywordListCount > 0 ? `keyword-list:${snapshot.keywordListCount}` : null,
     brandOccurrences > entry.brandMentionsInBodyMax ? `brand-body:${brandOccurrences}` : null,
     densityBand !== "within-3%-5%" && !densityRuling ? "density-review:unreviewed" : null,
+    densityRuling && densityRuling.expectedBand !== densityBand ? "density-review:band-mismatch" : null,
   ].filter(Boolean);
   const status = hardFailures.length > 0 ? "FAIL" : densityBand === "within-3%-5%" ? "PASS" : "WARN";
   return {
@@ -405,10 +406,11 @@ function auditSnapshot(entry, snapshot, inboundAnchor) {
     status,
     failures: hardFailures,
     densityRuling: densityRuling ? {
-      id: densityRuling.id,
+      locale: densityRuling.locale,
+      number: densityRuling.number,
+      expectedBand: densityRuling.expectedBand,
       rationale: densityRuling.rationale,
-      groupLocale: densityRuling.locale,
-      groupNumbers: densityRuling.numbers,
+      reviewedBy: densityRuling.reviewedBy,
     } : null,
     densityExplanation: densityRuling?.rationale ?? null,
   };
@@ -416,6 +418,11 @@ function auditSnapshot(entry, snapshot, inboundAnchor) {
 
 async function writeReport(rows) {
   const outOfBandRows = rows.filter((row) => row.densityBand !== "within-3%-5%");
+  const observedExceptionKeys = new Set(outOfBandRows.map((row) => row.locale + ":" + row.number));
+  const reviewedExceptionKeys = new Set(DENSITY_REVIEW_RULINGS.map((ruling) => ruling.locale + ":" + ruling.number));
+  const unreviewedExceptionKeys = [...observedExceptionKeys].filter((key) => !reviewedExceptionKeys.has(key));
+  const staleExceptionKeys = [...reviewedExceptionKeys].filter((key) => !observedExceptionKeys.has(key));
+  const bandMismatchRows = outOfBandRows.filter((row) => row.densityRuling?.expectedBand !== row.densityBand);
   const summary = {
     base: BASE,
     staticBuildDir: STATIC_BUILD_DIR || null,
@@ -426,7 +433,10 @@ async function writeReport(rows) {
     warn: rows.filter((row) => row.status === "WARN").length,
     fail: rows.filter((row) => row.status === "FAIL").length,
     within3To5: rows.filter((row) => row.densityBand === "within-3%-5%").length,
-    densityRulingsComplete: outOfBandRows.every((row) => row.densityRuling !== null),
+    densityRulingsComplete: unreviewedExceptionKeys.length === 0 && staleExceptionKeys.length === 0 && bandMismatchRows.length === 0,
+    unreviewedDensityExceptions: unreviewedExceptionKeys,
+    staleDensityRulings: staleExceptionKeys,
+    densityRulingBandMismatches: bandMismatchRows.map((row) => ({ url: row.url, expectedBand: row.densityRuling?.expectedBand ?? null, observedBand: row.densityBand })),
     below3: rows.filter((row) => row.densityBand === "below-3%").map((row) => ({ url: row.url, ruling: row.densityRuling, explanation: row.densityExplanation })),
     above5: rows.filter((row) => row.densityBand === "above-5%").map((row) => ({ url: row.url, ruling: row.densityRuling, explanation: row.densityExplanation })),
     brandOverCap: rows.filter((row) => row.brandBodyOccurrences > 2).map((row) => row.url),
