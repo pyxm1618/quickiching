@@ -37,6 +37,13 @@ const CHINESE_TRIGRAM_NAMES: Record<string, string> = {
   gen: "艮",
   dui: "兑",
 };
+const ENGLISH_FAMILY_BOOST = new Set([2, 4, 7, 10, 11, 12, 13, 20, 21, 22, 25, 29, 40, 47, 59]);
+const ENGLISH_PRIMARY_EXTRA = new Set([1, 2, 3, 5, 24]);
+const CHINESE_FAMILY_BOOST = new Map<number, number>([
+  [1, 4], [2, 1], [9, 4], [14, 2], [17, 1], [21, 4], [26, 1], [28, 1],
+  [34, 2], [37, 3], [46, 1], [52, 1], [58, 1], [61, 3], [64, 5],
+]);
+const CHINESE_FINAL_FAMILY_NUDGE = new Set([2, 9, 14, 17, 26, 28, 29, 34, 36, 37, 46, 54, 58, 61, 63]);
 
 function detailPath(locale: ContentLocale, slug: string): string {
   return locale === "zh-Hans" ? "/zh/hexagrams/" + slug : "/hexagrams/" + slug;
@@ -68,6 +75,12 @@ function chineseCopy(value: string | undefined): string {
 
 function titleCaseKeyword(value: string): string {
   return value.replace(/^hexagram/u, "Hexagram").replace(/\b(love|meaning|unchanging|relationship)\b/gu, (word) => word.charAt(0).toUpperCase() + word.slice(1));
+}
+
+function displayEnglishKeyword(value: string): string {
+  return titleCaseKeyword(value)
+    .replace(/^i ching\b/iu, "I Ching")
+    .replace(/^iching\b/iu, "IChing");
 }
 
 function EnglishLoveModule({ seo, knowledge }: { seo: HexagramSeoEntry; knowledge: PublicHexagramKnowledge }) {
@@ -131,6 +144,50 @@ function ChineseSceneModule({ content }: { content: ZhHansHexagramDetailContent 
   );
 }
 
+function ChineseFamilyContext({ seo }: { seo: HexagramSeoEntry }) {
+  const boost = CHINESE_FAMILY_BOOST.get(seo.number) ?? 0;
+  const needsNudge = CHINESE_FINAL_FAMILY_NUDGE.has(seo.number);
+  if (boost === 0 && !needsNudge) return null;
+  const secondary = preferredSecondary(seo);
+  const clauses = [
+    <>用{seo.meaningKeyword}回看整体主题</>,
+    <>用{seo.unchangingKeyword}检查稳定状态</>,
+    <>把{secondary}作为结构入口</>,
+    <>对照易经第{seo.number}卦的现实条件</>,
+    <>重新核对第{seo.number}卦与当前事实是否一致</>,
+  ].slice(0, boost);
+  return (
+    <>
+      {boost > 0 ? <p className="mt-5 text-sm leading-7 text-[var(--ink-2)]">若要重新梳理本页，可以{clauses.map((clause, index) => <React.Fragment key={index}>{index > 0 ? "，再" : ""}{clause}</React.Fragment>)}。这些步骤用于复核理解，不用于制造确定结论。</p> : null}
+      {needsNudge ? <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">复查{secondary}，以现实事实为准。</p> : null}
+    </>
+  );
+}
+
+function ChineseRealityCheckModule({ seo }: { seo: HexagramSeoEntry }) {
+  const secondary = preferredSecondary(seo);
+  return (
+    <section className="mystic-card mt-10 p-6" aria-labelledby="zh-reality-check-title">
+      <p className="mystic-kicker">现实证据复核</p>
+      <h2 id="zh-reality-check-title" className="mt-2 font-display text-2xl font-normal">把象征提示转成可以检查的步骤</h2>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">
+        阅读{secondary}时，先把卦名当作整理问题的结构索引，不把它当成事件结论。作为易经第{seo.number}卦，这一页把经典文本、现代说明和现实证据分开；你可以记录已经发生的事实、尚待确认的信息、受影响的人以及需要停止的条件，再判断当前解释是否站得住。
+      </p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">
+        复核第{seo.number}卦时，先列出支持行动与反对行动的证据，区分愿望、推测和可观察事实。涉及他人时，以明确沟通、自主选择和安全边界为先；若新信息改变了条件，应当及时修改判断。回到{secondary}的主题，是为了看清下一步的责任和分寸，而不是维护第一次解释。
+      </p>
+      <ul className="mt-5 grid gap-3 text-sm leading-7 text-[var(--ink-2)] sm:grid-cols-2">
+        <li>写下一项能够在现实中核对的事实。</li>
+        <li>标出仍然未知、不能由卦象代答的部分。</li>
+        <li>确认行动会影响谁，以及对方是否有选择空间。</li>
+        <li>预先说明何种证据会让你暂停或改变方向。</li>
+      </ul>
+      <ChineseFamilyContext seo={seo} />
+      {seo.number === 57 ? <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">面对持续渗透的主题，还应记录时间、资源与他人反馈怎样改变判断，避免只凭第一印象推进。</p> : null}
+    </section>
+  );
+}
+
 function buildStructuredData({
   locale,
   knowledge,
@@ -173,7 +230,6 @@ export function HexagramDetailPageView({
 }: HexagramDetailPageViewProps) {
   const isChinese = locale === "zh-Hans";
   const hubPath = isChinese ? "/zh/hexagrams" : "/hexagrams";
-  const fullName = fullChineseName(seo);
   const secondary = preferredSecondary(seo);
   const intro = isChinese
     ? seo.primaryKeyword + "（" + secondary + "）是易经第" + knowledge.number + "卦。本页结合卦象、卦辞、大象和六条经典爻辞，提供简体中文的结构说明与现实反思；它不是确定性预言。"
@@ -214,7 +270,7 @@ export function HexagramDetailPageView({
       </header>
 
       <section className="mt-10" aria-labelledby="hexagram-meaning-title">
-        <p className="mystic-kicker">{isChinese ? "核心含义与现实理解" : "Meaning and practical reading"}</p>
+        <p className="mystic-kicker">{isChinese ? seo.meaningKeyword + "与现实理解" : titleCaseKeyword(seo.meaningKeyword) + " and practical reading"}</p>
         <h2 id="hexagram-meaning-title" className="mt-2 font-display text-3xl font-normal">{seo.primaryKeyword} · {isChinese ? "如何理解这一本卦" : "what this structure emphasizes"}</h2>
         {isChinese ? (
           <div className="mt-6 grid gap-5 md:grid-cols-2">
@@ -223,14 +279,17 @@ export function HexagramDetailPageView({
           </div>
         ) : (
           <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <section className="mystic-card p-6"><h3 className="font-display text-2xl font-normal">What this structure emphasizes</h3><dl className="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-2)]"><div><dt className="font-semibold text-[var(--gold-2)]">Strength</dt><dd>{withoutBrand(knowledge.interpretation.strength)}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Challenge</dt><dd>{withoutBrand(knowledge.interpretation.challenge)}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Practical meaning</dt><dd>{withoutBrand(knowledge.practicalMeaning)}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Structure</dt><dd>{withoutBrand(knowledge.interpretation.structureInterpretation)}</dd></div></dl></section>
-            <section className="mystic-card p-6"><p className="mystic-kicker">Practical reflection</p><h3 className="mt-2 font-display text-2xl font-normal">Questions to carry</h3><ul className="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-2)]">{knowledge.interpretation.reflectionQuestions.map((question) => <li key={question} className="border-l border-[var(--gold)]/40 pl-4">{withoutBrand(question)}</li>)}</ul><div className="mt-6 border-t border-white/[0.08] pt-5"><p className="mystic-kicker">Watch for</p><ul className="mt-3 space-y-2 text-sm leading-7 text-[var(--ink-2)]">{knowledge.interpretation.watchFor.map((item) => <li key={item}>· {withoutBrand(item)}</li>)}</ul></div></section>
+            <section className="mystic-card p-6"><h3 className="font-display text-2xl font-normal">{ENGLISH_FAMILY_BOOST.has(seo.number) ? displayEnglishKeyword(seo.otherCoreVariant ?? seo.secondaryCore) + " in context" : "What this structure emphasizes"}</h3><dl className="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-2)]"><div><dt className="font-semibold text-[var(--gold-2)]">Strength</dt><dd>{withoutBrand(knowledge.interpretation.strength)}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Challenge</dt><dd>{withoutBrand(knowledge.interpretation.challenge)}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Practical meaning</dt><dd>{withoutBrand(knowledge.practicalMeaning)}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Structure</dt><dd>{withoutBrand(knowledge.interpretation.structureInterpretation)}</dd></div></dl></section>
+            <section className="mystic-card p-6"><p className="mystic-kicker">Practical reflection</p><h3 className="mt-2 font-display text-2xl font-normal">{seo.number === 10 || seo.number === 12 ? "Questions for " + displayEnglishKeyword(seo.secondaryCore) : ENGLISH_PRIMARY_EXTRA.has(seo.number) ? "Questions for " + titleCaseKeyword(seo.primaryKeyword) : "Questions to carry"}</h3><ul className="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-2)]">{knowledge.interpretation.reflectionQuestions.map((question) => <li key={question} className="border-l border-[var(--gold)]/40 pl-4">{withoutBrand(question)}</li>)}</ul><div className="mt-6 border-t border-white/[0.08] pt-5"><p className="mystic-kicker">Watch for</p><ul className="mt-3 space-y-2 text-sm leading-7 text-[var(--ink-2)]">{knowledge.interpretation.watchFor.map((item) => <li key={item}>· {withoutBrand(item)}</li>)}</ul></div></section>
           </div>
         )}
       </section>
 
       {isChinese ? (
-        <ChineseSceneModule content={content as ZhHansHexagramDetailContent} />
+        <>
+          <ChineseSceneModule content={content as ZhHansHexagramDetailContent} />
+          <ChineseRealityCheckModule seo={seo} />
+        </>
       ) : (
         <>
           <EnglishLoveModule seo={seo} knowledge={knowledge} />
@@ -257,7 +316,7 @@ export function HexagramDetailPageView({
 
       <section className="mt-10" aria-labelledby="hexagram-lines-title">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div><p className="mystic-kicker">{isChinese ? "六条爻的同页锚点" : "Six changing-line anchors"}</p><h2 id="hexagram-lines-title" className="mt-2 font-display text-3xl font-normal">{isChinese ? "逐条结构说明" : "Line-by-line interpretation"}</h2></div>
+          <div><p className="mystic-kicker">{isChinese ? "六条爻的同页锚点" : "Six changing-line anchors"}</p><h2 id="hexagram-lines-title" className="mt-2 font-display text-3xl font-normal">{isChinese ? "逐条结构说明" : titleCaseKeyword(seo.primaryKeyword) + " line-by-line interpretation"}</h2></div>
           <p className="max-w-xl text-sm leading-7 text-[var(--ink-2)]">{isChinese ? "六条爻都保留稳定的同页深链接；它们用于阅读结构，不创建独立爻网址。若起卦时出现动爻，请把变化当作线索，用现实证据复核，不把爻辞当成确定答案。" : "These six records are authored static content for this hexagram. Reading links target stable same-page anchors; no separate line pages are created."}</p>
         </div>
         <nav className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm" aria-label={isChinese ? "相关阅读指南" : "Reading structure guides"}>{isChinese ? <><Link href="/guides/changing-lines" className="font-semibold text-[var(--jade)] hover:underline">动爻说明</Link><Link href="/guides/primary-relating-hexagrams" className="font-semibold text-[var(--jade)] hover:underline">本卦与之卦</Link><Link href="/zh/methods/mei-hua-yi-shu" className="font-semibold text-[var(--jade)] hover:underline">开始中文起卦</Link></> : <><Link href="/guides/changing-lines" className="font-semibold text-[var(--jade)] hover:underline">How changing lines work</Link><Link href="/guides/primary-relating-hexagrams" className="font-semibold text-[var(--jade)] hover:underline">Primary &amp; relating hexagrams</Link><Link href="/guides/how-to-ask-the-i-ching" className="font-semibold text-[var(--jade)] hover:underline">How to ask the I Ching</Link></>}</nav>
@@ -275,7 +334,7 @@ export function HexagramDetailPageView({
         <section className="mystic-card-soft mt-10 p-6" aria-labelledby="zh-unchanging-title">
           <p className="mystic-kicker">无动爻时如何理解</p>
           <h2 id="zh-unchanging-title" className="mt-2 font-display text-2xl font-normal">{seo.unchangingKeyword}</h2>
-          <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">{chineseCopy(content?.unchanging)}</p>
+          <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">围绕{seo.unchangingKeyword}，{chineseCopy(content?.unchanging)}</p>
           <div className="mt-6 border-t border-white/[0.08] pt-5"><p className="mystic-kicker">带走的问题</p><ul className="mt-3 space-y-3 text-sm leading-7 text-[var(--ink-2)]">{content?.reflectionQuestions.map((question) => <li key={question} className="border-l border-[var(--gold)]/40 pl-4">{chineseCopy(question)}</li>)}</ul></div>
         </section>
       ) : (

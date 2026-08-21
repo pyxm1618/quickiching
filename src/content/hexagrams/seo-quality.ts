@@ -25,12 +25,21 @@ export type KeywordQualityMeasurement = {
   primaryDensity: number;
   familyCoveredTokens: number;
   familyDensity: number;
+  familyDensityBasis: "covered-tokens" | "matched-phrases";
   familyMatches: KeywordFamilyMatch[];
 };
 
 export type LanguageContamination = {
   count: number;
   samples: string[];
+};
+
+export type KeywordQualityEvaluation = {
+  measurement: KeywordQualityMeasurement;
+  contamination: LanguageContamination;
+  primaryDensityInRange: boolean;
+  familyDensityInRange: boolean;
+  failures: string[];
 };
 
 export const PRIMARY_DENSITY_RANGE = { min: 0.01, max: 0.02 } as const;
@@ -136,13 +145,16 @@ export function measureKeywordQuality(input: KeywordQualityInput): KeywordQualit
   ).length;
   const primaryOccurrences = countExactPhrase(normalizedText, input.primary, input.locale);
   const denominator = Math.max(tokens.length, 1);
+  const familyDensityBasis = input.locale === "zh-Hans" ? "matched-phrases" : "covered-tokens";
+  const familyDensityNumerator = input.locale === "zh-Hans" ? familyMatches.length : familyCoveredTokens;
 
   return {
     tokenCount: tokens.length,
     primaryOccurrences,
     primaryDensity: primaryOccurrences / denominator,
     familyCoveredTokens,
-    familyDensity: familyCoveredTokens / denominator,
+    familyDensity: familyDensityNumerator / denominator,
+    familyDensityBasis,
     familyMatches,
   };
 }
@@ -156,4 +168,28 @@ export function findLanguageContamination(text: string, locale: ContentLocale): 
   const matches = (normalize(text).match(/\p{Script=Latin}[\p{Script=Latin}\p{M}'’\-]*/gu) ?? [])
     .filter((word) => [...word].length >= 2);
   return { count: matches.length, samples: [...new Set(matches)].slice(0, 12) };
+}
+
+function within(value: number, range: { min: number; max: number }): boolean {
+  return value >= range.min && value <= range.max;
+}
+
+export function evaluateKeywordQuality(input: KeywordQualityInput): KeywordQualityEvaluation {
+  const measurement = measureKeywordQuality(input);
+  const contamination = findLanguageContamination(input.text, input.locale);
+  const primaryDensityInRange = within(measurement.primaryDensity, PRIMARY_DENSITY_RANGE);
+  const familyDensityInRange = within(measurement.familyDensity, FAMILY_DENSITY_RANGE);
+  const failures = [
+    primaryDensityInRange ? null : `primary-density:outside-${PRIMARY_DENSITY_RANGE.min.toFixed(4)}-${PRIMARY_DENSITY_RANGE.max.toFixed(4)}`,
+    familyDensityInRange ? null : `family-density:outside-${FAMILY_DENSITY_RANGE.min.toFixed(4)}-${FAMILY_DENSITY_RANGE.max.toFixed(4)}`,
+    contamination.count === 0 ? null : `language-contamination:${contamination.count}`,
+  ].filter((failure): failure is string => failure !== null);
+
+  return {
+    measurement,
+    contamination,
+    primaryDensityInRange,
+    familyDensityInRange,
+    failures,
+  };
 }

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
 import { loadPublicHexagramKnowledge } from "@/domain/public-reading/knowledge";
 import { hexagramSeoFor, hexagramSeoRows } from "@/content/hexagrams/seo";
+import { evaluateKeywordQuality } from "@/content/hexagrams/seo-quality";
 import { zhHansHexagramContent } from "@/content/hexagrams/zh-Hans";
 import { HexagramDetailPageView } from "./hexagram-detail-page";
 
@@ -32,6 +33,20 @@ function eligibleText(html: string): string {
     eligible = eligible.replace(/<([a-z][a-z0-9-]*)\b[^>]*data-seo-exclude[^>]*>[\s\S]*?<\/\1>/giu, " ");
   }
   return visibleText(eligible);
+}
+
+function approvedFamily(seo: ReturnType<typeof hexagramSeoFor>): string[] {
+  return [...new Set([
+    seo.primaryKeyword,
+    ...keywordPhrases(seo.secondaryCore),
+    ...keywordPhrases(seo.secondaryVariantFamily),
+    seo.otherCoreVariant,
+    seo.meaningKeyword,
+    seo.loveKeyword,
+    seo.unchangingKeyword,
+    seo.relationshipKeyword,
+    ...seo.specialKeywords,
+  ].filter((phrase): phrase is string => Boolean(phrase)))];
 }
 
 describe("static hexagram detail page", () => {
@@ -138,6 +153,33 @@ describe("static hexagram detail page", () => {
       expect(copy, seo.canonicalUrl).not.toMatch(/Quick ?I ?Ching/iu);
     }
   });
+
+  it("keeps all 128 server-rendered detail bodies inside the hard density bands", async () => {
+    const failures: string[] = [];
+    for (const seo of hexagramSeoRows()) {
+      const knowledge = await loadPublicHexagramKnowledge(seo.number);
+      const html = renderToStaticMarkup(
+        <HexagramDetailPageView
+          locale={seo.locale}
+          knowledge={knowledge}
+          seo={seo}
+          content={seo.locale === "zh-Hans" ? zhHansHexagramContent(seo.number) : undefined}
+          previous={seo.number > 1 ? CLASSICAL_HEXAGRAMS[seo.number - 2] : null}
+          next={seo.number < 64 ? CLASSICAL_HEXAGRAMS[seo.number] : null}
+        />,
+      );
+      const quality = evaluateKeywordQuality({
+        text: eligibleText(html),
+        locale: seo.locale,
+        primary: seo.primaryKeyword,
+        approvedFamily: approvedFamily(seo),
+      });
+      if (quality.failures.length > 0) {
+        failures.push(`${seo.locale} ${seo.number} tokens=${quality.measurement.tokenCount} primaryCount=${quality.measurement.primaryOccurrences} familyMatches=${quality.measurement.familyMatches.length} primary=${quality.measurement.primaryDensity.toFixed(6)} family=${quality.measurement.familyDensity.toFixed(6)} ${quality.failures.join("|")}`);
+      }
+    }
+    expect(failures).toEqual([]);
+  }, 15_000);
 
   it("renders workbook-approved English intent modules and keyworded line headings", async () => {
     const relationshipNumbers: number[] = [];

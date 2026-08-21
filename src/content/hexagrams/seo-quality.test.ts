@@ -3,6 +3,7 @@ import {
   FAMILY_DENSITY_RANGE,
   PRIMARY_DENSITY_RANGE,
   countExactPhrase,
+  evaluateKeywordQuality,
   findLanguageContamination,
   measureKeywordQuality,
   tokenizeWithSpans,
@@ -54,6 +55,19 @@ describe("hexagram SEO quality primitives", () => {
     ]);
     expect(quality.primaryDensity).toBeCloseTo(2 / 9, 8);
     expect(quality.familyDensity).toBe(1);
+    expect(quality.familyDensityBasis).toBe("covered-tokens");
+  });
+
+  it("counts complete approved Chinese phrases without multi-character name inflation", () => {
+    const quality = measureKeywordQuality({
+      text: "泽天夬用于观察决断，泽天夬无动爻时仍需复核现实。",
+      locale: "zh-Hans",
+      primary: "泽天夬",
+      approvedFamily: ["泽天夬", "泽天夬无动爻"],
+    });
+    expect(quality.familyMatches).toHaveLength(2);
+    expect(quality.familyDensity).toBeCloseTo(2 / quality.tokenCount, 8);
+    expect(quality.familyDensityBasis).toBe("matched-phrases");
   });
 
   it("detects only the other locale script as contamination", () => {
@@ -72,5 +86,35 @@ describe("hexagram SEO quality primitives", () => {
   it("publishes the approved hard density bands", () => {
     expect(PRIMARY_DENSITY_RANGE).toEqual({ min: 0.01, max: 0.02 });
     expect(FAMILY_DENSITY_RANGE).toEqual({ min: 0.03, max: 0.05 });
+  });
+
+  it("turns density and language purity into hard failures", () => {
+    const passingText = [
+      "hexagram 1",
+      ...Array.from({ length: 93 }, (_, index) => `word${index}`),
+      "hexagram 1 love",
+      "meaning",
+      "unchanging",
+    ].join(" ");
+    const passing = evaluateKeywordQuality({
+      text: passingText,
+      locale: "en",
+      primary: "hexagram 1",
+      approvedFamily: ["hexagram 1", "hexagram 1 love"],
+    });
+    expect(passing.measurement.tokenCount).toBe(100);
+    expect(passing.measurement.primaryDensity).toBe(0.02);
+    expect(passing.measurement.familyDensity).toBe(0.05);
+    expect(passing.failures).toEqual([]);
+
+    const failing = evaluateKeywordQuality({
+      text: `${passingText} hexagram 1 hexagram 1 hexagram 1 乾`,
+      locale: "en",
+      primary: "hexagram 1",
+      approvedFamily: ["hexagram 1", "hexagram 1 love"],
+    });
+    expect(failing.failures).toContain("language-contamination:1");
+    expect(failing.failures).toContain("primary-density:outside-0.0100-0.0200");
+    expect(failing.failures).toContain("family-density:outside-0.0300-0.0500");
   });
 });
