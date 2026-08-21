@@ -26,6 +26,16 @@ function fullChineseName(seo: HexagramSeoEntry): string {
   return seo.hexagramName.split("｜")[1] ?? seo.hexagramName;
 }
 
+function keywordPhrases(value: string): string[] {
+  return value.split(/[;；]/u).map((phrase) => phrase.trim()).filter(Boolean);
+}
+
+function preferredSecondary(seo: HexagramSeoEntry): string {
+  const phrases = keywordPhrases(seo.secondaryCore);
+  if (seo.locale === "en") return phrases.find((phrase) => phrase.toLocaleLowerCase("en-US").includes("hexagram")) ?? phrases[0] ?? "";
+  return phrases[0] ?? fullChineseName(seo);
+}
+
 function EnglishSpecialModule({ number, knowledge }: { number: number; knowledge: PublicHexagramKnowledge }) {
   if (number === 23) {
     return (
@@ -132,9 +142,10 @@ export function HexagramDetailPageView({
   const isChinese = locale === "zh-Hans";
   const hubPath = isChinese ? "/zh/hexagrams" : "/hexagrams";
   const fullName = fullChineseName(seo);
+  const secondary = preferredSecondary(seo);
   const intro = isChinese
-    ? seo.primaryKeyword + "（" + fullName + "）是易经第" + knowledge.number + "卦。本页结合卦象、卦辞、大象和六条经典爻辞，提供简体中文的结构说明与现实反思；它不是确定性预言。"
-    : "Hexagram " + knowledge.number + ", " + knowledge.englishName + ", is the entity this page examines. The primary structure, classical text, changing lines, and modern interpretation are kept together so you can reflect without treating the result as a fixed prediction.";
+    ? seo.primaryKeyword + "（" + secondary + "）是易经第" + knowledge.number + "卦。本页结合卦象、卦辞、大象和六条经典爻辞，提供简体中文的结构说明与现实反思；它不是确定性预言。"
+    : secondary + ", " + knowledge.englishName + ", is the entity this page examines. The primary structure, classical text, changing lines, and modern interpretation are kept together so you can reflect without treating the result as a fixed prediction.";
   const structuredData = buildStructuredData({ locale, knowledge, seo, hubPath });
   const linkLabel = isChinese
     ? seo.primaryKeyword + "：" + fullName + "（第" + knowledge.number + "卦）"
@@ -181,14 +192,14 @@ export function HexagramDetailPageView({
       <section className="mt-10" aria-labelledby="hexagram-classical-lines-title">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div><p className="mystic-kicker">{isChinese ? "卦辞、大象与六条经典爻辞" : "Classical line text"}</p><h2 id="hexagram-classical-lines-title" className="mt-2 font-display text-3xl font-normal">{isChinese ? "来自固定来源的经典文本" : "Six lines from the fixed source"}</h2></div>
-          <p className="max-w-xl text-sm leading-7 text-[var(--ink-2)]">{isChinese ? "经典文本与下面的现代结构说明分开呈现。来源记录保留固定修订版，避免把产品解释冒充成古典文本的唯一今译。" : "These are the classical line texts. The product explanations below are separate authored content and are not presented as a modern translation."}</p>
+          <p className="max-w-xl text-sm leading-7 text-[var(--ink-2)]">{isChinese ? "经典文本与下面的现代结构说明分开呈现。每条原文仍链接到固定来源记录，但不重复展示修订号，以免来源标签压过正文主题。" : "These are the classical line texts. Each passage still links to its fixed source record without repeating revision labels through the reading."}</p>
         </div>
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           {knowledge.classicalLines.map((line) => (
             <article key={line.position} className="rounded-2xl border border-[var(--gold)]/25 bg-[var(--gold)]/[0.04] p-5 sm:p-6">
               <h3 className="font-display text-xl font-medium">{isChinese ? line.label + " · 第" + line.position + "爻" : line.label + " · Line " + line.position}</h3>
               <p className="mt-3 text-base leading-7 text-[var(--ink)]">{line.text}</p>
-              <a href={line.source.textSourceUrl} rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-[var(--jade)] hover:underline">{isChinese ? "Wikisource 固定修订版 · oldid " : "Wikisource fixed revision · oldid "}{line.source.textSourceRevision}</a>
+              <a href={line.source.textSourceUrl} rel="noreferrer" aria-label={isChinese ? "第" + line.position + "爻经典原文来源" : "Source for classical line " + line.position} title={isChinese ? "查看经典原文来源" : "View classical source"} className="mt-3 inline-flex text-xs font-semibold text-[var(--jade)] hover:underline">{isChinese ? "原文 ↗" : "Source ↗"}</a>
             </article>
           ))}
         </div>
@@ -197,13 +208,13 @@ export function HexagramDetailPageView({
       <section className="mt-10" aria-labelledby="hexagram-lines-title">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div><p className="mystic-kicker">{isChinese ? "六条爻的同页锚点" : "Six changing-line anchors"}</p><h2 id="hexagram-lines-title" className="mt-2 font-display text-3xl font-normal">{isChinese ? "逐条结构说明" : "Line-by-line interpretation"}</h2></div>
-          <p className="max-w-xl text-sm leading-7 text-[var(--ink-2)]">{isChinese ? "六条爻保留在本页的 #line-1 到 #line-6 锚点中；它们用于阅读结构，不创建独立爻 URL。若起卦时出现动爻，请把变化当作线索，用现实证据复核，不把爻辞当成确定答案。" : "These six records are authored static content for this hexagram. Reading links target stable same-page anchors; no separate line pages are created."}</p>
+          <p className="max-w-xl text-sm leading-7 text-[var(--ink-2)]">{isChinese ? "六条爻都保留稳定的同页深链接；它们用于阅读结构，不创建独立爻 URL。若起卦时出现动爻，请把变化当作线索，用现实证据复核，不把爻辞当成确定答案。" : "These six records are authored static content for this hexagram. Reading links target stable same-page anchors; no separate line pages are created."}</p>
         </div>
         <nav className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm" aria-label={isChinese ? "相关中文与英文指南" : "Reading structure guides"}>{isChinese ? <><Link href="/guides/changing-lines" className="font-semibold text-[var(--jade)] hover:underline">动爻说明（English）</Link><Link href="/guides/primary-relating-hexagrams" className="font-semibold text-[var(--jade)] hover:underline">本卦与之卦（English）</Link><Link href="/zh/methods/mei-hua-yi-shu" className="font-semibold text-[var(--jade)] hover:underline">开始中文起卦</Link></> : <><Link href="/guides/changing-lines" className="font-semibold text-[var(--jade)] hover:underline">How changing lines work</Link><Link href="/guides/primary-relating-hexagrams" className="font-semibold text-[var(--jade)] hover:underline">Primary &amp; relating hexagrams</Link><Link href="/guides/how-to-ask-the-i-ching" className="font-semibold text-[var(--jade)] hover:underline">How to ask the I Ching</Link></>}</nav>
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           {knowledge.lines.map((line, index) => (
             <article key={line.position} id={"line-" + line.position} className="scroll-mt-28 rounded-2xl border border-[var(--line)] bg-[var(--paper-raised)] p-5 sm:p-6">
-              <div className="flex flex-wrap items-baseline justify-between gap-3"><h3 className="font-display text-xl font-medium">{isChinese ? POSITIONS[index] + " · " + line.position + "爻" : "Line " + line.position + " · " + line.theme}</h3><a href={"#line-" + line.position} className="font-mono text-xs text-[var(--jade)] hover:underline">#line-{line.position}</a></div>
+              <div className="flex flex-wrap items-baseline justify-between gap-3"><h3 className="font-display text-xl font-medium">{isChinese ? POSITIONS[index] + " · " + line.position + "爻" : "Line " + line.position + " · " + line.theme}</h3><a href={"#line-" + line.position} aria-label={isChinese ? "链接到第" + line.position + "爻" : "Link to line " + line.position} className="font-mono text-xs text-[var(--jade)] hover:underline">#{line.position}</a></div>
               {isChinese ? <><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">{content?.lineNotes[index]}</p><p className="mt-4 border-t border-white/[0.08] pt-4 text-sm leading-7 text-[var(--ink-2)]"><span className="font-semibold text-[var(--gold-2)]">经典爻辞：</span>{knowledge.classicalLines[index]?.text}</p></> : <><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">{line.meaning}</p><dl className="mt-5 grid gap-4 text-sm leading-7 text-[var(--ink-2)] sm:grid-cols-2"><div><dt className="font-semibold text-[var(--gold-2)]">Change dynamic</dt><dd>{line.changeDynamic}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Caution</dt><dd>{line.caution}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Reflection</dt><dd>{line.reflection}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Synthesis</dt><dd>{line.synthesisPhrase}</dd></div></dl></>}
             </article>
           ))}
