@@ -7,6 +7,20 @@ import { hexagramSeoFor, hexagramSeoRows } from "@/content/hexagrams/seo";
 import { zhHansHexagramContent } from "@/content/hexagrams/zh-Hans";
 import { HexagramDetailPageView } from "./hexagram-detail-page";
 
+function firstKeyword(value: string): string {
+  return value.split(/[;；]/u).map((part) => part.trim()).find(Boolean) ?? "";
+}
+
+function visibleText(html: string): string {
+  return html
+    .replace(/<script\b[\s\S]*?<\/script>/giu, " ")
+    .replace(/<style\b[\s\S]*?<\/style>/giu, " ")
+    .replace(/<[^>]+>/gu, " ")
+    .replace(/&(?:amp|lt|gt|quot|apos|nbsp);/giu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
 describe("static hexagram detail page", () => {
   it("renders one exact H1 and six same-page line anchors for representative locales", async () => {
     const cases = [
@@ -60,6 +74,53 @@ describe("static hexagram detail page", () => {
       expect(metadata.description, seo.canonicalUrl).toBe(seo.finalDescription);
       expect(metadata.openGraph?.title, seo.canonicalUrl).toBe(seo.finalTitle);
       expect(metadata.openGraph?.description, seo.canonicalUrl).toBe(seo.finalDescription);
+    }
+  });
+
+  it("gives all 128 pages natural early coverage of the primary and preferred secondary keyword", async () => {
+    for (const seo of hexagramSeoRows()) {
+      const knowledge = await loadPublicHexagramKnowledge(seo.number);
+      const classicalIndex = CLASSICAL_HEXAGRAMS.findIndex((entry) => entry.number === seo.number);
+      const html = renderToStaticMarkup(
+        <HexagramDetailPageView
+          locale={seo.locale}
+          knowledge={knowledge}
+          seo={seo}
+          content={seo.locale === "zh-Hans" ? zhHansHexagramContent(seo.number) : undefined}
+          previous={classicalIndex > 0 ? CLASSICAL_HEXAGRAMS[classicalIndex - 1] : null}
+          next={classicalIndex < CLASSICAL_HEXAGRAMS.length - 1 ? CLASSICAL_HEXAGRAMS[classicalIndex + 1] : null}
+        />,
+      );
+      const earlyCopy = html.match(/<p[^>]*data-seo-early-copy[^>]*>([\s\S]*?)<\/p>/iu)?.[1] ?? "";
+      const earlyText = visibleText(earlyCopy).toLocaleLowerCase("en-US");
+      expect(earlyText, seo.canonicalUrl).toContain(seo.primaryKeyword.toLocaleLowerCase("en-US"));
+      expect(earlyText, seo.canonicalUrl).toContain(firstKeyword(seo.secondaryCore).toLocaleLowerCase("en-US"));
+    }
+  });
+
+  it("keeps source provenance without letting repeated source labels dominate the visible copy", async () => {
+    for (const locale of ["en", "zh-Hans"] as const) {
+      const knowledge = await loadPublicHexagramKnowledge(1);
+      const seo = hexagramSeoFor(1, locale);
+      const html = renderToStaticMarkup(
+        <HexagramDetailPageView
+          locale={locale}
+          knowledge={knowledge}
+          seo={seo}
+          content={locale === "zh-Hans" ? zhHansHexagramContent(1) : undefined}
+          previous={null}
+          next={CLASSICAL_HEXAGRAMS[1]}
+        />,
+      );
+      const text = visibleText(html);
+      expect((text.match(/Wikisource/giu) ?? []).length, locale).toBeLessThanOrEqual(2);
+      expect((text.match(/oldid/giu) ?? []).length, locale).toBeLessThanOrEqual(1);
+      expect((text.match(/固定修订版/gu) ?? []).length, locale).toBeLessThanOrEqual(1);
+      expect(text, locale).not.toMatch(/#line-[1-6]/u);
+      for (let position = 1; position <= 6; position += 1) {
+        expect(html, locale).toContain('href="#line-' + position + '"');
+        expect(html, locale).toContain(">#" + position + "<");
+      }
     }
   });
 
