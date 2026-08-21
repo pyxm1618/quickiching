@@ -31,9 +31,8 @@ function keywordPhrases(value: string): string[] {
 }
 
 function preferredSecondary(seo: HexagramSeoEntry): string {
-  const phrases = keywordPhrases(seo.secondaryCore);
-  if (seo.locale === "en") return phrases.find((phrase) => phrase.toLocaleLowerCase("en-US").includes("hexagram")) ?? phrases[0] ?? "";
-  return phrases[0] ?? fullChineseName(seo);
+  if (seo.locale === "en") return "I Ching Hexagram " + seo.number;
+  return keywordPhrases(seo.secondaryCore)[0] ?? fullChineseName(seo);
 }
 
 function EnglishSpecialModule({ number, knowledge }: { number: number; knowledge: PublicHexagramKnowledge }) {
@@ -199,7 +198,7 @@ export function HexagramDetailPageView({
             <article key={line.position} className="rounded-2xl border border-[var(--gold)]/25 bg-[var(--gold)]/[0.04] p-5 sm:p-6">
               <h3 className="font-display text-xl font-medium">{isChinese ? line.label + " · 第" + line.position + "爻" : line.label + " · Line " + line.position}</h3>
               <p className="mt-3 text-base leading-7 text-[var(--ink)]">{line.text}</p>
-              <a href={line.source.textSourceUrl} rel="noreferrer" aria-label={isChinese ? "第" + line.position + "爻经典原文来源" : "Source for classical line " + line.position} title={isChinese ? "查看经典原文来源" : "View classical source"} className="mt-3 inline-flex text-xs font-semibold text-[var(--jade)] hover:underline">{isChinese ? "原文 ↗" : "Source ↗"}</a>
+              <a href={line.source.textSourceUrl} rel="noreferrer" aria-label={isChinese ? "第" + line.position + "爻经典原文来源" : "Source for classical line " + line.position} title={isChinese ? "查看经典原文来源" : "View classical source"} className="mt-3 inline-flex text-xs font-semibold text-[var(--jade)] hover:underline">↗</a>
             </article>
           ))}
         </div>
