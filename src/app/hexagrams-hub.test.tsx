@@ -73,6 +73,11 @@ describe("hexagram hub inbound anchors", () => {
     expect((chineseHub.match(/data-seo-inbound-anchor=/gu) ?? [])).toHaveLength(64);
   });
 
+  it("preserves the Chinese Hub pending-research TDH contract", () => {
+    const chineseHub = renderToStaticMarkup(<ChineseHexagramsHubPage />);
+    expect(chineseHub).toContain('data-tdh-status="PENDING_RESEARCH"');
+  });
+
   it("keeps each hexagram hub in its own visible language", () => {
     const englishCopy = visibleText(renderToStaticMarkup(<EnglishHexagramsHubPage />));
     const chineseCopy = visibleText(renderToStaticMarkup(<ChineseHexagramsHubPage />));

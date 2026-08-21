@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function ChineseHexagramsHubPage() {
   return (
-    <article className="mx-auto max-w-6xl px-4 py-12 sm:py-16">
+    <article className="mx-auto max-w-6xl px-4 py-12 sm:py-16" data-tdh-status="PENDING_RESEARCH">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         "@context": "https://schema.org",
         "@type": "WebPage",
