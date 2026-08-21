@@ -24,12 +24,13 @@ describe("IndexNow Public V1 generation", () => {
 
   it("defaults to only canonical indexable URLs", () => {
     const inventory = indexablePathInventory().map(absoluteUrl);
-    expect(defaultIndexNowUrls()).toHaveLength(75);
+    expect(defaultIndexNowUrls()).toHaveLength(140);
     expect(defaultIndexNowUrls()).toEqual(inventory);
     expect(new Set(defaultIndexNowUrls())).toEqual(new Set(inventory));
     expect(defaultIndexNowUrls()).not.toContain(absoluteUrl(THREE_COIN_RESULT_PATH));
     expect(defaultIndexNowUrls()).toContain(absoluteUrl("/zh"));
     expect(defaultIndexNowUrls()).toContain(absoluteUrl("/zh/methods/mei-hua-yi-shu"));
+    expect(defaultIndexNowUrls()).toContain(absoluteUrl("/zh/hexagrams"));
   });
 
   it("normalizes live paths, strips fragments, and deduplicates", () => {

@@ -1,7 +1,7 @@
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
 import type { LocalizedHexagramContent, LocalizedReadingContent, MeiHuaPageContent } from "./types";
 
-const SUMMARY_BY_NUMBER: Record<number, { theme: string; coreMeaning: string }> = {
+export const SUMMARY_BY_NUMBER: Record<number, { theme: string; coreMeaning: string }> = {
   1: { theme: "自强与开创", coreMeaning: "乾卦强调主动承担、持续行动与自我修养。它适合用来观察意志如何转化为有分寸的创造，而不是把强势误当成保证。" },
   2: { theme: "承载与配合", coreMeaning: "坤卦关注接纳现实、承载事务与顺势配合。它提醒你先辨认条件和边界，再用稳定而具体的方式支持事情展开。" },
   3: { theme: "起步的困难", coreMeaning: "屯卦描写新局面的混沌与阻力。与其急于证明结果，不如寻找可靠的帮助、厘清次序，并为反复调整留下空间。" },

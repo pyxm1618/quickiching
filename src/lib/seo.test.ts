@@ -18,10 +18,11 @@ describe("Public SEO V1 constants", () => {
     const entries = sitemap();
     expect(INDEXABLE_PATHS).toHaveLength(73);
     expect(new Set(INDEXABLE_PATHS).size).toBe(73);
-    expect(entries).toHaveLength(75);
+    expect(entries).toHaveLength(140);
     expect(entries.slice(0, INDEXABLE_PATHS.length).map((entry) => entry.url)).toEqual(INDEXABLE_PATHS.map(absoluteUrl));
     expect(entries.map((entry) => entry.url)).toEqual(sitemapUrlInventory());
     expect(entries.every((entry) => entry.url.startsWith(`${SITE_ORIGIN}/`))).toBe(true);
+    expect(entries.map((entry) => entry.url)).toContain(absoluteUrl("/zh/hexagrams"));
     for (const path of INDEXABLE_PATHS) expect(isPrivateOrCommercialPath(path)).toBe(false);
   });
 

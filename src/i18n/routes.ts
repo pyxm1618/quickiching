@@ -76,6 +76,8 @@ export const HEXAGRAM_INDEXABLE_PATHS = [
   "/hexagrams/64-before-completion",
 ] as const;
 
+export const CHINESE_HEXAGRAM_INDEXABLE_PATHS = HEXAGRAM_INDEXABLE_PATHS.map((path) => `/zh${path}`);
+
 export const ENGLISH_INDEXABLE_PATHS = [
   "/",
   "/methods/three-coin",
@@ -129,13 +131,38 @@ function englishOnlyRoute(id: string, path: string): LocalizedRouteDefinition {
   };
 }
 
+function chineseOnlyRoute(id: string, path: string): LocalizedRouteDefinition {
+  return {
+    id,
+    paths: { "zh-Hans": path },
+    renderable: { "zh-Hans": true },
+    indexable: { "zh-Hans": true },
+    hreflangGroup: false,
+    switchable: false,
+  };
+}
+
+function pairedHexagramRoute(path: string): LocalizedRouteDefinition {
+  const slug = path.slice("/hexagrams/".length);
+  return {
+    id: `hexagram:${slug}`,
+    paths: { en: path, "zh-Hans": `/zh/hexagrams/${slug}` },
+    renderable: { en: true, "zh-Hans": true },
+    indexable: { en: true, "zh-Hans": true },
+    hreflangGroup: true,
+    switchable: true,
+  };
+}
+
 const NAMED_ROUTES = Object.entries(NAMED_ENGLISH_ROUTES).map(([id, path]) => englishOnlyRoute(id, path));
 const NAMED_PATHS = new Set(Object.values(NAMED_ENGLISH_ROUTES));
-const HEXAGRAM_ROUTES = HEXAGRAM_INDEXABLE_PATHS.map((path) => englishOnlyRoute(`hexagram:${path.slice("/hexagrams/".length)}`, path));
+const CHINESE_ONLY_ROUTES = [chineseOnlyRoute("hexagrams-zh-hub", "/zh/hexagrams")];
+const HEXAGRAM_ROUTES = HEXAGRAM_INDEXABLE_PATHS.map(pairedHexagramRoute);
 
 export const ROUTE_REGISTRY: readonly LocalizedRouteDefinition[] = [
   ...EQUIVALENT_ROUTES,
   ...NAMED_ROUTES,
+  ...CHINESE_ONLY_ROUTES,
   ...HEXAGRAM_ROUTES,
 ];
 

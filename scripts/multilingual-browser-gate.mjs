@@ -96,10 +96,12 @@ async function verifyHttpBoundaries() {
     "/zh/methods/three-coin",
     "/zh/methods/yarrow-stalks",
     "/zh/methods/manual-cast",
-    "/zh/hexagrams",
-    "/zh/hexagrams/1-the-creative",
   ]) {
     await expectStatus(path, 404);
+  }
+
+  for (const path of ["/zh/hexagrams", "/zh/hexagrams/1-the-creative", "/zh/hexagrams/64-before-completion"]) {
+    await expectStatus(path, 200);
   }
 
   for (const path of ["/this-page-must-not-exist", "/fr", "/de", "/zh-Hans", "/zh/does-not-exist", "/zh/methods/three-coin"]) {
@@ -112,8 +114,8 @@ async function verifyHttpBoundaries() {
 
   const sitemap = await expectStatus("/sitemap.xml", 200);
   const locs = [...(await sitemap.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-  assert.equal(new Set(locs).size, 75, `Sitemap must contain 75 unique URLs, received ${locs.length}`);
-  assert.equal(locs.filter((url) => new URL(url).pathname.startsWith("/zh")).length, 2, "Sitemap must contain exactly two Chinese URLs");
+  assert.equal(new Set(locs).size, 140, `Sitemap must contain 140 unique URLs, received ${locs.length}`);
+  assert.equal(locs.filter((url) => new URL(url).pathname.startsWith("/zh")).length, 67, "Sitemap must contain exactly 67 Chinese URLs");
   assert.equal(locs.filter((url) => !new URL(url).pathname.startsWith("/zh")).length, 73, "Sitemap must retain the 73 English URLs");
   assert(locs.every((url) => url.startsWith(`${CANONICAL_ORIGIN}/`)), "Sitemap contains a non-canonical origin");
   assert(!locs.some((url) => new URL(url).pathname.startsWith("/en")), "Sitemap must not contain /en URLs");
@@ -146,7 +148,7 @@ async function verifyHttpBoundaries() {
   const chineseHomeHeaderLinks = [...zhHomeHtml.matchAll(/<header\b[\s\S]*?<\/header>/gi)][0]?.[0] ?? "";
   assert.equal((chineseHomeHeaderLinks.match(/href="\/"/g) ?? []).length, 1, "Chinese header must expose exactly one root English link");
 
-  log("HTTP redirects, locale 404s, Accept-Language stability, 75-URL sitemap, metadata, and Chinese scope PASS");
+  log("HTTP redirects, locale 404s, Accept-Language stability, 140-URL sitemap, metadata, and Chinese scope PASS");
 }
 
 function attachFailureCollectors(page) {

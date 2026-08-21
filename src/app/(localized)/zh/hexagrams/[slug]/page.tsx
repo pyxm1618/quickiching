@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { HexagramDetailPageView } from "@/components/hexagram-detail-page";
+import { hexagramSeoFor } from "@/content/hexagrams/seo";
+import { zhHansHexagramContent } from "@/content/hexagrams/zh-Hans";
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
 import { loadPublicHexagramKnowledge } from "@/domain/public-reading/knowledge";
-import { hexagramSeoFor } from "@/content/hexagrams/seo";
-import { HexagramDetailPageView } from "@/components/hexagram-detail-page";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -20,18 +21,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const entry = entryForSlug(slug);
   if (!entry) return {};
-  const seo = hexagramSeoFor(entry.number, "en");
-  const canonical = canonicalUrl(`/hexagrams/${entry.slug}`);
+  const seo = hexagramSeoFor(entry.number, "zh-Hans");
+  const canonical = canonicalUrl(`/zh/hexagrams/${entry.slug}`);
   return {
     title: { absolute: seo.finalTitle },
     description: seo.finalDescription,
     alternates: { canonical, languages: alternateLanguages(`hexagram:${entry.slug}`) },
-    openGraph: { title: seo.finalTitle, description: seo.finalDescription, url: canonical, type: "article" },
+    openGraph: { title: seo.finalTitle, description: seo.finalDescription, url: canonical, type: "article", locale: "zh_CN" },
     robots: { index: true, follow: true },
   };
 }
 
-export default async function HexagramDetailPage({ params }: PageProps) {
+export default async function ChineseHexagramDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const entry = entryForSlug(slug);
   if (!entry) notFound();
@@ -39,5 +40,5 @@ export default async function HexagramDetailPage({ params }: PageProps) {
   const sequenceIndex = CLASSICAL_HEXAGRAMS.findIndex((hexagram) => hexagram.number === knowledge.number);
   const previous = sequenceIndex > 0 ? CLASSICAL_HEXAGRAMS[sequenceIndex - 1] : null;
   const next = sequenceIndex >= 0 && sequenceIndex < CLASSICAL_HEXAGRAMS.length - 1 ? CLASSICAL_HEXAGRAMS[sequenceIndex + 1] : null;
-  return <HexagramDetailPageView locale="en" knowledge={knowledge} seo={hexagramSeoFor(entry.number, "en")} previous={previous} next={next} />;
+  return <HexagramDetailPageView locale="zh-Hans" knowledge={knowledge} seo={hexagramSeoFor(entry.number, "zh-Hans")} content={zhHansHexagramContent(entry.number)} previous={previous} next={next} />;
 }
