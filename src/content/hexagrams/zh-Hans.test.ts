@@ -57,6 +57,26 @@ describe("Simplified Chinese hexagram detail content", () => {
     }
   });
 
+  it("does not expose multi-word English editorial phrases in Chinese page copy", () => {
+    const fullText = Object.values(ZH_HANS_HEXAGRAM_CONTENT)
+      .flatMap((content) => [
+        content.theme,
+        content.coreMeaning,
+        content.practicalUnderstanding,
+        content.realityUnderstanding,
+        ...content.supports,
+        ...content.watchFor,
+        content.unchanging,
+        ...content.reflectionQuestions,
+        ...content.lineNotes,
+        content.sceneModule?.body ?? "",
+      ])
+      .join("\n");
+
+    const englishEditorialPhrases = fullText.match(/\b[A-Za-z]+[ \t]+[A-Za-z]+(?:[ \t]+[A-Za-z]+)*\b/gu) ?? [];
+    expect(englishEditorialPhrases).toEqual([]);
+  });
+
   it("allows scene modules only on the workbook-approved 14 pages", () => {
     for (const content of Object.values(ZH_HANS_HEXAGRAM_CONTENT)) {
       if (!content.sceneModule) continue;
