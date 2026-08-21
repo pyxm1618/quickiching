@@ -40,15 +40,16 @@ describe("workbook-derived 128-page SEO registry", () => {
     expect(hexagramSeoFor(64, "zh-Hans").specialSerpModule).toContain("六十四卦");
   });
 
-  it("retains workbook placement and density instructions for every page", () => {
+  it("retains workbook keyword mapping and placement instructions as source data", () => {
     for (const entry of HEXAGRAM_SEO_REGISTRY) {
+      expect(entry.primaryKeyword.length).toBeGreaterThan(0);
+      expect(entry.secondaryCore.length).toBeGreaterThan(0);
       expect(entry.requiredPlacement).toContain("Title");
       expect(entry.requiredPlacement).toContain("H1");
       expect(entry.requiredPlacement.toLowerCase()).toContain("meta");
       expect(entry.requiredContent).toContain("#line-1");
       expect(entry.requiredContent).toContain("#line-6");
-      expect(entry.familyDensityMin).toBe(0.03);
-      expect(entry.familyDensityMax).toBe(0.05);
+      expect(entry.exactPrimaryStandard.toLowerCase()).toMatch(/no universal|不设机械/u);
       expect(entry.brandMentionsInBodyMax).toBe(2);
     }
   });
