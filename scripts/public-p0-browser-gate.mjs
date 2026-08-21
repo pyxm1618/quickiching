@@ -124,11 +124,24 @@ async function verifySeoAssets(page) {
     const snapshot = await page.evaluate(() => ({
       canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? "",
       lineAnchors: Array.from({ length: 6 }, (_, index) => document.querySelector(`#line-${index + 1}`) !== null),
+      classicalSourceUrls: [...document.querySelectorAll('a[href]')]
+        .map((node) => node.getAttribute("href") ?? "")
+        .filter((href) => href.includes("zh.wikisource.org")),
+      classicalSourceText: [...document.querySelectorAll('article[data-hexagram-detail] [data-seo-exclude]')]
+        .map((node) => node.textContent ?? "")
+        .join(" "),
       text: document.body?.innerText ?? "",
     }));
     assert(snapshot.canonical.endsWith(path), `${path}: canonical is not self-referencing`);
     assert(snapshot.lineAnchors.every(Boolean), `${path}: six line anchors are incomplete`);
-    assert(snapshot.text.includes(path.startsWith("/zh/") ? "卦辞" : "Judgment") && snapshot.text.includes(path.startsWith("/zh/") ? "大象" : "Image"), `${path}: classical text is missing`);
+    assert(snapshot.classicalSourceUrls.length >= 7, `${path}: fixed classical source links are incomplete`);
+    if (path.startsWith("/zh/")) {
+      assert(snapshot.text.includes("卦辞") && snapshot.text.includes("大象"), `${path}: Chinese classical text is missing`);
+    } else {
+      const sourceText = snapshot.classicalSourceText.toLocaleLowerCase();
+      assert(sourceText.includes("classical source record") && sourceText.includes("fixed records for the six lines"), `${path}: English classical source explanation is missing`);
+      assert(!/\p{Script=Han}/u.test(snapshot.classicalSourceText), `${path}: Chinese classical text leaked into the English source region`);
+    }
   }
 
   const historyHtml = await (await fetch(`${BASE}/history/`)).text();
