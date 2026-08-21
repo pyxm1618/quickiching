@@ -151,8 +151,8 @@ try {
 
   log("Running real Chromium E2E and on-page SEO acceptance");
   run("bun", ["run", "seo:registry"]);
-  run("bun", ["run", "seo:density"], {
-    env: { ...browserEnv, HEXAGRAM_SEO_AUDIT_BASE_URL: BASE, HEXAGRAM_SEO_AUDIT_OUTPUT_DIR: "/tmp/quickiching-hexagram-seo-density" },
+  run("bun", ["run", "seo:quality"], {
+    env: { ...browserEnv, HEXAGRAM_SEO_AUDIT_BASE_URL: BASE, HEXAGRAM_SEO_AUDIT_OUTPUT_DIR: "/tmp/quickiching-hexagram-seo-quality" },
   });
   run("bun", ["run", "seo:browser"], { env: { ...browserEnv, HEXAGRAM_SEO_BROWSER_BASE_URL: BASE } });
   run("node", ["scripts/browser-gate.mjs"], { env: browserEnv });

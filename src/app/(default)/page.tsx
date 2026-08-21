@@ -1,3 +1,4 @@
+import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { QuestionFirst } from "@/components/public-reading/question-first";
@@ -121,7 +122,7 @@ export default function HomePage() {
         <h2 className="font-display text-4xl font-normal tracking-[-.04em] sm:text-5xl">Understanding Your I Ching Reading</h2>
         <p className="mt-5 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">After you cast the I Ching online, read the result in layers: start with the primary hexagram, then consider any changing lines, and then compare the relating hexagram when change is present.</p>
         <div className="mt-9 grid gap-5 md:grid-cols-3">
-          <article className="method-card-a"><h3>Primary Hexagram</h3><p className="mt-4">The six-line figure before any moving line changes. It is the main structural reference for the reading.</p><Link href="/hexagrams" className="mt-5 inline-block font-semibold text-[var(--cyan)] hover:underline">Explore the 64 hexagrams</Link></article>
+          <article className="method-card-a"><h3>Primary Hexagram</h3><p className="mt-4">The six-line figure before any moving line changes. It is the main structural reference for the reading.</p><Link href="/hexagrams" data-seo-hub-link="/hexagrams" className="mt-5 inline-block font-semibold text-[var(--cyan)] hover:underline">Explore the 64 hexagrams</Link></article>
           <article className="method-card-a"><h3>Changing Lines</h3><p className="mt-4">Old yin (6) and old yang (9) are the positions where the primary pattern changes.</p><Link href="/guides/changing-lines" className="mt-5 inline-block font-semibold text-[var(--cyan)] hover:underline">Learn about changing lines</Link></article>
           <article className="method-card-a"><h3>Relating Hexagram</h3><p className="mt-4">When changing lines exist, flipping their yin/yang state produces the relating hexagram.</p><Link href="/guides/primary-relating-hexagrams" className="mt-5 inline-block font-semibold text-[var(--cyan)] hover:underline">Primary vs. relating hexagrams</Link></article>
         </div>

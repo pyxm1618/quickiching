@@ -141,14 +141,15 @@ async function verifyHttpBoundaries() {
   }
 
   const zhHomeHtml = await (await expectStatus("/zh", 200)).text();
-  for (const forbidden of ["/zh/methods/three-coin", "/zh/methods/yarrow-stalks", "/zh/methods/manual-cast", "/zh/hexagrams"]) {
+  for (const forbidden of ["/zh/methods/three-coin", "/zh/methods/yarrow-stalks", "/zh/methods/manual-cast"]) {
     assert(!zhHomeHtml.includes(`href="${forbidden}"`), `Chinese home exposes an unpublished localized path: ${forbidden}`);
   }
+  assert(zhHomeHtml.includes('href="/zh/hexagrams"'), "Chinese home must link the published Chinese hexagram Hub");
 
   const chineseHomeHeaderLinks = [...zhHomeHtml.matchAll(/<header\b[\s\S]*?<\/header>/gi)][0]?.[0] ?? "";
   assert.equal((chineseHomeHeaderLinks.match(/href="\/"/g) ?? []).length, 1, "Chinese header must expose exactly one root English link");
 
-  log("HTTP redirects, locale 404s, Accept-Language stability, 140-URL sitemap, metadata, and Chinese scope PASS");
+  log("HTTP redirects, locale 404s, Accept-Language stability, 140-URL sitemap, metadata, and published Chinese Hub link PASS");
 }
 
 function attachFailureCollectors(page) {

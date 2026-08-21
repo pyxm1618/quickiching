@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "seo:registry": "bun scripts/hexagram-seo-registry-gate.mjs",
-    "seo:density": "bun scripts/hexagram-seo-density-audit.mjs",
+    "seo:quality": "bun scripts/hexagram-seo-quality-audit.mjs",
     "seo:browser": "bun scripts/hexagram-seo-browser-gate.mjs",
     "verify:classical-sources": "bun scripts/verify-classical-sources.ts",
     "test:watch": "vitest",
