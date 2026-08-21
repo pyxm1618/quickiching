@@ -1,7 +1,7 @@
+import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
-import { getDictionary } from "@/i18n/dictionaries";
 
 export function generateMetadata(): Metadata {
   const canonical = canonicalUrl("/zh");
@@ -20,18 +20,18 @@ export function generateMetadata(): Metadata {
 }
 
 export default function ChineseHomePage() {
-  const dictionary = getDictionary("zh-Hans");
   return (
     <article>
       <section className="border-b border-white/[0.07]">
         <div className="mystic-shell grid min-h-[500px] items-center gap-10 py-16 lg:grid-cols-[1.08fr_.92fr] lg:gap-16 lg:py-20">
           <div>
-            <p className="mystic-kicker">Quick I Ching · 易经在线</p>
+            <p className="mystic-kicker">周易 · 易经在线</p>
             <h1 className="mt-5 max-w-4xl font-display text-[clamp(2.75rem,6vw,5.6rem)] font-normal leading-[1.05] tracking-[-.055em]">用易经整理问题，回到现实行动</h1>
-            <p className="mt-7 max-w-3xl text-[17px] leading-8 text-[var(--ink-2)]">Quick I Ching 是一个克制的在线起卦与反思工具。当前中文版本开放梅花易数公历时间起卦：写下问题，固定时区和当前时刻，查看本卦、动爻、之卦，再把象征性提示与现实证据放在一起思考。</p>
+            <p className="mt-7 max-w-3xl text-[17px] leading-8 text-[var(--ink-2)]">本站提供在线起卦与反思工具。当前中文版本开放梅花易数公历时间起卦：写下问题，固定时区和当前时刻，查看本卦、动爻、之卦，再把象征性提示与现实证据放在一起思考。</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/zh/methods/mei-hua-yi-shu" className="mystic-button">开始梅花易数时间起卦</Link>
-              <Link href="/" className="mystic-button-secondary">{dictionary.nav.englishSite}</Link>
+              <Link href="/zh/hexagrams" data-seo-hub-link="/zh/hexagrams" className="mystic-button-secondary">浏览易经六十四卦</Link>
+              <Link href="/" className="mystic-button-secondary">访问英文站点</Link>
             </div>
           </div>
           <div className="mystic-card-soft p-6 sm:p-8">
@@ -40,9 +40,9 @@ export default function ChineseHomePage() {
             <ul className="mt-6 space-y-3 text-sm leading-7 text-[var(--ink-2)]">
               <li className="border-l border-[var(--gold)]/50 pl-4">中文提问与公历当前时间起卦</li>
               <li className="border-l border-[var(--gold)]/50 pl-4">本卦、一个动爻、之卦与基础中文说明</li>
-              <li className="border-l border-[var(--gold)]/50 pl-4">明确展示 IANA 时区、起卦计算日期与十二时辰约定</li>
+              <li className="border-l border-[var(--gold)]/50 pl-4">明确展示国际时区、起卦计算日期与十二时辰约定</li>
             </ul>
-            <p className="mt-6 border-t border-white/[0.08] pt-5 text-xs leading-6 text-[var(--ink-3)]">中文三枚铜钱、蓍草、手动起卦、64 卦中文 SEO 页面、History 和 Personalized AI 尚未开放。中文用户可以通过英文完整网站访问这些英文功能。</p>
+            <p className="mt-6 border-t border-white/[0.08] pt-5 text-xs leading-6 text-[var(--ink-3)]">中文六十四卦详情页现已开放，并与中文首页及六十四卦总表互相连接。其他尚未本地化的起卦方式仍可通过英文站点访问。</p>
           </div>
         </div>
       </section>
@@ -53,7 +53,7 @@ export default function ChineseHomePage() {
         <div className="mt-9 grid gap-5 md:grid-cols-4">
           {[
             ["01", "写下问题", "问题是可选的，只帮助你明确这次反思的范围，不会改变起卦事实。"],
-            ["02", "固定时间", "选择有效的 IANA 时区，按公历日期和十二时辰记录当前时刻。"],
+            ["02", "固定时间", "选择有效的国际时区，按公历日期和十二时辰记录当前时刻。"],
             ["03", "查看卦象", "理解本卦、动爻和之卦之间的结构关系，不把它们当作确定答案。"],
             ["04", "回到现实", "把提示和事实、他人的选择以及必要的专业意见放在一起判断。"],
           ].map(([number, title, description]) => (
@@ -76,11 +76,11 @@ export default function ChineseHomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-4xl px-5 py-16 sm:px-7 sm:py-20" aria-labelledby="zh-english-title">
-        <p className="mystic-kicker">英文完整网站</p>
-        <h2 id="zh-english-title" className="mt-2 font-display text-3xl font-normal">当前没有更多中文版本的页面</h2>
-        <p className="mt-5 text-sm leading-7 text-[var(--ink-2)]">英文网站仍保留 Three-Coin、Yarrow Stalks、Manual Cast、64 卦英文详情、英文 History 和英文 Personalized Interpretation。语言切换器会把没有直接中文等价页的页面明确带回中文首页，而不会伪造中文正文。</p>
-        <Link href="/" className="mt-6 inline-flex font-semibold text-[var(--cyan)] hover:underline">进入英文完整网站 →</Link>
+      <section className="mx-auto max-w-4xl px-5 py-16 sm:px-7 sm:py-20" aria-labelledby="zh-more-title">
+        <p className="mystic-kicker">更多中文阅读</p>
+        <h2 id="zh-more-title" className="mt-2 font-display text-3xl font-normal">从六十四卦总表进入每一卦</h2>
+        <p className="mt-5 text-sm leading-7 text-[var(--ink-2)]">中文六十四卦总表汇集全部卦详情入口。每页都可以返回总表和中文首页，使阅读路径与站内链接关系保持完整。</p>
+        <Link href="/zh/hexagrams" data-seo-hub-link="/zh/hexagrams" className="mt-6 inline-flex font-semibold text-[var(--cyan)] hover:underline">浏览易经六十四卦 →</Link>
       </section>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
