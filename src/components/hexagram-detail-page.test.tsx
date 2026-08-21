@@ -21,6 +21,19 @@ function visibleText(html: string): string {
     .trim();
 }
 
+function eligibleText(html: string): string {
+  let eligible = html;
+  for (const tag of ["script", "style", "nav"]) {
+    eligible = eligible.replace(new RegExp(`<${tag}\\b[\\s\\S]*?<\\/${tag}>`, "giu"), " ");
+  }
+  let previous = "";
+  while (previous !== eligible) {
+    previous = eligible;
+    eligible = eligible.replace(/<([a-z][a-z0-9-]*)\b[^>]*data-seo-exclude[^>]*>[\s\S]*?<\/\1>/giu, " ");
+  }
+  return visibleText(eligible);
+}
+
 describe("static hexagram detail page", () => {
   it("renders one exact H1 and six same-page line anchors for representative locales", async () => {
     const cases = [
@@ -101,6 +114,78 @@ describe("static hexagram detail page", () => {
     }
   });
 
+  it("keeps all 128 eligible detail bodies in their own language", async () => {
+    for (const seo of hexagramSeoRows()) {
+      const knowledge = await loadPublicHexagramKnowledge(seo.number);
+      const classicalIndex = CLASSICAL_HEXAGRAMS.findIndex((entry) => entry.number === seo.number);
+      const html = renderToStaticMarkup(
+        <HexagramDetailPageView
+          locale={seo.locale}
+          knowledge={knowledge}
+          seo={seo}
+          content={seo.locale === "zh-Hans" ? zhHansHexagramContent(seo.number) : undefined}
+          previous={classicalIndex > 0 ? CLASSICAL_HEXAGRAMS[classicalIndex - 1] : null}
+          next={classicalIndex < CLASSICAL_HEXAGRAMS.length - 1 ? CLASSICAL_HEXAGRAMS[classicalIndex + 1] : null}
+        />,
+      );
+      expect(html, seo.canonicalUrl).toContain("data-seo-copy");
+      const copy = eligibleText(html);
+      if (seo.locale === "en") {
+        expect(copy, seo.canonicalUrl).not.toMatch(/\p{Script=Han}/u);
+      } else {
+        expect(copy, seo.canonicalUrl).not.toMatch(/\b\p{Script=Latin}{2,}\b/u);
+      }
+      expect(copy, seo.canonicalUrl).not.toMatch(/Quick ?I ?Ching/iu);
+    }
+  });
+
+  it("renders workbook-approved English intent modules and keyworded line headings", async () => {
+    const relationshipNumbers: number[] = [];
+    for (let number = 1; number <= 64; number += 1) {
+      const knowledge = await loadPublicHexagramKnowledge(number);
+      const seo = hexagramSeoFor(number, "en");
+      const html = renderToStaticMarkup(
+        <HexagramDetailPageView
+          locale="en"
+          knowledge={knowledge}
+          seo={seo}
+          previous={number > 1 ? CLASSICAL_HEXAGRAMS[number - 2] : null}
+          next={number < 64 ? CLASSICAL_HEXAGRAMS[number] : null}
+        />,
+      );
+      const normalized = html.toLocaleLowerCase("en-US");
+      expect(normalized, seo.canonicalUrl).toContain(`>${seo.loveKeyword} meaning<`);
+      expect(normalized, seo.canonicalUrl).toContain(`>${seo.unchangingKeyword}<`);
+      expect(html, seo.canonicalUrl).toContain(`Hexagram ${number} Line 1`);
+      expect(html, seo.canonicalUrl).toContain(`Hexagram ${number} Line 6`);
+      if (html.includes("data-relationship-module")) relationshipNumbers.push(number);
+      expect(html, seo.canonicalUrl).toContain(`data-seo-home-link="/"`);
+      expect(html, seo.canonicalUrl).toContain(`data-seo-hub-link="/hexagrams"`);
+    }
+    expect(relationshipNumbers).toEqual([1, 26, 37, 41, 42, 49, 54, 56]);
+  });
+
+  it("uses protected Chinese Primary phrases in all six line headings", async () => {
+    for (let number = 1; number <= 64; number += 1) {
+      const knowledge = await loadPublicHexagramKnowledge(number);
+      const seo = hexagramSeoFor(number, "zh-Hans");
+      const html = renderToStaticMarkup(
+        <HexagramDetailPageView
+          locale="zh-Hans"
+          knowledge={knowledge}
+          seo={seo}
+          content={zhHansHexagramContent(number)}
+          previous={number > 1 ? CLASSICAL_HEXAGRAMS[number - 2] : null}
+          next={number < 64 ? CLASSICAL_HEXAGRAMS[number] : null}
+        />,
+      );
+      expect(html, seo.canonicalUrl).toContain(`${seo.primaryKeyword}初爻`);
+      expect(html, seo.canonicalUrl).toContain(`${seo.primaryKeyword}上爻`);
+      expect(html, seo.canonicalUrl).toContain(`data-seo-home-link="/zh"`);
+      expect(html, seo.canonicalUrl).toContain(`data-seo-hub-link="/zh/hexagrams"`);
+    }
+  });
+
   it("keeps source provenance without letting repeated source labels dominate the visible copy", async () => {
     for (const locale of ["en", "zh-Hans"] as const) {
       const knowledge = await loadPublicHexagramKnowledge(1);
@@ -127,12 +212,9 @@ describe("static hexagram detail page", () => {
     }
   });
 
-  it("includes required special same-page modules and keeps hexagram 64 singular", async () => {
+  it("includes only the new workbook special English phrases", async () => {
     const knowledge23 = await loadPublicHexagramKnowledge(23);
-    const knowledge52 = await loadPublicHexagramKnowledge(52);
     const knowledge54 = await loadPublicHexagramKnowledge(54);
-    const knowledge61 = await loadPublicHexagramKnowledge(61);
-    const knowledge64 = await loadPublicHexagramKnowledge(64);
     const render = (number: number, knowledge: Awaited<ReturnType<typeof loadPublicHexagramKnowledge>>) => {
       const index = CLASSICAL_HEXAGRAMS.findIndex((entry) => entry.number === number);
       return renderToStaticMarkup(
@@ -147,11 +229,12 @@ describe("static hexagram detail page", () => {
     };
     const hexagram23Html = render(23, knowledge23);
     expect(hexagram23Html).toContain('data-special-serp-module="hexagram-23"');
-    expect(hexagram23Html).toContain("Bo (Splitting Apart)");
-    expect(render(52, knowledge52)).toMatch(/Line 3[\s\S]{0,1000}purposeful stillness/i);
-    expect(render(54, knowledge54)).toMatch(/relationships|romance/i);
-    expect(render(61, knowledge61)).toMatch(/Line 5[\s\S]{0,1000}trust/i);
-    expect(render(64, knowledge64)).not.toMatch(/64 hexagrams|all 64 hexagrams/i);
+    expect(visibleText(hexagram23Html).toLocaleLowerCase("en-US")).toContain("i ching hexagram 23 meaning splitting apart bo");
+    expect(visibleText(render(54, knowledge54)).toLocaleLowerCase("en-US")).toContain("hexagram 54 in romance reading");
+    for (const number of [52, 61, 64]) {
+      const knowledge = await loadPublicHexagramKnowledge(number);
+      expect(render(number, knowledge)).not.toContain(`data-special-serp-module="hexagram-${number}"`);
+    }
   });
 
   it("does not label a detail-to-hub link as an inbound anchor", async () => {
