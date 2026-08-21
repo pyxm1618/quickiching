@@ -407,7 +407,7 @@ Run: `bun run lint`
 
 Run: `bun run typecheck`
 
-Run: `bun test`
+Run: `bun run test`
 
 Run: `bun run seo:registry`
 
