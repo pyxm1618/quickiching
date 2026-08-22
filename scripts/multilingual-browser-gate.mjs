@@ -198,6 +198,25 @@ async function fillInput(page, selector, value) {
   }, value);
 }
 
+async function openLanguageMenuAndSwitch(page, viewport) {
+  if (viewport.width < 1024) {
+    const hamburger = await page.$('header button[aria-controls^="nav-drawer-"]');
+    assert(hamburger, "Mobile language switch requires the navigation trigger");
+    await hamburger.click();
+    await page.waitForSelector('[role="dialog"][aria-modal="true"]', { timeout: 5000 });
+    const trigger = await page.$('[role="dialog"] [data-language-switcher] button[aria-haspopup="menu"]');
+    assert(trigger, "Drawer language switch trigger missing");
+    await trigger.click();
+    await page.click('[role="dialog"] [data-language-switch]');
+    return;
+  }
+
+  const trigger = await page.$("header [data-language-switcher] button[aria-haspopup='menu']");
+  assert(trigger, "Desktop language switch trigger missing");
+  await trigger.click();
+  await page.click("header [data-language-switch]");
+}
+
 async function verifyChineseReading(page, viewport) {
   const label = `${viewport.width}px Chinese Mei Hua`;
   await page.setViewport(viewport);
@@ -240,9 +259,10 @@ async function verifyChineseReading(page, viewport) {
   }
   await assertNoOverflow(page, `${label} result`);
 
-  const englishTarget = await page.$eval("[data-language-switch]", (node) => node.getAttribute("href"));
+  const englishTarget = await page.$eval("header [data-language-switch]", (node) => node.getAttribute("href"));
   assert.equal(englishTarget, "/methods/mei-hua-yi-shu", `${label}: language switch must target the equivalent English route`);
-  await page.click("[data-language-switch]");
+  await openLanguageMenuAndSwitch(page, viewport);
+
   await page.waitForFunction((path) => location.pathname === path, { timeout: 20_000 }, "/methods/mei-hua-yi-shu");
   await page.waitForSelector("[data-public-reading-result]", { timeout: 20_000 });
   await waitForText(page, "Your I Ching reading");
@@ -256,7 +276,8 @@ async function verifyChineseReading(page, viewport) {
   assert.equal(await page.$eval("input[data-private-question]", (node) => node.value), CHINESE_QUESTION, `${label}: question changed during language switch`);
   await assertNoOverflow(page, `${label} English result`);
 
-  await page.click("[data-language-switch]");
+  await openLanguageMenuAndSwitch(page, viewport);
+
   await page.waitForFunction((path) => location.pathname === path, { timeout: 20_000 }, "/zh/methods/mei-hua-yi-shu");
   await page.waitForSelector("[data-public-reading-result]", { timeout: 20_000 });
   const returnedChineseFingerprint = await page.$eval("[data-public-reading-result]", (node) => node.getAttribute("data-reading-fingerprint"));

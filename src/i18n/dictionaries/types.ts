@@ -6,17 +6,28 @@ export type UiDictionary = {
     switchToChinese: string;
     switchToEnglish: string;
     chineseHome: string;
+    englishHome: string;
+    currentLanguage: string;
+    selectLanguage: string;
   };
   nav: {
     ariaLabel: string;
-    readOnline: string;
+    methods: string;
+    threeCoin: string;
     yarrow: string;
     meiHua: string;
     manual: string;
-    history: string;
-    hexagrams: string;
     guides: string;
-    englishSite: string;
+    howToAsk: string;
+    changingLines: string;
+    primaryRelating: string;
+    hexagrams: string;
+    history: string;
+    home: string;
+    toggleMenu: string;
+    closeMenu: string;
+    drawerTitle: string;
+    languageLabel: string;
   };
   footer: {
     description: string;
@@ -36,6 +47,7 @@ export type UiDictionary = {
     terms: string;
     acceptableUse: string;
     help: string;
+    home: string;
     legalNotice: string;
     supportEmail: string;
   };

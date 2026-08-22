@@ -51,13 +51,12 @@ describe("multilingual locale registry", () => {
     });
     expect(localizedRoute("mei-hua-yi-shu").paths["zh-Hans"]).toBe("/zh/methods/mei-hua-yi-shu");
     expect(localizedRoute("three-coin-method").paths["zh-Hans"]).toBeUndefined();
-    expect(localizedRoute("three-coin-method").hreflangGroup).toBe(false);
-    expect(localizedRoute("hexagrams-hub").paths["zh-Hans"]).toBeUndefined();
-    expect(localizedRoute("hexagrams-zh-hub")).toMatchObject({
-      paths: { "zh-Hans": "/zh/hexagrams" },
-      renderable: { "zh-Hans": true },
-      indexable: { "zh-Hans": true },
-      hreflangGroup: false,
+    expect(localizedRoute("hexagrams-hub")).toMatchObject({
+      paths: { en: "/hexagrams", "zh-Hans": "/zh/hexagrams" },
+      renderable: { en: true, "zh-Hans": true },
+      indexable: { en: true, "zh-Hans": true },
+      hreflangGroup: true,
+      switchable: true,
     });
     const detailRoutes = ROUTE_REGISTRY.filter((route) => route.id.startsWith("hexagram:"));
     expect(detailRoutes).toHaveLength(64);

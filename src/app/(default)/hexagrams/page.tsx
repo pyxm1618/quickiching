@@ -4,11 +4,15 @@ import Link from "next/link";
 import { getBasicInterpretation } from "@/domain/interpretation/basic";
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
 import { hexagramSeoFor } from "@/content/hexagrams/seo";
+import { alternateLanguages } from "@/i18n/helpers";
 
 export const metadata: Metadata = {
   title: "64 I Ching Hexagrams — King Wen Sequence Guide",
   description: "Explore all 64 I Ching hexagrams in the King Wen sequence with concise original theme summaries and links to free online casting methods.",
-  alternates: { canonical: "/hexagrams" },
+  alternates: {
+    canonical: "/hexagrams",
+    languages: alternateLanguages("hexagrams-hub"),
+  },
   openGraph: { title: "64 I Ching Hexagrams — King Wen Sequence Guide", description: "A concise hub for all 64 I Ching hexagrams in the King Wen sequence.", url: "/hexagrams", type: "website" },
 };
 
