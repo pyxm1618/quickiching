@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import http from "node:http";
+import https from "node:https";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import { resolveChromeExecutable } from "./browser-runtime.mjs";
@@ -57,14 +58,17 @@ async function fetchManual(path, init = {}) {
 
 function rawHttp(path, host) {
   const base = new URL(BASE);
+  const secure = base.protocol === "https:";
+  const requestClient = secure ? https : http;
   return new Promise((resolve, reject) => {
-    const request = http.request(
+    const request = requestClient.request(
       {
-        hostname: base.hostname,
-        port: Number(base.port || 80),
+        hostname: secure ? host : base.hostname,
+        port: Number(base.port || (secure ? 443 : 80)),
         path,
         method: "GET",
         headers: { Host: host },
+        ...(secure ? { servername: host } : {}),
       },
       (response) => {
         let body = "";
