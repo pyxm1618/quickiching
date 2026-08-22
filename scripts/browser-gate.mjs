@@ -496,8 +496,26 @@ async function verifyBrowserFlows() {
         flow: async (page) => {
           await waitForText(page, HOME_H1);
           await waitForText(page, "Common Questions About I Ching Online");
-          const navVisible = await page.$eval('nav[aria-label="Primary navigation"]', (node) => Boolean(node.getClientRects().length));
-          assert(navVisible, "Primary navigation not visible");
+          const mobileTrigger = await page.$('header button[aria-controls^="nav-drawer-"]');
+          assert(mobileTrigger, "Mobile navigation trigger missing");
+          const triggerVisible = await page.$eval(
+            'header button[aria-controls^="nav-drawer-"]',
+            (node) => Boolean(node.getClientRects().length && getComputedStyle(node).display !== "none"),
+          );
+          assert(triggerVisible, "Mobile navigation trigger not visible");
+          await mobileTrigger.click();
+          await page.waitForSelector('[role="dialog"][aria-modal="true"]', { timeout: 5000 });
+          const drawerNavigation = await page.$eval(
+            '[role="dialog"][aria-modal="true"] nav',
+            (node) => ({
+              visible: Boolean(node.getClientRects().length),
+              links: [...node.querySelectorAll("a[href]")].filter((link) => link.getClientRects().length).length,
+            }),
+          );
+          assert(drawerNavigation.visible, "Mobile drawer navigation not visible");
+          assert(drawerNavigation.links > 0, "Mobile drawer navigation links missing");
+          await page.keyboard.press("Escape");
+          await page.waitForFunction(() => !document.querySelector('[role="dialog"][aria-modal="true"]'), { timeout: 5000 });
           const opened = await page.evaluate(() => {
             const summary = [...document.querySelectorAll("summary")].find((node) => node.textContent?.trim() === "What is an I Ching reading?");
             if (!(summary instanceof HTMLElement)) return false;
