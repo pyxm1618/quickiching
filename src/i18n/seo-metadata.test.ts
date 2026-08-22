@@ -32,9 +32,19 @@ describe("multilingual metadata and sitemap integration", () => {
   });
 
   it("keeps the Chinese Hub descriptive and outside the detail TDH registry", async () => {
+    const englishHub = await import("@/app/(default)/hexagrams/page");
     const chineseHub = await import("@/app/(localized)/zh/hexagrams/page");
+    expect(englishHub.metadata).toMatchObject({
+      alternates: {
+        canonical: "/hexagrams",
+        languages: alternateLanguages("hexagrams-hub"),
+      },
+    });
     expect(chineseHub.metadata).toMatchObject({
-      alternates: { canonical: canonicalUrl("/zh/hexagrams") },
+      alternates: {
+        canonical: canonicalUrl("/zh/hexagrams"),
+        languages: alternateLanguages("hexagrams-hub"),
+      },
       robots: { index: true, follow: true },
     });
     expect(chineseHub.metadata.title).toEqual({ absolute: "简体中文易经卦库｜Quick I Ching" });

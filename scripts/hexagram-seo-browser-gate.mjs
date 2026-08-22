@@ -153,10 +153,22 @@ try {
     const zh = entryFor(number, "zh-Hans");
     for (const [entry, targetPath] of [[en, `/zh/hexagrams/${en.slug}`], [zh, `/hexagrams/${zh.slug}`]]) {
       await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
+      const languageTrigger = await page.$("header [data-language-switcher] button[aria-haspopup='menu']");
+      assert(languageTrigger, `${pathFor(entry)}: language switch trigger missing`);
+      await languageTrigger.click();
+      await page.waitForFunction(
+        () => document.querySelector("header [data-language-switcher] button[aria-haspopup='menu']")?.getAttribute("aria-expanded") === "true",
+        { timeout: 3000 },
+      );
       const target = await page.$eval("header [data-language-switch]", (node) => ({ href: node.getAttribute("href"), equivalent: node.getAttribute("data-equivalent") }));
       assert.equal(target.href, targetPath, `${pathFor(entry)}: language switch target mismatch`);
       assert.equal(target.equivalent, "true", `${pathFor(entry)}: language switch is not equivalent`);
       assert.equal(await page.$$eval("header [data-language-switch]", (nodes) => nodes.length), 1, `${pathFor(entry)}: language switcher count mismatch`);
+      await page.keyboard.press("Escape");
+      await page.waitForFunction(
+        () => document.querySelector("header [data-language-switcher] button[aria-haspopup='menu']")?.getAttribute("aria-expanded") === "false",
+        { timeout: 3000 },
+      );
       await assertKeyboardFocus(page, pathFor(entry));
     }
   }
