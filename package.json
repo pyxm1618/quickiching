@@ -13,6 +13,7 @@
     "seo:quality": "bun scripts/hexagram-seo-quality-audit.mjs",
     "seo:browser": "bun scripts/hexagram-seo-browser-gate.mjs",
     "verify:classical-sources": "bun scripts/verify-classical-sources.ts",
+    "gate:navigation": "node scripts/navigation-audit-gate.mjs",
     "test:watch": "vitest",
     "indexnow": "bun scripts/indexnow.ts"
   },

@@ -108,6 +108,14 @@ const EQUIVALENT_ROUTES: readonly LocalizedRouteDefinition[] = [
     hreflangGroup: true,
     switchable: true,
   },
+  {
+    id: "hexagrams-hub",
+    paths: { en: "/hexagrams", "zh-Hans": "/zh/hexagrams" },
+    renderable: { en: true, "zh-Hans": true },
+    indexable: { en: true, "zh-Hans": true },
+    hreflangGroup: true,
+    switchable: true,
+  },
 ];
 
 const NAMED_ENGLISH_ROUTES: Record<string, string> = {
@@ -117,7 +125,6 @@ const NAMED_ENGLISH_ROUTES: Record<string, string> = {
   "guides-how-to-ask": "/guides/how-to-ask-the-i-ching",
   "guides-changing-lines": "/guides/changing-lines",
   "guides-primary-relating": "/guides/primary-relating-hexagrams",
-  "hexagrams-hub": "/hexagrams",
 };
 
 function englishOnlyRoute(id: string, path: string): LocalizedRouteDefinition {
@@ -126,17 +133,6 @@ function englishOnlyRoute(id: string, path: string): LocalizedRouteDefinition {
     paths: { en: path },
     renderable: { en: true },
     indexable: { en: true },
-    hreflangGroup: false,
-    switchable: false,
-  };
-}
-
-function chineseOnlyRoute(id: string, path: string): LocalizedRouteDefinition {
-  return {
-    id,
-    paths: { "zh-Hans": path },
-    renderable: { "zh-Hans": true },
-    indexable: { "zh-Hans": true },
     hreflangGroup: false,
     switchable: false,
   };
@@ -156,13 +152,11 @@ function pairedHexagramRoute(path: string): LocalizedRouteDefinition {
 
 const NAMED_ROUTES = Object.entries(NAMED_ENGLISH_ROUTES).map(([id, path]) => englishOnlyRoute(id, path));
 const NAMED_PATHS = new Set(Object.values(NAMED_ENGLISH_ROUTES));
-const CHINESE_ONLY_ROUTES = [chineseOnlyRoute("hexagrams-zh-hub", "/zh/hexagrams")];
 const HEXAGRAM_ROUTES = HEXAGRAM_INDEXABLE_PATHS.map(pairedHexagramRoute);
 
 export const ROUTE_REGISTRY: readonly LocalizedRouteDefinition[] = [
   ...EQUIVALENT_ROUTES,
   ...NAMED_ROUTES,
-  ...CHINESE_ONLY_ROUTES,
   ...HEXAGRAM_ROUTES,
 ];
 
@@ -185,6 +179,7 @@ export function routeForPath(path: string): LocalizedRouteDefinition | undefined
 export function routeIdForEnglishPath(path: string): string | undefined {
   if (path === "/") return "homepage";
   if (path === "/methods/mei-hua-yi-shu") return "mei-hua-yi-shu";
+  if (path === "/hexagrams") return "hexagrams-hub";
   const named = Object.entries(NAMED_ENGLISH_ROUTES).find(([, routePath]) => routePath === path);
   if (named) return named[0];
   if (path.startsWith("/hexagrams/")) return `hexagram:${path.slice("/hexagrams/".length)}`;

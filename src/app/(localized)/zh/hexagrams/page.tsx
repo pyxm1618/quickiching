@@ -4,14 +4,17 @@ import Link from "next/link";
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
 import { zhHansHexagramContent } from "@/content/hexagrams/zh-Hans";
 import { hexagramSeoFor } from "@/content/hexagrams/seo";
-import { canonicalUrl } from "@/i18n/helpers";
+import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 
 const CANONICAL = canonicalUrl("/zh/hexagrams");
 
 export const metadata: Metadata = {
   title: { absolute: "简体中文易经卦库｜Quick I Ching" },
   description: "简体中文 64 卦详情导航，查看每一卦的经典文本、结构说明与现实反思入口。本 Hub 的独立关键词研究状态为 PENDING_RESEARCH。",
-  alternates: { canonical: CANONICAL },
+  alternates: {
+    canonical: CANONICAL,
+    languages: alternateLanguages("hexagrams-hub"),
+  },
   openGraph: {
     title: "简体中文易经卦库｜Quick I Ching",
     description: "简体中文 64 卦详情导航与经典文本入口。",
