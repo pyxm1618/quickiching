@@ -7,9 +7,9 @@ import {
 type LocalRuntimeConfig = {
   mode: "development" | "test";
   ai: "local";
-  auth: "dev";
+  auth: "dev" | "better-auth";
   payment: "simulated";
-  database: "memory";
+  database: "memory" | "postgres";
   workflow: "local";
   capabilities: CommercialCapabilityConfig;
 };
@@ -19,11 +19,11 @@ type ProductionRuntimeConfig = {
   // Public V1 has no production AI adapter. This is deliberately not a local
   // fallback: a commercial AI path must be enabled by a later checkpoint.
   ai: "disabled";
-  auth: "disabled";
+  auth: "disabled" | "better-auth";
   // Waffo is the only approved payment target. The capability remains closed
   // until the provider adapter and its separately reviewed credentials exist.
   payment: "waffo";
-  database: "disabled";
+  database: "disabled" | "postgres";
   workflow: "disabled";
   baseUrl: string;
   publicAppUrl: string;
@@ -85,39 +85,38 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
   );
   const baseUrl = optionalUrl(env, "APP_BASE_URL", "https://www.quickiching.com", true);
   const publicAppUrl = optionalUrl(env, "NEXT_PUBLIC_APP_URL", baseUrl, true);
+  const capabilities = resolveCommercialCapabilities(env, { production: true });
+  const auth = capabilities.capabilities.auth.enabled ? "better-auth" : "disabled";
+  const database = capabilities.capabilities.auth.enabled ? "postgres" : "disabled";
 
   return {
     mode: "production",
     ai: "disabled",
-    auth: "disabled",
+    auth,
     payment,
-    database: "disabled",
+    database,
     workflow: "disabled",
     baseUrl,
     publicAppUrl,
-    capabilities: resolveCommercialCapabilities(env, { production: true }),
+    capabilities,
   };
 }
 
 function loadLocalConfig(env: RuntimeEnv, mode: "development" | "test"): LocalRuntimeConfig {
+  const capabilities = resolveCommercialCapabilities(env);
   return {
     mode,
     ai: oneOf(env.AI_ADAPTER_MODE, ["local"] as const, "AI_ADAPTER_MODE", "local"),
-    auth: oneOf(env.AUTH_ADAPTER_MODE, ["dev"] as const, "AUTH_ADAPTER_MODE", "dev"),
+    auth: capabilities.capabilities.auth.enabled ? "better-auth" : "dev",
     payment: oneOf(
       env.PAYMENT_ADAPTER_MODE,
       ["simulated"] as const,
       "PAYMENT_ADAPTER_MODE",
       "simulated",
     ),
-    database: oneOf(
-      env.DATABASE_ADAPTER_MODE,
-      ["memory"] as const,
-      "DATABASE_ADAPTER_MODE",
-      "memory",
-    ),
+    database: capabilities.capabilities.auth.enabled ? "postgres" : "memory",
     workflow: oneOf(env.WORKFLOW_ADAPTER_MODE, ["local"] as const, "WORKFLOW_ADAPTER_MODE", "local"),
-    capabilities: resolveCommercialCapabilities(env),
+    capabilities,
   };
 }
 

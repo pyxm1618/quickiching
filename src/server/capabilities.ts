@@ -18,8 +18,10 @@ type RuntimeEnv = Record<string, string | undefined>;
 export type CapabilityRequirementFormat =
   | "nonBlank"
   | "httpUrl"
+  | "httpsUrl"
   | "postgresUrl"
   | "email"
+  | "secret"
   | "versionedKey";
 
 export type CapabilityRequirement = {
@@ -48,13 +50,27 @@ const databaseRequirements: readonly CapabilityRequirement[] = [
 const authRequirements: readonly CapabilityRequirement[] = [
   { name: "AUTH_ADAPTER_MODE", expected: "better-auth" },
   ...databaseRequirements,
-  { name: "BETTER_AUTH_SECRET", format: "nonBlank" },
+  { name: "BETTER_AUTH_SECRET", format: "secret" },
+  { name: "ANONYMOUS_OWNER_KEYS", format: "versionedKey" },
   { name: "BETTER_AUTH_URL", format: "httpUrl" },
   { name: "GOOGLE_CLIENT_ID", format: "nonBlank" },
   { name: "GOOGLE_CLIENT_SECRET", format: "nonBlank" },
   { name: "RESEND_API_KEY", format: "nonBlank" },
   { name: "EMAIL_FROM", format: "email" },
 ];
+
+const productionAuthRequirements: readonly CapabilityRequirement[] = [
+  { name: "APP_BASE_URL", format: "httpsUrl" },
+  { name: "NEXT_PUBLIC_APP_URL", format: "httpsUrl" },
+];
+
+const keyPurposeNames = [
+  "SESSION_SIGNING_KEYS",
+  "QUESTION_FINGERPRINT_KEYS",
+  "QUESTION_ENCRYPTION_KEYS",
+  "RESULT_INTEGRITY_KEYS",
+  "ANONYMOUS_OWNER_KEYS",
+] as const;
 
 const sharedAiRequirements: readonly CapabilityRequirement[] = [
   { name: "AI_ADAPTER_MODE", expected: "ai-sdk" },
@@ -97,7 +113,7 @@ function deepFreeze<T>(value: T): T {
 export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefinitionMap = deepFreeze({
   auth: {
     flag: "COMMERCIAL_V2_AUTH_ENABLED",
-    implementationAvailable: false,
+    implementationAvailable: true,
     capabilityDependencies: [],
     requirements: authRequirements,
   },
@@ -133,7 +149,7 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
     requirements: [
       ...sharedAiRequirements,
       { name: "WORKFLOW_ADAPTER_MODE", expected: "vercel" },
-      { name: "BETTER_AUTH_SECRET", format: "nonBlank" },
+      { name: "BETTER_AUTH_SECRET", format: "secret" },
       { name: "AI_MODEL_DEEP_READING", format: "nonBlank" },
       ...keyRequirements,
     ],
@@ -211,7 +227,21 @@ function dependencyLabel(dependency: CapabilityRequirement): string {
 function isHttpUrl(candidate: string): boolean {
   try {
     const parsed = new URL(candidate);
-    return (parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.hostname.length > 0;
+    return (
+      (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+      parsed.hostname.length > 0 &&
+      !parsed.username &&
+      !parsed.password
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isHttpsUrl(candidate: string): boolean {
+  try {
+    const parsed = new URL(candidate);
+    return parsed.protocol === "https:" && parsed.hostname.length > 0 && !parsed.username && !parsed.password;
   } catch {
     return false;
   }
@@ -253,15 +283,81 @@ function requirementSatisfied(candidate: string, requirement: CapabilityRequirem
   switch (requirement.format) {
     case "httpUrl":
       return isHttpUrl(candidate);
+    case "httpsUrl":
+      return isHttpsUrl(candidate);
     case "postgresUrl":
       return isPostgresUrl(candidate);
     case "email":
       return isEmail(candidate);
+    case "secret":
+      return candidate.length >= 32;
     case "versionedKey":
       return parseVersionedKeySet(candidate) !== null;
     case "nonBlank":
     case undefined:
       return true;
+  }
+}
+
+function productionAuthRequirementsFor(
+  requirements: readonly CapabilityRequirement[],
+): readonly CapabilityRequirement[] {
+  return [
+    ...requirements
+      .filter((requirement) => requirement.name !== "BETTER_AUTH_URL")
+      .map((requirement) => requirement),
+    { name: "BETTER_AUTH_URL", format: "httpsUrl" },
+    ...productionAuthRequirements,
+  ];
+}
+
+function keyMaterialCollisionNames(env: RuntimeEnv): Set<string> {
+  const materialOwners = new Map<string, string>();
+  const collisions = new Set<string>();
+  for (const name of keyPurposeNames) {
+    const parsed = parseVersionedKeySet(value(env, name) ?? "");
+    if (!parsed) continue;
+    for (const key of parsed) {
+      const previousOwner = materialOwners.get(key.material);
+      if (previousOwner) {
+        collisions.add(previousOwner);
+        collisions.add(name);
+      } else {
+        materialOwners.set(key.material, name);
+      }
+    }
+  }
+  return collisions;
+}
+
+function urlOrigin(valueToParse: string | undefined): string | null {
+  if (!valueToParse) return null;
+  try {
+    return new URL(valueToParse).origin;
+  } catch {
+    return null;
+  }
+}
+
+function appendProductionAuthInvariantFailures(
+  env: RuntimeEnv,
+  inspection: RequirementInspection,
+): void {
+  const origins = [
+    urlOrigin(env.APP_BASE_URL),
+    urlOrigin(env.NEXT_PUBLIC_APP_URL),
+    urlOrigin(env.BETTER_AUTH_URL),
+  ];
+  if (origins.every((origin): origin is string => origin !== null) && new Set(origins).size !== 1) {
+    inspection.invalidDependencies.push("AUTH_ORIGINS_MUST_MATCH");
+  }
+  const trustedOrigins = value(env, "BETTER_AUTH_TRUSTED_ORIGINS")
+    ?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean) ?? [];
+  const approvedOrigin = origins[0];
+  if (approvedOrigin && trustedOrigins.some((origin) => origin !== approvedOrigin)) {
+    inspection.invalidDependencies.push("BETTER_AUTH_TRUSTED_ORIGINS");
   }
 }
 
@@ -343,6 +439,7 @@ export function resolveCommercialCapabilities(
 ): CommercialCapabilityConfig {
   const definitions = options.definitions ?? COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX;
   const preliminary = {} as Record<CommercialCapability, CapabilityEvaluation>;
+  const collidingKeyNames = keyMaterialCollisionNames(env);
 
   for (const capability of COMMERCIAL_CAPABILITIES) {
     const definition = definitions[capability];
@@ -355,11 +452,27 @@ export function resolveCommercialCapabilities(
     }
 
     const requested = booleanFlag(env, definition.flag, options.production === true);
+    const requirements = capability === "auth" && options.production === true
+      ? productionAuthRequirementsFor(definition.requirements)
+      : definition.requirements;
+    const inspection = requested
+      ? inspectRequirements(env, requirements)
+      : emptyRequirementInspection();
+    if (requested) {
+      for (const requirement of requirements) {
+        if (requirement.format === "versionedKey" && collidingKeyNames.has(requirement.name)) {
+          if (!inspection.invalidDependencies.includes(requirement.name)) {
+            inspection.invalidDependencies.push(requirement.name);
+          }
+        }
+      }
+      if (capability === "auth" && options.production === true) {
+        appendProductionAuthInvariantFailures(env, inspection);
+      }
+    }
     preliminary[capability] = {
       requested,
-      inspection: requested
-        ? inspectRequirements(env, definition.requirements)
-        : emptyRequirementInspection(),
+      inspection,
     };
   }
 

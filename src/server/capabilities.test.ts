@@ -19,7 +19,7 @@ const allCapabilityFlags = Object.fromEntries(
 const completeValidEnvironment = {
   ...allCapabilityFlags,
   AUTH_ADAPTER_MODE: "better-auth",
-  BETTER_AUTH_SECRET: "better-auth-secret",
+  BETTER_AUTH_SECRET: "better-auth-secret-with-at-least-32-characters",
   BETTER_AUTH_URL: "https://auth.example.com",
   GOOGLE_CLIENT_ID: "google-client-id",
   GOOGLE_CLIENT_SECRET: "google-client-secret",
@@ -47,6 +47,7 @@ const completeValidEnvironment = {
   QUESTION_FINGERPRINT_KEYS: "v1:fingerprint-secret",
   QUESTION_ENCRYPTION_KEYS: "v1:encryption-secret",
   RESULT_INTEGRITY_KEYS: "v1:integrity-secret",
+  ANONYMOUS_OWNER_KEYS: "v1:anonymous-owner-secret",
   CRON_SECRET: "cron-secret",
 };
 
@@ -61,6 +62,7 @@ function cloneDefinitions(
     const definition = COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability];
     definitions[capability] = {
       ...definition,
+      implementationAvailable: false,
       capabilityDependencies: [...definition.capabilityDependencies],
       requirements: definition.requirements.map((requirement) => ({
         ...requirement,
@@ -121,13 +123,13 @@ describe("commercial capability matrix", () => {
     expect(result.capabilities.checkout.enabled).toBe(false);
   });
 
-  it("keeps every complete CP1 capability request closed until its implementation exists", () => {
+  it("opens only Auth while all later commercial capabilities remain closed", () => {
     const result = resolveCommercialCapabilities(completeValidEnvironment);
 
     expect(result.capabilities.auth).toMatchObject({
       requested: true,
-      enabled: false,
-      reason: "implementation_not_available",
+      enabled: true,
+      reason: "enabled",
       blockedDependencies: [],
       missingDependencies: [],
       invalidDependencies: [],
@@ -151,26 +153,48 @@ describe("commercial capability matrix", () => {
     expect(result.capabilities.aiPreview).toMatchObject({
       requested: true,
       enabled: false,
-      reason: "blocked_dependencies",
-      blockedDependencies: ["auth"],
+      reason: "implementation_not_available",
+      blockedDependencies: [],
     });
     expect(result.capabilities.checkout).toMatchObject({
       requested: true,
       enabled: false,
       reason: "blocked_dependencies",
-      blockedDependencies: ["auth", "webhookIngestion"],
+      blockedDependencies: ["webhookIngestion"],
     });
     expect(result.capabilities.paidDeepReading).toMatchObject({
       requested: true,
       enabled: false,
-      reason: "blocked_dependencies",
-      blockedDependencies: ["auth"],
+      reason: "implementation_not_available",
+      blockedDependencies: [],
     });
 
     for (const capability of COMMERCIAL_CAPABILITIES) {
-      expect(
-        COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].implementationAvailable,
-      ).toBe(false);
+      expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].implementationAvailable)
+        .toBe(capability === "auth");
+    }
+  });
+
+  it("opens only the Auth capability after the CP2 implementation is connected", () => {
+    const result = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      COMMERCIAL_V2_AI_PREVIEW_ENABLED: "false",
+      COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
+      COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "false",
+      COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "false",
+      COMMERCIAL_V2_RECONCILE_ENABLED: "false",
+    });
+
+    expect(result.capabilities.auth).toMatchObject({
+      requested: true,
+      enabled: true,
+      reason: "enabled",
+      missingDependencies: [],
+      invalidDependencies: [],
+      blockedDependencies: [],
+    });
+    for (const capability of COMMERCIAL_CAPABILITIES) {
+      if (capability !== "auth") expect(result.capabilities[capability].enabled).toBe(false);
     }
   });
 
@@ -294,6 +318,7 @@ describe("commercial capability matrix", () => {
 
   it.each([
     ["BETTER_AUTH_URL", "not-a-url", "BETTER_AUTH_URL", "auth"],
+    ["BETTER_AUTH_URL", "https://user:password@auth.example.com", "BETTER_AUTH_URL", "auth"],
     ["AI_GATEWAY_BASE_URL", "ftp://gateway.example.com", "AI_GATEWAY_BASE_URL", "aiPreview"],
     ["DATABASE_URL", "https://not-postgres.example.com", "DATABASE_URL", "auth"],
     ["EMAIL_FROM", "not-an-email", "EMAIL_FROM", "auth"],
@@ -326,6 +351,39 @@ describe("commercial capability matrix", () => {
         "QUESTION_FINGERPRINT_KEYS",
       ]),
     );
+
+    const anonymousCollision = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      SESSION_SIGNING_KEYS: "v1:anonymous-owner-secret",
+    }).capabilities.auth;
+    expect(anonymousCollision.enabled).toBe(false);
+    expect(anonymousCollision.invalidDependencies).toContain("ANONYMOUS_OWNER_KEYS");
+    expect(JSON.stringify(anonymousCollision)).not.toContain("anonymous-owner-secret");
+  });
+
+  it("requires a 32-character Better Auth secret", () => {
+    const status = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      BETTER_AUTH_SECRET: "too-short",
+    }).capabilities.auth;
+
+    expect(status.enabled).toBe(false);
+    expect(status.invalidDependencies).toContain("BETTER_AUTH_SECRET");
+  });
+
+  it("requires production Auth URLs to be HTTPS and one exact origin", () => {
+    const status = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      APP_BASE_URL: "https://www.quickiching.com",
+      NEXT_PUBLIC_APP_URL: "https://preview.quickiching.com",
+      BETTER_AUTH_URL: "http://www.quickiching.com",
+    }, { production: true }).capabilities.auth;
+
+    expect(status.enabled).toBe(false);
+    expect(status.invalidDependencies).toEqual(expect.arrayContaining([
+      "BETTER_AUTH_URL",
+      "AUTH_ORIGINS_MUST_MATCH",
+    ]));
   });
 
   it("rejects malformed capability flags instead of enabling them", () => {

@@ -26,7 +26,9 @@ export type CastingView = {
 };
 
 export async function loadCastingView(castingId: string): Promise<CastingView | null> {
-  const user = await getCurrentUser();
+  // Public V1 remains readable if the optional commercial Auth adapter is
+  // unavailable; protected loaders keep the strict default below.
+  const user = await getCurrentUser({ allowUnavailable: true });
   const anonHash = await getAnonymousHash();
   const session = repo.getCastingSession(castingId);
   if (!session) return null;

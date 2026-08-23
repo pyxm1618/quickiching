@@ -47,7 +47,7 @@ describe("runtime configuration", () => {
       AUTH_ADAPTER_MODE: "better-auth",
       DATABASE_ADAPTER_MODE: "postgres",
       DATABASE_URL: "not-postgres",
-      BETTER_AUTH_SECRET: "better-auth-secret",
+      BETTER_AUTH_SECRET: "better-auth-secret-with-at-least-32-characters",
       BETTER_AUTH_URL: "not-a-url",
       GOOGLE_CLIENT_ID: "google-client-id",
       GOOGLE_CLIENT_SECRET: "google-client-secret",
@@ -135,6 +135,64 @@ describe("runtime configuration", () => {
       database: "memory",
       workflow: "local",
       capabilities: { allDisabled: true },
+    });
+  });
+
+  it("selects PostgreSQL-backed Better Auth only when the implemented Auth capability is enabled", () => {
+    expect(loadRuntimeConfig({
+      NODE_ENV: "production",
+      COMMERCIAL_V2_AUTH_ENABLED: "true",
+      COMMERCIAL_V2_AI_PREVIEW_ENABLED: "false",
+      COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
+      COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "false",
+      COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "false",
+      COMMERCIAL_V2_RECONCILE_ENABLED: "false",
+      AUTH_ADAPTER_MODE: "better-auth",
+      DATABASE_ADAPTER_MODE: "postgres",
+      DATABASE_URL: "postgresql://user:password@db.example.com/quickiching",
+      BETTER_AUTH_SECRET: "auth-secret-with-at-least-32-characters",
+      BETTER_AUTH_URL: "https://www.quickiching.com",
+      APP_BASE_URL: "https://www.quickiching.com",
+      NEXT_PUBLIC_APP_URL: "https://www.quickiching.com",
+      GOOGLE_CLIENT_ID: "google-client-id",
+      GOOGLE_CLIENT_SECRET: "google-client-secret",
+      RESEND_API_KEY: "resend-api-key",
+      EMAIL_FROM: "Quick I Ching <noreply@example.com>",
+      ANONYMOUS_OWNER_KEYS: "v1:anonymous-owner-secret",
+      PAYMENT_ADAPTER_MODE: "waffo",
+    })).toMatchObject({
+      auth: "better-auth",
+      database: "postgres",
+      capabilities: {
+        capabilities: {
+          auth: { enabled: true, reason: "enabled" },
+        },
+      },
+    });
+  });
+
+  it("fails closed for production Auth when the approved origins are not exact HTTPS matches", () => {
+    const config = loadRuntimeConfig({
+      NODE_ENV: "production",
+      COMMERCIAL_V2_AUTH_ENABLED: "true",
+      AUTH_ADAPTER_MODE: "better-auth",
+      DATABASE_ADAPTER_MODE: "postgres",
+      DATABASE_URL: "postgresql://user:password@db.example.com/quickiching",
+      BETTER_AUTH_SECRET: "auth-secret-with-at-least-32-characters",
+      BETTER_AUTH_URL: "http://www.quickiching.com",
+      APP_BASE_URL: "https://www.quickiching.com",
+      NEXT_PUBLIC_APP_URL: "https://preview.quickiching.com",
+      GOOGLE_CLIENT_ID: "google-client-id",
+      GOOGLE_CLIENT_SECRET: "google-client-secret",
+      RESEND_API_KEY: "resend-api-key",
+      EMAIL_FROM: "Quick I Ching <noreply@example.com>",
+      ANONYMOUS_OWNER_KEYS: "v1:anonymous-owner-secret",
+    });
+
+    expect(config.auth).toBe("disabled");
+    expect(config.capabilities.capabilities.auth).toMatchObject({
+      enabled: false,
+      reason: "invalid_dependencies",
     });
   });
 

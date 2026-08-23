@@ -52,9 +52,10 @@ describe("App Router multilingual architecture", () => {
     expect(catchAllModule.metadata.robots).toEqual({ index: false, follow: false });
   });
 
-  it("keeps Commercial V2 routes and actions outside the Public V1 App Router graph", () => {
+  it("keeps only the CP2 Auth surface in the App Router graph", () => {
+    expect(existsSync(`${appRoot}(default)/signin/page.tsx`)).toBe(true);
+    expect(existsSync(`${appRoot}api/auth/[...all]/route.ts`)).toBe(true);
     for (const route of [
-      `${appRoot}(default)/signin/page.tsx`,
       `${appRoot}(default)/checkout/simulate/page.tsx`,
       `${appRoot}(default)/cast/[method]/page.tsx`,
       `${appRoot}(default)/result/[castingId]/page.tsx`,

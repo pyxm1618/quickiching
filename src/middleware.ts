@@ -1,7 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { isAuthCapabilityEnabled } from "@/server/auth/capability";
 
-const GONE_PREFIXES = ["/signin", "/account", "/checkout"] as const;
+const GONE_PREFIXES = ["/account", "/checkout"] as const;
 const NOT_FOUND_PREFIXES = ["/result", "/cast"] as const;
 const PERSONALIZED_API_PATH = "/api/personalized-interpretation";
 
@@ -13,6 +14,22 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (request.headers.has("next-action")) {
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (matchesPrefix(pathname, "/signin")) {
+    if (isAuthCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("This Commercial V2 route is not available in Public V1.", {
+      status: 410,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (matchesPrefix(pathname, "/api/auth")) {
+    if (isAuthCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("Not Found", {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },

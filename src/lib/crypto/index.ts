@@ -4,6 +4,7 @@ import {
   createHmac,
   randomBytes,
   scryptSync,
+  timingSafeEqual,
 } from "node:crypto";
 
 // Server-only crypto. Never imported by client components.
@@ -54,6 +55,28 @@ export function decryptJson<T = unknown>(blob: EncryptedBlob, purpose = "context
 export function hmac(value: string, purpose: string, version = "v1"): string {
   const key = deriveKey(purpose, version);
   return b64(createHmac("sha256", key).update(value).digest());
+}
+
+export function hmacWithKeyMaterial(
+  value: string,
+  purpose: string,
+  version: string,
+  keyMaterial: string,
+): string {
+  const key = scryptSync(`${purpose}:${version}:${keyMaterial}`, "iching-coin-salt", 32);
+  return b64(createHmac("sha256", key).update(value).digest());
+}
+
+export function verifyHmacWithKeyMaterial(
+  value: string,
+  signature: string,
+  purpose: string,
+  version: string,
+  keyMaterial: string,
+): boolean {
+  const expected = Buffer.from(hmacWithKeyMaterial(value, purpose, version, keyMaterial));
+  const actual = Buffer.from(signature);
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
 export function randomToken(bytes = 32): string {

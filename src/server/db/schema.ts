@@ -1,5 +1,6 @@
 import { bigint, boolean, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { loginIntents, users } from "./auth-schema";
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -10,8 +11,7 @@ export const castingLifecycle = pgEnum("casting_lifecycle", ["draft", "casting",
 export const jobStatus = pgEnum("job_status", ["queued", "running", "completed", "failed", "timed_out"]);
 export const orderStatus = pgEnum("order_status", ["pending", "paid", "refunded", "disputed"]);
 
-export const users = pgTable("users", { id: text("id").primaryKey(), email: text("email").notNull().unique(), ...timestamps });
-export const loginIntents = pgTable("login_intents", { id: uuid("id").defaultRandom().primaryKey(), castingId: uuid("casting_id").notNull(), anonymousHash: text("anonymous_hash").notNull(), expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), consumedAt: timestamp("consumed_at", { withTimezone: true }), ...timestamps });
+export { loginIntents, users } from "./auth-schema";
 export const castingSessions = pgTable("casting_sessions", {
   id: uuid("id").defaultRandom().primaryKey(), userId: text("user_id").references(() => users.id), anonymousHash: text("anonymous_hash"), method: text("method").notNull(), lifecycle: castingLifecycle("lifecycle").notNull().default("draft"), riskStatus: text("risk_status").notNull().default("not_checked"), scene: text("scene").notNull(), interpretationGoal: text("interpretation_goal").notNull(), questionFingerprint: text("question_fingerprint"), firstIrreversibleStepAt: timestamp("first_irreversible_step_at", { withTimezone: true }), castingExpiresAt: timestamp("casting_expires_at", { withTimezone: true }), revealExpiresAt: timestamp("reveal_expires_at", { withTimezone: true }), deletedAt: timestamp("deleted_at", { withTimezone: true }), ...timestamps,
 }, (t) => [index("casts_user_idx").on(t.userId), uniqueIndex("active_anonymous_cast_idx").on(t.anonymousHash).where(sql`lifecycle in ('draft','casting','awaiting_reveal')`)]);
