@@ -38,13 +38,13 @@ describe("CP2 PostgreSQL migration and auth persistence", () => {
     await sql.end({ timeout: 5 });
   });
 
-  it("re-applies the forward-only migration without changing its version count", async () => {
+  it("re-applies the forward-only migrations without changing their version count", async () => {
     await migrate(db, { migrationsFolder: "drizzle" });
     const migrationRows = await sql<{ count: string }[]>`
       select count(*)::text as count
       from drizzle.__drizzle_migrations
     `;
-    expect(Number(migrationRows[0]?.count)).toBe(1);
+    expect(Number(migrationRows[0]?.count)).toBe(2);
   });
 
   it("enforces the identity foreign keys, uniqueness, and required indexes in PostgreSQL", async () => {

@@ -57,4 +57,46 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/checkout")).status).toBe(410);
     expect(middleware(makeRequest("/api/orders")).status).toBe(404);
   });
+
+  it("opens only the exact authenticated Preview route when AI Preview is fully enabled", () => {
+    for (const [name, value] of Object.entries({
+      COMMERCIAL_V2_AUTH_ENABLED: "true",
+      COMMERCIAL_V2_AI_PREVIEW_ENABLED: "true",
+      COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
+      COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "false",
+      COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "false",
+      COMMERCIAL_V2_RECONCILE_ENABLED: "false",
+      AUTH_ADAPTER_MODE: "better-auth",
+      DATABASE_ADAPTER_MODE: "postgres",
+      DATABASE_URL: "postgresql://user:password@db.example.com/quickiching",
+      BETTER_AUTH_SECRET: "auth-secret-with-at-least-32-characters",
+      BETTER_AUTH_URL: "https://www.quickiching.com",
+      GOOGLE_CLIENT_ID: "google-client-id",
+      GOOGLE_CLIENT_SECRET: "google-client-secret",
+      RESEND_API_KEY: "resend-api-key",
+      EMAIL_FROM: "Quick I Ching <noreply@example.com>",
+      ANONYMOUS_OWNER_KEYS: "v1:anonymous-owner-secret",
+      AI_ADAPTER_MODE: "ai-sdk",
+      AI_GATEWAY_API_KEY: "gateway-api-key",
+      AI_GATEWAY_BASE_URL: "https://gateway.example.com",
+      AI_MODEL_PREVIEW: "preview-model",
+      AI_MODEL_OUTPUT_REVIEW: "review-model",
+      AI_MAX_OUTPUT_TOKENS: "800",
+      AI_MAX_REVIEW_OUTPUT_TOKENS: "400",
+      QUESTION_FINGERPRINT_KEYS: "v1:fingerprint-secret",
+      QUESTION_ENCRYPTION_KEYS: "v1:encryption-secret",
+      RESULT_INTEGRITY_KEYS: "v1:integrity-secret",
+    })) vi.stubEnv(name, value);
+
+    const castingId = "00000000-0000-4000-8000-000000000001";
+    expect(middleware(makeRequest(`/api/readings/${castingId}/preview`)).status).toBe(200);
+    expect(middleware(makeRequest(`/api/readings/${castingId}/preview/extra`)).status).toBe(404);
+    expect(middleware(makeRequest(`/api/readings/${castingId}`)).status).toBe(200);
+    expect(middleware(makeRequest("/api/readings/not-a-uuid/preview")).status).toBe(404);
+  });
+
+  it("keeps the exact Preview route closed when its capability is disabled", () => {
+    const castingId = "00000000-0000-4000-8000-000000000001";
+    expect(middleware(makeRequest(`/api/readings/${castingId}/preview`)).status).toBe(404);
+  });
 });

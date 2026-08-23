@@ -1,9 +1,9 @@
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
-  // CP2 migrates only the identity/Login Intent boundary. Payment, AI,
-  // workflow, and future casting tables remain deferred to their checkpoints.
-  schema: "./src/server/db/auth-schema.ts",
+  // CP3 extends the immutable CP2 identity migration with the generation core.
+  // Payment, Waffo, entitlement, and workflow tables remain deferred.
+  schema: "./src/server/db/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {

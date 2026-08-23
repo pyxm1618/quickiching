@@ -42,8 +42,38 @@ export function encryptJson(value: unknown, purpose = "context", version = "v1",
   return { v: version, iv: b64(iv), tag: b64(tag), data: b64(enc) };
 }
 
+export function encryptJsonWithKeyMaterial(
+  value: unknown,
+  purpose: string,
+  version: string,
+  keyMaterial: string,
+  aad?: string,
+): EncryptedBlob {
+  const key = scryptSync(`${purpose}:${version}:${keyMaterial}`, "iching-coin-salt", 32);
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  if (aad) cipher.setAAD(Buffer.from(aad, "utf8"));
+  const enc = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return { v: version, iv: b64(iv), tag: b64(tag), data: b64(enc) };
+}
+
 export function decryptJson<T = unknown>(blob: EncryptedBlob, purpose = "context", aad?: string): T {
   const key = deriveKey(purpose, blob.v);
+  const decipher = createDecipheriv("aes-256-gcm", key, fromB64(blob.iv));
+  if (aad) decipher.setAAD(Buffer.from(aad, "utf8"));
+  decipher.setAuthTag(fromB64(blob.tag));
+  const dec = Buffer.concat([decipher.update(fromB64(blob.data)), decipher.final()]);
+  return JSON.parse(dec.toString("utf8")) as T;
+}
+
+export function decryptJsonWithKeyMaterial<T = unknown>(
+  blob: EncryptedBlob,
+  purpose: string,
+  keyMaterial: string,
+  aad?: string,
+): T {
+  const key = scryptSync(`${purpose}:${blob.v}:${keyMaterial}`, "iching-coin-salt", 32);
   const decipher = createDecipheriv("aes-256-gcm", key, fromB64(blob.iv));
   if (aad) decipher.setAAD(Buffer.from(aad, "utf8"));
   decipher.setAuthTag(fromB64(blob.tag));

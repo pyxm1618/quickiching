@@ -1,13 +1,24 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
+import { isAiPreviewCapabilityEnabled } from "@/server/generation/capability";
 
 const GONE_PREFIXES = ["/account", "/checkout"] as const;
 const NOT_FOUND_PREFIXES = ["/result", "/cast"] as const;
 const PERSONALIZED_API_PATH = "/api/personalized-interpretation";
+const COMMERCIAL_PREVIEW_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/preview\/?$/;
+const COMMERCIAL_READING_STATUS_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/?$/;
 
 function matchesPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+function isCommercialPreviewPath(pathname: string): boolean {
+  return COMMERCIAL_PREVIEW_PATH.test(pathname);
+}
+
+function isCommercialReadingStatusPath(pathname: string): boolean {
+  return COMMERCIAL_READING_STATUS_PATH.test(pathname);
 }
 
 export function middleware(request: NextRequest) {
@@ -44,6 +55,14 @@ export function middleware(request: NextRequest) {
   }
 
   if (NOT_FOUND_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))) {
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (isCommercialPreviewPath(pathname) || isCommercialReadingStatusPath(pathname)) {
+    if (isAiPreviewCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("Not Found", {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },

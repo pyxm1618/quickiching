@@ -57,7 +57,7 @@ try {
   await run(pgctl, ["-D", dataDir, "-o", `-p ${port} -k ${socketDir}`, "-w", "start"]);
   started = true;
   await run(createdb, ["-h", "127.0.0.1", "-p", String(port), "-U", user, database]);
-  await run(bun, ["x", "vitest", "run", "--no-file-parallelism", "src/server/db/postgres.integration.test.ts", "src/server/auth/better-auth.integration.test.ts", "src/server/auth/runtime.integration.test.ts"], {
+    await run(bun, ["x", "vitest", "run", "--no-file-parallelism", "src/server/db/postgres.integration.test.ts", "src/server/db/cp3-generation.integration.test.ts", "src/server/generation/postgres-repository.integration.test.ts", "src/server/auth/better-auth.integration.test.ts", "src/server/auth/runtime.integration.test.ts"], {
     ...process.env,
     TEST_DATABASE_URL: databaseURL,
     MIGRATION_DATABASE_URL: databaseURL,

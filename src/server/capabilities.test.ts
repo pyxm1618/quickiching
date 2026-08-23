@@ -31,6 +31,8 @@ const completeValidEnvironment = {
   AI_MODEL_PREVIEW: "provider/preview-model",
   AI_MODEL_DEEP_READING: "provider/deep-model",
   AI_MODEL_OUTPUT_REVIEW: "provider/review-model",
+  AI_MAX_OUTPUT_TOKENS: "700",
+  AI_MAX_REVIEW_OUTPUT_TOKENS: "300",
   PAYMENT_ADAPTER_MODE: "waffo",
   WAFFO_MERCHANT_ID: "merchant-id",
   WAFFO_PRIVATE_KEY: "private-key-material",
@@ -152,8 +154,8 @@ describe("commercial capability matrix", () => {
     });
     expect(result.capabilities.aiPreview).toMatchObject({
       requested: true,
-      enabled: false,
-      reason: "implementation_not_available",
+      enabled: true,
+      reason: "enabled",
       blockedDependencies: [],
     });
     expect(result.capabilities.checkout).toMatchObject({
@@ -171,7 +173,7 @@ describe("commercial capability matrix", () => {
 
     for (const capability of COMMERCIAL_CAPABILITIES) {
       expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].implementationAvailable)
-        .toBe(capability === "auth");
+        .toBe(capability === "auth" || capability === "aiPreview");
     }
   });
 
@@ -288,6 +290,22 @@ describe("commercial capability matrix", () => {
 
     expect(status.reason).toBe("blocked_dependencies");
     expect(status.blockedDependencies).toContain("auth");
+  });
+
+  it("requires versioned generation encryption and integrity keys for AI Preview", () => {
+    const environment: Record<string, string | undefined> = { ...completeValidEnvironment };
+    delete environment.QUESTION_ENCRYPTION_KEYS;
+    delete environment.QUESTION_FINGERPRINT_KEYS;
+    delete environment.RESULT_INTEGRITY_KEYS;
+
+    const status = resolveCommercialCapabilities(environment).capabilities.aiPreview;
+
+    expect(status.enabled).toBe(false);
+    expect(status.missingDependencies).toEqual(expect.arrayContaining([
+      "QUESTION_ENCRYPTION_KEYS",
+      "QUESTION_FINGERPRINT_KEYS",
+      "RESULT_INTEGRITY_KEYS",
+    ]));
   });
 
   it("requires Auth, AI, PostgreSQL and Workflow for Paid Deep Reading", () => {

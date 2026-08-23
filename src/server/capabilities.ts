@@ -22,7 +22,8 @@ export type CapabilityRequirementFormat =
   | "postgresUrl"
   | "email"
   | "secret"
-  | "versionedKey";
+  | "versionedKey"
+  | "positiveInteger";
 
 export type CapabilityRequirement = {
   readonly name: string;
@@ -80,9 +81,18 @@ const sharedAiRequirements: readonly CapabilityRequirement[] = [
   { name: "AI_MODEL_OUTPUT_REVIEW", format: "nonBlank" },
 ];
 
+const generationKeyRequirements: readonly CapabilityRequirement[] = [
+  { name: "QUESTION_FINGERPRINT_KEYS", format: "versionedKey" },
+  { name: "QUESTION_ENCRYPTION_KEYS", format: "versionedKey" },
+  { name: "RESULT_INTEGRITY_KEYS", format: "versionedKey" },
+];
+
 const aiPreviewRequirements: readonly CapabilityRequirement[] = [
   ...sharedAiRequirements,
+  ...generationKeyRequirements,
   { name: "AI_MODEL_PREVIEW", format: "nonBlank" },
+  { name: "AI_MAX_OUTPUT_TOKENS", format: "positiveInteger" },
+  { name: "AI_MAX_REVIEW_OUTPUT_TOKENS", format: "positiveInteger" },
 ];
 
 const waffoRequirements: readonly CapabilityRequirement[] = [
@@ -95,9 +105,7 @@ const waffoRequirements: readonly CapabilityRequirement[] = [
 
 const keyRequirements: readonly CapabilityRequirement[] = [
   { name: "SESSION_SIGNING_KEYS", format: "versionedKey" },
-  { name: "QUESTION_FINGERPRINT_KEYS", format: "versionedKey" },
-  { name: "QUESTION_ENCRYPTION_KEYS", format: "versionedKey" },
-  { name: "RESULT_INTEGRITY_KEYS", format: "versionedKey" },
+  ...generationKeyRequirements,
 ];
 
 function deepFreeze<T>(value: T): T {
@@ -119,7 +127,7 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
   },
   aiPreview: {
     flag: "COMMERCIAL_V2_AI_PREVIEW_ENABLED",
-    implementationAvailable: false,
+    implementationAvailable: true,
     capabilityDependencies: ["auth"],
     requirements: aiPreviewRequirements,
   },
@@ -293,6 +301,8 @@ function requirementSatisfied(candidate: string, requirement: CapabilityRequirem
       return candidate.length >= 32;
     case "versionedKey":
       return parseVersionedKeySet(candidate) !== null;
+    case "positiveInteger":
+      return /^\d+$/.test(candidate) && Number(candidate) >= 1 && Number.isSafeInteger(Number(candidate));
     case "nonBlank":
     case undefined:
       return true;

@@ -6,7 +6,7 @@ import {
 
 type LocalRuntimeConfig = {
   mode: "development" | "test";
-  ai: "local";
+  ai: "local" | "ai-sdk";
   auth: "dev" | "better-auth";
   payment: "simulated";
   database: "memory" | "postgres";
@@ -18,7 +18,7 @@ type ProductionRuntimeConfig = {
   mode: "production";
   // Public V1 has no production AI adapter. This is deliberately not a local
   // fallback: a commercial AI path must be enabled by a later checkpoint.
-  ai: "disabled";
+  ai: "disabled" | "ai-sdk";
   auth: "disabled" | "better-auth";
   // Waffo is the only approved payment target. The capability remains closed
   // until the provider adapter and its separately reviewed credentials exist.
@@ -91,7 +91,7 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
 
   return {
     mode: "production",
-    ai: "disabled",
+    ai: capabilities.capabilities.aiPreview.enabled ? "ai-sdk" : "disabled",
     auth,
     payment,
     database,
@@ -106,7 +106,7 @@ function loadLocalConfig(env: RuntimeEnv, mode: "development" | "test"): LocalRu
   const capabilities = resolveCommercialCapabilities(env);
   return {
     mode,
-    ai: oneOf(env.AI_ADAPTER_MODE, ["local"] as const, "AI_ADAPTER_MODE", "local"),
+    ai: oneOf(env.AI_ADAPTER_MODE, ["local", "ai-sdk"] as const, "AI_ADAPTER_MODE", "local"),
     auth: capabilities.capabilities.auth.enabled ? "better-auth" : "dev",
     payment: oneOf(
       env.PAYMENT_ADAPTER_MODE,
