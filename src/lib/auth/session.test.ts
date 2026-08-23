@@ -9,8 +9,22 @@ import {
 } from "./session";
 import { signCookie } from "@/lib/crypto";
 
+const authMocks = vi.hoisted(() => ({
+  getSession: vi.fn(),
+  headers: vi.fn(async () => new Headers()),
+}));
+
 vi.mock("@/server/auth/capability", () => ({
   isAuthCapabilityEnabled: () => true,
+}));
+
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(),
+  headers: authMocks.headers,
+}));
+
+vi.mock("@/server/auth/server", () => ({
+  getAuth: () => ({ api: { getSession: authMocks.getSession } }),
 }));
 
 describe("development authentication isolation", () => {
@@ -57,6 +71,8 @@ describe("development authentication isolation", () => {
   });
 
   it("distinguishes Auth infrastructure failure from an unauthenticated session", async () => {
+    authMocks.getSession.mockRejectedValue(new Error("database unavailable"));
+
     await expect(getCurrentUser()).rejects.toBeInstanceOf(AuthInfrastructureUnavailableError);
     await expect(getCurrentUser({ allowUnavailable: true })).resolves.toBeNull();
   });
