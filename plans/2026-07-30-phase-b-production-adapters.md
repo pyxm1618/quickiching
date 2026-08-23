@@ -16,6 +16,13 @@
 - Use migrations, transactions, idempotency keys, immutable ledger entries, Outbox dispatch, and generation-epoch fencing.
 - Keep `docs/` limited to `PRD.md` and `技术设计文档.md`.
 
+### Account entitlement copy consistency gate
+
+- The historical staging Account page's `180 days` text is rejected as stale copy.
+- The product/domain truth is `12 months`, as defined by pricing, terms, and entitlement logic.
+- When the Account page is adopted, add a cross-page consistency test covering Account, Pricing,
+  Terms, and the domain entitlement source before enabling the commercial Account capability.
+
 ---
 
 ### Task 1: Production dependency and runtime contract

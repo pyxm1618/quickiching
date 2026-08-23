@@ -25,6 +25,48 @@ describe("runtime configuration", () => {
     });
   });
 
+  it("does not validate commercial credentials while every commercial capability is closed", () => {
+    expect(
+      loadRuntimeConfig({
+        NODE_ENV: "production",
+        BETTER_AUTH_URL: "not-a-url",
+        EMAIL_FROM: "not-an-email",
+        DATABASE_URL: "not-postgres",
+        SESSION_SIGNING_KEYS: "not-versioned",
+      }),
+    ).toMatchObject({
+      mode: "production",
+      capabilities: { allDisabled: true, requestedAny: false },
+    });
+  });
+
+  it("reports malformed requested commercial credentials without exposing their values", () => {
+    const config = loadRuntimeConfig({
+      NODE_ENV: "production",
+      COMMERCIAL_V2_AUTH_ENABLED: "true",
+      AUTH_ADAPTER_MODE: "better-auth",
+      DATABASE_ADAPTER_MODE: "postgres",
+      DATABASE_URL: "not-postgres",
+      BETTER_AUTH_SECRET: "better-auth-secret",
+      BETTER_AUTH_URL: "not-a-url",
+      GOOGLE_CLIENT_ID: "google-client-id",
+      GOOGLE_CLIENT_SECRET: "google-client-secret",
+      RESEND_API_KEY: "resend-api-key",
+      EMAIL_FROM: "not-an-email",
+    });
+
+    expect(config.capabilities.capabilities.auth).toMatchObject({
+      enabled: false,
+      reason: "invalid_dependencies",
+    });
+    expect(config.capabilities.capabilities.auth.invalidDependencies).toEqual(
+      expect.arrayContaining(["DATABASE_URL", "BETTER_AUTH_URL", "EMAIL_FROM"]),
+    );
+    expect(JSON.stringify(config.capabilities)).not.toContain("not-postgres");
+    expect(JSON.stringify(config.capabilities)).not.toContain("not-a-url");
+    expect(JSON.stringify(config.capabilities)).not.toContain("not-an-email");
+  });
+
   it("accepts the explicit Waffo production target without requiring provider credentials", () => {
     expect(
       loadRuntimeConfig({
@@ -102,6 +144,15 @@ describe("runtime configuration", () => {
         NODE_ENV: "production",
         APP_BASE_URL: "not-a-url",
       }),
-    ).toThrow("PRODUCTION_CONFIG_INVALID: APP_BASE_URL must be a valid URL");
+    ).toThrow("PRODUCTION_CONFIG_INVALID: APP_BASE_URL must be a valid HTTP or HTTPS URL");
+  });
+
+  it("rejects non-HTTP public URLs", () => {
+    expect(() =>
+      loadRuntimeConfig({
+        NODE_ENV: "production",
+        APP_BASE_URL: "ftp://files.example.com",
+      }),
+    ).toThrow("PRODUCTION_CONFIG_INVALID: APP_BASE_URL must be a valid HTTP or HTTPS URL");
   });
 });

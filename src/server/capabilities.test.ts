@@ -5,6 +5,47 @@ import {
   resolveCommercialCapabilities,
 } from "./capabilities";
 
+const allCapabilityFlags = Object.fromEntries(
+  COMMERCIAL_CAPABILITIES.map((capability) => [
+    COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].flag,
+    "true",
+  ]),
+);
+
+const completeValidEnvironment = {
+  ...allCapabilityFlags,
+  AUTH_ADAPTER_MODE: "better-auth",
+  BETTER_AUTH_SECRET: "better-auth-secret",
+  BETTER_AUTH_URL: "https://auth.example.com",
+  GOOGLE_CLIENT_ID: "google-client-id",
+  GOOGLE_CLIENT_SECRET: "google-client-secret",
+  RESEND_API_KEY: "resend-api-key",
+  EMAIL_FROM: "I Ching <noreply@example.com>",
+  AI_ADAPTER_MODE: "ai-sdk",
+  AI_GATEWAY_API_KEY: "ai-gateway-key",
+  AI_GATEWAY_BASE_URL: "https://ai-gateway.example.com/v1",
+  AI_MODEL_PREVIEW: "provider/preview-model",
+  AI_MODEL_DEEP_READING: "provider/deep-model",
+  AI_MODEL_OUTPUT_REVIEW: "provider/review-model",
+  PAYMENT_ADAPTER_MODE: "waffo",
+  WAFFO_MERCHANT_ID: "merchant-id",
+  WAFFO_PRIVATE_KEY: "private-key-material",
+  WAFFO_ENVIRONMENT: "test",
+  WAFFO_STORE_ID: "store-id",
+  WAFFO_PRODUCT_ID_ONE: "product-one",
+  WAFFO_PRODUCT_ID_THREE: "product-three",
+  WAFFO_PRODUCT_ID_FIVE: "product-five",
+  APP_BASE_URL: "https://www.quickiching.com",
+  DATABASE_ADAPTER_MODE: "postgres",
+  DATABASE_URL: "postgres://user:password@db.example.com:5432/iching",
+  WORKFLOW_ADAPTER_MODE: "vercel",
+  SESSION_SIGNING_KEYS: "v1:session-signing-secret",
+  QUESTION_FINGERPRINT_KEYS: "v1:fingerprint-secret",
+  QUESTION_ENCRYPTION_KEYS: "v1:encryption-secret",
+  RESULT_INTEGRITY_KEYS: "v1:integrity-secret",
+  CRON_SECRET: "cron-secret",
+};
+
 describe("commercial capability matrix", () => {
   it("defaults every server-side capability to disabled", () => {
     const result = resolveCommercialCapabilities({});
@@ -20,6 +61,7 @@ describe("commercial capability matrix", () => {
         enabled: false,
         reason: "disabled",
         missingDependencies: [],
+        invalidDependencies: [],
       });
     }
   });
@@ -33,6 +75,23 @@ describe("commercial capability matrix", () => {
     expect(result.requestedAny).toBe(false);
     expect(result.capabilities.auth.enabled).toBe(false);
     expect(result.capabilities.checkout.enabled).toBe(false);
+  });
+
+  it("keeps every complete CP1 capability request closed until its implementation exists", () => {
+    const result = resolveCommercialCapabilities(completeValidEnvironment);
+
+    for (const capability of COMMERCIAL_CAPABILITIES) {
+      expect(result.capabilities[capability]).toMatchObject({
+        requested: true,
+        enabled: false,
+        reason: "implementation_not_available",
+        missingDependencies: [],
+        invalidDependencies: [],
+      });
+      expect(
+        COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].implementationAvailable,
+      ).toBe(false);
+    }
   });
 
   it.each(COMMERCIAL_CAPABILITIES)(
@@ -49,36 +108,143 @@ describe("commercial capability matrix", () => {
     },
   );
 
-  it("requires Waffo explicitly for payment capabilities", () => {
-    const result = resolveCommercialCapabilities({
-      COMMERCIAL_V2_CHECKOUT_ENABLED: "true",
-      PAYMENT_ADAPTER_MODE: "unsupported-provider",
-    });
+  it.each(COMMERCIAL_CAPABILITIES)(
+    "reports the exact missing environment dependency for every %s requirement",
+    (capability) => {
+      const definition = COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability];
+      for (const requirement of definition.requirements) {
+        const environment: Record<string, string | undefined> = {
+          ...completeValidEnvironment,
+          [definition.flag]: "true",
+        };
+        delete environment[requirement.name];
 
-    expect(result.capabilities.checkout.enabled).toBe(false);
-    expect(result.capabilities.checkout.missingDependencies).toContain(
-      "PAYMENT_ADAPTER_MODE=waffo",
+        const status = resolveCommercialCapabilities(environment).capabilities[capability];
+        const label = requirement.expected
+          ? `${requirement.name}=${requirement.expected}`
+          : requirement.allowed
+            ? `${requirement.name}=${requirement.allowed.join("|")}`
+            : requirement.name;
+
+        expect(status.enabled).toBe(false);
+        expect(status.missingDependencies).toContain(label);
+      }
+    },
+  );
+
+  it("requires Auth to use PostgreSQL", () => {
+    const environment: Record<string, string | undefined> = {
+      ...completeValidEnvironment,
+      COMMERCIAL_V2_AUTH_ENABLED: "true",
+    };
+    delete environment.DATABASE_ADAPTER_MODE;
+    delete environment.DATABASE_URL;
+
+    const status = resolveCommercialCapabilities(environment).capabilities.auth;
+
+    expect(status.reason).toBe("missing_dependencies");
+    expect(status.missingDependencies).toEqual(
+      expect.arrayContaining(["DATABASE_ADAPTER_MODE=postgres", "DATABASE_URL"]),
     );
   });
 
-  it("keeps requested capabilities closed until their CP1 implementation exists", () => {
-    const result = resolveCommercialCapabilities({
-      COMMERCIAL_V2_AUTH_ENABLED: "true",
-      AUTH_ADAPTER_MODE: "better-auth",
-      BETTER_AUTH_SECRET: "secret",
-      BETTER_AUTH_URL: "https://example.com",
-      GOOGLE_CLIENT_ID: "client-id",
-      GOOGLE_CLIENT_SECRET: "client-secret",
-      RESEND_API_KEY: "resend-key",
-      EMAIL_FROM: "I Ching <noreply@example.com>",
-    });
+  it("requires Auth and Webhook readiness for Checkout but keeps Webhook independent of Checkout", () => {
+    const checkoutWithoutWebhook = {
+      ...completeValidEnvironment,
+      COMMERCIAL_V2_CHECKOUT_ENABLED: "true",
+      COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "false",
+    };
+    const checkoutStatus = resolveCommercialCapabilities(checkoutWithoutWebhook).capabilities.checkout;
+    expect(checkoutStatus.reason).toBe("missing_dependencies");
+    expect(checkoutStatus.missingDependencies).toContain("capability:webhookIngestion");
 
-    expect(result.capabilities.auth).toMatchObject({
-      requested: true,
-      enabled: false,
+    const webhookWithoutCheckout = {
+      ...completeValidEnvironment,
+      COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
+      COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "true",
+    };
+    const webhookStatus = resolveCommercialCapabilities(webhookWithoutCheckout).capabilities.webhookIngestion;
+    expect(webhookStatus).toMatchObject({
       reason: "implementation_not_available",
       missingDependencies: [],
+      invalidDependencies: [],
     });
+  });
+
+  it("requires Auth, PostgreSQL and AI for the commercial AI Preview", () => {
+    const environment = {
+      ...completeValidEnvironment,
+      COMMERCIAL_V2_AI_PREVIEW_ENABLED: "true",
+      COMMERCIAL_V2_AUTH_ENABLED: "false",
+    };
+    const status = resolveCommercialCapabilities(environment).capabilities.aiPreview;
+
+    expect(status.reason).toBe("missing_dependencies");
+    expect(status.missingDependencies).toContain("capability:auth");
+  });
+
+  it("requires Auth, AI, PostgreSQL and Workflow for Paid Deep Reading", () => {
+    const environment = {
+      ...completeValidEnvironment,
+      COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "true",
+      COMMERCIAL_V2_AUTH_ENABLED: "false",
+      COMMERCIAL_V2_AI_PREVIEW_ENABLED: "false",
+    };
+    const status = resolveCommercialCapabilities(environment).capabilities.paidDeepReading;
+
+    expect(status.reason).toBe("missing_dependencies");
+    expect(status.missingDependencies).toEqual(
+      expect.arrayContaining(["capability:auth", "capability:aiPreview"]),
+    );
+  });
+
+  it("requires PostgreSQL, Workflow and CRON_SECRET for Reconcile", () => {
+    const environment: Record<string, string | undefined> = {
+      ...completeValidEnvironment,
+      COMMERCIAL_V2_RECONCILE_ENABLED: "true",
+    };
+    delete environment.CRON_SECRET;
+
+    const status = resolveCommercialCapabilities(environment).capabilities.reconcile;
+
+    expect(status.reason).toBe("missing_dependencies");
+    expect(status.missingDependencies).toContain("CRON_SECRET");
+  });
+
+  it.each([
+    ["BETTER_AUTH_URL", "not-a-url", "BETTER_AUTH_URL", "auth"],
+    ["AI_GATEWAY_BASE_URL", "ftp://gateway.example.com", "AI_GATEWAY_BASE_URL", "aiPreview"],
+    ["DATABASE_URL", "https://not-postgres.example.com", "DATABASE_URL", "auth"],
+    ["EMAIL_FROM", "not-an-email", "EMAIL_FROM", "auth"],
+    ["WAFFO_ENVIRONMENT", "sandbox", "WAFFO_ENVIRONMENT=test|production", "checkout"],
+    ["AI_MODEL_PREVIEW", "   ", "AI_MODEL_PREVIEW", "aiPreview"],
+    ["WAFFO_PRODUCT_ID_ONE", "   ", "WAFFO_PRODUCT_ID_ONE", "checkout"],
+  ] as const)("rejects invalid %s without exposing its value", (name, value, label, capability) => {
+    const result = resolveCommercialCapabilities({ ...completeValidEnvironment, [name]: value });
+    const status = result.capabilities[capability];
+
+    expect(status.enabled).toBe(false);
+    expect(status.invalidDependencies).toContain(label);
+    if (value.trim()) expect(JSON.stringify(result)).not.toContain(value.trim());
+  });
+
+  it("rejects malformed versioned keys and duplicate key material across purposes", () => {
+    const malformed = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      SESSION_SIGNING_KEYS: "not-versioned",
+    }).capabilities.paidDeepReading;
+    expect(malformed.invalidDependencies).toContain("SESSION_SIGNING_KEYS");
+
+    const duplicated = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      QUESTION_FINGERPRINT_KEYS: "v1:session-signing-secret",
+    }).capabilities.paidDeepReading;
+    expect(duplicated.invalidDependencies).toEqual(
+      expect.arrayContaining([
+        "SESSION_SIGNING_KEYS",
+        "QUESTION_FINGERPRINT_KEYS",
+      ]),
+    );
   });
 
   it("rejects malformed capability flags instead of enabling them", () => {

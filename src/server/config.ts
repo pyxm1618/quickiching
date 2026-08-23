@@ -60,8 +60,15 @@ function optionalUrl(
   production = false,
 ): string {
   const candidate = env[name]?.trim() || fallback;
-  if (!z.string().url().safeParse(candidate).success) {
-    invalid(`${name} must be a valid URL`, production);
+  let isHttp = false;
+  try {
+    const parsed = new URL(candidate);
+    isHttp = (parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.hostname.length > 0;
+  } catch {
+    isHttp = false;
+  }
+  if (!isHttp) {
+    invalid(`${name} must be a valid HTTP or HTTPS URL`, production);
   }
   return candidate;
 }
