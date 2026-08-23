@@ -6,7 +6,7 @@
 
 **Architecture:** PostgreSQL is the sole source of user-visible state. Server Actions call application services backed by a repository interface; external callbacks enter through signed Route Handlers into idempotent inbox records; long-running work is created transactionally with an Outbox and finalized only when its generation fence still matches.
 
-**Tech Stack:** Next.js 15, TypeScript, Drizzle ORM, Neon PostgreSQL, Better Auth, Creem, Vercel Workflow, Vitest, Zod.
+**Tech Stack:** Next.js 15, TypeScript, Drizzle ORM, Neon PostgreSQL, Better Auth, Waffo, Vercel Workflow, Vitest, Zod.
 
 ## Global Constraints
 
@@ -22,7 +22,7 @@
 
 **Files:** `package.json`, `.env.example`, `src/server/config.ts`, `src/server/config.test.ts`
 
-- [ ] Add Drizzle, PostgreSQL driver, Better Auth, Creem SDK boundary, Workflow SDK, and validation dependencies at lockfile-pinned versions.
+- [ ] Add Drizzle, PostgreSQL driver, Better Auth, Waffo SDK boundary, Workflow SDK, and validation dependencies at lockfile-pinned versions.
 - [ ] Add `DATABASE_URL`, provider keys, webhook secrets, workflow and adapter modes to a Zod-validated runtime configuration.
 - [ ] Test that each production adapter rejects missing credentials and that local/test modes retain explicit in-memory behavior.
 
@@ -44,9 +44,9 @@
 
 ### Task 4: Payment provider, webhook Inbox, and entitlement transitions
 
-**Files:** `src/server/payments/*`, `src/app/api/webhooks/creem/route.ts`, `src/server/services/reading-service.ts`
+**Files:** `src/server/payments/*`, `src/app/api/webhooks/waffo/route.ts`, `src/server/services/reading-service.ts`
 
-- [ ] Create a Checkout only through the Creem adapter and persist a pending order with a request id.
+- [ ] Create a Checkout only through the Waffo adapter and persist a pending order with a request id.
 - [ ] Verify raw-body signatures; persist a unique Inbox event before applying paid/refund/dispute transitions and ledger effects transactionally.
 - [ ] Test duplicate delivery, reordered events, invalid signature, refund, dispute, and browser-return-without-webhook; stop at live provider validation if merchant credentials are absent.
 
