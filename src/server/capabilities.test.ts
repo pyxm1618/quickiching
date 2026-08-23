@@ -4,6 +4,10 @@ import {
   COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX,
   resolveCommercialCapabilities,
 } from "./capabilities";
+import type {
+  CommercialCapability,
+  CommercialCapabilityDefinition,
+} from "./capabilities";
 
 const allCapabilityFlags = Object.fromEntries(
   COMMERCIAL_CAPABILITIES.map((capability) => [
@@ -46,6 +50,46 @@ const completeValidEnvironment = {
   CRON_SECRET: "cron-secret",
 };
 
+type TestDefinitionMap = Record<CommercialCapability, CommercialCapabilityDefinition>;
+
+function cloneDefinitions(
+  overrides: Partial<Record<CommercialCapability, Partial<CommercialCapabilityDefinition>>> = {},
+): TestDefinitionMap {
+  const definitions = {} as TestDefinitionMap;
+
+  for (const capability of COMMERCIAL_CAPABILITIES) {
+    const definition = COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability];
+    definitions[capability] = {
+      ...definition,
+      capabilityDependencies: [...definition.capabilityDependencies],
+      requirements: definition.requirements.map((requirement) => ({
+        ...requirement,
+        allowed: requirement.allowed ? [...requirement.allowed] : undefined,
+      })),
+    };
+  }
+
+  for (const [capability, override] of Object.entries(overrides)) {
+    const key = capability as CommercialCapability;
+    definitions[key] = { ...definitions[key], ...override };
+  }
+
+  return definitions;
+}
+
+function definitionsWithImplementations(
+  ...available: CommercialCapability[]
+): TestDefinitionMap {
+  const definitions = cloneDefinitions();
+  for (const capability of available) {
+    definitions[capability] = {
+      ...definitions[capability],
+      implementationAvailable: true,
+    };
+  }
+  return definitions;
+}
+
 describe("commercial capability matrix", () => {
   it("defaults every server-side capability to disabled", () => {
     const result = resolveCommercialCapabilities({});
@@ -80,14 +124,50 @@ describe("commercial capability matrix", () => {
   it("keeps every complete CP1 capability request closed until its implementation exists", () => {
     const result = resolveCommercialCapabilities(completeValidEnvironment);
 
+    expect(result.capabilities.auth).toMatchObject({
+      requested: true,
+      enabled: false,
+      reason: "implementation_not_available",
+      blockedDependencies: [],
+      missingDependencies: [],
+      invalidDependencies: [],
+    });
+    expect(result.capabilities.webhookIngestion).toMatchObject({
+      requested: true,
+      enabled: false,
+      reason: "implementation_not_available",
+      blockedDependencies: [],
+      missingDependencies: [],
+      invalidDependencies: [],
+    });
+    expect(result.capabilities.reconcile).toMatchObject({
+      requested: true,
+      enabled: false,
+      reason: "implementation_not_available",
+      blockedDependencies: [],
+      missingDependencies: [],
+      invalidDependencies: [],
+    });
+    expect(result.capabilities.aiPreview).toMatchObject({
+      requested: true,
+      enabled: false,
+      reason: "blocked_dependencies",
+      blockedDependencies: ["auth"],
+    });
+    expect(result.capabilities.checkout).toMatchObject({
+      requested: true,
+      enabled: false,
+      reason: "blocked_dependencies",
+      blockedDependencies: ["auth", "webhookIngestion"],
+    });
+    expect(result.capabilities.paidDeepReading).toMatchObject({
+      requested: true,
+      enabled: false,
+      reason: "blocked_dependencies",
+      blockedDependencies: ["auth"],
+    });
+
     for (const capability of COMMERCIAL_CAPABILITIES) {
-      expect(result.capabilities[capability]).toMatchObject({
-        requested: true,
-        enabled: false,
-        reason: "implementation_not_available",
-        missingDependencies: [],
-        invalidDependencies: [],
-      });
       expect(
         COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].implementationAvailable,
       ).toBe(false);
@@ -103,8 +183,10 @@ describe("commercial capability matrix", () => {
 
       expect(status.requested).toBe(true);
       expect(status.enabled).toBe(false);
-      expect(status.reason).toBe("missing_dependencies");
-      expect(status.missingDependencies.length).toBeGreaterThan(0);
+      expect(["missing_dependencies", "blocked_dependencies"]).toContain(status.reason);
+      expect(
+        status.missingDependencies.length + status.blockedDependencies.length,
+      ).toBeGreaterThan(0);
     },
   );
 
@@ -155,8 +237,8 @@ describe("commercial capability matrix", () => {
       COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "false",
     };
     const checkoutStatus = resolveCommercialCapabilities(checkoutWithoutWebhook).capabilities.checkout;
-    expect(checkoutStatus.reason).toBe("missing_dependencies");
-    expect(checkoutStatus.missingDependencies).toContain("capability:webhookIngestion");
+    expect(checkoutStatus.reason).toBe("blocked_dependencies");
+    expect(checkoutStatus.blockedDependencies).toContain("webhookIngestion");
 
     const webhookWithoutCheckout = {
       ...completeValidEnvironment,
@@ -166,6 +248,7 @@ describe("commercial capability matrix", () => {
     const webhookStatus = resolveCommercialCapabilities(webhookWithoutCheckout).capabilities.webhookIngestion;
     expect(webhookStatus).toMatchObject({
       reason: "implementation_not_available",
+      blockedDependencies: [],
       missingDependencies: [],
       invalidDependencies: [],
     });
@@ -179,8 +262,8 @@ describe("commercial capability matrix", () => {
     };
     const status = resolveCommercialCapabilities(environment).capabilities.aiPreview;
 
-    expect(status.reason).toBe("missing_dependencies");
-    expect(status.missingDependencies).toContain("capability:auth");
+    expect(status.reason).toBe("blocked_dependencies");
+    expect(status.blockedDependencies).toContain("auth");
   });
 
   it("requires Auth, AI, PostgreSQL and Workflow for Paid Deep Reading", () => {
@@ -192,10 +275,8 @@ describe("commercial capability matrix", () => {
     };
     const status = resolveCommercialCapabilities(environment).capabilities.paidDeepReading;
 
-    expect(status.reason).toBe("missing_dependencies");
-    expect(status.missingDependencies).toEqual(
-      expect.arrayContaining(["capability:auth", "capability:aiPreview"]),
-    );
+    expect(status.reason).toBe("blocked_dependencies");
+    expect(status.blockedDependencies).toEqual(["auth"]);
   });
 
   it("requires PostgreSQL, Workflow and CRON_SECRET for Reconcile", () => {
@@ -251,5 +332,147 @@ describe("commercial capability matrix", () => {
     expect(() =>
       resolveCommercialCapabilities({ COMMERCIAL_V2_AUTH_ENABLED: "yes" }),
     ).toThrow("COMMERCIAL_V2_AUTH_ENABLED must be true or false");
+  });
+
+  it("requires final enabled dependencies, not only valid dependency configuration", () => {
+    const onlyPreview = resolveCommercialCapabilities(completeValidEnvironment, {
+      definitions: definitionsWithImplementations("aiPreview"),
+    }).capabilities.aiPreview;
+    expect(onlyPreview).toMatchObject({
+      enabled: false,
+      reason: "blocked_dependencies",
+      blockedDependencies: ["auth"],
+    });
+
+    const onlyCheckout = resolveCommercialCapabilities(completeValidEnvironment, {
+      definitions: definitionsWithImplementations("checkout"),
+    }).capabilities.checkout;
+    expect(onlyCheckout).toMatchObject({
+      enabled: false,
+      reason: "blocked_dependencies",
+      blockedDependencies: ["auth", "webhookIngestion"],
+    });
+
+    const checkoutWithoutWebhook = resolveCommercialCapabilities(completeValidEnvironment, {
+      definitions: definitionsWithImplementations("auth", "checkout"),
+    }).capabilities.checkout;
+    expect(checkoutWithoutWebhook).toMatchObject({
+      enabled: false,
+      reason: "blocked_dependencies",
+      blockedDependencies: ["webhookIngestion"],
+    });
+
+    const readyCheckout = resolveCommercialCapabilities(completeValidEnvironment, {
+      definitions: definitionsWithImplementations("auth", "webhookIngestion", "checkout"),
+    }).capabilities.checkout;
+    expect(readyCheckout).toMatchObject({
+      enabled: true,
+      reason: "enabled",
+      blockedDependencies: [],
+    });
+  });
+
+  it("does not couple Paid Deep Reading to the AI Preview product capability", () => {
+    const environment: Record<string, string | undefined> = { ...completeValidEnvironment };
+    environment.COMMERCIAL_V2_AI_PREVIEW_ENABLED = "false";
+    environment.AI_MODEL_PREVIEW = undefined;
+
+    const result = resolveCommercialCapabilities(environment, {
+      definitions: definitionsWithImplementations("auth", "paidDeepReading"),
+    });
+    const status = result.capabilities.paidDeepReading;
+
+    expect(status).toMatchObject({
+      enabled: true,
+      reason: "enabled",
+      blockedDependencies: [],
+      missingDependencies: [],
+      invalidDependencies: [],
+    });
+    expect(status.blockedDependencies).not.toContain("aiPreview");
+    expect(status.missingDependencies).not.toContain("AI_MODEL_PREVIEW");
+  });
+
+  it("fails closed for cyclic capability dependencies", () => {
+    const definitions = cloneDefinitions();
+    definitions.auth = {
+      ...definitions.auth,
+      implementationAvailable: true,
+      capabilityDependencies: ["reconcile"],
+    };
+    definitions.reconcile = {
+      ...definitions.reconcile,
+      implementationAvailable: true,
+      capabilityDependencies: ["auth"],
+    };
+
+    const result = resolveCommercialCapabilities(completeValidEnvironment, { definitions });
+
+    expect(result.capabilities.auth.enabled).toBe(false);
+    expect(result.capabilities.reconcile.enabled).toBe(false);
+    expect(result.capabilities.auth.blockedDependencies).toContain("reconcile");
+    expect(result.capabilities.reconcile.blockedDependencies).toContain("auth");
+  });
+
+  it("fails closed for unknown capability dependencies", () => {
+    const definitions = cloneDefinitions();
+    definitions.auth = {
+      ...definitions.auth,
+      implementationAvailable: true,
+      capabilityDependencies: ["not-a-capability" as CommercialCapability],
+    };
+
+    const result = resolveCommercialCapabilities(completeValidEnvironment, { definitions });
+
+    expect(result.capabilities.auth).toMatchObject({
+      enabled: false,
+      reason: "blocked_dependencies",
+      blockedDependencies: ["unknown:not-a-capability"],
+    });
+  });
+
+  it("is independent of capability definition declaration order", () => {
+    const forward = cloneDefinitions();
+    const reverse = Object.fromEntries(
+      [...COMMERCIAL_CAPABILITIES].reverse().map((capability) => [capability, forward[capability]]),
+    ) as TestDefinitionMap;
+    const environment = {
+      ...completeValidEnvironment,
+      COMMERCIAL_V2_AUTH_ENABLED: "false",
+    };
+
+    const summarize = (result: ReturnType<typeof resolveCommercialCapabilities>) =>
+      Object.fromEntries(
+        COMMERCIAL_CAPABILITIES.map((capability) => {
+          const status = result.capabilities[capability];
+          return [capability, {
+            enabled: status.enabled,
+            reason: status.reason,
+            missingDependencies: status.missingDependencies,
+            invalidDependencies: status.invalidDependencies,
+            blockedDependencies: status.blockedDependencies,
+          }];
+        }),
+      );
+
+    expect(
+      summarize(resolveCommercialCapabilities(environment, { definitions: forward })),
+    ).toEqual(summarize(resolveCommercialCapabilities(environment, { definitions: reverse })));
+  });
+
+  it("keeps the production capability matrix deeply immutable", () => {
+    if (false) {
+      // @ts-expect-error The production matrix is deeply readonly.
+      COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout.implementationAvailable = true;
+    }
+
+    expect(Object.isFrozen(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX)).toBe(true);
+    expect(Object.isFrozen(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout)).toBe(true);
+    expect(Reflect.set(
+      COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout,
+      "implementationAvailable",
+      true,
+    )).toBe(false);
+    expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout.implementationAvailable).toBe(false);
   });
 });

@@ -2,14 +2,14 @@ import * as z from "zod";
 
 // Server-only capability resolution. Never import this module from a client component.
 
-export const COMMERCIAL_CAPABILITIES = [
+export const COMMERCIAL_CAPABILITIES = Object.freeze([
   "auth",
   "aiPreview",
   "checkout",
   "webhookIngestion",
   "paidDeepReading",
   "reconcile",
-] as const;
+] as const);
 
 export type CommercialCapability = (typeof COMMERCIAL_CAPABILITIES)[number];
 
@@ -23,18 +23,22 @@ export type CapabilityRequirementFormat =
   | "versionedKey";
 
 export type CapabilityRequirement = {
-  name: string;
-  expected?: string;
-  allowed?: readonly string[];
-  format?: CapabilityRequirementFormat;
+  readonly name: string;
+  readonly expected?: string;
+  readonly allowed?: readonly string[];
+  readonly format?: CapabilityRequirementFormat;
 };
 
 export type CommercialCapabilityDefinition = {
-  flag: string;
-  implementationAvailable: boolean;
-  capabilityDependencies: readonly CommercialCapability[];
-  requirements: readonly CapabilityRequirement[];
+  readonly flag: string;
+  readonly implementationAvailable: boolean;
+  readonly capabilityDependencies: readonly CommercialCapability[];
+  readonly requirements: readonly CapabilityRequirement[];
 };
+
+export type CommercialCapabilityDefinitionMap = Readonly<
+  Record<CommercialCapability, CommercialCapabilityDefinition>
+>;
 
 const databaseRequirements: readonly CapabilityRequirement[] = [
   { name: "DATABASE_ADAPTER_MODE", expected: "postgres" },
@@ -52,13 +56,17 @@ const authRequirements: readonly CapabilityRequirement[] = [
   { name: "EMAIL_FROM", format: "email" },
 ];
 
-const aiRequirements: readonly CapabilityRequirement[] = [
+const sharedAiRequirements: readonly CapabilityRequirement[] = [
   { name: "AI_ADAPTER_MODE", expected: "ai-sdk" },
   ...databaseRequirements,
   { name: "AI_GATEWAY_API_KEY", format: "nonBlank" },
   { name: "AI_GATEWAY_BASE_URL", format: "httpUrl" },
-  { name: "AI_MODEL_PREVIEW", format: "nonBlank" },
   { name: "AI_MODEL_OUTPUT_REVIEW", format: "nonBlank" },
+];
+
+const aiPreviewRequirements: readonly CapabilityRequirement[] = [
+  ...sharedAiRequirements,
+  { name: "AI_MODEL_PREVIEW", format: "nonBlank" },
 ];
 
 const waffoRequirements: readonly CapabilityRequirement[] = [
@@ -76,9 +84,17 @@ const keyRequirements: readonly CapabilityRequirement[] = [
   { name: "RESULT_INTEGRITY_KEYS", format: "versionedKey" },
 ];
 
-export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: Readonly<
-  Record<CommercialCapability, CommercialCapabilityDefinition>
-> = {
+function deepFreeze<T>(value: T): T {
+  if (value === null || typeof value !== "object" || Object.isFrozen(value)) return value;
+
+  for (const child of Object.values(value as Record<string, unknown>)) {
+    deepFreeze(child);
+  }
+
+  return Object.freeze(value);
+}
+
+export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefinitionMap = deepFreeze({
   auth: {
     flag: "COMMERCIAL_V2_AUTH_ENABLED",
     implementationAvailable: false,
@@ -89,7 +105,7 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: Readonly<
     flag: "COMMERCIAL_V2_AI_PREVIEW_ENABLED",
     implementationAvailable: false,
     capabilityDependencies: ["auth"],
-    requirements: aiRequirements,
+    requirements: aiPreviewRequirements,
   },
   checkout: {
     flag: "COMMERCIAL_V2_CHECKOUT_ENABLED",
@@ -113,15 +129,12 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: Readonly<
   paidDeepReading: {
     flag: "COMMERCIAL_V2_PAID_DEEP_READING_ENABLED",
     implementationAvailable: false,
-    capabilityDependencies: ["auth", "aiPreview"],
+    capabilityDependencies: ["auth"],
     requirements: [
-      ...databaseRequirements,
+      ...sharedAiRequirements,
       { name: "WORKFLOW_ADAPTER_MODE", expected: "vercel" },
       { name: "BETTER_AUTH_SECRET", format: "nonBlank" },
-      { name: "AI_GATEWAY_API_KEY", format: "nonBlank" },
-      { name: "AI_GATEWAY_BASE_URL", format: "httpUrl" },
       { name: "AI_MODEL_DEEP_READING", format: "nonBlank" },
-      { name: "AI_MODEL_OUTPUT_REVIEW", format: "nonBlank" },
       ...keyRequirements,
     ],
   },
@@ -135,7 +148,7 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: Readonly<
       { name: "CRON_SECRET", format: "nonBlank" },
     ],
   },
-};
+});
 
 export type CommercialCapabilityStatus = {
   capability: CommercialCapability;
@@ -146,10 +159,12 @@ export type CommercialCapabilityStatus = {
     | "disabled"
     | "missing_dependencies"
     | "invalid_dependencies"
+    | "blocked_dependencies"
     | "implementation_not_available"
     | "enabled";
   missingDependencies: string[];
   invalidDependencies: string[];
+  blockedDependencies: string[];
 };
 
 export type CommercialCapabilityConfig = {
@@ -159,10 +174,19 @@ export type CommercialCapabilityConfig = {
   capabilities: Record<CommercialCapability, CommercialCapabilityStatus>;
 };
 
-type PreliminaryStatus = {
-  requested: boolean;
+type RequirementInspection = {
   missingDependencies: string[];
   invalidDependencies: string[];
+};
+
+type CapabilityEvaluation = {
+  requested: boolean;
+  inspection: RequirementInspection;
+};
+
+export type ResolveCommercialCapabilitiesOptions = {
+  readonly production?: boolean;
+  readonly definitions?: CommercialCapabilityDefinitionMap;
 };
 
 function value(env: RuntimeEnv, name: string): string | undefined {
@@ -244,7 +268,7 @@ function requirementSatisfied(candidate: string, requirement: CapabilityRequirem
 function inspectRequirements(
   env: RuntimeEnv,
   requirements: readonly CapabilityRequirement[],
-): PreliminaryStatus {
+): RequirementInspection {
   const missingDependencies: string[] = [];
   const invalidDependencies: string[] = [];
 
@@ -284,61 +308,119 @@ function inspectRequirements(
     }
   }
 
-  return { requested: false, missingDependencies, invalidDependencies };
+  return { missingDependencies, invalidDependencies };
+}
+
+function isCommercialCapability(candidate: string): candidate is CommercialCapability {
+  return (COMMERCIAL_CAPABILITIES as readonly string[]).includes(candidate);
+}
+
+function emptyRequirementInspection(): RequirementInspection {
+  return { missingDependencies: [], invalidDependencies: [] };
+}
+
+function createBlockedStatus(
+  capability: CommercialCapability,
+  definition: CommercialCapabilityDefinition | undefined,
+  requested: boolean,
+  blockedDependencies: string[],
+): CommercialCapabilityStatus {
+  return {
+    capability,
+    flag: definition?.flag ?? "",
+    requested,
+    enabled: false,
+    reason: "blocked_dependencies",
+    missingDependencies: [],
+    invalidDependencies: [],
+    blockedDependencies,
+  };
 }
 
 export function resolveCommercialCapabilities(
   env: RuntimeEnv = process.env,
-  options: { production?: boolean } = {},
+  options: ResolveCommercialCapabilitiesOptions = {},
 ): CommercialCapabilityConfig {
-  const preliminary = {} as Record<CommercialCapability, PreliminaryStatus>;
+  const definitions = options.definitions ?? COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX;
+  const preliminary = {} as Record<CommercialCapability, CapabilityEvaluation>;
 
   for (const capability of COMMERCIAL_CAPABILITIES) {
-    const definition = COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability];
+    const definition = definitions[capability];
+    if (!definition) {
+      preliminary[capability] = {
+        requested: false,
+        inspection: emptyRequirementInspection(),
+      };
+      continue;
+    }
+
     const requested = booleanFlag(env, definition.flag, options.production === true);
-    const inspected = requested ? inspectRequirements(env, definition.requirements) : {
-      requested: false,
-      missingDependencies: [],
-      invalidDependencies: [],
+    preliminary[capability] = {
+      requested,
+      inspection: requested
+        ? inspectRequirements(env, definition.requirements)
+        : emptyRequirementInspection(),
     };
-    preliminary[capability] = { ...inspected, requested };
   }
 
   const statuses = {} as Record<CommercialCapability, CommercialCapabilityStatus>;
-  for (const capability of COMMERCIAL_CAPABILITIES) {
-    const definition = COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability];
-    const current = preliminary[capability];
-    const missingDependencies = [...current.missingDependencies];
+  const resolving = new Set<CommercialCapability>();
 
-    if (current.requested) {
+  const evaluate = (capability: CommercialCapability): CommercialCapabilityStatus => {
+    const cached = statuses[capability];
+    if (cached) return cached;
+
+    const definition = definitions[capability];
+    const current = preliminary[capability] ?? {
+      requested: false,
+      inspection: emptyRequirementInspection(),
+    };
+
+    if (resolving.has(capability)) {
+      return createBlockedStatus(capability, definition, current.requested, [`cycle:${capability}`]);
+    }
+
+    resolving.add(capability);
+    const missingDependencies = [...current.inspection.missingDependencies];
+    const invalidDependencies = [...current.inspection.invalidDependencies];
+    const blockedDependencies: string[] = [];
+
+    if (current.requested && definition) {
       for (const dependency of definition.capabilityDependencies) {
-        const dependencyStatus = preliminary[dependency];
-        if (
-          !dependencyStatus.requested ||
-          dependencyStatus.missingDependencies.length > 0 ||
-          dependencyStatus.invalidDependencies.length > 0
-        ) {
-          missingDependencies.push(`capability:${dependency}`);
+        if (!isCommercialCapability(dependency) || !definitions[dependency]) {
+          blockedDependencies.push(`unknown:${String(dependency)}`);
+          continue;
         }
+
+        const dependencyStatus = evaluate(dependency);
+        if (!dependencyStatus.enabled) blockedDependencies.push(dependency);
       }
     }
 
     let reason: CommercialCapabilityStatus["reason"] = "disabled";
-    if (current.requested && current.invalidDependencies.length > 0) reason = "invalid_dependencies";
+    if (current.requested && invalidDependencies.length > 0) reason = "invalid_dependencies";
     else if (current.requested && missingDependencies.length > 0) reason = "missing_dependencies";
-    else if (current.requested && !definition.implementationAvailable) reason = "implementation_not_available";
-    else if (current.requested) reason = "enabled";
+    else if (current.requested && blockedDependencies.length > 0) reason = "blocked_dependencies";
+    else if (current.requested && !definition?.implementationAvailable) reason = "implementation_not_available";
+    else if (current.requested && definition) reason = "enabled";
+    else if (current.requested) reason = "blocked_dependencies";
 
-    statuses[capability] = {
+    const status: CommercialCapabilityStatus = {
       capability,
-      flag: definition.flag,
+      flag: definition?.flag ?? "",
       requested: current.requested,
       enabled: reason === "enabled",
       reason,
       missingDependencies,
-      invalidDependencies: current.invalidDependencies,
+      invalidDependencies,
+      blockedDependencies,
     };
-  }
+    resolving.delete(capability);
+    statuses[capability] = status;
+    return status;
+  };
+
+  for (const capability of COMMERCIAL_CAPABILITIES) evaluate(capability);
 
   const statusList = Object.values(statuses);
   return {
