@@ -19,17 +19,17 @@ describe("CP3 PostgreSQL generation core", () => {
     await sql.end({ timeout: 5 });
   });
 
-  it("installs 0000, 0001, and the forward CP3 Repair migration safely", async () => {
+  it("installs the CP2 schema, CP3 Repair, and CP3 Repair 2 migrations safely", async () => {
     const migrations = await sql<{ count: string }[]>`
       select count(*)::text as count from drizzle.__drizzle_migrations
     `;
-    expect(Number(migrations[0]?.count)).toBe(3);
+    expect(Number(migrations[0]?.count)).toBe(4);
 
     await migrate(db, { migrationsFolder: "drizzle" });
     const repeated = await sql<{ count: string }[]>`
       select count(*)::text as count from drizzle.__drizzle_migrations
     `;
-    expect(Number(repeated[0]?.count)).toBe(3);
+    expect(Number(repeated[0]?.count)).toBe(4);
   });
 
   it("creates every CP3 persistence boundary without a plaintext question column", async () => {
@@ -138,6 +138,16 @@ describe("CP3 PostgreSQL generation core", () => {
         reviewer_model_version, schema_valid, safety_pass, fact_consistency_pass, created_at
       ) values (
         ${randomUUID()}, ${jobId}, ${wrongCastingId}, 'preview', 'pass', ${JSON.stringify([])},
+        'reviewer-v1', 'true', 'true', 'true', ${now}
+      )
+    `).rejects.toThrow();
+
+    await expect(sql`
+      insert into generation_output_reviews (
+        id, job_id, casting_id, kind, status, reason_codes,
+        reviewer_model_version, schema_valid, safety_pass, fact_consistency_pass, created_at
+      ) values (
+        ${randomUUID()}, ${jobId}, ${castingId}, 'deep_reading', 'pass', ${JSON.stringify([])},
         'reviewer-v1', 'true', 'true', 'true', ${now}
       )
     `).rejects.toThrow();

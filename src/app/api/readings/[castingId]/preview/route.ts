@@ -97,6 +97,7 @@ function errorStatus(error: PreviewGenerationError): number {
     case "timeout":
       return 504;
     case "rate_limit":
+    case "PREVIEW_RETRY_BUDGET_EXCEEDED":
       return 429;
     case "AI_PREVIEW_DISABLED":
       return 404;

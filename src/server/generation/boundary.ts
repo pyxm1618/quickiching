@@ -47,16 +47,24 @@ export type GenerationErrorClassification = {
 };
 
 export function classifyGenerationError(error: unknown): GenerationErrorClassification {
-  const candidate = error as { message?: unknown; status?: unknown; code?: unknown };
+  const candidate = error && typeof error === "object"
+    ? error as { message?: unknown; status?: unknown; statusCode?: unknown; code?: unknown }
+    : {};
   const message = typeof candidate.message === "string" ? candidate.message : "";
   const normalized = message.toUpperCase();
+  const numericStatus = (value: unknown): number | null => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && /^\d+$/.test(value.trim())) return Number(value);
+    return null;
+  };
+  const status = numericStatus(candidate.statusCode) ?? numericStatus(candidate.status);
   if (normalized.includes("TIMEOUT") || normalized.includes("ABORT")) {
     return { code: "timeout", retryable: true };
   }
-  if (candidate.status === 429 || normalized.includes("RATE_LIMIT") || normalized.includes("TOO MANY REQUESTS")) {
+  if (status === 429 || normalized.includes("RATE_LIMIT") || normalized.includes("TOO MANY REQUESTS")) {
     return { code: "rate_limit", retryable: true };
   }
-  if (typeof candidate.status === "number" && candidate.status >= 500) {
+  if (status !== null && status >= 500) {
     return { code: "provider_5xx", retryable: true };
   }
   if (normalized.includes("SCHEMA")) return { code: "schema_error", retryable: false };

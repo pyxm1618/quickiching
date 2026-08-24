@@ -140,6 +140,31 @@ describe("Auth-only Preview generation service", () => {
     expect(repository.listJobs()[0]?.status).toBe("completed");
   });
 
+  it("invalidates a completed Preview when the epoch or input snapshot changes", async () => {
+    const { service, repository, getProviderCalls } = fixture();
+    const first = await service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: "completed-before-change",
+    });
+
+    repository.setContext({
+      generationEpoch: 4,
+      question: "What changed in this career transition?",
+    });
+    const second = await service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: "completed-after-change",
+    });
+
+    expect(second.status).toBe("completed");
+    expect(second.jobId).not.toBe(first.jobId);
+    expect((await repository.getPreview("casting-1"))?.jobId).toBe(second.jobId);
+    expect(getProviderCalls()).toBe(2);
+    expect(repository.listJobs().map((job) => job.status)).toEqual(["failed", "completed"]);
+  });
+
   it("claims a queued job left behind before its first process claim", async () => {
     const { service, repository, getProviderCalls } = fixture();
     await repository.createOrReuseJob({
@@ -151,6 +176,8 @@ describe("Auth-only Preview generation service", () => {
         castingId: "casting-1",
         generationEpoch: 3,
         question: "What should I understand about this career transition?",
+        scene: "career",
+        interpretationGoal: "what_do_i_need_to_see_clearly",
         facts,
       }),
       now: new Date("2026-08-23T00:00:00.000Z"),
@@ -270,6 +297,52 @@ describe("Auth-only Preview generation service", () => {
     })).rejects.toThrow("PERSISTENCE_FAILED");
     await expect(repository.getPreview("casting-1")).resolves.toBeNull();
     expect(repository.listJobs()[0]?.status).toBe("failed");
+  });
+
+  it.each([
+    ["scene", { scene: "relationships" as const }],
+    ["interpretation goal", { interpretationGoal: "what_should_i_pay_attention_to_next" as const }],
+  ])("rejects a result when %s changes while AI is running", async (_label, patch) => {
+    const { service, repository } = fixture({
+      provider: {
+        async generatePreview(input) {
+          repository.setContext(patch);
+          return { output, deterministicFacts: input.facts };
+        },
+      },
+    });
+
+    await expect(service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: `stale-${_label}`,
+    })).rejects.toThrow("PERSISTENCE_FAILED");
+    await expect(repository.getPreview("casting-1")).resolves.toBeNull();
+    expect(repository.listJobs()[0]?.status).toBe("failed");
+  });
+
+  it("enforces a durable-style retry budget across new idempotency keys", async () => {
+    const { service, getProviderCalls } = fixture({
+      provider: {
+        async generatePreview() {
+          throw new Error("upstream provider failure");
+        },
+      },
+    });
+
+    for (const idempotencyKey of ["failure-1", "failure-2", "failure-3"]) {
+      await expect(service.generate({
+        castingId: "casting-1",
+        userId: "user-1",
+        idempotencyKey,
+      })).rejects.toThrow("provider_error");
+    }
+    await expect(service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: "failure-4",
+    })).rejects.toThrow("PREVIEW_RETRY_BUDGET_EXCEEDED");
+    expect(getProviderCalls()).toBe(3);
   });
 
   it("does not return success when persistence fails", async () => {

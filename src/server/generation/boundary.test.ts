@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { GatewayInternalServerError, GatewayRateLimitError } from "@ai-sdk/gateway";
 import {
   buildPreviewPrompt,
   classifyGenerationError,
@@ -48,6 +49,8 @@ describe("CP3 AI boundary", () => {
     ["timeout", new Error("AI_GATEWAY_TIMEOUT"), "timeout", true],
     ["rate limit", Object.assign(new Error("429"), { status: 429 }), "rate_limit", true],
     ["provider 5xx", Object.assign(new Error("upstream"), { status: 503 }), "provider_5xx", true],
+    ["real Gateway rate limit", new GatewayRateLimitError({ message: "gateway throttled" }), "rate_limit", true],
+    ["real Gateway 5xx", new GatewayInternalServerError({ message: "gateway failed" }), "provider_5xx", true],
     ["schema", new Error("AI_SCHEMA_INVALID"), "schema_error", false],
     ["safety", new Error("AI_SAFETY_FAILURE"), "safety_failure", false],
     ["cost", new Error("AI_COST_LIMIT"), "cost_limit", false],

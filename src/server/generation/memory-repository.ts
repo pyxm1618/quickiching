@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { hashGenerationSnapshot } from "./boundary";
+import {
+  PREVIEW_RETRY_BUDGET_MAX_FAILURES,
+  PREVIEW_RETRY_BUDGET_WINDOW_MS,
+  STALE_PREVIEW_INVALIDATED_ERROR,
+} from "./retry-policy";
 import type {
   CreateJobInput,
   GenerationJobRecord,
@@ -37,7 +42,17 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
     const matches = [...this.jobs.values()].filter((job) =>
       job.castingId === castingId && (idempotencyKey === undefined || job.idempotencyKey === idempotencyKey),
     );
-    const job = matches.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+    const previewJobId = this.preview?.castingId === castingId ? this.preview.jobId : null;
+    const rank = (job: GenerationJobRecord): number => {
+      if (job.id === previewJobId) return 2;
+      if (["queued", "running"].includes(job.status)) return 1;
+      return 0;
+    };
+    const job = matches.sort((a, b) =>
+      rank(b) - rank(a)
+      || b.createdAt.getTime() - a.createdAt.getTime()
+      || b.id.localeCompare(a.id)
+    )[0];
     return job ? clone(job) : null;
   }
 
@@ -45,7 +60,18 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
     const existingByKey = [...this.jobs.values()].find((job) =>
       job.castingId === input.castingId && job.kind === input.kind && job.idempotencyKey === input.idempotencyKey,
     );
-    if (existingByKey) return { job: clone(existingByKey), created: false };
+    if (existingByKey) {
+      if (
+        ["queued", "running", "completed"].includes(existingByKey.status)
+        && (
+          existingByKey.generationEpoch !== input.generationEpoch
+          || existingByKey.inputSnapshotHash !== input.inputSnapshotHash
+        )
+      ) {
+        throw new Error("GENERATION_IDEMPOTENCY_CONFLICT");
+      }
+      return { job: clone(existingByKey), created: false };
+    }
 
     const completed = [...this.jobs.values()].find((job) =>
       job.castingId === input.castingId
@@ -54,12 +80,35 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
       && this.preview?.castingId === input.castingId
       && this.preview.jobId === job.id,
     );
-    if (completed) return { job: clone(completed), created: false };
+    if (completed) {
+      if (
+        completed.generationEpoch === input.generationEpoch
+        && completed.inputSnapshotHash === input.inputSnapshotHash
+      ) {
+        return { job: clone(completed), created: false };
+      }
+      this.preview = null;
+      completed.status = "failed";
+      completed.structuredErrorCode = STALE_PREVIEW_INVALIDATED_ERROR;
+      completed.updatedAt = clone(input.now);
+    }
 
     const active = [...this.jobs.values()].find((job) =>
       job.castingId === input.castingId && job.kind === input.kind && ["queued", "running"].includes(job.status),
     );
     if (active) return { job: clone(active), created: false };
+
+    const retryWindowStart = input.now.getTime() - PREVIEW_RETRY_BUDGET_WINDOW_MS;
+    const recentFailures = [...this.jobs.values()].filter((job) =>
+      job.castingId === input.castingId
+      && job.kind === input.kind
+      && ["failed", "timed_out", "dead_letter"].includes(job.status)
+      && job.structuredErrorCode !== STALE_PREVIEW_INVALIDATED_ERROR
+      && job.updatedAt.getTime() >= retryWindowStart
+    );
+    if (recentFailures.length >= PREVIEW_RETRY_BUDGET_MAX_FAILURES) {
+      throw new Error("PREVIEW_RETRY_BUDGET_EXCEEDED");
+    }
 
     const job: GenerationJobRecord = {
       id: `job_${randomUUID()}`,
@@ -106,6 +155,8 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
         castingId: this.context.castingId,
         generationEpoch: this.context.generationEpoch,
         question: this.context.question,
+        scene: this.context.scene,
+        interpretationGoal: this.context.interpretationGoal,
         facts: this.context.facts,
       }) !== input.inputSnapshotHash
       || !job.leaseExpiresAt

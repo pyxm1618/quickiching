@@ -158,6 +158,7 @@ describe("Commercial V2 Preview route", () => {
   it.each([
     [new PreviewGenerationError("AI_GATEWAY_TIMEOUT", true), 504, "AI_GATEWAY_TIMEOUT"],
     [new PreviewGenerationError("rate_limit", true), 429, "rate_limit"],
+    [new PreviewGenerationError("PREVIEW_RETRY_BUDGET_EXCEEDED", true), 429, "PREVIEW_RETRY_BUDGET_EXCEEDED"],
     [new PreviewGenerationError("AI_SCHEMA_INVALID"), 502, "AI_SCHEMA_INVALID"],
   ])("maps %s to the bounded HTTP state", async (error, expectedStatus, expectedCode) => {
     mocks.service.generate.mockRejectedValue(error);

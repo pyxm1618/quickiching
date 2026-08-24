@@ -131,20 +131,31 @@ export class PreviewGenerationService {
       castingId: context.castingId,
       generationEpoch: context.generationEpoch,
       question: context.question,
+      scene: context.scene,
+      interpretationGoal: context.interpretationGoal,
       facts: context.facts,
     });
     const deadlineAt = Date.now() + this.timeoutMs;
     const remainingTimeout = (): number => Math.max(0, deadlineAt - Date.now());
     const now = this.now();
-    const { job, created } = await this.repository.createOrReuseJob({
-      castingId: context.castingId,
-      kind: "preview",
-      generationEpoch: context.generationEpoch,
-      idempotencyKey: request.idempotencyKey,
-      inputSnapshotHash,
-      timeoutMs: this.timeoutMs,
-      now,
-    });
+    let job: GenerationJobRecord;
+    let created: boolean;
+    try {
+      ({ job, created } = await this.repository.createOrReuseJob({
+        castingId: context.castingId,
+        kind: "preview",
+        generationEpoch: context.generationEpoch,
+        idempotencyKey: request.idempotencyKey,
+        inputSnapshotHash,
+        timeoutMs: this.timeoutMs,
+        now,
+      }));
+    } catch (error) {
+      if (error instanceof Error && error.message === "PREVIEW_RETRY_BUDGET_EXCEEDED") {
+        throw new PreviewGenerationError("PREVIEW_RETRY_BUDGET_EXCEEDED", true);
+      }
+      throw error;
+    }
     if (job.status === "completed") {
       const result = await this.repository.getPreview(context.castingId);
       return stateResult(job, result ?? undefined);

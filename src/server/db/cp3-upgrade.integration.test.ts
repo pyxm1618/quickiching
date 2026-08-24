@@ -70,7 +70,7 @@ describe("CP3 upgrade from a populated CP2 database", () => {
 
     expect(users).toEqual([{ id: "cp2-upgrade-user", email: "cp2-upgrade@example.com" }]);
     expect(accounts).toEqual([{ id: "cp2-upgrade-account", user_id: "cp2-upgrade-user" }]);
-    expect(migrations[0]?.count).toBe("3");
+    expect(migrations[0]?.count).toBe("4");
     expect(repairConstraint[0]?.count).toBe("1");
   });
 });
