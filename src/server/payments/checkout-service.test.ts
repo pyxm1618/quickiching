@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   CheckoutServiceError,
   createCheckoutService,
@@ -20,6 +20,8 @@ function order(overrides: Partial<CheckoutOrderRecord> = {}): CheckoutOrderRecor
     providerCheckoutSessionId: null,
     providerCheckoutUrl: null,
     checkoutExpiresAt: null,
+    checkoutClaimExpiresAt: null,
+    checkoutErrorCode: null,
     status: "pending",
     ...overrides,
   };
@@ -144,6 +146,149 @@ describe("checkout service", () => {
     expect(providerCalls).toBe(0);
   });
 
+  it.each(["paid", "refunded"] as const)("does not return a stored URL for %s orders", async (status) => {
+    const stored = order({
+      status,
+      providerCheckoutSessionId: "cs_terminal",
+      providerCheckoutUrl: "https://pancake.waffo.ai/checkout/cs_terminal#token=secret",
+      checkoutExpiresAt: new Date("2099-08-24T02:00:00.000Z"),
+    });
+    const provider = vi.fn(async () => ({
+      sessionId: "must-not-create",
+      checkoutUrl: "https://pancake.waffo.ai/checkout/must-not-create#token=secret",
+      expiresAt: new Date("2099-08-24T02:00:00.000Z"),
+    }));
+    const service = createCheckoutService({
+      repository: {
+        createOrGetOrder: async () => ({ order: stored, created: false }),
+        claimCheckoutInitialization: async () => false,
+        saveCheckout: async () => { throw new Error("must not save"); },
+        failCheckoutInitialization: async () => { throw new Error("must not fail"); },
+      },
+      provider: { createCheckout: provider },
+      environment: "test",
+      productIds: { one: "PROD_test_one", three: "PROD_test_three", five: "PROD_test_five" },
+      now: () => new Date("2099-08-24T01:00:00.000Z"),
+    });
+
+    await expect(service.create({
+      userId: "user-123",
+      buyerEmail: "buyer@example.com",
+      productKey: "three",
+      requestId: "request-1234567890",
+    })).rejects.toMatchObject({ code: "CHECKOUT_TERMINAL_ORDER", retryable: false });
+    expect(provider).not.toHaveBeenCalled();
+  });
+
+  it("returns a stable non-retryable uncertainty error for a financial-review order", async () => {
+    const service = createCheckoutService({
+      repository: {
+        createOrGetOrder: async () => ({ order: order({
+          status: "financial_review",
+          checkoutErrorCode: "CHECKOUT_PROVIDER_OUTCOME_UNCERTAIN",
+        }), created: false }),
+        claimCheckoutInitialization: async () => false,
+        saveCheckout: async () => { throw new Error("must not save"); },
+        failCheckoutInitialization: async () => { throw new Error("must not fail"); },
+      },
+      provider: { createCheckout: async () => { throw new Error("must not call"); } },
+      environment: "test",
+      productIds: { one: "PROD_test_one", three: "PROD_test_three", five: "PROD_test_five" },
+      now: () => new Date("2099-08-24T01:00:00.000Z"),
+    });
+
+    await expect(service.create({
+      userId: "user-123",
+      buyerEmail: "buyer@example.com",
+      productKey: "three",
+      requestId: "request-1234567890",
+    })).rejects.toMatchObject({ code: "CHECKOUT_PROVIDER_OUTCOME_UNCERTAIN", retryable: false });
+  });
+
+  it("does not retry an expired checkout-created session", async () => {
+    const provider = vi.fn();
+    const service = createCheckoutService({
+      repository: {
+        createOrGetOrder: async () => ({ order: order({
+          status: "checkout_created",
+          providerCheckoutSessionId: "cs_expired",
+          providerCheckoutUrl: "https://pancake.waffo.ai/checkout/cs_expired#token=secret",
+          checkoutExpiresAt: new Date("2099-08-24T00:59:00.000Z"),
+        }), created: false }),
+        claimCheckoutInitialization: async () => false,
+        saveCheckout: async () => { throw new Error("must not save"); },
+        failCheckoutInitialization: async () => { throw new Error("must not fail"); },
+      },
+      provider: { createCheckout: provider },
+      environment: "test",
+      productIds: { one: "PROD_test_one", three: "PROD_test_three", five: "PROD_test_five" },
+      now: () => new Date("2099-08-24T01:00:00.000Z"),
+    });
+
+    await expect(service.create({
+      userId: "user-123",
+      buyerEmail: "buyer@example.com",
+      productKey: "three",
+      requestId: "request-1234567890",
+    })).rejects.toMatchObject({ code: "CHECKOUT_EXPIRED", retryable: false });
+    expect(provider).not.toHaveBeenCalled();
+  });
+
+  it("does not call the provider while another checkout claim is still leased", async () => {
+    const provider = vi.fn();
+    const service = createCheckoutService({
+      repository: {
+        createOrGetOrder: async () => ({ order: order({
+          status: "checkout_initializing",
+          checkoutClaimExpiresAt: new Date("2099-08-24T01:10:00.000Z"),
+        }), created: false }),
+        claimCheckoutInitialization: async () => false,
+        saveCheckout: async () => { throw new Error("must not save"); },
+        failCheckoutInitialization: async () => { throw new Error("must not fail"); },
+      },
+      provider: { createCheckout: provider },
+      environment: "test",
+      productIds: { one: "PROD_test_one", three: "PROD_test_three", five: "PROD_test_five" },
+      now: () => new Date("2099-08-24T01:00:00.000Z"),
+    });
+
+    await expect(service.create({
+      userId: "user-123",
+      buyerEmail: "buyer@example.com",
+      productKey: "three",
+      requestId: "request-1234567890",
+    })).rejects.toMatchObject({ code: "CHECKOUT_IN_PROGRESS", retryable: true });
+    expect(provider).not.toHaveBeenCalled();
+  });
+
+  it("freezes a provider hang as non-retryable unknown outcome after the overall timeout", async () => {
+    const failures: unknown[] = [];
+    const service = createCheckoutService({
+      repository: {
+        createOrGetOrder: async () => ({ order: order(), created: true }),
+        claimCheckoutInitialization: async () => true,
+        saveCheckout: async () => { throw new Error("must not save"); },
+        failCheckoutInitialization: async (input) => { failures.push(input); },
+      },
+      provider: { createCheckout: () => new Promise((resolve) => setTimeout(() => resolve({
+        sessionId: "late-session",
+        checkoutUrl: "https://pancake.waffo.ai/checkout/late#token=secret",
+        expiresAt: new Date("2099-08-24T02:00:00.000Z"),
+      }), 50)) },
+      environment: "test",
+      productIds: { one: "PROD_test_one", three: "PROD_test_three", five: "PROD_test_five" },
+      providerTimeoutMs: 10,
+    });
+
+    await expect(service.create({
+      userId: "user-123",
+      buyerEmail: "buyer@example.com",
+      productKey: "three",
+      requestId: "request-1234567890",
+    })).rejects.toMatchObject({ code: "CHECKOUT_PROVIDER_OUTCOME_UNCERTAIN", retryable: false });
+    expect(failures).toEqual([expect.objectContaining({ errorCode: "CHECKOUT_PROVIDER_OUTCOME_UNCERTAIN" })]);
+  });
+
   it("rejects malformed product and idempotency input before persistence", async () => {
     let repositoryCalls = 0;
     const service = createCheckoutService({
@@ -221,7 +366,7 @@ describe("checkout service", () => {
       buyerEmail: "buyer@example.com",
       productKey: "three",
       requestId: "request-1234567890",
-    })).rejects.toMatchObject({ code: "CHECKOUT_UNAVAILABLE", retryable: true });
+    })).rejects.toMatchObject({ code: "CHECKOUT_PROVIDER_OUTCOME_UNCERTAIN", retryable: false });
     expect(failures).toEqual([expect.objectContaining({
       orderId: order().id,
       claimToken: expect.any(String),

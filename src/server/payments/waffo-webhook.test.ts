@@ -60,6 +60,9 @@ describe("Waffo signed webhook boundary", () => {
       eventType: "order.completed",
       storeId: "STO_test",
       orderMerchantExternalId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
+      merchantProvidedBuyerIdentity: "user-123",
+      internalOrderId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
+      refundTicketMerchantExternalId: null,
       providerOrderId: "ORD_provider_123",
       providerPaymentId: "PAY_provider_123",
       productKey: "three",
@@ -68,6 +71,7 @@ describe("Waffo signed webhook boundary", () => {
       amountMinor: 699,
       taxAmount: "0.00",
       total: "6.99",
+      canonicalPayloadSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       payloadSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       supported: true,
       manualReviewReason: null,
@@ -148,5 +152,16 @@ describe("Waffo signed webhook boundary", () => {
   it("uses typed safe failures", () => {
     const error = new WaffoWebhookError("WEBHOOK_PAYLOAD_INVALID", false);
     expect(error).toMatchObject({ code: "WEBHOOK_PAYLOAD_INVALID", retryable: false });
+  });
+
+  it("does not retain buyer email or other raw provider PII in the normalized event", () => {
+    const { rawBody, signatureHeader } = signedEvent();
+    const normalized = verifyAndNormalizeWaffoWebhook(rawBody, signatureHeader, verifierConfig);
+    expect(normalized).not.toHaveProperty("buyerEmail");
+    expect(JSON.stringify(normalized)).not.toContain("buyer@example.com");
+    expect(normalized).toMatchObject({
+      merchantProvidedBuyerIdentity: "user-123",
+      internalOrderId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
+    });
   });
 });

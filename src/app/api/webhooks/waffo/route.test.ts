@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   createService: vi.fn(),
   ingest: vi.fn(),
 }));
+const MAX_TEST_WEBHOOK_BYTES = 64 * 1024;
 
 vi.mock("@/server/payments/capability", () => ({
   isWebhookIngestionCapabilityEnabled: () => mocks.enabled,
@@ -76,11 +77,41 @@ describe("CP4 Waffo webhook route", () => {
     await expect(transient.json()).resolves.toEqual({ error: "WEBHOOK_PROCESSING_UNAVAILABLE", retryable: true });
   });
 
-  it("acknowledges retained pending-order and dead-letter outcomes without losing them", async () => {
+  it("acknowledges retained pending-order but retries a dead-letter outcome", async () => {
     mocks.ingest.mockResolvedValue({ disposition: "accepted", duplicate: "delivery", outcome: "pending_order" });
     expect((await POST(request())).status).toBe(202);
     mocks.ingest.mockResolvedValue({ disposition: "dead_letter", duplicate: null, outcome: "dead_letter" });
-    expect((await POST(request())).status).toBe(202);
+    expect((await POST(request())).status).toBe(503);
+  });
+
+  it("cancels a chunked body as soon as it crosses the byte limit without Content-Length", async () => {
+    let cancelled = false;
+    let sentOversizedChunk = false;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("x".repeat(MAX_TEST_WEBHOOK_BYTES - 4)));
+      },
+      pull(controller) {
+        if (sentOversizedChunk) return;
+        sentOversizedChunk = true;
+        controller.enqueue(new TextEncoder().encode("oversized"));
+        setTimeout(() => {
+          if (!cancelled) controller.close();
+        }, 50);
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const response = await POST(new Request("https://www.quickiching.com/api/webhooks/waffo", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-waffo-signature": "signed-header" },
+      body: stream,
+      duplex: "half",
+    } as RequestInit));
+    expect(response.status).toBe(413);
+    expect(cancelled).toBe(true);
+    expect(mocks.createService).not.toHaveBeenCalled();
   });
 
   it("does not expose a GET webhook surface", async () => {

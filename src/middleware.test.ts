@@ -102,7 +102,7 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest(`/api/readings/${castingId}/preview`)).status).toBe(404);
   });
 
-  it("opens only the exact signed Waffo webhook when standalone ingestion is enabled", () => {
+  it("keeps the signed Waffo webhook closed until a durable consumer exists", () => {
     for (const [name, value] of Object.entries({
       COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "true",
       PAYMENT_ADAPTER_MODE: "waffo",
@@ -112,13 +112,13 @@ describe("Public V1 middleware boundaries", () => {
       WAFFO_STORE_ID: "STO_test",
     })) vi.stubEnv(name, value);
 
-    expect(middleware(makeRequest("/api/webhooks/waffo", { method: "POST" })).status).toBe(200);
+    expect(middleware(makeRequest("/api/webhooks/waffo", { method: "POST" })).status).toBe(404);
     expect(middleware(makeRequest("/api/webhooks/waffo/extra", { method: "POST" })).status).toBe(404);
     expect(middleware(makeRequest("/api/webhooks/other", { method: "POST" })).status).toBe(404);
     expect(middleware(makeRequest("/api/checkout", { method: "POST" })).status).toBe(404);
   });
 
-  it("opens only the exact checkout API after Auth and webhook dependencies are enabled", () => {
+  it("keeps checkout closed even with complete-looking credentials before CP5", () => {
     for (const [name, value] of Object.entries({
       COMMERCIAL_V2_AUTH_ENABLED: "true",
       COMMERCIAL_V2_CHECKOUT_ENABLED: "true",
@@ -147,7 +147,7 @@ describe("Public V1 middleware boundaries", () => {
       APP_BASE_URL: "https://www.quickiching.com",
     })) vi.stubEnv(name, value);
 
-    expect(middleware(makeRequest("/api/checkout", { method: "POST" })).status).toBe(200);
+    expect(middleware(makeRequest("/api/checkout", { method: "POST" })).status).toBe(404);
     expect(middleware(makeRequest("/api/checkout/extra", { method: "POST" })).status).toBe(404);
     expect(middleware(makeRequest("/checkout"))).toBeDefined();
     expect(middleware(makeRequest("/checkout")).status).toBe(410);

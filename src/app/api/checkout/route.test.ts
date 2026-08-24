@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
     user: { id: string; email: string };
   } | null,
 }));
+const MAX_TEST_CHECKOUT_BYTES = 4 * 1024;
 
 vi.mock("@/server/payments/capability", () => ({
   isCheckoutCapabilityEnabled: () => mocks.enabled,
@@ -111,6 +112,46 @@ describe("CP4 checkout route", () => {
     const conflict = await POST(request({ productKey: "one", requestId: "request-1234567890" }));
     expect(conflict.status).toBe(409);
     await expect(conflict.json()).resolves.toEqual({ error: "CHECKOUT_IDEMPOTENCY_CONFLICT", retryable: false });
+
+    mocks.createCheckout.mockRejectedValue(new CheckoutServiceError("CHECKOUT_RATE_LIMITED", true, 37));
+    const limited = await POST(request({ productKey: "one", requestId: "request-1234567890" }));
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("retry-after")).toBe("37");
+    await expect(limited.json()).resolves.toEqual({ error: "CHECKOUT_RATE_LIMITED", retryable: true });
+  });
+
+  it("cancels a chunked checkout body at the byte boundary without Content-Length", async () => {
+    let cancelled = false;
+    let sentOversizedChunk = false;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("{" + "x".repeat(MAX_TEST_CHECKOUT_BYTES - 3)));
+      },
+      pull(controller) {
+        if (sentOversizedChunk) return;
+        sentOversizedChunk = true;
+        controller.enqueue(new TextEncoder().encode("oversized"));
+        setTimeout(() => {
+          if (!cancelled) controller.close();
+        }, 50);
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const response = await POST(new Request("https://www.quickiching.com/api/checkout", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://www.quickiching.com",
+      },
+      body: stream,
+      duplex: "half",
+    } as RequestInit));
+    expect(response.status).toBe(413);
+    expect(cancelled).toBe(true);
+    expect(mocks.getAuth).not.toHaveBeenCalled();
+    expect(mocks.createService).not.toHaveBeenCalled();
   });
 
   it("rejects unsupported methods", async () => {

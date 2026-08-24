@@ -144,8 +144,8 @@ describe("commercial capability matrix", () => {
     });
     expect(result.capabilities.webhookIngestion).toMatchObject({
       requested: true,
-      enabled: true,
-      reason: "enabled",
+      enabled: false,
+      reason: "implementation_not_available",
       blockedDependencies: [],
       missingDependencies: [],
       invalidDependencies: [],
@@ -166,9 +166,9 @@ describe("commercial capability matrix", () => {
     });
     expect(result.capabilities.checkout).toMatchObject({
       requested: true,
-      enabled: true,
-      reason: "enabled",
-      blockedDependencies: [],
+      enabled: false,
+      reason: "blocked_dependencies",
+      blockedDependencies: ["webhookIngestion"],
     });
     expect(result.capabilities.paidDeepReading).toMatchObject({
       requested: true,
@@ -179,8 +179,24 @@ describe("commercial capability matrix", () => {
 
     for (const capability of COMMERCIAL_CAPABILITIES) {
       expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].implementationAvailable)
-        .toBe(["auth", "aiPreview", "checkout", "webhookIngestion"].includes(capability));
+        .toBe(["auth", "aiPreview"].includes(capability));
     }
+  });
+
+  it("keeps payment capabilities closed even with complete-looking credentials and flags", () => {
+    const result = resolveCommercialCapabilities(completeValidEnvironment);
+
+    expect(result.capabilities.checkout).toMatchObject({
+      requested: true,
+      enabled: false,
+      reason: "blocked_dependencies",
+      blockedDependencies: ["webhookIngestion"],
+    });
+    expect(result.capabilities.webhookIngestion).toMatchObject({
+      requested: true,
+      enabled: false,
+      reason: "implementation_not_available",
+    });
   });
 
   it("opens only the Auth capability after the CP2 implementation is connected", () => {
@@ -262,7 +278,7 @@ describe("commercial capability matrix", () => {
     );
   });
 
-  it("requires Auth and Webhook readiness for Checkout but keeps Webhook independent of Checkout", () => {
+  it("keeps payment capabilities closed even when their dependency credentials are valid", () => {
     const checkoutWithoutWebhook = {
       ...completeValidEnvironment,
       COMMERCIAL_V2_CHECKOUT_ENABLED: "true",
@@ -279,15 +295,15 @@ describe("commercial capability matrix", () => {
     };
     const webhookStatus = resolveCommercialCapabilities(webhookWithoutCheckout).capabilities.webhookIngestion;
     expect(webhookStatus).toMatchObject({
-      reason: "enabled",
-      enabled: true,
+      reason: "implementation_not_available",
+      enabled: false,
       blockedDependencies: [],
       missingDependencies: [],
       invalidDependencies: [],
     });
   });
 
-  it("lets signed webhook ingestion run without checkout API credentials", () => {
+  it("does not let signed webhook ingestion run without a durable consumer", () => {
     const environment: Record<string, string | undefined> = {
       ...completeValidEnvironment,
       COMMERCIAL_V2_AUTH_ENABLED: "false",
@@ -301,8 +317,8 @@ describe("commercial capability matrix", () => {
     delete environment.WAFFO_PRIVATE_KEY;
 
     expect(resolveCommercialCapabilities(environment).capabilities.webhookIngestion).toMatchObject({
-      enabled: true,
-      reason: "enabled",
+      enabled: false,
+      reason: "implementation_not_available",
       missingDependencies: [],
       invalidDependencies: [],
     });
@@ -313,7 +329,7 @@ describe("commercial capability matrix", () => {
       ...completeValidEnvironment,
       WAFFO_ENVIRONMENT: "prod",
     }).capabilities.checkout;
-    expect(officialProd.enabled).toBe(true);
+    expect(officialProd.enabled).toBe(false);
 
     const legacyName = resolveCommercialCapabilities({
       ...completeValidEnvironment,
@@ -659,6 +675,6 @@ describe("commercial capability matrix", () => {
       "implementationAvailable",
       false,
     )).toBe(false);
-    expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout.implementationAvailable).toBe(true);
+    expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout.implementationAvailable).toBe(false);
   });
 });

@@ -145,7 +145,9 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
   },
   checkout: {
     flag: "COMMERCIAL_V2_CHECKOUT_ENABLED",
-    implementationAvailable: true,
+    // CP4 has persistence and an adapter, but no durable consumer/reconcile
+    // boundary. Keep the public capability closed until CP5 supplies it.
+    implementationAvailable: false,
     capabilityDependencies: ["auth", "webhookIngestion"],
     requirements: [
       ...databaseRequirements,
@@ -155,7 +157,9 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
   },
   webhookIngestion: {
     flag: "COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED",
-    implementationAvailable: true,
+    // A signed ingress route without a durable consumer would acknowledge
+    // money-moving events without a recovery owner.
+    implementationAvailable: false,
     capabilityDependencies: [],
     requirements: [...databaseRequirements, ...waffoWebhookRequirements],
   },

@@ -43,6 +43,13 @@
       "when": 1787542000000,
       "tag": "0005_cp4_payments_entitlements",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787586848393,
+      "tag": "0006_cp4_payment_repair",
+      "breakpoints": true
     }
   ]
 }

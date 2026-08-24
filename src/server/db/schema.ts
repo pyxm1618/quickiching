@@ -30,6 +30,7 @@ export {
   entitlementLedgerAction,
   financialReviewStatus,
   paymentEnvironment,
+  paymentCheckoutBudgets,
   paymentFinancialReviews,
   paymentInboxStatus,
   paymentOrders,
@@ -39,6 +40,7 @@ export {
   paymentOutboxTopic,
   paymentProductKey,
   paymentSchema,
+  paymentWebhookConflicts,
   paymentWebhookInbox,
 } from "./payment-schema";
 
@@ -55,9 +57,11 @@ import {
 import {
   entitlementBatches,
   entitlementLedger,
+  paymentCheckoutBudgets,
   paymentFinancialReviews,
   paymentOrders,
   paymentOutbox,
+  paymentWebhookConflicts,
   paymentWebhookInbox,
 } from "./payment-schema";
 
@@ -79,5 +83,7 @@ export const databaseSchema = Object.freeze({
   paymentOutbox,
   entitlementBatches,
   entitlementLedger,
+  paymentCheckoutBudgets,
   paymentFinancialReviews,
+  paymentWebhookConflicts,
 });

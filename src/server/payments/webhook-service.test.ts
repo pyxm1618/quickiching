@@ -10,6 +10,9 @@ const event: NormalizedWaffoWebhook = {
   eventType: "order.completed",
   storeId: "STO_test",
   orderMerchantExternalId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
+  merchantProvidedBuyerIdentity: "user-123",
+  internalOrderId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
+  refundTicketMerchantExternalId: null,
   providerOrderId: "ORD_1",
   providerPaymentId: "PAYMENT_1",
   productKey: "three",
@@ -19,6 +22,7 @@ const event: NormalizedWaffoWebhook = {
   taxAmount: "0.00",
   total: "6.99",
   payloadSha256: "hash",
+  canonicalPayloadSha256: "canonical-hash",
   supported: true,
   manualReviewReason: null,
 };
@@ -90,7 +94,7 @@ describe("Waffo webhook ingestion service", () => {
     expect(processInbox).toHaveBeenCalledWith("original-inbox");
   });
 
-  it("returns only a bounded retry error before dead-letter and retains the third failure", async () => {
+  it("returns only a bounded retry error and never acknowledges a dead-letter", async () => {
     let deadLetter = false;
     const failure = vi.fn(async () => ({ deadLetter, attemptCount: deadLetter ? 3 : 1 }));
     const service = createWaffoWebhookService({
@@ -108,10 +112,23 @@ describe("Waffo webhook ingestion service", () => {
     expect(JSON.stringify(failure.mock.calls)).not.toContain("database password");
 
     deadLetter = true;
-    await expect(service.ingest("raw", "signature")).resolves.toEqual({
-      disposition: "dead_letter",
-      duplicate: null,
-      outcome: "dead_letter",
+    await expect(service.ingest("raw", "signature")).rejects.toEqual(
+      new WebhookServiceError("WEBHOOK_DEAD_LETTERED", true),
+    );
+  });
+
+  it("does not map an actively leased inbox to processed", async () => {
+    const service = createWaffoWebhookService({
+      verifyAndNormalize: () => event,
+      repository: {
+        recordVerifiedEvent: async () => ({ inboxId: "inbox-processing", duplicate: null }),
+        processInbox: async () => ({ outcome: "processing" }),
+        recordProcessingFailure: async () => ({ deadLetter: false, attemptCount: 1 }),
+      },
     });
+
+    await expect(service.ingest("raw", "signature")).rejects.toEqual(
+      new WebhookServiceError("WEBHOOK_PROCESSING_UNAVAILABLE", true),
+    );
   });
 });

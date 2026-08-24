@@ -64,13 +64,10 @@ describe("CP4 payment composition", () => {
     expect(mocks.createAdapter).not.toHaveBeenCalled();
   });
 
-  it("composes signed webhook ingestion without merchant key or product credentials", async () => {
-    await expect(createProductionWaffoWebhookService(webhookEnvironment)).resolves.toEqual({ ingest: expect.any(Function) });
-    expect(mocks.getDatabase).toHaveBeenCalledWith(webhookEnvironment.DATABASE_URL);
+  it("does not compose webhook ingestion before a durable consumer exists", async () => {
+    await expect(createProductionWaffoWebhookService(webhookEnvironment)).rejects.toThrow("WEBHOOK_INGESTION_DISABLED");
+    expect(mocks.getDatabase).not.toHaveBeenCalled();
     expect(mocks.createAdapter).not.toHaveBeenCalled();
-    expect(mocks.webhookService).toHaveBeenCalledWith(expect.objectContaining({
-      repository: mocks.repository,
-      verifyAndNormalize: expect.any(Function),
-    }));
+    expect(mocks.webhookService).not.toHaveBeenCalled();
   });
 });

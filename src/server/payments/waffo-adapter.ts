@@ -77,6 +77,7 @@ export function createWaffoPaymentAdapter(
     privateKey: config.privateKey,
     environment: config.environment,
   }),
+  now: () => Date = () => new Date(),
 ): {
   createCheckout(input: {
     orderId: string;
@@ -101,20 +102,38 @@ export function createWaffoPaymentAdapter(
         },
       });
       let checkoutUrl: URL;
-      const expiresAt = new Date(result.expiresAt);
+      const sessionExpiresAt = new Date(result.expiresAt);
+      const tokenExpiresAt = new Date(result.tokenExpiresAt);
       try {
         checkoutUrl = new URL(result.checkoutUrl);
       } catch {
         throw new Error("WAFFO_PROVIDER_RESPONSE_INVALID");
       }
+      const nowMs = now().getTime();
+      const sessionExpiryMs = sessionExpiresAt.getTime();
+      const tokenExpiryMs = tokenExpiresAt.getTime();
       if (
         checkoutUrl.protocol !== "https:" ||
+        checkoutUrl.hostname !== "pancake.waffo.ai" ||
+        checkoutUrl.port !== "" ||
+        checkoutUrl.username !== "" ||
+        checkoutUrl.password !== "" ||
+        !checkoutUrl.hash.startsWith("#token=") ||
+        checkoutUrl.hash.length <= "#token=".length ||
         !result.sessionId.trim() ||
-        !Number.isFinite(expiresAt.getTime())
+        !Number.isFinite(nowMs) ||
+        !Number.isFinite(sessionExpiryMs) ||
+        !Number.isFinite(tokenExpiryMs) ||
+        sessionExpiryMs <= nowMs ||
+        tokenExpiryMs <= nowMs
       ) {
         throw new Error("WAFFO_PROVIDER_RESPONSE_INVALID");
       }
-      return { sessionId: result.sessionId, checkoutUrl: result.checkoutUrl, expiresAt };
+      return {
+        sessionId: result.sessionId,
+        checkoutUrl: result.checkoutUrl,
+        expiresAt: new Date(Math.min(sessionExpiryMs, tokenExpiryMs)),
+      };
     },
   };
 }
