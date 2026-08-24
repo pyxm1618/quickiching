@@ -6,6 +6,7 @@
       "name": "iching-coin",
       "dependencies": {
         "@better-auth/drizzle-adapter": "1.7.1",
+        "@waffo/pancake-ts": "0.19.1",
         "ai": "7.0.77",
         "better-auth": "1.7.1",
         "clsx": "^2.1.1",
@@ -426,6 +427,8 @@
     "@vitest/spy": ["@vitest/spy@3.2.7", "https://registry.npmmirror.com/@vitest/spy/-/spy-3.2.7.tgz", { "dependencies": { "tinyspy": "^4.0.3" } }, "sha512-Q2eQGI6d2L/hBtZ0qNuKcAGid68XK6cv1xsoaIma6PaJhHPoqcEJhYpXZ/5myCMqkNgtP6UKuBhbc0nHKnrkuQ=="],
 
     "@vitest/utils": ["@vitest/utils@3.2.7", "https://registry.npmmirror.com/@vitest/utils/-/utils-3.2.7.tgz", { "dependencies": { "@vitest/pretty-format": "3.2.7", "loupe": "^3.1.4", "tinyrainbow": "^2.0.0" } }, "sha512-x6BDOd7dyo3PFLY3I9/HJ25X/6OurhGXk2/B9gOZNPF7XDVjeBK4k01lQE5uvDpbuheErh91qYuE1E2OEjK3Rw=="],
+
+    "@waffo/pancake-ts": ["@waffo/pancake-ts@0.19.1", "https://registry.npmmirror.com/@waffo/pancake-ts/-/pancake-ts-0.19.1.tgz", {}, "sha512-X1vCyZcVwbFROZiQQrrDh3OPqm8KvEX3/65PT9xGy10zWTNX1nO+D1cL1ERBe17ot57mI9T5Dhzt/Gf2k/lIdg=="],
 
     "@workflow/serde": ["@workflow/serde@4.1.0", "https://registry.npmmirror.com/@workflow/serde/-/serde-4.1.0.tgz", {}, "sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ=="],
 

@@ -97,12 +97,22 @@ const aiPreviewRequirements: readonly CapabilityRequirement[] = [
   { name: "AI_MAX_REVIEW_OUTPUT_TOKENS", format: "positiveInteger" },
 ];
 
-const waffoRequirements: readonly CapabilityRequirement[] = [
+const waffoWebhookRequirements: readonly CapabilityRequirement[] = [
   { name: "PAYMENT_ADAPTER_MODE", expected: "waffo" },
+  { name: "WAFFO_ENVIRONMENT", allowed: ["test", "prod"], format: "nonBlank" },
+  { name: "WAFFO_STORE_ID", format: "nonBlank" },
+];
+
+const waffoCheckoutRequirements: readonly CapabilityRequirement[] = [
+  ...waffoWebhookRequirements,
   { name: "WAFFO_MERCHANT_ID", format: "nonBlank" },
   { name: "WAFFO_PRIVATE_KEY", format: "nonBlank" },
-  { name: "WAFFO_ENVIRONMENT", allowed: ["test", "production"], format: "nonBlank" },
-  { name: "WAFFO_STORE_ID", format: "nonBlank" },
+  { name: "WAFFO_TEST_PRODUCT_ID_ONE", format: "nonBlank" },
+  { name: "WAFFO_TEST_PRODUCT_ID_THREE", format: "nonBlank" },
+  { name: "WAFFO_TEST_PRODUCT_ID_FIVE", format: "nonBlank" },
+  { name: "WAFFO_PROD_PRODUCT_ID_ONE", format: "nonBlank" },
+  { name: "WAFFO_PROD_PRODUCT_ID_THREE", format: "nonBlank" },
+  { name: "WAFFO_PROD_PRODUCT_ID_FIVE", format: "nonBlank" },
 ];
 
 const keyRequirements: readonly CapabilityRequirement[] = [
@@ -135,22 +145,19 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
   },
   checkout: {
     flag: "COMMERCIAL_V2_CHECKOUT_ENABLED",
-    implementationAvailable: false,
+    implementationAvailable: true,
     capabilityDependencies: ["auth", "webhookIngestion"],
     requirements: [
       ...databaseRequirements,
-      ...waffoRequirements,
+      ...waffoCheckoutRequirements,
       { name: "APP_BASE_URL", format: "httpUrl" },
-      { name: "WAFFO_PRODUCT_ID_ONE", format: "nonBlank" },
-      { name: "WAFFO_PRODUCT_ID_THREE", format: "nonBlank" },
-      { name: "WAFFO_PRODUCT_ID_FIVE", format: "nonBlank" },
     ],
   },
   webhookIngestion: {
     flag: "COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED",
-    implementationAvailable: false,
+    implementationAvailable: true,
     capabilityDependencies: [],
-    requirements: [...databaseRequirements, ...waffoRequirements],
+    requirements: [...databaseRequirements, ...waffoWebhookRequirements],
   },
   paidDeepReading: {
     flag: "COMMERCIAL_V2_PAID_DEEP_READING_ENABLED",
@@ -333,6 +340,16 @@ function productionAiRequirementsFor(
   ));
 }
 
+function productionCheckoutRequirementsFor(
+  requirements: readonly CapabilityRequirement[],
+): readonly CapabilityRequirement[] {
+  return requirements.map((requirement) => (
+    requirement.name === "APP_BASE_URL"
+      ? { ...requirement, format: "httpsUrl" as const }
+      : requirement
+  ));
+}
+
 function keyMaterialCollisionNames(env: RuntimeEnv): Set<string> {
   const materialOwners = new Map<string, string>();
   const collisions = new Set<string>();
@@ -350,6 +367,45 @@ function keyMaterialCollisionNames(env: RuntimeEnv): Set<string> {
     }
   }
   return collisions;
+}
+
+const waffoTestProductNames = [
+  "WAFFO_TEST_PRODUCT_ID_ONE",
+  "WAFFO_TEST_PRODUCT_ID_THREE",
+  "WAFFO_TEST_PRODUCT_ID_FIVE",
+] as const;
+const waffoProdProductNames = [
+  "WAFFO_PROD_PRODUCT_ID_ONE",
+  "WAFFO_PROD_PRODUCT_ID_THREE",
+  "WAFFO_PROD_PRODUCT_ID_FIVE",
+] as const;
+
+function appendWaffoMappingInvariantFailures(
+  env: RuntimeEnv,
+  inspection: RequirementInspection,
+): void {
+  for (const names of [waffoTestProductNames, waffoProdProductNames]) {
+    for (let left = 0; left < names.length; left += 1) {
+      const leftName = names[left]!;
+      const leftId = value(env, leftName);
+      if (!leftId) continue;
+      for (let right = left + 1; right < names.length; right += 1) {
+        const rightName = names[right]!;
+        if (value(env, rightName) !== leftId) continue;
+        if (!inspection.invalidDependencies.includes(leftName)) inspection.invalidDependencies.push(leftName);
+        if (!inspection.invalidDependencies.includes(rightName)) inspection.invalidDependencies.push(rightName);
+      }
+    }
+  }
+  for (const testName of waffoTestProductNames) {
+    const testId = value(env, testName);
+    if (!testId) continue;
+    for (const prodName of waffoProdProductNames) {
+      if (value(env, prodName) !== testId) continue;
+      if (!inspection.invalidDependencies.includes(testName)) inspection.invalidDependencies.push(testName);
+      if (!inspection.invalidDependencies.includes(prodName)) inspection.invalidDependencies.push(prodName);
+    }
+  }
 }
 
 function urlOrigin(valueToParse: string | undefined): string | null {
@@ -478,7 +534,9 @@ export function resolveCommercialCapabilities(
       ? productionAuthRequirementsFor(definition.requirements)
       : (options.production === true && (capability === "aiPreview" || capability === "paidDeepReading")
         ? productionAiRequirementsFor(definition.requirements)
-        : definition.requirements);
+        : (options.production === true && capability === "checkout"
+          ? productionCheckoutRequirementsFor(definition.requirements)
+          : definition.requirements));
     const inspection = requested
       ? inspectRequirements(env, requirements)
       : emptyRequirementInspection();
@@ -492,6 +550,9 @@ export function resolveCommercialCapabilities(
       }
       if (capability === "auth" && options.production === true) {
         appendProductionAuthInvariantFailures(env, inspection);
+      }
+      if (capability === "checkout") {
+        appendWaffoMappingInvariantFailures(env, inspection);
       }
     }
     preliminary[capability] = {

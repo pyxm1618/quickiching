@@ -5,7 +5,7 @@ import { createAuthClient } from "better-auth/client";
 import { magicLinkClient } from "better-auth/client/plugins";
 
 const authClient = createAuthClient({
-  baseURL: "/api/auth",
+  basePath: "/api/auth",
   plugins: [magicLinkClient()],
 });
 

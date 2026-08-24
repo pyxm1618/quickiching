@@ -13,7 +13,7 @@ const db = drizzle(sql);
 let initialMigrationFolder: string;
 let repair2MigrationFolder: string;
 
-describe("CP3 upgrade from a populated CP2 database", () => {
+describe("forward upgrade from a populated CP2 database through CP4", () => {
   beforeAll(async () => {
     initialMigrationFolder = await mkdtemp(join("/tmp", "quickiching-cp3-0000-"));
     await mkdir(join(initialMigrationFolder, "meta"));
@@ -77,7 +77,7 @@ describe("CP3 upgrade from a populated CP2 database", () => {
     if (repair2MigrationFolder) await rm(repair2MigrationFolder, { recursive: true, force: true });
   });
 
-  it("preserves CP2 identity rows while applying the CP3 persistence and repair migrations", async () => {
+  it("preserves CP2 identity rows while applying CP3 and the forward-only CP4 payment migration", async () => {
     const users = await sql<{ id: string; email: string }[]>`
       select id, email from users where id = 'cp2-upgrade-user'
     `;
@@ -95,7 +95,13 @@ describe("CP3 upgrade from a populated CP2 database", () => {
 
     expect(users).toEqual([{ id: "cp2-upgrade-user", email: "cp2-upgrade@example.com" }]);
     expect(accounts).toEqual([{ id: "cp2-upgrade-account", user_id: "cp2-upgrade-user" }]);
-    expect(migrations[0]?.count).toBe("5");
+    const paymentTables = await sql<{ count: string }[]>`
+      select count(*)::text as count from information_schema.tables
+      where table_schema = 'public' and table_name in ('payment_orders', 'payment_webhook_inbox', 'entitlement_batches')
+    `;
+
+    expect(migrations[0]?.count).toBe("6");
     expect(repairConstraint[0]?.count).toBe("1");
+    expect(paymentTables[0]?.count).toBe("3");
   });
 });

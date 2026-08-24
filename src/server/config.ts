@@ -8,7 +8,7 @@ type LocalRuntimeConfig = {
   mode: "development" | "test";
   ai: "local" | "ai-sdk";
   auth: "dev" | "better-auth";
-  payment: "simulated";
+  payment: "simulated" | "waffo";
   database: "memory" | "postgres";
   workflow: "local";
   capabilities: CommercialCapabilityConfig;
@@ -87,7 +87,10 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
   const publicAppUrl = optionalUrl(env, "NEXT_PUBLIC_APP_URL", baseUrl, true);
   const capabilities = resolveCommercialCapabilities(env, { production: true });
   const auth = capabilities.capabilities.auth.enabled ? "better-auth" : "disabled";
-  const database = capabilities.capabilities.auth.enabled ? "postgres" : "disabled";
+  const database = Object.values(capabilities.capabilities).some((capability) =>
+    capability.enabled && ["auth", "aiPreview", "checkout", "webhookIngestion", "paidDeepReading", "reconcile"]
+      .includes(capability.capability)
+  ) ? "postgres" : "disabled";
 
   return {
     mode: "production",
@@ -110,11 +113,13 @@ function loadLocalConfig(env: RuntimeEnv, mode: "development" | "test"): LocalRu
     auth: capabilities.capabilities.auth.enabled ? "better-auth" : "dev",
     payment: oneOf(
       env.PAYMENT_ADAPTER_MODE,
-      ["simulated"] as const,
+      ["simulated", "waffo"] as const,
       "PAYMENT_ADAPTER_MODE",
       "simulated",
     ),
-    database: capabilities.capabilities.auth.enabled ? "postgres" : "memory",
+    database: Object.values(capabilities.capabilities).some((capability) => capability.enabled)
+      ? "postgres"
+      : "memory",
     workflow: oneOf(env.WORKFLOW_ADAPTER_MODE, ["local"] as const, "WORKFLOW_ADAPTER_MODE", "local"),
     capabilities,
   };

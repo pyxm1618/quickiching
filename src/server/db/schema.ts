@@ -24,6 +24,23 @@ export {
   previewResults,
   questionVersions,
 } from "./generation-schema";
+export {
+  entitlementBatches,
+  entitlementLedger,
+  entitlementLedgerAction,
+  financialReviewStatus,
+  paymentEnvironment,
+  paymentFinancialReviews,
+  paymentInboxStatus,
+  paymentOrders,
+  paymentOrderStatus,
+  paymentOutbox,
+  paymentOutboxStatus,
+  paymentOutboxTopic,
+  paymentProductKey,
+  paymentSchema,
+  paymentWebhookInbox,
+} from "./payment-schema";
 
 import { accounts, loginIntents, sessions, users, verifications } from "./auth-schema";
 import {
@@ -35,6 +52,14 @@ import {
   previewResults,
   questionVersions,
 } from "./generation-schema";
+import {
+  entitlementBatches,
+  entitlementLedger,
+  paymentFinancialReviews,
+  paymentOrders,
+  paymentOutbox,
+  paymentWebhookInbox,
+} from "./payment-schema";
 
 export const databaseSchema = Object.freeze({
   users,
@@ -49,4 +74,10 @@ export const databaseSchema = Object.freeze({
   generationAttempts,
   previewResults,
   generationOutputReviews,
+  paymentOrders,
+  paymentWebhookInbox,
+  paymentOutbox,
+  entitlementBatches,
+  entitlementLedger,
+  paymentFinancialReviews,
 });

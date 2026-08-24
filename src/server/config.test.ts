@@ -2,6 +2,44 @@ import { describe, expect, it } from "vitest";
 import { loadRuntimeConfig } from "./config";
 
 describe("runtime configuration", () => {
+  it("uses the Waffo adapter locally only when explicitly selected", () => {
+    const config = loadRuntimeConfig({
+      NODE_ENV: "test",
+      PAYMENT_ADAPTER_MODE: "waffo",
+    });
+
+    expect(config.payment).toBe("waffo");
+  });
+
+  it("keeps PostgreSQL active for an enabled standalone webhook capability", () => {
+    const config = loadRuntimeConfig({
+      NODE_ENV: "production",
+      PAYMENT_ADAPTER_MODE: "waffo",
+      COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "true",
+      DATABASE_ADAPTER_MODE: "postgres",
+      DATABASE_URL: "postgresql://user:password@db.example.com/quickiching",
+      WAFFO_ENVIRONMENT: "test",
+      WAFFO_STORE_ID: "STO_test",
+    });
+
+    expect(config.auth).toBe("disabled");
+    expect(config.database).toBe("postgres");
+    expect(config.capabilities.capabilities.webhookIngestion.enabled).toBe(true);
+  });
+
+  it("keeps PostgreSQL active for local Waffo webhook verification when explicitly enabled", () => {
+    const config = loadRuntimeConfig({
+      NODE_ENV: "test",
+      COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "true",
+      PAYMENT_ADAPTER_MODE: "waffo",
+      DATABASE_ADAPTER_MODE: "postgres",
+      DATABASE_URL: "postgresql://user:password@db.example.com/quickiching",
+      WAFFO_ENVIRONMENT: "test",
+      WAFFO_STORE_ID: "STO_test",
+    });
+    expect(config.database).toBe("postgres");
+    expect(config.capabilities.capabilities.webhookIngestion.enabled).toBe(true);
+  });
   it("keeps production Public V1 credential-free and commercial capabilities disabled", () => {
     const config = loadRuntimeConfig({
       NODE_ENV: "production",

@@ -52,9 +52,11 @@ describe("App Router multilingual architecture", () => {
     expect(catchAllModule.metadata.robots).toEqual({ index: false, follow: false });
   });
 
-  it("keeps only the CP2 Auth surface in the App Router graph", () => {
+  it("adds only the reviewed CP4 commercial API surface without restoring legacy pages", () => {
     expect(existsSync(`${appRoot}(default)/signin/page.tsx`)).toBe(true);
     expect(existsSync(`${appRoot}api/auth/[...all]/route.ts`)).toBe(true);
+    expect(existsSync(`${appRoot}api/checkout/route.ts`)).toBe(true);
+    expect(existsSync(`${appRoot}api/webhooks/waffo/route.ts`)).toBe(true);
     for (const route of [
       `${appRoot}(default)/checkout/simulate/page.tsx`,
       `${appRoot}(default)/cast/[method]/page.tsx`,

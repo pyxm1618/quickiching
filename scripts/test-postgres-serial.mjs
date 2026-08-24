@@ -60,7 +60,7 @@ try {
   started = true;
   await run(createdb, ["-h", "127.0.0.1", "-p", String(port), "-U", user, database]);
   await run(createdb, ["-h", "127.0.0.1", "-p", String(port), "-U", user, upgradeDatabase]);
-    await run(bun, ["x", "vitest", "run", "--no-file-parallelism", "src/server/db/postgres.integration.test.ts", "src/server/db/cp3-generation.integration.test.ts", "src/server/db/cp3-upgrade.integration.test.ts", "src/server/generation/postgres-repository.integration.test.ts", "src/server/auth/better-auth.integration.test.ts", "src/server/auth/runtime.integration.test.ts"], {
+    await run(bun, ["x", "vitest", "run", "--no-file-parallelism", "src/server/db/postgres.integration.test.ts", "src/server/db/cp3-generation.integration.test.ts", "src/server/db/cp3-upgrade.integration.test.ts", "src/server/generation/postgres-repository.integration.test.ts", "src/server/payments/postgres-repository.integration.test.ts", "src/server/auth/better-auth.integration.test.ts", "src/server/auth/runtime.integration.test.ts"], {
     ...process.env,
     TEST_DATABASE_URL: databaseURL,
     TEST_DATABASE_UPGRADE_URL: upgradeDatabaseURL,

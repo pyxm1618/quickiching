@@ -40,9 +40,12 @@ const completeValidEnvironment = {
   WAFFO_PRIVATE_KEY: "private-key-material",
   WAFFO_ENVIRONMENT: "test",
   WAFFO_STORE_ID: "store-id",
-  WAFFO_PRODUCT_ID_ONE: "product-one",
-  WAFFO_PRODUCT_ID_THREE: "product-three",
-  WAFFO_PRODUCT_ID_FIVE: "product-five",
+  WAFFO_TEST_PRODUCT_ID_ONE: "test-product-one",
+  WAFFO_TEST_PRODUCT_ID_THREE: "test-product-three",
+  WAFFO_TEST_PRODUCT_ID_FIVE: "test-product-five",
+  WAFFO_PROD_PRODUCT_ID_ONE: "prod-product-one",
+  WAFFO_PROD_PRODUCT_ID_THREE: "prod-product-three",
+  WAFFO_PROD_PRODUCT_ID_FIVE: "prod-product-five",
   APP_BASE_URL: "https://www.quickiching.com",
   NEXT_PUBLIC_APP_URL: "https://www.quickiching.com",
   DATABASE_ADAPTER_MODE: "postgres",
@@ -141,8 +144,8 @@ describe("commercial capability matrix", () => {
     });
     expect(result.capabilities.webhookIngestion).toMatchObject({
       requested: true,
-      enabled: false,
-      reason: "implementation_not_available",
+      enabled: true,
+      reason: "enabled",
       blockedDependencies: [],
       missingDependencies: [],
       invalidDependencies: [],
@@ -163,9 +166,9 @@ describe("commercial capability matrix", () => {
     });
     expect(result.capabilities.checkout).toMatchObject({
       requested: true,
-      enabled: false,
-      reason: "blocked_dependencies",
-      blockedDependencies: ["webhookIngestion"],
+      enabled: true,
+      reason: "enabled",
+      blockedDependencies: [],
     });
     expect(result.capabilities.paidDeepReading).toMatchObject({
       requested: true,
@@ -176,7 +179,7 @@ describe("commercial capability matrix", () => {
 
     for (const capability of COMMERCIAL_CAPABILITIES) {
       expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].implementationAvailable)
-        .toBe(capability === "auth" || capability === "aiPreview");
+        .toBe(["auth", "aiPreview", "checkout", "webhookIngestion"].includes(capability));
     }
   });
 
@@ -276,11 +279,87 @@ describe("commercial capability matrix", () => {
     };
     const webhookStatus = resolveCommercialCapabilities(webhookWithoutCheckout).capabilities.webhookIngestion;
     expect(webhookStatus).toMatchObject({
-      reason: "implementation_not_available",
+      reason: "enabled",
+      enabled: true,
       blockedDependencies: [],
       missingDependencies: [],
       invalidDependencies: [],
     });
+  });
+
+  it("lets signed webhook ingestion run without checkout API credentials", () => {
+    const environment: Record<string, string | undefined> = {
+      ...completeValidEnvironment,
+      COMMERCIAL_V2_AUTH_ENABLED: "false",
+      COMMERCIAL_V2_AI_PREVIEW_ENABLED: "false",
+      COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
+      COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "true",
+      COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "false",
+      COMMERCIAL_V2_RECONCILE_ENABLED: "false",
+    };
+    delete environment.WAFFO_MERCHANT_ID;
+    delete environment.WAFFO_PRIVATE_KEY;
+
+    expect(resolveCommercialCapabilities(environment).capabilities.webhookIngestion).toMatchObject({
+      enabled: true,
+      reason: "enabled",
+      missingDependencies: [],
+      invalidDependencies: [],
+    });
+  });
+
+  it("accepts only official Waffo environment names and rejects reused Test/Prod product mappings", () => {
+    const officialProd = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      WAFFO_ENVIRONMENT: "prod",
+    }).capabilities.checkout;
+    expect(officialProd.enabled).toBe(true);
+
+    const legacyName = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      WAFFO_ENVIRONMENT: "production",
+    }).capabilities.checkout;
+    expect(legacyName.invalidDependencies).toContain("WAFFO_ENVIRONMENT=test|prod");
+
+    const reusedMapping = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      WAFFO_PROD_PRODUCT_ID_ONE: completeValidEnvironment.WAFFO_TEST_PRODUCT_ID_ONE,
+    }).capabilities.checkout;
+    expect(reusedMapping.enabled).toBe(false);
+    expect(reusedMapping.invalidDependencies).toEqual(expect.arrayContaining([
+      "WAFFO_TEST_PRODUCT_ID_ONE",
+      "WAFFO_PROD_PRODUCT_ID_ONE",
+    ]));
+
+    const crossProductReuse = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      WAFFO_PROD_PRODUCT_ID_THREE: completeValidEnvironment.WAFFO_TEST_PRODUCT_ID_ONE,
+    }).capabilities.checkout;
+    expect(crossProductReuse.enabled).toBe(false);
+    expect(crossProductReuse.invalidDependencies).toEqual(expect.arrayContaining([
+      "WAFFO_TEST_PRODUCT_ID_ONE",
+      "WAFFO_PROD_PRODUCT_ID_THREE",
+    ]));
+
+    const sameEnvironmentReuse = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      WAFFO_TEST_PRODUCT_ID_THREE: completeValidEnvironment.WAFFO_TEST_PRODUCT_ID_ONE,
+    }).capabilities.checkout;
+    expect(sameEnvironmentReuse.enabled).toBe(false);
+    expect(sameEnvironmentReuse.invalidDependencies).toEqual(expect.arrayContaining([
+      "WAFFO_TEST_PRODUCT_ID_ONE",
+      "WAFFO_TEST_PRODUCT_ID_THREE",
+    ]));
+  });
+
+  it("requires an HTTPS application origin for production checkout callbacks", () => {
+    const status = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      APP_BASE_URL: "http://www.quickiching.com",
+    }, { production: true }).capabilities.checkout;
+
+    expect(status.enabled).toBe(false);
+    expect(status.invalidDependencies).toContain("APP_BASE_URL");
   });
 
   it("requires Auth, PostgreSQL and AI for the commercial AI Preview", () => {
@@ -343,9 +422,9 @@ describe("commercial capability matrix", () => {
     ["AI_GATEWAY_BASE_URL", "ftp://gateway.example.com", "AI_GATEWAY_BASE_URL", "aiPreview"],
     ["DATABASE_URL", "https://not-postgres.example.com", "DATABASE_URL", "auth"],
     ["EMAIL_FROM", "not-an-email", "EMAIL_FROM", "auth"],
-    ["WAFFO_ENVIRONMENT", "sandbox", "WAFFO_ENVIRONMENT=test|production", "checkout"],
+    ["WAFFO_ENVIRONMENT", "sandbox", "WAFFO_ENVIRONMENT=test|prod", "checkout"],
     ["AI_MODEL_PREVIEW", "   ", "AI_MODEL_PREVIEW", "aiPreview"],
-    ["WAFFO_PRODUCT_ID_ONE", "   ", "WAFFO_PRODUCT_ID_ONE", "checkout"],
+    ["WAFFO_TEST_PRODUCT_ID_ONE", "   ", "WAFFO_TEST_PRODUCT_ID_ONE", "checkout"],
   ] as const)("rejects invalid %s without exposing its value", (name, value, label, capability) => {
     const result = resolveCommercialCapabilities({ ...completeValidEnvironment, [name]: value });
     const status = result.capabilities[capability];
@@ -570,7 +649,7 @@ describe("commercial capability matrix", () => {
   it("keeps the production capability matrix deeply immutable", () => {
     if (false) {
       // @ts-expect-error The production matrix is deeply readonly.
-      COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout.implementationAvailable = true;
+      COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout.implementationAvailable = false;
     }
 
     expect(Object.isFrozen(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX)).toBe(true);
@@ -578,8 +657,8 @@ describe("commercial capability matrix", () => {
     expect(Reflect.set(
       COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout,
       "implementationAvailable",
-      true,
+      false,
     )).toBe(false);
-    expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout.implementationAvailable).toBe(false);
+    expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout.implementationAvailable).toBe(true);
   });
 });

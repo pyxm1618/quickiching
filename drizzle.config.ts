@@ -1,8 +1,7 @@
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
-  // CP3 extends the immutable CP2 identity migration with the generation core.
-  // Payment, Waffo, entitlement, and workflow tables remain deferred.
+  // CP4 extends the immutable CP2/CP3 history with payment and entitlement persistence.
   schema: "./src/server/db/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
