@@ -51,6 +51,8 @@ describe("CP3 AI boundary", () => {
     ["provider 5xx", Object.assign(new Error("upstream"), { status: 503 }), "provider_5xx", true],
     ["real Gateway rate limit", new GatewayRateLimitError({ message: "gateway throttled" }), "rate_limit", true],
     ["real Gateway 5xx", new GatewayInternalServerError({ message: "gateway failed" }), "provider_5xx", true],
+    ["Gateway 408 timed out shape", Object.assign(new Error("Request timed out"), { statusCode: 408, isRetryable: true }), "timeout", true],
+    ["Gateway 409 retryable shape", Object.assign(new Error("Request conflicted"), { statusCode: 409, isRetryable: true }), "provider_error", true],
     ["schema", new Error("AI_SCHEMA_INVALID"), "schema_error", false],
     ["safety", new Error("AI_SAFETY_FAILURE"), "safety_failure", false],
     ["cost", new Error("AI_COST_LIMIT"), "cost_limit", false],

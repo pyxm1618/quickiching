@@ -48,7 +48,7 @@ export type GenerationErrorClassification = {
 
 export function classifyGenerationError(error: unknown): GenerationErrorClassification {
   const candidate = error && typeof error === "object"
-    ? error as { message?: unknown; status?: unknown; statusCode?: unknown; code?: unknown }
+    ? error as { message?: unknown; status?: unknown; statusCode?: unknown; code?: unknown; isRetryable?: unknown }
     : {};
   const message = typeof candidate.message === "string" ? candidate.message : "";
   const normalized = message.toUpperCase();
@@ -58,7 +58,7 @@ export function classifyGenerationError(error: unknown): GenerationErrorClassifi
     return null;
   };
   const status = numericStatus(candidate.statusCode) ?? numericStatus(candidate.status);
-  if (normalized.includes("TIMEOUT") || normalized.includes("ABORT")) {
+  if (status === 408 || normalized.includes("TIMEOUT") || normalized.includes("TIMED OUT") || normalized.includes("ABORT")) {
     return { code: "timeout", retryable: true };
   }
   if (status === 429 || normalized.includes("RATE_LIMIT") || normalized.includes("TOO MANY REQUESTS")) {
@@ -66,6 +66,9 @@ export function classifyGenerationError(error: unknown): GenerationErrorClassifi
   }
   if (status !== null && status >= 500) {
     return { code: "provider_5xx", retryable: true };
+  }
+  if (status === 409 || candidate.isRetryable === true) {
+    return { code: "provider_error", retryable: true };
   }
   if (normalized.includes("SCHEMA")) return { code: "schema_error", retryable: false };
   if (normalized.includes("SAFETY")) return { code: "safety_failure", retryable: false };

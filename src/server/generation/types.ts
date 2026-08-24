@@ -99,6 +99,7 @@ export interface OutputReviewer {
 
 export type CreateJobInput = {
   castingId: string;
+  userId: string;
   kind: "preview";
   generationEpoch: number;
   idempotencyKey: string;
@@ -110,6 +111,7 @@ export type CreateJobInput = {
 export type PersistPreviewSuccessInput = {
   jobId: string;
   leaseToken: string;
+  userId: string;
   generationEpoch: number;
   inputSnapshotHash: string;
   output: CommercialPreviewOutput;
@@ -128,7 +130,7 @@ export interface PreviewGenerationRepository {
   getPreview(castingId: string): Promise<PreviewResultRecord | null>;
   getJobStatus(castingId: string, idempotencyKey?: string): Promise<GenerationJobRecord | null>;
   createOrReuseJob(input: CreateJobInput): Promise<{ job: GenerationJobRecord; created: boolean }>;
-  markJobRunning(input: { jobId: string; leaseToken: string; now: Date; leaseExpiresAt: Date }): Promise<boolean>;
+  markJobRunning(input: { jobId: string; leaseToken: string; now: Date; leaseDurationMs: number }): Promise<boolean>;
   persistPreviewSuccess(input: PersistPreviewSuccessInput): Promise<PreviewResultRecord>;
   markJobFailed(input: {
     jobId: string;

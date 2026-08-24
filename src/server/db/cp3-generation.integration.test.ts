@@ -19,17 +19,17 @@ describe("CP3 PostgreSQL generation core", () => {
     await sql.end({ timeout: 5 });
   });
 
-  it("installs the CP2 schema, CP3 Repair, and CP3 Repair 2 migrations safely", async () => {
+  it("installs the CP2 schema and all CP3 repair migrations safely", async () => {
     const migrations = await sql<{ count: string }[]>`
       select count(*)::text as count from drizzle.__drizzle_migrations
     `;
-    expect(Number(migrations[0]?.count)).toBe(4);
+    expect(Number(migrations[0]?.count)).toBe(5);
 
     await migrate(db, { migrationsFolder: "drizzle" });
     const repeated = await sql<{ count: string }[]>`
       select count(*)::text as count from drizzle.__drizzle_migrations
     `;
-    expect(Number(repeated[0]?.count)).toBe(4);
+    expect(Number(repeated[0]?.count)).toBe(5);
   });
 
   it("creates every CP3 persistence boundary without a plaintext question column", async () => {

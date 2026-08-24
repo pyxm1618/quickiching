@@ -16,6 +16,30 @@ if (!databaseURL) throw new Error("TEST_DATABASE_URL is required for PostgreSQL 
 const sql = postgres(databaseURL, { max: 8, prepare: false });
 const db = drizzle(sql);
 
+async function databaseNow(): Promise<Date> {
+  const rows = await sql<{ database_now: Date }[]>`select clock_timestamp() as database_now`;
+  return new Date(rows[0]!.database_now);
+}
+
+async function seedMinimalCasting(label: string): Promise<{ castingId: string; userId: string }> {
+  const suffix = randomUUID();
+  const userId = `cp3-${label}-${suffix}`;
+  const castingId = randomUUID();
+  await sql`
+    insert into users (id, name, email, email_verified)
+    values (${userId}, ${`CP3 ${label}`}, ${`${label}-${suffix}@example.com`}, true)
+  `;
+  await sql`
+    insert into casting_sessions (
+      id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, generation_epoch
+    ) values (
+      ${castingId}, ${userId}, 'three_coin', 'revealed', 'allowed', 'career',
+      'what_do_i_need_to_see_clearly', 0
+    )
+  `;
+  return { castingId, userId };
+}
+
 describe("CP3 PostgreSQL Preview repository", () => {
   beforeAll(async () => {
     vi.stubEnv("APP_SECRET", "cp3-postgres-integration-secret");
@@ -94,11 +118,13 @@ describe("CP3 PostgreSQL Preview repository", () => {
     const repository = new PostgresPreviewGenerationRepository(sql);
     const orphanedJob = await repository.createOrReuseJob({
       castingId,
+      userId,
       kind: "preview",
       generationEpoch: 3,
       idempotencyKey: "preview-orphaned-before-claim",
       inputSnapshotHash: hashGenerationSnapshot({
         castingId,
+        userId,
         generationEpoch: 3,
         question,
         scene: "career",
@@ -202,6 +228,41 @@ describe("CP3 PostgreSQL Preview repository", () => {
     const storedPreview = await repository.getPreview(castingId);
     expect(storedPreview).toMatchObject({ jobId: fourth.jobId, provider: "test-provider" });
 
+    const replacementOwnerId = `cp3-completed-owner-${suffix}`;
+    await sql`
+      insert into users (id, name, email, email_verified)
+      values (${replacementOwnerId}, 'CP3 Completed Owner', ${`completed-owner-${suffix}@example.com`}, true)
+    `;
+    await sql`update casting_sessions set user_id = ${replacementOwnerId} where id = ${castingId}`;
+    await expect(repository.persistPreviewSuccess({
+      jobId: fourth.jobId,
+      leaseToken: "already-completed-lease",
+      userId,
+      generationEpoch: 4,
+      inputSnapshotHash: hashGenerationSnapshot({
+        castingId,
+        userId,
+        generationEpoch: 4,
+        question,
+        scene: "career",
+        interpretationGoal: "what_do_i_need_to_see_clearly",
+        facts,
+      }),
+      output: storedPreview!.output,
+      review: {
+        status: "pass",
+        reasonCodes: [],
+        schemaValid: true,
+        safetyPass: true,
+        factConsistencyPass: true,
+      },
+      provider: "test-provider",
+      model: "test-preview-model",
+      reviewerModelVersion: "test-reviewer-v1",
+      now,
+    })).rejects.toThrow("LATE_RESULT_REJECTED");
+    await sql`update casting_sessions set user_id = ${userId} where id = ${castingId}`;
+
     const rows = await sql<{ review_status: string; reviewer_model_version: string; job_status: string }[]>`
       select r.status as review_status, r.reviewer_model_version, j.status as job_status
       from generation_output_reviews r
@@ -235,6 +296,7 @@ describe("CP3 PostgreSQL Preview repository", () => {
     const rollbackLease = "rollback-lease";
     const rollbackSnapshotHash = hashGenerationSnapshot({
       castingId,
+      userId,
       generationEpoch: 4,
       question,
       scene: "career",
@@ -273,6 +335,7 @@ describe("CP3 PostgreSQL Preview repository", () => {
     const pendingPersist = repository.persistPreviewSuccess({
       jobId: rollbackJobId,
       leaseToken: rollbackLease,
+      userId,
       generationEpoch: 4,
       inputSnapshotHash: rollbackSnapshotHash,
       output: storedPreview!.output,
@@ -344,6 +407,7 @@ describe("CP3 PostgreSQL Preview repository", () => {
     const repository = new PostgresPreviewGenerationRepository(sql);
     const results = await Promise.all(Array.from({ length: 4 }, () => repository.createOrReuseJob({
       castingId,
+      userId,
       kind: "preview",
       generationEpoch: 0,
       idempotencyKey: "same-concurrent-request",
@@ -372,6 +436,7 @@ describe("CP3 PostgreSQL Preview repository", () => {
     `;
     await expect(repository.createOrReuseJob({
       castingId: otherCastingId,
+      userId,
       kind: "preview",
       generationEpoch: 0,
       idempotencyKey: "same-concurrent-request",
@@ -381,7 +446,7 @@ describe("CP3 PostgreSQL Preview repository", () => {
 
     await sql`
       update generation_jobs
-      set status = 'failed', structured_error_code = 'provider_error', updated_at = ${now.toISOString()}
+      set status = 'failed', structured_error_code = 'provider_error', updated_at = clock_timestamp()
       where casting_id = ${castingId} and idempotency_key = 'same-concurrent-request'
     `;
     for (const index of [1, 2]) {
@@ -391,13 +456,14 @@ describe("CP3 PostgreSQL Preview repository", () => {
           input_snapshot_hash, timeout_at, created_at, updated_at, structured_error_code
         ) values (
           ${randomUUID()}, ${castingId}, 'preview', 'failed', 0, ${`failed-budget-${index}`},
-          ${`failed-snapshot-${index}`}, ${new Date(now.getTime() + 10_000).toISOString()},
-          ${now.toISOString()}, ${now.toISOString()}, 'provider_error'
+          ${`failed-snapshot-${index}`}, clock_timestamp() + interval '30 seconds',
+          clock_timestamp(), clock_timestamp(), 'provider_error'
         )
       `;
     }
     await expect(new PostgresPreviewGenerationRepository(sql).createOrReuseJob({
       castingId,
+      userId,
       kind: "preview",
       generationEpoch: 0,
       idempotencyKey: "failed-budget-new-key",
@@ -406,12 +472,98 @@ describe("CP3 PostgreSQL Preview repository", () => {
     })).rejects.toThrow("PREVIEW_RETRY_BUDGET_EXCEEDED");
   });
 
-  it("rejects a provider result after PostgreSQL observes a deleted casting and newer epoch", async () => {
+  it("uses the PostgreSQL clock for job deadlines and leases", async () => {
+    const { castingId, userId } = await seedMinimalCasting("database-clock");
+    const repository = new PostgresPreviewGenerationRepository(sql);
+    const before = await databaseNow();
+    const created = await repository.createOrReuseJob({
+      castingId,
+      userId,
+      kind: "preview",
+      generationEpoch: 0,
+      idempotencyKey: `database-clock-${randomUUID()}`,
+      inputSnapshotHash: "database-clock-snapshot",
+      timeoutMs: 30_000,
+      now: new Date("2100-01-01T00:00:00.000Z"),
+    });
+    const after = await databaseNow();
+    expect(created.job.createdAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(created.job.createdAt.getTime()).toBeLessThanOrEqual(after.getTime());
+
+    await expect(repository.markJobRunning({
+      jobId: created.job.id,
+      leaseToken: "database-clock-lease",
+      now: new Date("2000-01-01T00:00:00.000Z"),
+      leaseDurationMs: 30_000,
+    })).resolves.toBe(true);
+    const leaseRows = await sql<{ lease_expires_at: Date; database_now: Date }[]>`
+      select lease_expires_at, clock_timestamp() as database_now
+      from generation_jobs where id = ${created.job.id}
+    `;
+    expect(new Date(leaseRows[0]!.lease_expires_at).getTime())
+      .toBeGreaterThan(new Date(leaseRows[0]!.database_now).getTime());
+  });
+
+  it("uses the PostgreSQL clock for the durable retry window", async () => {
+    const { castingId, userId } = await seedMinimalCasting("retry-clock");
+    for (const index of [1, 2, 3]) {
+      await sql`
+        insert into generation_jobs (
+          id, casting_id, kind, status, generation_epoch, idempotency_key,
+          input_snapshot_hash, timeout_at, updated_at, structured_error_code
+        ) values (
+          ${randomUUID()}, ${castingId}, 'preview', 'failed', 0, ${`retry-clock-${index}-${randomUUID()}`},
+          ${`retry-clock-snapshot-${index}`}, clock_timestamp() + interval '30 seconds',
+          clock_timestamp(), 'provider_error'
+        )
+      `;
+    }
+
+    await expect(new PostgresPreviewGenerationRepository(sql).createOrReuseJob({
+      castingId,
+      userId,
+      kind: "preview",
+      generationEpoch: 0,
+      idempotencyKey: `retry-clock-new-${randomUUID()}`,
+      inputSnapshotHash: "retry-clock-new-snapshot",
+      now: new Date("2100-01-01T00:00:00.000Z"),
+    })).rejects.toThrow("PREVIEW_RETRY_BUDGET_EXCEEDED");
+  });
+
+  it("keeps a job kind immutable after a matching review exists", async () => {
+    const { castingId } = await seedMinimalCasting("review-kind");
+    const jobId = randomUUID();
+    await sql`
+      insert into generation_jobs (
+        id, casting_id, kind, status, generation_epoch, idempotency_key,
+        input_snapshot_hash, timeout_at, structured_error_code
+      ) values (
+        ${jobId}, ${castingId}, 'preview', 'failed', 0, ${`review-kind-${randomUUID()}`},
+        'review-kind-snapshot', clock_timestamp() + interval '30 seconds', 'provider_error'
+      )
+    `;
+    await sql`
+      insert into generation_output_reviews (
+        id, job_id, casting_id, kind, status, reason_codes, reviewer_model_version,
+        schema_valid, safety_pass, fact_consistency_pass
+      ) values (
+        ${randomUUID()}, ${jobId}, ${castingId}, 'preview', 'pass', '[]'::jsonb, 'review-kind-v1',
+        'true', 'true', 'true'
+      )
+    `;
+
+    await expect(sql`update generation_jobs set kind = 'deep_reading' where id = ${jobId}`)
+      .rejects.toThrow("IMMUTABLE_GENERATION_JOB_IDENTITY");
+  });
+
+  it.each(["epoch", "deleted", "lifecycle", "owner"] as const)(
+    "rejects a provider result after PostgreSQL observes a changed %s identity fence",
+    async (mutation) => {
     const suffix = randomUUID();
     const userId = `cp3-stale-${suffix}`;
     const castingId = randomUUID();
     const questionVersionId = randomUUID();
-    const now = new Date("2026-08-24T00:02:00.000Z");
+    const now = await databaseNow();
     const facts = {
       method: "three_coin" as const,
       algorithmVersion: "three-coin-v1",
@@ -506,18 +658,27 @@ describe("CP3 PostgreSQL Preview repository", () => {
       now: () => now,
       verifyResultIntegrity: () => true,
     });
-    const pending = service.generate({ castingId, userId, idempotencyKey: "stale-request" });
+    const pending = service.generate({ castingId, userId, idempotencyKey: `stale-request-${suffix}` });
     await providerStarted;
-    await sql`
-      update casting_sessions
-      set lifecycle = 'user_deleted', generation_epoch = 2,
-          deleted_at = ${now.toISOString()}, updated_at = ${now.toISOString()}
-      where id = ${castingId}
-    `;
+    if (mutation === "epoch") {
+      await sql`update casting_sessions set generation_epoch = 2, updated_at = clock_timestamp() where id = ${castingId}`;
+    } else if (mutation === "deleted") {
+      await sql`update casting_sessions set deleted_at = clock_timestamp(), updated_at = clock_timestamp() where id = ${castingId}`;
+    } else if (mutation === "lifecycle") {
+      await sql`update casting_sessions set lifecycle = 'user_deleted', updated_at = clock_timestamp() where id = ${castingId}`;
+    } else {
+      const newOwnerId = `cp3-new-owner-${suffix}`;
+      await sql`
+        insert into users (id, name, email, email_verified)
+        values (${newOwnerId}, 'CP3 New Owner', ${`new-owner-${suffix}@example.com`}, true)
+      `;
+      await sql`update casting_sessions set user_id = ${newOwnerId}, updated_at = clock_timestamp() where id = ${castingId}`;
+    }
     releaseProvider();
 
     await expect(pending).rejects.toThrow("PERSISTENCE_FAILED");
     await expect(repository.getPreview(castingId)).resolves.toBeNull();
     await expect(repository.getJobStatus(castingId)).resolves.toMatchObject({ status: "failed" });
-  });
+    },
+  );
 });

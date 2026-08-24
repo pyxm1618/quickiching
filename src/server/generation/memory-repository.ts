@@ -5,6 +5,7 @@ import {
   PREVIEW_RETRY_BUDGET_WINDOW_MS,
   STALE_PREVIEW_INVALIDATED_ERROR,
 } from "./retry-policy";
+import { assertReusablePreviewJob, GenerationRepositoryError } from "./repository-error";
 import type {
   CreateJobInput,
   GenerationJobRecord,
@@ -57,6 +58,13 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
   }
 
   async createOrReuseJob(input: CreateJobInput): Promise<{ job: GenerationJobRecord; created: boolean }> {
+    if (
+      this.context.castingId !== input.castingId
+      || this.context.userId !== input.userId
+      || this.context.generationEpoch !== input.generationEpoch
+    ) {
+      throw new GenerationRepositoryError("GENERATION_IDEMPOTENCY_CONFLICT");
+    }
     const existingByKey = [...this.jobs.values()].find((job) =>
       job.castingId === input.castingId && job.kind === input.kind && job.idempotencyKey === input.idempotencyKey,
     );
@@ -68,7 +76,7 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
           || existingByKey.inputSnapshotHash !== input.inputSnapshotHash
         )
       ) {
-        throw new Error("GENERATION_IDEMPOTENCY_CONFLICT");
+        throw new GenerationRepositoryError("GENERATION_IDEMPOTENCY_CONFLICT");
       }
       return { job: clone(existingByKey), created: false };
     }
@@ -96,7 +104,10 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
     const active = [...this.jobs.values()].find((job) =>
       job.castingId === input.castingId && job.kind === input.kind && ["queued", "running"].includes(job.status),
     );
-    if (active) return { job: clone(active), created: false };
+    if (active) {
+      assertReusablePreviewJob(active, input);
+      return { job: clone(active), created: false };
+    }
 
     const retryWindowStart = input.now.getTime() - PREVIEW_RETRY_BUDGET_WINDOW_MS;
     const recentFailures = [...this.jobs.values()].filter((job) =>
@@ -107,7 +118,7 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
       && job.updatedAt.getTime() >= retryWindowStart
     );
     if (recentFailures.length >= PREVIEW_RETRY_BUDGET_MAX_FAILURES) {
-      throw new Error("PREVIEW_RETRY_BUDGET_EXCEEDED");
+      throw new GenerationRepositoryError("PREVIEW_RETRY_BUDGET_EXCEEDED");
     }
 
     const job: GenerationJobRecord = {
@@ -131,13 +142,13 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
     return { job: clone(job), created: true };
   }
 
-  async markJobRunning(input: { jobId: string; leaseToken: string; now: Date; leaseExpiresAt: Date }): Promise<boolean> {
+  async markJobRunning(input: { jobId: string; leaseToken: string; now: Date; leaseDurationMs: number }): Promise<boolean> {
     const job = this.jobs.get(input.jobId);
     if (!job || job.status !== "queued") return false;
     job.status = "running";
     job.attemptCount += 1;
     job.leaseToken = input.leaseToken;
-    job.leaseExpiresAt = clone(input.leaseExpiresAt);
+    job.leaseExpiresAt = new Date(input.now.getTime() + input.leaseDurationMs);
     job.updatedAt = clone(input.now);
     return true;
   }
@@ -149,10 +160,12 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
       !job
       || job.status !== "running"
       || job.leaseToken !== input.leaseToken
+      || this.context.userId !== input.userId
       || job.generationEpoch !== input.generationEpoch
       || job.inputSnapshotHash !== input.inputSnapshotHash
       || hashGenerationSnapshot({
         castingId: this.context.castingId,
+        userId: this.context.userId,
         generationEpoch: this.context.generationEpoch,
         question: this.context.question,
         scene: this.context.scene,

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { deepStrictEqual } from "node:assert";
+import { performance } from "node:perf_hooks";
 import { evaluateRisk } from "@/domain/risk/engine";
 import {
   deterministicFactsSchema,
@@ -12,6 +13,7 @@ import {
   hashGenerationSnapshot,
   validatePreviewSafety,
 } from "./boundary";
+import { GenerationRepositoryError } from "./repository-error";
 import type {
   GenerationJobRecord,
   OutputReviewer,
@@ -55,10 +57,6 @@ export class PreviewGenerationError extends Error {
 
 function stateResult(job: GenerationJobRecord, result?: PreviewResultRecord): PreviewGenerationResult {
   return { status: job.status, jobId: job.id, ...(result ? { result } : {}) };
-}
-
-function cloneErrorCode(error: unknown): string {
-  return error instanceof PreviewGenerationError ? error.code : classifyGenerationError(error).code;
 }
 
 function timeoutPromise<T>(
@@ -129,20 +127,22 @@ export class PreviewGenerationService {
     // in memory for the provider call and is never included in a URL or response payload.
     const inputSnapshotHash = hashGenerationSnapshot({
       castingId: context.castingId,
+      userId: request.userId,
       generationEpoch: context.generationEpoch,
       question: context.question,
       scene: context.scene,
       interpretationGoal: context.interpretationGoal,
       facts: context.facts,
     });
-    const deadlineAt = Date.now() + this.timeoutMs;
-    const remainingTimeout = (): number => Math.max(0, deadlineAt - Date.now());
+    const deadlineAt = performance.now() + this.timeoutMs;
+    const remainingTimeout = (): number => Math.max(0, deadlineAt - performance.now());
     const now = this.now();
     let job: GenerationJobRecord;
     let created: boolean;
     try {
       ({ job, created } = await this.repository.createOrReuseJob({
         castingId: context.castingId,
+        userId: request.userId,
         kind: "preview",
         generationEpoch: context.generationEpoch,
         idempotencyKey: request.idempotencyKey,
@@ -151,10 +151,23 @@ export class PreviewGenerationService {
         now,
       }));
     } catch (error) {
-      if (error instanceof Error && error.message === "PREVIEW_RETRY_BUDGET_EXCEEDED") {
-        throw new PreviewGenerationError("PREVIEW_RETRY_BUDGET_EXCEEDED", true);
+      if (error instanceof GenerationRepositoryError) {
+        if (error.code === "PREVIEW_RETRY_BUDGET_EXCEEDED") {
+          throw new PreviewGenerationError(error.code, true);
+        }
+        if (error.code === "GENERATION_IDEMPOTENCY_CONFLICT") {
+          throw new PreviewGenerationError(error.code, false);
+        }
       }
       throw error;
+    }
+    if (
+      job.castingId !== context.castingId
+      || job.kind !== "preview"
+      || job.generationEpoch !== context.generationEpoch
+      || job.inputSnapshotHash !== inputSnapshotHash
+    ) {
+      throw new PreviewGenerationError("GENERATION_IDEMPOTENCY_CONFLICT");
     }
     if (job.status === "completed") {
       const result = await this.repository.getPreview(context.castingId);
@@ -167,7 +180,7 @@ export class PreviewGenerationService {
       jobId: job.id,
       leaseToken,
       now,
-      leaseExpiresAt: new Date(now.getTime() + this.timeoutMs),
+      leaseDurationMs: this.timeoutMs,
     });
     if (!claimed) {
       const current = await this.repository.getJobStatus(context.castingId);
@@ -218,6 +231,7 @@ export class PreviewGenerationService {
         result = await this.repository.persistPreviewSuccess({
           jobId: job.id,
           leaseToken,
+          userId: request.userId,
           generationEpoch: context.generationEpoch,
           inputSnapshotHash,
           output: parsedOutput.data as CommercialPreviewOutput,
@@ -256,6 +270,22 @@ export class PreviewGenerationService {
     if (!context || context.userId !== request.userId) throw new PreviewGenerationError("CASTING_NOT_FOUND");
     const job = await this.repository.getJobStatus(request.castingId);
     if (!job) return { status: "not_started", jobId: null };
+    const currentSnapshotHash = hashGenerationSnapshot({
+      castingId: context.castingId,
+      userId: request.userId,
+      generationEpoch: context.generationEpoch,
+      question: context.question,
+      scene: context.scene,
+      interpretationGoal: context.interpretationGoal,
+      facts: context.facts,
+    });
+    if (
+      job.kind !== "preview"
+      || job.generationEpoch !== context.generationEpoch
+      || job.inputSnapshotHash !== currentSnapshotHash
+    ) {
+      return { status: "not_started", jobId: null };
+    }
     const result = job.status === "completed" ? await this.repository.getPreview(request.castingId) : null;
     return stateResult(job, result ?? undefined);
   }

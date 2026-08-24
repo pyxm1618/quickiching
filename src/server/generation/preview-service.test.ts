@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { hashGenerationSnapshot } from "./boundary";
 import { InMemoryPreviewGenerationRepository } from "./memory-repository";
 import {
@@ -165,15 +165,65 @@ describe("Auth-only Preview generation service", () => {
     expect(repository.listJobs().map((job) => job.status)).toEqual(["failed", "completed"]);
   });
 
+  it("does not return a completed Preview after the current input snapshot changes", async () => {
+    const { service, repository } = fixture();
+    await service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: "status-before-change",
+    });
+
+    repository.setContext({
+      generationEpoch: 4,
+      question: "What changed after I reconsidered this transition?",
+      scene: "relationships",
+      interpretationGoal: "what_should_i_pay_attention_to_next",
+    });
+
+    await expect(service.getStatus({ castingId: "casting-1", userId: "user-1" }))
+      .resolves.toEqual({ status: "not_started", jobId: null });
+  });
+
+  it("rejects an active job whose epoch or snapshot no longer matches", async () => {
+    const { service, repository, getProviderCalls } = fixture();
+    await repository.createOrReuseJob({
+      castingId: "casting-1",
+      userId: "user-1",
+      kind: "preview",
+      generationEpoch: 3,
+      idempotencyKey: "active-before-change",
+      inputSnapshotHash: hashGenerationSnapshot({
+        castingId: "casting-1",
+        userId: "user-1",
+        generationEpoch: 3,
+        question: "What should I understand about this career transition?",
+        scene: "career",
+        interpretationGoal: "what_do_i_need_to_see_clearly",
+        facts,
+      }),
+      now: new Date("2026-08-23T00:00:00.000Z"),
+    });
+    repository.setContext({ generationEpoch: 4, question: "What changed?" });
+
+    await expect(service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: "active-after-change",
+    })).rejects.toThrow("GENERATION_IDEMPOTENCY_CONFLICT");
+    expect(getProviderCalls()).toBe(0);
+  });
+
   it("claims a queued job left behind before its first process claim", async () => {
     const { service, repository, getProviderCalls } = fixture();
     await repository.createOrReuseJob({
       castingId: "casting-1",
+      userId: "user-1",
       kind: "preview",
       generationEpoch: 3,
       idempotencyKey: "orphaned-queued-job",
       inputSnapshotHash: hashGenerationSnapshot({
         castingId: "casting-1",
+        userId: "user-1",
         generationEpoch: 3,
         question: "What should I understand about this career transition?",
         scene: "career",
@@ -280,6 +330,32 @@ describe("Auth-only Preview generation service", () => {
     expect(bounded.repository.listJobs()[0]?.status).toBe("timed_out");
   });
 
+  it("keeps the end-to-end timeout independent from wall-clock changes", async () => {
+    const wallClock = vi.spyOn(Date, "now").mockReturnValueOnce(1_000).mockReturnValue(0);
+    const bounded = fixture({
+      timeoutMs: 20,
+      provider: {
+        async generatePreview(input) {
+          await new Promise((resolve) => setTimeout(resolve, 8));
+          return { output, deterministicFacts: input.facts };
+        },
+      },
+      reviewer: {
+        async review() {
+          await new Promise((resolve) => setTimeout(resolve, 30));
+          return { status: "pass", reasonCodes: [], schemaValid: true, safetyPass: true, factConsistencyPass: true };
+        },
+      },
+    });
+
+    await expect(bounded.service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: "monotonic-timeout",
+    })).rejects.toThrow("AI_GATEWAY_TIMEOUT");
+    wallClock.mockRestore();
+  });
+
   it("rejects a result when the casting is deleted or its epoch changes while AI is running", async () => {
     const { service, repository } = fixture({
       provider: {
@@ -297,6 +373,24 @@ describe("Auth-only Preview generation service", () => {
     })).rejects.toThrow("PERSISTENCE_FAILED");
     await expect(repository.getPreview("casting-1")).resolves.toBeNull();
     expect(repository.listJobs()[0]?.status).toBe("failed");
+  });
+
+  it("rejects a result when casting ownership changes while AI is running", async () => {
+    const { service, repository } = fixture({
+      provider: {
+        async generatePreview(input) {
+          repository.setContext({ userId: "new-owner" });
+          return { output, deterministicFacts: input.facts };
+        },
+      },
+    });
+
+    await expect(service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: "owner-changed",
+    })).rejects.toThrow("PERSISTENCE_FAILED");
+    await expect(repository.getPreview("casting-1")).resolves.toBeNull();
   });
 
   it.each([

@@ -137,6 +137,10 @@ export const generationJobs = pgTable(
     uniqueIndex("generation_jobs_active_kind_idx")
       .on(table.castingId, table.kind)
       .where(sql`${table.status} in ('queued', 'running')`),
+    index("generation_jobs_casting_history_idx").on(table.castingId, table.kind, table.updatedAt.desc(), table.id.desc()),
+    index("generation_jobs_retry_budget_idx")
+      .on(table.castingId, table.kind, table.updatedAt)
+      .where(sql`${table.status} in ('failed', 'timed_out', 'dead_letter')`),
     index("generation_jobs_lease_idx").on(table.status, table.leaseExpiresAt),
     check("generation_jobs_epoch_check", sql`${table.generationEpoch} >= 0`),
     check("generation_jobs_attempt_count_check", sql`${table.attemptCount} >= 0`),
@@ -192,6 +196,7 @@ export const generationOutputReviews = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    index("generation_output_reviews_casting_idx").on(table.castingId),
     check("generation_reviews_boolean_fields_check", sql`${table.schemaValid} in ('true', 'false') and ${table.safetyPass} in ('true', 'false') and ${table.factConsistencyPass} in ('true', 'false')`),
     check("generation_reviews_pass_fields_check", sql`${table.status} <> 'pass' or (${table.schemaValid} = 'true' and ${table.safetyPass} = 'true' and ${table.factConsistencyPass} = 'true')`),
   ],

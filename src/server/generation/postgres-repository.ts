@@ -8,6 +8,7 @@ import {
   PREVIEW_RETRY_BUDGET_WINDOW_MS,
   STALE_PREVIEW_INVALIDATED_ERROR,
 } from "./retry-policy";
+import { assertReusablePreviewJob, GenerationRepositoryError } from "./repository-error";
 import type {
   CreateJobInput,
   GenerationJobRecord,
@@ -180,27 +181,29 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
 
   async createOrReuseJob(input: CreateJobInput): Promise<{ job: GenerationJobRecord; created: boolean }> {
     return this.sql.begin(async (transaction) => {
-      const now = input.now.toISOString();
-      const timeoutAt = new Date(input.now.getTime() + (input.timeoutMs ?? 30_000)).toISOString();
+      const identityRows = await transaction`
+        select user_id, generation_epoch
+        from casting_sessions
+        where id = ${input.castingId} and deleted_at is null
+        for share
+      ` as Row[];
+      if (
+        !identityRows[0]
+        || String(identityRows[0].user_id) !== input.userId
+        || Number(identityRows[0].generation_epoch) !== input.generationEpoch
+      ) {
+        throw new GenerationRepositoryError("GENERATION_IDEMPOTENCY_CONFLICT");
+      }
+      const timeoutMs = input.timeoutMs ?? 30_000;
       const existing = await transaction`
         select * from generation_jobs
         where idempotency_key = ${input.idempotencyKey}
         limit 1
       ` as Row[];
       if (existing[0]) {
-        if (String(existing[0].casting_id) !== input.castingId) {
-          throw new Error("GENERATION_IDEMPOTENCY_CONFLICT");
-        }
-        if (
-          ["queued", "running", "completed"].includes(String(existing[0].status))
-          && (
-            Number(existing[0].generation_epoch) !== input.generationEpoch
-            || String(existing[0].input_snapshot_hash) !== input.inputSnapshotHash
-          )
-        ) {
-          throw new Error("GENERATION_IDEMPOTENCY_CONFLICT");
-        }
-        return { job: jobFromRow(existing[0]), created: false };
+        const existingJob = jobFromRow(existing[0]);
+        assertReusablePreviewJob(existingJob, input);
+        return { job: existingJob, created: false };
       }
       const completed = await transaction`
         select j.*
@@ -226,7 +229,7 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
         await transaction`
           update generation_jobs
           set status = 'failed', structured_error_code = ${STALE_PREVIEW_INVALIDATED_ERROR},
-              completed_at = null, updated_at = ${now}
+              completed_at = null, updated_at = clock_timestamp()
           where id = ${String(completedJob.id)} and status = 'completed'
         `;
       }
@@ -236,19 +239,22 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
         order by created_at asc
         limit 1
       ` as Row[];
-      if (active[0]) return { job: jobFromRow(active[0]), created: false };
-      const retryWindowStart = new Date(input.now.getTime() - PREVIEW_RETRY_BUDGET_WINDOW_MS).toISOString();
+      if (active[0]) {
+        const activeJob = jobFromRow(active[0]);
+        assertReusablePreviewJob(activeJob, input);
+        return { job: activeJob, created: false };
+      }
       const recentFailures = await transaction`
         select count(*)::int as count
         from generation_jobs
         where casting_id = ${input.castingId}
           and kind = 'preview'
           and status in ('failed', 'timed_out', 'dead_letter')
-          and updated_at >= ${retryWindowStart}
+          and updated_at >= clock_timestamp() - (${PREVIEW_RETRY_BUDGET_WINDOW_MS} * interval '1 millisecond')
           and structured_error_code is distinct from ${STALE_PREVIEW_INVALIDATED_ERROR}
       ` as Row[];
       if (Number(recentFailures[0]?.count ?? 0) >= PREVIEW_RETRY_BUDGET_MAX_FAILURES) {
-        throw new Error("PREVIEW_RETRY_BUDGET_EXCEEDED");
+        throw new GenerationRepositoryError("PREVIEW_RETRY_BUDGET_EXCEEDED");
       }
       const id = randomUUID();
       const inserted = await transaction`
@@ -257,8 +263,9 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
           input_snapshot_hash, timeout_at, attempt_count, created_at, updated_at
         ) values (
           ${id}, ${input.castingId}, 'preview', 'queued', ${input.generationEpoch},
-          ${input.idempotencyKey}, ${input.inputSnapshotHash}, ${timeoutAt},
-          0, ${now}, ${now}
+          ${input.idempotencyKey}, ${input.inputSnapshotHash},
+          clock_timestamp() + (${timeoutMs} * interval '1 millisecond'),
+          0, clock_timestamp(), clock_timestamp()
         ) on conflict do nothing returning *
       ` as Row[];
       if (inserted[0]) return { job: jobFromRow(inserted[0]), created: true };
@@ -269,20 +276,21 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
             or (kind = 'preview' and status in ('queued', 'running')))
         order by created_at asc limit 1
       ` as Row[];
-      if (!raced[0]) throw new Error("GENERATION_JOB_UNAVAILABLE");
-      return { job: jobFromRow(raced[0]), created: false };
+      if (!raced[0]) throw new GenerationRepositoryError("GENERATION_JOB_UNAVAILABLE");
+      const racedJob = jobFromRow(raced[0]);
+      assertReusablePreviewJob(racedJob, input);
+      return { job: racedJob, created: false };
     });
   }
 
-  async markJobRunning(input: { jobId: string; leaseToken: string; now: Date; leaseExpiresAt: Date }): Promise<boolean> {
-    const now = input.now.toISOString();
-    const leaseExpiresAt = input.leaseExpiresAt.toISOString();
+  async markJobRunning(input: { jobId: string; leaseToken: string; now: Date; leaseDurationMs: number }): Promise<boolean> {
     return this.sql.begin(async (transaction) => {
       const rows = await transaction`
         update generation_jobs
         set status = 'running', attempt_count = attempt_count + 1,
             lease_owner = 'cp3-preview-service', lease_token = ${input.leaseToken},
-            lease_expires_at = ${leaseExpiresAt}, updated_at = ${now}
+            lease_expires_at = clock_timestamp() + (${input.leaseDurationMs} * interval '1 millisecond'),
+            updated_at = clock_timestamp()
         where id = ${input.jobId} and status = 'queued'
         returning id, attempt_count
       ` as Row[];
@@ -291,7 +299,7 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
         insert into generation_attempts (
           id, job_id, attempt_number, retry_classification, started_at
         ) values (
-          ${randomUUID()}, ${input.jobId}, ${Number(rows[0].attempt_count)}, 'initial', ${now}
+          ${randomUUID()}, ${input.jobId}, ${Number(rows[0].attempt_count)}, 'initial', clock_timestamp()
         )
       `;
       return true;
@@ -325,20 +333,31 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
       ` as Row[];
       const job = jobs[0];
       if (!job) throw new Error("GENERATION_JOB_NOT_FOUND");
-      if (job.status === "completed") {
-        const existing = await transaction`select * from preview_results where casting_id = ${job.casting_id}` as Row[];
-        if (!existing[0]) throw new Error("COMPLETED_PREVIEW_RESULT_MISSING");
-        return resultFromRow(existing[0]);
-      }
       const currentContext = contextFromRow(job, this.questionEncryptionKeys);
       const currentSnapshotHash = hashGenerationSnapshot({
         castingId: currentContext.castingId,
+        userId: currentContext.userId,
         generationEpoch: currentContext.generationEpoch,
         question: currentContext.question,
         scene: currentContext.scene,
         interpretationGoal: currentContext.interpretationGoal,
         facts: currentContext.facts,
       });
+      const identityMatches =
+        Number(job.generation_epoch) === input.generationEpoch
+        && Number(job.casting_generation_epoch) === input.generationEpoch
+        && currentContext.userId === input.userId
+        && currentContext.lifecycle === "revealed"
+        && currentContext.riskStatus === "allowed"
+        && currentContext.deletedAt == null
+        && job.input_snapshot_hash === input.inputSnapshotHash
+        && currentSnapshotHash === input.inputSnapshotHash;
+      if (job.status === "completed") {
+        if (!identityMatches) throw new Error("LATE_RESULT_REJECTED");
+        const existing = await transaction`select * from preview_results where casting_id = ${job.casting_id}` as Row[];
+        if (!existing[0]) throw new Error("COMPLETED_PREVIEW_RESULT_MISSING");
+        return resultFromRow(existing[0]);
+      }
       const leaseExpiresAt = job.lease_expires_at == null ? null : date(job.lease_expires_at);
       const timeoutAt = date(job.timeout_at);
       const clockRows = await transaction`select clock_timestamp() as database_now` as Row[];
@@ -346,13 +365,7 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
       if (
         job.status !== "running"
         || job.lease_token !== input.leaseToken
-        || Number(job.generation_epoch) !== input.generationEpoch
-        || Number(job.casting_generation_epoch) !== input.generationEpoch
-        || currentContext.lifecycle !== "revealed"
-        || currentContext.riskStatus !== "allowed"
-        || currentContext.deletedAt != null
-        || job.input_snapshot_hash !== input.inputSnapshotHash
-        || currentSnapshotHash !== input.inputSnapshotHash
+        || !identityMatches
         || !leaseExpiresAt
         || leaseExpiresAt.getTime() <= databaseNow.getTime()
         || timeoutAt.getTime() <= databaseNow.getTime()
@@ -417,19 +430,19 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
     errorCode: string;
     now: Date;
   }): Promise<void> {
-    const now = input.now.toISOString();
     await this.sql.begin(async (transaction) => {
       const rows = await transaction`
         update generation_jobs
         set status = ${input.status}, structured_error_code = ${input.errorCode},
-            lease_owner = null, lease_token = null, lease_expires_at = null, updated_at = ${now}
+            lease_owner = null, lease_token = null, lease_expires_at = null,
+            updated_at = clock_timestamp()
         where id = ${input.jobId} and status = 'running' and lease_token = ${input.leaseToken}
         returning attempt_count
       ` as Row[];
       if (rows.length !== 1) return;
       await transaction`
         update generation_attempts
-        set finished_at = ${now},
+        set finished_at = clock_timestamp(),
             retry_classification = ${input.status === "timed_out" ? "timeout" : "failure"},
             timeout_code = ${input.status === "timed_out" ? input.errorCode : null},
             error_code = ${input.errorCode}

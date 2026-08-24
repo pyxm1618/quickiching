@@ -1,4 +1,4 @@
-import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import postgres from "postgres";
@@ -11,6 +11,7 @@ if (!databaseURL) throw new Error("TEST_DATABASE_UPGRADE_URL is required for Pos
 const sql = postgres(databaseURL, { max: 4, prepare: false });
 const db = drizzle(sql);
 let initialMigrationFolder: string;
+let repair2MigrationFolder: string;
 
 describe("CP3 upgrade from a populated CP2 database", () => {
   beforeAll(async () => {
@@ -44,12 +45,36 @@ describe("CP3 upgrade from a populated CP2 database", () => {
         'google', 'cp2-upgrade-user', ${now}, ${now}
       )
     `;
+    repair2MigrationFolder = await mkdtemp(join("/tmp", "quickiching-cp3-repair2-"));
+    await mkdir(join(repair2MigrationFolder, "meta"));
+    for (const migration of [
+      "0000_cp2_auth_identity.sql",
+      "0001_flaky_wiccan.sql",
+      "0002_cp3_generation_repair.sql",
+      "0003_cp3_generation_repair2.sql",
+    ]) {
+      await copyFile(join("drizzle", migration), join(repair2MigrationFolder, migration));
+    }
+    for (const snapshot of ["0000_snapshot.json", "0001_snapshot.json", "0002_snapshot.json"]) {
+      await copyFile(join("drizzle/meta", snapshot), join(repair2MigrationFolder, "meta", snapshot));
+    }
+    const journal = JSON.parse(await readFile("drizzle/meta/_journal.json", "utf8")) as {
+      version: string;
+      dialect: string;
+      entries: Array<{ idx: number }>;
+    };
+    await writeFile(join(repair2MigrationFolder, "meta/_journal.json"), JSON.stringify({
+      ...journal,
+      entries: journal.entries.filter((entry) => entry.idx <= 3),
+    }));
+    await migrate(db, { migrationsFolder: repair2MigrationFolder });
     await migrate(db, { migrationsFolder: "drizzle" });
   });
 
   afterAll(async () => {
     await sql.end({ timeout: 5 });
     if (initialMigrationFolder) await rm(initialMigrationFolder, { recursive: true, force: true });
+    if (repair2MigrationFolder) await rm(repair2MigrationFolder, { recursive: true, force: true });
   });
 
   it("preserves CP2 identity rows while applying the CP3 persistence and repair migrations", async () => {
@@ -70,7 +95,7 @@ describe("CP3 upgrade from a populated CP2 database", () => {
 
     expect(users).toEqual([{ id: "cp2-upgrade-user", email: "cp2-upgrade@example.com" }]);
     expect(accounts).toEqual([{ id: "cp2-upgrade-account", user_id: "cp2-upgrade-user" }]);
-    expect(migrations[0]?.count).toBe("4");
+    expect(migrations[0]?.count).toBe("5");
     expect(repairConstraint[0]?.count).toBe("1");
   });
 });

@@ -92,6 +92,7 @@ function errorStatus(error: PreviewGenerationError): number {
     case "PREVIEW_NOT_REVEALED":
     case "RISK_BLOCKED":
     case "RESULT_INTEGRITY_INVALID":
+    case "GENERATION_IDEMPOTENCY_CONFLICT":
       return 409;
     case "AI_GATEWAY_TIMEOUT":
     case "timeout":
@@ -106,6 +107,9 @@ function errorStatus(error: PreviewGenerationError): number {
     case "FACT_CONSISTENCY_FAILURE":
     case "OUTPUT_SAFETY_FAILURE":
     case "OUTPUT_REVIEW_FAILED":
+    case "schema_error":
+    case "safety_failure":
+    case "cost_limit":
       return 502;
     default:
       return error.retryable ? 503 : 500;
