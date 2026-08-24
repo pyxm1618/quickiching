@@ -193,6 +193,7 @@ export const generationOutputReviews = pgTable(
   },
   (table) => [
     check("generation_reviews_boolean_fields_check", sql`${table.schemaValid} in ('true', 'false') and ${table.safetyPass} in ('true', 'false') and ${table.factConsistencyPass} in ('true', 'false')`),
+    check("generation_reviews_pass_fields_check", sql`${table.status} <> 'pass' or (${table.schemaValid} = 'true' and ${table.safetyPass} = 'true' and ${table.factConsistencyPass} = 'true')`),
   ],
 );
 

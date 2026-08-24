@@ -35,6 +35,7 @@ function configured(env: RuntimeEnv): boolean {
   return env.AI_ADAPTER_MODE === "ai-sdk"
     && Boolean(env.AI_GATEWAY_API_KEY?.trim())
     && Boolean(env.AI_GATEWAY_BASE_URL?.trim())
+    && Boolean(env.AI_SDK_GATEWAY_BASE_URL?.trim())
     && Boolean(env.AI_MODEL_PREVIEW?.trim())
     && Boolean(env.AI_MODEL_OUTPUT_REVIEW?.trim())
     && Boolean(env.AI_MAX_OUTPUT_TOKENS?.trim())
@@ -61,7 +62,7 @@ function providerRequestId(result: { response?: { id?: unknown } }): string | un
 function gatewayOptions(env: RuntimeEnv): { apiKey: string; baseURL: string } {
   return {
     apiKey: required(env, "AI_GATEWAY_API_KEY"),
-    baseURL: required(env, "AI_GATEWAY_BASE_URL"),
+    baseURL: required(env, "AI_SDK_GATEWAY_BASE_URL"),
   };
 }
 

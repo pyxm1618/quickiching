@@ -133,6 +133,8 @@ export class PreviewGenerationService {
       question: context.question,
       facts: context.facts,
     });
+    const deadlineAt = Date.now() + this.timeoutMs;
+    const remainingTimeout = (): number => Math.max(0, deadlineAt - Date.now());
     const now = this.now();
     const { job, created } = await this.repository.createOrReuseJob({
       castingId: context.castingId,
@@ -140,30 +142,33 @@ export class PreviewGenerationService {
       generationEpoch: context.generationEpoch,
       idempotencyKey: request.idempotencyKey,
       inputSnapshotHash,
+      timeoutMs: this.timeoutMs,
       now,
     });
-    if (!created) {
-      const result = job.status === "completed" ? await this.repository.getPreview(context.castingId) : null;
+    if (job.status === "completed") {
+      const result = await this.repository.getPreview(context.castingId);
       return stateResult(job, result ?? undefined);
     }
+    if (!created && job.status !== "queued") return stateResult(job);
 
     const leaseToken = randomUUID();
     const claimed = await this.repository.markJobRunning({
       jobId: job.id,
       leaseToken,
       now,
-      leaseExpiresAt: new Date(now.getTime() + this.timeoutMs + 5_000),
+      leaseExpiresAt: new Date(now.getTime() + this.timeoutMs),
     });
     if (!claimed) {
-      const current = await this.repository.getJobStatus(context.castingId, request.idempotencyKey);
+      const current = await this.repository.getJobStatus(context.castingId);
       if (!current) throw new PreviewGenerationError("GENERATION_JOB_UNAVAILABLE", true);
       return stateResult(current);
     }
 
     try {
+      const providerTimeoutMs = remainingTimeout();
       const generated = await timeoutPromise(
         (signal) => this.provider.generatePreview(input, signal),
-        this.timeoutMs,
+        providerTimeoutMs,
         request.signal,
       );
       if (
@@ -187,20 +192,23 @@ export class PreviewGenerationService {
       } catch {
         throw new PreviewGenerationError("OUTPUT_SAFETY_FAILURE");
       }
+      const reviewTimeoutMs = remainingTimeout();
       const review = await timeoutPromise(
         (signal) => this.reviewer.review({ kind: "preview", output: parsedOutput.data, facts: parsedFacts.data }, signal),
-        this.timeoutMs,
+        reviewTimeoutMs,
         request.signal,
       );
       if (review.status !== "pass" || !review.schemaValid || !review.safetyPass || !review.factConsistencyPass) {
         throw new PreviewGenerationError("OUTPUT_REVIEW_FAILED");
       }
+      if (remainingTimeout() <= 0) throw new PreviewGenerationError("AI_GATEWAY_TIMEOUT", true);
       let result: PreviewResultRecord;
       try {
         result = await this.repository.persistPreviewSuccess({
           jobId: job.id,
           leaseToken,
           generationEpoch: context.generationEpoch,
+          inputSnapshotHash,
           output: parsedOutput.data as CommercialPreviewOutput,
           review,
           provider: this.provider.provider,

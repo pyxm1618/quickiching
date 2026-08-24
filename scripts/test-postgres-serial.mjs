@@ -47,7 +47,9 @@ const socketDir = join(root, "socket");
 const port = await freePort();
 const user = "quickiching_test";
 const database = "quickiching_test";
+const upgradeDatabase = "quickiching_test_upgrade";
 const databaseURL = `postgresql://${user}@127.0.0.1:${port}/${database}`;
+const upgradeDatabaseURL = `postgresql://${user}@127.0.0.1:${port}/${upgradeDatabase}`;
 let started = false;
 let exitCode = 0;
 
@@ -57,9 +59,11 @@ try {
   await run(pgctl, ["-D", dataDir, "-o", `-p ${port} -k ${socketDir}`, "-w", "start"]);
   started = true;
   await run(createdb, ["-h", "127.0.0.1", "-p", String(port), "-U", user, database]);
-    await run(bun, ["x", "vitest", "run", "--no-file-parallelism", "src/server/db/postgres.integration.test.ts", "src/server/db/cp3-generation.integration.test.ts", "src/server/generation/postgres-repository.integration.test.ts", "src/server/auth/better-auth.integration.test.ts", "src/server/auth/runtime.integration.test.ts"], {
+  await run(createdb, ["-h", "127.0.0.1", "-p", String(port), "-U", user, upgradeDatabase]);
+    await run(bun, ["x", "vitest", "run", "--no-file-parallelism", "src/server/db/postgres.integration.test.ts", "src/server/db/cp3-generation.integration.test.ts", "src/server/db/cp3-upgrade.integration.test.ts", "src/server/generation/postgres-repository.integration.test.ts", "src/server/auth/better-auth.integration.test.ts", "src/server/auth/runtime.integration.test.ts"], {
     ...process.env,
     TEST_DATABASE_URL: databaseURL,
+    TEST_DATABASE_UPGRADE_URL: upgradeDatabaseURL,
     MIGRATION_DATABASE_URL: databaseURL,
     VITEST_INTEGRATION: "1",
   });

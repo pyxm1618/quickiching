@@ -78,6 +78,8 @@ const sharedAiRequirements: readonly CapabilityRequirement[] = [
   ...databaseRequirements,
   { name: "AI_GATEWAY_API_KEY", format: "nonBlank" },
   { name: "AI_GATEWAY_BASE_URL", format: "httpUrl" },
+  { name: "AI_SDK_GATEWAY_BASE_URL", format: "httpUrl" },
+  { name: "APP_SECRET", format: "secret" },
   { name: "AI_MODEL_OUTPUT_REVIEW", format: "nonBlank" },
 ];
 
@@ -321,6 +323,16 @@ function productionAuthRequirementsFor(
   ];
 }
 
+function productionAiRequirementsFor(
+  requirements: readonly CapabilityRequirement[],
+): readonly CapabilityRequirement[] {
+  return requirements.map((requirement) => (
+    requirement.name === "AI_GATEWAY_BASE_URL" || requirement.name === "AI_SDK_GATEWAY_BASE_URL"
+      ? { ...requirement, format: "httpsUrl" as const }
+      : requirement
+  ));
+}
+
 function keyMaterialCollisionNames(env: RuntimeEnv): Set<string> {
   const materialOwners = new Map<string, string>();
   const collisions = new Set<string>();
@@ -464,7 +476,9 @@ export function resolveCommercialCapabilities(
     const requested = booleanFlag(env, definition.flag, options.production === true);
     const requirements = capability === "auth" && options.production === true
       ? productionAuthRequirementsFor(definition.requirements)
-      : definition.requirements;
+      : (options.production === true && (capability === "aiPreview" || capability === "paidDeepReading")
+        ? productionAiRequirementsFor(definition.requirements)
+        : definition.requirements);
     const inspection = requested
       ? inspectRequirements(env, requirements)
       : emptyRequirementInspection();

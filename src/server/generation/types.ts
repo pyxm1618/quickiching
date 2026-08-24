@@ -14,6 +14,7 @@ export type PreviewGenerationContext = {
   riskStatus: RiskStatus;
   riskRuleVersion: string | null;
   generationEpoch: number;
+  deletedAt?: Date | null;
   question: string;
   questionFingerprint?: string | null;
   scene: Scene;
@@ -34,6 +35,7 @@ export type GenerationJobRecord = {
   inputSnapshotHash: string;
   attemptCount: number;
   leaseToken: string | null;
+  leaseExpiresAt: Date | null;
   provider: string | null;
   model: string | null;
   structuredErrorCode: string | null;
@@ -101,6 +103,7 @@ export type CreateJobInput = {
   generationEpoch: number;
   idempotencyKey: string;
   inputSnapshotHash: string;
+  timeoutMs?: number;
   now: Date;
 };
 
@@ -108,6 +111,7 @@ export type PersistPreviewSuccessInput = {
   jobId: string;
   leaseToken: string;
   generationEpoch: number;
+  inputSnapshotHash: string;
   output: CommercialPreviewOutput;
   review: OutputReviewDecision;
   provider: string;

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { hashGenerationSnapshot } from "./boundary";
 import type {
   CreateJobInput,
   GenerationJobRecord,
@@ -46,6 +47,15 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
     );
     if (existingByKey) return { job: clone(existingByKey), created: false };
 
+    const completed = [...this.jobs.values()].find((job) =>
+      job.castingId === input.castingId
+      && job.kind === input.kind
+      && job.status === "completed"
+      && this.preview?.castingId === input.castingId
+      && this.preview.jobId === job.id,
+    );
+    if (completed) return { job: clone(completed), created: false };
+
     const active = [...this.jobs.values()].find((job) =>
       job.castingId === input.castingId && job.kind === input.kind && ["queued", "running"].includes(job.status),
     );
@@ -61,6 +71,7 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
       inputSnapshotHash: input.inputSnapshotHash,
       attemptCount: 0,
       leaseToken: null,
+      leaseExpiresAt: null,
       provider: null,
       model: null,
       structuredErrorCode: null,
@@ -77,6 +88,7 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
     job.status = "running";
     job.attemptCount += 1;
     job.leaseToken = input.leaseToken;
+    job.leaseExpiresAt = clone(input.leaseExpiresAt);
     job.updatedAt = clone(input.now);
     return true;
   }
@@ -84,7 +96,30 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
   async persistPreviewSuccess(input: PersistPreviewSuccessInput): Promise<PreviewResultRecord> {
     if (this.persistFailure) throw new Error("DB_WRITE_FAILED");
     const job = this.jobs.get(input.jobId);
-    if (!job || job.status !== "running" || job.leaseToken !== input.leaseToken || job.generationEpoch !== input.generationEpoch) {
+    if (
+      !job
+      || job.status !== "running"
+      || job.leaseToken !== input.leaseToken
+      || job.generationEpoch !== input.generationEpoch
+      || job.inputSnapshotHash !== input.inputSnapshotHash
+      || hashGenerationSnapshot({
+        castingId: this.context.castingId,
+        generationEpoch: this.context.generationEpoch,
+        question: this.context.question,
+        facts: this.context.facts,
+      }) !== input.inputSnapshotHash
+      || !job.leaseExpiresAt
+      || job.leaseExpiresAt.getTime() <= input.now.getTime()
+    ) {
+      throw new Error("LATE_RESULT_REJECTED");
+    }
+    if (
+      this.context.castingId !== job.castingId
+      || this.context.generationEpoch !== input.generationEpoch
+      || this.context.lifecycle !== "revealed"
+      || this.context.riskStatus !== "allowed"
+      || this.context.deletedAt != null
+    ) {
       throw new Error("LATE_RESULT_REJECTED");
     }
     if (this.preview) return clone(this.preview);
@@ -104,6 +139,7 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
     job.provider = input.provider;
     job.model = input.model;
     job.leaseToken = null;
+    job.leaseExpiresAt = null;
     job.updatedAt = clone(input.now);
     return clone(result);
   }
@@ -120,6 +156,7 @@ export class InMemoryPreviewGenerationRepository implements PreviewGenerationRep
     job.status = input.status;
     job.structuredErrorCode = input.errorCode;
     job.leaseToken = null;
+    job.leaseExpiresAt = null;
     job.updatedAt = clone(input.now);
   }
 

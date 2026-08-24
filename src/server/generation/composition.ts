@@ -22,7 +22,7 @@ function positiveInteger(env: RuntimeEnv, name: string): number {
 export async function createProductionPreviewGenerationService(
   env: RuntimeEnv = process.env,
 ): Promise<PreviewGenerationService> {
-  const capabilities = resolveCommercialCapabilities(env);
+  const capabilities = resolveCommercialCapabilities(env, { production: env.NODE_ENV === "production" });
   if (!capabilities.capabilities.aiPreview.enabled) {
     throw new Error("AI_PREVIEW_DISABLED");
   }

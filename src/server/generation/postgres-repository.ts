@@ -39,6 +39,7 @@ function jobFromRow(row: Row): GenerationJobRecord {
     inputSnapshotHash: String(row.input_snapshot_hash),
     attemptCount: Number(row.attempt_count),
     leaseToken: row.lease_token == null ? null : String(row.lease_token),
+    leaseExpiresAt: row.lease_expires_at == null ? null : date(row.lease_expires_at),
     provider: row.provider == null ? null : String(row.provider),
     model: row.model_identifier == null ? null : String(row.model_identifier),
     structuredErrorCode: row.structured_error_code == null ? null : String(row.structured_error_code),
@@ -67,6 +68,49 @@ function readingVariant(movingLinePositions: number[]): DeterministicFacts["read
   if (movingLinePositions.length === 6) return "all_lines_moving";
   if (movingLinePositions.length > 1) return "multiple_moving";
   return "standard";
+}
+
+function contextFromRow(row: Row, questionEncryptionKeys: string | undefined): PreviewGenerationContext {
+  if (!row.question_version_id || !row.result_hmac) throw new Error("PREVIEW_CONTEXT_UNAVAILABLE");
+  const encrypted = {
+    v: String(row.encryption_key_version),
+    iv: String(row.iv),
+    tag: String(row.auth_tag),
+    data: String(row.ciphertext),
+  };
+  const castingId = String(row.casting_id);
+  const aad = `${castingId}:${String(row.question_version_id)}`;
+  const keyMaterial = configuredKeyMaterial(questionEncryptionKeys, encrypted.v);
+  const question = keyMaterial
+    ? decryptJsonWithKeyMaterial<{ context: string }>(encrypted, "context", keyMaterial, aad).context
+    : decryptJson<{ context: string }>(encrypted, "context", aad).context;
+  const lineValues = (row.line_values as number[]).map(Number) as DeterministicFacts["lineValuesBottomUp"];
+  const movingLinePositions = (row.moving_line_positions as number[]).map(Number);
+  return {
+    castingId,
+    userId: row.user_id == null ? null : String(row.user_id),
+    lifecycle: String(row.lifecycle),
+    riskStatus: row.risk_status,
+    riskRuleVersion: row.risk_rule_version == null ? null : String(row.risk_rule_version),
+    generationEpoch: Number(row.casting_generation_epoch ?? row.generation_epoch),
+    deletedAt: row.deleted_at == null ? null : date(row.deleted_at),
+    question,
+    questionFingerprint: row.question_fingerprint ?? row.fingerprint,
+    scene: row.scene,
+    interpretationGoal: row.interpretation_goal,
+    facts: {
+      method: row.method ?? "three_coin",
+      algorithmVersion: String(row.algorithm_version),
+      classicMappingVersion: String(row.classic_mapping_version),
+      lineValuesBottomUp: lineValues,
+      primaryHexagramNumber: Number(row.primary_hexagram_number),
+      movingLinePositions,
+      relatingHexagramNumber: row.relating_hexagram_number == null ? null : Number(row.relating_hexagram_number),
+      readingVariant: readingVariant(movingLinePositions),
+    },
+    resultHmac: String(row.result_hmac),
+    resultHmacKeyVersion: String(row.result_hmac_key_version),
+  };
 }
 
 export class PostgresPreviewGenerationRepository implements PreviewGenerationRepository {
@@ -99,43 +143,7 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
     ` as Row[];
     const row = rows[0];
     if (!row || !row.question_version_id || !row.result_hmac) return null;
-    const encrypted = {
-      v: String(row.encryption_key_version),
-      iv: String(row.iv),
-      tag: String(row.auth_tag),
-      data: String(row.ciphertext),
-    };
-    const aad = `${castingId}:${String(row.question_version_id)}`;
-    const keyMaterial = configuredKeyMaterial(this.questionEncryptionKeys, encrypted.v);
-    const question = keyMaterial
-      ? decryptJsonWithKeyMaterial<{ context: string }>(encrypted, "context", keyMaterial, aad).context
-      : decryptJson<{ context: string }>(encrypted, "context", aad).context;
-    const lineValues = (row.line_values as number[]).map(Number) as DeterministicFacts["lineValuesBottomUp"];
-    const movingLinePositions = (row.moving_line_positions as number[]).map(Number);
-    return {
-      castingId: String(row.casting_id),
-      userId: row.user_id == null ? null : String(row.user_id),
-      lifecycle: String(row.lifecycle),
-      riskStatus: row.risk_status,
-      riskRuleVersion: row.risk_rule_version == null ? null : String(row.risk_rule_version),
-      generationEpoch: Number(row.generation_epoch),
-      question,
-      questionFingerprint: row.question_fingerprint ?? row.fingerprint,
-      scene: row.scene,
-      interpretationGoal: row.interpretation_goal,
-      facts: {
-        method: row.method ?? "three_coin",
-        algorithmVersion: String(row.algorithm_version),
-        classicMappingVersion: String(row.classic_mapping_version),
-        lineValuesBottomUp: lineValues,
-        primaryHexagramNumber: Number(row.primary_hexagram_number),
-        movingLinePositions,
-        relatingHexagramNumber: row.relating_hexagram_number == null ? null : Number(row.relating_hexagram_number),
-        readingVariant: readingVariant(movingLinePositions),
-      },
-      resultHmac: String(row.result_hmac),
-      resultHmacKeyVersion: String(row.result_hmac_key_version),
-    };
+    return contextFromRow(row, this.questionEncryptionKeys);
   }
 
   async getPreview(castingId: string): Promise<PreviewResultRecord | null> {
@@ -157,7 +165,7 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
   async createOrReuseJob(input: CreateJobInput): Promise<{ job: GenerationJobRecord; created: boolean }> {
     return this.sql.begin(async (transaction) => {
       const now = input.now.toISOString();
-      const timeoutAt = new Date(input.now.getTime() + 30_000).toISOString();
+      const timeoutAt = new Date(input.now.getTime() + (input.timeoutMs ?? 30_000)).toISOString();
       const existing = await transaction`
         select * from generation_jobs
         where idempotency_key = ${input.idempotencyKey}
@@ -169,6 +177,16 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
         }
         return { job: jobFromRow(existing[0]), created: false };
       }
+      const completed = await transaction`
+        select j.*
+        from preview_results result
+        join generation_jobs j on j.id = result.job_id
+        where result.casting_id = ${input.castingId}
+          and j.kind = 'preview' and j.status = 'completed'
+        order by j.created_at asc
+        limit 1
+      ` as Row[];
+      if (completed[0]) return { job: jobFromRow(completed[0]), created: false };
       const active = await transaction`
         select * from generation_jobs
         where casting_id = ${input.castingId} and kind = 'preview' and status in ('queued', 'running')
@@ -228,7 +246,27 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
     return this.sql.begin(async (transaction) => {
       const now = input.now.toISOString();
       const jobs = await transaction`
-        select * from generation_jobs where id = ${input.jobId} for update
+        select
+          j.*,
+          c.user_id, c.lifecycle, c.risk_status, c.risk_rule_version,
+          c.generation_epoch as casting_generation_epoch, c.deleted_at,
+          c.scene, c.interpretation_goal, c.question_fingerprint, c.method,
+          q.id as question_version_id, q.ciphertext, q.iv, q.auth_tag,
+          q.encryption_key_version, q.fingerprint,
+          r.line_values, r.primary_hexagram_number, r.moving_line_positions,
+          r.relating_hexagram_number, r.algorithm_version, r.classic_mapping_version,
+          r.result_hmac, r.result_hmac_key_version
+        from generation_jobs j
+        join casting_sessions c on c.id = j.casting_id
+        left join lateral (
+          select * from question_versions
+          where casting_id = c.id
+          order by version_number desc
+          limit 1
+        ) q on true
+        left join cast_results r on r.casting_id = c.id
+        where j.id = ${input.jobId}
+        for update of j, c
       ` as Row[];
       const job = jobs[0];
       if (!job) throw new Error("GENERATION_JOB_NOT_FOUND");
@@ -237,7 +275,27 @@ export class PostgresPreviewGenerationRepository implements PreviewGenerationRep
         if (!existing[0]) throw new Error("COMPLETED_PREVIEW_RESULT_MISSING");
         return resultFromRow(existing[0]);
       }
-      if (job.status !== "running" || job.lease_token !== input.leaseToken || Number(job.generation_epoch) !== input.generationEpoch) {
+      const currentContext = contextFromRow(job, this.questionEncryptionKeys);
+      const currentSnapshotHash = hashGenerationSnapshot({
+        castingId: currentContext.castingId,
+        generationEpoch: currentContext.generationEpoch,
+        question: currentContext.question,
+        facts: currentContext.facts,
+      });
+      const leaseExpiresAt = job.lease_expires_at == null ? null : date(job.lease_expires_at);
+      if (
+        job.status !== "running"
+        || job.lease_token !== input.leaseToken
+        || Number(job.generation_epoch) !== input.generationEpoch
+        || Number(job.casting_generation_epoch) !== input.generationEpoch
+        || currentContext.lifecycle !== "revealed"
+        || currentContext.riskStatus !== "allowed"
+        || currentContext.deletedAt != null
+        || job.input_snapshot_hash !== input.inputSnapshotHash
+        || currentSnapshotHash !== input.inputSnapshotHash
+        || !leaseExpiresAt
+        || leaseExpiresAt.getTime() <= input.now.getTime()
+      ) {
         throw new Error("LATE_RESULT_REJECTED");
       }
       await transaction`

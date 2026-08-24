@@ -4,6 +4,8 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { authTables } from "./auth-schema";
 import { databaseSchema } from "./schema";
 
+const DEFAULT_RUNTIME_POOL_MAX = 5;
+
 export type AuthDatabase = PostgresJsDatabase<typeof authTables>;
 export type AuthDatabaseConnection = { db: AuthDatabase; client: Sql };
 export type CommercialDatabase = PostgresJsDatabase<typeof databaseSchema>;
@@ -17,7 +19,7 @@ export function createAuthDatabaseConnection(
   options: { max?: number } = {},
 ): AuthDatabaseConnection {
   const client = postgres(url, {
-    max: options.max ?? 10,
+    max: options.max ?? DEFAULT_RUNTIME_POOL_MAX,
     // Pooled/serverless URLs can reject prepared statements. Better Auth does
     // not require them, so the runtime contract is explicit and portable.
     prepare: false,
@@ -37,7 +39,7 @@ export function createCommercialDatabaseConnection(
   options: { max?: number } = {},
 ): CommercialDatabaseConnection {
   const client = postgres(url, {
-    max: options.max ?? 10,
+    max: options.max ?? DEFAULT_RUNTIME_POOL_MAX,
     prepare: false,
   });
   return { client, db: drizzle(client, { schema: databaseSchema }) };

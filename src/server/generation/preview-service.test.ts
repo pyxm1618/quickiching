@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { hashGenerationSnapshot } from "./boundary";
 import { InMemoryPreviewGenerationRepository } from "./memory-repository";
 import {
   PreviewGenerationService,
@@ -119,6 +120,54 @@ describe("Auth-only Preview generation service", () => {
     expect(repository.entitlementTouched).toBe(false);
   });
 
+  it("reuses a completed Preview even when the retry supplies a new idempotency key", async () => {
+    const { service, repository, getProviderCalls } = fixture();
+
+    const first = await service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: "completed-request-1",
+    });
+    const second = await service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: "completed-request-2",
+    });
+
+    expect(second).toMatchObject({ status: "completed", jobId: first.jobId, result: { output } });
+    expect(getProviderCalls()).toBe(1);
+    expect(repository.listJobs()).toHaveLength(1);
+    expect(repository.listJobs()[0]?.status).toBe("completed");
+  });
+
+  it("claims a queued job left behind before its first process claim", async () => {
+    const { service, repository, getProviderCalls } = fixture();
+    await repository.createOrReuseJob({
+      castingId: "casting-1",
+      kind: "preview",
+      generationEpoch: 3,
+      idempotencyKey: "orphaned-queued-job",
+      inputSnapshotHash: hashGenerationSnapshot({
+        castingId: "casting-1",
+        generationEpoch: 3,
+        question: "What should I understand about this career transition?",
+        facts,
+      }),
+      now: new Date("2026-08-23T00:00:00.000Z"),
+    });
+
+    const result = await service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: "retry-after-process-exit",
+    });
+
+    expect(result.status).toBe("completed");
+    expect(getProviderCalls()).toBe(1);
+    expect(repository.listJobs()).toHaveLength(1);
+    expect(repository.listJobs()[0]?.status).toBe("completed");
+  });
+
   it("deduplicates concurrent requests and active jobs at the persistence boundary", async () => {
     let releaseProvider!: () => void;
     const providerStarted = new Promise<void>((resolve) => {
@@ -176,6 +225,51 @@ describe("Auth-only Preview generation service", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     await expect(deferred.repository.getPreview("casting-1")).resolves.toBeNull();
     expect(deferred.repository.listJobs()[0]?.status).toBe("timed_out");
+  });
+
+  it("uses one end-to-end timeout budget for provider and reviewer", async () => {
+    const bounded = fixture({
+      timeoutMs: 30,
+      provider: {
+        async generatePreview(input) {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          return { output, deterministicFacts: input.facts };
+        },
+      },
+      reviewer: {
+        async review() {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          return { status: "pass", reasonCodes: [], schemaValid: true, safetyPass: true, factConsistencyPass: true };
+        },
+      },
+    });
+
+    await expect(bounded.service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: "provider-and-review-budget",
+    })).rejects.toThrow("AI_GATEWAY_TIMEOUT");
+    await expect(bounded.repository.getPreview("casting-1")).resolves.toBeNull();
+    expect(bounded.repository.listJobs()[0]?.status).toBe("timed_out");
+  });
+
+  it("rejects a result when the casting is deleted or its epoch changes while AI is running", async () => {
+    const { service, repository } = fixture({
+      provider: {
+        async generatePreview(input) {
+          repository.setContext({ lifecycle: "user_deleted", generationEpoch: 4, deletedAt: new Date() });
+          return { output, deterministicFacts: input.facts };
+        },
+      },
+    });
+
+    await expect(service.generate({
+      castingId: "casting-1",
+      userId: "user-1",
+      idempotencyKey: "stale-casting",
+    })).rejects.toThrow("PERSISTENCE_FAILED");
+    await expect(repository.getPreview("casting-1")).resolves.toBeNull();
+    expect(repository.listJobs()[0]?.status).toBe("failed");
   });
 
   it("does not return success when persistence fails", async () => {

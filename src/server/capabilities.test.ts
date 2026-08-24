@@ -20,7 +20,7 @@ const completeValidEnvironment = {
   ...allCapabilityFlags,
   AUTH_ADAPTER_MODE: "better-auth",
   BETTER_AUTH_SECRET: "better-auth-secret-with-at-least-32-characters",
-  BETTER_AUTH_URL: "https://auth.example.com",
+  BETTER_AUTH_URL: "https://www.quickiching.com",
   GOOGLE_CLIENT_ID: "google-client-id",
   GOOGLE_CLIENT_SECRET: "google-client-secret",
   RESEND_API_KEY: "resend-api-key",
@@ -28,6 +28,8 @@ const completeValidEnvironment = {
   AI_ADAPTER_MODE: "ai-sdk",
   AI_GATEWAY_API_KEY: "ai-gateway-key",
   AI_GATEWAY_BASE_URL: "https://ai-gateway.example.com/v1",
+  AI_SDK_GATEWAY_BASE_URL: "https://ai-sdk-gateway.example.com",
+  APP_SECRET: "app-secret-with-at-least-32-characters",
   AI_MODEL_PREVIEW: "provider/preview-model",
   AI_MODEL_DEEP_READING: "provider/deep-model",
   AI_MODEL_OUTPUT_REVIEW: "provider/review-model",
@@ -42,6 +44,7 @@ const completeValidEnvironment = {
   WAFFO_PRODUCT_ID_THREE: "product-three",
   WAFFO_PRODUCT_ID_FIVE: "product-five",
   APP_BASE_URL: "https://www.quickiching.com",
+  NEXT_PUBLIC_APP_URL: "https://www.quickiching.com",
   DATABASE_ADAPTER_MODE: "postgres",
   DATABASE_URL: "postgres://user:password@db.example.com:5432/iching",
   WORKFLOW_ADAPTER_MODE: "vercel",
@@ -402,6 +405,34 @@ describe("commercial capability matrix", () => {
       "BETTER_AUTH_URL",
       "AUTH_ORIGINS_MUST_MATCH",
     ]));
+  });
+
+  it("requires separate native SDK gateway configuration and HTTPS in production", () => {
+    const ready = resolveCommercialCapabilities(completeValidEnvironment, {
+      production: true,
+      definitions: definitionsWithImplementations("auth", "aiPreview"),
+    }).capabilities.aiPreview;
+    expect(ready).toMatchObject({ enabled: true, reason: "enabled" });
+
+    const nativeHttp = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      AI_SDK_GATEWAY_BASE_URL: "http://ai-sdk-gateway.example.com",
+    }, {
+      production: true,
+      definitions: definitionsWithImplementations("auth", "aiPreview"),
+    }).capabilities.aiPreview;
+    expect(nativeHttp.enabled).toBe(false);
+    expect(nativeHttp.invalidDependencies).toContain("AI_SDK_GATEWAY_BASE_URL");
+
+    const publicHttp = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      AI_GATEWAY_BASE_URL: "http://ai-gateway.example.com/v1",
+    }, {
+      production: true,
+      definitions: definitionsWithImplementations("auth", "aiPreview"),
+    }).capabilities.aiPreview;
+    expect(publicHttp.enabled).toBe(false);
+    expect(publicHttp.invalidDependencies).toContain("AI_GATEWAY_BASE_URL");
   });
 
   it("rejects malformed capability flags instead of enabling them", () => {

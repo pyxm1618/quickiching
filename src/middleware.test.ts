@@ -79,6 +79,8 @@ describe("Public V1 middleware boundaries", () => {
       AI_ADAPTER_MODE: "ai-sdk",
       AI_GATEWAY_API_KEY: "gateway-api-key",
       AI_GATEWAY_BASE_URL: "https://gateway.example.com",
+      AI_SDK_GATEWAY_BASE_URL: "https://sdk-gateway.example.com",
+      APP_SECRET: "app-secret-with-at-least-32-characters",
       AI_MODEL_PREVIEW: "preview-model",
       AI_MODEL_OUTPUT_REVIEW: "review-model",
       AI_MAX_OUTPUT_TOKENS: "800",

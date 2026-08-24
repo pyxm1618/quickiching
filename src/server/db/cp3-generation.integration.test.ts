@@ -19,17 +19,17 @@ describe("CP3 PostgreSQL generation core", () => {
     await sql.end({ timeout: 5 });
   });
 
-  it("installs 0000 then 0001 and is safe to migrate repeatedly", async () => {
+  it("installs 0000, 0001, and the forward CP3 Repair migration safely", async () => {
     const migrations = await sql<{ count: string }[]>`
       select count(*)::text as count from drizzle.__drizzle_migrations
     `;
-    expect(Number(migrations[0]?.count)).toBe(2);
+    expect(Number(migrations[0]?.count)).toBe(3);
 
     await migrate(db, { migrationsFolder: "drizzle" });
     const repeated = await sql<{ count: string }[]>`
       select count(*)::text as count from drizzle.__drizzle_migrations
     `;
-    expect(Number(repeated[0]?.count)).toBe(2);
+    expect(Number(repeated[0]?.count)).toBe(3);
   });
 
   it("creates every CP3 persistence boundary without a plaintext question column", async () => {
@@ -78,6 +78,7 @@ describe("CP3 PostgreSQL generation core", () => {
     const suffix = randomUUID();
     const userId = `cp3-user-${suffix}`;
     const castingId = randomUUID();
+    const wrongCastingId = randomUUID();
     const jobId = randomUUID();
     const now = new Date().toISOString();
     await sql`
@@ -121,6 +122,46 @@ describe("CP3 PostgreSQL generation core", () => {
       )
     `;
 
+    await sql`
+      insert into casting_sessions (
+        id, user_id, method, lifecycle, risk_status, risk_rule_version, scene,
+        interpretation_goal, generation_epoch, created_at, updated_at
+      ) values (
+        ${wrongCastingId}, ${userId}, 'three_coin', 'revealed', 'allowed', 'risk-v2',
+        'career', 'what_do_i_need_to_see_clearly', 1, ${now}, ${now}
+      )
+    `;
+
+    await expect(sql`
+      insert into generation_output_reviews (
+        id, job_id, casting_id, kind, status, reason_codes,
+        reviewer_model_version, schema_valid, safety_pass, fact_consistency_pass, created_at
+      ) values (
+        ${randomUUID()}, ${jobId}, ${wrongCastingId}, 'preview', 'pass', ${JSON.stringify([])},
+        'reviewer-v1', 'true', 'true', 'true', ${now}
+      )
+    `).rejects.toThrow();
+
+    await expect(sql`
+      insert into generation_output_reviews (
+        id, job_id, casting_id, kind, status, reason_codes,
+        reviewer_model_version, schema_valid, safety_pass, fact_consistency_pass, created_at
+      ) values (
+        ${randomUUID()}, ${jobId}, ${castingId}, 'preview', 'pass', ${JSON.stringify([])},
+        'reviewer-v1', 'false', 'true', 'true', ${now}
+      )
+    `).rejects.toThrow();
+
+    await expect(sql`
+      insert into preview_results (
+        casting_id, job_id, output, schema_version, prompt_version,
+        provider, model, integrity_hash, persisted_at
+      ) values (
+        ${wrongCastingId}, ${jobId}, ${sql.json({ schemaVersion: "commercial-preview-v1" })},
+        'commercial-preview-v1', 'commercial-preview-prompt-v1', 'fake', 'fake', 'hash', ${now}
+      )
+    `).rejects.toThrow();
+
     await expect(sql`
       insert into generation_jobs (
         id, casting_id, kind, status, generation_epoch, idempotency_key,
@@ -163,6 +204,16 @@ describe("CP3 PostgreSQL generation core", () => {
     await expect(sql`
       update cast_results set result_hmac = 'overwrite-attempt' where casting_id = ${castingId}
     `).rejects.toThrow();
+
+    await sql`delete from casting_sessions where id in (${castingId}, ${wrongCastingId})`;
+    const deletedChildren = await sql<{ count: string }[]>`
+      select (
+        (select count(*) from question_versions where casting_id = ${castingId})
+        + (select count(*) from cast_results where casting_id = ${castingId})
+        + (select count(*) from generation_jobs where casting_id = ${castingId})
+      )::text as count
+    `;
+    expect(deletedChildren[0]?.count).toBe("0");
   });
 
   it("does not allow a preview row to exist without a completed reviewed job", async () => {

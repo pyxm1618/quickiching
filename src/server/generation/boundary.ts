@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
 import { evaluateRisk } from "@/domain/risk/engine";
+import { hmac } from "@/lib/crypto";
 import {
   previewOutputSchema,
   type CommercialPreviewOutput,
@@ -89,5 +89,5 @@ export function validatePreviewSafety(output: CommercialPreviewOutput): void {
 }
 
 export function hashGenerationSnapshot(snapshot: unknown): string {
-  return createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
+  return hmac(JSON.stringify(snapshot), "generation-snapshot", "v1");
 }

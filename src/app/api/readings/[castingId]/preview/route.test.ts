@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PreviewGenerationError } from "@/server/generation/preview-service";
 
 const mocks = vi.hoisted(() => ({
   capabilityEnabled: true,
@@ -152,6 +153,23 @@ describe("Commercial V2 Preview route", () => {
     const text = await response.text();
     expect(text).not.toContain("provider secret");
     expect(text).not.toContain("private question");
+  });
+
+  it.each([
+    [new PreviewGenerationError("AI_GATEWAY_TIMEOUT", true), 504, "AI_GATEWAY_TIMEOUT"],
+    [new PreviewGenerationError("rate_limit", true), 429, "rate_limit"],
+    [new PreviewGenerationError("AI_SCHEMA_INVALID"), 502, "AI_SCHEMA_INVALID"],
+  ])("maps %s to the bounded HTTP state", async (error, expectedStatus, expectedCode) => {
+    mocks.service.generate.mockRejectedValue(error);
+
+    const response = await POST(request(`/api/readings/${CASTING_ID}/preview`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "https://www.quickiching.com" },
+      body: JSON.stringify({ idempotencyKey: "request-1" }),
+    }), context);
+
+    expect(response.status).toBe(expectedStatus);
+    await expect(response.json()).resolves.toEqual({ error: expectedCode, retryable: error.retryable });
   });
 
   it("serves status through the same exact authenticated path without accepting a question", async () => {
