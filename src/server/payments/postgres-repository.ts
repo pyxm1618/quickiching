@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { Sql, TransactionSql } from "postgres";
 import { CheckoutRateLimitError, type CheckoutOrderRecord, type CheckoutRepository } from "./checkout-service";
-import { canonicalWaffoPayloadHash, type NormalizedWaffoWebhook } from "./waffo-webhook";
+import { decryptCheckoutUrl, encryptCheckoutUrl } from "./checkout-url-crypto";
+import {
+  canonicalWaffoPayloadHash,
+  legacyWaffoPayloadHash,
+  type NormalizedWaffoWebhook,
+} from "./waffo-webhook";
 
 type Row = Record<string, any>;
 type CreateOrderInput = Parameters<CheckoutRepository["createOrGetOrder"]>[0];
@@ -23,6 +28,7 @@ function date(value: unknown): Date {
 }
 
 function orderFromRow(row: Row): CheckoutOrderRecord {
+  const storedCheckoutUrl = row.provider_checkout_url == null ? null : String(row.provider_checkout_url);
   return {
     id: String(row.id),
     userId: String(row.user_id),
@@ -34,7 +40,9 @@ function orderFromRow(row: Row): CheckoutOrderRecord {
     providerEnvironment: row.provider_environment,
     providerProductId: String(row.provider_product_id),
     providerCheckoutSessionId: row.provider_checkout_session_id == null ? null : String(row.provider_checkout_session_id),
-    providerCheckoutUrl: row.provider_checkout_url == null ? null : String(row.provider_checkout_url),
+    providerCheckoutUrl: row.status === "checkout_created"
+      ? decryptCheckoutUrl(storedCheckoutUrl, String(row.id))
+      : null,
     checkoutExpiresAt: row.checkout_expires_at == null ? null : date(row.checkout_expires_at),
     checkoutClaimExpiresAt: row.checkout_claim_expires_at == null ? null : date(row.checkout_claim_expires_at),
     checkoutErrorCode: row.checkout_error_code == null ? null : String(row.checkout_error_code),
@@ -95,6 +103,83 @@ function displayAmountMinor(value: string): number | null {
   return Number.isSafeInteger(amount) ? amount : null;
 }
 
+function legacyEventFromPayload(value: unknown): Pick<NormalizedWaffoWebhook,
+  | "providerEnvironment"
+  | "eventId"
+  | "eventType"
+  | "orderMerchantExternalId"
+  | "productKey"
+  | "amountMinor"
+  | "currency"
+  | "providerOrderId"
+  | "providerPaymentId"
+  | "providerProductId"
+  | "taxAmount"
+  | "total"
+> | null {
+  if (!value || typeof value !== "object") return null;
+  const event = value as Partial<NormalizedWaffoWebhook>;
+  if (
+    (event.providerEnvironment !== "test" && event.providerEnvironment !== "prod")
+    || typeof event.eventId !== "string"
+    || typeof event.eventType !== "string"
+    || (event.orderMerchantExternalId !== null && typeof event.orderMerchantExternalId !== "string")
+    || !Number.isSafeInteger(event.amountMinor)
+    || typeof event.currency !== "string"
+    || typeof event.providerOrderId !== "string"
+    || (event.providerPaymentId !== null && typeof event.providerPaymentId !== "string")
+    || (event.productKey !== null && event.productKey !== "one" && event.productKey !== "three" && event.productKey !== "five")
+    || (event.providerProductId !== null && typeof event.providerProductId !== "string")
+    || typeof event.taxAmount !== "string"
+    || (event.total !== null && typeof event.total !== "string")
+  ) return null;
+  return event as Pick<NormalizedWaffoWebhook,
+    | "providerEnvironment"
+    | "eventId"
+    | "eventType"
+    | "orderMerchantExternalId"
+    | "productKey"
+    | "amountMinor"
+    | "currency"
+    | "providerOrderId"
+    | "providerPaymentId"
+    | "providerProductId"
+    | "taxAmount"
+    | "total"
+  >;
+}
+
+function legacyCanonicalMatches(existing: Row, event: NormalizedWaffoWebhook): boolean {
+  const marker = String(existing.canonical_payload_sha256 ?? "");
+  if (marker.startsWith("legacy:v1:") && marker.slice("legacy:v1:".length) !== String(existing.payload_sha256)) {
+    return false;
+  }
+  const legacy = legacyEventFromPayload(existing.normalized_payload);
+  if (!legacy) return String(existing.payload_sha256) === event.payloadSha256;
+  if (legacyWaffoPayloadHash(legacy) !== legacyWaffoPayloadHash(event)) return false;
+  const existingPayload = existing.normalized_payload as Partial<NormalizedWaffoWebhook>;
+  if (
+    typeof existingPayload.merchantProvidedBuyerIdentity !== "string"
+    || typeof existingPayload.internalOrderId !== "string"
+    || (existingPayload.refundTicketMerchantExternalId ?? null) !== event.refundTicketMerchantExternalId
+    || existingPayload.merchantProvidedBuyerIdentity !== event.merchantProvidedBuyerIdentity
+    || existingPayload.internalOrderId !== event.internalOrderId
+    || legacy.orderMerchantExternalId !== event.orderMerchantExternalId
+  ) return false;
+  return true;
+}
+
+function canonicalPayloadMatches(existing: Row, event: NormalizedWaffoWebhook): boolean {
+  const existingCanonical = existing.canonical_payload_sha256 == null
+    ? null
+    : String(existing.canonical_payload_sha256);
+  if (existingCanonical === event.canonicalPayloadSha256) return true;
+  if (existingCanonical === null || existingCanonical.startsWith("legacy:v1:")) {
+    return legacyCanonicalMatches(existing, event);
+  }
+  return false;
+}
+
 export class PostgresPaymentRepository implements CheckoutRepository {
   constructor(
     private readonly sql: Sql,
@@ -132,6 +217,18 @@ export class PostgresPaymentRepository implements CheckoutRepository {
             return { order: orderFromRow(recovered[0]), created: false };
           }
         }
+        if (existingRows[0].status === "checkout_created") {
+          const expired = await transaction`
+            update payment_orders
+            set status = 'financial_review', provider_checkout_session_id = null,
+                provider_checkout_url = null, checkout_expires_at = null,
+                checkout_error_code = 'CHECKOUT_EXPIRED', updated_at = clock_timestamp()
+            where id = ${String(existingRows[0].id)} and status = 'checkout_created'
+              and checkout_expires_at <= clock_timestamp()
+            returning *
+          ` as Row[];
+          if (expired[0]) return { order: orderFromRow(expired[0]), created: false };
+        }
         return { order: orderFromRow(existingRows[0]), created: false };
       }
 
@@ -148,14 +245,40 @@ export class PostgresPaymentRepository implements CheckoutRepository {
         if (!sameOrderIdentity(recheckedRows[0], input)) {
           throw new Error("PAYMENT_IDEMPOTENCY_CONFLICT");
         }
+        if (recheckedRows[0].status === "checkout_created") {
+          const expired = await transaction`
+            update payment_orders
+            set status = 'financial_review', provider_checkout_session_id = null,
+                provider_checkout_url = null, checkout_expires_at = null,
+                checkout_error_code = 'CHECKOUT_EXPIRED', updated_at = clock_timestamp()
+            where id = ${String(recheckedRows[0].id)} and status = 'checkout_created'
+              and checkout_expires_at <= clock_timestamp()
+            returning *
+          ` as Row[];
+          if (expired[0]) return { order: orderFromRow(expired[0]), created: false };
+        }
         return { order: orderFromRow(recheckedRows[0]), created: false };
       }
+
+      await transaction`
+        update payment_orders
+        set status = 'financial_review', checkout_claim_token = null,
+            checkout_claim_expires_at = null, checkout_error_code = 'CHECKOUT_PROVIDER_OUTCOME_UNCERTAIN',
+            provider_checkout_session_id = null, provider_checkout_url = null,
+            checkout_expires_at = null, updated_at = clock_timestamp()
+        where user_id = ${input.userId} and status = 'checkout_initializing'
+          and checkout_claim_expires_at <= clock_timestamp()
+      `;
 
       const activeRows = await transaction`
         select count(*)::int as count
         from payment_orders
         where user_id = ${input.userId}
-          and status in ('pending', 'checkout_initializing', 'checkout_created')
+          and (
+            status = 'pending'
+            or (status = 'checkout_initializing' and checkout_claim_expires_at > clock_timestamp())
+            or (status = 'checkout_created' and checkout_expires_at > clock_timestamp())
+          )
       ` as Row[];
       if (Number(activeRows[0]?.count ?? 0) >= 3) {
         throw new Error("PAYMENT_CHECKOUT_INTENT_LIMITED");
@@ -242,7 +365,7 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     const rows = await this.sql`
       update payment_orders
       set provider_checkout_session_id = ${input.providerCheckoutSessionId},
-          provider_checkout_url = ${input.providerCheckoutUrl},
+          provider_checkout_url = ${encryptCheckoutUrl(input.providerCheckoutUrl, input.orderId)},
           checkout_expires_at = ${input.checkoutExpiresAt.toISOString()}::timestamptz,
           checkout_claim_token = null, checkout_claim_expires_at = null,
           checkout_error_code = null, status = 'checkout_created', updated_at = clock_timestamp()
@@ -382,14 +505,6 @@ export class PostgresPaymentRepository implements CheckoutRepository {
               linkedOrderId,
             });
           }
-          if (String(delivery[0].canonical_payload_sha256 ?? "") !== event.canonicalPayloadSha256) {
-            return this.persistWebhookConflict(transaction, event, {
-              conflictType: "delivery",
-              reasonCode: "WEBHOOK_CANONICAL_PAYLOAD_CONFLICT",
-              existing: delivery[0],
-              linkedOrderId,
-            });
-          }
           return { inboxId: String(delivery[0].id), duplicate: "delivery" as const };
         }
         const business = await transaction`
@@ -400,7 +515,7 @@ export class PostgresPaymentRepository implements CheckoutRepository {
           limit 1
         ` as Row[];
         if (!business[0]) throw new Error("WEBHOOK_INBOX_UNAVAILABLE");
-        if (String(business[0].canonical_payload_sha256 ?? "") !== event.canonicalPayloadSha256) {
+        if (!canonicalPayloadMatches(business[0], event)) {
           return this.persistWebhookConflict(transaction, event, {
             conflictType: "business",
             reasonCode: "WEBHOOK_BUSINESS_EVENT_CONFLICT",
@@ -543,14 +658,14 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     }
 
     await transaction`
-      update payment_webhook_inbox
-      set linked_order_id = ${String(order.id)}, updated_at = clock_timestamp()
-      where id = ${inboxId}
-    `;
-    await transaction`
       update payment_outbox
       set order_id = ${String(order.id)}, updated_at = clock_timestamp()
       where id = ${String(outbox.id)}
+    `;
+    await transaction`
+      update payment_webhook_inbox
+      set linked_order_id = ${String(order.id)}, updated_at = clock_timestamp()
+      where id = ${inboxId}
     `;
 
     return this.processEventTransaction(transaction, inbox, outbox, order, event, leaseToken);
@@ -642,6 +757,18 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       return { outcome: "already_processed" };
     }
 
+    const pendingRefundIssue = await this.preflightPendingRefunds(transaction, order, event);
+    if (pendingRefundIssue) {
+      return this.financialReview(
+        transaction,
+        inbox,
+        outbox,
+        order,
+        "PAYMENT_PENDING_REFUND_CONFLICT",
+        leaseToken,
+      );
+    }
+
     const providerConflicts = await transaction`
       select id from payment_orders
       where id <> ${String(order.id)} and provider = 'waffo'
@@ -679,13 +806,17 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     await transaction`
       update payment_orders
       set provider_order_id = ${event.providerOrderId}, provider_payment_id = ${event.providerPaymentId},
+          provider_checkout_session_id = null, provider_checkout_url = null, checkout_expires_at = null,
           status = 'paid', paid_at = clock_timestamp(), updated_at = clock_timestamp()
       where id = ${String(order.id)}
     `;
     if (this.options.afterGrantBeforePendingRefund) {
       await this.options.afterGrantBeforePendingRefund();
     }
-    await this.settlePendingRefunds(transaction, String(order.id));
+    const refundOutcomes = await this.settlePendingRefunds(transaction, String(order.id));
+    if (refundOutcomes.some((result) => result.outcome !== "revoked" && result.outcome !== "already_processed")) {
+      throw new Error("PAYMENT_PENDING_REFUND_UNRESOLVED");
+    }
     await this.completeInbox(transaction, String(inbox.id), String(outbox.id), leaseToken);
 
     return { outcome: "granted", orderId: String(order.id) };
@@ -704,6 +835,18 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     }
     if (event.total !== null && displayAmountMinor(event.total) !== event.amountMinor) {
       return this.financialReview(transaction, inbox, outbox, order, "PAYMENT_TOTAL_MISMATCH", leaseToken);
+    }
+    if (order.status === "refunded" || order.status === "paid") {
+      if (order.provider_order_id == null || event.providerOrderId !== String(order.provider_order_id)) {
+        return this.financialReview(transaction, inbox, outbox, order, "REFUND_PROVIDER_ID_MISMATCH", leaseToken);
+      }
+      if (
+        order.provider_payment_id == null
+        || event.providerPaymentId == null
+        || event.providerPaymentId !== String(order.provider_payment_id)
+      ) {
+        return this.financialReview(transaction, inbox, outbox, order, "REFUND_PROVIDER_ID_MISMATCH", leaseToken);
+      }
     }
     if (order.status === "refunded") {
       await this.completeInbox(transaction, String(inbox.id), String(outbox.id), leaseToken);
@@ -756,14 +899,102 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     `;
     await transaction`
       update payment_orders
-      set status = 'refunded', refunded_at = clock_timestamp(), updated_at = clock_timestamp()
+      set status = 'refunded', provider_checkout_session_id = null, provider_checkout_url = null,
+          checkout_expires_at = null, refunded_at = clock_timestamp(), updated_at = clock_timestamp()
       where id = ${String(order.id)}
     `;
     await this.completeInbox(transaction, String(inbox.id), String(outbox.id), leaseToken);
     return { outcome: "revoked" };
   }
 
-  private async settlePendingRefunds(transaction: TransactionSql, orderId: string): Promise<void> {
+  private async preflightPendingRefunds(
+    transaction: TransactionSql,
+    order: Row,
+    paymentEvent: NormalizedWaffoWebhook,
+  ): Promise<string | null> {
+    const rows = await transaction`
+      select i.*, o.id as outbox_id
+      from payment_webhook_inbox i
+      join payment_outbox o on o.inbox_id = i.id
+      where i.linked_order_id = ${String(order.id)}
+        and i.event_type = 'refund.succeeded'
+        and i.status = 'pending_order'
+      order by i.created_at asc, i.id asc
+      for update of i, o
+    ` as Row[];
+    for (const row of rows) {
+      const refundEvent = normalizedEvent(row.normalized_payload);
+      let reason: string | null = null;
+      if (!refundEvent) {
+        reason = "WEBHOOK_NORMALIZED_PAYLOAD_INVALID";
+      } else {
+        reason = this.orderMismatchReason(order, refundEvent);
+        if (!reason && Number(order.amount_minor) !== refundEvent.amountMinor) {
+          reason = "REFUND_PARTIAL_UNSUPPORTED";
+        }
+        if (!reason && !zeroTax(refundEvent.taxAmount)) {
+          reason = "PAYMENT_TAX_SEMANTICS_UNRESOLVED";
+        }
+        if (!reason && refundEvent.total !== null && displayAmountMinor(refundEvent.total) !== refundEvent.amountMinor) {
+          reason = "PAYMENT_TOTAL_MISMATCH";
+        }
+        if (!reason && refundEvent.providerOrderId !== paymentEvent.providerOrderId) {
+          reason = "REFUND_PROVIDER_ID_MISMATCH";
+        }
+        if (
+          !reason
+          && (refundEvent.providerPaymentId == null
+            || paymentEvent.providerPaymentId == null
+            || refundEvent.providerPaymentId !== paymentEvent.providerPaymentId)
+        ) {
+          reason = "REFUND_PROVIDER_ID_MISMATCH";
+        }
+      }
+      if (reason) {
+        await this.markPendingRefundFinancialReview(transaction, row, order, reason);
+        return reason;
+      }
+    }
+    return null;
+  }
+
+  private async markPendingRefundFinancialReview(
+    transaction: TransactionSql,
+    inbox: Row,
+    order: Row,
+    reason: string,
+  ): Promise<void> {
+    await transaction`
+      insert into payment_financial_reviews (
+        id, order_id, inbox_id, reason_code, status, created_at, updated_at
+      ) values (
+        ${randomUUID()}, ${String(order.id)}, ${String(inbox.id)}, ${reason}, 'open',
+        clock_timestamp(), clock_timestamp()
+      ) on conflict (inbox_id) do nothing
+    `;
+    await transaction`
+      update payment_orders
+      set status = 'financial_review', provider_checkout_session_id = null,
+          provider_checkout_url = null, checkout_expires_at = null,
+          updated_at = clock_timestamp()
+      where id = ${String(order.id)} and status <> 'refunded'
+    `;
+    await transaction`
+      update payment_webhook_inbox
+      set status = 'financial_review', last_error_code = ${reason},
+          processed_at = clock_timestamp(), updated_at = clock_timestamp()
+      where id = ${String(inbox.id)} and status = 'pending_order'
+    `;
+    await transaction`
+      update payment_outbox
+      set topic = 'financial_review', status = 'completed', last_error_code = ${reason},
+          completed_at = clock_timestamp(), updated_at = clock_timestamp()
+      where id = ${String(inbox.outbox_id)} and status = 'pending'
+    `;
+  }
+
+  private async settlePendingRefunds(transaction: TransactionSql, orderId: string): Promise<ProcessOutcome[]> {
+    const outcomes: ProcessOutcome[] = [];
     const rows = await transaction`
       select i.id
       from payment_webhook_inbox i
@@ -801,14 +1032,14 @@ export class PostgresPaymentRepository implements CheckoutRepository {
         where id = ${String(refundOutbox.id)}
       `;
       if (!refundEvent) {
-        await this.financialReview(
+        outcomes.push(await this.financialReview(
           transaction,
           refundInbox,
           refundOutbox,
           null,
           "WEBHOOK_NORMALIZED_PAYLOAD_INVALID",
           leaseToken,
-        );
+        ));
         continue;
       }
       if (this.options.beforePendingRefundSettlement) {
@@ -818,15 +1049,16 @@ export class PostgresPaymentRepository implements CheckoutRepository {
         select * from payment_orders where id = ${orderId} for update
       ` as Row[];
       if (!orderRows[0]) throw new Error("PAYMENT_ORDER_UNAVAILABLE");
-      await this.processEventTransaction(
+      outcomes.push(await this.processEventTransaction(
         transaction,
         refundInbox,
         refundOutbox,
         orderRows[0],
         refundEvent,
         leaseToken,
-      );
+      ));
     }
+    return outcomes;
   }
 
   private async financialReview(
@@ -847,7 +1079,10 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     `;
     if (order) {
       await transaction`
-        update payment_orders set status = 'financial_review', updated_at = clock_timestamp()
+        update payment_orders
+        set status = 'financial_review', provider_checkout_session_id = null,
+            provider_checkout_url = null, checkout_expires_at = null,
+            updated_at = clock_timestamp()
         where id = ${String(order.id)} and status <> 'refunded'
       `;
     }

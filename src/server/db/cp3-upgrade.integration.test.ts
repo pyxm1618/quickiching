@@ -4,6 +4,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { PostgresPaymentRepository } from "@/server/payments/postgres-repository";
+import { canonicalWaffoPayloadHash, type NormalizedWaffoWebhook } from "@/server/payments/waffo-webhook";
 
 const databaseURL = process.env.TEST_DATABASE_UPGRADE_URL;
 if (!databaseURL) throw new Error("TEST_DATABASE_UPGRADE_URL is required for PostgreSQL integration tests");
@@ -54,6 +56,8 @@ describe("forward upgrade from a populated CP2 database through CP4", () => {
       "0003_cp3_generation_repair2.sql",
       "0004_cp3_generation_repair3.sql",
       "0005_cp4_payments_entitlements.sql",
+      "0006_cp4_payment_repair.sql",
+      "0007_cp4_payment_repair_followup.sql",
     ]) {
       await copyFile(join("drizzle", migration), join(preCp4MigrationFolder, migration));
     }
@@ -63,6 +67,8 @@ describe("forward upgrade from a populated CP2 database through CP4", () => {
       "0002_snapshot.json",
       "0004_snapshot.json",
       "0005_snapshot.json",
+      "0006_snapshot.json",
+      "0007_snapshot.json",
     ]) {
       await copyFile(join("drizzle/meta", snapshot), join(preCp4MigrationFolder, "meta", snapshot));
     }
@@ -108,6 +114,18 @@ describe("forward upgrade from a populated CP2 database through CP4", () => {
       )
     `;
     await sql`
+      insert into payment_orders (
+        id, user_id, product_key, quantity, amount_minor, currency, request_id,
+        provider, provider_environment, provider_product_id, provider_checkout_session_id,
+        provider_checkout_url, checkout_expires_at, status, created_at, updated_at
+      ) values (
+        '44444444-4444-4444-8444-444444444445', 'cp2-upgrade-user', 'one', 1, 299,
+        'USD', 'legacy-checkout-request', 'waffo', 'test', 'PROD_test_one', 'cs_legacy',
+        'https://pancake.waffo.ai/checkout/legacy#token=legacy-secret',
+        now() + interval '1 hour', 'checkout_created', now(), now()
+      )
+    `;
+    await sql`
       insert into payment_webhook_inbox (
         id, provider, provider_environment, delivery_id, event_id, event_type,
         store_id, order_merchant_external_id, linked_order_id, payload_sha256,
@@ -135,7 +153,6 @@ describe("forward upgrade from a populated CP2 database through CP4", () => {
           taxAmount: "0.00",
           total: "2.99",
           payloadSha256: "upgrade-hash",
-          canonicalPayloadSha256: "upgrade-canonical-hash",
           supported: true,
           manualReviewReason: null,
         })}::jsonb, now(), 'processed', now(), now(), now()
@@ -203,7 +220,7 @@ describe("forward upgrade from a populated CP2 database through CP4", () => {
       where table_schema = 'public' and table_name in ('payment_orders', 'payment_webhook_inbox', 'entitlement_batches')
     `;
 
-    expect(migrations[0]?.count).toBe("7");
+    expect(migrations[0]?.count).toBe("8");
     expect(repairConstraint[0]?.count).toBe("1");
     expect(paymentTables[0]?.count).toBe("3");
     const preserved = await sql<{ users: string; jobs: string; orders: string; ledgers: string }[]>`
@@ -214,5 +231,55 @@ describe("forward upgrade from a populated CP2 database through CP4", () => {
         (select count(*) from entitlement_ledger where business_key = 'grant:upgrade-payment')::text as ledgers
     `;
     expect(preserved).toEqual([{ users: "1", jobs: "1", orders: "1", ledgers: "1" }]);
+    const legacyCheckout = await sql<{ status: string; checkout_error_code: string; provider_checkout_url: string | null }[]>`
+      select status, checkout_error_code, provider_checkout_url
+      from payment_orders
+      where id = '44444444-4444-4444-8444-444444444445'
+    `;
+    expect(legacyCheckout).toEqual([{
+      status: "financial_review",
+      checkout_error_code: "CHECKOUT_LEGACY_TOKEN_REQUIRES_REAUTH",
+      provider_checkout_url: null,
+    }]);
+  });
+
+  it("keeps a real 0005 Inbox replay idempotent after the canonical hash backfill", async () => {
+    const repository = new PostgresPaymentRepository(sql);
+    const event: NormalizedWaffoWebhook = {
+      provider: "waffo",
+      providerEnvironment: "test",
+      deliveryId: "upgrade-delivery",
+      eventId: "PAY_upgrade",
+      eventType: "order.completed",
+      storeId: "STO_test",
+      orderMerchantExternalId: "44444444-4444-4444-8444-444444444444",
+      merchantProvidedBuyerIdentity: "cp2-upgrade-user",
+      internalOrderId: "44444444-4444-4444-8444-444444444444",
+      refundTicketMerchantExternalId: null,
+      providerOrderId: "ORD_upgrade",
+      providerPaymentId: "PAY_upgrade",
+      productKey: "one",
+      providerProductId: "PROD_test_one",
+      currency: "USD",
+      amountMinor: 299,
+      taxAmount: "0.00",
+      total: "2.99",
+      payloadSha256: "upgrade-hash",
+      canonicalPayloadSha256: "",
+      supported: true,
+      manualReviewReason: null,
+    };
+    event.canonicalPayloadSha256 = canonicalWaffoPayloadHash(event);
+
+    await expect(repository.recordVerifiedEvent(event)).resolves.toEqual({
+      inboxId: "55555555-5555-4555-8555-555555555555",
+      duplicate: "delivery",
+    });
+    const marker = await sql<{ canonical_payload_sha256: string }[]>`
+      select canonical_payload_sha256
+      from payment_webhook_inbox
+      where id = '55555555-5555-4555-8555-555555555555'
+    `;
+    expect(marker[0]?.canonical_payload_sha256).toMatch(/^legacy:v1:/);
   });
 });

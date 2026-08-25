@@ -159,6 +159,9 @@ export function createCheckoutService(dependencies: CheckoutServiceDependencies)
         if (existing.checkoutErrorCode === "CHECKOUT_PROVIDER_OUTCOME_UNCERTAIN") {
           throw new CheckoutServiceError("CHECKOUT_PROVIDER_OUTCOME_UNCERTAIN", false);
         }
+        if (existing.checkoutErrorCode === "CHECKOUT_EXPIRED") {
+          throw new CheckoutServiceError("CHECKOUT_EXPIRED", false);
+        }
         throw new CheckoutServiceError("CHECKOUT_TERMINAL_ORDER", false);
       }
       if (existing.status === "checkout_created") {

@@ -8,6 +8,7 @@ import { canonicalWaffoPayloadHash, type NormalizedWaffoWebhook } from "./waffo-
 
 const databaseURL = process.env.TEST_DATABASE_URL;
 if (!databaseURL) throw new Error("TEST_DATABASE_URL is required for PostgreSQL integration tests");
+process.env.APP_SECRET ??= "cp4-payment-integration-encryption-secret";
 
 const sql = postgres(databaseURL, { max: 12, prepare: false });
 const db = drizzle(sql);
@@ -118,7 +119,7 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
     const migrations = await sql<{ count: string }[]>`
       select count(*)::text as count from drizzle.__drizzle_migrations
     `;
-    expect(migrations[0]?.count).toBe("7");
+    expect(migrations[0]?.count).toBe("8");
   });
 
   it("enforces order, Inbox/Outbox, ledger, and batch invariants in PostgreSQL", async () => {
@@ -163,11 +164,12 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
     await sql`
       insert into payment_webhook_inbox (
         id, provider, provider_environment, delivery_id, event_id, event_type,
-        store_id, order_merchant_external_id, payload_sha256, normalized_payload,
+        store_id, order_merchant_external_id, linked_order_id, payload_sha256,
+        canonical_payload_sha256, normalized_payload,
         signature_verified_at, status
       ) values (
         ${inboxId}, 'waffo', 'test', ${`delivery-${suffix}`}, ${`PAY_${suffix}`},
-        'order.completed', 'STO_test', ${orderId}, 'hash-one', ${JSON.stringify({ orderId })}::jsonb,
+        'order.completed', 'STO_test', ${orderId}, ${orderId}, 'hash-one', 'legacy:v1:hash-one', ${JSON.stringify({ orderId })}::jsonb,
         now(), 'received'
       )
     `;
@@ -188,11 +190,11 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
     await expect(sql`
       insert into payment_webhook_inbox (
         id, provider, provider_environment, delivery_id, event_id, event_type,
-        store_id, order_merchant_external_id, payload_sha256, normalized_payload,
+        store_id, order_merchant_external_id, payload_sha256, canonical_payload_sha256, normalized_payload,
         signature_verified_at, status
       ) values (
         ${randomUUID()}, 'waffo', 'test', ${`delivery-${suffix}-other`}, ${`PAY_${suffix}`},
-        'order.completed', 'STO_test', ${orderId}, 'hash-two', ${JSON.stringify({ orderId })}::jsonb,
+        'order.completed', 'STO_test', ${orderId}, 'hash-two', 'legacy:v1:hash-two', ${JSON.stringify({ orderId })}::jsonb,
         now(), 'received'
       )
     `).rejects.toThrow();
@@ -236,6 +238,46 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
       ) values (
         ${randomUUID()}, ${batchId}, ${randomUUID()}, ${inboxId}, 'consume', 1, ${`cross-order-${suffix}`}
       )
+    `).rejects.toThrow();
+
+    const nullLinkedInboxId = randomUUID();
+    await sql`
+      insert into payment_webhook_inbox (
+        id, provider, provider_environment, delivery_id, event_id, event_type,
+        store_id, order_merchant_external_id, payload_sha256, canonical_payload_sha256, normalized_payload,
+        signature_verified_at, status
+      ) values (
+        ${nullLinkedInboxId}, 'waffo', 'test', ${`delivery-${suffix}-null`}, ${`PAY_${suffix}-null`},
+        'order.completed', 'STO_test', ${orderId}, 'hash-null', 'legacy:v1:hash-null', ${JSON.stringify({ orderId })}::jsonb,
+        now(), 'received'
+      )
+    `;
+    await expect(sql`
+      insert into payment_outbox (
+        id, inbox_id, order_id, topic, status, available_at, created_at, updated_at
+      ) values (
+        ${randomUUID()}, ${nullLinkedInboxId}, ${orderId}, 'grant_entitlement', 'pending', now(), now(), now()
+      )
+    `).rejects.toThrow();
+    await sql`
+      insert into payment_outbox (
+        id, inbox_id, order_id, topic, status, available_at, created_at, updated_at
+      ) values (
+        ${randomUUID()}, ${nullLinkedInboxId}, null, 'grant_entitlement', 'pending', now(), now(), now()
+      )
+    `;
+    await expect(sql`
+      insert into entitlement_ledger (
+        id, batch_id, order_id, webhook_inbox_id, action, quantity, business_key
+      ) values (
+        ${randomUUID()}, ${batchId}, ${orderId}, ${nullLinkedInboxId}, 'consume', 1, ${`null-linked-${suffix}`}
+      )
+    `).rejects.toThrow();
+    await expect(sql`
+      update payment_webhook_inbox set linked_order_id = ${orderId} where id = ${nullLinkedInboxId}
+    `).rejects.toThrow();
+    await expect(sql`
+      update payment_webhook_inbox set linked_order_id = ${randomUUID()} where id = ${inboxId}
     `).rejects.toThrow();
   });
 
@@ -291,6 +333,51 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
     expect(results.filter((result) => result.status === "rejected").map((result) => (
       result.status === "rejected" ? result.reason?.message : null
     ))).toEqual(["PAYMENT_CHECKOUT_INTENT_LIMITED"]);
+  });
+
+  it("does not count expired checkout-created intents against the active purchase cap", async () => {
+    const suffix = randomUUID();
+    const userId = `cp4-expired-intent-user-${suffix}`;
+    await sql`
+      insert into users (id, name, email, email_verified, created_at, updated_at)
+      values (${userId}, 'Expired Intent User', ${`${suffix}@expired-intent.example.com`}, true, now(), now())
+    `;
+    for (let index = 0; index < 3; index += 1) {
+      const result = await repository.createOrGetOrder({
+        userId,
+        productKey: "one",
+        quantity: 1,
+        amountMinor: 299,
+        currency: "USD",
+        requestId: `expired-${index}-${suffix}`,
+        providerEnvironment: "test",
+        providerProductId: "PROD_test_one",
+      });
+      const claimToken = `expired-claim-${index}-${suffix}`;
+      await repository.claimCheckoutInitialization({ orderId: result.order.id, claimToken, leaseDurationMs: 120_000 });
+      await repository.saveCheckout({
+        orderId: result.order.id,
+        claimToken,
+        providerCheckoutSessionId: `cs-expired-${index}-${suffix}`,
+        providerCheckoutUrl: `https://pancake.waffo.ai/checkout/expired-${index}#token=expired-${index}`,
+        checkoutExpiresAt: new Date(Date.now() + 60_000),
+      });
+      await sql`
+        update payment_orders
+        set checkout_expires_at = clock_timestamp() - interval '1 second'
+        where id = ${result.order.id}
+      `;
+    }
+    await expect(repository.createOrGetOrder({
+      userId,
+      productKey: "one",
+      quantity: 1,
+      amountMinor: 299,
+      currency: "USD",
+      requestId: `expired-new-${suffix}`,
+      providerEnvironment: "test",
+      providerProductId: "PROD_test_one",
+    })).resolves.toMatchObject({ created: true });
   });
 
   it("enforces five persisted checkout attempts per ten-minute window after intents become terminal", async () => {
@@ -439,6 +526,18 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
       checkoutExpiresAt: new Date(Date.now() + 60_000),
     });
     expect(saved).toMatchObject({ status: "checkout_created" });
+    const stored = await sql<{ provider_checkout_url: string }[]>`
+      select provider_checkout_url from payment_orders where id = ${order.id}
+    `;
+    expect(stored[0]?.provider_checkout_url).toMatch(/^enc:v1:/);
+    expect(stored[0]?.provider_checkout_url).not.toContain("#token=redirect");
+    expect(saved.providerCheckoutUrl).toBe("https://pancake.waffo.ai/checkout/session#token=redirect");
+    const payment = await repository.recordVerifiedEvent(paymentEvent({ orderId: order.id }));
+    await repository.processInbox(payment.inboxId);
+    const terminalStorage = await sql<{ provider_checkout_url: string | null }[]>`
+      select provider_checkout_url from payment_orders where id = ${order.id}
+    `;
+    expect(terminalStorage[0]?.provider_checkout_url).toBeNull();
   });
 
   it("deduplicates delivery and business event identities before exactly-once concurrent grant", async () => {
@@ -504,6 +603,21 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
         (select status from payment_orders where id = ${order.id}) as status
     `;
     expect(conflict).toEqual([{ count: "1", status: "financial_review" }]);
+  });
+
+  it.each([
+    ["tax", { taxAmount: "0.01" }],
+    ["total", { total: "7.00" }],
+  ])("treats a business-event %s correction as a canonical conflict", async (_field, override) => {
+    const { order } = await createUserAndOrder();
+    const original = paymentEvent({ orderId: order.id, eventId: `PAY_FINANCIAL_${randomUUID()}` });
+    await repository.recordVerifiedEvent(original);
+    await expect(repository.recordVerifiedEvent({
+      ...original,
+      ...override,
+      deliveryId: `delivery-${randomUUID()}`,
+      payloadSha256: `different-${randomUUID()}`,
+    })).rejects.toThrow("WEBHOOK_BUSINESS_EVENT_CONFLICT");
   });
 
   it.each([
@@ -594,6 +708,25 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
     expect(states).toEqual([{ order_status: "refunded", inbox_status: "financial_review", outbox_status: "completed" }]);
   });
 
+  it("checks provider identity before treating a new refund for a refunded order as processed", async () => {
+    const { order } = await createUserAndOrder();
+    const paid = await repository.recordVerifiedEvent(paymentEvent({ orderId: order.id }));
+    await repository.processInbox(paid.inboxId);
+    const refund = await repository.recordVerifiedEvent(paymentEvent({ orderId: order.id, type: "refund.succeeded" }));
+    await repository.processInbox(refund.inboxId);
+    const lateRefund = await repository.recordVerifiedEvent(paymentEvent({
+      orderId: order.id,
+      type: "refund.succeeded",
+      eventId: `REF_BAD_AFTER_REFUND_${randomUUID()}`,
+      providerOrderId: "ORD_wrong_refund",
+      providerPaymentId: "PAY_wrong_refund",
+    }));
+    await expect(repository.processInbox(lateRefund.inboxId)).resolves.toMatchObject({
+      outcome: "financial_review",
+      reason: "REFUND_PROVIDER_ID_MISMATCH",
+    });
+  });
+
   it("fails closed to financial review for partial or already-consumed refund semantics", async () => {
     const partial = await createUserAndOrder();
     const partialPaid = await repository.recordVerifiedEvent(paymentEvent({ orderId: partial.order.id }));
@@ -657,6 +790,30 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
       where o.id = ${order.id}
     `;
     expect(state).toEqual([{ status: "refunded", available: 0, revoked: 3 }]);
+  });
+
+  it("does not commit a payment grant when an out-of-order refund has mismatched provider identity", async () => {
+    const { order } = await createUserAndOrder();
+    const refund = await repository.recordVerifiedEvent(paymentEvent({
+      orderId: order.id,
+      type: "refund.succeeded",
+      providerOrderId: "ORD_refund_wrong",
+      providerPaymentId: "PAY_refund_wrong",
+    }));
+    await repository.processInbox(refund.inboxId);
+    const paid = await repository.recordVerifiedEvent(paymentEvent({ orderId: order.id }));
+    await expect(repository.processInbox(paid.inboxId)).resolves.toMatchObject({
+      outcome: "financial_review",
+    });
+    const state = await sql<{ status: string; batches: string; available: string; refund_status: string }[]>`
+      select
+        o.status,
+        (select count(*) from entitlement_batches where order_id = o.id)::text as batches,
+        coalesce((select quantity_available::text from entitlement_batches where order_id = o.id), '0') as available,
+        (select status from payment_webhook_inbox where id = ${refund.inboxId}) as refund_status
+      from payment_orders o where o.id = ${order.id}
+    `;
+    expect(state).toEqual([{ status: "financial_review", batches: "0", available: "0", refund_status: "financial_review" }]);
   });
 
   it("keeps grant and already-verified refund settlement in one transaction", async () => {

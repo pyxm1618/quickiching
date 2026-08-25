@@ -85,6 +85,8 @@ export function canonicalWaffoPayloadHash(event: Pick<NormalizedWaffoWebhook,
   | "providerOrderId"
   | "providerPaymentId"
   | "providerProductId"
+  | "taxAmount"
+  | "total"
   | "refundTicketMerchantExternalId"
 >): string {
   const canonical = {
@@ -101,7 +103,41 @@ export function canonicalWaffoPayloadHash(event: Pick<NormalizedWaffoWebhook,
     providerOrderId: event.providerOrderId,
     providerPaymentId: event.providerPaymentId,
     providerProductId: event.providerProductId,
+    taxAmount: event.taxAmount,
+    total: event.total,
     refundTicketMerchantExternalId: event.refundTicketMerchantExternalId,
+  };
+  return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
+}
+
+export function legacyWaffoPayloadHash(event: Pick<NormalizedWaffoWebhook,
+  | "providerEnvironment"
+  | "eventId"
+  | "eventType"
+  | "orderMerchantExternalId"
+  | "productKey"
+  | "amountMinor"
+  | "currency"
+  | "providerOrderId"
+  | "providerPaymentId"
+  | "providerProductId"
+  | "taxAmount"
+  | "total"
+>): string {
+  const canonical = {
+    provider: "waffo",
+    providerEnvironment: event.providerEnvironment,
+    eventType: event.eventType,
+    eventId: event.eventId,
+    orderMerchantExternalId: event.orderMerchantExternalId,
+    productKey: event.productKey,
+    amountMinor: event.amountMinor,
+    currency: event.currency,
+    providerOrderId: event.providerOrderId,
+    providerPaymentId: event.providerPaymentId,
+    providerProductId: event.providerProductId,
+    taxAmount: event.taxAmount,
+    total: event.total,
   };
   return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
 }

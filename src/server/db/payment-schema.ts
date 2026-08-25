@@ -103,7 +103,7 @@ export const paymentOrders = pgTable(
     check("payment_orders_checkout_shape_check", sql`(
       ${table.status} = 'pending'
       or (${table.status} = 'checkout_initializing' and ${table.checkoutClaimToken} is not null and ${table.checkoutClaimExpiresAt} is not null)
-      or (${table.status} = 'checkout_created' and ${table.providerCheckoutSessionId} is not null and ${table.providerCheckoutUrl} is not null and ${table.checkoutExpiresAt} is not null)
+      or (${table.status} = 'checkout_created' and ${table.providerCheckoutSessionId} is not null and ${table.providerCheckoutUrl} like 'enc:v1:%' and ${table.checkoutExpiresAt} is not null)
       or (${table.status} = 'paid'
         and ${table.providerOrderId} is not null
         and ${table.providerPaymentId} is not null
@@ -132,7 +132,7 @@ export const paymentWebhookInbox = pgTable(
     orderMerchantExternalId: text("order_merchant_external_id"),
     linkedOrderId: uuid("linked_order_id").references(() => paymentOrders.id, { onDelete: "restrict" }),
     payloadSha256: text("payload_sha256").notNull(),
-    canonicalPayloadSha256: text("canonical_payload_sha256"),
+    canonicalPayloadSha256: text("canonical_payload_sha256").notNull(),
     normalizedPayload: jsonb("normalized_payload").notNull(),
     signatureVerifiedAt: timestamp("signature_verified_at", { withTimezone: true }).notNull(),
     status: paymentInboxStatus("status").notNull().default("received"),
