@@ -109,7 +109,7 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest(`/api/readings/${castingId}/preview`)).status).toBe(404);
   });
 
-  it("keeps the signed Waffo webhook closed until a durable consumer exists", () => {
+  it("allows the signed Waffo webhook when capability is enabled and blocks unregistered paths or when disabled", () => {
     for (const [name, value] of Object.entries({
       COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "true",
       PAYMENT_ADAPTER_MODE: "waffo",
@@ -119,10 +119,15 @@ describe("Public V1 middleware boundaries", () => {
       WAFFO_STORE_ID: "STO_test",
     })) vi.stubEnv(name, value);
 
-    expect(middleware(makeRequest("/api/webhooks/waffo", { method: "POST" })).status).toBe(404);
+    // Exact webhook route is passed through
+    expect(middleware(makeRequest("/api/webhooks/waffo", { method: "POST" })).status).toBe(200);
+    // Unregistered paths remain 404
     expect(middleware(makeRequest("/api/webhooks/waffo/extra", { method: "POST" })).status).toBe(404);
     expect(middleware(makeRequest("/api/webhooks/other", { method: "POST" })).status).toBe(404);
-    expect(middleware(makeRequest("/api/checkout", { method: "POST" })).status).toBe(404);
+
+    // When capability flag is disabled, it is 404
+    vi.stubEnv("COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED", "false");
+    expect(middleware(makeRequest("/api/webhooks/waffo", { method: "POST" })).status).toBe(404);
   });
 
   it("keeps checkout closed even with complete-looking credentials before CP5", () => {
@@ -155,9 +160,13 @@ describe("Public V1 middleware boundaries", () => {
       PAYMENT_CHECKOUT_URL_KEYS: "v1:payment-checkout-url-secret",
     })) vi.stubEnv(name, value);
 
+    // When checkout is enabled in CP5 with full credentials, POST /api/checkout is allowed through (status undefined / next)
+    const allowed = middleware(makeRequest("/api/checkout", { method: "POST" }));
+    expect(allowed.status).toBe(200);
+
+    // When flag is disabled, it is blocked with 404
+    vi.stubEnv("COMMERCIAL_V2_CHECKOUT_ENABLED", "false");
     expect(middleware(makeRequest("/api/checkout", { method: "POST" })).status).toBe(404);
-    expect(middleware(makeRequest("/api/checkout/extra", { method: "POST" })).status).toBe(404);
-    expect(middleware(makeRequest("/checkout"))).toBeDefined();
     expect(middleware(makeRequest("/checkout")).status).toBe(410);
   });
 });

@@ -11,7 +11,7 @@ describe("runtime configuration", () => {
     expect(config.payment).toBe("waffo");
   });
 
-  it("does not activate a standalone webhook capability before durable consumption exists", () => {
+  it("activates standalone webhook capability in production when flags and requirements are provided", () => {
     const config = loadRuntimeConfig({
       NODE_ENV: "production",
       PAYMENT_ADAPTER_MODE: "waffo",
@@ -23,15 +23,15 @@ describe("runtime configuration", () => {
     });
 
     expect(config.auth).toBe("disabled");
-    expect(config.database).toBe("disabled");
+    expect(config.database).toBe("postgres");
     expect(config.capabilities.capabilities.webhookIngestion).toMatchObject({
       requested: true,
-      enabled: false,
-      reason: "implementation_not_available",
+      enabled: true,
+      reason: "enabled",
     });
   });
 
-  it("does not activate local Waffo webhook verification from complete-looking flags", () => {
+  it("activates local Waffo webhook verification from complete-looking flags", () => {
     const config = loadRuntimeConfig({
       NODE_ENV: "test",
       COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "true",
@@ -41,11 +41,11 @@ describe("runtime configuration", () => {
       WAFFO_ENVIRONMENT: "test",
       WAFFO_STORE_ID: "STO_test",
     });
-    expect(config.database).toBe("memory");
+    expect(config.database).toBe("postgres");
     expect(config.capabilities.capabilities.webhookIngestion).toMatchObject({
       requested: true,
-      enabled: false,
-      reason: "implementation_not_available",
+      enabled: true,
+      reason: "enabled",
     });
   });
   it("keeps production Public V1 credential-free and commercial capabilities disabled", () => {
