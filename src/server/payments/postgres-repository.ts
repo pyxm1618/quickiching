@@ -582,11 +582,15 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     return result;
   }
 
-  async processInbox(inboxId: string): Promise<ProcessOutcome> {
-    return this.sql.begin((transaction) => this.processInboxTransaction(transaction, inboxId));
+  async processInbox(inboxId: string, options: { leaseToken?: string } = {}): Promise<ProcessOutcome> {
+    return this.sql.begin((transaction) => this.processInboxTransaction(transaction, inboxId, options.leaseToken));
   }
 
-  private async processInboxTransaction(transaction: TransactionSql, inboxId: string): Promise<ProcessOutcome> {
+  private async processInboxTransaction(
+    transaction: TransactionSql,
+    inboxId: string,
+    callerLeaseToken?: string,
+  ): Promise<ProcessOutcome> {
     const hintRows = await transaction`
       select linked_order_id, order_merchant_external_id,
         normalized_payload->>'internalOrderId' as internal_order_id
@@ -640,30 +644,57 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       || ["completed", "dead_letter"].includes(String(outbox.status))) {
       throw new Error("PAYMENT_INBOX_OUTBOX_STATE_MISMATCH");
     }
+
+    let leaseToken: string;
+
     if (inbox.status === "processing" || outbox.status === "processing") {
       const leaseRows = await transaction`
-        select lease_expires_at > clock_timestamp() as active
+        select lease_expires_at > clock_timestamp() as active, lease_token
         from payment_outbox where id = ${String(outbox.id)}
       ` as Row[];
-      if (leaseRows[0]?.active) return { outcome: "processing" };
-    }
 
-    const attemptCount = Math.max(Number(inbox.attempt_count), Number(outbox.attempt_count)) + 1;
-    const leaseToken = randomUUID();
-    await transaction`
-      update payment_webhook_inbox
-      set status = 'processing', attempt_count = ${attemptCount},
-          last_error_code = null, processed_at = null, updated_at = clock_timestamp()
-      where id = ${inboxId}
-    `;
-    await transaction`
-      update payment_outbox
-      set status = 'processing', attempt_count = ${attemptCount},
-          lease_token = ${leaseToken},
-          lease_expires_at = clock_timestamp() + interval '30 seconds',
-          last_error_code = null, completed_at = null, updated_at = clock_timestamp()
-      where id = ${String(outbox.id)}
-    `;
+      if (callerLeaseToken && callerLeaseToken === String(leaseRows[0]?.lease_token) && leaseRows[0]?.active) {
+        // Caller holds the active lease token, proceed with processing
+        leaseToken = callerLeaseToken;
+      } else if (leaseRows[0]?.active) {
+        return { outcome: "processing" };
+      } else {
+        // Lease expired, take over
+        const attemptCount = Math.max(Number(inbox.attempt_count), Number(outbox.attempt_count)) + 1;
+        leaseToken = randomUUID();
+        await transaction`
+          update payment_webhook_inbox
+          set status = 'processing', attempt_count = ${attemptCount},
+              last_error_code = null, processed_at = null, updated_at = clock_timestamp()
+          where id = ${inboxId}
+        `;
+        await transaction`
+          update payment_outbox
+          set status = 'processing', attempt_count = ${attemptCount},
+              lease_token = ${leaseToken},
+              lease_expires_at = clock_timestamp() + interval '30 seconds',
+              last_error_code = null, completed_at = null, updated_at = clock_timestamp()
+          where id = ${String(outbox.id)}
+        `;
+      }
+    } else {
+      const attemptCount = Math.max(Number(inbox.attempt_count), Number(outbox.attempt_count)) + 1;
+      leaseToken = randomUUID();
+      await transaction`
+        update payment_webhook_inbox
+        set status = 'processing', attempt_count = ${attemptCount},
+            last_error_code = null, processed_at = null, updated_at = clock_timestamp()
+        where id = ${inboxId}
+      `;
+      await transaction`
+        update payment_outbox
+        set status = 'processing', attempt_count = ${attemptCount},
+            lease_token = ${leaseToken},
+            lease_expires_at = clock_timestamp() + interval '30 seconds',
+            last_error_code = null, completed_at = null, updated_at = clock_timestamp()
+        where id = ${String(outbox.id)}
+      `;
+    }
 
     const event = normalizedEvent(inbox.normalized_payload);
     if (!event) {

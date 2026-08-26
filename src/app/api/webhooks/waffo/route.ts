@@ -69,10 +69,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const service = await createProductionWaffoWebhookService();
     const result = await service.ingest(rawBody, request.headers.get("x-waffo-signature"));
-    if (result.disposition === "dead_letter") {
-      return json({ error: "WEBHOOK_DEAD_LETTERED", retryable: true }, 503);
-    }
-    return json({ disposition: result.disposition, outcome: result.outcome }, result.disposition === "processed" ? 200 : 202);
+    return json({ disposition: result.disposition, duplicate: result.duplicate }, 200);
   } catch (error) {
     return failure(error);
   }

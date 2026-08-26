@@ -34,9 +34,9 @@ describe("CP4 Waffo webhook route", () => {
   beforeEach(() => {
     mocks.enabled = true;
     mocks.ingest.mockReset().mockResolvedValue({
-      disposition: "processed",
+      disposition: "accepted",
       duplicate: null,
-      outcome: "granted",
+      inboxId: "inbox-1",
     });
     mocks.createService.mockReset().mockResolvedValue({ ingest: mocks.ingest });
   });
@@ -77,11 +77,9 @@ describe("CP4 Waffo webhook route", () => {
     await expect(transient.json()).resolves.toEqual({ error: "WEBHOOK_PROCESSING_UNAVAILABLE", retryable: true });
   });
 
-  it("acknowledges retained pending-order but retries a dead-letter outcome", async () => {
-    mocks.ingest.mockResolvedValue({ disposition: "accepted", duplicate: "delivery", outcome: "pending_order" });
-    expect((await POST(request())).status).toBe(202);
-    mocks.ingest.mockResolvedValue({ disposition: "dead_letter", duplicate: null, outcome: "dead_letter" });
-    expect((await POST(request())).status).toBe(503);
+  it("acknowledges duplicate deliveries safely", async () => {
+    mocks.ingest.mockResolvedValue({ disposition: "accepted", duplicate: "delivery", inboxId: "inbox-1" });
+    expect((await POST(request())).status).toBe(200);
   });
 
   it("cancels a chunked body as soon as it crosses the byte limit without Content-Length", async () => {

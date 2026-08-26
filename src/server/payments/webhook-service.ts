@@ -24,12 +24,12 @@ export class WebhookServiceError extends Error {
 
 export function createWaffoWebhookService(dependencies: {
   verifyAndNormalize(rawBody: string, signature: string | null): NormalizedWaffoWebhook;
-  repository: WebhookRepository;
+  repository: Pick<WebhookRepository, "recordVerifiedEvent">;
 }): {
   ingest(rawBody: string, signature: string | null): Promise<{
-    disposition: "processed" | "accepted" | "dead_letter";
+    disposition: "accepted";
     duplicate: "delivery" | "event" | null;
-    outcome: string;
+    inboxId: string;
   }>;
 } {
   return {
@@ -40,37 +40,21 @@ export function createWaffoWebhookService(dependencies: {
         recorded = await dependencies.repository.recordVerifiedEvent(event);
       } catch (error) {
         const code = error instanceof Error ? error.message : "";
-        if (code === "WEBHOOK_DELIVERY_CONFLICT"
+        if (
+          code === "WEBHOOK_DELIVERY_CONFLICT"
           || code === "WEBHOOK_CANONICAL_PAYLOAD_CONFLICT"
-          || code === "WEBHOOK_BUSINESS_EVENT_CONFLICT") {
+          || code === "WEBHOOK_BUSINESS_EVENT_CONFLICT"
+        ) {
           throw new WebhookServiceError("WEBHOOK_SECURITY_CONFLICT", false);
         }
         throw error;
       }
-      try {
-        const result = await dependencies.repository.processInbox(recorded.inboxId);
-        if (result.outcome === "processing") {
-          throw new WebhookServiceError("WEBHOOK_PROCESSING_UNAVAILABLE", true);
-        }
-        if (result.outcome === "dead_letter") {
-          throw new WebhookServiceError("WEBHOOK_DEAD_LETTERED", true);
-        }
-        return {
-          disposition: result.outcome === "pending_order" ? "accepted" : "processed",
-          duplicate: recorded.duplicate,
-          outcome: result.outcome,
-        };
-      } catch (error) {
-        if (error instanceof WebhookServiceError) throw error;
-        const failure = await dependencies.repository.recordProcessingFailure(
-          recorded.inboxId,
-          "PAYMENT_PROCESSING_FAILURE",
-        );
-        if (failure.deadLetter) {
-          throw new WebhookServiceError("WEBHOOK_DEAD_LETTERED", true);
-        }
-        throw new WebhookServiceError("WEBHOOK_PROCESSING_UNAVAILABLE", true);
-      }
+
+      return {
+        disposition: "accepted",
+        duplicate: recorded.duplicate,
+        inboxId: recorded.inboxId,
+      };
     },
   };
 }
