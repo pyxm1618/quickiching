@@ -28,6 +28,8 @@ export {
   entitlementBatches,
   entitlementLedger,
   entitlementLedgerAction,
+  entitlementReservations,
+  entitlementReservationStatus,
   financialReviewStatus,
   paymentEnvironment,
   paymentCheckoutBudgets,
@@ -43,6 +45,9 @@ export {
   paymentWebhookConflicts,
   paymentWebhookInbox,
 } from "./payment-schema";
+export { deepReadingResults } from "./deep-reading-schema";
+export { workflowRuns, workflowRunStatus } from "./workflow-schema";
+export { auditEvents, auditCategory } from "./audit-schema";
 
 import { accounts, loginIntents, sessions, users, verifications } from "./auth-schema";
 import {
@@ -57,6 +62,7 @@ import {
 import {
   entitlementBatches,
   entitlementLedger,
+  entitlementReservations,
   paymentCheckoutBudgets,
   paymentFinancialReviews,
   paymentOrders,
@@ -64,6 +70,9 @@ import {
   paymentWebhookConflicts,
   paymentWebhookInbox,
 } from "./payment-schema";
+import { deepReadingResults } from "./deep-reading-schema";
+import { workflowRuns } from "./workflow-schema";
+import { auditEvents } from "./audit-schema";
 
 export const databaseSchema = Object.freeze({
   users,
@@ -78,12 +87,16 @@ export const databaseSchema = Object.freeze({
   generationAttempts,
   previewResults,
   generationOutputReviews,
+  deepReadingResults,
   paymentOrders,
   paymentWebhookInbox,
   paymentOutbox,
   entitlementBatches,
   entitlementLedger,
+  entitlementReservations,
   paymentCheckoutBudgets,
   paymentFinancialReviews,
   paymentWebhookConflicts,
+  workflowRuns,
+  auditEvents,
 });

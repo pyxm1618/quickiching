@@ -52,6 +52,10 @@ export function getCommercialDatabaseConnection(url = process.env.DATABASE_URL):
   return runtimeCommercialConnection;
 }
 
+export function getPostgresClient(url = process.env.DATABASE_URL): Sql {
+  return getCommercialDatabaseConnection(url).client;
+}
+
 export async function closeAuthDatabaseConnection(): Promise<void> {
   if (!runtimeConnection) return;
   const connection = runtimeConnection;
