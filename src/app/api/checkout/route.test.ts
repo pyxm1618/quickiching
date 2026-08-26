@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CheckoutServiceError } from "@/server/payments/checkout-service";
 
 const mocks = vi.hoisted(() => ({
@@ -36,6 +36,8 @@ function request(body: unknown, headers: Record<string, string> = {}) {
 
 describe("CP4 checkout route", () => {
   beforeEach(() => {
+    vi.stubEnv("APP_BASE_URL", "https://www.quickiching.com");
+    vi.stubEnv("BETTER_AUTH_URL", "https://www.quickiching.com");
     mocks.enabled = true;
     mocks.session = { user: { id: "user-1", email: "buyer@example.com" } };
     mocks.getAuth.mockReset().mockReturnValue({
@@ -48,6 +50,8 @@ describe("CP4 checkout route", () => {
     });
     mocks.createService.mockReset().mockResolvedValue({ create: mocks.createCheckout });
   });
+
+  afterEach(() => vi.unstubAllEnvs());
 
   it("returns capability-off 404 before Auth, database, or provider composition", async () => {
     mocks.enabled = false;

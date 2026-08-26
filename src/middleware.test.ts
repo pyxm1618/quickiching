@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { middleware } from "./middleware";
 
 function makeRequest(path: string, init: ConstructorParameters<typeof NextRequest>[1] = {}) {
@@ -7,6 +7,10 @@ function makeRequest(path: string, init: ConstructorParameters<typeof NextReques
 }
 
 describe("Public V1 middleware boundaries", () => {
+  beforeEach(() => {
+    vi.stubEnv("BETTER_AUTH_TRUSTED_ORIGINS", "");
+  });
+
   afterEach(() => vi.unstubAllEnvs());
   it("rejects Next-Action requests with a noindex 404 before route handling", () => {
     const response = middleware(makeRequest("/methods/three-coin", {
