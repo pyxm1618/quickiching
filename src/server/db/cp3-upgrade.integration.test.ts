@@ -169,6 +169,27 @@ describe("forward upgrade from a populated CP2 database through CP4", () => {
       )
     `;
     await sql`
+      insert into payment_webhook_inbox (
+        id, provider, provider_environment, delivery_id, event_id, event_type,
+        store_id, order_merchant_external_id, linked_order_id, payload_sha256,
+        normalized_payload, signature_verified_at, status, processed_at, created_at, updated_at
+      ) values (
+        '55555555-5555-4555-8555-555555555556', 'waffo', 'test', 'upgrade-null-outbox-delivery',
+        'PAY_upgrade_null_outbox', 'order.completed', 'STO_test',
+        '44444444-4444-4444-8444-444444444444', '44444444-4444-4444-8444-444444444444',
+        'upgrade-null-outbox-hash', '{}'::jsonb, now(), 'processed', now(), now(), now()
+      )
+    `;
+    await sql`
+      insert into payment_outbox (
+        id, inbox_id, order_id, topic, status, completed_at, available_at, created_at, updated_at
+      ) values (
+        '66666666-6666-4666-8666-666666666667',
+        '55555555-5555-4555-8555-555555555556',
+        null, 'financial_review', 'completed', now(), now(), now(), now()
+      )
+    `;
+    await sql`
       insert into entitlement_batches (
         id, user_id, order_id, quantity_total, quantity_available,
         quantity_reserved, quantity_consumed, quantity_revoked, expires_at, created_at, updated_at
@@ -220,7 +241,7 @@ describe("forward upgrade from a populated CP2 database through CP4", () => {
       where table_schema = 'public' and table_name in ('payment_orders', 'payment_webhook_inbox', 'entitlement_batches')
     `;
 
-    expect(migrations[0]?.count).toBe("8");
+    expect(migrations[0]?.count).toBe("9");
     expect(repairConstraint[0]?.count).toBe("1");
     expect(paymentTables[0]?.count).toBe("3");
     const preserved = await sql<{ users: string; jobs: string; orders: string; ledgers: string }[]>`
@@ -240,6 +261,16 @@ describe("forward upgrade from a populated CP2 database through CP4", () => {
       status: "financial_review",
       checkout_error_code: "CHECKOUT_LEGACY_TOKEN_REQUIRES_REAUTH",
       provider_checkout_url: null,
+    }]);
+    const repairedAssociation = await sql<{ order_id: string | null; linked_order_id: string | null }[]>`
+      select o.order_id::text, i.linked_order_id::text
+      from payment_outbox o
+      join payment_webhook_inbox i on i.id = o.inbox_id
+      where o.id = '66666666-6666-4666-8666-666666666667'
+    `;
+    expect(repairedAssociation).toEqual([{
+      order_id: "44444444-4444-4444-8444-444444444444",
+      linked_order_id: "44444444-4444-4444-8444-444444444444",
     }]);
   });
 

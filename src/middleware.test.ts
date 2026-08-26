@@ -145,6 +145,7 @@ describe("Public V1 middleware boundaries", () => {
       WAFFO_PROD_PRODUCT_ID_THREE: "PROD_prod_three",
       WAFFO_PROD_PRODUCT_ID_FIVE: "PROD_prod_five",
       APP_BASE_URL: "https://www.quickiching.com",
+      PAYMENT_CHECKOUT_URL_KEYS: "v1:payment-checkout-url-secret",
     })) vi.stubEnv(name, value);
 
     expect(middleware(makeRequest("/api/checkout", { method: "POST" })).status).toBe(404);

@@ -71,6 +71,7 @@ const keyPurposeNames = [
   "QUESTION_ENCRYPTION_KEYS",
   "RESULT_INTEGRITY_KEYS",
   "ANONYMOUS_OWNER_KEYS",
+  "PAYMENT_CHECKOUT_URL_KEYS",
 ] as const;
 
 const sharedAiRequirements: readonly CapabilityRequirement[] = [
@@ -153,6 +154,7 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
       ...databaseRequirements,
       ...waffoCheckoutRequirements,
       { name: "APP_BASE_URL", format: "httpUrl" },
+      { name: "PAYMENT_CHECKOUT_URL_KEYS", format: "versionedKey" },
     ],
   },
   webhookIngestion: {

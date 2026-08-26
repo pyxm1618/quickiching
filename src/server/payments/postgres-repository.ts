@@ -10,6 +10,7 @@ import {
 
 type Row = Record<string, any>;
 type CreateOrderInput = Parameters<CheckoutRepository["createOrGetOrder"]>[0];
+const PENDING_CHECKOUT_RECOVERY_MS = 2 * 60 * 1000;
 type ProcessOutcome = {
   outcome: "granted" | "revoked" | "pending_order" | "financial_review" | "ignored" | "already_processed" | "processing" | "dead_letter";
   reason?: string;
@@ -19,6 +20,7 @@ type ProcessOutcome = {
 type PostgresPaymentRepositoryOptions = {
   afterGrantBeforePendingRefund?: () => void | Promise<void>;
   beforePendingRefundSettlement?: () => void | Promise<void>;
+  checkoutUrlKeys?: string;
 };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -27,7 +29,12 @@ function date(value: unknown): Date {
   return value instanceof Date ? value : new Date(String(value));
 }
 
-function orderFromRow(row: Row): CheckoutOrderRecord {
+function requireCheckoutUrlKeys(value: string | undefined): string {
+  if (!value?.trim()) throw new Error("PAYMENT_CHECKOUT_URL_KEYS_INVALID");
+  return value;
+}
+
+function orderFromRow(row: Row, rawCheckoutUrlKeys?: string): CheckoutOrderRecord {
   const storedCheckoutUrl = row.provider_checkout_url == null ? null : String(row.provider_checkout_url);
   return {
     id: String(row.id),
@@ -41,7 +48,7 @@ function orderFromRow(row: Row): CheckoutOrderRecord {
     providerProductId: String(row.provider_product_id),
     providerCheckoutSessionId: row.provider_checkout_session_id == null ? null : String(row.provider_checkout_session_id),
     providerCheckoutUrl: row.status === "checkout_created"
-      ? decryptCheckoutUrl(storedCheckoutUrl, String(row.id))
+      ? decryptCheckoutUrl(storedCheckoutUrl, String(row.id), requireCheckoutUrlKeys(rawCheckoutUrlKeys))
       : null,
     checkoutExpiresAt: row.checkout_expires_at == null ? null : date(row.checkout_expires_at),
     checkoutClaimExpiresAt: row.checkout_claim_expires_at == null ? null : date(row.checkout_claim_expires_at),
@@ -214,7 +221,7 @@ export class PostgresPaymentRepository implements CheckoutRepository {
               returning *
             ` as Row[];
             if (!recovered[0]) throw new Error("PAYMENT_CHECKOUT_RECOVERY_CONFLICT");
-            return { order: orderFromRow(recovered[0]), created: false };
+            return { order: orderFromRow(recovered[0], this.options.checkoutUrlKeys), created: false };
           }
         }
         if (existingRows[0].status === "checkout_created") {
@@ -227,9 +234,9 @@ export class PostgresPaymentRepository implements CheckoutRepository {
               and checkout_expires_at <= clock_timestamp()
             returning *
           ` as Row[];
-          if (expired[0]) return { order: orderFromRow(expired[0]), created: false };
+          if (expired[0]) return { order: orderFromRow(expired[0], this.options.checkoutUrlKeys), created: false };
         }
-        return { order: orderFromRow(existingRows[0]), created: false };
+        return { order: orderFromRow(existingRows[0], this.options.checkoutUrlKeys), created: false };
       }
 
       // The advisory lock serializes the persistent budget and active-intent
@@ -255,9 +262,9 @@ export class PostgresPaymentRepository implements CheckoutRepository {
               and checkout_expires_at <= clock_timestamp()
             returning *
           ` as Row[];
-          if (expired[0]) return { order: orderFromRow(expired[0]), created: false };
+          if (expired[0]) return { order: orderFromRow(expired[0], this.options.checkoutUrlKeys), created: false };
         }
-        return { order: orderFromRow(recheckedRows[0]), created: false };
+        return { order: orderFromRow(recheckedRows[0], this.options.checkoutUrlKeys), created: false };
       }
 
       await transaction`
@@ -268,6 +275,32 @@ export class PostgresPaymentRepository implements CheckoutRepository {
             checkout_expires_at = null, updated_at = clock_timestamp()
         where user_id = ${input.userId} and status = 'checkout_initializing'
           and checkout_claim_expires_at <= clock_timestamp()
+      `;
+
+      // A pending row has never crossed the Provider-call boundary. If the
+      // process died before claiming it, retire it after one normal lease
+      // window so lost request IDs cannot permanently exhaust the intent cap.
+      await transaction`
+        update payment_orders
+        set status = 'financial_review', checkout_claim_token = null,
+            checkout_claim_expires_at = null,
+            checkout_error_code = 'CHECKOUT_ABANDONED_BEFORE_PROVIDER',
+            provider_checkout_session_id = null, provider_checkout_url = null,
+            checkout_expires_at = null, updated_at = clock_timestamp()
+        where user_id = ${input.userId} and status = 'pending'
+          and created_at <= clock_timestamp() - (${PENDING_CHECKOUT_RECOVERY_MS} * interval '1 millisecond')
+      `;
+
+      // Expired bearer URLs are no longer reusable and must not remain stored
+      // merely because the next request uses a different idempotency key.
+      await transaction`
+        update payment_orders
+        set status = 'financial_review', checkout_claim_token = null,
+            checkout_claim_expires_at = null, provider_checkout_session_id = null,
+            provider_checkout_url = null, checkout_expires_at = null,
+            checkout_error_code = 'CHECKOUT_EXPIRED', updated_at = clock_timestamp()
+        where user_id = ${input.userId} and status = 'checkout_created'
+          and checkout_expires_at <= clock_timestamp()
       `;
 
       const activeRows = await transaction`
@@ -331,7 +364,7 @@ export class PostgresPaymentRepository implements CheckoutRepository {
           clock_timestamp(), clock_timestamp()
         ) on conflict do nothing returning *
       ` as Row[];
-      if (inserted[0]) return { order: orderFromRow(inserted[0]), created: true };
+      if (inserted[0]) return { order: orderFromRow(inserted[0], this.options.checkoutUrlKeys), created: true };
       throw new Error("PAYMENT_IDEMPOTENCY_CONFLICT");
     });
   }
@@ -365,7 +398,11 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     const rows = await this.sql`
       update payment_orders
       set provider_checkout_session_id = ${input.providerCheckoutSessionId},
-          provider_checkout_url = ${encryptCheckoutUrl(input.providerCheckoutUrl, input.orderId)},
+          provider_checkout_url = ${encryptCheckoutUrl(
+            input.providerCheckoutUrl,
+            input.orderId,
+            requireCheckoutUrlKeys(this.options.checkoutUrlKeys),
+          )},
           checkout_expires_at = ${input.checkoutExpiresAt.toISOString()}::timestamptz,
           checkout_claim_token = null, checkout_claim_expires_at = null,
           checkout_error_code = null, status = 'checkout_created', updated_at = clock_timestamp()
@@ -376,7 +413,7 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       returning *
     ` as Row[];
     if (!rows[0]) throw new Error("PAYMENT_CHECKOUT_CLAIM_INVALID");
-    return orderFromRow(rows[0]);
+    return orderFromRow(rows[0], this.options.checkoutUrlKeys);
   }
 
   async failCheckoutInitialization(input: {

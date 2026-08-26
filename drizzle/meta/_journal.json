@@ -57,6 +57,13 @@
       "when": 1787618599382,
       "tag": "0007_cp4_payment_repair_followup",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787731051082,
+      "tag": "0008_cp4_payment_repair_final",
+      "breakpoints": true
     }
   ]
 }

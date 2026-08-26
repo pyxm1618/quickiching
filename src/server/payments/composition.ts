@@ -23,7 +23,9 @@ export async function createProductionCheckoutService(env: RuntimeEnv = process.
   const config = resolveWaffoRuntimeConfig(env);
   const { client } = getCommercialDatabaseConnection(databaseUrl(env));
   return createCheckoutService({
-    repository: new PostgresPaymentRepository(client),
+    repository: new PostgresPaymentRepository(client, {
+      checkoutUrlKeys: env.PAYMENT_CHECKOUT_URL_KEYS,
+    }),
     provider: createWaffoPaymentAdapter(config),
     environment: config.environment,
     productIds: config.productIds,

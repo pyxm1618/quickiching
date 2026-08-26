@@ -8,11 +8,14 @@ import { canonicalWaffoPayloadHash, type NormalizedWaffoWebhook } from "./waffo-
 
 const databaseURL = process.env.TEST_DATABASE_URL;
 if (!databaseURL) throw new Error("TEST_DATABASE_URL is required for PostgreSQL integration tests");
-process.env.APP_SECRET ??= "cp4-payment-integration-encryption-secret";
+process.env.PAYMENT_CHECKOUT_URL_KEYS ??= "v1:cp4-payment-checkout-url-key";
+const checkoutRepositoryOptions = {
+  checkoutUrlKeys: process.env.PAYMENT_CHECKOUT_URL_KEYS!,
+};
 
 const sql = postgres(databaseURL, { max: 12, prepare: false });
 const db = drizzle(sql);
-const repository = new PostgresPaymentRepository(sql);
+const repository = new PostgresPaymentRepository(sql, checkoutRepositoryOptions);
 const orderUsers = new Map<string, string>();
 
 function paymentEvent(input: {
@@ -119,7 +122,7 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
     const migrations = await sql<{ count: string }[]>`
       select count(*)::text as count from drizzle.__drizzle_migrations
     `;
-    expect(migrations[0]?.count).toBe("8");
+    expect(migrations[0]?.count).toBe("9");
   });
 
   it("enforces order, Inbox/Outbox, ledger, and batch invariants in PostgreSQL", async () => {
@@ -335,6 +338,50 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
     ))).toEqual(["PAYMENT_CHECKOUT_INTENT_LIMITED"]);
   });
 
+  it("retires stale pending intents abandoned before any Provider call", async () => {
+    const suffix = randomUUID();
+    const userId = `cp4-stale-pending-user-${suffix}`;
+    await sql`
+      insert into users (id, name, email, email_verified, created_at, updated_at)
+      values (${userId}, 'Stale Pending User', ${`${suffix}@stale-pending.example.com`}, true, now(), now())
+    `;
+    for (let index = 0; index < 3; index += 1) {
+      await sql`
+        insert into payment_orders (
+          id, user_id, product_key, quantity, amount_minor, currency, request_id,
+          provider, provider_environment, provider_product_id, status, created_at, updated_at
+        ) values (
+          ${randomUUID()}, ${userId}, 'one', 1, 299, 'USD', ${`stale-pending-${index}-${suffix}`},
+          'waffo', 'test', 'PROD_test_one', 'pending',
+          clock_timestamp() - interval '3 minutes', clock_timestamp() - interval '3 minutes'
+        )
+      `;
+    }
+
+    await expect(repository.createOrGetOrder({
+      userId,
+      productKey: "one",
+      quantity: 1,
+      amountMinor: 299,
+      currency: "USD",
+      requestId: `fresh-after-crash-${suffix}`,
+      providerEnvironment: "test",
+      providerProductId: "PROD_test_one",
+    })).resolves.toMatchObject({ created: true });
+
+    const retired = await sql<{ status: string; checkout_error_code: string; checkout_claim_token: string | null; checkout_claim_expires_at: Date | null }[]>`
+      select status, checkout_error_code, checkout_claim_token, checkout_claim_expires_at from payment_orders
+      where user_id = ${userId} and request_id like 'stale-pending-%'
+      order by request_id
+    `;
+    expect(retired).toEqual(Array.from({ length: 3 }, () => ({
+      status: "financial_review",
+      checkout_error_code: "CHECKOUT_ABANDONED_BEFORE_PROVIDER",
+      checkout_claim_token: null,
+      checkout_claim_expires_at: null,
+    })));
+  });
+
   it("does not count expired checkout-created intents against the active purchase cap", async () => {
     const suffix = randomUUID();
     const userId = `cp4-expired-intent-user-${suffix}`;
@@ -378,6 +425,18 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
       providerEnvironment: "test",
       providerProductId: "PROD_test_one",
     })).resolves.toMatchObject({ created: true });
+    const retired = await sql<{ status: string; provider_checkout_url: string | null; checkout_claim_token: string | null; checkout_claim_expires_at: Date | null }[]>`
+      select status, provider_checkout_url, checkout_claim_token, checkout_claim_expires_at from payment_orders
+      where user_id = ${userId} and request_id like 'expired-%'
+        and request_id <> ${`expired-new-${suffix}`}
+      order by request_id
+    `;
+    expect(retired).toEqual(Array.from({ length: 3 }, () => ({
+      status: "financial_review",
+      provider_checkout_url: null,
+      checkout_claim_token: null,
+      checkout_claim_expires_at: null,
+    })));
   });
 
   it("enforces five persisted checkout attempts per ten-minute window after intents become terminal", async () => {
@@ -825,6 +884,7 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
     await repository.processInbox(refund.inboxId);
     const paid = await repository.recordVerifiedEvent(paymentEvent({ orderId: order.id }));
     const faultyRepository = new PostgresPaymentRepository(sql, {
+      ...checkoutRepositoryOptions,
       afterGrantBeforePendingRefund: () => {
         throw new Error("INJECTED_REFUND_SETTLEMENT_FAILURE");
       },
@@ -851,6 +911,7 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
     const barrierEntered = new Promise<void>((resolve) => { enteredBarrier = resolve; });
     const barrierReleased = new Promise<void>((resolve) => { releaseBarrier = resolve; });
     const barrierRepository = new PostgresPaymentRepository(sql, {
+      ...checkoutRepositoryOptions,
       beforePendingRefundSettlement: async () => {
         enteredBarrier();
         await barrierReleased;

@@ -56,6 +56,7 @@ const completeValidEnvironment = {
   QUESTION_ENCRYPTION_KEYS: "v1:encryption-secret",
   RESULT_INTEGRITY_KEYS: "v1:integrity-secret",
   ANONYMOUS_OWNER_KEYS: "v1:anonymous-owner-secret",
+  PAYMENT_CHECKOUT_URL_KEYS: "v1:payment-checkout-url-secret",
   CRON_SECRET: "cron-secret",
 };
 
@@ -572,6 +573,51 @@ describe("commercial capability matrix", () => {
       reason: "enabled",
       blockedDependencies: [],
     });
+  });
+
+  it("fails Checkout closed when its purpose-specific URL encryption key is missing", () => {
+    const environment: Record<string, string | undefined> = { ...completeValidEnvironment };
+    delete environment.PAYMENT_CHECKOUT_URL_KEYS;
+
+    const status = resolveCommercialCapabilities(environment, {
+      definitions: definitionsWithImplementations("auth", "webhookIngestion", "checkout"),
+    }).capabilities.checkout;
+
+    expect(status).toMatchObject({
+      enabled: false,
+      reason: "missing_dependencies",
+      missingDependencies: ["PAYMENT_CHECKOUT_URL_KEYS"],
+    });
+  });
+
+  it("fails Checkout closed when its purpose-specific URL encryption key is malformed", () => {
+    const status = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      PAYMENT_CHECKOUT_URL_KEYS: "not-versioned",
+    }, {
+      definitions: definitionsWithImplementations("auth", "webhookIngestion", "checkout"),
+    }).capabilities.checkout;
+
+    expect(status).toMatchObject({
+      enabled: false,
+      reason: "invalid_dependencies",
+    });
+    expect(status.invalidDependencies).toContain("PAYMENT_CHECKOUT_URL_KEYS");
+  });
+
+  it("rejects Checkout URL key material reused by another cryptographic purpose", () => {
+    const result = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      PAYMENT_CHECKOUT_URL_KEYS: completeValidEnvironment.ANONYMOUS_OWNER_KEYS,
+    }, {
+      definitions: definitionsWithImplementations("auth", "webhookIngestion", "checkout"),
+    });
+    const status = result.capabilities.checkout;
+
+    expect(status.enabled).toBe(false);
+    expect(status.reason).toBe("invalid_dependencies");
+    expect(status.invalidDependencies).toContain("PAYMENT_CHECKOUT_URL_KEYS");
+    expect(result.capabilities.auth.invalidDependencies).toContain("ANONYMOUS_OWNER_KEYS");
   });
 
   it("does not couple Paid Deep Reading to the AI Preview product capability", () => {

@@ -44,7 +44,7 @@ describe("CP2 PostgreSQL migration and auth persistence", () => {
       select count(*)::text as count
       from drizzle.__drizzle_migrations
     `;
-    expect(Number(migrationRows[0]?.count)).toBe(8);
+    expect(Number(migrationRows[0]?.count)).toBe(9);
   });
 
   it("enforces the identity foreign keys, uniqueness, and required indexes in PostgreSQL", async () => {
