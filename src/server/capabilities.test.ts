@@ -325,7 +325,7 @@ describe("commercial capability matrix", () => {
     });
   });
 
-  it("accepts only official Waffo environment names and rejects reused Test/Prod product mappings", () => {
+  it("accepts only official Waffo environment names and requires only the selected product mapping", () => {
     const officialProd = resolveCommercialCapabilities({
       ...completeValidEnvironment,
       WAFFO_ENVIRONMENT: "prod",
@@ -338,24 +338,36 @@ describe("commercial capability matrix", () => {
     }).capabilities.checkout;
     expect(legacyName.invalidDependencies).toContain("WAFFO_ENVIRONMENT=test|prod");
 
-    const reusedMapping = resolveCommercialCapabilities({
+    const publishedMapping = resolveCommercialCapabilities({
       ...completeValidEnvironment,
       WAFFO_PROD_PRODUCT_ID_ONE: completeValidEnvironment.WAFFO_TEST_PRODUCT_ID_ONE,
     }).capabilities.checkout;
-    expect(reusedMapping.enabled).toBe(false);
-    expect(reusedMapping.invalidDependencies).toEqual(expect.arrayContaining([
-      "WAFFO_TEST_PRODUCT_ID_ONE",
+    expect(publishedMapping.invalidDependencies).not.toContain("WAFFO_TEST_PRODUCT_ID_ONE");
+    expect(publishedMapping.invalidDependencies).not.toContain("WAFFO_PROD_PRODUCT_ID_ONE");
+
+    const testOnlyEnvironment: Record<string, string | undefined> = { ...completeValidEnvironment };
+    delete testOnlyEnvironment.WAFFO_PROD_PRODUCT_ID_ONE;
+    delete testOnlyEnvironment.WAFFO_PROD_PRODUCT_ID_THREE;
+    delete testOnlyEnvironment.WAFFO_PROD_PRODUCT_ID_FIVE;
+    const testOnly = resolveCommercialCapabilities(testOnlyEnvironment).capabilities.checkout;
+    expect(testOnly.missingDependencies).not.toEqual(expect.arrayContaining([
       "WAFFO_PROD_PRODUCT_ID_ONE",
+      "WAFFO_PROD_PRODUCT_ID_THREE",
+      "WAFFO_PROD_PRODUCT_ID_FIVE",
     ]));
 
-    const crossProductReuse = resolveCommercialCapabilities({
+    const prodOnlyEnvironment: Record<string, string | undefined> = {
       ...completeValidEnvironment,
-      WAFFO_PROD_PRODUCT_ID_THREE: completeValidEnvironment.WAFFO_TEST_PRODUCT_ID_ONE,
-    }).capabilities.checkout;
-    expect(crossProductReuse.enabled).toBe(false);
-    expect(crossProductReuse.invalidDependencies).toEqual(expect.arrayContaining([
+      WAFFO_ENVIRONMENT: "prod",
+    };
+    delete prodOnlyEnvironment.WAFFO_TEST_PRODUCT_ID_ONE;
+    delete prodOnlyEnvironment.WAFFO_TEST_PRODUCT_ID_THREE;
+    delete prodOnlyEnvironment.WAFFO_TEST_PRODUCT_ID_FIVE;
+    const prodOnly = resolveCommercialCapabilities(prodOnlyEnvironment).capabilities.checkout;
+    expect(prodOnly.missingDependencies).not.toEqual(expect.arrayContaining([
       "WAFFO_TEST_PRODUCT_ID_ONE",
-      "WAFFO_PROD_PRODUCT_ID_THREE",
+      "WAFFO_TEST_PRODUCT_ID_THREE",
+      "WAFFO_TEST_PRODUCT_ID_FIVE",
     ]));
 
     const sameEnvironmentReuse = resolveCommercialCapabilities({

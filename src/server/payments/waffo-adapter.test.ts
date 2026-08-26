@@ -27,8 +27,12 @@ describe("Waffo 0.19.1 payment boundary", () => {
     })).toEqual({ environment: "test", storeId: "STO_test" });
   });
 
-  it("selects an environment-specific product map and never aliases Test to Prod", () => {
-    expect(resolveWaffoRuntimeConfig(runtimeEnv)).toMatchObject({
+  it("requires only the selected environment product map and accepts published IDs shared across environments", () => {
+    const testOnlyEnvironment = { ...runtimeEnv } as Record<string, string | undefined>;
+    delete testOnlyEnvironment.WAFFO_PROD_PRODUCT_ID_ONE;
+    delete testOnlyEnvironment.WAFFO_PROD_PRODUCT_ID_THREE;
+    delete testOnlyEnvironment.WAFFO_PROD_PRODUCT_ID_FIVE;
+    expect(resolveWaffoRuntimeConfig(testOnlyEnvironment)).toMatchObject({
       environment: "test",
       storeId: "STO_test",
       productIds: {
@@ -38,19 +42,21 @@ describe("Waffo 0.19.1 payment boundary", () => {
       },
     });
 
-    expect(resolveWaffoRuntimeConfig({ ...runtimeEnv, WAFFO_ENVIRONMENT: "prod" }).productIds).toEqual({
+    const prodOnlyEnvironment = { ...runtimeEnv, WAFFO_ENVIRONMENT: "prod" } as Record<string, string | undefined>;
+    delete prodOnlyEnvironment.WAFFO_TEST_PRODUCT_ID_ONE;
+    delete prodOnlyEnvironment.WAFFO_TEST_PRODUCT_ID_THREE;
+    delete prodOnlyEnvironment.WAFFO_TEST_PRODUCT_ID_FIVE;
+    expect(resolveWaffoRuntimeConfig(prodOnlyEnvironment).productIds).toEqual({
       one: "PROD_prod_one",
       three: "PROD_prod_three",
       five: "PROD_prod_five",
     });
-    expect(() => resolveWaffoRuntimeConfig({
+
+    expect(resolveWaffoRuntimeConfig({
       ...runtimeEnv,
       WAFFO_PROD_PRODUCT_ID_ONE: "PROD_test_one",
-    })).toThrow("WAFFO_CONFIGURATION_UNAVAILABLE");
-    expect(() => resolveWaffoRuntimeConfig({
-      ...runtimeEnv,
-      WAFFO_PROD_PRODUCT_ID_THREE: "PROD_test_one",
-    })).toThrow("WAFFO_CONFIGURATION_UNAVAILABLE");
+    }).productIds.one).toBe("PROD_test_one");
+
     expect(() => resolveWaffoRuntimeConfig({
       ...runtimeEnv,
       WAFFO_TEST_PRODUCT_ID_THREE: "PROD_test_one",

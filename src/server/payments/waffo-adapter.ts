@@ -34,23 +34,13 @@ export function resolveWaffoWebhookConfig(env: RuntimeEnv = process.env): WaffoW
 
 export function resolveWaffoRuntimeConfig(env: RuntimeEnv = process.env): WaffoRuntimeConfig {
   const { environment, storeId } = resolveWaffoWebhookConfig(env);
-  const testProductIds: Record<ProductId, string> = {
-    one: required(env, "WAFFO_TEST_PRODUCT_ID_ONE"),
-    three: required(env, "WAFFO_TEST_PRODUCT_ID_THREE"),
-    five: required(env, "WAFFO_TEST_PRODUCT_ID_FIVE"),
+  const prefix = environment === "test" ? "WAFFO_TEST_PRODUCT_ID" : "WAFFO_PROD_PRODUCT_ID";
+  const productIds: Record<ProductId, string> = {
+    one: required(env, `${prefix}_ONE`),
+    three: required(env, `${prefix}_THREE`),
+    five: required(env, `${prefix}_FIVE`),
   };
-  const prodProductIds: Record<ProductId, string> = {
-    one: required(env, "WAFFO_PROD_PRODUCT_ID_ONE"),
-    three: required(env, "WAFFO_PROD_PRODUCT_ID_THREE"),
-    five: required(env, "WAFFO_PROD_PRODUCT_ID_FIVE"),
-  };
-  const testIds = new Set(Object.values(testProductIds));
-  const prodIds = new Set(Object.values(prodProductIds));
-  if (
-    testIds.size !== 3
-    || prodIds.size !== 3
-    || Object.values(prodProductIds).some((productId) => testIds.has(productId))
-  ) {
+  if (new Set(Object.values(productIds)).size !== 3) {
     throw new Error("WAFFO_CONFIGURATION_UNAVAILABLE");
   }
   return {
@@ -58,7 +48,7 @@ export function resolveWaffoRuntimeConfig(env: RuntimeEnv = process.env): WaffoR
     merchantId: required(env, "WAFFO_MERCHANT_ID"),
     privateKey: required(env, "WAFFO_PRIVATE_KEY"),
     storeId,
-    productIds: environment === "test" ? testProductIds : prodProductIds,
+    productIds,
   };
 }
 

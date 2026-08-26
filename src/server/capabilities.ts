@@ -108,12 +108,6 @@ const waffoCheckoutRequirements: readonly CapabilityRequirement[] = [
   ...waffoWebhookRequirements,
   { name: "WAFFO_MERCHANT_ID", format: "nonBlank" },
   { name: "WAFFO_PRIVATE_KEY", format: "nonBlank" },
-  { name: "WAFFO_TEST_PRODUCT_ID_ONE", format: "nonBlank" },
-  { name: "WAFFO_TEST_PRODUCT_ID_THREE", format: "nonBlank" },
-  { name: "WAFFO_TEST_PRODUCT_ID_FIVE", format: "nonBlank" },
-  { name: "WAFFO_PROD_PRODUCT_ID_ONE", format: "nonBlank" },
-  { name: "WAFFO_PROD_PRODUCT_ID_THREE", format: "nonBlank" },
-  { name: "WAFFO_PROD_PRODUCT_ID_FIVE", format: "nonBlank" },
 ];
 
 const keyRequirements: readonly CapabilityRequirement[] = [
@@ -390,26 +384,25 @@ function appendWaffoMappingInvariantFailures(
   env: RuntimeEnv,
   inspection: RequirementInspection,
 ): void {
-  for (const names of [waffoTestProductNames, waffoProdProductNames]) {
-    for (let left = 0; left < names.length; left += 1) {
-      const leftName = names[left]!;
-      const leftId = value(env, leftName);
-      if (!leftId) continue;
-      for (let right = left + 1; right < names.length; right += 1) {
-        const rightName = names[right]!;
-        if (value(env, rightName) !== leftId) continue;
-        if (!inspection.invalidDependencies.includes(leftName)) inspection.invalidDependencies.push(leftName);
-        if (!inspection.invalidDependencies.includes(rightName)) inspection.invalidDependencies.push(rightName);
-      }
-    }
+  const environment = value(env, "WAFFO_ENVIRONMENT");
+  if (environment !== "test" && environment !== "prod") return;
+  const names = environment === "test" ? waffoTestProductNames : waffoProdProductNames;
+
+  for (const name of names) {
+    const raw = env[name];
+    if (raw === undefined) inspection.missingDependencies.push(name);
+    else if (!raw.trim()) inspection.invalidDependencies.push(name);
   }
-  for (const testName of waffoTestProductNames) {
-    const testId = value(env, testName);
-    if (!testId) continue;
-    for (const prodName of waffoProdProductNames) {
-      if (value(env, prodName) !== testId) continue;
-      if (!inspection.invalidDependencies.includes(testName)) inspection.invalidDependencies.push(testName);
-      if (!inspection.invalidDependencies.includes(prodName)) inspection.invalidDependencies.push(prodName);
+
+  for (let left = 0; left < names.length; left += 1) {
+    const leftName = names[left]!;
+    const leftId = value(env, leftName);
+    if (!leftId) continue;
+    for (let right = left + 1; right < names.length; right += 1) {
+      const rightName = names[right]!;
+      if (value(env, rightName) !== leftId) continue;
+      if (!inspection.invalidDependencies.includes(leftName)) inspection.invalidDependencies.push(leftName);
+      if (!inspection.invalidDependencies.includes(rightName)) inspection.invalidDependencies.push(rightName);
     }
   }
 }
