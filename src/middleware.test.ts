@@ -59,6 +59,7 @@ describe("Public V1 middleware boundaries", () => {
   });
 
   it("opens only the exact authenticated Preview route when AI Preview is fully enabled", () => {
+    vi.stubEnv("NODE_ENV", "production");
     for (const [name, value] of Object.entries({
       COMMERCIAL_V2_AUTH_ENABLED: "true",
       COMMERCIAL_V2_AI_PREVIEW_ENABLED: "true",
@@ -71,6 +72,8 @@ describe("Public V1 middleware boundaries", () => {
       DATABASE_URL: "postgresql://user:password@db.example.com/quickiching",
       BETTER_AUTH_SECRET: "auth-secret-with-at-least-32-characters",
       BETTER_AUTH_URL: "https://www.quickiching.com",
+      APP_BASE_URL: "https://www.quickiching.com",
+      NEXT_PUBLIC_APP_URL: "https://www.quickiching.com",
       GOOGLE_CLIENT_ID: "google-client-id",
       GOOGLE_CLIENT_SECRET: "google-client-secret",
       RESEND_API_KEY: "resend-api-key",
