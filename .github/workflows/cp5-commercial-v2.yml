@@ -26,11 +26,12 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: codex/commercial-v2-cp5
-          fetch-depth: 2
+          fetch-depth: 0
       - name: Apply exact six contract updates and self-clean
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
 
           replacements = {
               "src/server/db/cp3-generation.integration.test.ts": [
@@ -49,9 +50,6 @@ jobs:
                   ("provider, model, integrity_hash, persisted_at", "provider, model, integrity_hash, integrity_key_version, persisted_at", 2),
                   ("'openai', 'gpt-4o', 'hash-123', now()", "'openai', 'gpt-4o', 'hash-123', 'v-test', now()", 2),
               ],
-              "src/server/account/postgres-account.integration.test.ts": [
-                  ("select action, category from audit_events where entity_id = ${deletedUser}", "select action, category from audit_events where category = 'deletion' and action = 'account_deleted' and user_id is null and entity_id is null order by created_at desc limit 1", 1),
-              ],
           }
 
           for filename, triples in replacements.items():
@@ -63,8 +61,17 @@ jobs:
                       raise SystemExit(f"expected {expected} replacement target(s), got {count}: {filename}: {old}")
                   text = text.replace(old, new)
               path.write_text(text)
+
+          account = Path("src/server/account/postgres-account.integration.test.ts")
+          text = account.read_text()
+          pattern = r"select action, category from audit_events where entity_id = .*"
+          replacement = "select action, category from audit_events where category = 'deletion' and action = 'account_deleted' and user_id is null and entity_id is null order by created_at desc limit 1"
+          text, count = re.subn(pattern, replacement, text, count=1)
+          if count != 1:
+              raise SystemExit(f"expected one account audit query replacement, got {count}")
+          account.write_text(text)
           PY
-          git show HEAD^:.github/workflows/cp5-commercial-v2.yml > .github/workflows/cp5-commercial-v2.yml
+          git show 258b28857e132dc93340d60016a74354b558a954:.github/workflows/cp5-commercial-v2.yml > .github/workflows/cp5-commercial-v2.yml
           git rm .github/workflows/cp5-test-contract-maintenance.yml
       - name: Commit maintenance result
         run: |
