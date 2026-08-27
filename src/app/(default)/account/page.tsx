@@ -28,6 +28,7 @@ export default async function AccountPage() {
               Reading credits
             </p>
             <p className="mt-2 font-display text-4xl font-medium">{balance.available}</p>
+            <p className="mt-1 font-sans text-xs text-[var(--ink-3)]">Valid for 12 months from purchase</p>
             <Link href="/pricing" className="mt-2 inline-block text-sm font-semibold text-[var(--jade)] hover:underline">
               Buy more →
             </Link>
@@ -45,7 +46,7 @@ export default async function AccountPage() {
       {history.length === 0 ? (
         <p className="mt-3 text-[var(--ink-3)]">
           No readings yet.{" "}
-          <Link href="/cast/three_coin" className="font-semibold text-[var(--jade)] hover:underline">
+          <Link href="/methods/three-coin" className="font-semibold text-[var(--jade)] hover:underline">
             Start a coin reading →
           </Link>
         </p>
@@ -54,7 +55,7 @@ export default async function AccountPage() {
           {history.map((h) => (
             <Link
               key={h.id}
-              href={`/result/${h.id}`}
+              href={`/readings/three-coin/result?session=${h.id}`}
               className="flex items-center justify-between p-4 transition-colors hover:bg-[var(--ink)]/[0.03]"
             >
               <div>

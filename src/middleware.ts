@@ -2,17 +2,21 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
 import { isAiPreviewCapabilityEnabled } from "@/server/generation/capability";
+import { isPaidDeepReadingCapabilityEnabled } from "@/server/generation/deep-reading-capability";
 import {
   isCheckoutCapabilityEnabled,
   isWebhookIngestionCapabilityEnabled,
 } from "@/server/payments/capability";
+import { isReconcileCapabilityEnabled } from "@/server/reconcile/capability";
 
-const GONE_PREFIXES = ["/account", "/checkout"] as const;
+const GONE_PREFIXES = ["/checkout"] as const;
 const NOT_FOUND_PREFIXES = ["/result", "/cast"] as const;
 const PERSONALIZED_API_PATH = "/api/personalized-interpretation";
 const CHECKOUT_API_PATH = "/api/checkout";
 const WAFFO_WEBHOOK_PATH = "/api/webhooks/waffo";
+const RECONCILE_API_PATH = "/api/internal/reconcile";
 const COMMERCIAL_PREVIEW_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/preview\/?$/;
+const COMMERCIAL_DEEP_READING_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/deep\/?$/;
 const COMMERCIAL_READING_STATUS_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/?$/;
 
 function matchesPrefix(pathname: string, prefix: string): boolean {
@@ -21,6 +25,10 @@ function matchesPrefix(pathname: string, prefix: string): boolean {
 
 function isCommercialPreviewPath(pathname: string): boolean {
   return COMMERCIAL_PREVIEW_PATH.test(pathname);
+}
+
+function isCommercialDeepReadingPath(pathname: string): boolean {
+  return COMMERCIAL_DEEP_READING_PATH.test(pathname);
 }
 
 function isCommercialReadingStatusPath(pathname: string): boolean {
@@ -38,6 +46,14 @@ export function middleware(request: NextRequest) {
   }
 
   if (matchesPrefix(pathname, "/signin")) {
+    if (isAuthCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("This Commercial V2 route is not available in Public V1.", {
+      status: 410,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (matchesPrefix(pathname, "/account")) {
     if (isAuthCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("This Commercial V2 route is not available in Public V1.", {
       status: 410,
@@ -75,6 +91,14 @@ export function middleware(request: NextRequest) {
     });
   }
 
+  if (isCommercialDeepReadingPath(pathname)) {
+    if (isPaidDeepReadingCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
   if (pathname === CHECKOUT_API_PATH || pathname === `${CHECKOUT_API_PATH}/`) {
     if (isCheckoutCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("Not Found", {
@@ -85,6 +109,14 @@ export function middleware(request: NextRequest) {
 
   if (pathname === WAFFO_WEBHOOK_PATH || pathname === `${WAFFO_WEBHOOK_PATH}/`) {
     if (isWebhookIngestionCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (pathname === RECONCILE_API_PATH || pathname === `${RECONCILE_API_PATH}/`) {
+    if (isReconcileCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("Not Found", {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },

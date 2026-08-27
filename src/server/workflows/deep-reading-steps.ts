@@ -1,14 +1,64 @@
-import { createHmac, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import type { Sql, TransactionSql } from "postgres";
 import { getPostgresClient } from "@/server/db/client";
-import { deterministicFactsSchema, readingReportSchema, type DeterministicFacts, type CommercialReadingReport } from "@/domain/generation/schemas";
+import {
+  deterministicFactsSchema,
+  readingReportSchema,
+  type DeterministicFacts,
+  type CommercialReadingReport,
+} from "@/domain/generation/schemas";
 import { createAiSdkGenerationProvider, createAiSdkOutputReviewer } from "@/server/generation/ai-sdk-provider";
 import { getServerConfig } from "@/server/config";
 import type { OutputReviewDecision, ProviderGenerationResult, ProviderInput } from "@/server/generation/types";
+import {
+  calculateDeepReadingInputSnapshotHash,
+  calculateResultIntegrityHmac,
+} from "@/server/generation/integrity";
+import { decryptJson, decryptJsonWithKeyMaterial } from "@/lib/crypto";
 
 type Row = Record<string, any>;
 
 const LEASE_DURATION_MS = 5 * 60 * 1000;
+
+function readingVariant(movingLinePositions: number[]): DeterministicFacts["readingVariant"] {
+  if (movingLinePositions.length === 0) return "still_hexagram";
+  if (movingLinePositions.length === 6) return "all_lines_moving";
+  if (movingLinePositions.length > 1) return "multiple_moving";
+  return "standard";
+}
+
+function configuredKeyMaterial(raw: string | undefined, version: string): string | undefined {
+  if (!raw?.trim()) return undefined;
+  const entries = raw.split(",").map((entry) => {
+    const match = /^([A-Za-z0-9][A-Za-z0-9._-]*):(.+)$/.exec(entry.trim());
+    return match ? { version: match[1], material: match[2].trim() } : null;
+  });
+  return entries.find((entry) => entry?.version === version)?.material;
+}
+
+function decryptQuestionFromRow(row: Row, env: Record<string, string | undefined> = process.env): string {
+  if (!row.question_ciphertext || !row.question_iv || !row.question_auth_tag) {
+    return String(row.scene ? `Reading for scene: ${row.scene}` : "General I Ching Reading");
+  }
+  const encrypted = {
+    v: String(row.question_encryption_key_version ?? "v1"),
+    iv: String(row.question_iv),
+    tag: String(row.question_auth_tag),
+    data: String(row.question_ciphertext),
+  };
+  const castingId = String(row.casting_id ?? row.id);
+  const aad = `${castingId}:${String(row.question_version_id)}`;
+  const keyMaterial = configuredKeyMaterial(env.QUESTION_ENCRYPTION_KEYS, encrypted.v);
+
+  try {
+    const payload = keyMaterial
+      ? decryptJsonWithKeyMaterial<{ context: string }>(encrypted, "context", keyMaterial, aad)
+      : decryptJson<{ context: string }>(encrypted, "context", aad);
+    return payload.context;
+  } catch {
+    return String(row.scene ? `Reading for scene: ${row.scene}` : "General I Ching Reading");
+  }
+}
 
 export async function claimJobLeaseStep(input: {
   castingId: string;
@@ -24,16 +74,42 @@ export async function claimJobLeaseStep(input: {
   const sql = getPostgresClient();
 
   return sql.begin(async (transaction: TransactionSql) => {
-    // 1. Verify casting session is valid, active and not deleted
+    // 1. Verify casting session is valid, active, revealed, risk-cleared and not deleted
     const sessionRows = await transaction`
-      select * from casting_sessions
-      where id = ${input.castingId}
+      select
+        c.id, c.user_id, c.deleted_at, c.generation_epoch, c.lifecycle, c.risk_status,
+        c.scene, c.interpretation_goal, c.method,
+        q.id as question_version_id, q.ciphertext as question_ciphertext,
+        q.iv as question_iv, q.auth_tag as question_auth_tag,
+        q.encryption_key_version as question_encryption_key_version,
+        r.line_values, r.primary_hexagram_number, r.moving_line_positions,
+        r.relating_hexagram_number, r.algorithm_version, r.classic_mapping_version,
+        r.result_hmac, r.result_hmac_key_version
+      from casting_sessions c
+      left join lateral (
+        select * from question_versions
+        where casting_id = c.id
+        order by version_number desc
+        limit 1
+      ) q on true
+      left join cast_results r on r.casting_id = c.id
+      where c.id = ${input.castingId}
       limit 1
-      for update
+      for update of c
     ` as Row[];
     const session = sessionRows[0];
     if (!session || session.deleted_at != null || Number(session.generation_epoch) !== input.generationEpoch) {
       throw new Error("CASTING_SESSION_INVALID_OR_DELETED");
+    }
+
+    if (session.lifecycle !== "revealed") {
+      throw new Error("CASTING_NOT_READY");
+    }
+    if (session.risk_status !== "allowed") {
+      throw new Error("RISK_PROHIBITED");
+    }
+    if (!session.result_hmac) {
+      throw new Error("CAST_RESULT_UNAVAILABLE");
     }
 
     // 2. Claim generation job
@@ -74,43 +150,42 @@ export async function claimJobLeaseStep(input: {
       where idempotency_key = ${input.idempotencyKey}
     `;
 
-    // 4. Fetch questions and cast results to construct snapshot
-    const questionRows = await transaction`
-      select * from question_versions
-      where casting_id = ${input.castingId}
-      order by version_number desc
-      limit 1
-    ` as Row[];
-    const castRows = await transaction`
-      select * from cast_results
-      where casting_id = ${input.castingId}
-      limit 1
-    ` as Row[];
-    const cast = castRows[0];
-    if (!cast) throw new Error("CAST_RESULT_UNAVAILABLE");
+    // 4. Decrypt question and construct facts & snapshot
+    const questionText = decryptQuestionFromRow(session);
+    const lineValues = (session.line_values as number[]) ?? [];
+    const movingLinePositions = (session.moving_line_positions as number[]) ?? [];
 
-    const lineValues = (cast.line_values as number[]) ?? [];
     const facts: DeterministicFacts = {
       method: session.method as any,
-      algorithmVersion: String(cast.algorithm_version),
-      classicMappingVersion: String(cast.classic_mapping_version),
+      algorithmVersion: String(session.algorithm_version),
+      classicMappingVersion: String(session.classic_mapping_version),
       lineValuesBottomUp: [
-        lineValues[0] as any,
-        lineValues[1] as any,
-        lineValues[2] as any,
-        lineValues[3] as any,
-        lineValues[4] as any,
-        lineValues[5] as any,
-      ],
-      primaryHexagramNumber: Number(cast.primary_hexagram_number),
-      movingLinePositions: (cast.moving_line_positions as number[]) ?? [],
-      relatingHexagramNumber: cast.relating_hexagram_number ? Number(cast.relating_hexagram_number) : null,
-      readingVariant: "standard",
+        Number(lineValues[0]),
+        Number(lineValues[1]),
+        Number(lineValues[2]),
+        Number(lineValues[3]),
+        Number(lineValues[4]),
+        Number(lineValues[5]),
+      ] as any,
+      primaryHexagramNumber: Number(session.primary_hexagram_number),
+      movingLinePositions,
+      relatingHexagramNumber: session.relating_hexagram_number ? Number(session.relating_hexagram_number) : null,
+      readingVariant: readingVariant(movingLinePositions),
     };
+
+    const calculatedSnapshotHash = calculateDeepReadingInputSnapshotHash({
+      castingId: input.castingId,
+      userId: String(session.user_id),
+      epoch: input.generationEpoch,
+      question: questionText,
+      scene: String(session.scene),
+      interpretationGoal: String(session.interpretation_goal),
+      facts,
+    });
 
     const providerInput: ProviderInput = {
       castingId: input.castingId,
-      question: "question-context-verified",
+      question: questionText,
       scene: session.scene,
       interpretationGoal: session.interpretation_goal,
       facts,
@@ -119,7 +194,7 @@ export async function claimJobLeaseStep(input: {
     return {
       leaseToken,
       providerInput,
-      inputSnapshotHash: String(job.input_snapshot_hash),
+      inputSnapshotHash: calculatedSnapshotHash,
     };
   });
 }
@@ -188,17 +263,67 @@ export async function finalizeDeepReadingStep(input: {
   return sql.begin(async (transaction: TransactionSql) => {
     // 1. Verify casting session is still active and epoch matches
     const sessionRows = await transaction`
-      select * from casting_sessions
-      where id = ${input.castingId}
+      select
+        c.id, c.user_id, c.deleted_at, c.generation_epoch, c.scene, c.interpretation_goal, c.method,
+        q.id as question_version_id, q.ciphertext as question_ciphertext,
+        q.iv as question_iv, q.auth_tag as question_auth_tag,
+        q.encryption_key_version as question_encryption_key_version,
+        r.line_values, r.primary_hexagram_number, r.moving_line_positions,
+        r.relating_hexagram_number, r.algorithm_version, r.classic_mapping_version
+      from casting_sessions c
+      left join lateral (
+        select * from question_versions
+        where casting_id = c.id
+        order by version_number desc
+        limit 1
+      ) q on true
+      left join cast_results r on r.casting_id = c.id
+      where c.id = ${input.castingId}
       limit 1
-      for update
+      for update of c
     ` as Row[];
     const session = sessionRows[0];
     if (!session || session.deleted_at != null || Number(session.generation_epoch) !== input.generationEpoch) {
       throw new Error("CASTING_SESSION_INVALID_OR_DELETED");
     }
 
-    // 2. Verify job ownership and lease
+    // 2. Verify snapshot integrity
+    const questionText = decryptQuestionFromRow(session);
+    const lineValues = (session.line_values as number[]) ?? [];
+    const movingLinePositions = (session.moving_line_positions as number[]) ?? [];
+    const facts: DeterministicFacts = {
+      method: session.method as any,
+      algorithmVersion: String(session.algorithm_version),
+      classicMappingVersion: String(session.classic_mapping_version),
+      lineValuesBottomUp: [
+        Number(lineValues[0]),
+        Number(lineValues[1]),
+        Number(lineValues[2]),
+        Number(lineValues[3]),
+        Number(lineValues[4]),
+        Number(lineValues[5]),
+      ] as any,
+      primaryHexagramNumber: Number(session.primary_hexagram_number),
+      movingLinePositions,
+      relatingHexagramNumber: session.relating_hexagram_number ? Number(session.relating_hexagram_number) : null,
+      readingVariant: readingVariant(movingLinePositions),
+    };
+
+    const recomputedSnapshotHash = calculateDeepReadingInputSnapshotHash({
+      castingId: input.castingId,
+      userId: String(session.user_id),
+      epoch: input.generationEpoch,
+      question: questionText,
+      scene: String(session.scene),
+      interpretationGoal: String(session.interpretation_goal),
+      facts,
+    });
+
+    if (recomputedSnapshotHash !== input.inputSnapshotHash) {
+      throw new Error("INPUT_SNAPSHOT_MISMATCH");
+    }
+
+    // 3. Verify job ownership and lease
     const jobRows = await transaction`
       select * from generation_jobs
       where id = ${input.jobId} and casting_id = ${input.castingId}
@@ -212,11 +337,11 @@ export async function finalizeDeepReadingStep(input: {
       throw new Error("GENERATION_JOB_LEASE_INVALID");
     }
 
-    // 3. Verify reservation is still reserved and matches user
+    // 4. Verify reservation is still reserved and matches user & job
     const resRows = await transaction`
       select * from entitlement_reservations
       where id = ${input.reservationId} and casting_id = ${input.castingId}
-        and status = 'reserved'
+        and job_id = ${input.jobId} and status = 'reserved'
       limit 1
       for update
     ` as Row[];
@@ -228,12 +353,9 @@ export async function finalizeDeepReadingStep(input: {
     const output = input.generationResult.output as CommercialReadingReport;
     const config = getServerConfig();
     const model = config.aiModelDeepReading ?? "gemini-2.5-pro";
-    const secret = config.appSecret ?? "default-secret-32-chars-long-min!";
-    const integrityHash = createHmac("sha256", secret)
-      .update(`${input.castingId}:${JSON.stringify(output)}`)
-      .digest("hex");
+    const { hmac: integrityHash } = calculateResultIntegrityHmac(facts);
 
-    // 4. Insert output review
+    // 5. Insert output review
     await transaction`
       insert into generation_output_reviews (
         id, job_id, casting_id, kind, status, reason_codes,
@@ -247,7 +369,7 @@ export async function finalizeDeepReadingStep(input: {
       ) on conflict (job_id) do nothing
     `;
 
-    // 5. Insert deep reading results
+    // 6. Insert deep reading results
     await transaction`
       insert into deep_reading_results (
         casting_id, job_id, reservation_id, output, schema_version, prompt_version,
@@ -259,7 +381,7 @@ export async function finalizeDeepReadingStep(input: {
       )
     `;
 
-    // 6. Consume reservation and entitlement batch
+    // 7. Consume reservation and entitlement batch
     await transaction`
       update entitlement_reservations
       set status = 'consumed', lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
@@ -286,7 +408,7 @@ export async function finalizeDeepReadingStep(input: {
       on conflict (business_key) do nothing
     `;
 
-    // 7. Complete job and workflow run
+    // 8. Complete job and workflow run
     await transaction`
       update generation_jobs
       set status = 'completed', completed_at = clock_timestamp(),
@@ -300,12 +422,28 @@ export async function finalizeDeepReadingStep(input: {
       where idempotency_key = ${input.idempotencyKey}
     `;
 
+    // 9. Record audit event
+    await transaction`
+      insert into audit_events (
+        id, category, action, entity_type, entity_id, user_id, payload, created_at
+      ) values (
+        ${randomUUID()}, 'generation', 'deep_reading_completed', 'job', ${input.jobId},
+        ${String(session.user_id)}, ${JSON.stringify({
+          castingId: input.castingId,
+          reservationId: input.reservationId,
+          model,
+        })}::jsonb, clock_timestamp()
+      )
+    `;
+
     return { success: true };
   });
 }
 
 export async function handleWorkflowFailureStep(input: {
   jobId: string;
+  leaseToken: string;
+  generationEpoch: number;
   reservationId: string;
   idempotencyKey: string;
   errorCode: string;
@@ -314,13 +452,20 @@ export async function handleWorkflowFailureStep(input: {
   const sql = getPostgresClient();
 
   await sql.begin(async (transaction: TransactionSql) => {
-    // Fail job
-    await transaction`
+    // Only fail the job if the worker still holds the lease and epoch matches
+    const updatedJobs = await transaction`
       update generation_jobs
       set status = 'failed', structured_error_code = ${input.errorCode},
           lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
-      where id = ${input.jobId} and status in ('queued', 'running')
-    `;
+      where id = ${input.jobId} and lease_token = ${input.leaseToken}
+        and generation_epoch = ${input.generationEpoch} and status = 'running'
+      returning id
+    ` as Row[];
+
+    // If job was already taken over or not running with this lease, fail-stop
+    if (!updatedJobs[0]) {
+      return;
+    }
 
     // Release reservation
     const resRows = await transaction`
@@ -364,6 +509,20 @@ export async function handleWorkflowFailureStep(input: {
       update workflow_runs
       set status = 'failed', error_code = ${input.errorCode}, updated_at = clock_timestamp()
       where idempotency_key = ${input.idempotencyKey}
+    `;
+
+    // Record audit event
+    await transaction`
+      insert into audit_events (
+        id, category, action, entity_type, entity_id, user_id, payload, created_at
+      ) values (
+        ${randomUUID()}, 'generation', 'deep_reading_failed', 'job', ${input.jobId},
+        ${reservation ? String(reservation.user_id) : null},
+        ${JSON.stringify({
+          reservationId: input.reservationId,
+          errorCode: input.errorCode,
+        })}::jsonb, clock_timestamp()
+      )
     `;
   });
 }

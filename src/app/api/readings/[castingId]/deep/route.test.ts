@@ -24,10 +24,15 @@ vi.mock("@/lib/auth/session", () => ({
 
 import { GET, POST } from "./route";
 
-function postRequest(castingId: string) {
+function postRequest(castingId: string, extraHeaders: Record<string, string> = {}) {
   return new Request(`https://www.quickiching.com/api/readings/${castingId}/deep`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      origin: "https://www.quickiching.com",
+      "sec-fetch-site": "same-origin",
+      ...extraHeaders,
+    },
   });
 }
 
@@ -57,6 +62,12 @@ describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
     mocks.capabilityEnabled = false;
     expect((await POST(postRequest(castingId), { params: Promise.resolve({ castingId }) })).status).toBe(404);
     expect((await GET(getRequest(castingId), { params: Promise.resolve({ castingId }) })).status).toBe(404);
+  });
+
+  it("rejects cross-site requests with 403 Forbidden", async () => {
+    const crossSiteReq = postRequest(castingId, { "sec-fetch-site": "cross-site", origin: "https://attacker.com" });
+    const res = await POST(crossSiteReq, { params: Promise.resolve({ castingId }) });
+    expect(res.status).toBe(403);
   });
 
   it("returns 401 when user is not signed in", async () => {

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { hmacWithKeyMaterial, verifyHmacWithKeyMaterial } from "@/lib/crypto";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
 import type { PreviewGenerationContext } from "./types";
@@ -41,5 +42,36 @@ export function createResultIntegrityVerifier(env: Record<string, string | undef
       key.version,
       key.material,
     );
+  };
+}
+
+export function calculateDeepReadingInputSnapshotHash(input: {
+  castingId: string;
+  userId: string;
+  epoch: number;
+  question: string;
+  scene: string;
+  interpretationGoal: string;
+  facts: DeterministicFacts;
+}): string {
+  const canonicalFacts = canonicalDeterministicFacts(input.facts);
+  return createHash("sha256")
+    .update(`${input.castingId}:${input.userId}:${input.epoch}:${input.scene}:${input.interpretationGoal}:${input.question}:${canonicalFacts}`)
+    .digest("hex");
+}
+
+export function calculateResultIntegrityHmac(
+  facts: DeterministicFacts,
+  env: Record<string, string | undefined> = process.env,
+): { hmac: string; version: string } {
+  const keys = parseKeys(env.RESULT_INTEGRITY_KEYS);
+  if (keys.length === 0) {
+    throw new Error("RESULT_INTEGRITY_KEYS_INVALID");
+  }
+  const key = keys[0];
+  if (!key) throw new Error("RESULT_INTEGRITY_KEYS_INVALID");
+  return {
+    hmac: resultIntegrityHmac(facts, key),
+    version: key.version,
   };
 }

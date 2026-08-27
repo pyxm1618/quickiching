@@ -31,11 +31,31 @@ function unauthorized(): Response {
   });
 }
 
+function forbidden(message = "Forbidden"): Response {
+  return new Response(message, {
+    status: 403,
+    headers: headers({ "Content-Type": "text/plain; charset=utf-8" }),
+  });
+}
+
+function sameOrigin(request: Request): boolean {
+  if (request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site") return false;
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+  const configured = process.env.APP_BASE_URL?.trim() || process.env.BETTER_AUTH_URL?.trim() || request.url;
+  try {
+    return new URL(origin).origin === new URL(configured).origin;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ castingId: string }> },
 ): Promise<Response> {
   if (!isPaidDeepReadingCapabilityEnabled()) return notFound();
+  if (!sameOrigin(request)) return forbidden("Cross-site requests prohibited");
 
   const session = await resolveSession(request.headers);
   if (!session?.user?.id) return unauthorized();
@@ -57,8 +77,14 @@ export async function POST(
     }, result.status === "completed" ? 200 : 202);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    if (message === "CASTING_NOT_FOUND" || message === "USER_NOT_FOUND_OR_DELETED") {
+    if (message === "CASTING_NOT_FOUND" || message === "USER_NOT_FOUND" || message === "USER_NOT_FOUND_OR_DELETED") {
       return notFound();
+    }
+    if (message === "CASTING_NOT_READY") {
+      return json({ error: "CASTING_NOT_READY", message: "Casting must be revealed before requesting deep reading", retryable: false }, 422);
+    }
+    if (message === "RISK_PROHIBITED") {
+      return json({ error: "RISK_PROHIBITED", message: "This reading is restricted by risk assessment", retryable: false }, 403);
     }
     if (message === "INSUFFICIENT_CREDITS") {
       return json({ error: "INSUFFICIENT_CREDITS", retryable: false }, 402);
@@ -88,7 +114,7 @@ export async function GET(
     return json(result, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    if (message === "CASTING_NOT_FOUND" || message === "USER_NOT_FOUND_OR_DELETED") {
+    if (message === "CASTING_NOT_FOUND" || message === "USER_NOT_FOUND" || message === "USER_NOT_FOUND_OR_DELETED") {
       return notFound();
     }
     return json({ error: "DEEP_READING_STATUS_FAILED", retryable: true }, 500);

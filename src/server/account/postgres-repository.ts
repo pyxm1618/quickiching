@@ -111,31 +111,67 @@ export function createPostgresAccountRepository(dependencies: { sql: Sql }): Pos
           where user_id = ${userId} and deleted_at is null
         `;
 
-        // 2. Release any reserved entitlements
-        await transaction`
-          update entitlement_reservations
-          set status = 'released', lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
+        // 2. Query and release any active reserved entitlements, restoring batch available balance and writing ledger
+        const activeReservations = await transaction`
+          select id, batch_id from entitlement_reservations
           where user_id = ${userId} and status = 'reserved'
-        `;
+          for update
+        ` as Row[];
+
+        for (const res of activeReservations) {
+          await transaction`
+            update entitlement_reservations
+            set status = 'released', lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
+            where id = ${res.id}
+          `;
+
+          await transaction`
+            update entitlement_batches
+            set quantity_reserved = greatest(0, quantity_reserved - 1),
+                quantity_available = quantity_available + 1,
+                updated_at = clock_timestamp()
+            where id = ${res.batch_id}
+          `;
+
+          await transaction`
+            insert into entitlement_ledger (
+              id, batch_id, order_id, action, quantity, business_key, created_at
+            )
+            select
+              ${randomUUID()}, ${res.batch_id}, b.order_id, 'release', 1,
+              ${`release:${res.id}`}, clock_timestamp()
+            from entitlement_batches b
+            where b.id = ${res.batch_id}
+            on conflict (business_key) do nothing
+          `;
+        }
 
         // 3. Clear user sessions
         await transaction`
           delete from sessions where user_id = ${userId}
         `;
 
-        // 4. Record audit event
+        // 4. Delete OAuth accounts
+        await transaction`
+          delete from accounts where user_id = ${userId}
+        `;
+
+        // 5. Anonymize user record
+        await transaction`
+          update users
+          set name = 'Deleted User', email = ${`deleted_${randomUUID()}@deleted.local`},
+              email_verified = false, image = null, updated_at = clock_timestamp()
+          where id = ${userId}
+        `;
+
+        // 6. Record audit event
         await transaction`
           insert into audit_events (
             id, category, action, entity_type, entity_id, user_id, payload, created_at
           ) values (
             ${randomUUID()}, 'deletion', 'account_deleted', 'user', ${userId}, ${userId},
-            '{"action":"user_data_erased"}'::jsonb, clock_timestamp()
+            '{"action":"user_data_erased","reason":"user_requested"}'::jsonb, clock_timestamp()
           )
-        `;
-
-        // 5. Delete OAuth accounts
-        await transaction`
-          delete from accounts where user_id = ${userId}
         `;
 
         return { success: true };

@@ -17,6 +17,8 @@ export type DeepReadingWorkflowInput = {
 export async function deepReadingWorkflow(input: DeepReadingWorkflowInput) {
   "use workflow";
 
+  let activeLeaseToken = "";
+
   try {
     // Step 1: Claim lease and fetch snapshot
     const { leaseToken, providerInput, inputSnapshotHash } = await claimJobLeaseStep({
@@ -25,6 +27,7 @@ export async function deepReadingWorkflow(input: DeepReadingWorkflowInput) {
       idempotencyKey: input.idempotencyKey,
       generationEpoch: input.generationEpoch,
     });
+    activeLeaseToken = leaseToken;
 
     // Step 2: Generate AI Reading
     const generationResult = await generateDeepReadingStep({
@@ -44,6 +47,8 @@ export async function deepReadingWorkflow(input: DeepReadingWorkflowInput) {
     if (reviewDecision.status !== "pass") {
       await handleWorkflowFailureStep({
         jobId: input.jobId,
+        leaseToken: activeLeaseToken,
+        generationEpoch: input.generationEpoch,
         reservationId: input.reservationId,
         idempotencyKey: input.idempotencyKey,
         errorCode: "OUTPUT_REVIEW_FAILED",
@@ -67,12 +72,16 @@ export async function deepReadingWorkflow(input: DeepReadingWorkflowInput) {
     return { status: "completed" };
   } catch (error) {
     const errorCode = error instanceof Error ? error.message : "WORKFLOW_EXECUTION_FAILED";
-    await handleWorkflowFailureStep({
-      jobId: input.jobId,
-      reservationId: input.reservationId,
-      idempotencyKey: input.idempotencyKey,
-      errorCode,
-    });
+    if (activeLeaseToken) {
+      await handleWorkflowFailureStep({
+        jobId: input.jobId,
+        leaseToken: activeLeaseToken,
+        generationEpoch: input.generationEpoch,
+        reservationId: input.reservationId,
+        idempotencyKey: input.idempotencyKey,
+        errorCode,
+      });
+    }
     throw error;
   }
 }

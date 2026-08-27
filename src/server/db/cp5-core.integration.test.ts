@@ -31,6 +31,7 @@ describe("CP5 PostgreSQL schema and cross-table ownership constraints", () => {
     await sql`delete from workflow_runs where entity_id in (${castingOneId}, ${castingTwoId})`;
     await sql`delete from deep_reading_results where casting_id in (${castingOneId}, ${castingTwoId})`;
     await sql`delete from entitlement_reservations where user_id in (${userOneId}, ${userTwoId})`;
+    await sql`delete from generation_output_reviews where job_id in (${deepJobOneId}, ${deepJobTwoId})`;
     await sql`delete from generation_jobs where id in (${previewJobId}, ${deepJobOneId}, ${deepJobTwoId})`;
     await sql`delete from casting_sessions where id in (${castingOneId}, ${castingTwoId})`;
     await sql`delete from entitlement_ledger where batch_id in (${batchOneId}, ${batchTwoId})`;
@@ -84,7 +85,7 @@ describe("CP5 PostgreSQL schema and cross-table ownership constraints", () => {
         id, casting_id, kind, status, generation_epoch, idempotency_key, input_snapshot_hash, timeout_at, created_at, updated_at
       ) values
         (${previewJobId}, ${castingOneId}, 'preview', 'queued', 0, 'idem-preview-1', 'snap-hash-0', now() + interval '1 hour', ${now}, ${now}),
-        (${deepJobOneId}, ${castingOneId}, 'deep_reading', 'queued', 0, 'idem-deep-1', 'snap-hash-1', now() + interval '1 hour', ${now}, ${now}),
+        (${deepJobOneId}, ${castingOneId}, 'deep_reading', 'running', 0, 'idem-deep-1', 'snap-hash-1', now() + interval '1 hour', ${now}, ${now}),
         (${deepJobTwoId}, ${castingTwoId}, 'deep_reading', 'queued', 0, 'idem-deep-2', 'snap-hash-2', now() + interval '1 hour', ${now}, ${now})
       on conflict (id) do nothing
     `;
@@ -201,17 +202,38 @@ describe("CP5 PostgreSQL schema and cross-table ownership constraints", () => {
     `).rejects.toThrow();
   });
 
-  it("prevents mutation of persisted deep_reading_results", async () => {
+  it("requires valid running job, reservation hold and review pass before inserting deep_reading_results", async () => {
     const resId = "a2222222-2222-4222-8222-222222222222";
+    const reviewId = "a3333333-3333-4333-8333-333333333333";
+
     await sql`
       insert into entitlement_reservations (
         id, batch_id, user_id, casting_id, job_id, status, lease_token, lease_expires_at, expires_at, created_at, updated_at
       ) values (
         ${resId}, ${batchOneId}, ${userOneId}, ${castingOneId}, ${deepJobOneId},
-        'consumed', null, null, now() + interval '12 months', now(), now()
+        'reserved', 'lease-1', now() + interval '5 minutes', now() + interval '12 months', now(), now()
       )
     `;
 
+    // Attempt insert without review pass -> must throw
+    await expect(sql`
+      insert into deep_reading_results (
+        casting_id, job_id, reservation_id, output, schema_version, prompt_version, provider, model, integrity_hash, persisted_at
+      ) values (
+        ${castingOneId}, ${deepJobOneId}, ${resId}, '{"report":"sample"}'::jsonb, 'commercial-reading-v1', 'v1', 'openai', 'gpt-4o', 'hash-123', now()
+      )
+    `).rejects.toThrow();
+
+    // Insert output review
+    await sql`
+      insert into generation_output_reviews (
+        id, job_id, casting_id, kind, status, reason_codes, reviewer_model_version, schema_valid, safety_pass, fact_consistency_pass, created_at
+      ) values (
+        ${reviewId}, ${deepJobOneId}, ${castingOneId}, 'deep_reading', 'pass', '[]'::jsonb, 'model-v1', true, true, true, now()
+      )
+    `;
+
+    // Insert now succeeds
     await sql`
       insert into deep_reading_results (
         casting_id, job_id, reservation_id, output, schema_version, prompt_version, provider, model, integrity_hash, persisted_at
@@ -220,12 +242,13 @@ describe("CP5 PostgreSQL schema and cross-table ownership constraints", () => {
       )
     `;
 
+    // Update and delete on results must be prevented
     await expect(sql`
       update deep_reading_results set output = '{"tampered":true}'::jsonb where casting_id = ${castingOneId}
     `).rejects.toThrow();
 
-    // Clean up
-    await sql`delete from deep_reading_results where casting_id = ${castingOneId}`;
-    await sql`delete from entitlement_reservations where id = ${resId}`;
+    await expect(sql`
+      delete from deep_reading_results where casting_id = ${castingOneId}
+    `).rejects.toThrow();
   });
 });

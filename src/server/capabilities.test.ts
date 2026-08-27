@@ -566,7 +566,7 @@ describe("commercial capability matrix", () => {
     expect(onlyCheckout).toMatchObject({
       enabled: false,
       reason: "blocked_dependencies",
-      blockedDependencies: ["auth", "webhookIngestion"],
+      blockedDependencies: ["auth", "webhookIngestion", "reconcile"],
     });
 
     const checkoutWithoutWebhook = resolveCommercialCapabilities(completeValidEnvironment, {
@@ -575,11 +575,11 @@ describe("commercial capability matrix", () => {
     expect(checkoutWithoutWebhook).toMatchObject({
       enabled: false,
       reason: "blocked_dependencies",
-      blockedDependencies: ["webhookIngestion"],
+      blockedDependencies: ["webhookIngestion", "reconcile"],
     });
 
     const readyCheckout = resolveCommercialCapabilities(completeValidEnvironment, {
-      definitions: definitionsWithImplementations("auth", "webhookIngestion", "checkout"),
+      definitions: definitionsWithImplementations("auth", "webhookIngestion", "reconcile", "checkout"),
     }).capabilities.checkout;
     expect(readyCheckout).toMatchObject({
       enabled: true,
@@ -639,7 +639,7 @@ describe("commercial capability matrix", () => {
     environment.AI_MODEL_PREVIEW = undefined;
 
     const result = resolveCommercialCapabilities(environment, {
-      definitions: definitionsWithImplementations("auth", "paidDeepReading"),
+      definitions: definitionsWithImplementations("auth", "reconcile", "paidDeepReading"),
     });
     const status = result.capabilities.paidDeepReading;
 

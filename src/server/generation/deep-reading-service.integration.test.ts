@@ -102,6 +102,51 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     expect(resRows[0]?.user_id).toBe(userOneId);
   });
 
+  it("rejects casting that is not in revealed lifecycle", async () => {
+    const castingId = randomUUID();
+    const orderId = randomUUID();
+    const batchId = randomUUID();
+    const now = new Date().toISOString();
+
+    await sql`
+      insert into payment_orders (
+        id, user_id, product_key, quantity, amount_minor, currency, request_id,
+        provider, provider_environment, provider_product_id, provider_order_id, provider_payment_id,
+        status, paid_at, created_at, updated_at
+      ) values (${orderId}, ${userOneId}, 'one', 1, 299, 'USD', ${`req-${orderId}`}, 'waffo', 'test', 'prod-1', ${`ord-${orderId}`}, ${`pay-${orderId}`}, 'paid', ${now}, ${now}, ${now})
+    `;
+    await sql`
+      insert into entitlement_batches (
+        id, user_id, order_id, quantity_total, quantity_available, quantity_reserved, quantity_consumed, quantity_revoked, expires_at, created_at, updated_at
+      ) values (${batchId}, ${userOneId}, ${orderId}, 1, 1, 0, 0, 0, now() + interval '12 months', ${now}, ${now})
+    `;
+
+    await sql`
+      insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
+      values (${castingId}, ${userOneId}, 'three_coin', 'draft', 'allowed', 'career', 'guidance', ${now}, ${now})
+    `;
+
+    await expect(deepReadingService.requestDeepReading({
+      userId: userOneId,
+      castingId,
+    })).rejects.toThrow("CASTING_NOT_READY");
+  });
+
+  it("rejects casting that has non-allowed risk status", async () => {
+    const castingId = randomUUID();
+    const now = new Date().toISOString();
+
+    await sql`
+      insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
+      values (${castingId}, ${userOneId}, 'three_coin', 'revealed', 'emergency_blocked', 'career', 'guidance', ${now}, ${now})
+    `;
+
+    await expect(deepReadingService.requestDeepReading({
+      userId: userOneId,
+      castingId,
+    })).rejects.toThrow("RISK_PROHIBITED");
+  });
+
   it("fails closed with 404 when user tries to access another user's casting (NEG-10)", async () => {
     const castingId = randomUUID();
     const now = new Date().toISOString();
@@ -126,6 +171,15 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await sql`
       insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
       values (${castingId}, ${userZeroId}, 'three_coin', 'revealed', 'allowed', 'career', 'guidance', ${now}, ${now})
+    `;
+    await sql`
+      insert into cast_results (
+        casting_id, line_values, primary_hexagram_number, moving_line_positions, relating_hexagram_number,
+        method_calculation, algorithm_version, classic_mapping_version, result_hmac, result_hmac_key_version, created_at
+      ) values (
+        ${castingId}, ARRAY[7,8,7,8,7,8]::integer[], 11, ARRAY[]::integer[], null,
+        '{"coins":[2,2,3]}'::jsonb, 'three-coin-v1', 'king-wen-v1', 'hmac-1', 'v1', ${now}
+      )
     `;
 
     // userZeroId has 0 entitlement batches/credits

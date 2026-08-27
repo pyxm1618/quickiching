@@ -32,13 +32,17 @@ CREATE TABLE "entitlement_reservations" (
 	"batch_id" uuid NOT NULL,
 	"user_id" text NOT NULL,
 	"casting_id" uuid NOT NULL,
-	"job_id" uuid,
+	"job_id" uuid NOT NULL,
 	"status" "entitlement_reservation_status" DEFAULT 'reserved' NOT NULL,
 	"lease_token" text,
 	"lease_expires_at" timestamp with time zone,
 	"expires_at" timestamp with time zone NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "entitlement_reservations_lease_check" CHECK (
+		("status" = 'reserved' AND "lease_token" IS NOT NULL) OR
+		("status" <> 'reserved')
+	)
 );
 --> statement-breakpoint
 CREATE TABLE "workflow_runs" (
@@ -86,6 +90,10 @@ DECLARE
   v_job_casting_id uuid;
   v_job_kind "public"."generation_kind";
 BEGIN
+  IF NEW.job_id IS NULL THEN
+    RAISE EXCEPTION 'RESERVATION_JOB_REQUIRED';
+  END IF;
+
   SELECT user_id INTO v_batch_user_id FROM entitlement_batches WHERE id = NEW.batch_id;
   IF v_batch_user_id IS NULL OR v_batch_user_id <> NEW.user_id THEN
     RAISE EXCEPTION 'RESERVATION_BATCH_USER_MISMATCH';
@@ -96,14 +104,12 @@ BEGIN
     RAISE EXCEPTION 'RESERVATION_CASTING_USER_MISMATCH';
   END IF;
 
-  IF NEW.job_id IS NOT NULL THEN
-    SELECT casting_id, kind INTO v_job_casting_id, v_job_kind FROM generation_jobs WHERE id = NEW.job_id;
-    IF v_job_casting_id IS NULL OR v_job_casting_id <> NEW.casting_id THEN
-      RAISE EXCEPTION 'RESERVATION_JOB_CASTING_MISMATCH';
-    END IF;
-    IF v_job_kind <> 'deep_reading' THEN
-      RAISE EXCEPTION 'RESERVATION_JOB_KIND_INVALID';
-    END IF;
+  SELECT casting_id, kind INTO v_job_casting_id, v_job_kind FROM generation_jobs WHERE id = NEW.job_id;
+  IF v_job_casting_id IS NULL OR v_job_casting_id <> NEW.casting_id THEN
+    RAISE EXCEPTION 'RESERVATION_JOB_CASTING_MISMATCH';
+  END IF;
+  IF v_job_kind <> 'deep_reading' THEN
+    RAISE EXCEPTION 'RESERVATION_JOB_KIND_INVALID';
   END IF;
 
   RETURN NEW;
@@ -113,6 +119,45 @@ $$ LANGUAGE plpgsql;--> statement-breakpoint
 CREATE TRIGGER entitlement_reservation_ownership_trigger
 BEFORE INSERT OR UPDATE ON entitlement_reservations
 FOR EACH ROW EXECUTE FUNCTION validate_entitlement_reservation_ownership();--> statement-breakpoint
+
+CREATE OR REPLACE FUNCTION validate_deep_reading_results_insertion()
+RETURNS trigger AS $$
+DECLARE
+  v_job_status "public"."generation_job_status";
+  v_job_casting_id uuid;
+  v_res_status "public"."entitlement_reservation_status";
+  v_res_casting_id uuid;
+  v_res_job_id uuid;
+  v_review_status "public"."output_review_status";
+BEGIN
+  SELECT status, casting_id INTO v_job_status, v_job_casting_id
+  FROM generation_jobs WHERE id = NEW.job_id;
+
+  IF v_job_status IS NULL OR v_job_status <> 'running' OR v_job_casting_id <> NEW.casting_id THEN
+    RAISE EXCEPTION 'RESULT_JOB_STATE_INVALID';
+  END IF;
+
+  SELECT status, casting_id, job_id INTO v_res_status, v_res_casting_id, v_res_job_id
+  FROM entitlement_reservations WHERE id = NEW.reservation_id;
+
+  IF v_res_status IS NULL OR v_res_status <> 'reserved' OR v_res_casting_id <> NEW.casting_id OR v_res_job_id <> NEW.job_id THEN
+    RAISE EXCEPTION 'RESULT_RESERVATION_STATE_INVALID';
+  END IF;
+
+  SELECT status INTO v_review_status
+  FROM generation_output_reviews WHERE job_id = NEW.job_id;
+
+  IF v_review_status IS NULL OR v_review_status <> 'pass' THEN
+    RAISE EXCEPTION 'RESULT_REVIEW_REQUIRED';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;--> statement-breakpoint
+
+CREATE TRIGGER deep_reading_results_insertion_trigger
+BEFORE INSERT ON deep_reading_results
+FOR EACH ROW EXECUTE FUNCTION validate_deep_reading_results_insertion();--> statement-breakpoint
 
 CREATE OR REPLACE FUNCTION prevent_audit_events_mutation()
 RETURNS trigger AS $$
@@ -145,10 +190,13 @@ BEGIN
   IF TG_OP = 'UPDATE' THEN
     RAISE EXCEPTION 'IMMUTABLE_DEEP_READING_RESULTS';
   END IF;
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'IMMUTABLE_DEEP_READING_RESULTS';
+  END IF;
   RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;--> statement-breakpoint
 
 CREATE TRIGGER deep_reading_results_immutable_trigger
-BEFORE UPDATE ON deep_reading_results
+BEFORE UPDATE OR DELETE ON deep_reading_results
 FOR EACH ROW EXECUTE FUNCTION prevent_deep_reading_results_mutation();

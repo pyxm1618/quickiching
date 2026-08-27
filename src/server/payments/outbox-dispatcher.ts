@@ -51,7 +51,7 @@ export function createOutboxDispatcher(dependencies: {
 
       return sql.begin(async (transaction) => {
         const rows = await transaction`
-          select id, inbox_id, order_id, topic, attempt_count
+          select id, inbox_id, order_id, topic, attempt_count, status
           from payment_outbox
           where (
             (status in ('pending', 'failed') and available_at <= clock_timestamp())
@@ -66,6 +66,7 @@ export function createOutboxDispatcher(dependencies: {
           order_id: string | null;
           topic: string;
           attempt_count: number;
+          status: string;
         }>;
 
         if (rows.length === 0) return [];
@@ -73,8 +74,31 @@ export function createOutboxDispatcher(dependencies: {
         const claimed: ClaimedOutboxItem[] = [];
 
         for (const row of rows) {
+          const currentAttempts = Number(row.attempt_count);
+
+          // If crashed or failed and already hit max attempts, route to dead letter
+          if (currentAttempts >= MAX_ATTEMPTS) {
+            await transaction`
+              update payment_outbox
+              set status = 'dead_letter',
+                  lease_token = null,
+                  lease_expires_at = null,
+                  last_error_code = coalesce(last_error_code, 'MAX_ATTEMPTS_EXCEEDED'),
+                  updated_at = clock_timestamp()
+              where id = ${row.id}
+            `;
+            await transaction`
+              update payment_webhook_inbox
+              set status = 'dead_letter',
+                  last_error_code = coalesce(last_error_code, 'MAX_ATTEMPTS_EXCEEDED'),
+                  updated_at = clock_timestamp()
+              where id = ${row.inbox_id}
+            `;
+            continue;
+          }
+
           const leaseToken = randomUUID();
-          const nextAttempt = Number(row.attempt_count) + 1;
+          const nextAttempt = currentAttempts + 1;
 
           await transaction`
             update payment_outbox
@@ -91,7 +115,7 @@ export function createOutboxDispatcher(dependencies: {
             set status = 'processing',
                 attempt_count = greatest(attempt_count, ${nextAttempt}),
                 updated_at = clock_timestamp()
-            where id = ${row.inbox_id} and status in ('received', 'failed', 'processing')
+            where id = ${row.inbox_id} and status in ('received', 'failed', 'processing', 'pending_order')
           `;
 
           claimed.push({
@@ -119,7 +143,10 @@ export function createOutboxDispatcher(dependencies: {
         };
       } catch (error) {
         const errorCode = error instanceof Error ? error.message : "DISPATCH_FAILED";
-        const failure = await repository.recordProcessingFailure(item.inboxId, errorCode);
+        const failure = await repository.recordProcessingFailure(item.inboxId, {
+          leaseToken: item.leaseToken,
+          errorCode,
+        });
 
         if (!failure.deadLetter) {
           const backoffMs = calculateBackoffMs(failure.attemptCount);
@@ -127,7 +154,7 @@ export function createOutboxDispatcher(dependencies: {
             update payment_outbox
             set available_at = clock_timestamp() + (${backoffMs} * interval '1 millisecond'),
                 updated_at = clock_timestamp()
-            where id = ${item.id}
+            where id = ${item.id} and lease_token is null
           `;
         }
 

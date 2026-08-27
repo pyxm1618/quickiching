@@ -141,7 +141,7 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
   checkout: {
     flag: "COMMERCIAL_V2_CHECKOUT_ENABLED",
     implementationAvailable: true,
-    capabilityDependencies: ["auth", "webhookIngestion"],
+    capabilityDependencies: ["auth", "webhookIngestion", "reconcile"],
     requirements: [
       ...databaseRequirements,
       ...waffoCheckoutRequirements,
@@ -158,12 +158,13 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
   paidDeepReading: {
     flag: "COMMERCIAL_V2_PAID_DEEP_READING_ENABLED",
     implementationAvailable: true,
-    capabilityDependencies: ["auth"],
+    capabilityDependencies: ["auth", "reconcile"],
     requirements: [
       ...sharedAiRequirements,
       { name: "WORKFLOW_ADAPTER_MODE", expected: "vercel" },
       { name: "BETTER_AUTH_SECRET", format: "secret" },
       { name: "AI_MODEL_DEEP_READING", format: "nonBlank" },
+      { name: "AI_MAX_OUTPUT_TOKENS", format: "positiveInteger" },
       ...keyRequirements,
     ],
   },
