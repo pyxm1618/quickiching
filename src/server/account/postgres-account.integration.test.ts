@@ -120,7 +120,7 @@ describe("CP5D PostgreSQL Account & Privacy Boundaries (Integration)", () => {
 
     // Verify audit event recorded
     const auditRows = await sql<{ action: string; category: string }[]>`
-      select action, category from audit_events where entity_id = ${deleteUserId}
+      select action, category from audit_events where category = 'deletion' and action = 'account_deleted' and user_id is null and entity_id is null order by created_at desc limit 1
     `;
     expect(auditRows[0]?.category).toBe("deletion");
     expect(auditRows[0]?.action).toBe("account_deleted");

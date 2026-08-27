@@ -122,7 +122,7 @@ describe("CP4 PostgreSQL payment and entitlement core", () => {
     const migrations = await sql<{ count: string }[]>`
       select count(*)::text as count from drizzle.__drizzle_migrations
     `;
-    expect(migrations[0]?.count).toBe("10");
+    expect(migrations[0]?.count).toBe("11");
   });
 
   it("enforces order, Inbox/Outbox, ledger, and batch invariants in PostgreSQL", async () => {

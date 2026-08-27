@@ -218,9 +218,9 @@ describe("CP5 PostgreSQL schema and cross-table ownership constraints", () => {
     // Attempt insert without review pass -> must throw
     await expect(sql`
       insert into deep_reading_results (
-        casting_id, job_id, reservation_id, output, schema_version, prompt_version, provider, model, integrity_hash, persisted_at
+        casting_id, job_id, reservation_id, output, schema_version, prompt_version, provider, model, integrity_hash, integrity_key_version, persisted_at
       ) values (
-        ${castingOneId}, ${deepJobOneId}, ${resId}, '{"report":"sample"}'::jsonb, 'commercial-reading-v1', 'v1', 'openai', 'gpt-4o', 'hash-123', now()
+        ${castingOneId}, ${deepJobOneId}, ${resId}, '{"report":"sample"}'::jsonb, 'commercial-reading-v1', 'v1', 'openai', 'gpt-4o', 'hash-123', 'v-test', now()
       )
     `).rejects.toThrow();
 
@@ -236,9 +236,9 @@ describe("CP5 PostgreSQL schema and cross-table ownership constraints", () => {
     // Insert now succeeds
     await sql`
       insert into deep_reading_results (
-        casting_id, job_id, reservation_id, output, schema_version, prompt_version, provider, model, integrity_hash, persisted_at
+        casting_id, job_id, reservation_id, output, schema_version, prompt_version, provider, model, integrity_hash, integrity_key_version, persisted_at
       ) values (
-        ${castingOneId}, ${deepJobOneId}, ${resId}, '{"report":"sample"}'::jsonb, 'commercial-reading-v1', 'v1', 'openai', 'gpt-4o', 'hash-123', now()
+        ${castingOneId}, ${deepJobOneId}, ${resId}, '{"report":"sample"}'::jsonb, 'commercial-reading-v1', 'v1', 'openai', 'gpt-4o', 'hash-123', 'v-test', now()
       )
     `;
 
