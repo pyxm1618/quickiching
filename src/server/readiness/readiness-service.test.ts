@@ -5,7 +5,7 @@ import {
 } from "./readiness-service";
 
 describe("System Readiness Service", () => {
-  it("reports ready for Public V1 mode when all commercial flags are disabled", async () => {
+  it("reports blocked when all commercial capabilities are disabled or unconfigured", async () => {
     const env: Record<string, string> = {
       COMMERCIAL_V2_AUTH_ENABLED: "false",
       COMMERCIAL_V2_AI_PREVIEW_ENABLED: "false",
@@ -16,8 +16,8 @@ describe("System Readiness Service", () => {
     };
 
     const report = await checkSystemReadiness(env);
-    expect(report.status).toBe("ready");
-    expect(report.overall).toBe("ready");
+    expect(report.status).toBe("not_ready");
+    expect(report.overall).toBe("blocked");
     expect(report.database.status).toBe("not_configured");
     expect(report.capabilities.auth.enabled).toBe(false);
   });

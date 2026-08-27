@@ -117,13 +117,14 @@ export async function checkSystemReadiness(
     }
   }
 
-  const isDatabaseBlocking =
-    capabilityConfig.commercialEnabled &&
-    (dbReport.status === "error" ||
-      dbReport.status === "tables_missing" ||
-      dbReport.status === "not_configured");
+  const isDatabaseReady = dbReport.status === "ok" && dbReport.connected;
+  const isCommercialActive = capabilityConfig.commercialEnabled;
 
-  const overallReady = !anyRequestedBlocked && !isDatabaseBlocking;
+  // Commercial V2 readiness requires:
+  // 1. Database is configured, reachable, and contains all required commercial tables.
+  // 2. Commercial V2 capabilities are actively configured and enabled.
+  // 3. No requested capability is blocked or missing dependencies.
+  const overallReady = isCommercialActive && isDatabaseReady && !anyRequestedBlocked;
 
   return {
     status: overallReady ? "ready" : "not_ready",
