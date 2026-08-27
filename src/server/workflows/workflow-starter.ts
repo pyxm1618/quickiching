@@ -16,7 +16,6 @@ export function createWorkflowStarter(): WorkflowStarter {
       const sql = getPostgresClient();
       const runId = `wf-${randomUUID()}`;
 
-      // 1. Record workflow_runs in database with status start_pending
       await sql`
         insert into workflow_runs (
           id, workflow_name, idempotency_key, entity_type, entity_id, status, created_at, updated_at
@@ -28,30 +27,22 @@ export function createWorkflowStarter(): WorkflowStarter {
 
       try {
         const run = await start(deepReadingWorkflow, [input]);
-
         await sql`
           update workflow_runs
-          set provider_run_id = ${run.runId ?? runId},
-              status = 'pending',
-              updated_at = clock_timestamp()
+          set provider_run_id = ${run.runId ?? runId}, status = 'pending',
+              error_code = null, updated_at = clock_timestamp()
           where idempotency_key = ${input.idempotencyKey}
         `;
-
         return { runId: run.runId ?? runId, started: true };
-      } catch (error) {
-        // Start failed or threw an uncertain outcome:
-        // Do NOT immediately delete reservation or blindly retry.
-        // Record the error on workflow_runs, keep start_pending status,
-        // and allow Reconcile to safely recover or release after grace period.
-        const errorCode = error instanceof Error ? error.message : "WORKFLOW_START_FAILED";
+      } catch {
+        // The caller performs a fenced compensation only while the job is
+        // still queued. Never leak provider details into durable error codes.
         await sql`
           update workflow_runs
-          set error_code = ${errorCode},
-              updated_at = clock_timestamp()
+          set error_code = 'WORKFLOW_START_FAILED', updated_at = clock_timestamp()
           where idempotency_key = ${input.idempotencyKey}
         `;
-
-        return { runId, started: false };
+        throw new Error("WORKFLOW_START_FAILED");
       }
     },
   };

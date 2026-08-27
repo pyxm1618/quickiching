@@ -1,23 +1,17 @@
 import { randomUUID } from "node:crypto";
-import type { Sql, TransactionSql } from "postgres";
+import type { TransactionSql } from "postgres";
 import { getPostgresClient } from "@/server/db/client";
-import {
-  deterministicFactsSchema,
-  readingReportSchema,
-  type DeterministicFacts,
-  type CommercialReadingReport,
-} from "@/domain/generation/schemas";
+import type { DeterministicFacts, CommercialReadingReport } from "@/domain/generation/schemas";
 import { createAiSdkGenerationProvider, createAiSdkOutputReviewer } from "@/server/generation/ai-sdk-provider";
 import { getServerConfig } from "@/server/config";
 import type { OutputReviewDecision, ProviderGenerationResult, ProviderInput } from "@/server/generation/types";
 import {
   calculateDeepReadingInputSnapshotHash,
-  calculateResultIntegrityHmac,
+  calculateDeepReadingResultIntegrity,
 } from "@/server/generation/integrity";
-import { decryptJson, decryptJsonWithKeyMaterial } from "@/lib/crypto";
+import { decryptQuestionForGeneration } from "@/server/generation/question-crypto";
 
 type Row = Record<string, any>;
-
 const LEASE_DURATION_MS = 5 * 60 * 1000;
 
 function readingVariant(movingLinePositions: number[]): DeterministicFacts["readingVariant"] {
@@ -27,37 +21,67 @@ function readingVariant(movingLinePositions: number[]): DeterministicFacts["read
   return "standard";
 }
 
-function configuredKeyMaterial(raw: string | undefined, version: string): string | undefined {
-  if (!raw?.trim()) return undefined;
-  const entries = raw.split(",").map((entry) => {
-    const match = /^([A-Za-z0-9][A-Za-z0-9._-]*):(.+)$/.exec(entry.trim());
-    return match ? { version: match[1], material: match[2].trim() } : null;
-  });
-  return entries.find((entry) => entry?.version === version)?.material;
+function factsFromSession(session: Row): DeterministicFacts {
+  const lineValues = (session.line_values as number[]) ?? [];
+  const movingLinePositions = (session.moving_line_positions as number[]) ?? [];
+  return {
+    method: session.method as any,
+    algorithmVersion: String(session.algorithm_version),
+    classicMappingVersion: String(session.classic_mapping_version),
+    lineValuesBottomUp: [
+      Number(lineValues[0]), Number(lineValues[1]), Number(lineValues[2]),
+      Number(lineValues[3]), Number(lineValues[4]), Number(lineValues[5]),
+    ] as any,
+    primaryHexagramNumber: Number(session.primary_hexagram_number),
+    movingLinePositions,
+    relatingHexagramNumber: session.relating_hexagram_number ? Number(session.relating_hexagram_number) : null,
+    readingVariant: readingVariant(movingLinePositions),
+  };
 }
 
-function decryptQuestionFromRow(row: Row, env: Record<string, string | undefined> = process.env): string {
-  if (!row.question_ciphertext || !row.question_iv || !row.question_auth_tag) {
-    return String(row.scene ? `Reading for scene: ${row.scene}` : "General I Ching Reading");
-  }
-  const encrypted = {
-    v: String(row.question_encryption_key_version ?? "v1"),
-    iv: String(row.question_iv),
-    tag: String(row.question_auth_tag),
-    data: String(row.question_ciphertext),
-  };
-  const castingId = String(row.casting_id ?? row.id);
-  const aad = `${castingId}:${String(row.question_version_id)}`;
-  const keyMaterial = configuredKeyMaterial(env.QUESTION_ENCRYPTION_KEYS, encrypted.v);
+function snapshotForSession(input: {
+  session: Row;
+  castingId: string;
+  generationEpoch: number;
+  questionText: string;
+  facts: DeterministicFacts;
+}): string {
+  return calculateDeepReadingInputSnapshotHash({
+    castingId: input.castingId,
+    userId: String(input.session.user_id),
+    epoch: input.generationEpoch,
+    question: input.questionText,
+    scene: String(input.session.scene),
+    interpretationGoal: String(input.session.interpretation_goal),
+    facts: input.facts,
+  });
+}
 
-  try {
-    const payload = keyMaterial
-      ? decryptJsonWithKeyMaterial<{ context: string }>(encrypted, "context", keyMaterial, aad)
-      : decryptJson<{ context: string }>(encrypted, "context", aad);
-    return payload.context;
-  } catch {
-    return String(row.scene ? `Reading for scene: ${row.scene}` : "General I Ching Reading");
-  }
+async function loadLockedSession(transaction: TransactionSql, castingId: string): Promise<Row> {
+  const rows = await transaction`
+    select
+      c.id, c.id as casting_id, c.user_id, c.deleted_at, c.generation_epoch, c.lifecycle, c.risk_status,
+      c.scene, c.interpretation_goal, c.method,
+      q.id as question_version_id, q.ciphertext as question_ciphertext,
+      q.iv as question_iv, q.auth_tag as question_auth_tag,
+      q.encryption_key_version as question_encryption_key_version,
+      r.line_values, r.primary_hexagram_number, r.moving_line_positions,
+      r.relating_hexagram_number, r.algorithm_version, r.classic_mapping_version,
+      r.result_hmac, r.result_hmac_key_version
+    from casting_sessions c
+    left join lateral (
+      select * from question_versions
+      where casting_id = c.id
+      order by version_number desc
+      limit 1
+    ) q on true
+    left join cast_results r on r.casting_id = c.id
+    where c.id = ${castingId}
+    limit 1
+    for update of c
+  ` as Row[];
+  if (!rows[0]) throw new Error("CASTING_SESSION_INVALID_OR_DELETED");
+  return rows[0];
 }
 
 export async function claimJobLeaseStep(input: {
@@ -65,54 +89,19 @@ export async function claimJobLeaseStep(input: {
   jobId: string;
   idempotencyKey: string;
   generationEpoch: number;
-}): Promise<{
-  leaseToken: string;
-  providerInput: ProviderInput;
-  inputSnapshotHash: string;
-}> {
+}): Promise<{ leaseToken: string; providerInput: ProviderInput; inputSnapshotHash: string }> {
   "use step";
   const sql = getPostgresClient();
 
   return sql.begin(async (transaction: TransactionSql) => {
-    // 1. Verify casting session is valid, active, revealed, risk-cleared and not deleted
-    const sessionRows = await transaction`
-      select
-        c.id, c.user_id, c.deleted_at, c.generation_epoch, c.lifecycle, c.risk_status,
-        c.scene, c.interpretation_goal, c.method,
-        q.id as question_version_id, q.ciphertext as question_ciphertext,
-        q.iv as question_iv, q.auth_tag as question_auth_tag,
-        q.encryption_key_version as question_encryption_key_version,
-        r.line_values, r.primary_hexagram_number, r.moving_line_positions,
-        r.relating_hexagram_number, r.algorithm_version, r.classic_mapping_version,
-        r.result_hmac, r.result_hmac_key_version
-      from casting_sessions c
-      left join lateral (
-        select * from question_versions
-        where casting_id = c.id
-        order by version_number desc
-        limit 1
-      ) q on true
-      left join cast_results r on r.casting_id = c.id
-      where c.id = ${input.castingId}
-      limit 1
-      for update of c
-    ` as Row[];
-    const session = sessionRows[0];
-    if (!session || session.deleted_at != null || Number(session.generation_epoch) !== input.generationEpoch) {
+    const session = await loadLockedSession(transaction, input.castingId);
+    if (session.deleted_at != null || Number(session.generation_epoch) !== input.generationEpoch) {
       throw new Error("CASTING_SESSION_INVALID_OR_DELETED");
     }
+    if (session.lifecycle !== "revealed") throw new Error("CASTING_NOT_READY");
+    if (session.risk_status !== "allowed") throw new Error("RISK_PROHIBITED");
+    if (!session.result_hmac) throw new Error("CAST_RESULT_UNAVAILABLE");
 
-    if (session.lifecycle !== "revealed") {
-      throw new Error("CASTING_NOT_READY");
-    }
-    if (session.risk_status !== "allowed") {
-      throw new Error("RISK_PROHIBITED");
-    }
-    if (!session.result_hmac) {
-      throw new Error("CAST_RESULT_UNAVAILABLE");
-    }
-
-    // 2. Claim generation job
     const jobRows = await transaction`
       select * from generation_jobs
       where id = ${input.jobId} and casting_id = ${input.castingId}
@@ -127,74 +116,56 @@ export async function claimJobLeaseStep(input: {
       throw new Error("GENERATION_JOB_NOT_ACTIVE");
     }
 
+    // Recompute before claiming and bind the workflow to the immutable hash
+    // recorded when the entitlement was originally reserved.
+    const questionText = decryptQuestionForGeneration(session);
+    const facts = factsFromSession(session);
+    const calculatedSnapshotHash = snapshotForSession({
+      session,
+      castingId: input.castingId,
+      generationEpoch: input.generationEpoch,
+      questionText,
+      facts,
+    });
+    const storedSnapshotHash = String(job.input_snapshot_hash);
+    if (!storedSnapshotHash || calculatedSnapshotHash !== storedSnapshotHash) {
+      throw new Error("INPUT_SNAPSHOT_MISMATCH");
+    }
+
     const leaseToken = randomUUID();
-    const attemptCount = Number(job.attempt_count) + 1;
-
-    await transaction`
+    const claimedRows = await transaction`
       update generation_jobs
-      set status = 'running',
-          lease_owner = 'workflow_worker',
-          lease_token = ${leaseToken},
+      set status = 'running', lease_owner = 'workflow_worker', lease_token = ${leaseToken},
           lease_expires_at = clock_timestamp() + (${LEASE_DURATION_MS} * interval '1 millisecond'),
-          attempt_count = ${attemptCount},
-          updated_at = clock_timestamp()
-      where id = ${input.jobId}
-    `;
+          attempt_count = attempt_count + 1, updated_at = clock_timestamp()
+      where id = ${input.jobId} and casting_id = ${input.castingId}
+        and generation_epoch = ${input.generationEpoch}
+        and (
+          status = 'queued'
+          or (status = 'running' and lease_expires_at is not null and lease_expires_at <= clock_timestamp())
+        )
+      returning attempt_count
+    ` as Row[];
+    if (!claimedRows[0]) throw new Error("GENERATION_JOB_LEASE_ACTIVE");
+    const attemptCount = Number(claimedRows[0].attempt_count);
 
-    // 3. Update workflow run to running
     await transaction`
       update workflow_runs
-      set status = 'running',
-          attempt_count = greatest(attempt_count, ${attemptCount}),
-          updated_at = clock_timestamp()
+      set status = 'running', attempt_count = greatest(attempt_count, ${attemptCount}),
+          error_code = null, updated_at = clock_timestamp()
       where idempotency_key = ${input.idempotencyKey}
     `;
 
-    // 4. Decrypt question and construct facts & snapshot
-    const questionText = decryptQuestionFromRow(session);
-    const lineValues = (session.line_values as number[]) ?? [];
-    const movingLinePositions = (session.moving_line_positions as number[]) ?? [];
-
-    const facts: DeterministicFacts = {
-      method: session.method as any,
-      algorithmVersion: String(session.algorithm_version),
-      classicMappingVersion: String(session.classic_mapping_version),
-      lineValuesBottomUp: [
-        Number(lineValues[0]),
-        Number(lineValues[1]),
-        Number(lineValues[2]),
-        Number(lineValues[3]),
-        Number(lineValues[4]),
-        Number(lineValues[5]),
-      ] as any,
-      primaryHexagramNumber: Number(session.primary_hexagram_number),
-      movingLinePositions,
-      relatingHexagramNumber: session.relating_hexagram_number ? Number(session.relating_hexagram_number) : null,
-      readingVariant: readingVariant(movingLinePositions),
-    };
-
-    const calculatedSnapshotHash = calculateDeepReadingInputSnapshotHash({
-      castingId: input.castingId,
-      userId: String(session.user_id),
-      epoch: input.generationEpoch,
-      question: questionText,
-      scene: String(session.scene),
-      interpretationGoal: String(session.interpretation_goal),
-      facts,
-    });
-
-    const providerInput: ProviderInput = {
-      castingId: input.castingId,
-      question: questionText,
-      scene: session.scene,
-      interpretationGoal: session.interpretation_goal,
-      facts,
-    };
-
     return {
       leaseToken,
-      providerInput,
-      inputSnapshotHash: calculatedSnapshotHash,
+      providerInput: {
+        castingId: input.castingId,
+        question: questionText,
+        scene: session.scene,
+        interpretationGoal: session.interpretation_goal,
+        facts,
+      },
+      inputSnapshotHash: storedSnapshotHash,
     };
   });
 }
@@ -206,8 +177,6 @@ export async function generateDeepReadingStep(input: {
 }): Promise<ProviderGenerationResult> {
   "use step";
   const sql = getPostgresClient();
-
-  // Validate lease is still valid
   const leaseRows = await sql`
     select lease_expires_at > clock_timestamp() as active
     from generation_jobs
@@ -216,8 +185,7 @@ export async function generateDeepReadingStep(input: {
   if (!leaseRows[0]?.active) throw new Error("GENERATION_LEASE_EXPIRED");
 
   const provider = await createAiSdkGenerationProvider();
-  const abortController = new AbortController();
-  return provider.generateReading(input.providerInput, abortController.signal);
+  return provider.generateReading(input.providerInput, new AbortController().signal);
 }
 
 export async function reviewDeepReadingStep(input: {
@@ -228,8 +196,6 @@ export async function reviewDeepReadingStep(input: {
 }): Promise<OutputReviewDecision> {
   "use step";
   const sql = getPostgresClient();
-
-  // Validate lease
   const leaseRows = await sql`
     select lease_expires_at > clock_timestamp() as active
     from generation_jobs
@@ -238,8 +204,10 @@ export async function reviewDeepReadingStep(input: {
   if (!leaseRows[0]?.active) throw new Error("GENERATION_LEASE_EXPIRED");
 
   const reviewer = await createAiSdkOutputReviewer();
-  const abortController = new AbortController();
-  return reviewer.review({ kind: "deep_reading", output: input.output, facts: input.facts }, abortController.signal);
+  return reviewer.review(
+    { kind: "deep_reading", output: input.output, facts: input.facts },
+    new AbortController().signal,
+  );
 }
 
 export async function finalizeDeepReadingStep(input: {
@@ -255,75 +223,24 @@ export async function finalizeDeepReadingStep(input: {
 }): Promise<{ success: boolean }> {
   "use step";
   const sql = getPostgresClient();
-
-  if (input.reviewDecision.status !== "pass") {
-    throw new Error("OUTPUT_REVIEW_FAILED");
-  }
+  if (input.reviewDecision.status !== "pass") throw new Error("OUTPUT_REVIEW_FAILED");
 
   return sql.begin(async (transaction: TransactionSql) => {
-    // 1. Verify casting session is still active and epoch matches
-    const sessionRows = await transaction`
-      select
-        c.id, c.user_id, c.deleted_at, c.generation_epoch, c.scene, c.interpretation_goal, c.method,
-        q.id as question_version_id, q.ciphertext as question_ciphertext,
-        q.iv as question_iv, q.auth_tag as question_auth_tag,
-        q.encryption_key_version as question_encryption_key_version,
-        r.line_values, r.primary_hexagram_number, r.moving_line_positions,
-        r.relating_hexagram_number, r.algorithm_version, r.classic_mapping_version
-      from casting_sessions c
-      left join lateral (
-        select * from question_versions
-        where casting_id = c.id
-        order by version_number desc
-        limit 1
-      ) q on true
-      left join cast_results r on r.casting_id = c.id
-      where c.id = ${input.castingId}
-      limit 1
-      for update of c
-    ` as Row[];
-    const session = sessionRows[0];
-    if (!session || session.deleted_at != null || Number(session.generation_epoch) !== input.generationEpoch) {
+    const session = await loadLockedSession(transaction, input.castingId);
+    if (session.deleted_at != null || Number(session.generation_epoch) !== input.generationEpoch) {
       throw new Error("CASTING_SESSION_INVALID_OR_DELETED");
     }
 
-    // 2. Verify snapshot integrity
-    const questionText = decryptQuestionFromRow(session);
-    const lineValues = (session.line_values as number[]) ?? [];
-    const movingLinePositions = (session.moving_line_positions as number[]) ?? [];
-    const facts: DeterministicFacts = {
-      method: session.method as any,
-      algorithmVersion: String(session.algorithm_version),
-      classicMappingVersion: String(session.classic_mapping_version),
-      lineValuesBottomUp: [
-        Number(lineValues[0]),
-        Number(lineValues[1]),
-        Number(lineValues[2]),
-        Number(lineValues[3]),
-        Number(lineValues[4]),
-        Number(lineValues[5]),
-      ] as any,
-      primaryHexagramNumber: Number(session.primary_hexagram_number),
-      movingLinePositions,
-      relatingHexagramNumber: session.relating_hexagram_number ? Number(session.relating_hexagram_number) : null,
-      readingVariant: readingVariant(movingLinePositions),
-    };
-
-    const recomputedSnapshotHash = calculateDeepReadingInputSnapshotHash({
+    const questionText = decryptQuestionForGeneration(session);
+    const facts = factsFromSession(session);
+    const recomputedSnapshotHash = snapshotForSession({
+      session,
       castingId: input.castingId,
-      userId: String(session.user_id),
-      epoch: input.generationEpoch,
-      question: questionText,
-      scene: String(session.scene),
-      interpretationGoal: String(session.interpretation_goal),
+      generationEpoch: input.generationEpoch,
+      questionText,
       facts,
     });
 
-    if (recomputedSnapshotHash !== input.inputSnapshotHash) {
-      throw new Error("INPUT_SNAPSHOT_MISMATCH");
-    }
-
-    // 3. Verify job ownership and lease
     const jobRows = await transaction`
       select * from generation_jobs
       where id = ${input.jobId} and casting_id = ${input.castingId}
@@ -336,8 +253,15 @@ export async function finalizeDeepReadingStep(input: {
     if (!job || Number(job.generation_epoch) !== input.generationEpoch) {
       throw new Error("GENERATION_JOB_LEASE_INVALID");
     }
+    const storedSnapshotHash = String(job.input_snapshot_hash);
+    if (
+      !storedSnapshotHash
+      || input.inputSnapshotHash !== storedSnapshotHash
+      || recomputedSnapshotHash !== storedSnapshotHash
+    ) {
+      throw new Error("INPUT_SNAPSHOT_MISMATCH");
+    }
 
-    // 4. Verify reservation is still reserved and matches user & job
     const resRows = await transaction`
       select * from entitlement_reservations
       where id = ${input.reservationId} and casting_id = ${input.castingId}
@@ -353,9 +277,21 @@ export async function finalizeDeepReadingStep(input: {
     const output = input.generationResult.output as CommercialReadingReport;
     const config = getServerConfig();
     const model = config.aiModelDeepReading ?? "gemini-2.5-pro";
-    const { hmac: integrityHash } = calculateResultIntegrityHmac(facts);
+    const schemaVersion = "commercial-reading-v1";
+    const promptVersion = "v1";
+    const provider = "google";
+    const integrity = calculateDeepReadingResultIntegrity({
+      castingId: input.castingId,
+      jobId: input.jobId,
+      reservationId: input.reservationId,
+      output,
+      facts,
+      schemaVersion,
+      promptVersion,
+      provider,
+      model,
+    });
 
-    // 5. Insert output review
     await transaction`
       insert into generation_output_reviews (
         id, job_id, casting_id, kind, status, reason_codes,
@@ -369,60 +305,50 @@ export async function finalizeDeepReadingStep(input: {
       ) on conflict (job_id) do nothing
     `;
 
-    // 6. Insert deep reading results
     await transaction`
       insert into deep_reading_results (
         casting_id, job_id, reservation_id, output, schema_version, prompt_version,
-        provider, model, integrity_hash, persisted_at
+        provider, model, integrity_hash, integrity_key_version, persisted_at
       ) values (
         ${input.castingId}, ${input.jobId}, ${input.reservationId},
-        ${JSON.stringify(output)}::jsonb, 'commercial-reading-v1', 'v1',
-        'google', ${model}, ${integrityHash}, clock_timestamp()
+        ${JSON.stringify(output)}::jsonb, ${schemaVersion}, ${promptVersion},
+        ${provider}, ${model}, ${integrity.hmac}, ${integrity.version}, clock_timestamp()
       )
     `;
 
-    // 7. Consume reservation and entitlement batch
     await transaction`
       update entitlement_reservations
       set status = 'consumed', lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
       where id = ${input.reservationId}
     `;
-
     await transaction`
       update entitlement_batches
       set quantity_reserved = greatest(0, quantity_reserved - 1),
-          quantity_consumed = quantity_consumed + 1,
-          updated_at = clock_timestamp()
+          quantity_consumed = quantity_consumed + 1, updated_at = clock_timestamp()
       where id = ${String(reservation.batch_id)}
     `;
-
     await transaction`
       insert into entitlement_ledger (
         id, batch_id, order_id, action, quantity, business_key, created_at
       )
-      select
-        ${randomUUID()}, ${String(reservation.batch_id)}, b.order_id, 'consume', 1,
-        ${`consume:${input.jobId}`}, clock_timestamp()
+      select ${randomUUID()}, ${String(reservation.batch_id)}, b.order_id, 'consume', 1,
+             ${`consume:${input.jobId}`}, clock_timestamp()
       from entitlement_batches b
       where b.id = ${String(reservation.batch_id)}
       on conflict (business_key) do nothing
     `;
 
-    // 8. Complete job and workflow run
     await transaction`
       update generation_jobs
       set status = 'completed', completed_at = clock_timestamp(),
           lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
       where id = ${input.jobId}
     `;
-
     await transaction`
       update workflow_runs
       set status = 'completed', updated_at = clock_timestamp()
       where idempotency_key = ${input.idempotencyKey}
     `;
-
-    // 9. Record audit event
     await transaction`
       insert into audit_events (
         id, category, action, entity_type, entity_id, user_id, payload, created_at
@@ -432,6 +358,7 @@ export async function finalizeDeepReadingStep(input: {
           castingId: input.castingId,
           reservationId: input.reservationId,
           model,
+          integrityKeyVersion: integrity.version,
         })}::jsonb, clock_timestamp()
       )
     `;
@@ -452,7 +379,6 @@ export async function handleWorkflowFailureStep(input: {
   const sql = getPostgresClient();
 
   await sql.begin(async (transaction: TransactionSql) => {
-    // Only fail the job if the worker still holds the lease and epoch matches
     const updatedJobs = await transaction`
       update generation_jobs
       set status = 'failed', structured_error_code = ${input.errorCode},
@@ -461,13 +387,8 @@ export async function handleWorkflowFailureStep(input: {
         and generation_epoch = ${input.generationEpoch} and status = 'running'
       returning id
     ` as Row[];
+    if (!updatedJobs[0]) return;
 
-    // If job was already taken over or not running with this lease, fail-stop
-    if (!updatedJobs[0]) {
-      return;
-    }
-
-    // Release reservation
     const resRows = await transaction`
       select * from entitlement_reservations
       where id = ${input.reservationId} and status = 'reserved'
@@ -482,46 +403,37 @@ export async function handleWorkflowFailureStep(input: {
         set status = 'released', lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
         where id = ${input.reservationId}
       `;
-
       await transaction`
         update entitlement_batches
         set quantity_reserved = greatest(0, quantity_reserved - 1),
-            quantity_available = quantity_available + 1,
-            updated_at = clock_timestamp()
+            quantity_available = quantity_available + 1, updated_at = clock_timestamp()
         where id = ${String(reservation.batch_id)}
       `;
-
       await transaction`
         insert into entitlement_ledger (
           id, batch_id, order_id, action, quantity, business_key, created_at
         )
-        select
-          ${randomUUID()}, ${String(reservation.batch_id)}, b.order_id, 'release', 1,
-          ${`release:${input.reservationId}`}, clock_timestamp()
+        select ${randomUUID()}, ${String(reservation.batch_id)}, b.order_id, 'release', 1,
+               ${`release:${input.reservationId}`}, clock_timestamp()
         from entitlement_batches b
         where b.id = ${String(reservation.batch_id)}
         on conflict (business_key) do nothing
       `;
     }
 
-    // Fail workflow run
     await transaction`
       update workflow_runs
       set status = 'failed', error_code = ${input.errorCode}, updated_at = clock_timestamp()
       where idempotency_key = ${input.idempotencyKey}
     `;
-
-    // Record audit event
     await transaction`
       insert into audit_events (
         id, category, action, entity_type, entity_id, user_id, payload, created_at
       ) values (
         ${randomUUID()}, 'generation', 'deep_reading_failed', 'job', ${input.jobId},
         ${reservation ? String(reservation.user_id) : null},
-        ${JSON.stringify({
-          reservationId: input.reservationId,
-          errorCode: input.errorCode,
-        })}::jsonb, clock_timestamp()
+        ${JSON.stringify({ reservationId: input.reservationId, errorCode: input.errorCode })}::jsonb,
+        clock_timestamp()
       )
     `;
   });

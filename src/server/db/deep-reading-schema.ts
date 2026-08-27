@@ -4,7 +4,6 @@ import {
   pgTable,
   text,
   timestamp,
-  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { castingSessions, generationJobs } from "./generation-schema";
@@ -22,6 +21,7 @@ export const deepReadingResults = pgTable(
     provider: text("provider").notNull(),
     model: text("model").notNull(),
     integrityHash: text("integrity_hash").notNull(),
+    integrityKeyVersion: text("integrity_key_version").notNull(),
     persistedAt: timestamp("persisted_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
