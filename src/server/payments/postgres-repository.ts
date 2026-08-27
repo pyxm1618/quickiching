@@ -1242,8 +1242,12 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       const row = rows[0];
       if (!row) throw new Error("PAYMENT_OUTBOX_UNAVAILABLE");
 
-      // If lease token was provided and does not match outbox lease token, fail-stop
-      if (leaseToken && row.outbox_lease_token && row.outbox_lease_token !== leaseToken) {
+      // Supplying a lease token is an ownership claim. Exact equality is required even when
+      // the persisted token is NULL, and only a processing row may be failed by a leased worker.
+      if (
+        leaseToken !== undefined
+        && (row.outbox_status !== "processing" || row.outbox_lease_token !== leaseToken)
+      ) {
         return { deadLetter: false, attemptCount: Number(row.attempt_count) };
       }
 
