@@ -158,4 +158,11 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/api/checkout", { method: "POST" })).status).toBe(404);
     expect(middleware(makeRequest("/checkout")).status).toBe(410);
   });
+
+  it("always allows /api/health and /api/ready routes through", () => {
+    expect(middleware(makeRequest("/api/health")).status).toBe(200);
+    expect(middleware(makeRequest("/api/health/")).status).toBe(200);
+    expect(middleware(makeRequest("/api/ready")).status).toBe(200);
+    expect(middleware(makeRequest("/api/ready/")).status).toBe(200);
+  });
 });

@@ -12,6 +12,8 @@ import { isReconcileCapabilityEnabled } from "@/server/reconcile/capability";
 const GONE_PREFIXES = ["/checkout"] as const;
 const NOT_FOUND_PREFIXES = ["/result", "/cast"] as const;
 const PERSONALIZED_API_PATH = "/api/personalized-interpretation";
+const HEALTH_API_PATH = "/api/health";
+const READY_API_PATH = "/api/ready";
 const CHECKOUT_API_PATH = "/api/checkout";
 const WAFFO_WEBHOOK_PATH = "/api/webhooks/waffo";
 const RECONCILE_API_PATH = "/api/internal/reconcile";
@@ -97,6 +99,14 @@ export function middleware(request: NextRequest) {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
     });
+  }
+
+  if (pathname === HEALTH_API_PATH || pathname === `${HEALTH_API_PATH}/`) {
+    return NextResponse.next();
+  }
+
+  if (pathname === READY_API_PATH || pathname === `${READY_API_PATH}/`) {
+    return NextResponse.next();
   }
 
   if (pathname === CHECKOUT_API_PATH || pathname === `${CHECKOUT_API_PATH}/`) {
