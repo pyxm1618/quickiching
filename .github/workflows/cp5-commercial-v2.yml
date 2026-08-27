@@ -34,33 +34,33 @@ jobs:
 
           replacements = {
               "src/server/db/cp3-generation.integration.test.ts": [
-                  ("expect(Number(migrations[0]?.count)).toBe(10);", "expect(Number(migrations[0]?.count)).toBe(11);"),
+                  ("expect(Number(migrations[0]?.count)).toBe(10);", "expect(Number(migrations[0]?.count)).toBe(11);", 1),
               ],
               "src/server/db/cp3-upgrade.integration.test.ts": [
-                  ('expect(migrations[0]?.count).toBe("10");', 'expect(migrations[0]?.count).toBe("11");'),
+                  ('expect(migrations[0]?.count).toBe("10");', 'expect(migrations[0]?.count).toBe("11");', 1),
               ],
               "src/server/db/postgres.integration.test.ts": [
-                  ("expect(Number(migrationRows[0]?.count)).toBe(10);", "expect(Number(migrationRows[0]?.count)).toBe(11);"),
+                  ("expect(Number(migrationRows[0]?.count)).toBe(10);", "expect(Number(migrationRows[0]?.count)).toBe(11);", 1),
               ],
               "src/server/payments/postgres-repository.integration.test.ts": [
-                  ('expect(migrations[0]?.count).toBe("10");', 'expect(migrations[0]?.count).toBe("11");'),
+                  ('expect(migrations[0]?.count).toBe("10");', 'expect(migrations[0]?.count).toBe("11");', 1),
               ],
               "src/server/db/cp5-core.integration.test.ts": [
-                  ("provider, model, integrity_hash, persisted_at", "provider, model, integrity_hash, integrity_key_version, persisted_at"),
-                  ("'openai', 'gpt-4o', 'hash-123', now()", "'openai', 'gpt-4o', 'hash-123', 'v-test', now()"),
+                  ("provider, model, integrity_hash, persisted_at", "provider, model, integrity_hash, integrity_key_version, persisted_at", 2),
+                  ("'openai', 'gpt-4o', 'hash-123', now()", "'openai', 'gpt-4o', 'hash-123', 'v-test', now()", 2),
               ],
               "src/server/account/postgres-account.integration.test.ts": [
-                  ("select action, category from audit_events where entity_id = ${deletedUser}", "select action, category from audit_events where category = 'deletion' and action = 'account_deleted' and user_id is null and entity_id is null order by created_at desc limit 1"),
+                  ("select action, category from audit_events where entity_id = ${deletedUser}", "select action, category from audit_events where category = 'deletion' and action = 'account_deleted' and user_id is null and entity_id is null order by created_at desc limit 1", 1),
               ],
           }
 
-          for filename, pairs in replacements.items():
+          for filename, triples in replacements.items():
               path = Path(filename)
               text = path.read_text()
-              for old, new in pairs:
+              for old, new, expected in triples:
                   count = text.count(old)
-                  if count != 1:
-                      raise SystemExit(f"expected exactly one replacement target, got {count}: {filename}: {old}")
+                  if count != expected:
+                      raise SystemExit(f"expected {expected} replacement target(s), got {count}: {filename}: {old}")
                   text = text.replace(old, new)
               path.write_text(text)
           PY
