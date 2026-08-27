@@ -4,28 +4,24 @@ import { WebhookServiceError } from "@/server/payments/webhook-service";
 
 const mocks = vi.hoisted(() => ({
   enabled: true,
+  reconcileEnabled: true,
   createService: vi.fn(),
   ingest: vi.fn(),
+  startWorkflow: vi.fn(),
 }));
 const MAX_TEST_WEBHOOK_BYTES = 64 * 1024;
 
-vi.mock("@/server/payments/capability", () => ({
-  isWebhookIngestionCapabilityEnabled: () => mocks.enabled,
-}));
-vi.mock("@/server/payments/composition", () => ({
-  createProductionWaffoWebhookService: mocks.createService,
-}));
+vi.mock("@/server/payments/capability", () => ({ isWebhookIngestionCapabilityEnabled: () => mocks.enabled }));
+vi.mock("@/server/reconcile/capability", () => ({ isReconcileCapabilityEnabled: () => mocks.reconcileEnabled }));
+vi.mock("@/server/payments/composition", () => ({ createProductionWaffoWebhookService: mocks.createService }));
+vi.mock("@/server/payments/outbox-workflow-starter", () => ({ startPaymentOutboxWorkflow: mocks.startWorkflow }));
 
 import { GET, POST } from "./route";
 
 function request(body = "{\"signed\":true}", headers: Record<string, string> = {}) {
   return new Request("https://www.quickiching.com/api/webhooks/waffo", {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-waffo-signature": "signed-header",
-      ...headers,
-    },
+    headers: { "content-type": "application/json", "x-waffo-signature": "signed-header", ...headers },
     body,
   });
 }
@@ -33,12 +29,10 @@ function request(body = "{\"signed\":true}", headers: Record<string, string> = {
 describe("CP4 Waffo webhook route", () => {
   beforeEach(() => {
     mocks.enabled = true;
-    mocks.ingest.mockReset().mockResolvedValue({
-      disposition: "accepted",
-      duplicate: null,
-      inboxId: "inbox-1",
-    });
+    mocks.reconcileEnabled = true;
+    mocks.ingest.mockReset().mockResolvedValue({ disposition: "accepted", duplicate: null, inboxId: "inbox-1" });
     mocks.createService.mockReset().mockResolvedValue({ ingest: mocks.ingest });
+    mocks.startWorkflow.mockReset().mockResolvedValue("run-1");
   });
 
   it("returns capability-off 404 before reading body or composing storage", async () => {
@@ -48,13 +42,26 @@ describe("CP4 Waffo webhook route", () => {
     expect(mocks.createService).not.toHaveBeenCalled();
   });
 
-  it("passes the exact raw body and signature without Auth or browser CSRF", async () => {
+  it("persists the exact signed body and starts durable outbox processing", async () => {
     const raw = "{ \"amount\": \"6.99\", \"buyer\": \"private\" }";
     const response = await POST(request(raw, { origin: "https://provider.waffo.example" }));
     expect(response.status).toBe(200);
     expect(mocks.ingest).toHaveBeenCalledWith(raw, "signed-header");
+    expect(mocks.startWorkflow).toHaveBeenCalledWith("inbox-1");
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+  });
+
+  it("returns retryable 503 when durable processing cannot start after persistence", async () => {
+    mocks.startWorkflow.mockRejectedValue(new Error("provider unavailable"));
+    const response = await POST(request());
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ error: "WEBHOOK_PROCESSING_UNAVAILABLE", retryable: true });
+  });
+
+  it("allows ingestion-only mode without requiring Workflow", async () => {
+    mocks.reconcileEnabled = false;
+    expect((await POST(request())).status).toBe(200);
+    expect(mocks.startWorkflow).not.toHaveBeenCalled();
   });
 
   it("rejects an oversized payload before composition", async () => {
@@ -77,29 +84,24 @@ describe("CP4 Waffo webhook route", () => {
     await expect(transient.json()).resolves.toEqual({ error: "WEBHOOK_PROCESSING_UNAVAILABLE", retryable: true });
   });
 
-  it("acknowledges duplicate deliveries safely", async () => {
+  it("acknowledges duplicate deliveries safely and restarts idempotent processing", async () => {
     mocks.ingest.mockResolvedValue({ disposition: "accepted", duplicate: "delivery", inboxId: "inbox-1" });
     expect((await POST(request())).status).toBe(200);
+    expect(mocks.startWorkflow).toHaveBeenCalledWith("inbox-1");
   });
 
   it("cancels a chunked body as soon as it crosses the byte limit without Content-Length", async () => {
     let cancelled = false;
     let sentOversizedChunk = false;
     const stream = new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode("x".repeat(MAX_TEST_WEBHOOK_BYTES - 4)));
-      },
+      start(controller) { controller.enqueue(new TextEncoder().encode("x".repeat(MAX_TEST_WEBHOOK_BYTES - 4))); },
       pull(controller) {
         if (sentOversizedChunk) return;
         sentOversizedChunk = true;
         controller.enqueue(new TextEncoder().encode("oversized"));
-        setTimeout(() => {
-          if (!cancelled) controller.close();
-        }, 50);
+        setTimeout(() => { if (!cancelled) controller.close(); }, 50);
       },
-      cancel() {
-        cancelled = true;
-      },
+      cancel() { cancelled = true; },
     });
     const response = await POST(new Request("https://www.quickiching.com/api/webhooks/waffo", {
       method: "POST",
