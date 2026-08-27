@@ -14,8 +14,25 @@ function parseKeys(raw: string | undefined): VersionedKey[] {
   });
 }
 
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, child]) => child !== undefined)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, child]) => [key, canonicalize(child)]),
+    );
+  }
+  return value;
+}
+
+function canonicalJson(value: unknown): string {
+  return JSON.stringify(canonicalize(value));
+}
+
 export function canonicalDeterministicFacts(facts: DeterministicFacts): string {
-  return JSON.stringify({
+  return canonicalJson({
     l: facts.lineValuesBottomUp,
     p: facts.primaryHexagramNumber,
     m: facts.movingLinePositions,
@@ -54,10 +71,53 @@ export function calculateDeepReadingInputSnapshotHash(input: {
   interpretationGoal: string;
   facts: DeterministicFacts;
 }): string {
-  const canonicalFacts = canonicalDeterministicFacts(input.facts);
   return createHash("sha256")
-    .update(`${input.castingId}:${input.userId}:${input.epoch}:${input.scene}:${input.interpretationGoal}:${input.question}:${canonicalFacts}`)
+    .update(canonicalJson({
+      castingId: input.castingId,
+      userId: input.userId,
+      epoch: input.epoch,
+      question: input.question,
+      scene: input.scene,
+      interpretationGoal: input.interpretationGoal,
+      facts: input.facts,
+    }))
     .digest("hex");
+}
+
+export type DeepReadingResultIntegrityInput = {
+  castingId: string;
+  jobId: string;
+  reservationId: string;
+  output: unknown;
+  facts: DeterministicFacts;
+  schemaVersion: string;
+  promptVersion: string;
+  provider: string;
+  model: string;
+};
+
+export function calculateDeepReadingResultIntegrity(
+  input: DeepReadingResultIntegrityInput,
+  env: Record<string, string | undefined> = process.env,
+): { hmac: string; version: string } {
+  const keys = parseKeys(env.RESULT_INTEGRITY_KEYS);
+  const key = keys[0];
+  if (!key) throw new Error("RESULT_INTEGRITY_KEYS_INVALID");
+  const payload = canonicalJson({
+    castingId: input.castingId,
+    jobId: input.jobId,
+    reservationId: input.reservationId,
+    output: input.output,
+    facts: input.facts,
+    schemaVersion: input.schemaVersion,
+    promptVersion: input.promptVersion,
+    provider: input.provider,
+    model: input.model,
+  });
+  return {
+    hmac: hmacWithKeyMaterial(payload, "deep-reading-result-integrity", key.version, key.material),
+    version: key.version,
+  };
 }
 
 export function calculateResultIntegrityHmac(
@@ -65,9 +125,6 @@ export function calculateResultIntegrityHmac(
   env: Record<string, string | undefined> = process.env,
 ): { hmac: string; version: string } {
   const keys = parseKeys(env.RESULT_INTEGRITY_KEYS);
-  if (keys.length === 0) {
-    throw new Error("RESULT_INTEGRITY_KEYS_INVALID");
-  }
   const key = keys[0];
   if (!key) throw new Error("RESULT_INTEGRITY_KEYS_INVALID");
   return {

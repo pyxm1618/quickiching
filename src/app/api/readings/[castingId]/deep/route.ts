@@ -1,6 +1,7 @@
 import { isPaidDeepReadingCapabilityEnabled } from "@/server/generation/deep-reading-capability";
 import { createProductionDeepReadingService } from "@/server/generation/deep-reading-composition";
 import { resolveSession } from "@/lib/auth/session";
+import { isStrictSameOriginRequest } from "@/server/http/origin-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,28 +39,12 @@ function forbidden(message = "Forbidden"): Response {
   });
 }
 
-function sameOrigin(request: Request): boolean {
-  if (request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site") return false;
-  const origin = request.headers.get("origin");
-  if (!origin) return false;
-  try {
-    const originHost = new URL(origin).host;
-    const requestHost = new URL(request.url).host;
-    if (originHost === requestHost) return true;
-    const configured = process.env.APP_BASE_URL?.trim() || process.env.BETTER_AUTH_URL?.trim();
-    if (configured && new URL(origin).origin === new URL(configured).origin) return true;
-    return false;
-  } catch {
-    return false;
-  }
-}
-
 export async function POST(
   request: Request,
   context: { params: Promise<{ castingId: string }> },
 ): Promise<Response> {
   if (!isPaidDeepReadingCapabilityEnabled()) return notFound();
-  if (!sameOrigin(request)) return forbidden("Cross-site requests prohibited");
+  if (!isStrictSameOriginRequest(request)) return forbidden("Cross-site requests prohibited");
 
   const session = await resolveSession(request.headers);
   if (!session?.user?.id) return unauthorized();
@@ -92,6 +77,9 @@ export async function POST(
     }
     if (message === "INSUFFICIENT_CREDITS") {
       return json({ error: "INSUFFICIENT_CREDITS", retryable: false }, 402);
+    }
+    if (message === "QUESTION_DECRYPT_FAILED" || message === "QUESTION_KEY_UNAVAILABLE") {
+      return json({ error: message, retryable: false }, 422);
     }
     return json({ error: "DEEP_READING_FAILED", retryable: true }, 500);
   }

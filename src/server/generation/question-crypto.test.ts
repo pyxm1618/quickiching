@@ -2,17 +2,18 @@ import { describe, expect, it } from "vitest";
 import { encryptJsonWithKeyMaterial } from "@/lib/crypto";
 import { decryptQuestionForGeneration } from "./question-crypto";
 
-const AAD = "question-version:qv-1";
+const AAD = "casting-1:qv-1";
 
 function encryptedRow(keyMaterial = "question-secret") {
   const encrypted = encryptJsonWithKeyMaterial(
     { context: "Should I accept the new role?" },
-    "question-context",
+    "context",
     "v2",
     keyMaterial,
     AAD,
   );
   return {
+    id: "casting-1",
     question_version_id: "qv-1",
     question_ciphertext: encrypted.data,
     question_iv: encrypted.iv,
@@ -31,6 +32,7 @@ describe("decryptQuestionForGeneration", () => {
 
   it("keeps the legitimate no-question path separate from encrypted-question failure", () => {
     expect(decryptQuestionForGeneration({
+      id: "casting-1",
       question_version_id: null,
       question_ciphertext: null,
       question_iv: null,
