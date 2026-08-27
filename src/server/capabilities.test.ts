@@ -132,7 +132,7 @@ describe("commercial capability matrix", () => {
     expect(result.capabilities.checkout.enabled).toBe(false);
   });
 
-  it("opens only Auth while all later commercial capabilities remain closed", () => {
+  it("opens all commercial capabilities when flags and requirements are provided in CP5", () => {
     const result = resolveCommercialCapabilities(completeValidEnvironment);
 
     expect(result.capabilities.auth).toMatchObject({
@@ -145,16 +145,16 @@ describe("commercial capability matrix", () => {
     });
     expect(result.capabilities.webhookIngestion).toMatchObject({
       requested: true,
-      enabled: false,
-      reason: "implementation_not_available",
+      enabled: true,
+      reason: "enabled",
       blockedDependencies: [],
       missingDependencies: [],
       invalidDependencies: [],
     });
     expect(result.capabilities.reconcile).toMatchObject({
       requested: true,
-      enabled: false,
-      reason: "implementation_not_available",
+      enabled: true,
+      reason: "enabled",
       blockedDependencies: [],
       missingDependencies: [],
       invalidDependencies: [],
@@ -167,36 +167,39 @@ describe("commercial capability matrix", () => {
     });
     expect(result.capabilities.checkout).toMatchObject({
       requested: true,
-      enabled: false,
-      reason: "blocked_dependencies",
-      blockedDependencies: ["webhookIngestion"],
+      enabled: true,
+      reason: "enabled",
+      blockedDependencies: [],
     });
     expect(result.capabilities.paidDeepReading).toMatchObject({
       requested: true,
-      enabled: false,
-      reason: "implementation_not_available",
+      enabled: true,
+      reason: "enabled",
       blockedDependencies: [],
     });
 
     for (const capability of COMMERCIAL_CAPABILITIES) {
-      expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].implementationAvailable)
-        .toBe(["auth", "aiPreview"].includes(capability));
+      expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].implementationAvailable).toBe(true);
     }
   });
 
-  it("keeps payment capabilities closed even with complete-looking credentials and flags", () => {
-    const result = resolveCommercialCapabilities(completeValidEnvironment);
+  it("keeps payment capabilities closed when flags are disabled", () => {
+    const disabledEnv = {
+      ...completeValidEnvironment,
+      COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
+      COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "false",
+    };
+    const result = resolveCommercialCapabilities(disabledEnv);
 
     expect(result.capabilities.checkout).toMatchObject({
-      requested: true,
+      requested: false,
       enabled: false,
-      reason: "blocked_dependencies",
-      blockedDependencies: ["webhookIngestion"],
+      reason: "disabled",
     });
     expect(result.capabilities.webhookIngestion).toMatchObject({
-      requested: true,
+      requested: false,
       enabled: false,
-      reason: "implementation_not_available",
+      reason: "disabled",
     });
   });
 
@@ -296,15 +299,15 @@ describe("commercial capability matrix", () => {
     };
     const webhookStatus = resolveCommercialCapabilities(webhookWithoutCheckout).capabilities.webhookIngestion;
     expect(webhookStatus).toMatchObject({
-      reason: "implementation_not_available",
-      enabled: false,
+      reason: "enabled",
+      enabled: true,
       blockedDependencies: [],
       missingDependencies: [],
       invalidDependencies: [],
     });
   });
 
-  it("does not let signed webhook ingestion run without a durable consumer", () => {
+  it("requires postgres database when webhook ingestion is requested", () => {
     const environment: Record<string, string | undefined> = {
       ...completeValidEnvironment,
       COMMERCIAL_V2_AUTH_ENABLED: "false",
@@ -314,14 +317,12 @@ describe("commercial capability matrix", () => {
       COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "false",
       COMMERCIAL_V2_RECONCILE_ENABLED: "false",
     };
-    delete environment.WAFFO_MERCHANT_ID;
-    delete environment.WAFFO_PRIVATE_KEY;
+    delete environment.DATABASE_URL;
 
     expect(resolveCommercialCapabilities(environment).capabilities.webhookIngestion).toMatchObject({
       enabled: false,
-      reason: "implementation_not_available",
-      missingDependencies: [],
-      invalidDependencies: [],
+      reason: "missing_dependencies",
+      missingDependencies: ["DATABASE_URL"],
     });
   });
 
@@ -330,7 +331,7 @@ describe("commercial capability matrix", () => {
       ...completeValidEnvironment,
       WAFFO_ENVIRONMENT: "prod",
     }).capabilities.checkout;
-    expect(officialProd.enabled).toBe(false);
+    expect(officialProd.enabled).toBe(true);
 
     const legacyName = resolveCommercialCapabilities({
       ...completeValidEnvironment,
@@ -565,7 +566,7 @@ describe("commercial capability matrix", () => {
     expect(onlyCheckout).toMatchObject({
       enabled: false,
       reason: "blocked_dependencies",
-      blockedDependencies: ["auth", "webhookIngestion"],
+      blockedDependencies: ["auth", "webhookIngestion", "reconcile"],
     });
 
     const checkoutWithoutWebhook = resolveCommercialCapabilities(completeValidEnvironment, {
@@ -574,11 +575,11 @@ describe("commercial capability matrix", () => {
     expect(checkoutWithoutWebhook).toMatchObject({
       enabled: false,
       reason: "blocked_dependencies",
-      blockedDependencies: ["webhookIngestion"],
+      blockedDependencies: ["webhookIngestion", "reconcile"],
     });
 
     const readyCheckout = resolveCommercialCapabilities(completeValidEnvironment, {
-      definitions: definitionsWithImplementations("auth", "webhookIngestion", "checkout"),
+      definitions: definitionsWithImplementations("auth", "webhookIngestion", "reconcile", "checkout"),
     }).capabilities.checkout;
     expect(readyCheckout).toMatchObject({
       enabled: true,
@@ -638,7 +639,7 @@ describe("commercial capability matrix", () => {
     environment.AI_MODEL_PREVIEW = undefined;
 
     const result = resolveCommercialCapabilities(environment, {
-      definitions: definitionsWithImplementations("auth", "paidDeepReading"),
+      definitions: definitionsWithImplementations("auth", "reconcile", "paidDeepReading"),
     });
     const status = result.capabilities.paidDeepReading;
 
@@ -733,6 +734,6 @@ describe("commercial capability matrix", () => {
       "implementationAvailable",
       false,
     )).toBe(false);
-    expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout.implementationAvailable).toBe(false);
+    expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX.checkout.implementationAvailable).toBe(true);
   });
 });

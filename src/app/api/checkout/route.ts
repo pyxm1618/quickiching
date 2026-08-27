@@ -2,6 +2,7 @@ import { z } from "zod";
 import { isCheckoutCapabilityEnabled } from "@/server/payments/capability";
 import { CheckoutServiceError } from "@/server/payments/checkout-service";
 import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
+import { isStrictSameOriginRequest } from "@/server/http/origin-guard";
 import { createProductionCheckoutService } from "@/server/payments/composition";
 
 export const runtime = "nodejs";
@@ -30,18 +31,6 @@ function notFound(): Response {
     status: 404,
     headers: headers({ "Content-Type": "text/plain; charset=utf-8" }),
   });
-}
-
-function sameOrigin(request: Request): boolean {
-  if (request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site") return false;
-  const origin = request.headers.get("origin");
-  if (!origin) return false;
-  const configured = process.env.APP_BASE_URL?.trim() || process.env.BETTER_AUTH_URL?.trim() || request.url;
-  try {
-    return new URL(origin).origin === new URL(configured).origin;
-  } catch {
-    return false;
-  }
 }
 
 async function authenticatedUser(request: Request): Promise<{ id: string; email: string } | null> {
@@ -76,7 +65,7 @@ function serviceFailure(error: unknown): Response {
 
 export async function POST(request: Request): Promise<Response> {
   if (!isCheckoutCapabilityEnabled()) return notFound();
-  if (!sameOrigin(request)) return json({ error: "CSRF_REJECTED" }, 403);
+  if (!isStrictSameOriginRequest(request)) return json({ error: "CSRF_REJECTED" }, 403);
   if (request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase() !== "application/json") {
     return json({ error: "INVALID_REQUEST" }, 400);
   }

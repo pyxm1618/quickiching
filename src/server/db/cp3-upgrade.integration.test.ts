@@ -241,7 +241,7 @@ describe("forward upgrade from a populated CP2 database through CP4", () => {
       where table_schema = 'public' and table_name in ('payment_orders', 'payment_webhook_inbox', 'entitlement_batches')
     `;
 
-    expect(migrations[0]?.count).toBe("9");
+    expect(migrations[0]?.count).toBe("11");
     expect(repairConstraint[0]?.count).toBe("1");
     expect(paymentTables[0]?.count).toBe("3");
     const preserved = await sql<{ users: string; jobs: string; orders: string; ledgers: string }[]>`

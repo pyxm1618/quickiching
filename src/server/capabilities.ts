@@ -140,10 +140,8 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
   },
   checkout: {
     flag: "COMMERCIAL_V2_CHECKOUT_ENABLED",
-    // CP4 has persistence and an adapter, but no durable consumer/reconcile
-    // boundary. Keep the public capability closed until CP5 supplies it.
-    implementationAvailable: false,
-    capabilityDependencies: ["auth", "webhookIngestion"],
+    implementationAvailable: true,
+    capabilityDependencies: ["auth", "webhookIngestion", "reconcile"],
     requirements: [
       ...databaseRequirements,
       ...waffoCheckoutRequirements,
@@ -153,27 +151,26 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
   },
   webhookIngestion: {
     flag: "COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED",
-    // A signed ingress route without a durable consumer would acknowledge
-    // money-moving events without a recovery owner.
-    implementationAvailable: false,
+    implementationAvailable: true,
     capabilityDependencies: [],
     requirements: [...databaseRequirements, ...waffoWebhookRequirements],
   },
   paidDeepReading: {
     flag: "COMMERCIAL_V2_PAID_DEEP_READING_ENABLED",
-    implementationAvailable: false,
-    capabilityDependencies: ["auth"],
+    implementationAvailable: true,
+    capabilityDependencies: ["auth", "reconcile"],
     requirements: [
       ...sharedAiRequirements,
       { name: "WORKFLOW_ADAPTER_MODE", expected: "vercel" },
       { name: "BETTER_AUTH_SECRET", format: "secret" },
       { name: "AI_MODEL_DEEP_READING", format: "nonBlank" },
+      { name: "AI_MAX_OUTPUT_TOKENS", format: "positiveInteger" },
       ...keyRequirements,
     ],
   },
   reconcile: {
     flag: "COMMERCIAL_V2_RECONCILE_ENABLED",
-    implementationAvailable: false,
+    implementationAvailable: true,
     capabilityDependencies: [],
     requirements: [
       ...databaseRequirements,

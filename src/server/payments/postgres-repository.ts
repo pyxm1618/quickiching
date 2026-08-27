@@ -582,11 +582,15 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     return result;
   }
 
-  async processInbox(inboxId: string): Promise<ProcessOutcome> {
-    return this.sql.begin((transaction) => this.processInboxTransaction(transaction, inboxId));
+  async processInbox(inboxId: string, options: { leaseToken?: string } = {}): Promise<ProcessOutcome> {
+    return this.sql.begin((transaction) => this.processInboxTransaction(transaction, inboxId, options.leaseToken));
   }
 
-  private async processInboxTransaction(transaction: TransactionSql, inboxId: string): Promise<ProcessOutcome> {
+  private async processInboxTransaction(
+    transaction: TransactionSql,
+    inboxId: string,
+    callerLeaseToken?: string,
+  ): Promise<ProcessOutcome> {
     const hintRows = await transaction`
       select linked_order_id, order_merchant_external_id,
         normalized_payload->>'internalOrderId' as internal_order_id
@@ -640,30 +644,57 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       || ["completed", "dead_letter"].includes(String(outbox.status))) {
       throw new Error("PAYMENT_INBOX_OUTBOX_STATE_MISMATCH");
     }
+
+    let leaseToken: string;
+
     if (inbox.status === "processing" || outbox.status === "processing") {
       const leaseRows = await transaction`
-        select lease_expires_at > clock_timestamp() as active
+        select lease_expires_at > clock_timestamp() as active, lease_token
         from payment_outbox where id = ${String(outbox.id)}
       ` as Row[];
-      if (leaseRows[0]?.active) return { outcome: "processing" };
-    }
 
-    const attemptCount = Math.max(Number(inbox.attempt_count), Number(outbox.attempt_count)) + 1;
-    const leaseToken = randomUUID();
-    await transaction`
-      update payment_webhook_inbox
-      set status = 'processing', attempt_count = ${attemptCount},
-          last_error_code = null, processed_at = null, updated_at = clock_timestamp()
-      where id = ${inboxId}
-    `;
-    await transaction`
-      update payment_outbox
-      set status = 'processing', attempt_count = ${attemptCount},
-          lease_token = ${leaseToken},
-          lease_expires_at = clock_timestamp() + interval '30 seconds',
-          last_error_code = null, completed_at = null, updated_at = clock_timestamp()
-      where id = ${String(outbox.id)}
-    `;
+      if (callerLeaseToken && callerLeaseToken === String(leaseRows[0]?.lease_token) && leaseRows[0]?.active) {
+        // Caller holds the active lease token, proceed with processing
+        leaseToken = callerLeaseToken;
+      } else if (leaseRows[0]?.active) {
+        return { outcome: "processing" };
+      } else {
+        // Lease expired, take over
+        const attemptCount = Math.max(Number(inbox.attempt_count), Number(outbox.attempt_count)) + 1;
+        leaseToken = randomUUID();
+        await transaction`
+          update payment_webhook_inbox
+          set status = 'processing', attempt_count = ${attemptCount},
+              last_error_code = null, processed_at = null, updated_at = clock_timestamp()
+          where id = ${inboxId}
+        `;
+        await transaction`
+          update payment_outbox
+          set status = 'processing', attempt_count = ${attemptCount},
+              lease_token = ${leaseToken},
+              lease_expires_at = clock_timestamp() + interval '30 seconds',
+              last_error_code = null, completed_at = null, updated_at = clock_timestamp()
+          where id = ${String(outbox.id)}
+        `;
+      }
+    } else {
+      const attemptCount = Math.max(Number(inbox.attempt_count), Number(outbox.attempt_count)) + 1;
+      leaseToken = randomUUID();
+      await transaction`
+        update payment_webhook_inbox
+        set status = 'processing', attempt_count = ${attemptCount},
+            last_error_code = null, processed_at = null, updated_at = clock_timestamp()
+        where id = ${inboxId}
+      `;
+      await transaction`
+        update payment_outbox
+        set status = 'processing', attempt_count = ${attemptCount},
+            lease_token = ${leaseToken},
+            lease_expires_at = clock_timestamp() + interval '30 seconds',
+            last_error_code = null, completed_at = null, updated_at = clock_timestamp()
+        where id = ${String(outbox.id)}
+      `;
+    }
 
     const event = normalizedEvent(inbox.normalized_payload);
     if (!event) {
@@ -856,6 +887,19 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     }
     await this.completeInbox(transaction, String(inbox.id), String(outbox.id), leaseToken);
 
+    await transaction`
+      insert into audit_events (
+        id, category, action, entity_type, entity_id, user_id, payload, created_at
+      ) values (
+        ${randomUUID()}, 'entitlement', 'credits_granted', 'order', ${String(order.id)},
+        ${String(order.user_id)}, ${JSON.stringify({
+          orderId: String(order.id),
+          batchId: String(batch.id),
+          quantity: Number(order.quantity),
+        })}::jsonb, clock_timestamp()
+      )
+    `;
+
     return { outcome: "granted", orderId: String(order.id) };
   }
 
@@ -941,6 +985,20 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       where id = ${String(order.id)}
     `;
     await this.completeInbox(transaction, String(inbox.id), String(outbox.id), leaseToken);
+
+    await transaction`
+      insert into audit_events (
+        id, category, action, entity_type, entity_id, user_id, payload, created_at
+      ) values (
+        ${randomUUID()}, 'entitlement', 'credits_revoked', 'order', ${String(order.id)},
+        ${String(order.user_id)}, ${JSON.stringify({
+          orderId: String(order.id),
+          batchId: String(batch.id),
+          quantity: Number(order.quantity),
+        })}::jsonb, clock_timestamp()
+      )
+    `;
+
     return { outcome: "revoked" };
   }
 
@@ -1038,7 +1096,8 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       join payment_outbox o on o.inbox_id = i.id
       where i.linked_order_id = ${orderId}
         and i.event_type = 'refund.succeeded'
-        and i.status = 'pending_order'
+        and i.status in ('pending_order', 'received', 'processing', 'failed')
+        and o.status <> 'completed'
       order by i.created_at asc, i.id asc
       for update of i, o
     ` as Row[];
@@ -1059,7 +1118,7 @@ export class PostgresPaymentRepository implements CheckoutRepository {
         update payment_webhook_inbox
         set status = 'processing', attempt_count = ${attemptCount},
             last_error_code = null, processed_at = null, updated_at = clock_timestamp()
-        where id = ${String(refundInbox.id)} and status = 'pending_order'
+        where id = ${String(refundInbox.id)}
       `;
       await transaction`
         update payment_outbox
@@ -1163,10 +1222,17 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     if (!inboxRows[0] || !outboxRows[0]) throw new Error("PAYMENT_WEBHOOK_LEASE_LOST");
   }
 
-  async recordProcessingFailure(inboxId: string, errorCode: string): Promise<{ deadLetter: boolean; attemptCount: number }> {
+  async recordProcessingFailure(
+    inboxId: string,
+    options: { leaseToken?: string; errorCode: string } | string,
+  ): Promise<{ deadLetter: boolean; attemptCount: number }> {
+    const errorCode = typeof options === "string" ? options : options.errorCode;
+    const leaseToken = typeof options === "string" ? undefined : options.leaseToken;
+
     return this.sql.begin(async (transaction) => {
       const rows = await transaction`
         select i.status as inbox_status, o.id as outbox_id, o.status as outbox_status,
+          o.lease_token as outbox_lease_token,
           greatest(i.attempt_count, o.attempt_count) as attempt_count
         from payment_webhook_inbox i
         join payment_outbox o on o.inbox_id = i.id
@@ -1175,6 +1241,16 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       ` as Row[];
       const row = rows[0];
       if (!row) throw new Error("PAYMENT_OUTBOX_UNAVAILABLE");
+
+      // Supplying a lease token is an ownership claim. Exact equality is required even when
+      // the persisted token is NULL, and only a processing row may be failed by a leased worker.
+      if (
+        leaseToken !== undefined
+        && (row.outbox_status !== "processing" || row.outbox_lease_token !== leaseToken)
+      ) {
+        return { deadLetter: false, attemptCount: Number(row.attempt_count) };
+      }
+
       const existingCount = Number(row.attempt_count);
       if (row.inbox_status === "dead_letter" || row.outbox_status === "dead_letter") {
         return { deadLetter: true, attemptCount: existingCount };
@@ -1182,7 +1258,8 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       if (row.inbox_status === "processed" || row.outbox_status === "completed") {
         return { deadLetter: false, attemptCount: existingCount };
       }
-      const attemptCount = existingCount + 1;
+
+      const attemptCount = leaseToken ? existingCount : existingCount + 1;
       const deadLetter = attemptCount >= 3;
       const code = safeFailureCode(errorCode);
       await transaction`

@@ -195,3 +195,17 @@ export async function signOut(): Promise<void> {
   const store = await cookies();
   store.delete(SESSION_COOKIE);
 }
+
+export async function resolveSession(headers: Headers): Promise<{ user: { id: string; email: string } } | null> {
+  if (isAuthCapabilityEnabled()) {
+    try {
+      const { getAuth } = await import("@/server/auth/server");
+      const session = await getAuth().api.getSession({ headers });
+      if (!session?.user) return null;
+      return { user: { id: session.user.id, email: session.user.email } };
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}

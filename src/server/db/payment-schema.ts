@@ -12,6 +12,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { users } from "./auth-schema";
+import { castingSessions, generationJobs } from "./generation-schema";
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -58,6 +59,12 @@ export const entitlementLedgerAction = pgEnum("entitlement_ledger_action", [
   "expire",
   "revoke",
   "compensate",
+]);
+export const entitlementReservationStatus = pgEnum("entitlement_reservation_status", [
+  "reserved",
+  "consumed",
+  "released",
+  "expired",
 ]);
 export const financialReviewStatus = pgEnum("financial_review_status", ["open", "resolved"]);
 
@@ -229,6 +236,34 @@ export const entitlementLedger = pgTable(
   ],
 );
 
+export const entitlementReservations = pgTable(
+  "entitlement_reservations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    batchId: uuid("batch_id").notNull().references(() => entitlementBatches.id, { onDelete: "restrict" }),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    castingId: uuid("casting_id").notNull().references(() => castingSessions.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id").notNull().references(() => generationJobs.id, { onDelete: "restrict" }),
+    status: entitlementReservationStatus("status").notNull().default("reserved"),
+    leaseToken: text("lease_token"),
+    leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("entitlement_reservations_active_casting_idx")
+      .on(table.castingId)
+      .where(sql`${table.status} = 'reserved'`),
+    index("entitlement_reservations_user_status_idx").on(table.userId, table.status),
+    index("entitlement_reservations_lease_idx").on(table.status, table.leaseExpiresAt),
+    index("entitlement_reservations_expiry_idx").on(table.status, table.expiresAt),
+    check(
+      "entitlement_reservations_lease_check",
+      sql`(${table.status} = 'reserved' AND ${table.leaseToken} IS NOT NULL) OR (${table.status} <> 'reserved')`,
+    ),
+  ],
+);
+
 export const paymentFinancialReviews = pgTable(
   "payment_financial_reviews",
   {
@@ -292,6 +327,7 @@ export const paymentSchema = {
   paymentOutbox,
   entitlementBatches,
   entitlementLedger,
+  entitlementReservations,
   paymentFinancialReviews,
   paymentCheckoutBudgets,
   paymentWebhookConflicts,

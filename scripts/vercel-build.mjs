@@ -111,7 +111,7 @@ const lockHash = await fileHash("bun.lock");
 log("Installing ephemeral browser audit tooling without changing package.json or bun.lock");
 const browserAuditCacheDir = process.env.BUN_AUDIT_CACHE_DIR || "/tmp/quickiching-bun-cache";
 run("bun", [
-  "install",
+  "add",
   "--no-save",
   `--cache-dir=${browserAuditCacheDir}`,
   "puppeteer-core@25.1.0",
@@ -123,12 +123,26 @@ if ((await fileHash("package.json")) !== manifestHash || (await fileHash("bun.lo
 }
 
 const systemChromePath = findSystemChrome();
-const { default: chromium } = await import("@sparticuz/chromium");
-const chromePath = systemChromePath ?? await chromium.executablePath();
+let chromePath = systemChromePath;
+if (!chromePath) {
+  try {
+    const { default: chromium } = await import("@sparticuz/chromium");
+    chromePath = await chromium.executablePath();
+  } catch {
+    try {
+      const { createRequire } = await import("node:module");
+      const require = createRequire(import.meta.url);
+      const chromium = require("@sparticuz/chromium");
+      chromePath = await chromium.executablePath();
+    } catch (e) {
+      log(`Could not load serverless chromium: ${e.message}`);
+    }
+  }
+}
 log(`Browser audit Chrome: ${chromePath} (${systemChromePath ? "system runner" : "serverless fallback"})`);
 
 log("Capturing homepage SEO baseline from the verified production main deployment");
-run("node", ["scripts/homepage-seo-audit.mjs"], {
+run("bun", ["scripts/homepage-seo-audit.mjs"], {
   env: {
     PUBLIC_V1_TEST_BASE_URL: "https://www.quickiching.com",
     CHROME_PATH: chromePath,
@@ -145,7 +159,7 @@ try {
   await waitForServer();
   const browserEnv = { PUBLIC_V1_TEST_BASE_URL: BASE, CHROME_PATH: chromePath };
   log("Production Next server is ready; running homepage SEO semantic audit");
-  run("node", ["scripts/homepage-seo-audit.mjs"], {
+  run("bun", ["scripts/homepage-seo-audit.mjs"], {
     env: { ...browserEnv, SEO_AUDIT_LABEL: "AFTER", SEO_AUDIT_ASSERT: "1" },
   });
 
@@ -155,14 +169,14 @@ try {
     env: { ...browserEnv, HEXAGRAM_SEO_AUDIT_BASE_URL: BASE, HEXAGRAM_SEO_AUDIT_OUTPUT_DIR: "/tmp/quickiching-hexagram-seo-quality" },
   });
   run("bun", ["run", "seo:browser"], { env: { ...browserEnv, HEXAGRAM_SEO_BROWSER_BASE_URL: BASE } });
-  run("node", ["scripts/browser-gate.mjs"], { env: browserEnv });
-  run("node", ["scripts/on-page-seo-browser-gate.mjs"], { env: browserEnv });
-  run("node", ["scripts/three-coin-v2-browser-gate.mjs"], { env: browserEnv });
-  run("node", ["scripts/multilingual-browser-gate.mjs"], { env: { MULTILINGUAL_TEST_BASE_URL: BASE, CHROME_PATH: chromePath } });
-  run("node", ["scripts/public-p0-browser-gate.mjs"], { env: browserEnv });
-  run("node", ["scripts/interpretation-bundle-gate.mjs"], { env: browserEnv });
-  run("node", ["scripts/logo-browser-gate.mjs"], { env: browserEnv });
-  run("node", ["scripts/navigation-audit-gate.mjs"], { env: browserEnv });
+  run("bun", ["scripts/browser-gate.mjs"], { env: browserEnv });
+  run("bun", ["scripts/on-page-seo-browser-gate.mjs"], { env: browserEnv });
+  run("bun", ["scripts/three-coin-v2-browser-gate.mjs"], { env: browserEnv });
+  run("bun", ["scripts/multilingual-browser-gate.mjs"], { env: { MULTILINGUAL_TEST_BASE_URL: BASE, CHROME_PATH: chromePath } });
+  run("bun", ["scripts/public-p0-browser-gate.mjs"], { env: browserEnv });
+  run("bun", ["scripts/interpretation-bundle-gate.mjs"], { env: browserEnv });
+  run("bun", ["scripts/logo-browser-gate.mjs"], { env: browserEnv });
+  run("bun", ["scripts/navigation-audit-gate.mjs"], { env: browserEnv });
 
   log(`Running homepage Lighthouse with Chrome: ${chromePath}`);
   const lighthouseEnv = { CHROME_PATH: chromePath };
@@ -178,9 +192,9 @@ try {
   assertLighthouse([mobile, desktop, guideMobile]);
 
   log("Running populated Three-Coin result Lighthouse with preserved sessionStorage");
-  run("node", ["scripts/result-lighthouse-gate.mjs"], { env: browserEnv });
+  run("bun", ["scripts/result-lighthouse-gate.mjs"], { env: browserEnv });
   log("Running Public P0 before/after Lighthouse coverage for home, Three-Coin, populated unified result, hub, detail, and History");
-  run("node", ["scripts/public-p0-lighthouse-gate.mjs"], {
+  run("bun", ["scripts/public-p0-lighthouse-gate.mjs"], {
     env: { ...browserEnv, PUBLIC_V1_LIGHTHOUSE_BASELINE_URL: process.env.PUBLIC_V1_LIGHTHOUSE_BASELINE_URL || "https://www.quickiching.com" },
   });
   log("ALL PUBLIC SEO V1 + PUBLIC READING P0 + THREE-COIN FREE READING V2 + ON-PAGE SEO QUALITY / BUILD / BROWSER / BUNDLE / LIGHTHOUSE GATES PASS");
