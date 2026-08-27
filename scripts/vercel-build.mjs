@@ -123,8 +123,22 @@ if ((await fileHash("package.json")) !== manifestHash || (await fileHash("bun.lo
 }
 
 const systemChromePath = findSystemChrome();
-const { default: chromium } = await import("@sparticuz/chromium");
-const chromePath = systemChromePath ?? await chromium.executablePath();
+let chromePath = systemChromePath;
+if (!chromePath) {
+  try {
+    const { default: chromium } = await import("@sparticuz/chromium");
+    chromePath = await chromium.executablePath();
+  } catch {
+    try {
+      const { createRequire } = await import("node:module");
+      const require = createRequire(import.meta.url);
+      const chromium = require("@sparticuz/chromium");
+      chromePath = await chromium.executablePath();
+    } catch (e) {
+      log(`Could not load serverless chromium: ${e.message}`);
+    }
+  }
+}
 log(`Browser audit Chrome: ${chromePath} (${systemChromePath ? "system runner" : "serverless fallback"})`);
 
 log("Capturing homepage SEO baseline from the verified production main deployment");
