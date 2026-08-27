@@ -27,30 +27,22 @@ jobs:
         with:
           ref: codex/commercial-v2-cp5
           fetch-depth: 1
-      - name: Patch exact stale-worker condition
+      - name: Patch stale-worker ownership condition
         run: |
           python - <<'PY'
           from pathlib import Path
           path = Path("src/server/payments/postgres-repository.ts")
           text = path.read_text()
-          old = '''      // If lease token was provided and does not match outbox lease token, fail-stop
-          if (leaseToken && row.outbox_lease_token && row.outbox_lease_token !== leaseToken) {
-            return { deadLetter: false, attemptCount: Number(row.attempt_count) };
-          }
-          '''
-          new = '''      // Supplying a lease token is an ownership claim. Exact equality is
-          // required even when the persisted token is NULL, and only a processing
-          // row may be failed by a leased worker.
-          if (
-            leaseToken !== undefined
-            && (row.outbox_status !== "processing" || row.outbox_lease_token !== leaseToken)
-          ) {
-            return { deadLetter: false, attemptCount: Number(row.attempt_count) };
-          }
-          '''
-          if text.count(old) != 1:
-              raise SystemExit(f"expected exactly one stale-worker target, got {text.count(old)}")
-          path.write_text(text.replace(old, new))
+          old_comment = "// If lease token was provided and does not match outbox lease token, fail-stop"
+          new_comment = "// Supplying a lease token is an ownership claim. Exact equality is required even when\n      // the persisted token is NULL, and only a processing row may be failed by a leased worker."
+          old_condition = "if (leaseToken && row.outbox_lease_token && row.outbox_lease_token !== leaseToken) {"
+          new_condition = "if (\n        leaseToken !== undefined\n        && (row.outbox_status !== \"processing\" || row.outbox_lease_token !== leaseToken)\n      ) {"
+          if text.count(old_comment) != 1:
+              raise SystemExit(f"expected one stale-worker comment, got {text.count(old_comment)}")
+          if text.count(old_condition) != 1:
+              raise SystemExit(f"expected one stale-worker condition, got {text.count(old_condition)}")
+          text = text.replace(old_comment, new_comment).replace(old_condition, new_condition)
+          path.write_text(text)
           PY
           git diff --check
       - name: Commit source-only patch
