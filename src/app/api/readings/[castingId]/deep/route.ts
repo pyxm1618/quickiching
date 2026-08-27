@@ -42,9 +42,13 @@ function sameOrigin(request: Request): boolean {
   if (request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site") return false;
   const origin = request.headers.get("origin");
   if (!origin) return false;
-  const configured = process.env.APP_BASE_URL?.trim() || process.env.BETTER_AUTH_URL?.trim() || request.url;
   try {
-    return new URL(origin).origin === new URL(configured).origin;
+    const originHost = new URL(origin).host;
+    const requestHost = new URL(request.url).host;
+    if (originHost === requestHost) return true;
+    const configured = process.env.APP_BASE_URL?.trim() || process.env.BETTER_AUTH_URL?.trim();
+    if (configured && new URL(origin).origin === new URL(configured).origin) return true;
+    return false;
   } catch {
     return false;
   }
