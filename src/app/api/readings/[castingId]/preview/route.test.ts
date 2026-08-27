@@ -35,6 +35,8 @@ function request(path = `/api/readings/${CASTING_ID}/preview`, init: RequestInit
 
 describe("Commercial V2 Preview route", () => {
   beforeEach(() => {
+    vi.stubEnv("APP_BASE_URL", "https://www.quickiching.com");
+    vi.stubEnv("BETTER_AUTH_URL", "https://www.quickiching.com");
     mocks.capabilityEnabled = true;
     mocks.session = { user: { id: "user-1", email: "user@example.com" } };
     mocks.service.generate.mockReset();
@@ -47,7 +49,10 @@ describe("Commercial V2 Preview route", () => {
     mocks.createService.mockResolvedValue(mocks.service);
   });
 
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
 
   it("returns a capability-off 404 without initializing auth or the provider", async () => {
     mocks.capabilityEnabled = false;

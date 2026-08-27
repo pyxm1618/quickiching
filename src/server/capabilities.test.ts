@@ -56,6 +56,7 @@ const completeValidEnvironment = {
   QUESTION_ENCRYPTION_KEYS: "v1:encryption-secret",
   RESULT_INTEGRITY_KEYS: "v1:integrity-secret",
   ANONYMOUS_OWNER_KEYS: "v1:anonymous-owner-secret",
+  PAYMENT_CHECKOUT_URL_KEYS: "v1:payment-checkout-url-secret",
   CRON_SECRET: "cron-secret",
 };
 
@@ -131,7 +132,7 @@ describe("commercial capability matrix", () => {
     expect(result.capabilities.checkout.enabled).toBe(false);
   });
 
-  it("opens only Auth while all later commercial capabilities remain closed", () => {
+  it("opens all commercial capabilities when flags and requirements are provided in CP5", () => {
     const result = resolveCommercialCapabilities(completeValidEnvironment);
 
     expect(result.capabilities.auth).toMatchObject({
@@ -152,8 +153,8 @@ describe("commercial capability matrix", () => {
     });
     expect(result.capabilities.reconcile).toMatchObject({
       requested: true,
-      enabled: false,
-      reason: "implementation_not_available",
+      enabled: true,
+      reason: "enabled",
       blockedDependencies: [],
       missingDependencies: [],
       invalidDependencies: [],
@@ -172,15 +173,34 @@ describe("commercial capability matrix", () => {
     });
     expect(result.capabilities.paidDeepReading).toMatchObject({
       requested: true,
-      enabled: false,
-      reason: "implementation_not_available",
+      enabled: true,
+      reason: "enabled",
       blockedDependencies: [],
     });
 
     for (const capability of COMMERCIAL_CAPABILITIES) {
-      expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].implementationAvailable)
-        .toBe(["auth", "aiPreview", "checkout", "webhookIngestion"].includes(capability));
+      expect(COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].implementationAvailable).toBe(true);
     }
+  });
+
+  it("keeps payment capabilities closed when flags are disabled", () => {
+    const disabledEnv = {
+      ...completeValidEnvironment,
+      COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
+      COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "false",
+    };
+    const result = resolveCommercialCapabilities(disabledEnv);
+
+    expect(result.capabilities.checkout).toMatchObject({
+      requested: false,
+      enabled: false,
+      reason: "disabled",
+    });
+    expect(result.capabilities.webhookIngestion).toMatchObject({
+      requested: false,
+      enabled: false,
+      reason: "disabled",
+    });
   });
 
   it("opens only the Auth capability after the CP2 implementation is connected", () => {
@@ -262,7 +282,7 @@ describe("commercial capability matrix", () => {
     );
   });
 
-  it("requires Auth and Webhook readiness for Checkout but keeps Webhook independent of Checkout", () => {
+  it("keeps payment capabilities closed even when their dependency credentials are valid", () => {
     const checkoutWithoutWebhook = {
       ...completeValidEnvironment,
       COMMERCIAL_V2_CHECKOUT_ENABLED: "true",
@@ -287,7 +307,7 @@ describe("commercial capability matrix", () => {
     });
   });
 
-  it("lets signed webhook ingestion run without checkout API credentials", () => {
+  it("requires postgres database when webhook ingestion is requested", () => {
     const environment: Record<string, string | undefined> = {
       ...completeValidEnvironment,
       COMMERCIAL_V2_AUTH_ENABLED: "false",
@@ -297,18 +317,16 @@ describe("commercial capability matrix", () => {
       COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "false",
       COMMERCIAL_V2_RECONCILE_ENABLED: "false",
     };
-    delete environment.WAFFO_MERCHANT_ID;
-    delete environment.WAFFO_PRIVATE_KEY;
+    delete environment.DATABASE_URL;
 
     expect(resolveCommercialCapabilities(environment).capabilities.webhookIngestion).toMatchObject({
-      enabled: true,
-      reason: "enabled",
-      missingDependencies: [],
-      invalidDependencies: [],
+      enabled: false,
+      reason: "missing_dependencies",
+      missingDependencies: ["DATABASE_URL"],
     });
   });
 
-  it("accepts only official Waffo environment names and rejects reused Test/Prod product mappings", () => {
+  it("accepts only official Waffo environment names and requires only the selected product mapping", () => {
     const officialProd = resolveCommercialCapabilities({
       ...completeValidEnvironment,
       WAFFO_ENVIRONMENT: "prod",
@@ -321,24 +339,36 @@ describe("commercial capability matrix", () => {
     }).capabilities.checkout;
     expect(legacyName.invalidDependencies).toContain("WAFFO_ENVIRONMENT=test|prod");
 
-    const reusedMapping = resolveCommercialCapabilities({
+    const publishedMapping = resolveCommercialCapabilities({
       ...completeValidEnvironment,
       WAFFO_PROD_PRODUCT_ID_ONE: completeValidEnvironment.WAFFO_TEST_PRODUCT_ID_ONE,
     }).capabilities.checkout;
-    expect(reusedMapping.enabled).toBe(false);
-    expect(reusedMapping.invalidDependencies).toEqual(expect.arrayContaining([
-      "WAFFO_TEST_PRODUCT_ID_ONE",
+    expect(publishedMapping.invalidDependencies).not.toContain("WAFFO_TEST_PRODUCT_ID_ONE");
+    expect(publishedMapping.invalidDependencies).not.toContain("WAFFO_PROD_PRODUCT_ID_ONE");
+
+    const testOnlyEnvironment: Record<string, string | undefined> = { ...completeValidEnvironment };
+    delete testOnlyEnvironment.WAFFO_PROD_PRODUCT_ID_ONE;
+    delete testOnlyEnvironment.WAFFO_PROD_PRODUCT_ID_THREE;
+    delete testOnlyEnvironment.WAFFO_PROD_PRODUCT_ID_FIVE;
+    const testOnly = resolveCommercialCapabilities(testOnlyEnvironment).capabilities.checkout;
+    expect(testOnly.missingDependencies).not.toEqual(expect.arrayContaining([
       "WAFFO_PROD_PRODUCT_ID_ONE",
+      "WAFFO_PROD_PRODUCT_ID_THREE",
+      "WAFFO_PROD_PRODUCT_ID_FIVE",
     ]));
 
-    const crossProductReuse = resolveCommercialCapabilities({
+    const prodOnlyEnvironment: Record<string, string | undefined> = {
       ...completeValidEnvironment,
-      WAFFO_PROD_PRODUCT_ID_THREE: completeValidEnvironment.WAFFO_TEST_PRODUCT_ID_ONE,
-    }).capabilities.checkout;
-    expect(crossProductReuse.enabled).toBe(false);
-    expect(crossProductReuse.invalidDependencies).toEqual(expect.arrayContaining([
+      WAFFO_ENVIRONMENT: "prod",
+    };
+    delete prodOnlyEnvironment.WAFFO_TEST_PRODUCT_ID_ONE;
+    delete prodOnlyEnvironment.WAFFO_TEST_PRODUCT_ID_THREE;
+    delete prodOnlyEnvironment.WAFFO_TEST_PRODUCT_ID_FIVE;
+    const prodOnly = resolveCommercialCapabilities(prodOnlyEnvironment).capabilities.checkout;
+    expect(prodOnly.missingDependencies).not.toEqual(expect.arrayContaining([
       "WAFFO_TEST_PRODUCT_ID_ONE",
-      "WAFFO_PROD_PRODUCT_ID_THREE",
+      "WAFFO_TEST_PRODUCT_ID_THREE",
+      "WAFFO_TEST_PRODUCT_ID_FIVE",
     ]));
 
     const sameEnvironmentReuse = resolveCommercialCapabilities({
@@ -536,7 +566,7 @@ describe("commercial capability matrix", () => {
     expect(onlyCheckout).toMatchObject({
       enabled: false,
       reason: "blocked_dependencies",
-      blockedDependencies: ["auth", "webhookIngestion"],
+      blockedDependencies: ["auth", "webhookIngestion", "reconcile"],
     });
 
     const checkoutWithoutWebhook = resolveCommercialCapabilities(completeValidEnvironment, {
@@ -545,11 +575,11 @@ describe("commercial capability matrix", () => {
     expect(checkoutWithoutWebhook).toMatchObject({
       enabled: false,
       reason: "blocked_dependencies",
-      blockedDependencies: ["webhookIngestion"],
+      blockedDependencies: ["webhookIngestion", "reconcile"],
     });
 
     const readyCheckout = resolveCommercialCapabilities(completeValidEnvironment, {
-      definitions: definitionsWithImplementations("auth", "webhookIngestion", "checkout"),
+      definitions: definitionsWithImplementations("auth", "webhookIngestion", "reconcile", "checkout"),
     }).capabilities.checkout;
     expect(readyCheckout).toMatchObject({
       enabled: true,
@@ -558,13 +588,58 @@ describe("commercial capability matrix", () => {
     });
   });
 
+  it("fails Checkout closed when its purpose-specific URL encryption key is missing", () => {
+    const environment: Record<string, string | undefined> = { ...completeValidEnvironment };
+    delete environment.PAYMENT_CHECKOUT_URL_KEYS;
+
+    const status = resolveCommercialCapabilities(environment, {
+      definitions: definitionsWithImplementations("auth", "webhookIngestion", "checkout"),
+    }).capabilities.checkout;
+
+    expect(status).toMatchObject({
+      enabled: false,
+      reason: "missing_dependencies",
+      missingDependencies: ["PAYMENT_CHECKOUT_URL_KEYS"],
+    });
+  });
+
+  it("fails Checkout closed when its purpose-specific URL encryption key is malformed", () => {
+    const status = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      PAYMENT_CHECKOUT_URL_KEYS: "not-versioned",
+    }, {
+      definitions: definitionsWithImplementations("auth", "webhookIngestion", "checkout"),
+    }).capabilities.checkout;
+
+    expect(status).toMatchObject({
+      enabled: false,
+      reason: "invalid_dependencies",
+    });
+    expect(status.invalidDependencies).toContain("PAYMENT_CHECKOUT_URL_KEYS");
+  });
+
+  it("rejects Checkout URL key material reused by another cryptographic purpose", () => {
+    const result = resolveCommercialCapabilities({
+      ...completeValidEnvironment,
+      PAYMENT_CHECKOUT_URL_KEYS: completeValidEnvironment.ANONYMOUS_OWNER_KEYS,
+    }, {
+      definitions: definitionsWithImplementations("auth", "webhookIngestion", "checkout"),
+    });
+    const status = result.capabilities.checkout;
+
+    expect(status.enabled).toBe(false);
+    expect(status.reason).toBe("invalid_dependencies");
+    expect(status.invalidDependencies).toContain("PAYMENT_CHECKOUT_URL_KEYS");
+    expect(result.capabilities.auth.invalidDependencies).toContain("ANONYMOUS_OWNER_KEYS");
+  });
+
   it("does not couple Paid Deep Reading to the AI Preview product capability", () => {
     const environment: Record<string, string | undefined> = { ...completeValidEnvironment };
     environment.COMMERCIAL_V2_AI_PREVIEW_ENABLED = "false";
     environment.AI_MODEL_PREVIEW = undefined;
 
     const result = resolveCommercialCapabilities(environment, {
-      definitions: definitionsWithImplementations("auth", "paidDeepReading"),
+      definitions: definitionsWithImplementations("auth", "reconcile", "paidDeepReading"),
     });
     const status = result.capabilities.paidDeepReading;
 

@@ -26,12 +26,14 @@ const eventSchema = z.object({
   mode: z.enum(["test", "prod"]),
   data: z.object({
     orderId: z.string().trim().min(1).max(128),
+    merchantProvidedBuyerIdentity: z.string().trim().min(1).max(128).nullable().optional(),
     orderMerchantExternalId: z.string().trim().max(128).optional(),
     currency: z.string().trim().min(1).max(3),
     amount: z.string().trim().min(1).max(32),
     taxAmount: z.string().trim().min(1).max(32),
     total: z.string().trim().min(1).max(32).optional(),
     paymentId: z.string().trim().max(128).optional(),
+    refundTicketMerchantExternalId: z.string().trim().max(128).nullable().optional(),
     orderMetadata: z.record(z.string()).optional(),
   }).passthrough(),
 }).passthrough();
@@ -44,6 +46,9 @@ export type NormalizedWaffoWebhook = {
   eventType: string;
   storeId: string;
   orderMerchantExternalId: string | null;
+  merchantProvidedBuyerIdentity: string | null;
+  internalOrderId: string | null;
+  refundTicketMerchantExternalId: string | null;
   providerOrderId: string;
   providerPaymentId: string | null;
   productKey: "one" | "three" | "five" | null;
@@ -53,6 +58,7 @@ export type NormalizedWaffoWebhook = {
   taxAmount: string;
   total: string | null;
   payloadSha256: string;
+  canonicalPayloadSha256: string;
   supported: boolean;
   manualReviewReason: "CHARGEBACK_POLICY_UNRESOLVED" | null;
 };
@@ -64,6 +70,76 @@ function usdMinor(displayAmount: string): number | null {
   const minorDigits = (match[2] ?? "").padEnd(2, "0");
   const result = major * 100 + Number(minorDigits || "0");
   return Number.isSafeInteger(result) && result >= 0 ? result : null;
+}
+
+export function canonicalWaffoPayloadHash(event: Pick<NormalizedWaffoWebhook,
+  | "providerEnvironment"
+  | "eventId"
+  | "eventType"
+  | "orderMerchantExternalId"
+  | "merchantProvidedBuyerIdentity"
+  | "internalOrderId"
+  | "productKey"
+  | "amountMinor"
+  | "currency"
+  | "providerOrderId"
+  | "providerPaymentId"
+  | "providerProductId"
+  | "taxAmount"
+  | "total"
+  | "refundTicketMerchantExternalId"
+>): string {
+  const canonical = {
+    provider: "waffo",
+    providerEnvironment: event.providerEnvironment,
+    eventType: event.eventType,
+    eventId: event.eventId,
+    orderMerchantExternalId: event.orderMerchantExternalId,
+    merchantProvidedBuyerIdentity: event.merchantProvidedBuyerIdentity,
+    internalOrderId: event.internalOrderId,
+    productKey: event.productKey,
+    amountMinor: event.amountMinor,
+    currency: event.currency,
+    providerOrderId: event.providerOrderId,
+    providerPaymentId: event.providerPaymentId,
+    providerProductId: event.providerProductId,
+    taxAmount: event.taxAmount,
+    total: event.total,
+    refundTicketMerchantExternalId: event.refundTicketMerchantExternalId,
+  };
+  return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
+}
+
+export function legacyWaffoPayloadHash(event: Pick<NormalizedWaffoWebhook,
+  | "providerEnvironment"
+  | "eventId"
+  | "eventType"
+  | "orderMerchantExternalId"
+  | "productKey"
+  | "amountMinor"
+  | "currency"
+  | "providerOrderId"
+  | "providerPaymentId"
+  | "providerProductId"
+  | "taxAmount"
+  | "total"
+>): string {
+  const canonical = {
+    provider: "waffo",
+    providerEnvironment: event.providerEnvironment,
+    eventType: event.eventType,
+    eventId: event.eventId,
+    orderMerchantExternalId: event.orderMerchantExternalId,
+    productKey: event.productKey,
+    amountMinor: event.amountMinor,
+    currency: event.currency,
+    providerOrderId: event.providerOrderId,
+    providerPaymentId: event.providerPaymentId,
+    providerProductId: event.providerProductId,
+    taxAmount: event.taxAmount,
+    total: event.total,
+  };
+  return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
 }
 
 export function verifyAndNormalizeWaffoWebhook(
@@ -103,7 +179,7 @@ export function verifyAndNormalizeWaffoWebhook(
   const manualReviewReason = /^(?:chargeback|dispute)\./.test(event.eventType)
     ? "CHARGEBACK_POLICY_UNRESOLVED" as const
     : null;
-  return {
+  const normalized: NormalizedWaffoWebhook = {
     provider: "waffo",
     providerEnvironment: event.mode,
     deliveryId: event.id,
@@ -111,6 +187,9 @@ export function verifyAndNormalizeWaffoWebhook(
     eventType: event.eventType,
     storeId: event.storeId,
     orderMerchantExternalId: event.data.orderMerchantExternalId ?? null,
+    merchantProvidedBuyerIdentity: event.data.merchantProvidedBuyerIdentity ?? null,
+    internalOrderId: event.data.orderMetadata?.internalOrderId ?? null,
+    refundTicketMerchantExternalId: event.data.refundTicketMerchantExternalId ?? null,
     providerOrderId: event.data.orderId,
     providerPaymentId: event.data.paymentId ?? null,
     productKey,
@@ -120,7 +199,10 @@ export function verifyAndNormalizeWaffoWebhook(
     taxAmount: event.data.taxAmount,
     total: event.data.total ?? null,
     payloadSha256: createHash("sha256").update(rawBody).digest("hex"),
+    canonicalPayloadSha256: "",
     supported: event.eventType === "order.completed" || event.eventType === "refund.succeeded" || manualReviewReason !== null,
     manualReviewReason,
   };
+  normalized.canonicalPayloadSha256 = canonicalWaffoPayloadHash(normalized);
+  return normalized;
 }

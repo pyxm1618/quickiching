@@ -13,7 +13,10 @@ type WebhookRepository = {
 };
 
 export class WebhookServiceError extends Error {
-  constructor(readonly code: "WEBHOOK_PROCESSING_UNAVAILABLE", readonly retryable: boolean) {
+  constructor(
+    readonly code: "WEBHOOK_PROCESSING_UNAVAILABLE" | "WEBHOOK_DEAD_LETTERED" | "WEBHOOK_SECURITY_CONFLICT",
+    readonly retryable: boolean,
+  ) {
     super(code);
     this.name = "WebhookServiceError";
   }
@@ -21,39 +24,37 @@ export class WebhookServiceError extends Error {
 
 export function createWaffoWebhookService(dependencies: {
   verifyAndNormalize(rawBody: string, signature: string | null): NormalizedWaffoWebhook;
-  repository: WebhookRepository;
+  repository: Pick<WebhookRepository, "recordVerifiedEvent">;
 }): {
   ingest(rawBody: string, signature: string | null): Promise<{
-    disposition: "processed" | "accepted" | "dead_letter";
+    disposition: "accepted";
     duplicate: "delivery" | "event" | null;
-    outcome: string;
+    inboxId: string;
   }>;
 } {
   return {
     async ingest(rawBody, signature) {
       const event = dependencies.verifyAndNormalize(rawBody, signature);
-      const recorded = await dependencies.repository.recordVerifiedEvent(event);
+      let recorded: Awaited<ReturnType<WebhookRepository["recordVerifiedEvent"]>>;
       try {
-        const result = await dependencies.repository.processInbox(recorded.inboxId);
-        return {
-          disposition: result.outcome === "pending_order" ? "accepted" : "processed",
-          duplicate: recorded.duplicate,
-          outcome: result.outcome,
-        };
-      } catch {
-        const failure = await dependencies.repository.recordProcessingFailure(
-          recorded.inboxId,
-          "PAYMENT_PROCESSING_FAILURE",
-        );
-        if (failure.deadLetter) {
-          return {
-            disposition: "dead_letter",
-            duplicate: recorded.duplicate,
-            outcome: "dead_letter",
-          };
+        recorded = await dependencies.repository.recordVerifiedEvent(event);
+      } catch (error) {
+        const code = error instanceof Error ? error.message : "";
+        if (
+          code === "WEBHOOK_DELIVERY_CONFLICT"
+          || code === "WEBHOOK_CANONICAL_PAYLOAD_CONFLICT"
+          || code === "WEBHOOK_BUSINESS_EVENT_CONFLICT"
+        ) {
+          throw new WebhookServiceError("WEBHOOK_SECURITY_CONFLICT", false);
         }
-        throw new WebhookServiceError("WEBHOOK_PROCESSING_UNAVAILABLE", true);
+        throw error;
       }
+
+      return {
+        disposition: "accepted",
+        duplicate: recorded.duplicate,
+        inboxId: recorded.inboxId,
+      };
     },
   };
 }

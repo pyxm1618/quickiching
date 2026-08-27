@@ -71,6 +71,7 @@ const keyPurposeNames = [
   "QUESTION_ENCRYPTION_KEYS",
   "RESULT_INTEGRITY_KEYS",
   "ANONYMOUS_OWNER_KEYS",
+  "PAYMENT_CHECKOUT_URL_KEYS",
 ] as const;
 
 const sharedAiRequirements: readonly CapabilityRequirement[] = [
@@ -107,12 +108,6 @@ const waffoCheckoutRequirements: readonly CapabilityRequirement[] = [
   ...waffoWebhookRequirements,
   { name: "WAFFO_MERCHANT_ID", format: "nonBlank" },
   { name: "WAFFO_PRIVATE_KEY", format: "nonBlank" },
-  { name: "WAFFO_TEST_PRODUCT_ID_ONE", format: "nonBlank" },
-  { name: "WAFFO_TEST_PRODUCT_ID_THREE", format: "nonBlank" },
-  { name: "WAFFO_TEST_PRODUCT_ID_FIVE", format: "nonBlank" },
-  { name: "WAFFO_PROD_PRODUCT_ID_ONE", format: "nonBlank" },
-  { name: "WAFFO_PROD_PRODUCT_ID_THREE", format: "nonBlank" },
-  { name: "WAFFO_PROD_PRODUCT_ID_FIVE", format: "nonBlank" },
 ];
 
 const keyRequirements: readonly CapabilityRequirement[] = [
@@ -146,11 +141,12 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
   checkout: {
     flag: "COMMERCIAL_V2_CHECKOUT_ENABLED",
     implementationAvailable: true,
-    capabilityDependencies: ["auth", "webhookIngestion"],
+    capabilityDependencies: ["auth", "webhookIngestion", "reconcile"],
     requirements: [
       ...databaseRequirements,
       ...waffoCheckoutRequirements,
       { name: "APP_BASE_URL", format: "httpUrl" },
+      { name: "PAYMENT_CHECKOUT_URL_KEYS", format: "versionedKey" },
     ],
   },
   webhookIngestion: {
@@ -161,19 +157,20 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
   },
   paidDeepReading: {
     flag: "COMMERCIAL_V2_PAID_DEEP_READING_ENABLED",
-    implementationAvailable: false,
-    capabilityDependencies: ["auth"],
+    implementationAvailable: true,
+    capabilityDependencies: ["auth", "reconcile"],
     requirements: [
       ...sharedAiRequirements,
       { name: "WORKFLOW_ADAPTER_MODE", expected: "vercel" },
       { name: "BETTER_AUTH_SECRET", format: "secret" },
       { name: "AI_MODEL_DEEP_READING", format: "nonBlank" },
+      { name: "AI_MAX_OUTPUT_TOKENS", format: "positiveInteger" },
       ...keyRequirements,
     ],
   },
   reconcile: {
     flag: "COMMERCIAL_V2_RECONCILE_ENABLED",
-    implementationAvailable: false,
+    implementationAvailable: true,
     capabilityDependencies: [],
     requirements: [
       ...databaseRequirements,
@@ -384,26 +381,25 @@ function appendWaffoMappingInvariantFailures(
   env: RuntimeEnv,
   inspection: RequirementInspection,
 ): void {
-  for (const names of [waffoTestProductNames, waffoProdProductNames]) {
-    for (let left = 0; left < names.length; left += 1) {
-      const leftName = names[left]!;
-      const leftId = value(env, leftName);
-      if (!leftId) continue;
-      for (let right = left + 1; right < names.length; right += 1) {
-        const rightName = names[right]!;
-        if (value(env, rightName) !== leftId) continue;
-        if (!inspection.invalidDependencies.includes(leftName)) inspection.invalidDependencies.push(leftName);
-        if (!inspection.invalidDependencies.includes(rightName)) inspection.invalidDependencies.push(rightName);
-      }
-    }
+  const environment = value(env, "WAFFO_ENVIRONMENT");
+  if (environment !== "test" && environment !== "prod") return;
+  const names = environment === "test" ? waffoTestProductNames : waffoProdProductNames;
+
+  for (const name of names) {
+    const raw = env[name];
+    if (raw === undefined) inspection.missingDependencies.push(name);
+    else if (!raw.trim()) inspection.invalidDependencies.push(name);
   }
-  for (const testName of waffoTestProductNames) {
-    const testId = value(env, testName);
-    if (!testId) continue;
-    for (const prodName of waffoProdProductNames) {
-      if (value(env, prodName) !== testId) continue;
-      if (!inspection.invalidDependencies.includes(testName)) inspection.invalidDependencies.push(testName);
-      if (!inspection.invalidDependencies.includes(prodName)) inspection.invalidDependencies.push(prodName);
+
+  for (let left = 0; left < names.length; left += 1) {
+    const leftName = names[left]!;
+    const leftId = value(env, leftName);
+    if (!leftId) continue;
+    for (let right = left + 1; right < names.length; right += 1) {
+      const rightName = names[right]!;
+      if (value(env, rightName) !== leftId) continue;
+      if (!inspection.invalidDependencies.includes(leftName)) inspection.invalidDependencies.push(leftName);
+      if (!inspection.invalidDependencies.includes(rightName)) inspection.invalidDependencies.push(rightName);
     }
   }
 }

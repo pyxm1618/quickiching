@@ -139,3 +139,19 @@ export function validateRuntimeConfig(env: RuntimeEnv = process.env): RuntimeCon
 export function runtimeConfig(): RuntimeConfig {
   return loadRuntimeConfig();
 }
+
+export type ServerConfig = {
+  cronSecret?: string;
+  appSecret?: string;
+  aiModelDeepReading?: string;
+  aiModelPreview?: string;
+};
+
+export function getServerConfig(env: RuntimeEnv = process.env): ServerConfig {
+  return {
+    cronSecret: env.CRON_SECRET?.trim(),
+    appSecret: env.APP_SECRET?.trim(),
+    aiModelDeepReading: env.AI_MODEL_DEEP_READING?.trim() ?? "gemini-2.5-pro",
+    aiModelPreview: env.AI_MODEL_PREVIEW?.trim() ?? "gemini-2.5-pro",
+  };
+}

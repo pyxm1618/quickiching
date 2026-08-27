@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { isCheckoutCapabilityEnabled } from "@/server/payments/capability";
 import { CheckoutServiceError } from "@/server/payments/checkout-service";
+import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
+import { isStrictSameOriginRequest } from "@/server/http/origin-guard";
 import { createProductionCheckoutService } from "@/server/payments/composition";
 
 export const runtime = "nodejs";
@@ -20,8 +22,8 @@ function headers(extra: Record<string, string> = {}): Headers {
   });
 }
 
-function json(body: unknown, status = 200): Response {
-  return Response.json(body, { status, headers: headers() });
+function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
+  return Response.json(body, { status, headers: headers(extraHeaders) });
 }
 
 function notFound(): Response {
@@ -29,18 +31,6 @@ function notFound(): Response {
     status: 404,
     headers: headers({ "Content-Type": "text/plain; charset=utf-8" }),
   });
-}
-
-function sameOrigin(request: Request): boolean {
-  if (request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site") return false;
-  const origin = request.headers.get("origin");
-  if (!origin) return false;
-  const configured = process.env.APP_BASE_URL?.trim() || process.env.BETTER_AUTH_URL?.trim() || request.url;
-  try {
-    return new URL(origin).origin === new URL(configured).origin;
-  } catch {
-    return false;
-  }
 }
 
 async function authenticatedUser(request: Request): Promise<{ id: string; email: string } | null> {
@@ -54,30 +44,44 @@ function serviceFailure(error: unknown): Response {
   if (error instanceof CheckoutServiceError) {
     const status = error.code === "CHECKOUT_REQUEST_INVALID"
       ? 400
-      : error.code === "CHECKOUT_IDEMPOTENCY_CONFLICT" ? 409 : 503;
-    return json({ error: error.code, retryable: error.retryable }, status);
+      : error.code === "CHECKOUT_RATE_LIMITED"
+        ? 429
+        : [
+            "CHECKOUT_IDEMPOTENCY_CONFLICT",
+            "CHECKOUT_TERMINAL_ORDER",
+            "CHECKOUT_EXPIRED",
+            "CHECKOUT_PROVIDER_OUTCOME_UNCERTAIN",
+          ].includes(error.code)
+          ? 409
+          : 503;
+    const extraHeaders: Record<string, string> = {};
+    if (error.code === "CHECKOUT_RATE_LIMITED" && error.retryAfterSeconds) {
+      extraHeaders["Retry-After"] = String(error.retryAfterSeconds);
+    }
+    return json({ error: error.code, retryable: error.retryable }, status, extraHeaders);
   }
   return json({ error: "CHECKOUT_UNAVAILABLE", retryable: true }, 503);
 }
 
 export async function POST(request: Request): Promise<Response> {
   if (!isCheckoutCapabilityEnabled()) return notFound();
-  if (!sameOrigin(request)) return json({ error: "CSRF_REJECTED" }, 403);
+  if (!isStrictSameOriginRequest(request)) return json({ error: "CSRF_REJECTED" }, 403);
   if (request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase() !== "application/json") {
     return json({ error: "INVALID_REQUEST" }, 400);
   }
-  const declaredLength = Number(request.headers.get("content-length") ?? "0");
-  if (!Number.isFinite(declaredLength) || declaredLength < 0) return json({ error: "INVALID_REQUEST" }, 400);
-  if (declaredLength > MAX_REQUEST_BYTES) return json({ error: "REQUEST_TOO_LARGE" }, 413);
+  const declaredLengthHeader = request.headers.get("content-length");
+  if (declaredLengthHeader !== null) {
+    const declaredLength = Number(declaredLengthHeader);
+    if (!Number.isFinite(declaredLength) || declaredLength < 0) return json({ error: "INVALID_REQUEST" }, 400);
+    if (declaredLength > MAX_REQUEST_BYTES) return json({ error: "REQUEST_TOO_LARGE" }, 413);
+  }
 
   let body: unknown;
   try {
-    const rawBody = await request.text();
-    if (new TextEncoder().encode(rawBody).byteLength > MAX_REQUEST_BYTES) {
-      return json({ error: "REQUEST_TOO_LARGE" }, 413);
-    }
+    const rawBody = await readRequestBody(request, MAX_REQUEST_BYTES);
     body = JSON.parse(rawBody) as unknown;
-  } catch {
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) return json({ error: "REQUEST_TOO_LARGE" }, 413);
     return json({ error: "INVALID_REQUEST" }, 400);
   }
   const parsed = bodySchema.safeParse(body);

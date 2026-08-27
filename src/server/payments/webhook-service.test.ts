@@ -10,6 +10,9 @@ const event: NormalizedWaffoWebhook = {
   eventType: "order.completed",
   storeId: "STO_test",
   orderMerchantExternalId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
+  merchantProvidedBuyerIdentity: "user-123",
+  internalOrderId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
+  refundTicketMerchantExternalId: null,
   providerOrderId: "ORD_1",
   providerPaymentId: "PAYMENT_1",
   productKey: "three",
@@ -19,12 +22,13 @@ const event: NormalizedWaffoWebhook = {
   taxAmount: "0.00",
   total: "6.99",
   payloadSha256: "hash",
+  canonicalPayloadSha256: "canonical-hash",
   supported: true,
   manualReviewReason: null,
 };
 
-describe("Waffo webhook ingestion service", () => {
-  it("verifies before persistence and processes only the normalized event", async () => {
+describe("Waffo webhook ingestion service (Durable)", () => {
+  it("verifies before persistence and records only the normalized event", async () => {
     const calls: string[] = [];
     const recordVerifiedEvent = vi.fn(async (value: NormalizedWaffoWebhook) => {
       calls.push("persist");
@@ -40,20 +44,15 @@ describe("Waffo webhook ingestion service", () => {
       },
       repository: {
         recordVerifiedEvent,
-        processInbox: async () => {
-          calls.push("process");
-          return { outcome: "granted" };
-        },
-        recordProcessingFailure: async () => ({ deadLetter: false, attemptCount: 1 }),
       },
     });
 
     await expect(service.ingest("raw-private-payload", "signature-secret")).resolves.toEqual({
-      disposition: "processed",
+      disposition: "accepted",
       duplicate: null,
-      outcome: "granted",
+      inboxId: "inbox-1",
     });
-    expect(calls).toEqual(["verify", "persist", "process"]);
+    expect(calls).toEqual(["verify", "persist"]);
   });
 
   it("does not persist anything when signature verification rejects", async () => {
@@ -62,8 +61,6 @@ describe("Waffo webhook ingestion service", () => {
       verifyAndNormalize: () => { throw new Error("signature and payload details"); },
       repository: {
         recordVerifiedEvent,
-        processInbox: vi.fn(),
-        recordProcessingFailure: vi.fn(),
       },
     });
 
@@ -71,47 +68,33 @@ describe("Waffo webhook ingestion service", () => {
     expect(recordVerifiedEvent).not.toHaveBeenCalled();
   });
 
-  it("reprocesses the retained original Inbox row on a duplicate delivery", async () => {
-    const processInbox = vi.fn(async () => ({ outcome: "pending_order" }));
+  it("returns accepted with duplicate: delivery on duplicate delivery", async () => {
     const service = createWaffoWebhookService({
       verifyAndNormalize: () => event,
       repository: {
         recordVerifiedEvent: async () => ({ inboxId: "original-inbox", duplicate: "delivery" }),
-        processInbox,
-        recordProcessingFailure: async () => ({ deadLetter: false, attemptCount: 1 }),
       },
     });
 
-    await expect(service.ingest("raw", "signature")).resolves.toMatchObject({
+    await expect(service.ingest("raw", "signature")).resolves.toEqual({
       disposition: "accepted",
       duplicate: "delivery",
-      outcome: "pending_order",
+      inboxId: "original-inbox",
     });
-    expect(processInbox).toHaveBeenCalledWith("original-inbox");
   });
 
-  it("returns only a bounded retry error before dead-letter and retains the third failure", async () => {
-    let deadLetter = false;
-    const failure = vi.fn(async () => ({ deadLetter, attemptCount: deadLetter ? 3 : 1 }));
+  it("maps conflict errors to WEBHOOK_SECURITY_CONFLICT", async () => {
     const service = createWaffoWebhookService({
       verifyAndNormalize: () => event,
       repository: {
-        recordVerifiedEvent: async () => ({ inboxId: "inbox-1", duplicate: null }),
-        processInbox: async () => { throw new Error("database password and private payload"); },
-        recordProcessingFailure: failure,
+        recordVerifiedEvent: async () => {
+          throw new Error("WEBHOOK_DELIVERY_CONFLICT");
+        },
       },
     });
 
     await expect(service.ingest("raw", "signature")).rejects.toEqual(
-      new WebhookServiceError("WEBHOOK_PROCESSING_UNAVAILABLE", true),
+      new WebhookServiceError("WEBHOOK_SECURITY_CONFLICT", false),
     );
-    expect(JSON.stringify(failure.mock.calls)).not.toContain("database password");
-
-    deadLetter = true;
-    await expect(service.ingest("raw", "signature")).resolves.toEqual({
-      disposition: "dead_letter",
-      duplicate: null,
-      outcome: "dead_letter",
-    });
   });
 });

@@ -34,23 +34,13 @@ export function resolveWaffoWebhookConfig(env: RuntimeEnv = process.env): WaffoW
 
 export function resolveWaffoRuntimeConfig(env: RuntimeEnv = process.env): WaffoRuntimeConfig {
   const { environment, storeId } = resolveWaffoWebhookConfig(env);
-  const testProductIds: Record<ProductId, string> = {
-    one: required(env, "WAFFO_TEST_PRODUCT_ID_ONE"),
-    three: required(env, "WAFFO_TEST_PRODUCT_ID_THREE"),
-    five: required(env, "WAFFO_TEST_PRODUCT_ID_FIVE"),
+  const prefix = environment === "test" ? "WAFFO_TEST_PRODUCT_ID" : "WAFFO_PROD_PRODUCT_ID";
+  const productIds: Record<ProductId, string> = {
+    one: required(env, `${prefix}_ONE`),
+    three: required(env, `${prefix}_THREE`),
+    five: required(env, `${prefix}_FIVE`),
   };
-  const prodProductIds: Record<ProductId, string> = {
-    one: required(env, "WAFFO_PROD_PRODUCT_ID_ONE"),
-    three: required(env, "WAFFO_PROD_PRODUCT_ID_THREE"),
-    five: required(env, "WAFFO_PROD_PRODUCT_ID_FIVE"),
-  };
-  const testIds = new Set(Object.values(testProductIds));
-  const prodIds = new Set(Object.values(prodProductIds));
-  if (
-    testIds.size !== 3
-    || prodIds.size !== 3
-    || Object.values(prodProductIds).some((productId) => testIds.has(productId))
-  ) {
+  if (new Set(Object.values(productIds)).size !== 3) {
     throw new Error("WAFFO_CONFIGURATION_UNAVAILABLE");
   }
   return {
@@ -58,7 +48,7 @@ export function resolveWaffoRuntimeConfig(env: RuntimeEnv = process.env): WaffoR
     merchantId: required(env, "WAFFO_MERCHANT_ID"),
     privateKey: required(env, "WAFFO_PRIVATE_KEY"),
     storeId,
-    productIds: environment === "test" ? testProductIds : prodProductIds,
+    productIds,
   };
 }
 
@@ -77,6 +67,7 @@ export function createWaffoPaymentAdapter(
     privateKey: config.privateKey,
     environment: config.environment,
   }),
+  now: () => Date = () => new Date(),
 ): {
   createCheckout(input: {
     orderId: string;
@@ -101,20 +92,38 @@ export function createWaffoPaymentAdapter(
         },
       });
       let checkoutUrl: URL;
-      const expiresAt = new Date(result.expiresAt);
+      const sessionExpiresAt = new Date(result.expiresAt);
+      const tokenExpiresAt = new Date(result.tokenExpiresAt);
       try {
         checkoutUrl = new URL(result.checkoutUrl);
       } catch {
         throw new Error("WAFFO_PROVIDER_RESPONSE_INVALID");
       }
+      const nowMs = now().getTime();
+      const sessionExpiryMs = sessionExpiresAt.getTime();
+      const tokenExpiryMs = tokenExpiresAt.getTime();
       if (
         checkoutUrl.protocol !== "https:" ||
+        checkoutUrl.hostname !== "pancake.waffo.ai" ||
+        checkoutUrl.port !== "" ||
+        checkoutUrl.username !== "" ||
+        checkoutUrl.password !== "" ||
+        !checkoutUrl.hash.startsWith("#token=") ||
+        checkoutUrl.hash.length <= "#token=".length ||
         !result.sessionId.trim() ||
-        !Number.isFinite(expiresAt.getTime())
+        !Number.isFinite(nowMs) ||
+        !Number.isFinite(sessionExpiryMs) ||
+        !Number.isFinite(tokenExpiryMs) ||
+        sessionExpiryMs <= nowMs ||
+        tokenExpiryMs <= nowMs
       ) {
         throw new Error("WAFFO_PROVIDER_RESPONSE_INVALID");
       }
-      return { sessionId: result.sessionId, checkoutUrl: result.checkoutUrl, expiresAt };
+      return {
+        sessionId: result.sessionId,
+        checkoutUrl: result.checkoutUrl,
+        expiresAt: new Date(Math.min(sessionExpiryMs, tokenExpiryMs)),
+      };
     },
   };
 }

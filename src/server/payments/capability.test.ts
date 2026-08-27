@@ -14,7 +14,7 @@ describe("payment capability request gates", () => {
     expect(webhookIngestionCapabilityStatus({ COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "maybe" })).toBeNull();
   });
 
-  it("keeps webhook status independent from checkout implementation credentials", () => {
+  it("enables webhook when dependencies are satisfied in CP5", () => {
     const environment = {
       COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "true",
       PAYMENT_ADAPTER_MODE: "waffo",
@@ -23,7 +23,10 @@ describe("payment capability request gates", () => {
       WAFFO_ENVIRONMENT: "test",
       WAFFO_STORE_ID: "STO_test",
     };
-    expect(webhookIngestionCapabilityStatus(environment)).toMatchObject({ enabled: true, reason: "enabled" });
+    expect(webhookIngestionCapabilityStatus(environment)).toMatchObject({
+      enabled: true,
+      reason: "enabled",
+    });
     expect(checkoutCapabilityStatus(environment)).toMatchObject({ enabled: false, reason: "disabled" });
   });
 });
