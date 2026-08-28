@@ -5,7 +5,7 @@ import path from "node:path";
 const root = process.cwd();
 const drizzleDir = path.join(root, "drizzle");
 const journalPath = path.join(drizzleDir, "meta", "_journal.json");
-const manifestPath = path.join(drizzleDir, "meta", "migration-integrity.json");
+const manifestPath = path.join(drizzleDir, "migration-integrity.json");
 
 function sha256(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
