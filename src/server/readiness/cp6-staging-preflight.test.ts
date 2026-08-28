@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   classifyStagingDatabase,
   inspectStagingCapabilityConfiguration,
+  selectProductionVercelEnv,
   type StagingDatabaseSnapshot,
 } from "../../../scripts/cp6-staging-preflight";
 
@@ -86,5 +87,26 @@ describe("inspectStagingCapabilityConfiguration", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.originChecks.NEXT_PUBLIC_APP_URL).toBe(false);
+  });
+});
+
+describe("selectProductionVercelEnv", () => {
+  it("keeps only values that target production", () => {
+    expect(selectProductionVercelEnv([
+      { key: "DATABASE_URL", value: "postgres://staging", target: ["production"] },
+      { key: "PREVIEW_ONLY", value: "ignore", target: ["preview"] },
+      { key: "SHARED", value: "keep", target: ["preview", "production"] },
+    ])).toEqual({
+      DATABASE_URL: "postgres://staging",
+      SHARED: "keep",
+    });
+  });
+
+  it("ignores malformed or undecrypted entries instead of inventing values", () => {
+    expect(selectProductionVercelEnv([
+      { key: "EMPTY", value: undefined, target: ["production"] },
+      { key: "NO_TARGET", value: "ignore", target: undefined },
+      { key: "VALID", value: "ok", target: "production" },
+    ])).toEqual({ VALID: "ok" });
   });
 });
