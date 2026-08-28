@@ -1,11 +1,6 @@
 name: CP6 Staging Runtime Diagnostics
 
 on:
-  push:
-    branches:
-      - codex/commercial-v2-cp6-repair
-    paths:
-      - .github/workflows/cp6-staging-runtime-diagnostics.yml
   workflow_dispatch:
 
 permissions:
@@ -18,6 +13,7 @@ concurrency:
 env:
   VERCEL_PROJECT_ID: prj_iKtw9xKmIlEfe44gEocgLr2QDLfE
   VERCEL_PROJECT_NAME: quickiching-staging
+  VERCEL_TEAM_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
   GITHUB_REPO_ID: "1317018295"
   STAGING_ORIGIN: https://staging.quickiching.com
 
@@ -52,6 +48,7 @@ jobs:
           }
           test "${VERCEL_PROJECT_ID}" = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE"
           test "${VERCEL_PROJECT_NAME}" = "quickiching-staging"
+          test "${VERCEL_TEAM_ID}" = "team_z1b9TTQtbNkr43dzs5JVJPnQ"
           test "${GITHUB_REPO_ID}" = "1317018295"
 
       - name: Install locked dependencies
@@ -68,7 +65,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --check "${GITHUB_SHA}^" "${GITHUB_SHA}"
+          git diff --check origin/codex/commercial-v2-cp6...HEAD
           node scripts/check-migration-integrity.mjs
           bun run lint
           bun run typecheck
@@ -76,6 +73,26 @@ jobs:
           bun run build
           bunx drizzle-kit check
           node scripts/test-postgres-serial.mjs
+
+      - name: Record current staging Production baseline
+        id: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            -H "Accept: application/json" \
+            "https://api.vercel.com/v13/deployments/staging.quickiching.com?teamId=${VERCEL_TEAM_ID}")"
+
+          baseline_id="$(jq -r '.id // empty' <<<"$response")"
+          baseline_state="$(jq -r '.readyState // .state // empty' <<<"$response")"
+          baseline_target="$(jq -r '.target // empty' <<<"$response")"
+          test -n "$baseline_id" || { echo "::error::Could not resolve current staging Production deployment."; exit 1; }
+          test "$baseline_state" = "READY" || { echo "::error::Current staging baseline is not READY: ${baseline_state}"; exit 1; }
+          test "$baseline_target" = "production" || { echo "::error::Current staging baseline is not a Production deployment."; exit 1; }
+
+          echo "baseline_id=${baseline_id}" >> "$GITHUB_OUTPUT"
+          echo "Recorded current staging baseline ${baseline_id}."
 
       - name: Verify no maintenance token already exists
         shell: bash
@@ -119,9 +136,7 @@ jobs:
             -H "Authorization: Bearer ${VERCEL_TOKEN}" \
             -H "Accept: application/json" \
             "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env")"
-          env_id="$(jq -r '.envs[]? | select(.key == "CP6_STAGING_MAINTENANCE_TOKEN") | .id' \
-            <<<"$response" | head -n1)"
-
+          env_id="$(jq -r '.envs[]? | select(.key == "CP6_STAGING_MAINTENANCE_TOKEN") | .id' <<<"$response" | head -n1)"
           test -n "$env_id" && test "$env_id" != "null" || {
             echo "::error::Temporary Vercel environment variable was created but could not be resolved by ID."
             exit 1
@@ -145,12 +160,7 @@ jobs:
               name: $name,
               project: $project,
               target: "production",
-              gitSource: {
-                type: "github",
-                repoId: $repoId,
-                ref: $ref,
-                sha: $sha
-              },
+              gitSource: { type: "github", repoId: $repoId, ref: $ref, sha: $sha },
               gitMetadata: {
                 commitRef: $ref,
                 commitSha: $sha,
@@ -168,50 +178,32 @@ jobs:
             "https://api.vercel.com/v13/deployments?forceNew=1")"
 
           deployment_id="$(jq -r '.id // empty' <<<"$response")"
-          deployment_url="$(jq -r '.url // empty' <<<"$response")"
-          test -n "$deployment_id" && test -n "$deployment_url" || {
-            echo "::error::Vercel deployment response did not include id/url."
-            exit 1
-          }
-
+          test -n "$deployment_id" || { echo "::error::Vercel deployment response did not include an ID."; exit 1; }
           echo "deployment_id=${deployment_id}" >> "$GITHUB_OUTPUT"
-          echo "deployment_url=${deployment_url}" >> "$GITHUB_OUTPUT"
-          echo "Created deployment ${deployment_id} for exact SHA ${GITHUB_SHA}"
+          echo "Created deployment ${deployment_id} for exact SHA ${GITHUB_SHA}."
 
       - name: Wait for exact deployment readiness
         shell: bash
         run: |
           set -euo pipefail
           deployment_id="${{ steps.deploy.outputs.deployment_id }}"
-
           for attempt in $(seq 1 90); do
             response="$(curl --fail-with-body --silent --show-error \
               -H "Authorization: Bearer ${VERCEL_TOKEN}" \
               -H "Accept: application/json" \
-              "https://api.vercel.com/v13/deployments/${deployment_id}?withGitRepoInfo=true")"
-
+              "https://api.vercel.com/v13/deployments/${deployment_id}?withGitRepoInfo=true&teamId=${VERCEL_TEAM_ID}")"
             state="$(jq -r '.readyState // .status // empty' <<<"$response")"
             actual_sha="$(jq -r '.meta.githubCommitSha // .gitSource.sha // empty' <<<"$response")"
-
             if [ -n "$actual_sha" ] && [ "$actual_sha" != "$GITHUB_SHA" ]; then
               echo "::error::Deployment identity mismatch: expected ${GITHUB_SHA}, got ${actual_sha}"
               exit 1
             fi
-
             case "$state" in
-              READY)
-                echo "Deployment ${deployment_id} is READY"
-                exit 0
-                ;;
-              ERROR|CANCELED)
-                echo "::error::Deployment ${deployment_id} entered terminal state ${state}"
-                exit 1
-                ;;
+              READY) exit 0 ;;
+              ERROR|CANCELED) echo "::error::Deployment ${deployment_id} entered ${state}"; exit 1 ;;
             esac
-
             sleep 10
           done
-
           echo "::error::Timed out waiting for deployment readiness"
           exit 1
 
@@ -223,56 +215,29 @@ jobs:
         run: |
           set -euo pipefail
           echo "::add-mask::${MAINTENANCE_TOKEN}"
-
           diagnostics_file="$RUNNER_TEMP/cp6-staging-runtime-diagnostics.json"
           success=false
-
           for attempt in $(seq 1 30); do
-            status="$(curl --silent --show-error \
-              --output "$diagnostics_file" \
-              --write-out "%{http_code}" \
+            status="$(curl --silent --show-error --output "$diagnostics_file" --write-out "%{http_code}" \
               -H "Authorization: Bearer ${MAINTENANCE_TOKEN}" \
               "${STAGING_ORIGIN}/api/internal/cp6-staging-diagnostics")"
-
-            if [ "$status" = "200" ]; then
-              success=true
-              break
-            fi
-
+            if [ "$status" = "200" ]; then success=true; break; fi
             if [ "$status" != "404" ] && [ "$status" != "401" ] && [ "$status" != "502" ] && [ "$status" != "503" ]; then
               echo "::error::Unexpected diagnostics HTTP status ${status}"
               cat "$diagnostics_file"
               exit 1
             fi
-
             sleep 5
           done
-
-          [ "$success" = true ] || {
-            echo "::error::Staging diagnostics endpoint never became available."
-            cat "$diagnostics_file" || true
-            exit 1
-          }
+          [ "$success" = true ] || { echo "::error::Staging diagnostics endpoint never became available."; exit 1; }
 
           jq . "$diagnostics_file"
-
-          actual_sha="$(jq -r '.deployment.gitSha // empty' "$diagnostics_file")"
-          environment="$(jq -r '.deployment.environment // empty' "$diagnostics_file")"
-          project_match="$(jq -r '.deployment.projectIdMatchesStaging // false' "$diagnostics_file")"
-          production_url_match="$(jq -r '.deployment.productionUrlMatchesStaging // false' "$diagnostics_file")"
-          tier_configured="$(jq -r '.deployment.tierConfigured // false' "$diagnostics_file")"
-          app_base_match="$(jq -r '.deployment.appBaseUrlMatchesStaging // false' "$diagnostics_file")"
-
-          test "$actual_sha" = "$GITHUB_SHA" || {
-            echo "::error::Runtime SHA mismatch: expected ${GITHUB_SHA}, got ${actual_sha}"
-            exit 1
-          }
-          test "$environment" = "production"
-          test "$project_match" = "true"
-          test "$production_url_match" = "true"
-          test "$tier_configured" = "true"
-          test "$app_base_match" = "true"
-
+          test "$(jq -r '.deployment.gitSha // empty' "$diagnostics_file")" = "$GITHUB_SHA"
+          test "$(jq -r '.deployment.environment // empty' "$diagnostics_file")" = "production"
+          test "$(jq -r '.deployment.projectIdMatchesStaging // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.deployment.productionUrlMatchesStaging // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.deployment.tierConfigured // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.deployment.appBaseUrlMatchesStaging // false' "$diagnostics_file")" = "true"
           cp "$diagnostics_file" cp6-staging-runtime-diagnostics.json
 
       - name: Upload non-sensitive diagnostics evidence
@@ -283,7 +248,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Remove one-time maintenance token and revoke diagnostic runtime
+      - name: Remove token, restore baseline, and delete diagnostic deployment
         if: always() && steps.maintenance.outcome != 'skipped'
         shell: bash
         run: |
@@ -295,99 +260,46 @@ jobs:
               -H "Authorization: Bearer ${VERCEL_TOKEN}" \
               -H "Accept: application/json" \
               "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env")"
-            env_id="$(jq -r '.envs[]? | select(.key == "CP6_STAGING_MAINTENANCE_TOKEN") | .id' \
-              <<<"$response" | head -n1)"
+            env_id="$(jq -r '.envs[]? | select(.key == "CP6_STAGING_MAINTENANCE_TOKEN") | .id' <<<"$response" | head -n1)"
           fi
-
           if [ -n "$env_id" ] && [ "$env_id" != "null" ]; then
-            curl --fail-with-body --silent --show-error \
-              -X DELETE \
+            curl --fail-with-body --silent --show-error -X DELETE \
               -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-              "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/env/${env_id}" \
-              >/dev/null
-            echo "Removed temporary CP6 staging maintenance token from project settings."
+              "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/env/${env_id}?teamId=${VERCEL_TEAM_ID}" >/dev/null
+            echo "Removed temporary maintenance token from project settings."
           fi
 
-          if [ -z "${{ steps.deploy.outputs.deployment_id }}" ]; then
-            exit 0
-          fi
+          deployment_id="${{ steps.deploy.outputs.deployment_id }}"
+          baseline_id="${{ steps.baseline.outputs.baseline_id }}"
+          if [ -z "$deployment_id" ]; then exit 0; fi
+          test -n "$baseline_id" || { echo "::error::Missing recorded staging baseline; refusing cleanup mutation."; exit 1; }
 
-          payload="$(jq -n \
-            --arg name "$VERCEL_PROJECT_NAME" \
-            --arg project "$VERCEL_PROJECT_ID" \
-            --arg ref "$GITHUB_REF_NAME" \
-            --arg sha "$GITHUB_SHA" \
-            --argjson repoId "$GITHUB_REPO_ID" \
-            '{
-              name: $name,
-              project: $project,
-              target: "production",
-              gitSource: {
-                type: "github",
-                repoId: $repoId,
-                ref: $ref,
-                sha: $sha
-              },
-              gitMetadata: {
-                commitRef: $ref,
-                commitSha: $sha,
-                commitMessage: "CP6 staging diagnostics credential revocation",
-                ci: true,
-                ciType: "github-actions"
-              }
-            }')"
-
-          response="$(curl --fail-with-body --silent --show-error \
-            -X POST \
+          curl --fail-with-body --silent --show-error -X POST \
             -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data "$payload" \
-            "https://api.vercel.com/v13/deployments?forceNew=1")"
-          cleanup_id="$(jq -r '.id // empty' <<<"$response")"
-          test -n "$cleanup_id" || {
-            echo "::error::Could not create cleanup deployment after removing the maintenance token."
-            exit 1
-          }
+            "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/promote/${baseline_id}?teamId=${VERCEL_TEAM_ID}" >/dev/null
 
-          for attempt in $(seq 1 90); do
+          restored=false
+          for attempt in $(seq 1 30); do
             response="$(curl --fail-with-body --silent --show-error \
               -H "Authorization: Bearer ${VERCEL_TOKEN}" \
               -H "Accept: application/json" \
-              "https://api.vercel.com/v13/deployments/${cleanup_id}?withGitRepoInfo=true")"
-            state="$(jq -r '.readyState // .status // empty' <<<"$response")"
-            actual_sha="$(jq -r '.meta.githubCommitSha // .gitSource.sha // empty' <<<"$response")"
-
-            if [ -n "$actual_sha" ] && [ "$actual_sha" != "$GITHUB_SHA" ]; then
-              echo "::error::Cleanup deployment identity mismatch."
-              exit 1
-            fi
-
-            case "$state" in
-              READY)
-                echo "Cleanup deployment ${cleanup_id} is READY; the production runtime no longer receives the maintenance token."
-                break
-                ;;
-              ERROR|CANCELED)
-                echo "::error::Cleanup deployment ${cleanup_id} entered terminal state ${state}"
-                exit 1
-                ;;
-            esac
-
-            if [ "$attempt" = "90" ]; then
-              echo "::error::Timed out waiting for cleanup deployment readiness"
-              exit 1
-            fi
-            sleep 10
+              "https://api.vercel.com/v13/deployments/staging.quickiching.com?teamId=${VERCEL_TEAM_ID}")"
+            current_id="$(jq -r '.id // empty' <<<"$response")"
+            current_state="$(jq -r '.readyState // .state // empty' <<<"$response")"
+            if [ "$current_id" = "$baseline_id" ] && [ "$current_state" = "READY" ]; then restored=true; break; fi
+            sleep 5
           done
+          [ "$restored" = true ] || { echo "::error::Could not verify restoration of original staging Production baseline."; exit 1; }
 
-          status="$(curl --silent --show-error \
-            --output "$RUNNER_TEMP/cp6-staging-runtime-diagnostics-after-cleanup.txt" \
-            --write-out "%{http_code}" \
+          curl --fail-with-body --silent --show-error -X DELETE \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            "https://api.vercel.com/v13/deployments/${deployment_id}?teamId=${VERCEL_TEAM_ID}" >/dev/null
+
+          status="$(curl --silent --show-error --output "$RUNNER_TEMP/cp6-after-cleanup.txt" --write-out "%{http_code}" \
             -H "Authorization: Bearer invalid-after-cleanup" \
             "${STAGING_ORIGIN}/api/internal/cp6-staging-diagnostics")"
           test "$status" = "404" || {
-            echo "::error::Diagnostics route remained reachable after credential revocation; got HTTP ${status}."
-            cat "$RUNNER_TEMP/cp6-staging-runtime-diagnostics-after-cleanup.txt" || true
+            echo "::error::Diagnostics route remained reachable after restoring baseline; got HTTP ${status}."
             exit 1
           }
-          echo "Diagnostics route is hidden again (HTTP 404)."
+          echo "Original staging baseline restored, diagnostic deployment deleted, route hidden (404)."
