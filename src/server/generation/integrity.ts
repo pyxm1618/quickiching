@@ -5,6 +5,12 @@ import type { PreviewGenerationContext } from "./types";
 
 type VersionedKey = { version: string; material: string };
 
+type ResultIntegrityInput = {
+  facts: DeterministicFacts;
+  resultHmac: string;
+  resultHmacKeyVersion: string;
+};
+
 function parseKeys(raw: string | undefined): VersionedKey[] {
   if (!raw?.trim()) return [];
   return raw.split(",").map((entry) => {
@@ -47,19 +53,28 @@ export function resultIntegrityHmac(facts: DeterministicFacts, key: VersionedKey
   return hmacWithKeyMaterial(canonicalDeterministicFacts(facts), "result-integrity", key.version, key.material);
 }
 
-export function createResultIntegrityVerifier(env: Record<string, string | undefined> = process.env) {
+export function verifyResultIntegrity(
+  input: ResultIntegrityInput,
+  env: Record<string, string | undefined> = process.env,
+): boolean {
   const keys = parseKeys(env.RESULT_INTEGRITY_KEYS);
-  return (context: PreviewGenerationContext): boolean => {
-    const key = keys.find((candidate) => candidate.version === context.resultHmacKeyVersion);
-    if (!key) return false;
-    return verifyHmacWithKeyMaterial(
-      canonicalDeterministicFacts(context.facts),
-      context.resultHmac,
-      "result-integrity",
-      key.version,
-      key.material,
-    );
-  };
+  const key = keys.find((candidate) => candidate.version === input.resultHmacKeyVersion);
+  if (!key) return false;
+  return verifyHmacWithKeyMaterial(
+    canonicalDeterministicFacts(input.facts),
+    input.resultHmac,
+    "result-integrity",
+    key.version,
+    key.material,
+  );
+}
+
+export function createResultIntegrityVerifier(env: Record<string, string | undefined> = process.env) {
+  return (context: PreviewGenerationContext): boolean => verifyResultIntegrity({
+    facts: context.facts,
+    resultHmac: context.resultHmac,
+    resultHmacKeyVersion: context.resultHmacKeyVersion,
+  }, env);
 }
 
 export function calculateDeepReadingInputSnapshotHash(input: {
