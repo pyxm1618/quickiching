@@ -120,6 +120,21 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/api/internal/reconcile/extra")).status).toBe(404);
   });
 
+  it("keeps the CP6 staging diagnostics route hidden except in the exact maintenance runtime", () => {
+    const path = "/api/internal/cp6-staging-diagnostics";
+    expect(middleware(makeRequest(path)).status).toBe(404);
+
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("QUICKICHING_DEPLOYMENT_TIER", "staging");
+    vi.stubEnv("CP6_STAGING_MAINTENANCE_TOKEN", "temporary-maintenance-token");
+    expect(middleware(makeRequest(path)).status).toBe(200);
+    expect(middleware(makeRequest(`${path}/`)).status).toBe(200);
+    expect(middleware(makeRequest(`${path}/extra`)).status).toBe(404);
+
+    vi.stubEnv("QUICKICHING_DEPLOYMENT_TIER", "production");
+    expect(middleware(makeRequest(path)).status).toBe(404);
+  });
+
   it("opens Deep Reading route only when Paid Deep Reading capability is enabled", () => {
     const castingId = "00000000-0000-4000-8000-000000000001";
     expect(middleware(makeRequest(`/api/readings/${castingId}/deep`, { method: "POST" })).status).toBe(404);

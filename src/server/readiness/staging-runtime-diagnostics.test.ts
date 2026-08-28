@@ -1,0 +1,98 @@
+import { describe, expect, it, vi } from "vitest";
+import { REQUIRED_COMMERCIAL_TABLES } from "./readiness-service";
+import { EXPECTED_COMMERCIAL_MIGRATIONS } from "./migration-integrity";
+import {
+  classifyStagingRuntimeDatabase,
+  collectStagingRuntimeDiagnostics,
+  type StagingRuntimeDatabaseSnapshot,
+} from "./staging-runtime-diagnostics";
+
+function snapshot(
+  overrides: Partial<StagingRuntimeDatabaseSnapshot> = {},
+): StagingRuntimeDatabaseSnapshot {
+  return {
+    connected: true,
+    migrationTablePresent: true,
+    migrationStatus: "ok",
+    appliedMigrationCount: EXPECTED_COMMERCIAL_MIGRATIONS.length,
+    expectedMigrationCount: EXPECTED_COMMERCIAL_MIGRATIONS.length,
+    missingTables: [],
+    presentCp5CoreTables: [
+      "audit_events",
+      "workflow_runs",
+      "deep_reading_results",
+      "entitlement_reservations",
+    ],
+    ...overrides,
+  };
+}
+
+describe("classifyStagingRuntimeDatabase", () => {
+  it("accepts a complete database", () => {
+    expect(classifyStagingRuntimeDatabase(snapshot())).toBe("ready");
+  });
+
+  it("allows only one final pending migration when the required schema already exists", () => {
+    expect(classifyStagingRuntimeDatabase(snapshot({
+      migrationStatus: "migration_outdated",
+      appliedMigrationCount: EXPECTED_COMMERCIAL_MIGRATIONS.length - 1,
+    }))).toBe("migration_apply_required");
+  });
+
+  it("requires a forward-only repair when recorded history is complete but schema is missing", () => {
+    expect(classifyStagingRuntimeDatabase(snapshot({
+      missingTables: ["workflow_runs"],
+    }))).toBe("schema_drift_forward_repair_required");
+  });
+
+  it("blocks historical hash drift", () => {
+    expect(classifyStagingRuntimeDatabase(snapshot({
+      migrationStatus: "migration_hash_mismatch",
+    }))).toBe("blocked_migration_integrity");
+  });
+
+  it("blocks a database without Drizzle migration history", () => {
+    expect(classifyStagingRuntimeDatabase(snapshot({
+      migrationTablePresent: false,
+      migrationStatus: "migration_missing",
+      appliedMigrationCount: 0,
+    }))).toBe("blocked_migration_history");
+  });
+});
+
+describe("collectStagingRuntimeDiagnostics", () => {
+  it("returns only status metadata while evaluating real staging prerequisites", async () => {
+    const db = {
+      ping: vi.fn().mockResolvedValue(undefined),
+      queryTables: vi.fn().mockResolvedValue([...REQUIRED_COMMERCIAL_TABLES]),
+      queryMigrationTablePresent: vi.fn().mockResolvedValue(true),
+      queryMigrations: vi.fn().mockResolvedValue(
+        EXPECTED_COMMERCIAL_MIGRATIONS.map((migration) => ({ ...migration })),
+      ),
+    };
+    const env = {
+      WAFFO_ENVIRONMENT: "test",
+      APP_BASE_URL: "https://staging.quickiching.com",
+      NEXT_PUBLIC_APP_URL: "https://staging.quickiching.com",
+      BETTER_AUTH_URL: "https://staging.quickiching.com",
+      DATABASE_URL: "postgresql://secret-user:secret-password@db.invalid/secret-db",
+      CP6_STAGING_MAINTENANCE_TOKEN: "maintenance-secret-that-must-never-leak",
+    };
+
+    const result = await collectStagingRuntimeDiagnostics(env, db);
+
+    expect(result.database.classification).toBe("ready");
+    expect(result.provider).toEqual({
+      waffoEnvironmentIsTest: true,
+      originChecks: {
+        appBaseUrl: true,
+        publicAppUrl: true,
+        betterAuthUrl: true,
+      },
+    });
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("secret-password");
+    expect(serialized).not.toContain("maintenance-secret");
+    expect(serialized).not.toContain("secret-db");
+  });
+});

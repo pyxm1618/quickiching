@@ -18,6 +18,7 @@ const CHECKOUT_API_PATH = "/api/checkout";
 const ACCOUNT_DELETE_API_PATH = "/api/account/delete";
 const WAFFO_WEBHOOK_PATH = "/api/webhooks/waffo";
 const RECONCILE_API_PATH = "/api/internal/reconcile";
+const CP6_STAGING_DIAGNOSTICS_PATH = "/api/internal/cp6-staging-diagnostics";
 const COMMERCIAL_PREVIEW_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/preview\/?$/;
 const COMMERCIAL_DEEP_READING_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/deep\/?$/;
 const COMMERCIAL_READING_STATUS_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/?$/;
@@ -36,6 +37,14 @@ function isCommercialDeepReadingPath(pathname: string): boolean {
 
 function isCommercialReadingStatusPath(pathname: string): boolean {
   return COMMERCIAL_READING_STATUS_PATH.test(pathname);
+}
+
+function cp6StagingDiagnosticsEnabled(): boolean {
+  return (
+    process.env.VERCEL_ENV === "production" &&
+    process.env.QUICKICHING_DEPLOYMENT_TIER === "staging" &&
+    Boolean(process.env.CP6_STAGING_MAINTENANCE_TOKEN?.trim())
+  );
 }
 
 export function middleware(request: NextRequest) {
@@ -116,6 +125,17 @@ export function middleware(request: NextRequest) {
 
   if (pathname === READY_API_PATH || pathname === `${READY_API_PATH}/`) {
     return NextResponse.next();
+  }
+
+  if (
+    pathname === CP6_STAGING_DIAGNOSTICS_PATH ||
+    pathname === `${CP6_STAGING_DIAGNOSTICS_PATH}/`
+  ) {
+    if (cp6StagingDiagnosticsEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
   }
 
   if (pathname === CHECKOUT_API_PATH || pathname === `${CHECKOUT_API_PATH}/`) {
