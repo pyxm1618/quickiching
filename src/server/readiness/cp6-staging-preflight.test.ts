@@ -3,7 +3,7 @@ import {
   classifyStagingDatabase,
   inspectStagingCapabilityConfiguration,
   type StagingDatabaseSnapshot,
-} from "./cp6-staging-preflight";
+} from "../../../scripts/cp6-staging-preflight";
 
 function snapshot(overrides: Partial<StagingDatabaseSnapshot> = {}): StagingDatabaseSnapshot {
   return {
@@ -27,7 +27,7 @@ describe("classifyStagingDatabase", () => {
     expect(classifyStagingDatabase(snapshot())).toBe("ready");
   });
 
-  it("requires explicit migration execution when history is merely outdated", () => {
+  it("permits only the final pending migration when required tables are already complete", () => {
     expect(classifyStagingDatabase(snapshot({
       migrationStatus: "migration_outdated",
       appliedMigrationCount: 10,
@@ -38,6 +38,15 @@ describe("classifyStagingDatabase", () => {
     expect(classifyStagingDatabase(snapshot({
       missingTables: ["workflow_runs"],
       presentCp5CoreTables: ["audit_events", "deep_reading_results", "entitlement_reservations"],
+    }))).toBe("schema_drift_forward_repair_required");
+  });
+
+  it("does not replay 0009 automatically when multiple historical migrations are outstanding", () => {
+    expect(classifyStagingDatabase(snapshot({
+      migrationStatus: "migration_outdated",
+      appliedMigrationCount: 9,
+      missingTables: ["audit_events", "workflow_runs"],
+      presentCp5CoreTables: ["deep_reading_results", "entitlement_reservations"],
     }))).toBe("schema_drift_forward_repair_required");
   });
 

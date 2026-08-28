@@ -7,7 +7,7 @@ on:
     paths:
       - .github/workflows/cp6-staging-preflight.yml
       - scripts/cp6-staging-preflight.ts
-      - scripts/cp6-staging-preflight.test.ts
+      - src/server/readiness/cp6-staging-preflight.test.ts
   workflow_dispatch:
 
 permissions:
@@ -42,7 +42,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Run preflight unit tests
-        run: bunx vitest run scripts/cp6-staging-preflight.test.ts
+        run: bunx vitest run src/server/readiness/cp6-staging-preflight.test.ts
 
       - name: Require authenticated staging-only Vercel access
         run: |
