@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - codex/commercial-v2-cp6
+      - codex/commercial-v2-cp6-repair
   workflow_dispatch:
 
 permissions:
