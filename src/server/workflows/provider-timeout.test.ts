@@ -8,10 +8,10 @@ describe("withAbortTimeout", () => {
 
   it("actively aborts the provider signal when the deadline expires", async () => {
     vi.useFakeTimers();
-    let observedSignal: AbortSignal | null = null;
+    const observedSignals: AbortSignal[] = [];
 
-    const pending = withAbortTimeout(1_000, async (signal) => {
-      observedSignal = signal;
+    const pending = withAbortTimeout(1_000, async (signal: AbortSignal) => {
+      observedSignals.push(signal);
       return new Promise<string>((_resolve, reject) => {
         signal.addEventListener("abort", () => reject(signal.reason), { once: true });
       });
@@ -20,14 +20,14 @@ describe("withAbortTimeout", () => {
 
     await vi.advanceTimersByTimeAsync(1_000);
 
-    expect(observedSignal?.aborted).toBe(true);
+    expect(observedSignals[0]?.aborted).toBe(true);
     await rejection;
   });
 
   it("clears the timeout after a successful provider call", async () => {
     vi.useFakeTimers();
 
-    await expect(withAbortTimeout(1_000, async (signal) => {
+    await expect(withAbortTimeout(1_000, async (signal: AbortSignal) => {
       expect(signal.aborted).toBe(false);
       return "ok";
     })).resolves.toBe("ok");
