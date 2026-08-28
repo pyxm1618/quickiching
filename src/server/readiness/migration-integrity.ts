@@ -1,4 +1,4 @@
-import migrationIntegrity from "../../../drizzle/meta/migration-integrity.json";
+import migrationIntegrity from "../../../drizzle/migration-integrity.json";
 
 export type AppliedMigration = {
   createdAt: number;
