@@ -24,7 +24,6 @@ jobs:
     timeout-minutes: 15
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
       VERCEL_PROJECT_ID: prj_iKtw9xKmIlEfe44gEocgLr2QDLfE
     steps:
       - uses: actions/checkout@v6
@@ -49,32 +48,12 @@ jobs:
             echo "::error::VERCEL_TOKEN GitHub secret is not configured; staging Production env cannot be inspected safely."
             exit 1
           fi
-          mkdir -p .vercel
-          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          if [ "$VERCEL_PROJECT_ID" != "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE" ]; then
+            echo "::error::Unexpected Vercel project binding."
+            exit 1
+          fi
 
-      - name: Pull exact quickiching-staging Production environment
+      - name: Inspect exact quickiching-staging Production environment and database drift
         run: >-
-          bunx vercel@59.3.0 pull
-          --yes
-          --environment=production
-          --token="$VERCEL_TOKEN"
-
-      - name: Re-verify exact Vercel project binding
-        run: |
-          node - <<'NODE'
-          const fs = require('fs');
-          const p = JSON.parse(fs.readFileSync('.vercel/project.json', 'utf8'));
-          if (p.orgId !== process.env.VERCEL_ORG_ID || p.projectId !== process.env.VERCEL_PROJECT_ID) {
-            throw new Error(`STAGING_PROJECT_BINDING_MISMATCH:${p.orgId}/${p.projectId}`);
-          }
-          NODE
-          test -f .vercel/.env.production.local
-
-      - name: Inspect staging provider configuration and database drift
-        run: >-
-          bun --env-file=.vercel/.env.production.local
-          scripts/cp6-staging-preflight.ts
-
-      - name: Remove pulled environment file
-        if: always()
-        run: rm -f .vercel/.env.production.local
+          bun scripts/cp6-staging-preflight.ts
+          --from-vercel-production-env
