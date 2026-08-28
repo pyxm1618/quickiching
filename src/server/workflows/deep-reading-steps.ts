@@ -8,6 +8,7 @@ import type { OutputReviewDecision, ProviderGenerationResult, ProviderInput } fr
 import {
   calculateDeepReadingInputSnapshotHash,
   calculateDeepReadingResultIntegrity,
+  verifyResultIntegrity,
 } from "@/server/generation/integrity";
 import { decryptQuestionForGeneration } from "@/server/generation/question-crypto";
 
@@ -116,8 +117,6 @@ export async function claimJobLeaseStep(input: {
       throw new Error("GENERATION_JOB_NOT_ACTIVE");
     }
 
-    // Recompute before claiming and bind the workflow to the immutable hash
-    // recorded when the entitlement was originally reserved.
     const questionText = decryptQuestionForGeneration(session);
     const facts = factsFromSession(session);
     const calculatedSnapshotHash = snapshotForSession({
@@ -230,6 +229,8 @@ export async function finalizeDeepReadingStep(input: {
     if (session.deleted_at != null || Number(session.generation_epoch) !== input.generationEpoch) {
       throw new Error("CASTING_SESSION_INVALID_OR_DELETED");
     }
+    if (session.lifecycle !== "revealed") throw new Error("CASTING_NOT_READY");
+    if (session.risk_status !== "allowed") throw new Error("RISK_PROHIBITED");
 
     const questionText = decryptQuestionForGeneration(session);
     const facts = factsFromSession(session);
@@ -260,6 +261,17 @@ export async function finalizeDeepReadingStep(input: {
       || recomputedSnapshotHash !== storedSnapshotHash
     ) {
       throw new Error("INPUT_SNAPSHOT_MISMATCH");
+    }
+
+    if (!session.result_hmac || !session.result_hmac_key_version) {
+      throw new Error("CAST_RESULT_UNAVAILABLE");
+    }
+    if (!verifyResultIntegrity({
+      facts,
+      resultHmac: String(session.result_hmac),
+      resultHmacKeyVersion: String(session.result_hmac_key_version),
+    })) {
+      throw new Error("CAST_RESULT_INTEGRITY_INVALID");
     }
 
     const resRows = await transaction`
