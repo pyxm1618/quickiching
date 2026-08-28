@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import migrationIntegrity from "../../../drizzle/meta/migration-integrity.json";
+import migrationIntegrity from "../../../drizzle/migration-integrity.json";
 import {
   checkSystemReadiness,
   REQUIRED_COMMERCIAL_TABLES,
