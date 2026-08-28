@@ -49,6 +49,11 @@ export type VercelEnvEntry = {
   decrypted?: unknown;
 };
 
+type VercelProductionEnvFetch = {
+  values: Record<string, string>;
+  unreadableSensitiveKeys: string[];
+};
+
 type CapabilityPreflight = {
   ok: boolean;
   waffoEnvironment: "test" | "invalid";
@@ -98,11 +103,15 @@ function vercelHeaders(token: string): Record<string, string> {
   };
 }
 
+type VercelEnvValueResult =
+  | { kind: "value"; value: string }
+  | { kind: "unreadable_sensitive"; key: string };
+
 async function fetchVercelEnvValue(
   token: string,
   projectId: string,
   entry: VercelEnvEntry,
-): Promise<string> {
+): Promise<VercelEnvValueResult> {
   const key = typeof entry.key === "string" ? entry.key.trim() : "UNKNOWN";
   const id = typeof entry.id === "string" ? entry.id.trim() : "";
   if (!id) throw new Error(`VERCEL_ENV_ID_MISSING:${key}`);
@@ -114,15 +123,19 @@ async function fetchVercelEnvValue(
   }
 
   const payload = await response.json() as VercelEnvEntry;
-  if (typeof payload.value !== "string") {
-    const type = typeof payload.type === "string" ? payload.type : "unknown";
-    const decrypted = payload.decrypted === true ? "true" : "false";
-    throw new Error(`VERCEL_ENV_VALUE_UNAVAILABLE:${key}:${type}:decrypted=${decrypted}`);
+  if (typeof payload.value === "string") {
+    return { kind: "value", value: payload.value };
   }
-  return payload.value;
+
+  const type = typeof payload.type === "string" ? payload.type : "unknown";
+  if (type === "sensitive" && payload.decrypted !== true) {
+    return { kind: "unreadable_sensitive", key };
+  }
+  const decrypted = payload.decrypted === true ? "true" : "false";
+  throw new Error(`VERCEL_ENV_VALUE_UNAVAILABLE:${key}:${type}:decrypted=${decrypted}`);
 }
 
-async function fetchVercelProductionEnv(token: string, projectId: string): Promise<Record<string, string>> {
+async function fetchVercelProductionEnv(token: string, projectId: string): Promise<VercelProductionEnvFetch> {
   if (projectId !== STAGING_VERCEL_PROJECT_ID) {
     throw new Error(`STAGING_PROJECT_BINDING_MISMATCH:${projectId}`);
   }
@@ -141,20 +154,39 @@ async function fetchVercelProductionEnv(token: string, projectId: string): Promi
     throw new Error("VERCEL_ENV_RESPONSE_INVALID");
   }
 
-  const productionEntries = (payload.envs as VercelEnvEntry[]).filter((entry) => targetsProduction(entry.target));
-  const selected: Record<string, string> = {};
+  const productionEntries = (payload.envs as VercelEnvEntry[])
+    .filter((entry) => targetsProduction(entry.target))
+    .sort((left, right) => {
+      const leftKey = typeof left.key === "string" ? left.key : "";
+      const rightKey = typeof right.key === "string" ? right.key : "";
+      if (leftKey === "DATABASE_URL") return -1;
+      if (rightKey === "DATABASE_URL") return 1;
+      return leftKey.localeCompare(rightKey);
+    });
+
+  const values: Record<string, string> = {};
+  const unreadableSensitiveKeys: string[] = [];
+  const seen = new Set<string>();
   for (const entry of productionEntries) {
     if (typeof entry.key !== "string" || !entry.key.trim()) continue;
     const key = entry.key.trim();
-    if (Object.prototype.hasOwnProperty.call(selected, key)) {
-      throw new Error(`VERCEL_PRODUCTION_ENV_DUPLICATE:${key}`);
+    if (seen.has(key)) throw new Error(`VERCEL_PRODUCTION_ENV_DUPLICATE:${key}`);
+    seen.add(key);
+
+    if (typeof entry.value === "string" && entry.value.length > 0) {
+      values[key] = entry.value;
+      continue;
     }
 
-    let value = typeof entry.value === "string" ? entry.value : "";
-    if (!value) value = await fetchVercelEnvValue(token, projectId, entry);
-    selected[key] = value;
+    const resolved = await fetchVercelEnvValue(token, projectId, entry);
+    if (resolved.kind === "value") values[key] = resolved.value;
+    else unreadableSensitiveKeys.push(resolved.key);
   }
-  return selected;
+
+  return {
+    values,
+    unreadableSensitiveKeys: unreadableSensitiveKeys.sort(),
+  };
 }
 
 export function inspectStagingCapabilityConfiguration(
@@ -289,20 +321,26 @@ async function main(): Promise<void> {
   const fromVercelProductionEnv = process.argv.includes("--from-vercel-production-env");
 
   let runtimeEnv: NodeJS.ProcessEnv = { ...process.env };
+  let unreadableSensitiveKeys: string[] = [];
   if (fromVercelProductionEnv) {
     const token = process.env.VERCEL_TOKEN?.trim();
     const projectId = process.env.VERCEL_PROJECT_ID?.trim();
     if (!token) throw new Error("VERCEL_TOKEN_MISSING");
     if (!projectId) throw new Error("VERCEL_PROJECT_ID_MISSING");
     const productionEnv = await fetchVercelProductionEnv(token, projectId);
-    runtimeEnv = { ...runtimeEnv, ...productionEnv };
+    runtimeEnv = { ...runtimeEnv, ...productionEnv.values };
+    unreadableSensitiveKeys = productionEnv.unreadableSensitiveKeys;
   }
 
   const capability = inspectStagingCapabilityConfiguration(runtimeEnv, requireFlagsEnabled);
+  const vercelEnv = {
+    unreadableSensitiveKeys,
+    sensitiveValuesRuntimeOnly: unreadableSensitiveKeys.length > 0,
+  };
 
   const databaseUrl = runtimeEnv.DATABASE_URL?.trim();
   if (!databaseUrl) {
-    console.log(JSON.stringify({ capability, database: { error: "DATABASE_URL_MISSING" } }, null, 2));
+    console.log(JSON.stringify({ vercelEnv, capability, database: { error: "DATABASE_URL_UNAVAILABLE" } }, null, 2));
     process.exitCode = 2;
     return;
   }
@@ -310,9 +348,9 @@ async function main(): Promise<void> {
   let database = await inspectDatabase(databaseUrl);
   let classification = classifyStagingDatabase(database);
 
-  console.log(JSON.stringify({ capability, database, classification }, null, 2));
+  console.log(JSON.stringify({ vercelEnv, capability, database, classification }, null, 2));
 
-  if (!capability.ok) {
+  if (!capability.ok || unreadableSensitiveKeys.length > 0) {
     process.exitCode = 3;
     return;
   }
