@@ -16,6 +16,7 @@ import {
 } from "../src/server/readiness/migration-integrity";
 
 const STAGING_ORIGIN = "https://staging.quickiching.com";
+const STAGING_VERCEL_PROJECT_ID = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE";
 const CP5_CORE_TABLES = Object.freeze([
   "audit_events",
   "workflow_runs",
@@ -39,6 +40,12 @@ export type StagingDatabaseSnapshot = {
   presentCp5CoreTables: string[];
 };
 
+export type VercelEnvEntry = {
+  key?: unknown;
+  value?: unknown;
+  target?: unknown;
+};
+
 type CapabilityPreflight = {
   ok: boolean;
   waffoEnvironment: "test" | "invalid";
@@ -59,6 +66,52 @@ function originMatches(candidate: string | undefined): boolean {
   } catch {
     return false;
   }
+}
+
+function targetsProduction(target: unknown): boolean {
+  if (target === "production") return true;
+  return Array.isArray(target) && target.includes("production");
+}
+
+export function selectProductionVercelEnv(entries: readonly VercelEnvEntry[]): Record<string, string> {
+  const selected: Record<string, string> = {};
+  for (const entry of entries) {
+    if (!targetsProduction(entry.target)) continue;
+    if (typeof entry.key !== "string" || !entry.key.trim()) continue;
+    if (typeof entry.value !== "string") continue;
+    const key = entry.key.trim();
+    if (Object.prototype.hasOwnProperty.call(selected, key)) {
+      throw new Error(`VERCEL_PRODUCTION_ENV_DUPLICATE:${key}`);
+    }
+    selected[key] = entry.value;
+  }
+  return selected;
+}
+
+async function fetchVercelProductionEnv(token: string, projectId: string): Promise<Record<string, string>> {
+  if (projectId !== STAGING_VERCEL_PROJECT_ID) {
+    throw new Error(`STAGING_PROJECT_BINDING_MISMATCH:${projectId}`);
+  }
+
+  const url = new URL(`https://api.vercel.com/v10/projects/${encodeURIComponent(projectId)}/env`);
+  url.searchParams.set("decrypt", "true");
+  url.searchParams.set("source", "cp6-staging-preflight");
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`VERCEL_ENV_FETCH_FAILED:${response.status}`);
+  }
+
+  const payload = await response.json() as { envs?: unknown };
+  if (!Array.isArray(payload.envs)) {
+    throw new Error("VERCEL_ENV_RESPONSE_INVALID");
+  }
+  return selectProductionVercelEnv(payload.envs as VercelEnvEntry[]);
 }
 
 export function inspectStagingCapabilityConfiguration(
@@ -177,10 +230,10 @@ async function inspectDatabase(databaseUrl: string): Promise<StagingDatabaseSnap
   }
 }
 
-function runMigration(): void {
+function runMigration(runtimeEnv: NodeJS.ProcessEnv): void {
   const result = spawnSync("bun", ["run", "db:migrate"], {
     stdio: "inherit",
-    env: process.env,
+    env: runtimeEnv,
   });
   if (result.status !== 0) {
     throw new Error(`STAGING_MIGRATION_FAILED:${String(result.status)}`);
@@ -190,9 +243,21 @@ function runMigration(): void {
 async function main(): Promise<void> {
   const requireFlagsEnabled = process.argv.includes("--require-flags-enabled");
   const applyPendingMigration = process.argv.includes("--apply-pending-migration");
-  const capability = inspectStagingCapabilityConfiguration(process.env, requireFlagsEnabled);
+  const fromVercelProductionEnv = process.argv.includes("--from-vercel-production-env");
 
-  const databaseUrl = process.env.DATABASE_URL?.trim();
+  let runtimeEnv: NodeJS.ProcessEnv = { ...process.env };
+  if (fromVercelProductionEnv) {
+    const token = process.env.VERCEL_TOKEN?.trim();
+    const projectId = process.env.VERCEL_PROJECT_ID?.trim();
+    if (!token) throw new Error("VERCEL_TOKEN_MISSING");
+    if (!projectId) throw new Error("VERCEL_PROJECT_ID_MISSING");
+    const productionEnv = await fetchVercelProductionEnv(token, projectId);
+    runtimeEnv = { ...runtimeEnv, ...productionEnv };
+  }
+
+  const capability = inspectStagingCapabilityConfiguration(runtimeEnv, requireFlagsEnabled);
+
+  const databaseUrl = runtimeEnv.DATABASE_URL?.trim();
   if (!databaseUrl) {
     console.log(JSON.stringify({ capability, database: { error: "DATABASE_URL_MISSING" } }, null, 2));
     process.exitCode = 2;
@@ -218,7 +283,7 @@ async function main(): Promise<void> {
     // This path is intentionally limited to exactly one final pending migration
     // and a complete required-table set. Historical or partial schema drift is
     // never replayed automatically; it requires a new forward-only repair.
-    runMigration();
+    runMigration(runtimeEnv);
     database = await inspectDatabase(databaseUrl);
     classification = classifyStagingDatabase(database);
     console.log(JSON.stringify({ postMigration: database, classification }, null, 2));
