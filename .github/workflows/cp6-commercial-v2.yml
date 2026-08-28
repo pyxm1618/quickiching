@@ -33,6 +33,8 @@ jobs:
           bun-version: 1.3.14
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
+      - name: Print current migration hashes
+        run: node scripts/check-migration-integrity.mjs --print-current
       - name: Lint
         run: bun run lint
       - name: Typecheck
