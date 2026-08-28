@@ -69,6 +69,11 @@ const completeCheckoutEnv = {
 describe("Public V1 middleware boundaries", () => {
   beforeEach(() => {
     vi.stubEnv("BETTER_AUTH_TRUSTED_ORIGINS", "");
+    vi.stubEnv("VERCEL_ENV", "");
+    vi.stubEnv("VERCEL_PROJECT_ID", "");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "");
+    vi.stubEnv("QUICKICHING_DEPLOYMENT_TIER", "");
+    vi.stubEnv("CP6_STAGING_MAINTENANCE_TOKEN", "");
   });
 
   afterEach(() => vi.unstubAllEnvs());
@@ -127,6 +132,17 @@ describe("Public V1 middleware boundaries", () => {
     vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("QUICKICHING_DEPLOYMENT_TIER", "staging");
     vi.stubEnv("CP6_STAGING_MAINTENANCE_TOKEN", "temporary-maintenance-token");
+    expect(middleware(makeRequest(path)).status).toBe(404);
+
+    vi.stubEnv("VERCEL_PROJECT_ID", "prj_wrong");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "staging.quickiching.com");
+    expect(middleware(makeRequest(path)).status).toBe(404);
+
+    vi.stubEnv("VERCEL_PROJECT_ID", "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "www.quickiching.com");
+    expect(middleware(makeRequest(path)).status).toBe(404);
+
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "staging.quickiching.com");
     expect(middleware(makeRequest(path)).status).toBe(200);
     expect(middleware(makeRequest(`${path}/`)).status).toBe(200);
     expect(middleware(makeRequest(`${path}/extra`)).status).toBe(404);
