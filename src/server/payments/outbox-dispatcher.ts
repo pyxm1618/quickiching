@@ -22,7 +22,7 @@ export type DispatchResult = {
 export interface OutboxDispatcher {
   claimBatch(options?: { limit?: number; leaseDurationMs?: number }): Promise<ClaimedOutboxItem[]>;
   dispatchItem(item: ClaimedOutboxItem): Promise<DispatchResult>;
-  dispatchAllPending(options?: { batchSize?: number; maxBatches?: number }): Promise<{
+  dispatchAllPending(options?: { batchSize?: number; maxBatches?: number; deadlineAt?: number }): Promise<{
     processedCount: number;
     results: DispatchResult[];
   }>;
@@ -215,16 +215,21 @@ export function createOutboxDispatcher(dependencies: {
     async dispatchAllPending(options = {}) {
       const batchSize = options.batchSize ?? 20;
       const maxBatches = options.maxBatches ?? 5;
+      const deadlineAt = options.deadlineAt;
+      const deadlineReached = () => deadlineAt !== undefined && Date.now() >= deadlineAt;
       const allResults: DispatchResult[] = [];
       let totalProcessed = 0;
 
       for (let b = 0; b < maxBatches; b++) {
+        if (deadlineReached()) break;
         const items = await this.claimBatch({ limit: batchSize });
         if (items.length === 0) break;
         for (const item of items) {
+          if (deadlineReached()) break;
           allResults.push(await this.dispatchItem(item));
           totalProcessed++;
         }
+        if (deadlineReached()) break;
       }
       return { processedCount: totalProcessed, results: allResults };
     },
