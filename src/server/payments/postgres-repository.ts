@@ -11,6 +11,7 @@ import {
 type Row = Record<string, any>;
 type CreateOrderInput = Parameters<CheckoutRepository["createOrGetOrder"]>[0];
 const PENDING_CHECKOUT_RECOVERY_MS = 2 * 60 * 1000;
+const PENDING_ORDER_RETRY_MS = 5 * 1000;
 type ProcessOutcome = {
   outcome: "granted" | "revoked" | "pending_order" | "financial_review" | "ignored" | "already_processed" | "processing" | "dead_letter";
   reason?: string;
@@ -239,8 +240,6 @@ export class PostgresPaymentRepository implements CheckoutRepository {
         return { order: orderFromRow(existingRows[0], this.options.checkoutUrlKeys), created: false };
       }
 
-      // The advisory lock serializes the persistent budget and active-intent
-      // checks for one user without relying on an in-memory process mutex.
       await transaction`select pg_advisory_xact_lock(hashtext(${input.userId}))`;
       const recheckedRows = await transaction`
         select * from payment_orders
@@ -277,9 +276,6 @@ export class PostgresPaymentRepository implements CheckoutRepository {
           and checkout_claim_expires_at <= clock_timestamp()
       `;
 
-      // A pending row has never crossed the Provider-call boundary. If the
-      // process died before claiming it, retire it after one normal lease
-      // window so lost request IDs cannot permanently exhaust the intent cap.
       await transaction`
         update payment_orders
         set status = 'financial_review', checkout_claim_token = null,
@@ -291,8 +287,6 @@ export class PostgresPaymentRepository implements CheckoutRepository {
           and created_at <= clock_timestamp() - (${PENDING_CHECKOUT_RECOVERY_MS} * interval '1 millisecond')
       `;
 
-      // Expired bearer URLs are no longer reusable and must not remain stored
-      // merely because the next request uses a different idempotency key.
       await transaction`
         update payment_orders
         set status = 'financial_review', checkout_claim_token = null,
@@ -586,6 +580,36 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     return this.sql.begin((transaction) => this.processInboxTransaction(transaction, inboxId, options.leaseToken));
   }
 
+  private async deferPendingOrder(
+    transaction: TransactionSql,
+    inboxId: string,
+    outboxId: string,
+    leaseToken: string,
+  ): Promise<ProcessOutcome> {
+    const outboxRows = await transaction`
+      update payment_outbox
+      set status = 'pending',
+          attempt_count = greatest(attempt_count - 1, 0),
+          available_at = clock_timestamp() + (${PENDING_ORDER_RETRY_MS} * interval '1 millisecond'),
+          lease_token = null, lease_expires_at = null, completed_at = null,
+          updated_at = clock_timestamp()
+      where id = ${outboxId} and status = 'processing' and lease_token = ${leaseToken}
+      returning id
+    ` as Row[];
+    if (!outboxRows[0]) throw new Error("PAYMENT_WEBHOOK_LEASE_LOST");
+
+    const inboxRows = await transaction`
+      update payment_webhook_inbox
+      set status = 'pending_order',
+          attempt_count = greatest(attempt_count - 1, 0),
+          processed_at = null, updated_at = clock_timestamp()
+      where id = ${inboxId} and status = 'processing'
+      returning id
+    ` as Row[];
+    if (!inboxRows[0]) throw new Error("PAYMENT_WEBHOOK_LEASE_LOST");
+    return { outcome: "pending_order" };
+  }
+
   private async processInboxTransaction(
     transaction: TransactionSql,
     inboxId: string,
@@ -614,9 +638,6 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       orderIdHint = hintedOrder[0] ? String(hintedOrder[0].id) : null;
     }
     if (orderIdHint) {
-      // Lock the canonical order before locking this event row. Payment and
-      // refund workers therefore share one lock order and cannot expose a
-      // grant while a known refund is waiting to settle.
       await transaction`
         select id from payment_orders where id = ${orderIdHint} limit 1 for update
       `;
@@ -654,12 +675,10 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       ` as Row[];
 
       if (callerLeaseToken && callerLeaseToken === String(leaseRows[0]?.lease_token) && leaseRows[0]?.active) {
-        // Caller holds the active lease token, proceed with processing
         leaseToken = callerLeaseToken;
       } else if (leaseRows[0]?.active) {
         return { outcome: "processing" };
       } else {
-        // Lease expired, take over
         const attemptCount = Math.max(Number(inbox.attempt_count), Number(outbox.attempt_count)) + 1;
         leaseToken = randomUUID();
         await transaction`
@@ -711,18 +730,7 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     }
     const order = orderRows[0] ?? null;
     if (!order) {
-      await transaction`
-        update payment_webhook_inbox
-        set status = 'pending_order', updated_at = clock_timestamp()
-        where id = ${inboxId}
-      `;
-      await transaction`
-        update payment_outbox
-        set status = 'pending', order_id = null, lease_token = null, lease_expires_at = null,
-            updated_at = clock_timestamp()
-        where id = ${String(outbox.id)}
-      `;
-      return { outcome: "pending_order" };
+      return this.deferPendingOrder(transaction, inboxId, String(outbox.id), leaseToken);
     }
 
     await transaction`
@@ -747,7 +755,6 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     event: NormalizedWaffoWebhook,
     leaseToken: string,
   ): Promise<ProcessOutcome> {
-
     const mismatch = this.orderMismatchReason(order, event);
     if (mismatch) return this.financialReview(transaction, inbox, outbox, order, mismatch, leaseToken);
     if (event.manualReviewReason) {
@@ -934,17 +941,7 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       return { outcome: "already_processed" };
     }
     if (order.status !== "paid") {
-      await transaction`
-        update payment_webhook_inbox
-        set status = 'pending_order', updated_at = clock_timestamp()
-        where id = ${String(inbox.id)}
-      `;
-      await transaction`
-      update payment_outbox
-      set status = 'pending', lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
-      where id = ${String(outbox.id)} and lease_token = ${leaseToken}
-      `;
-      return { outcome: "pending_order" };
+      return this.deferPendingOrder(transaction, String(inbox.id), String(outbox.id), leaseToken);
     }
     if (
       (order.provider_order_id != null && String(order.provider_order_id) !== event.providerOrderId)
@@ -1008,21 +1005,43 @@ export class PostgresPaymentRepository implements CheckoutRepository {
     paymentEvent: NormalizedWaffoWebhook,
   ): Promise<string | null> {
     const rows = await transaction`
-      select i.*, o.id as outbox_id
+      select i.*, o.id as outbox_id, o.status as outbox_status
       from payment_webhook_inbox i
       join payment_outbox o on o.inbox_id = i.id
-      where i.linked_order_id = ${String(order.id)}
-        and i.event_type = 'refund.succeeded'
-        and i.status = 'pending_order'
+      where i.event_type = 'refund.succeeded'
+        and (
+          i.linked_order_id = ${String(order.id)}
+          or i.order_merchant_external_id = ${String(order.id)}
+          or i.normalized_payload->>'internalOrderId' = ${String(order.id)}
+        )
+        and (
+          i.status in ('pending_order', 'received', 'processing', 'failed', 'dead_letter')
+          or o.status in ('pending', 'processing', 'failed', 'dead_letter')
+        )
       order by i.created_at asc, i.id asc
       for update of i, o
     ` as Row[];
     for (const row of rows) {
-      const refundEvent = normalizedEvent(row.normalized_payload);
+      await transaction`
+        update payment_webhook_inbox
+        set linked_order_id = ${String(order.id)}, updated_at = clock_timestamp()
+        where id = ${String(row.id)} and linked_order_id is null
+      `;
+      await transaction`
+        update payment_outbox
+        set order_id = ${String(order.id)}, updated_at = clock_timestamp()
+        where id = ${String(row.outbox_id)} and order_id is null
+      `;
+
       let reason: string | null = null;
-      if (!refundEvent) {
+      if (row.status === "dead_letter" || row.outbox_status === "dead_letter") {
+        reason = "REFUND_PREORDER_DEAD_LETTER";
+      }
+
+      const refundEvent = normalizedEvent(row.normalized_payload);
+      if (!reason && !refundEvent) {
         reason = "WEBHOOK_NORMALIZED_PAYLOAD_INVALID";
-      } else {
+      } else if (!reason && refundEvent) {
         reason = this.orderMismatchReason(order, refundEvent);
         if (!reason && Number(order.amount_minor) !== refundEvent.amountMinor) {
           reason = "REFUND_PARTIAL_UNSUPPORTED";
@@ -1078,13 +1097,16 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       update payment_webhook_inbox
       set status = 'financial_review', last_error_code = ${reason},
           processed_at = clock_timestamp(), updated_at = clock_timestamp()
-      where id = ${String(inbox.id)} and status = 'pending_order'
+      where id = ${String(inbox.id)}
+        and status in ('pending_order', 'received', 'processing', 'failed', 'dead_letter')
     `;
     await transaction`
       update payment_outbox
       set topic = 'financial_review', status = 'completed', last_error_code = ${reason},
+          lease_token = null, lease_expires_at = null,
           completed_at = clock_timestamp(), updated_at = clock_timestamp()
-      where id = ${String(inbox.outbox_id)} and status = 'pending'
+      where id = ${String(inbox.outbox_id)}
+        and status in ('pending', 'processing', 'failed', 'dead_letter')
     `;
   }
 
@@ -1242,8 +1264,6 @@ export class PostgresPaymentRepository implements CheckoutRepository {
       const row = rows[0];
       if (!row) throw new Error("PAYMENT_OUTBOX_UNAVAILABLE");
 
-      // Supplying a lease token is an ownership claim. Exact equality is required even when
-      // the persisted token is NULL, and only a processing row may be failed by a leased worker.
       if (
         leaseToken !== undefined
         && (row.outbox_status !== "processing" || row.outbox_lease_token !== leaseToken)
