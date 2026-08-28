@@ -37,7 +37,7 @@ function sameOrigin(candidate: string | undefined, expected: string): boolean {
   }
 }
 
-export function isCp6StagingMaintenanceRuntime(
+function isCp6StagingMaintenanceRuntime(
   env: Record<string, string | undefined> = process.env,
 ): boolean {
   return (
