@@ -1,0 +1,82 @@
+name: CP6 Staging Preflight
+
+on:
+  push:
+    branches:
+      - codex/commercial-v2-cp6-repair
+    paths:
+      - .github/workflows/cp6-staging-preflight.yml
+      - scripts/cp6-staging-preflight.ts
+      - scripts/cp6-staging-preflight.test.ts
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cp6-staging-preflight
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    name: Exact staging environment and database preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
+      VERCEL_PROJECT_ID: prj_iKtw9xKmIlEfe44gEocgLr2QDLfE
+      VERCEL_TEAM_SLUG: pyxm1618s-projects
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run preflight unit tests
+        run: bunx vitest run scripts/cp6-staging-preflight.test.ts
+
+      - name: Require authenticated staging-only Vercel access
+        run: |
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "::error::VERCEL_TOKEN GitHub secret is not configured; staging Production env cannot be inspected safely."
+            exit 1
+          fi
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+
+      - name: Pull exact quickiching-staging Production environment
+        run: >-
+          bunx vercel@59.3.0 pull
+          --yes
+          --environment=production
+          --token="$VERCEL_TOKEN"
+          --scope="$VERCEL_TEAM_SLUG"
+
+      - name: Re-verify exact Vercel project binding
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = JSON.parse(fs.readFileSync('.vercel/project.json', 'utf8'));
+          if (p.orgId !== process.env.VERCEL_ORG_ID || p.projectId !== process.env.VERCEL_PROJECT_ID) {
+            throw new Error(`STAGING_PROJECT_BINDING_MISMATCH:${p.orgId}/${p.projectId}`);
+          }
+          NODE
+          test -f .vercel/.env.production.local
+
+      - name: Inspect staging provider configuration and database drift
+        run: >-
+          bun --env-file=.vercel/.env.production.local
+          scripts/cp6-staging-preflight.ts
+
+      - name: Remove pulled environment file
+        if: always()
+        run: rm -f .vercel/.env.production.local
