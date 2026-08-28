@@ -26,7 +26,6 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
       VERCEL_PROJECT_ID: prj_iKtw9xKmIlEfe44gEocgLr2QDLfE
-      VERCEL_TEAM_SLUG: pyxm1618s-projects
     steps:
       - uses: actions/checkout@v6
 
@@ -59,7 +58,6 @@ jobs:
           --yes
           --environment=production
           --token="$VERCEL_TOKEN"
-          --scope="$VERCEL_TEAM_SLUG"
 
       - name: Re-verify exact Vercel project binding
         run: |
