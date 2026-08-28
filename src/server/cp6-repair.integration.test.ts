@@ -37,8 +37,13 @@ async function insertUser(userId: string): Promise<void> {
   `;
 }
 
-async function insertCasting(userId: string, castingId: string): Promise<void> {
+async function insertCasting(
+  userId: string,
+  castingId: string,
+  options: { invalidResultHmac?: boolean } = {},
+): Promise<void> {
   const integrity = calculateResultIntegrityHmac(facts, { RESULT_INTEGRITY_KEYS: integrityKeys });
+  const resultHmac = options.invalidResultHmac ? "0".repeat(64) : integrity.hmac;
   await sql`
     insert into casting_sessions (
       id, user_id, method, lifecycle, risk_status, scene, interpretation_goal,
@@ -56,7 +61,7 @@ async function insertCasting(userId: string, castingId: string): Promise<void> {
     ) values (
       ${castingId}, ARRAY[7,8,7,8,7,8]::integer[], 11, ARRAY[]::integer[], null,
       '{"kind":"cp6-repair"}'::jsonb, 'three-coin-v1', 'king-wen-v1',
-      ${integrity.hmac}, ${integrity.version}, clock_timestamp()
+      ${resultHmac}, ${integrity.version}, clock_timestamp()
     )
   `;
 }
@@ -96,12 +101,12 @@ function service() {
   });
 }
 
-async function prepareClaimedReading() {
+async function prepareClaimedReading(options: { invalidResultHmac?: boolean } = {}) {
   const userId = `cp6-final-${randomUUID()}`;
   const castingId = randomUUID();
   await insertUser(userId);
   const { batchId } = await insertCredit(userId);
-  await insertCasting(userId, castingId);
+  await insertCasting(userId, castingId, options);
   const requested = await service().requestDeepReading({ userId, castingId });
   const jobRows = await sql<{ idempotency_key: string; generation_epoch: number }[]>`
     select idempotency_key, generation_epoch from generation_jobs where id = ${requested.jobId}
@@ -188,9 +193,9 @@ describe("CP6 repair regressions", () => {
 
     const requested = await service().requestDeepReading({ userId, castingId });
     const rows = await sql<{
-      reservation_expires_at: Date;
-      lease_expires_at: Date | null;
-      batch_expires_at: Date;
+      reservation_expires_at: Date | string;
+      lease_expires_at: Date | string | null;
+      batch_expires_at: Date | string;
     }[]>`
       select r.expires_at as reservation_expires_at,
              r.lease_expires_at,
@@ -201,9 +206,11 @@ describe("CP6 repair regressions", () => {
     `;
 
     expect(rows[0]).toBeDefined();
-    expect(rows[0]!.reservation_expires_at.getTime()).toBe(rows[0]!.batch_expires_at.getTime());
+    const reservationExpiresAt = new Date(rows[0]!.reservation_expires_at).getTime();
+    const batchExpiresAt = new Date(rows[0]!.batch_expires_at).getTime();
+    expect(reservationExpiresAt).toBe(batchExpiresAt);
     expect(rows[0]!.lease_expires_at).not.toBeNull();
-    expect(rows[0]!.lease_expires_at!.getTime()).toBeLessThanOrEqual(rows[0]!.batch_expires_at.getTime());
+    expect(new Date(rows[0]!.lease_expires_at!).getTime()).toBeLessThanOrEqual(batchExpiresAt);
   });
 
   it("rechecks revealed lifecycle immediately before persisting and consuming", async () => {
@@ -219,8 +226,7 @@ describe("CP6 repair regressions", () => {
   });
 
   it("cryptographically verifies the stored cast-result HMAC immediately before persisting and consuming", async () => {
-    const prepared = await prepareClaimedReading();
-    await sql`update cast_results set result_hmac = ${"0".repeat(64)} where casting_id = ${prepared.castingId}`;
+    const prepared = await prepareClaimedReading({ invalidResultHmac: true });
     await expectFinalizationFence(prepared, "CAST_RESULT_INTEGRITY_INVALID");
   });
 });
