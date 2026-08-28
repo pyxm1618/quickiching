@@ -41,9 +41,12 @@ export type StagingDatabaseSnapshot = {
 };
 
 export type VercelEnvEntry = {
+  id?: unknown;
   key?: unknown;
   value?: unknown;
   target?: unknown;
+  type?: unknown;
+  decrypted?: unknown;
 };
 
 type CapabilityPreflight = {
@@ -88,6 +91,37 @@ export function selectProductionVercelEnv(entries: readonly VercelEnvEntry[]): R
   return selected;
 }
 
+function vercelHeaders(token: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+  };
+}
+
+async function fetchVercelEnvValue(
+  token: string,
+  projectId: string,
+  entry: VercelEnvEntry,
+): Promise<string> {
+  const key = typeof entry.key === "string" ? entry.key.trim() : "UNKNOWN";
+  const id = typeof entry.id === "string" ? entry.id.trim() : "";
+  if (!id) throw new Error(`VERCEL_ENV_ID_MISSING:${key}`);
+
+  const url = `https://api.vercel.com/v1/projects/${encodeURIComponent(projectId)}/env/${encodeURIComponent(id)}`;
+  const response = await fetch(url, { headers: vercelHeaders(token) });
+  if (!response.ok) {
+    throw new Error(`VERCEL_ENV_VALUE_FETCH_FAILED:${key}:${response.status}`);
+  }
+
+  const payload = await response.json() as VercelEnvEntry;
+  if (typeof payload.value !== "string") {
+    const type = typeof payload.type === "string" ? payload.type : "unknown";
+    const decrypted = payload.decrypted === true ? "true" : "false";
+    throw new Error(`VERCEL_ENV_VALUE_UNAVAILABLE:${key}:${type}:decrypted=${decrypted}`);
+  }
+  return payload.value;
+}
+
 async function fetchVercelProductionEnv(token: string, projectId: string): Promise<Record<string, string>> {
   if (projectId !== STAGING_VERCEL_PROJECT_ID) {
     throw new Error(`STAGING_PROJECT_BINDING_MISMATCH:${projectId}`);
@@ -95,14 +129,9 @@ async function fetchVercelProductionEnv(token: string, projectId: string): Promi
 
   const url = new URL(`https://api.vercel.com/v10/projects/${encodeURIComponent(projectId)}/env`);
   url.searchParams.set("decrypt", "true");
-  url.searchParams.set("source", "cp6-staging-preflight");
+  url.searchParams.set("source", "vercel-cli:pull");
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-    },
-  });
+  const response = await fetch(url, { headers: vercelHeaders(token) });
   if (!response.ok) {
     throw new Error(`VERCEL_ENV_FETCH_FAILED:${response.status}`);
   }
@@ -111,7 +140,21 @@ async function fetchVercelProductionEnv(token: string, projectId: string): Promi
   if (!Array.isArray(payload.envs)) {
     throw new Error("VERCEL_ENV_RESPONSE_INVALID");
   }
-  return selectProductionVercelEnv(payload.envs as VercelEnvEntry[]);
+
+  const productionEntries = (payload.envs as VercelEnvEntry[]).filter((entry) => targetsProduction(entry.target));
+  const selected: Record<string, string> = {};
+  for (const entry of productionEntries) {
+    if (typeof entry.key !== "string" || !entry.key.trim()) continue;
+    const key = entry.key.trim();
+    if (Object.prototype.hasOwnProperty.call(selected, key)) {
+      throw new Error(`VERCEL_PRODUCTION_ENV_DUPLICATE:${key}`);
+    }
+
+    let value = typeof entry.value === "string" ? entry.value : "";
+    if (!value) value = await fetchVercelEnvValue(token, projectId, entry);
+    selected[key] = value;
+  }
+  return selected;
 }
 
 export function inspectStagingCapabilityConfiguration(
