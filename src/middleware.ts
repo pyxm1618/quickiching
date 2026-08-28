@@ -15,6 +15,7 @@ const PERSONALIZED_API_PATH = "/api/personalized-interpretation";
 const HEALTH_API_PATH = "/api/health";
 const READY_API_PATH = "/api/ready";
 const CHECKOUT_API_PATH = "/api/checkout";
+const ACCOUNT_DELETE_API_PATH = "/api/account/delete";
 const WAFFO_WEBHOOK_PATH = "/api/webhooks/waffo";
 const RECONCILE_API_PATH = "/api/internal/reconcile";
 const COMMERCIAL_PREVIEW_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/preview\/?$/;
@@ -64,6 +65,14 @@ export function middleware(request: NextRequest) {
   }
 
   if (matchesPrefix(pathname, "/api/auth")) {
+    if (isAuthCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (pathname === ACCOUNT_DELETE_API_PATH || pathname === `${ACCOUNT_DELETE_API_PATH}/`) {
     if (isAuthCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("Not Found", {
       status: 404,
