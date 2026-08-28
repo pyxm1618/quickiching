@@ -19,6 +19,8 @@ const ACCOUNT_DELETE_API_PATH = "/api/account/delete";
 const WAFFO_WEBHOOK_PATH = "/api/webhooks/waffo";
 const RECONCILE_API_PATH = "/api/internal/reconcile";
 const CP6_STAGING_DIAGNOSTICS_PATH = "/api/internal/cp6-staging-diagnostics";
+const STAGING_VERCEL_PROJECT_ID = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE";
+const STAGING_PRODUCTION_HOST = "staging.quickiching.com";
 const COMMERCIAL_PREVIEW_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/preview\/?$/;
 const COMMERCIAL_DEEP_READING_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/deep\/?$/;
 const COMMERCIAL_READING_STATUS_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/?$/;
@@ -42,6 +44,8 @@ function isCommercialReadingStatusPath(pathname: string): boolean {
 function cp6StagingDiagnosticsEnabled(): boolean {
   return (
     process.env.VERCEL_ENV === "production" &&
+    process.env.VERCEL_PROJECT_ID?.trim() === STAGING_VERCEL_PROJECT_ID &&
+    process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim().toLowerCase() === STAGING_PRODUCTION_HOST &&
     process.env.QUICKICHING_DEPLOYMENT_TIER === "staging" &&
     Boolean(process.env.CP6_STAGING_MAINTENANCE_TOKEN?.trim())
   );
