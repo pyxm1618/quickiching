@@ -5,6 +5,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const STAGING_ORIGIN = "https://staging.quickiching.com";
+const STAGING_VERCEL_PROJECT_ID = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE";
+const STAGING_PRODUCTION_HOST = "staging.quickiching.com";
 
 function responseHeaders(extra: Record<string, string> = {}): Headers {
   return new Headers({
@@ -37,11 +39,19 @@ function sameOrigin(candidate: string | undefined, expected: string): boolean {
   }
 }
 
+function stagingProjectIdentityMatches(env: Record<string, string | undefined>): boolean {
+  return (
+    env.VERCEL_PROJECT_ID?.trim() === STAGING_VERCEL_PROJECT_ID &&
+    env.VERCEL_PROJECT_PRODUCTION_URL?.trim().toLowerCase() === STAGING_PRODUCTION_HOST
+  );
+}
+
 function isCp6StagingMaintenanceRuntime(
   env: Record<string, string | undefined> = process.env,
 ): boolean {
   return (
     env.VERCEL_ENV === "production" &&
+    stagingProjectIdentityMatches(env) &&
     env.QUICKICHING_DEPLOYMENT_TIER === "staging" &&
     sameOrigin(env.APP_BASE_URL, STAGING_ORIGIN) &&
     Boolean(env.CP6_STAGING_MAINTENANCE_TOKEN?.trim())
@@ -71,8 +81,15 @@ export async function GET(request: Request): Promise<Response> {
     return Response.json(
       {
         deployment: {
-          environment: "production",
-          tier: "staging",
+          environment: process.env.VERCEL_ENV?.trim() || null,
+          projectIdMatchesStaging:
+            process.env.VERCEL_PROJECT_ID?.trim() === STAGING_VERCEL_PROJECT_ID,
+          productionUrlMatchesStaging:
+            process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim().toLowerCase() ===
+            STAGING_PRODUCTION_HOST,
+          tierConfigured:
+            process.env.QUICKICHING_DEPLOYMENT_TIER?.trim() === "staging",
+          appBaseUrlMatchesStaging: sameOrigin(process.env.APP_BASE_URL, STAGING_ORIGIN),
           gitSha: process.env.VERCEL_GIT_COMMIT_SHA?.trim() || null,
           gitRef: process.env.VERCEL_GIT_COMMIT_REF?.trim() || null,
         },

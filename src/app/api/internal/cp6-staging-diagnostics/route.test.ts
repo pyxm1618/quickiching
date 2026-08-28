@@ -11,6 +11,7 @@ vi.mock("@/server/readiness/staging-runtime-diagnostics", () => ({
 import { DELETE, GET, PATCH, POST, PUT } from "./route";
 
 const maintenanceToken = "cp6-maintenance-token-with-enough-random-material";
+const stagingProjectId = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE";
 
 function request(token = maintenanceToken): Request {
   return new Request("https://staging.quickiching.com/api/internal/cp6-staging-diagnostics", {
@@ -22,6 +23,8 @@ function request(token = maintenanceToken): Request {
 describe("CP6 staging runtime diagnostics route", () => {
   beforeEach(() => {
     vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("VERCEL_PROJECT_ID", stagingProjectId);
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "staging.quickiching.com");
     vi.stubEnv("QUICKICHING_DEPLOYMENT_TIER", "staging");
     vi.stubEnv("APP_BASE_URL", "https://staging.quickiching.com");
     vi.stubEnv("CP6_STAGING_MAINTENANCE_TOKEN", maintenanceToken);
@@ -50,18 +53,27 @@ describe("CP6 staging runtime diagnostics route", () => {
     vi.unstubAllEnvs();
   });
 
-  it("is hidden outside the exact staging Production runtime", async () => {
-    vi.stubEnv("QUICKICHING_DEPLOYMENT_TIER", "production");
+  it("is hidden outside the exact staging Vercel Production project", async () => {
+    vi.stubEnv("VERCEL_PROJECT_ID", "prj_wrong");
     expect((await GET(request())).status).toBe(404);
     expect(mocks.collect).not.toHaveBeenCalled();
 
-    vi.stubEnv("QUICKICHING_DEPLOYMENT_TIER", "staging");
+    vi.stubEnv("VERCEL_PROJECT_ID", stagingProjectId);
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "www.quickiching.com");
+    expect((await GET(request())).status).toBe(404);
+    expect(mocks.collect).not.toHaveBeenCalled();
+
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "staging.quickiching.com");
     vi.stubEnv("VERCEL_ENV", "preview");
     expect((await GET(request())).status).toBe(404);
     expect(mocks.collect).not.toHaveBeenCalled();
   });
 
-  it("requires the staging origin and a configured maintenance token", async () => {
+  it("requires the staging deployment tier, staging app origin, and a maintenance token", async () => {
+    vi.stubEnv("QUICKICHING_DEPLOYMENT_TIER", "production");
+    expect((await GET(request())).status).toBe(404);
+
+    vi.stubEnv("QUICKICHING_DEPLOYMENT_TIER", "staging");
     vi.stubEnv("APP_BASE_URL", "https://www.quickiching.com");
     expect((await GET(request())).status).toBe(404);
 
@@ -85,7 +97,10 @@ describe("CP6 staging runtime diagnostics route", () => {
     const body = await response.json();
     expect(body.deployment).toEqual({
       environment: "production",
-      tier: "staging",
+      projectIdMatchesStaging: true,
+      productionUrlMatchesStaging: true,
+      tierConfigured: true,
+      appBaseUrlMatchesStaging: true,
       gitSha: "0123456789abcdef0123456789abcdef01234567",
       gitRef: "codex/commercial-v2-cp6-repair",
     });
@@ -94,6 +109,7 @@ describe("CP6 staging runtime diagnostics route", () => {
     expect(serialized).not.toContain(maintenanceToken);
     expect(serialized).not.toContain("DATABASE_URL");
     expect(serialized).not.toContain("password");
+    expect(serialized).not.toContain(stagingProjectId);
   });
 
   it("returns a sanitised 500 when the diagnostic collector fails", async () => {
