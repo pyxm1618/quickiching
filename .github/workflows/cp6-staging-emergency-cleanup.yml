@@ -1,0 +1,129 @@
+name: CP6 Staging Emergency Cleanup
+
+on:
+  push:
+    branches:
+      - codex/commercial-v2-cp6-repair
+    paths:
+      - .github/workflows/cp6-staging-emergency-cleanup.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cp6-staging-emergency-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: prj_iKtw9xKmIlEfe44gEocgLr2QDLfE
+      VERCEL_TEAM_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
+      DIAGNOSTIC_DEPLOYMENT_ID: dpl_3jaZeBfjFFY5y8g9rY4ooBhE68ae
+      BASELINE_DEPLOYMENT_ID: dpl_3zqk9k38NZT19Q5sM85pucfguMfp
+      STAGING_ORIGIN: https://staging.quickiching.com
+    steps:
+      - name: Lock cleanup scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${VERCEL_TOKEN:-}" || { echo "::error::VERCEL_TOKEN missing"; exit 1; }
+          test "$VERCEL_PROJECT_ID" = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE"
+          test "$VERCEL_TEAM_ID" = "team_z1b9TTQtbNkr43dzs5JVJPnQ"
+          test "$DIAGNOSTIC_DEPLOYMENT_ID" = "dpl_3jaZeBfjFFY5y8g9rY4ooBhE68ae"
+          test "$BASELINE_DEPLOYMENT_ID" = "dpl_3zqk9k38NZT19Q5sM85pucfguMfp"
+
+      - name: Verify temporary maintenance token is absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            -H "Accept: application/json" \
+            "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env")"
+          if jq -e '.envs[]? | select(.key == "CP6_STAGING_MAINTENANCE_TOKEN" and ((.target == "production") or ((.target | type) == "array" and (.target | index("production") != null))))' >/dev/null <<<"$response"; then
+            echo "::error::Temporary maintenance token still exists; cleanup must not continue silently."
+            exit 1
+          fi
+          echo "Temporary maintenance token is absent."
+
+      - name: Cancel or delete timed-out diagnostic deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          http="$(curl --silent --show-error \
+            --output "$RUNNER_TEMP/delete-response.json" \
+            --write-out "%{http_code}" \
+            -X DELETE \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            "https://api.vercel.com/v13/deployments/${DIAGNOSTIC_DEPLOYMENT_ID}?teamId=${VERCEL_TEAM_ID}")"
+          if [ "$http" != "200" ] && [ "$http" != "404" ]; then
+            echo "::error::Unexpected DELETE response HTTP ${http}"
+            cat "$RUNNER_TEMP/delete-response.json" || true
+            exit 1
+          fi
+          echo "Diagnostic deployment revoke request returned HTTP ${http}."
+
+      - name: Verify diagnostic deployment cannot become serving Production
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            http="$(curl --silent --show-error \
+              --output "$RUNNER_TEMP/deployment-state.json" \
+              --write-out "%{http_code}" \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+              -H "Accept: application/json" \
+              "https://api.vercel.com/v13/deployments/${DIAGNOSTIC_DEPLOYMENT_ID}?teamId=${VERCEL_TEAM_ID}")"
+            if [ "$http" = "404" ]; then
+              echo "Diagnostic deployment no longer exists."
+              exit 0
+            fi
+            test "$http" = "200" || { echo "::error::Unexpected deployment lookup HTTP ${http}"; exit 1; }
+            state="$(jq -r '.readyState // .state // empty' "$RUNNER_TEMP/deployment-state.json")"
+            case "$state" in
+              CANCELED|DELETED|ERROR)
+                echo "Diagnostic deployment is terminal: ${state}."
+                exit 0
+                ;;
+              READY)
+                echo "::error::Timed-out diagnostic deployment became READY before revocation completed."
+                exit 1
+                ;;
+            esac
+            sleep 2
+          done
+          echo "::error::Could not prove diagnostic deployment was revoked."
+          exit 1
+
+      - name: Verify original staging baseline still serves Production
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            -H "Accept: application/json" \
+            "https://api.vercel.com/v13/deployments/staging.quickiching.com?teamId=${VERCEL_TEAM_ID}")"
+          current_id="$(jq -r '.id // empty' <<<"$response")"
+          current_state="$(jq -r '.readyState // .state // empty' <<<"$response")"
+          test "$current_id" = "$BASELINE_DEPLOYMENT_ID" || {
+            echo "::error::staging.quickiching.com points to ${current_id}, expected ${BASELINE_DEPLOYMENT_ID}."
+            exit 1
+          }
+          test "$current_state" = "READY"
+
+          status="$(curl --silent --show-error \
+            --output "$RUNNER_TEMP/diagnostics-hidden.txt" \
+            --write-out "%{http_code}" \
+            -H "Authorization: Bearer invalid-after-cleanup" \
+            "${STAGING_ORIGIN}/api/internal/cp6-staging-diagnostics")"
+          test "$status" = "404" || {
+            echo "::error::Diagnostics route is not hidden; HTTP ${status}."
+            cat "$RUNNER_TEMP/diagnostics-hidden.txt" || true
+            exit 1
+          }
+          echo "Original staging baseline is READY and diagnostics route is hidden (404)."
