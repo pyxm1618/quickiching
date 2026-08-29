@@ -32,10 +32,24 @@ describe("classifyStagingRuntimeDatabase", () => {
     expect(classifyStagingRuntimeDatabase(snapshot())).toBe("ready");
   });
 
-  it("allows only one final pending migration when the required schema already exists", () => {
+  it("allows one final pending migration when the required schema already exists", () => {
     expect(classifyStagingRuntimeDatabase(snapshot({
       migrationStatus: "migration_outdated",
       appliedMigrationCount: EXPECTED_COMMERCIAL_MIGRATIONS.length - 1,
+    }))).toBe("migration_apply_required");
+  });
+
+  it("allows an intact migration prefix to apply all remaining forward migrations", () => {
+    expect(classifyStagingRuntimeDatabase(snapshot({
+      migrationStatus: "migration_outdated",
+      appliedMigrationCount: EXPECTED_COMMERCIAL_MIGRATIONS.length - 2,
+      missingTables: [
+        "deep_reading_results",
+        "entitlement_reservations",
+        "workflow_runs",
+        "audit_events",
+      ],
+      presentCp5CoreTables: [],
     }))).toBe("migration_apply_required");
   });
 
