@@ -247,11 +247,27 @@ export function classifyStagingDatabase(snapshot: StagingDatabaseSnapshot): Stag
       : "schema_drift_forward_repair_required";
   }
   if (snapshot.migrationStatus === "migration_outdated") {
-    const onlyFinalMigrationPending =
-      snapshot.appliedMigrationCount === snapshot.expectedMigrationCount - 1;
+    const pendingMigrationCount = snapshot.expectedMigrationCount - snapshot.appliedMigrationCount;
+    const onlyFinalMigrationPending = pendingMigrationCount === 1;
     if (onlyFinalMigrationPending && snapshot.missingTables.length === 0) {
       return "migration_apply_required";
     }
+
+    const exactlyCp5CoreAndAuditMigrationsPending = pendingMigrationCount === 2;
+    const cp5CoreEntirelyAbsent = snapshot.presentCp5CoreTables.length === 0;
+    const onlyCp5CoreTablesMissing =
+      snapshot.missingTables.length === CP5_CORE_TABLES.length &&
+      snapshot.missingTables.every((table) =>
+        (CP5_CORE_TABLES as readonly string[]).includes(table),
+      );
+    if (
+      exactlyCp5CoreAndAuditMigrationsPending &&
+      cp5CoreEntirelyAbsent &&
+      onlyCp5CoreTablesMissing
+    ) {
+      return "migration_apply_required";
+    }
+
     return "schema_drift_forward_repair_required";
   }
   return "blocked_migration_integrity";
@@ -361,9 +377,11 @@ async function main(): Promise<void> {
       return;
     }
 
-    // This path is intentionally limited to exactly one final pending migration
-    // and a complete required-table set. Historical or partial schema drift is
-    // never replayed automatically; it requires a new forward-only repair.
+    // Only an exact, hash-verified tail state may migrate automatically:
+    // either the final migration is pending with the required schema already
+    // complete, or 0009+0010 are both pending and all CP5 core tables are
+    // entirely absent. Partial CP5 schema remains a hard stop and requires a
+    // new forward-only repair migration rather than replaying history.
     runMigration(runtimeEnv);
     database = await inspectDatabase(databaseUrl);
     classification = classifyStagingDatabase(database);
