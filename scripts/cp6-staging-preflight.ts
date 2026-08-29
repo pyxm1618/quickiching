@@ -17,6 +17,7 @@ import {
 
 const STAGING_ORIGIN = "https://staging.quickiching.com";
 const STAGING_VERCEL_PROJECT_ID = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE";
+const STAGING_REPAIR_BRANCH = "codex/commercial-v2-cp6-repair";
 const CP5_CORE_TABLES = Object.freeze([
   "audit_events",
   "workflow_runs",
@@ -74,6 +75,30 @@ function originMatches(candidate: string | undefined): boolean {
   } catch {
     return false;
   }
+}
+
+export function resolveStagingMigrationDatabaseUrl(
+  env: Record<string, string | undefined>,
+): string {
+  const explicit = env.MIGRATION_DATABASE_URL?.trim();
+  if (explicit) return explicit;
+  const unpooled = env.DATABASE_URL_UNPOOLED?.trim();
+  if (unpooled) return unpooled;
+  throw new Error("STAGING_MIGRATION_DATABASE_URL_UNAVAILABLE");
+}
+
+export function validateStagingMigrationBuildContext(
+  env: Record<string, string | undefined>,
+): void {
+  const marker = env.CP6_STAGING_APPLY_PENDING_MIGRATIONS?.trim();
+  const sha = env.VERCEL_GIT_COMMIT_SHA?.trim();
+  const valid = Boolean(marker)
+    && marker === sha
+    && env.VERCEL_GIT_COMMIT_REF?.trim() === STAGING_REPAIR_BRANCH
+    && env.VERCEL_PROJECT_ID?.trim() === STAGING_VERCEL_PROJECT_ID
+    && env.VERCEL_ENV?.trim() === "production"
+    && env.VERCEL_TARGET_ENV?.trim() === "production";
+  if (!valid) throw new Error("STAGING_MIGRATION_BUILD_CONTEXT_INVALID");
 }
 
 function targetsProduction(target: unknown): boolean {
@@ -322,9 +347,13 @@ async function inspectDatabase(databaseUrl: string): Promise<StagingDatabaseSnap
 }
 
 function runMigration(runtimeEnv: NodeJS.ProcessEnv): void {
+  const migrationDatabaseUrl = resolveStagingMigrationDatabaseUrl(runtimeEnv);
   const result = spawnSync("bun", ["run", "db:migrate"], {
     stdio: "inherit",
-    env: runtimeEnv,
+    env: {
+      ...runtimeEnv,
+      MIGRATION_DATABASE_URL: migrationDatabaseUrl,
+    },
   });
   if (result.status !== 0) {
     throw new Error(`STAGING_MIGRATION_FAILED:${String(result.status)}`);
@@ -334,7 +363,11 @@ function runMigration(runtimeEnv: NodeJS.ProcessEnv): void {
 async function main(): Promise<void> {
   const requireFlagsEnabled = process.argv.includes("--require-flags-enabled");
   const applyPendingMigration = process.argv.includes("--apply-pending-migration");
+  const databaseOnly = process.argv.includes("--database-only");
   const fromVercelProductionEnv = process.argv.includes("--from-vercel-production-env");
+  if (databaseOnly && !applyPendingMigration) {
+    throw new Error("DATABASE_ONLY_REQUIRES_APPLY_PENDING_MIGRATION");
+  }
 
   let runtimeEnv: NodeJS.ProcessEnv = { ...process.env };
   let unreadableSensitiveKeys: string[] = [];
@@ -346,6 +379,10 @@ async function main(): Promise<void> {
     const productionEnv = await fetchVercelProductionEnv(token, projectId);
     runtimeEnv = { ...runtimeEnv, ...productionEnv.values };
     unreadableSensitiveKeys = productionEnv.unreadableSensitiveKeys;
+  }
+
+  if (applyPendingMigration) {
+    validateStagingMigrationBuildContext(runtimeEnv);
   }
 
   const capability = inspectStagingCapabilityConfiguration(runtimeEnv, requireFlagsEnabled);
@@ -366,7 +403,7 @@ async function main(): Promise<void> {
 
   console.log(JSON.stringify({ vercelEnv, capability, database, classification }, null, 2));
 
-  if (!capability.ok || unreadableSensitiveKeys.length > 0) {
+  if (!databaseOnly && (!capability.ok || unreadableSensitiveKeys.length > 0)) {
     process.exitCode = 3;
     return;
   }
