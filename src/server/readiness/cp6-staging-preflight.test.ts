@@ -51,6 +51,52 @@ describe("classifyStagingDatabase", () => {
     }))).toBe("migration_apply_required");
   });
 
+  it("blocks pending 0009 and 0010 when an orphan CP5 enum already exists", () => {
+    const riskySnapshot = {
+      ...snapshot({
+        migrationStatus: "migration_outdated",
+        appliedMigrationCount: 9,
+        missingTables: [
+          "deep_reading_results",
+          "entitlement_reservations",
+          "workflow_runs",
+          "audit_events",
+        ],
+        presentCp5CoreTables: [],
+      }),
+      presentCp5OwnedTypes: ["audit_category"],
+      presentCp5OwnedFunctions: [],
+      presentCp5OwnedTriggers: [],
+    };
+
+    expect(classifyStagingDatabase(riskySnapshot)).toBe(
+      "schema_drift_forward_repair_required",
+    );
+  });
+
+  it("blocks pending 0009 and 0010 when an orphan CP5 function already exists", () => {
+    const riskySnapshot = {
+      ...snapshot({
+        migrationStatus: "migration_outdated",
+        appliedMigrationCount: 9,
+        missingTables: [
+          "deep_reading_results",
+          "entitlement_reservations",
+          "workflow_runs",
+          "audit_events",
+        ],
+        presentCp5CoreTables: [],
+      }),
+      presentCp5OwnedTypes: [],
+      presentCp5OwnedFunctions: ["prevent_deep_reading_results_mutation"],
+      presentCp5OwnedTriggers: [],
+    };
+
+    expect(classifyStagingDatabase(riskySnapshot)).toBe(
+      "schema_drift_forward_repair_required",
+    );
+  });
+
   it("requires a forward-only repair when history is complete but schema is missing a required table", () => {
     expect(classifyStagingDatabase(snapshot({
       missingTables: ["workflow_runs"],
