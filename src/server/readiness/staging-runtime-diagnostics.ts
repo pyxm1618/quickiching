@@ -36,6 +36,9 @@ export type StagingRuntimeDatabaseSnapshot = {
   expectedMigrationCount: number;
   missingTables: string[];
   presentCp5CoreTables: string[];
+  presentCp5OwnedTypes?: string[];
+  presentCp5OwnedFunctions?: string[];
+  presentCp5OwnedTriggers?: string[];
 };
 
 type DiagnosticDbOverride = {
@@ -43,6 +46,9 @@ type DiagnosticDbOverride = {
   queryTables: () => Promise<string[]>;
   queryMigrationTablePresent: () => Promise<boolean>;
   queryMigrations: () => Promise<AppliedMigration[]>;
+  queryCp5OwnedTypes?: () => Promise<string[]>;
+  queryCp5OwnedFunctions?: () => Promise<string[]>;
+  queryCp5OwnedTriggers?: () => Promise<string[]>;
 };
 
 type CapabilityDiagnostic = {
@@ -126,6 +132,10 @@ export function classifyStagingRuntimeDatabase(
 
     const exactlyCp5CoreAndAuditMigrationsPending = pendingMigrationCount === 2;
     const cp5CoreEntirelyAbsent = snapshot.presentCp5CoreTables.length === 0;
+    const cp5OwnedObjectsEntirelyAbsent =
+      (snapshot.presentCp5OwnedTypes?.length ?? 0) === 0 &&
+      (snapshot.presentCp5OwnedFunctions?.length ?? 0) === 0 &&
+      (snapshot.presentCp5OwnedTriggers?.length ?? 0) === 0;
     const onlyCp5CoreTablesMissing =
       snapshot.missingTables.length === CP5_CORE_TABLES.length &&
       snapshot.missingTables.every((table) =>
@@ -134,6 +144,7 @@ export function classifyStagingRuntimeDatabase(
     if (
       exactlyCp5CoreAndAuditMigrationsPending &&
       cp5CoreEntirelyAbsent &&
+      cp5OwnedObjectsEntirelyAbsent &&
       onlyCp5CoreTablesMissing
     ) {
       return "migration_apply_required";
@@ -178,6 +189,55 @@ async function defaultDbProbe(): Promise<DiagnosticDbOverride> {
         hash: row.hash,
       }));
     },
+    queryCp5OwnedTypes: async () => {
+      const rows = await connection.client<{ name: string }[]>`
+        SELECT t.typname AS name
+        FROM pg_type t
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE n.nspname = 'public'
+          AND t.typname IN (
+            'audit_category',
+            'entitlement_reservation_status',
+            'workflow_run_status'
+          )
+        ORDER BY t.typname
+      `;
+      return rows.map((row) => row.name);
+    },
+    queryCp5OwnedFunctions: async () => {
+      const rows = await connection.client<{ name: string }[]>`
+        SELECT p.proname AS name
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public'
+          AND p.proname IN (
+            'validate_entitlement_reservation_ownership',
+            'validate_deep_reading_results_insertion',
+            'prevent_audit_events_mutation',
+            'prevent_deep_reading_results_mutation'
+          )
+        ORDER BY p.proname
+      `;
+      return rows.map((row) => row.name);
+    },
+    queryCp5OwnedTriggers: async () => {
+      const rows = await connection.client<{ name: string }[]>`
+        SELECT t.tgname AS name
+        FROM pg_trigger t
+        JOIN pg_class c ON c.oid = t.tgrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public'
+          AND NOT t.tgisinternal
+          AND t.tgname IN (
+            'entitlement_reservation_ownership_trigger',
+            'deep_reading_results_insertion_trigger',
+            'audit_events_immutable_trigger',
+            'deep_reading_results_immutable_trigger'
+          )
+        ORDER BY t.tgname
+      `;
+      return rows.map((row) => row.name);
+    },
   };
 }
 
@@ -191,6 +251,9 @@ export async function collectStagingRuntimeDiagnostics(
   const tableSet = new Set(tableNames);
   const migrationTablePresent = await db.queryMigrationTablePresent();
   const appliedMigrations = migrationTablePresent ? await db.queryMigrations() : [];
+  const presentCp5OwnedTypes = db.queryCp5OwnedTypes ? await db.queryCp5OwnedTypes() : [];
+  const presentCp5OwnedFunctions = db.queryCp5OwnedFunctions ? await db.queryCp5OwnedFunctions() : [];
+  const presentCp5OwnedTriggers = db.queryCp5OwnedTriggers ? await db.queryCp5OwnedTriggers() : [];
 
   const database: StagingRuntimeDatabaseSnapshot = {
     connected: true,
@@ -200,6 +263,9 @@ export async function collectStagingRuntimeDiagnostics(
     expectedMigrationCount: EXPECTED_COMMERCIAL_MIGRATIONS.length,
     missingTables: REQUIRED_COMMERCIAL_TABLES.filter((table) => !tableSet.has(table)),
     presentCp5CoreTables: CP5_CORE_TABLES.filter((table) => tableSet.has(table)),
+    presentCp5OwnedTypes,
+    presentCp5OwnedFunctions,
+    presentCp5OwnedTriggers,
   };
 
   const prerequisiteEnv = { ...env };
