@@ -2,6 +2,11 @@ name: CP6 Staging Runtime Diagnostics
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - codex/commercial-v2-cp6-repair
+    paths:
+      - .github/workflows/cp6-staging-runtime-diagnostics.yml
 
 permissions:
   contents: read
