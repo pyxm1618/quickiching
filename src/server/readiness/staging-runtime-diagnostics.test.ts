@@ -163,6 +163,10 @@ describe("collectStagingRuntimeDiagnostics", () => {
       queryMigrations: vi.fn().mockResolvedValue(
         EXPECTED_COMMERCIAL_MIGRATIONS.map((migration) => ({ ...migration })),
       ),
+      querySchemaCreatePrivilege: vi.fn().mockResolvedValue(true),
+      queryRequiredReferencesPrivilege: vi.fn().mockResolvedValue(true),
+      queryRequiredTypeUsagePrivilege: vi.fn().mockResolvedValue(true),
+      queryRequiredFunctionReadPrivilege: vi.fn().mockResolvedValue(true),
     };
     const env = {
       WAFFO_ENVIRONMENT: "test",
@@ -188,6 +192,12 @@ describe("collectStagingRuntimeDiagnostics", () => {
     const result = await collectStagingRuntimeDiagnostics(env, db, migrationProbe);
 
     expect(result.database.classification).toBe("ready");
+    expect(result.database.runtimeMigrationPrivileges).toEqual({
+      schemaCreatePrivilege: true,
+      requiredReferencesPrivilege: true,
+      requiredTypeUsagePrivilege: true,
+      requiredFunctionReadPrivilege: true,
+    });
     expect(result.provider).toEqual({
       waffoEnvironmentIsTest: true,
       originChecks: {
