@@ -118,11 +118,27 @@ export function classifyStagingRuntimeDatabase(
       : "schema_drift_forward_repair_required";
   }
   if (snapshot.migrationStatus === "migration_outdated") {
-    const exactlyFinalMigrationPending =
-      snapshot.appliedMigrationCount === snapshot.expectedMigrationCount - 1;
+    const pendingMigrationCount = snapshot.expectedMigrationCount - snapshot.appliedMigrationCount;
+    const exactlyFinalMigrationPending = pendingMigrationCount === 1;
     if (exactlyFinalMigrationPending && snapshot.missingTables.length === 0) {
       return "migration_apply_required";
     }
+
+    const exactlyCp5CoreAndAuditMigrationsPending = pendingMigrationCount === 2;
+    const cp5CoreEntirelyAbsent = snapshot.presentCp5CoreTables.length === 0;
+    const onlyCp5CoreTablesMissing =
+      snapshot.missingTables.length === CP5_CORE_TABLES.length &&
+      snapshot.missingTables.every((table) =>
+        (CP5_CORE_TABLES as readonly string[]).includes(table),
+      );
+    if (
+      exactlyCp5CoreAndAuditMigrationsPending &&
+      cp5CoreEntirelyAbsent &&
+      onlyCp5CoreTablesMissing
+    ) {
+      return "migration_apply_required";
+    }
+
     return "schema_drift_forward_repair_required";
   }
   return "blocked_migration_integrity";
