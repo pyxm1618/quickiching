@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   classifyStagingDatabase,
   inspectStagingCapabilityConfiguration,
+  resolveStagingMigrationDatabaseUrl,
   selectProductionVercelEnv,
+  validateStagingMigrationBuildContext,
   type StagingDatabaseSnapshot,
 } from "../../../scripts/cp6-staging-preflight";
 
@@ -77,6 +79,46 @@ describe("classifyStagingDatabase", () => {
       migrationStatus: "migration_missing",
       appliedMigrationCount: 0,
     }))).toBe("blocked_migration_history");
+  });
+});
+
+describe("staging migration safety", () => {
+  it("uses only a dedicated or explicitly unpooled migration connection", () => {
+    expect(resolveStagingMigrationDatabaseUrl({
+      MIGRATION_DATABASE_URL: "postgresql://direct.example/migrate",
+      DATABASE_URL_UNPOOLED: "postgresql://unpooled.example/app",
+      DATABASE_URL: "postgresql://pool.example/app",
+    })).toBe("postgresql://direct.example/migrate");
+
+    expect(resolveStagingMigrationDatabaseUrl({
+      DATABASE_URL_UNPOOLED: "postgresql://unpooled.example/app",
+      DATABASE_URL: "postgresql://pool.example/app",
+    })).toBe("postgresql://unpooled.example/app");
+
+    expect(() => resolveStagingMigrationDatabaseUrl({
+      DATABASE_URL: "postgresql://pool.example/app",
+    })).toThrow("STAGING_MIGRATION_DATABASE_URL_UNAVAILABLE");
+  });
+
+  it("requires an exact staging Production build and SHA-bound one-time marker", () => {
+    const sha = "0123456789abcdef0123456789abcdef01234567";
+    expect(() => validateStagingMigrationBuildContext({
+      CP6_STAGING_APPLY_PENDING_MIGRATIONS: sha,
+      VERCEL_GIT_COMMIT_SHA: sha,
+      VERCEL_GIT_COMMIT_REF: "codex/commercial-v2-cp6-repair",
+      VERCEL_PROJECT_ID: "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE",
+      VERCEL_ENV: "production",
+      VERCEL_TARGET_ENV: "production",
+    })).not.toThrow();
+
+    expect(() => validateStagingMigrationBuildContext({
+      CP6_STAGING_APPLY_PENDING_MIGRATIONS: "different-sha",
+      VERCEL_GIT_COMMIT_SHA: sha,
+      VERCEL_GIT_COMMIT_REF: "codex/commercial-v2-cp6-repair",
+      VERCEL_PROJECT_ID: "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE",
+      VERCEL_ENV: "production",
+      VERCEL_TARGET_ENV: "production",
+    })).toThrow("STAGING_MIGRATION_BUILD_CONTEXT_INVALID");
   });
 });
 
