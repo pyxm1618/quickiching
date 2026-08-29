@@ -1,0 +1,59 @@
+name: CP6 Staging Preflight
+
+on:
+  push:
+    branches:
+      - codex/commercial-v2-cp6-repair
+    paths:
+      - .github/workflows/cp6-staging-preflight.yml
+      - scripts/cp6-staging-preflight.ts
+      - src/server/readiness/cp6-staging-preflight.test.ts
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cp6-staging-preflight
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    name: Exact staging environment and database preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: prj_iKtw9xKmIlEfe44gEocgLr2QDLfE
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run preflight unit tests
+        run: bunx vitest run src/server/readiness/cp6-staging-preflight.test.ts
+
+      - name: Require authenticated staging-only Vercel access
+        run: |
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "::error::VERCEL_TOKEN GitHub secret is not configured; staging Production env cannot be inspected safely."
+            exit 1
+          fi
+          if [ "$VERCEL_PROJECT_ID" != "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE" ]; then
+            echo "::error::Unexpected Vercel project binding."
+            exit 1
+          fi
+
+      - name: Inspect exact quickiching-staging Production environment and database drift
+        run: >-
+          bun scripts/cp6-staging-preflight.ts
+          --from-vercel-production-env

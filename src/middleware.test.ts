@@ -69,6 +69,11 @@ const completeCheckoutEnv = {
 describe("Public V1 middleware boundaries", () => {
   beforeEach(() => {
     vi.stubEnv("BETTER_AUTH_TRUSTED_ORIGINS", "");
+    vi.stubEnv("VERCEL_ENV", "");
+    vi.stubEnv("VERCEL_PROJECT_ID", "");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "");
+    vi.stubEnv("QUICKICHING_DEPLOYMENT_TIER", "");
+    vi.stubEnv("CP6_STAGING_MAINTENANCE_TOKEN", "");
   });
 
   afterEach(() => vi.unstubAllEnvs());
@@ -95,6 +100,7 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/signin")).status).toBe(410);
     expect(middleware(makeRequest("/account")).status).toBe(410);
     expect(middleware(makeRequest("/api/auth/get-session")).status).toBe(404);
+    expect(middleware(makeRequest("/api/account/delete", { method: "POST" })).status).toBe(404);
   });
 
   it("opens only the explicit Auth surface after the server capability is enabled", () => {
@@ -103,12 +109,14 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/signin")).status).toBe(200);
     expect(middleware(makeRequest("/account")).status).toBe(200);
     expect(middleware(makeRequest("/api/auth/get-session")).status).toBe(200);
+    expect(middleware(makeRequest("/api/account/delete", { method: "POST" })).status).toBe(200);
+    expect(middleware(makeRequest("/api/account/delete/extra", { method: "POST" })).status).toBe(404);
+    expect(middleware(makeRequest("/api/account/profile", { method: "GET" })).status).toBe(404);
     expect(middleware(makeRequest("/checkout")).status).toBe(410);
     expect(middleware(makeRequest("/api/orders")).status).toBe(404);
   });
 
   it("opens the Reconcile route only when Reconcile capability is enabled", () => {
-    // Disabled by default
     expect(middleware(makeRequest("/api/internal/reconcile")).status).toBe(404);
 
     for (const [name, value] of Object.entries(completeReconcileEnv)) vi.stubEnv(name, value);
@@ -117,9 +125,34 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/api/internal/reconcile/extra")).status).toBe(404);
   });
 
+  it("keeps the CP6 staging diagnostics route hidden except in the exact maintenance runtime", () => {
+    const path = "/api/internal/cp6-staging-diagnostics";
+    expect(middleware(makeRequest(path)).status).toBe(404);
+
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("QUICKICHING_DEPLOYMENT_TIER", "staging");
+    vi.stubEnv("CP6_STAGING_MAINTENANCE_TOKEN", "temporary-maintenance-token");
+    expect(middleware(makeRequest(path)).status).toBe(404);
+
+    vi.stubEnv("VERCEL_PROJECT_ID", "prj_wrong");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "staging.quickiching.com");
+    expect(middleware(makeRequest(path)).status).toBe(404);
+
+    vi.stubEnv("VERCEL_PROJECT_ID", "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "www.quickiching.com");
+    expect(middleware(makeRequest(path)).status).toBe(404);
+
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "staging.quickiching.com");
+    expect(middleware(makeRequest(path)).status).toBe(200);
+    expect(middleware(makeRequest(`${path}/`)).status).toBe(200);
+    expect(middleware(makeRequest(`${path}/extra`)).status).toBe(404);
+
+    vi.stubEnv("QUICKICHING_DEPLOYMENT_TIER", "production");
+    expect(middleware(makeRequest(path)).status).toBe(404);
+  });
+
   it("opens Deep Reading route only when Paid Deep Reading capability is enabled", () => {
     const castingId = "00000000-0000-4000-8000-000000000001";
-    // Disabled by default
     expect(middleware(makeRequest(`/api/readings/${castingId}/deep`, { method: "POST" })).status).toBe(404);
 
     for (const [name, value] of Object.entries(completeDeepReadingEnv)) vi.stubEnv(name, value);
@@ -139,9 +172,7 @@ describe("Public V1 middleware boundaries", () => {
       WAFFO_STORE_ID: "STO_test",
     })) vi.stubEnv(name, value);
 
-    // Exact webhook route is passed through
     expect(middleware(makeRequest("/api/webhooks/waffo", { method: "POST" })).status).toBe(200);
-    // Unregistered paths remain 404
     expect(middleware(makeRequest("/api/webhooks/waffo/extra", { method: "POST" })).status).toBe(404);
     expect(middleware(makeRequest("/api/webhooks/other", { method: "POST" })).status).toBe(404);
   });
@@ -149,11 +180,9 @@ describe("Public V1 middleware boundaries", () => {
   it("allows Checkout route when Checkout and its full dependency chain are enabled", () => {
     for (const [name, value] of Object.entries(completeCheckoutEnv)) vi.stubEnv(name, value);
 
-    // When checkout is enabled with full dependencies, POST /api/checkout is allowed through (status 200)
     const allowed = middleware(makeRequest("/api/checkout", { method: "POST" }));
     expect(allowed.status).toBe(200);
 
-    // When flag is disabled, it is blocked with 404
     vi.stubEnv("COMMERCIAL_V2_CHECKOUT_ENABLED", "false");
     expect(middleware(makeRequest("/api/checkout", { method: "POST" })).status).toBe(404);
     expect(middleware(makeRequest("/checkout")).status).toBe(410);

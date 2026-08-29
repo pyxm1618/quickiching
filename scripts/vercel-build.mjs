@@ -201,3 +201,8 @@ try {
 } finally {
   server.kill("SIGTERM");
 }
+
+if (process.env.CP6_STAGING_APPLY_PENDING_MIGRATIONS?.trim()) {
+  log("CP6 staging migration marker present; running SHA-bound database-only migration preflight");
+  run("bun", ["scripts/cp6-staging-preflight.ts", "--apply-pending-migration", "--database-only"]);
+}

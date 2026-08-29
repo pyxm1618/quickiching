@@ -26,8 +26,6 @@ export type CastingView = {
 };
 
 export async function loadCastingView(castingId: string): Promise<CastingView | null> {
-  // Public V1 remains readable if the optional commercial Auth adapter is
-  // unavailable; protected loaders keep the strict default below.
   const user = await getCurrentUser({ allowUnavailable: true });
   const anonHash = await getAnonymousHash();
   const session = repo.getCastingSession(castingId);
@@ -89,41 +87,37 @@ export async function loadHistory(): Promise<
   if (!user) return [];
 
   if (process.env.DATABASE_ADAPTER_MODE === "postgres" && process.env.DATABASE_URL) {
-    try {
-      const { getPostgresClient } = await import("@/server/db/client");
-      const sql = getPostgresClient();
-      const rows = await sql`
-        select
-          s.id, s.method, s.scene, s.lifecycle, s.risk_status, s.created_at,
-          c.primary_hexagram_number,
-          p.id as preview_id,
-          d.casting_id as reading_id
-        from casting_sessions s
-        left join cast_results c on c.casting_id = s.id
-        left join preview_results p on p.casting_id = s.id
-        left join deep_reading_results d on d.casting_id = s.id
-        where s.user_id = ${user.id} and s.deleted_at is null
-        order by s.created_at desc
-        limit 50
-      ` as Array<Record<string, any>>;
+    const { getPostgresClient } = await import("@/server/db/client");
+    const sql = getPostgresClient();
+    const rows = await sql`
+      select
+        s.id, s.method, s.scene, s.lifecycle, s.risk_status, s.created_at,
+        c.primary_hexagram_number,
+        p.id as preview_id,
+        d.casting_id as reading_id
+      from casting_sessions s
+      left join cast_results c on c.casting_id = s.id
+      left join preview_results p on p.casting_id = s.id
+      left join deep_reading_results d on d.casting_id = s.id
+      where s.user_id = ${user.id} and s.deleted_at is null
+      order by s.created_at desc
+      limit 50
+    ` as Array<Record<string, any>>;
 
-      return rows.map((r) => {
-        const hexNum = r.primary_hexagram_number != null ? Number(r.primary_hexagram_number) : null;
-        return {
-          id: String(r.id),
-          method: String(r.method),
-          scene: String(r.scene),
-          lifecycle: String(r.lifecycle),
-          riskStatus: String(r.risk_status),
-          createdAt: new Date(r.created_at),
-          primaryName: hexNum ? hexagramByNumber(hexNum).englishName : null,
-          hasPreview: r.preview_id != null,
-          hasReading: r.reading_id != null,
-        };
-      });
-    } catch {
-      // fallback
-    }
+    return rows.map((r) => {
+      const hexNum = r.primary_hexagram_number != null ? Number(r.primary_hexagram_number) : null;
+      return {
+        id: String(r.id),
+        method: String(r.method),
+        scene: String(r.scene),
+        lifecycle: String(r.lifecycle),
+        riskStatus: String(r.risk_status),
+        createdAt: new Date(r.created_at),
+        primaryName: hexNum ? hexagramByNumber(hexNum).englishName : null,
+        hasPreview: r.preview_id != null,
+        hasReading: r.reading_id != null,
+      };
+    });
   }
 
   return repo.listCastsForUser(user.id).map((s) => {
@@ -149,24 +143,20 @@ export async function loadEntitlementBalance(): Promise<{ available: number; exp
   if (!user) return { available: 0, expiringSoon: 0 };
 
   if (process.env.DATABASE_ADAPTER_MODE === "postgres" && process.env.DATABASE_URL) {
-    try {
-      const { getPostgresClient } = await import("@/server/db/client");
-      const sql = getPostgresClient();
-      const rows = await sql`
-        select
-          coalesce(sum(quantity_available), 0)::integer as available,
-          coalesce(sum(case when expires_at < clock_timestamp() + interval '30 days' then quantity_available else 0 end), 0)::integer as expiring_soon
-        from entitlement_batches
-        where user_id = ${user.id} and expires_at > clock_timestamp()
-      ` as Array<Record<string, any>>;
+    const { getPostgresClient } = await import("@/server/db/client");
+    const sql = getPostgresClient();
+    const rows = await sql`
+      select
+        coalesce(sum(quantity_available), 0)::integer as available,
+        coalesce(sum(case when expires_at < clock_timestamp() + interval '30 days' then quantity_available else 0 end), 0)::integer as expiring_soon
+      from entitlement_batches
+      where user_id = ${user.id} and expires_at > clock_timestamp()
+    ` as Array<Record<string, any>>;
 
-      return {
-        available: Number(rows[0]?.available ?? 0),
-        expiringSoon: Number(rows[0]?.expiring_soon ?? 0),
-      };
-    } catch {
-      // fallback
-    }
+    return {
+      available: Number(rows[0]?.available ?? 0),
+      expiringSoon: Number(rows[0]?.expiring_soon ?? 0),
+    };
   }
 
   const batches = repo.getBatches(user.id);

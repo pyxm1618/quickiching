@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
+import migrationIntegrity from "../../../drizzle/migration-integrity.json";
 import {
   checkSystemReadiness,
   REQUIRED_COMMERCIAL_TABLES,
 } from "./readiness-service";
 
-const LATEST_CP5_MIGRATION_AT = 1787797500000;
+type MigrationRow = { createdAt: number; hash: string };
+
+const EXPECTED_MIGRATIONS: MigrationRow[] = migrationIntegrity.migrations.map((migration) => ({
+  createdAt: migration.createdAt,
+  hash: migration.hash,
+}));
 
 function validCommercialEnv(): Record<string, string> {
   return {
@@ -53,11 +59,11 @@ function validCommercialEnv(): Record<string, string> {
   };
 }
 
-function readyDbOverride(migrations: number[] = [LATEST_CP5_MIGRATION_AT]) {
+function readyDbOverride(migrations: MigrationRow[] = EXPECTED_MIGRATIONS) {
   return {
     ping: async () => {},
     queryTables: async () => [...REQUIRED_COMMERCIAL_TABLES],
-    queryMigrationTimestamps: async () => migrations,
+    queryMigrations: async () => migrations,
   } as any;
 }
 
@@ -107,12 +113,15 @@ describe("System Readiness Service", () => {
     expect(report.database.connected).toBe(false);
   });
 
-  it("requires the full commercial persistence surface, including outbox and reservation tables", () => {
+  it("requires the complete 24-table commercial persistence surface", () => {
+    expect(REQUIRED_COMMERCIAL_TABLES).toHaveLength(24);
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("payment_outbox");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("entitlement_batches");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("entitlement_reservations");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("deep_reading_results");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("generation_output_reviews");
+    expect(REQUIRED_COMMERCIAL_TABLES).toContain("cast_results");
+    expect(REQUIRED_COMMERCIAL_TABLES).toContain("payment_financial_reviews");
   });
 
   it("reports blocked when required commercial tables are missing from database", async () => {
@@ -120,7 +129,7 @@ describe("System Readiness Service", () => {
     const report = await checkSystemReadiness(env, {
       ping: async () => {},
       queryTables: async () => ["users", "sessions"],
-      queryMigrationTimestamps: async () => [LATEST_CP5_MIGRATION_AT],
+      queryMigrations: async () => EXPECTED_MIGRATIONS,
     } as any);
 
     expect(report.status).toBe("not_ready");
@@ -142,14 +151,41 @@ describe("System Readiness Service", () => {
 
   it("reports blocked when the Drizzle migration log is behind the CP5 checkpoint", async () => {
     const env = validCommercialEnv();
-    const report = await checkSystemReadiness(env, readyDbOverride([1787757784089]));
+    const report = await checkSystemReadiness(env, readyDbOverride(EXPECTED_MIGRATIONS.slice(0, -1)));
 
     expect(report.status).toBe("not_ready");
     expect(report.overall).toBe("blocked");
     expect(report.database.status).toBe("migration_outdated");
   });
 
-  it("reports ready only when every required commercial capability, table, and migration is satisfied", async () => {
+  it("reports blocked when the Drizzle migration sequence is out of order", async () => {
+    const env = validCommercialEnv();
+    const migrations = EXPECTED_MIGRATIONS.map((migration) => ({ ...migration }));
+    const penultimate = migrations[migrations.length - 2]!;
+    migrations[migrations.length - 2] = migrations[migrations.length - 1]!;
+    migrations[migrations.length - 1] = penultimate;
+
+    const report = await checkSystemReadiness(env, readyDbOverride(migrations));
+
+    expect(report.status).toBe("not_ready");
+    expect(report.database.status).toBe("migration_sequence_invalid");
+  });
+
+  it("reports blocked when any Drizzle migration hash does not match", async () => {
+    const env = validCommercialEnv();
+    const migrations = EXPECTED_MIGRATIONS.map((migration) => ({ ...migration }));
+    migrations[migrations.length - 1] = {
+      ...migrations[migrations.length - 1]!,
+      hash: "0".repeat(64),
+    };
+
+    const report = await checkSystemReadiness(env, readyDbOverride(migrations));
+
+    expect(report.status).toBe("not_ready");
+    expect(report.database.status).toBe("migration_hash_mismatch");
+  });
+
+  it("reports ready only when every required commercial capability, table, migration order, and hash is satisfied", async () => {
     const env = validCommercialEnv();
     const report = await checkSystemReadiness(env, readyDbOverride());
 

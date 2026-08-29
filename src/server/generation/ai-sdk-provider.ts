@@ -11,10 +11,12 @@ import type {
   ProviderGenerationResult,
   ProviderInput,
 } from "./types";
+import { withAbortTimeout } from "@/server/workflows/provider-timeout";
 import { z } from "zod";
 import type { ZodType } from "zod";
 
 type RuntimeEnv = Record<string, string | undefined>;
+const AI_PROVIDER_REQUEST_TIMEOUT_MS = 4 * 60 * 1000;
 
 function required(env: RuntimeEnv, name: string): string {
   const value = env[name]?.trim();
@@ -112,17 +114,21 @@ export async function createAiSdkGenerationProvider(env: RuntimeEnv = process.en
     schema: ZodType<unknown>,
     signal: AbortSignal,
   ): Promise<ProviderGenerationResult> {
-    const result = await generateText({
-      model: gateway.languageModel(model),
-      system,
-      prompt: user,
-      output: Output.object({ schema }),
-      maxRetries: 0,
-      ...(maxOutputTokens ? { maxOutputTokens } : {}),
-      abortSignal: signal,
-      // Keep request and response bodies out of SDK result/telemetry retention.
-      include: { requestBody: false, requestMessages: false, responseBody: false },
-    });
+    const result = await withAbortTimeout(
+      AI_PROVIDER_REQUEST_TIMEOUT_MS,
+      (effectiveSignal) => generateText({
+        model: gateway.languageModel(model),
+        system,
+        prompt: user,
+        output: Output.object({ schema }),
+        maxRetries: 0,
+        ...(maxOutputTokens ? { maxOutputTokens } : {}),
+        abortSignal: effectiveSignal,
+        // Keep request and response bodies out of SDK result/telemetry retention.
+        include: { requestBody: false, requestMessages: false, responseBody: false },
+      }),
+      signal,
+    );
     if (!result.output) throw new Error("AI_SCHEMA_INVALID");
     return {
       output: result.output,
@@ -167,16 +173,20 @@ export async function createAiSdkOutputReviewer(env: RuntimeEnv = process.env): 
   return {
     reviewerModel: model,
     async review(input, signal): Promise<OutputReviewDecision> {
-      const result = await generateText({
-        model: gateway.languageModel(model),
-        system: "Review only the supplied structured output and verified facts. Do not infer or store user identity, question text, chain-of-thought, or provider raw output. Return only the review schema.",
-        prompt: JSON.stringify({ output: input.output, verifiedFacts: input.facts }),
-        output: Output.object({ schema: reviewSchema }),
-        maxRetries: 0,
-        ...(maxOutputTokens ? { maxOutputTokens } : {}),
-        abortSignal: signal,
-        include: { requestBody: false, requestMessages: false, responseBody: false },
-      });
+      const result = await withAbortTimeout(
+        AI_PROVIDER_REQUEST_TIMEOUT_MS,
+        (effectiveSignal) => generateText({
+          model: gateway.languageModel(model),
+          system: "Review only the supplied structured output and verified facts. Do not infer or store user identity, question text, chain-of-thought, or provider raw output. Return only the review schema.",
+          prompt: JSON.stringify({ output: input.output, verifiedFacts: input.facts }),
+          output: Output.object({ schema: reviewSchema }),
+          maxRetries: 0,
+          ...(maxOutputTokens ? { maxOutputTokens } : {}),
+          abortSignal: effectiveSignal,
+          include: { requestBody: false, requestMessages: false, responseBody: false },
+        }),
+        signal,
+      );
       if (!result.output) throw new Error("AI_SCHEMA_INVALID");
       return result.output;
     },

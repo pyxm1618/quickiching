@@ -59,8 +59,6 @@ async function compensateWorkflowStartFailure(
     returning id
   ` as Row[];
 
-  // A provider start can have an uncertain outcome. If a real worker already
-  // claimed the job, do not release its reservation out from under it.
   if (!failedJobs[0]) return false;
 
   const reservationRows = await transaction`
@@ -194,7 +192,7 @@ export function createDeepReadingService(dependencies: {
         }
 
         const batchRows = await transaction`
-          select id, quantity_available from entitlement_batches
+          select id, quantity_available, expires_at from entitlement_batches
           where user_id = ${userId} and quantity_available > 0 and expires_at > clock_timestamp()
           order by expires_at asc, created_at asc
           limit 1
@@ -209,8 +207,6 @@ export function createDeepReadingService(dependencies: {
         const epoch = Number(session.generation_epoch);
         const idempotencyKey = `deep:${castingId}:${epoch}:${jobId}`;
 
-        // Fail closed before any entitlement mutation if the stored encrypted
-        // question cannot be authenticated with its declared key version.
         const questionText = decryptQuestionForGeneration(session);
         const lineValues = (session.line_values as number[]) ?? [];
         const movingLinePositions = (session.moving_line_positions as number[]) ?? [];
@@ -259,10 +255,12 @@ export function createDeepReadingService(dependencies: {
         await transaction`
           insert into entitlement_reservations (
             id, batch_id, user_id, casting_id, job_id, status, lease_token,
-            expires_at, created_at, updated_at
+            lease_expires_at, expires_at, created_at, updated_at
           ) values (
             ${reservationId}, ${String(batch.id)}, ${userId}, ${castingId}, ${jobId}, 'reserved',
-            ${initialLeaseToken}, now() + interval '12 months', clock_timestamp(), clock_timestamp()
+            ${initialLeaseToken},
+            least(${batch.expires_at}::timestamptz, clock_timestamp() + interval '5 minutes'),
+            ${batch.expires_at}::timestamptz, clock_timestamp(), clock_timestamp()
           )
         `;
 

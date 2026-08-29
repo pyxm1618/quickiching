@@ -15,7 +15,7 @@ describe("Ready Route (/api/ready)", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 200 when system is ready", async () => {
+  it("returns only coarse public readiness state when system is ready", async () => {
     mocks.checkSystemReadiness.mockResolvedValue({
       status: "ready",
       overall: "ready",
@@ -36,15 +36,21 @@ describe("Ready Route (/api/ready)", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toContain("no-store");
     const json = await response.json();
-    expect(json.status).toBe("ready");
-    expect(json.overall).toBe("ready");
+    expect(json).toEqual({ status: "ready", overall: "ready" });
+    expect(json.database).toBeUndefined();
+    expect(json.capabilities).toBeUndefined();
   });
 
-  it("returns 503 when system is blocked / not ready", async () => {
+  it("returns only coarse public readiness state when system is blocked", async () => {
     mocks.checkSystemReadiness.mockResolvedValue({
       status: "not_ready",
       overall: "blocked",
-      database: { status: "error", connected: false, tablesChecked: false },
+      database: {
+        status: "tables_missing",
+        connected: true,
+        tablesChecked: true,
+        missingTables: ["audit_events"],
+      },
       capabilities: {
         auth: {
           requested: true,
@@ -61,19 +67,18 @@ describe("Ready Route (/api/ready)", () => {
     expect(response.status).toBe(503);
     expect(response.headers.get("cache-control")).toContain("no-store");
     const json = await response.json();
-    expect(json.status).toBe("not_ready");
-    expect(json.overall).toBe("blocked");
+    expect(json).toEqual({ status: "not_ready", overall: "blocked" });
+    expect(JSON.stringify(json)).not.toContain("audit_events");
+    expect(JSON.stringify(json)).not.toContain("DATABASE_URL");
   });
 
-  it("returns 503 when readiness check throws an unexpected error", async () => {
+  it("returns a coarse 503 when readiness check throws an unexpected error", async () => {
     mocks.checkSystemReadiness.mockRejectedValue(new Error("Database crash"));
 
     const response = await GET();
     expect(response.status).toBe(503);
     const json = await response.json();
-    expect(json.status).toBe("not_ready");
-    expect(json.overall).toBe("blocked");
-    expect(json.error).toBe("INTERNAL_READINESS_CHECK_FAILED");
+    expect(json).toEqual({ status: "not_ready", overall: "blocked" });
     expect(JSON.stringify(json)).not.toContain("Database crash");
   });
 });

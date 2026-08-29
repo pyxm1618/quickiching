@@ -25,6 +25,7 @@ export function createReconcileService(dependencies: {
     async runReconcile(options = {}): Promise<ReconcileMetrics> {
       const startTime = Date.now();
       const budgetMs = options.budgetMs ?? 10_000;
+      const deadlineAt = startTime + budgetMs;
 
       let outboxProcessed = 0;
       let checkoutCleaned = 0;
@@ -32,13 +33,14 @@ export function createReconcileService(dependencies: {
       let reservationsReleased = 0;
       let workflowRunsRecovered = 0;
 
-      const isBudgetExhausted = () => Date.now() - startTime >= budgetMs;
+      const isBudgetExhausted = () => Date.now() >= deadlineAt;
 
-      // 1. Dispatch pending / failed outbox records within budget
+      // 1. Dispatch pending / failed outbox records within the same absolute deadline.
       if (!isBudgetExhausted()) {
         const dispatchSummary = await outboxDispatcher.dispatchAllPending({
           batchSize: 20,
           maxBatches: 3,
+          deadlineAt,
         });
         outboxProcessed = dispatchSummary.processedCount;
       }
