@@ -39,6 +39,9 @@ export type StagingDatabaseSnapshot = {
   expectedMigrationCount: number;
   missingTables: string[];
   presentCp5CoreTables: string[];
+  presentCp5OwnedTypes?: string[];
+  presentCp5OwnedFunctions?: string[];
+  presentCp5OwnedTriggers?: string[];
 };
 
 export type VercelEnvEntry = {
@@ -280,6 +283,10 @@ export function classifyStagingDatabase(snapshot: StagingDatabaseSnapshot): Stag
 
     const exactlyCp5CoreAndAuditMigrationsPending = pendingMigrationCount === 2;
     const cp5CoreEntirelyAbsent = snapshot.presentCp5CoreTables.length === 0;
+    const cp5OwnedObjectsEntirelyAbsent =
+      (snapshot.presentCp5OwnedTypes?.length ?? 0) === 0 &&
+      (snapshot.presentCp5OwnedFunctions?.length ?? 0) === 0 &&
+      (snapshot.presentCp5OwnedTriggers?.length ?? 0) === 0;
     const onlyCp5CoreTablesMissing =
       snapshot.missingTables.length === CP5_CORE_TABLES.length &&
       snapshot.missingTables.every((table) =>
@@ -288,6 +295,7 @@ export function classifyStagingDatabase(snapshot: StagingDatabaseSnapshot): Stag
     if (
       exactlyCp5CoreAndAuditMigrationsPending &&
       cp5CoreEntirelyAbsent &&
+      cp5OwnedObjectsEntirelyAbsent &&
       onlyCp5CoreTablesMissing
     ) {
       return "migration_apply_required";
@@ -315,6 +323,47 @@ async function inspectDatabase(databaseUrl: string): Promise<StagingDatabaseSnap
     `;
     const tableNames = new Set(tableRows.map((row) => row.table_name));
 
+    const typeRows = await sql<{ name: string }[]>`
+      SELECT t.typname AS name
+      FROM pg_type t
+      JOIN pg_namespace n ON n.oid = t.typnamespace
+      WHERE n.nspname = 'public'
+        AND t.typname IN (
+          'audit_category',
+          'entitlement_reservation_status',
+          'workflow_run_status'
+        )
+      ORDER BY t.typname
+    `;
+    const functionRows = await sql<{ name: string }[]>`
+      SELECT p.proname AS name
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public'
+        AND p.proname IN (
+          'validate_entitlement_reservation_ownership',
+          'validate_deep_reading_results_insertion',
+          'prevent_audit_events_mutation',
+          'prevent_deep_reading_results_mutation'
+        )
+      ORDER BY p.proname
+    `;
+    const triggerRows = await sql<{ name: string }[]>`
+      SELECT t.tgname AS name
+      FROM pg_trigger t
+      JOIN pg_class c ON c.oid = t.tgrelid
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public'
+        AND NOT t.tgisinternal
+        AND t.tgname IN (
+          'entitlement_reservation_ownership_trigger',
+          'deep_reading_results_insertion_trigger',
+          'audit_events_immutable_trigger',
+          'deep_reading_results_immutable_trigger'
+        )
+      ORDER BY t.tgname
+    `;
+
     const regclassRows = await sql<{ migration_table: string | null }[]>`
       SELECT to_regclass('drizzle.__drizzle_migrations')::text AS migration_table
     `;
@@ -340,6 +389,9 @@ async function inspectDatabase(databaseUrl: string): Promise<StagingDatabaseSnap
       expectedMigrationCount: EXPECTED_COMMERCIAL_MIGRATIONS.length,
       missingTables: REQUIRED_COMMERCIAL_TABLES.filter((table) => !tableNames.has(table)),
       presentCp5CoreTables: CP5_CORE_TABLES.filter((table) => tableNames.has(table)),
+      presentCp5OwnedTypes: typeRows.map((row) => row.name),
+      presentCp5OwnedFunctions: functionRows.map((row) => row.name),
+      presentCp5OwnedTriggers: triggerRows.map((row) => row.name),
     };
   } finally {
     await sql.end({ timeout: 2 });
@@ -416,9 +468,10 @@ async function main(): Promise<void> {
 
     // Only an exact, hash-verified tail state may migrate automatically:
     // either the final migration is pending with the required schema already
-    // complete, or 0009+0010 are both pending and all CP5 core tables are
-    // entirely absent. Partial CP5 schema remains a hard stop and requires a
-    // new forward-only repair migration rather than replaying history.
+    // complete, or 0009+0010 are both pending and all CP5 core tables plus
+    // every migration-owned enum/function/trigger are entirely absent.
+    // Partial CP5 schema remains a hard stop and requires a new forward-only
+    // repair migration rather than replaying history.
     runMigration(runtimeEnv);
     database = await inspectDatabase(databaseUrl);
     classification = classifyStagingDatabase(database);
