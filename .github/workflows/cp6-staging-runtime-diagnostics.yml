@@ -26,7 +26,7 @@ jobs:
   diagnose:
     name: Deploy exact staging Production SHA and inspect runtime
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
@@ -192,7 +192,7 @@ jobs:
         run: |
           set -euo pipefail
           deployment_id="${{ steps.deploy.outputs.deployment_id }}"
-          for attempt in $(seq 1 90); do
+          for attempt in $(seq 1 180); do
             response="$(curl --fail-with-body --silent --show-error \
               -H "Authorization: Bearer ${VERCEL_TOKEN}" \
               -H "Accept: application/json" \
@@ -204,12 +204,18 @@ jobs:
               exit 1
             fi
             case "$state" in
-              READY) exit 0 ;;
-              ERROR|CANCELED) echo "::error::Deployment ${deployment_id} entered ${state}"; exit 1 ;;
+              READY)
+                echo "Deployment ${deployment_id} is READY after ${attempt} checks."
+                exit 0
+                ;;
+              ERROR|CANCELED)
+                echo "::error::Deployment ${deployment_id} entered ${state}"
+                exit 1
+                ;;
             esac
             sleep 10
           done
-          echo "::error::Timed out waiting for deployment readiness"
+          echo "::error::Timed out after approximately 30 minutes waiting for deployment readiness"
           exit 1
 
       - name: Read staging Runtime diagnostics
@@ -257,54 +263,141 @@ jobs:
         if: always() && steps.maintenance.outcome != 'skipped'
         shell: bash
         run: |
-          set -euo pipefail
-
+          set -uo pipefail
+          cleanup_failed=0
           env_id="${{ steps.maintenance.outputs.env_id }}"
+          deployment_id="${{ steps.deploy.outputs.deployment_id }}"
+          baseline_id="${{ steps.baseline.outputs.baseline_id }}"
+
+          # Always try to remove the temporary project credential first.
           if [ -z "$env_id" ]; then
             response="$(curl --fail-with-body --silent --show-error \
               -H "Authorization: Bearer ${VERCEL_TOKEN}" \
               -H "Accept: application/json" \
-              "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env")"
-            env_id="$(jq -r '.envs[]? | select(.key == "CP6_STAGING_MAINTENANCE_TOKEN") | .id' <<<"$response" | head -n1)"
+              "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env")" || response=""
+            env_id="$(jq -r '.envs[]? | select(.key == "CP6_STAGING_MAINTENANCE_TOKEN") | .id' <<<"$response" 2>/dev/null | head -n1)"
           fi
           if [ -n "$env_id" ] && [ "$env_id" != "null" ]; then
-            curl --fail-with-body --silent --show-error -X DELETE \
+            token_delete_http="$(curl --silent --show-error \
+              --output "$RUNNER_TEMP/token-delete.json" \
+              --write-out "%{http_code}" \
+              -X DELETE \
               -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-              "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/env/${env_id}?teamId=${VERCEL_TEAM_ID}" >/dev/null
-            echo "Removed temporary maintenance token from project settings."
+              "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/env/${env_id}?teamId=${VERCEL_TEAM_ID}")"
+            if [ "$token_delete_http" != "200" ] && [ "$token_delete_http" != "404" ]; then
+              echo "::error::Could not remove temporary maintenance token; HTTP ${token_delete_http}."
+              cat "$RUNNER_TEMP/token-delete.json" || true
+              cleanup_failed=1
+            else
+              echo "Temporary maintenance token removal returned HTTP ${token_delete_http}."
+            fi
           fi
 
-          deployment_id="${{ steps.deploy.outputs.deployment_id }}"
-          baseline_id="${{ steps.baseline.outputs.baseline_id }}"
-          if [ -z "$deployment_id" ]; then exit 0; fi
-          test -n "$baseline_id" || { echo "::error::Missing recorded staging baseline; refusing cleanup mutation."; exit 1; }
+          if [ -z "$deployment_id" ]; then
+            [ "$cleanup_failed" -eq 0 ] || exit 1
+            exit 0
+          fi
+          if [ -z "$baseline_id" ]; then
+            echo "::error::Missing recorded staging baseline; refusing unsafe deployment cleanup."
+            exit 1
+          fi
 
-          curl --fail-with-body --silent --show-error -X POST \
+          current_response="$(curl --fail-with-body --silent --show-error \
             -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-            "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/promote/${baseline_id}?teamId=${VERCEL_TEAM_ID}" >/dev/null
-
+            -H "Accept: application/json" \
+            "https://api.vercel.com/v13/deployments/staging.quickiching.com?teamId=${VERCEL_TEAM_ID}")" || current_response=""
+          current_id="$(jq -r '.id // empty' <<<"$current_response" 2>/dev/null)"
+          current_state="$(jq -r '.readyState // .state // empty' <<<"$current_response" 2>/dev/null)"
           restored=false
-          for attempt in $(seq 1 30); do
-            response="$(curl --fail-with-body --silent --show-error \
+
+          if [ "$current_id" = "$baseline_id" ] && [ "$current_state" = "READY" ]; then
+            echo "Original staging baseline is already serving; skipping redundant promote."
+            restored=true
+          elif [ "$current_id" = "$deployment_id" ]; then
+            echo "Diagnostic deployment is serving staging; restoring recorded baseline before deletion."
+            promote_http="$(curl --silent --show-error \
+              --output "$RUNNER_TEMP/promote-baseline.json" \
+              --write-out "%{http_code}" \
+              -X POST \
               -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-              -H "Accept: application/json" \
-              "https://api.vercel.com/v13/deployments/staging.quickiching.com?teamId=${VERCEL_TEAM_ID}")"
-            current_id="$(jq -r '.id // empty' <<<"$response")"
-            current_state="$(jq -r '.readyState // .state // empty' <<<"$response")"
-            if [ "$current_id" = "$baseline_id" ] && [ "$current_state" = "READY" ]; then restored=true; break; fi
-            sleep 5
-          done
-          [ "$restored" = true ] || { echo "::error::Could not verify restoration of original staging Production baseline."; exit 1; }
+              "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/promote/${baseline_id}?teamId=${VERCEL_TEAM_ID}")"
+            if [ "$promote_http" != "201" ] && [ "$promote_http" != "202" ] && [ "$promote_http" != "200" ] && [ "$promote_http" != "409" ]; then
+              echo "::warning::Promote baseline returned HTTP ${promote_http}; will verify actual routing before deciding cleanup result."
+              cat "$RUNNER_TEMP/promote-baseline.json" || true
+            fi
 
-          curl --fail-with-body --silent --show-error -X DELETE \
+            for attempt in $(seq 1 30); do
+              verify_response="$(curl --fail-with-body --silent --show-error \
+                -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+                -H "Accept: application/json" \
+                "https://api.vercel.com/v13/deployments/staging.quickiching.com?teamId=${VERCEL_TEAM_ID}")" || verify_response=""
+              verify_id="$(jq -r '.id // empty' <<<"$verify_response" 2>/dev/null)"
+              verify_state="$(jq -r '.readyState // .state // empty' <<<"$verify_response" 2>/dev/null)"
+              if [ "$verify_id" = "$baseline_id" ] && [ "$verify_state" = "READY" ]; then
+                restored=true
+                break
+              fi
+              sleep 5
+            done
+          else
+            echo "::error::Unexpected staging Production deployment ${current_id:-unknown}; expected baseline ${baseline_id} or diagnostic ${deployment_id}."
+            cleanup_failed=1
+          fi
+
+          if [ "$restored" = true ]; then
+            delete_http="$(curl --silent --show-error \
+              --output "$RUNNER_TEMP/diagnostic-delete.json" \
+              --write-out "%{http_code}" \
+              -X DELETE \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+              "https://api.vercel.com/v13/deployments/${deployment_id}?teamId=${VERCEL_TEAM_ID}")"
+            if [ "$delete_http" != "200" ] && [ "$delete_http" != "404" ]; then
+              echo "::error::Diagnostic deployment revoke returned HTTP ${delete_http}."
+              cat "$RUNNER_TEMP/diagnostic-delete.json" || true
+              cleanup_failed=1
+            else
+              echo "Diagnostic deployment revoke returned HTTP ${delete_http}."
+            fi
+          else
+            echo "::error::Original staging baseline could not be proven restored; refusing to delete a deployment that may still be serving."
+            cleanup_failed=1
+          fi
+
+          # Prove the project credential is absent after cleanup.
+          final_env_response="$(curl --fail-with-body --silent --show-error \
             -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-            "https://api.vercel.com/v13/deployments/${deployment_id}?teamId=${VERCEL_TEAM_ID}" >/dev/null
+            -H "Accept: application/json" \
+            "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env")" || final_env_response=""
+          if jq -e '.envs[]? | select(.key == "CP6_STAGING_MAINTENANCE_TOKEN" and ((.target == "production") or ((.target | type) == "array" and (.target | index("production") != null))))' >/dev/null <<<"$final_env_response" 2>/dev/null; then
+            echo "::error::Temporary maintenance token still exists after cleanup."
+            cleanup_failed=1
+          else
+            echo "Temporary maintenance token is absent after cleanup."
+          fi
 
-          status="$(curl --silent --show-error --output "$RUNNER_TEMP/cp6-after-cleanup.txt" --write-out "%{http_code}" \
+          final_response="$(curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            -H "Accept: application/json" \
+            "https://api.vercel.com/v13/deployments/staging.quickiching.com?teamId=${VERCEL_TEAM_ID}")" || final_response=""
+          final_id="$(jq -r '.id // empty' <<<"$final_response" 2>/dev/null)"
+          final_state="$(jq -r '.readyState // .state // empty' <<<"$final_response" 2>/dev/null)"
+          if [ "$final_id" != "$baseline_id" ] || [ "$final_state" != "READY" ]; then
+            echo "::error::Final staging baseline verification failed: id=${final_id:-unknown}, state=${final_state:-unknown}."
+            cleanup_failed=1
+          fi
+
+          status="$(curl --silent --show-error \
+            --output "$RUNNER_TEMP/cp6-after-cleanup.txt" \
+            --write-out "%{http_code}" \
             -H "Authorization: Bearer invalid-after-cleanup" \
             "${STAGING_ORIGIN}/api/internal/cp6-staging-diagnostics")"
-          test "$status" = "404" || {
-            echo "::error::Diagnostics route remained reachable after restoring baseline; got HTTP ${status}."
-            exit 1
-          }
-          echo "Original staging baseline restored, diagnostic deployment deleted, route hidden (404)."
+          if [ "$status" != "404" ]; then
+            echo "::error::Diagnostics route remained reachable after cleanup; got HTTP ${status}."
+            cat "$RUNNER_TEMP/cp6-after-cleanup.txt" || true
+            cleanup_failed=1
+          else
+            echo "Diagnostics route is hidden again (404)."
+          fi
+
+          [ "$cleanup_failed" -eq 0 ] || exit 1
+          echo "Original staging baseline verified, temporary credential absent, diagnostic deployment revoked."
