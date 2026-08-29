@@ -35,6 +35,20 @@ describe("classifyStagingDatabase", () => {
     }))).toBe("migration_apply_required");
   });
 
+  it("permits the intact 0000-0008 prefix to apply pending 0009 and 0010 when CP5 core is entirely absent", () => {
+    expect(classifyStagingDatabase(snapshot({
+      migrationStatus: "migration_outdated",
+      appliedMigrationCount: 9,
+      missingTables: [
+        "deep_reading_results",
+        "entitlement_reservations",
+        "workflow_runs",
+        "audit_events",
+      ],
+      presentCp5CoreTables: [],
+    }))).toBe("migration_apply_required");
+  });
+
   it("requires a forward-only repair when history is complete but schema is missing a required table", () => {
     expect(classifyStagingDatabase(snapshot({
       missingTables: ["workflow_runs"],
