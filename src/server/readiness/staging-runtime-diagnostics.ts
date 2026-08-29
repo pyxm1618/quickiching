@@ -42,6 +42,13 @@ export type StagingRuntimeDatabaseSnapshot = {
   presentCp5OwnedTriggers?: string[];
 };
 
+type RuntimeMigrationPrivileges = {
+  schemaCreatePrivilege: boolean | null;
+  requiredReferencesPrivilege: boolean | null;
+  requiredTypeUsagePrivilege: boolean | null;
+  requiredFunctionReadPrivilege: boolean | null;
+};
+
 type DiagnosticDbOverride = {
   ping: () => Promise<void>;
   queryTables: () => Promise<string[]>;
@@ -51,6 +58,10 @@ type DiagnosticDbOverride = {
   queryCp5OwnedTypes?: () => Promise<string[]>;
   queryCp5OwnedFunctions?: () => Promise<string[]>;
   queryCp5OwnedTriggers?: () => Promise<string[]>;
+  querySchemaCreatePrivilege?: () => Promise<boolean>;
+  queryRequiredReferencesPrivilege?: () => Promise<boolean>;
+  queryRequiredTypeUsagePrivilege?: () => Promise<boolean>;
+  queryRequiredFunctionReadPrivilege?: () => Promise<boolean>;
 };
 
 type CapabilityDiagnostic = {
@@ -104,6 +115,7 @@ type MigrationConnectionProbe = (
 export type StagingRuntimeDiagnostics = {
   database: StagingRuntimeDatabaseSnapshot & {
     classification: StagingRuntimeDatabaseClassification;
+    runtimeMigrationPrivileges: RuntimeMigrationPrivileges;
   };
   migrationConnection: StagingMigrationConnectionDiagnostic;
   provider: {
@@ -446,6 +458,58 @@ async function defaultDbProbe(): Promise<DiagnosticDbOverride> {
       `;
       return rows.map((row) => row.name);
     },
+    querySchemaCreatePrivilege: async () => {
+      const rows = await connection.client<{ allowed: boolean }[]>`
+        SELECT
+          has_schema_privilege(current_user, 'public', 'CREATE')
+          AND has_schema_privilege(current_user, 'public', 'USAGE')
+          AS allowed
+      `;
+      return Boolean(rows[0]?.allowed);
+    },
+    queryRequiredReferencesPrivilege: async () => {
+      const rows = await connection.client<{ allowed: boolean }[]>`
+        SELECT
+          CASE WHEN to_regclass('public.users') IS NULL THEN false
+            ELSE has_table_privilege(current_user, 'public.users', 'REFERENCES') END
+          AND CASE WHEN to_regclass('public.entitlement_batches') IS NULL THEN false
+            ELSE has_table_privilege(current_user, 'public.entitlement_batches', 'REFERENCES') END
+          AND CASE WHEN to_regclass('public.casting_sessions') IS NULL THEN false
+            ELSE has_table_privilege(current_user, 'public.casting_sessions', 'REFERENCES') END
+          AND CASE WHEN to_regclass('public.generation_jobs') IS NULL THEN false
+            ELSE has_table_privilege(current_user, 'public.generation_jobs', 'REFERENCES') END
+          AS allowed
+      `;
+      return Boolean(rows[0]?.allowed);
+    },
+    queryRequiredTypeUsagePrivilege: async () => {
+      const rows = await connection.client<{ allowed: boolean }[]>`
+        SELECT
+          CASE WHEN to_regtype('public.generation_kind') IS NULL THEN false
+            ELSE has_type_privilege(current_user, 'public.generation_kind', 'USAGE') END
+          AND CASE WHEN to_regtype('public.generation_job_status') IS NULL THEN false
+            ELSE has_type_privilege(current_user, 'public.generation_job_status', 'USAGE') END
+          AND CASE WHEN to_regtype('public.output_review_status') IS NULL THEN false
+            ELSE has_type_privilege(current_user, 'public.output_review_status', 'USAGE') END
+          AS allowed
+      `;
+      return Boolean(rows[0]?.allowed);
+    },
+    queryRequiredFunctionReadPrivilege: async () => {
+      const rows = await connection.client<{ allowed: boolean }[]>`
+        SELECT
+          CASE WHEN to_regclass('public.entitlement_batches') IS NULL THEN false
+            ELSE has_table_privilege(current_user, 'public.entitlement_batches', 'SELECT') END
+          AND CASE WHEN to_regclass('public.casting_sessions') IS NULL THEN false
+            ELSE has_table_privilege(current_user, 'public.casting_sessions', 'SELECT') END
+          AND CASE WHEN to_regclass('public.generation_jobs') IS NULL THEN false
+            ELSE has_table_privilege(current_user, 'public.generation_jobs', 'SELECT') END
+          AND CASE WHEN to_regclass('public.generation_output_reviews') IS NULL THEN false
+            ELSE has_table_privilege(current_user, 'public.generation_output_reviews', 'SELECT') END
+          AS allowed
+      `;
+      return Boolean(rows[0]?.allowed);
+    },
   };
 }
 
@@ -464,6 +528,20 @@ export async function collectStagingRuntimeDiagnostics(
   const presentCp5OwnedTypes = db.queryCp5OwnedTypes ? await db.queryCp5OwnedTypes() : [];
   const presentCp5OwnedFunctions = db.queryCp5OwnedFunctions ? await db.queryCp5OwnedFunctions() : [];
   const presentCp5OwnedTriggers = db.queryCp5OwnedTriggers ? await db.queryCp5OwnedTriggers() : [];
+  const runtimeMigrationPrivileges: RuntimeMigrationPrivileges = {
+    schemaCreatePrivilege: db.querySchemaCreatePrivilege
+      ? await db.querySchemaCreatePrivilege()
+      : null,
+    requiredReferencesPrivilege: db.queryRequiredReferencesPrivilege
+      ? await db.queryRequiredReferencesPrivilege()
+      : null,
+    requiredTypeUsagePrivilege: db.queryRequiredTypeUsagePrivilege
+      ? await db.queryRequiredTypeUsagePrivilege()
+      : null,
+    requiredFunctionReadPrivilege: db.queryRequiredFunctionReadPrivilege
+      ? await db.queryRequiredFunctionReadPrivilege()
+      : null,
+  };
 
   const database: StagingRuntimeDatabaseSnapshot = {
     connected: true,
@@ -493,6 +571,7 @@ export async function collectStagingRuntimeDiagnostics(
     database: {
       ...database,
       classification: classifyStagingRuntimeDatabase(database),
+      runtimeMigrationPrivileges,
     },
     migrationConnection,
     provider: {
