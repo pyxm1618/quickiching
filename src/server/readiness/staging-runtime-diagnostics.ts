@@ -1,3 +1,4 @@
+import postgres from "postgres";
 import {
   COMMERCIAL_CAPABILITIES,
   COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX,
@@ -46,6 +47,7 @@ type DiagnosticDbOverride = {
   queryTables: () => Promise<string[]>;
   queryMigrationTablePresent: () => Promise<boolean>;
   queryMigrations: () => Promise<AppliedMigration[]>;
+  queryCurrentDatabase?: () => Promise<string>;
   queryCp5OwnedTypes?: () => Promise<string[]>;
   queryCp5OwnedFunctions?: () => Promise<string[]>;
   queryCp5OwnedTriggers?: () => Promise<string[]>;
@@ -60,10 +62,50 @@ type CapabilityDiagnostic = {
   blockedDependencies: string[];
 };
 
+export type MigrationConnectionErrorCategory =
+  | "configuration_missing"
+  | "network_unreachable"
+  | "connection_refused"
+  | "connection_timeout"
+  | "dns_failure"
+  | "authentication_failed"
+  | "permission_denied"
+  | "database_unavailable"
+  | "connection_failed"
+  | "tls_failure"
+  | "unknown";
+
+export type MigrationConnectionErrorDiagnostic = {
+  category: MigrationConnectionErrorCategory;
+  code: string | null;
+};
+
+export type StagingMigrationConnectionDiagnostic = {
+  source: "MIGRATION_DATABASE_URL" | "DATABASE_URL_UNPOOLED" | "missing";
+  connected: boolean;
+  sameLogicalDatabase: boolean | null;
+  migrationHistoryMatchesRuntime: boolean | null;
+  schemaCreatePrivilege: boolean | null;
+  requiredReferencesPrivilege: boolean | null;
+  generationReviewTriggerPrivilege: boolean | null;
+  error: MigrationConnectionErrorDiagnostic | null;
+};
+
+type MigrationProbeContext = {
+  env: Record<string, string | undefined>;
+  runtimeDatabaseName: string | null;
+  runtimeMigrations: AppliedMigration[];
+};
+
+type MigrationConnectionProbe = (
+  context: MigrationProbeContext,
+) => Promise<StagingMigrationConnectionDiagnostic>;
+
 export type StagingRuntimeDiagnostics = {
   database: StagingRuntimeDatabaseSnapshot & {
     classification: StagingRuntimeDatabaseClassification;
   };
+  migrationConnection: StagingMigrationConnectionDiagnostic;
   provider: {
     waffoEnvironmentIsTest: boolean;
     originChecks: {
@@ -155,6 +197,164 @@ export function classifyStagingRuntimeDatabase(
   return "blocked_migration_integrity";
 }
 
+const SAFE_MIGRATION_ERROR_CODES = new Map<string, MigrationConnectionErrorCategory>([
+  ["ENETUNREACH", "network_unreachable"],
+  ["ECONNREFUSED", "connection_refused"],
+  ["ETIMEDOUT", "connection_timeout"],
+  ["CONNECT_TIMEOUT", "connection_timeout"],
+  ["ENOTFOUND", "dns_failure"],
+  ["EAI_AGAIN", "dns_failure"],
+  ["28P01", "authentication_failed"],
+  ["28000", "authentication_failed"],
+  ["42501", "permission_denied"],
+  ["3D000", "database_unavailable"],
+  ["08001", "connection_failed"],
+  ["08006", "connection_failed"],
+  ["SELF_SIGNED_CERT_IN_CHAIN", "tls_failure"],
+  ["CERT_HAS_EXPIRED", "tls_failure"],
+  ["UNABLE_TO_VERIFY_LEAF_SIGNATURE", "tls_failure"],
+]);
+
+export function classifyMigrationConnectionError(
+  error: unknown,
+): MigrationConnectionErrorDiagnostic {
+  const rawCode =
+    typeof error === "object" && error !== null && "code" in error
+      ? (error as { code?: unknown }).code
+      : undefined;
+  const code = typeof rawCode === "string" ? rawCode : null;
+  const category = code ? SAFE_MIGRATION_ERROR_CODES.get(code) : undefined;
+  return category
+    ? { category, code }
+    : { category: "unknown", code: null };
+}
+
+function sameMigrationHistory(left: AppliedMigration[], right: AppliedMigration[]): boolean {
+  return left.length === right.length && left.every((migration, index) => {
+    const candidate = right[index];
+    return Boolean(
+      candidate &&
+      migration.hash === candidate.hash &&
+      migration.createdAt === candidate.createdAt
+    );
+  });
+}
+
+function resolveMigrationConnection(
+  env: Record<string, string | undefined>,
+): { source: "MIGRATION_DATABASE_URL" | "DATABASE_URL_UNPOOLED" | "missing"; url: string | null } {
+  const dedicated = env.MIGRATION_DATABASE_URL?.trim();
+  if (dedicated) return { source: "MIGRATION_DATABASE_URL", url: dedicated };
+  const unpooled = env.DATABASE_URL_UNPOOLED?.trim();
+  if (unpooled) return { source: "DATABASE_URL_UNPOOLED", url: unpooled };
+  return { source: "missing", url: null };
+}
+
+async function defaultMigrationConnectionProbe({
+  env,
+  runtimeDatabaseName,
+  runtimeMigrations,
+}: MigrationProbeContext): Promise<StagingMigrationConnectionDiagnostic> {
+  const resolved = resolveMigrationConnection(env);
+  if (!resolved.url) {
+    return {
+      source: resolved.source,
+      connected: false,
+      sameLogicalDatabase: null,
+      migrationHistoryMatchesRuntime: null,
+      schemaCreatePrivilege: null,
+      requiredReferencesPrivilege: null,
+      generationReviewTriggerPrivilege: null,
+      error: { category: "configuration_missing", code: null },
+    };
+  }
+
+  const client = postgres(resolved.url, {
+    max: 1,
+    prepare: false,
+    connect_timeout: 5,
+    idle_timeout: 5,
+  });
+  try {
+    const identityRows = await client<{ database_name: string }[]>`
+      SELECT current_database() AS database_name
+    `;
+    const migrationTableRows = await client<{ migration_table: string | null }[]>`
+      SELECT to_regclass('drizzle.__drizzle_migrations')::text AS migration_table
+    `;
+    const migrationTablePresent = Boolean(migrationTableRows[0]?.migration_table);
+    const migrationRows = migrationTablePresent
+      ? await client<{ hash: string; created_at: string | number | bigint }[]>`
+          SELECT hash, created_at
+          FROM drizzle.__drizzle_migrations
+          ORDER BY id ASC
+        `
+      : [];
+    const migrationMigrations = migrationRows.map((row) => ({
+      createdAt: Number(row.created_at),
+      hash: row.hash,
+    }));
+    const migrationHistoryMatchesRuntime = sameMigrationHistory(
+      runtimeMigrations,
+      migrationMigrations,
+    );
+    const migrationDatabaseName = identityRows[0]?.database_name ?? null;
+    const sameLogicalDatabase =
+      runtimeDatabaseName !== null &&
+      migrationDatabaseName !== null &&
+      runtimeDatabaseName === migrationDatabaseName &&
+      migrationHistoryMatchesRuntime;
+
+    const schemaRows = await client<{ allowed: boolean }[]>`
+      SELECT has_schema_privilege(current_user, 'public', 'CREATE') AS allowed
+    `;
+    const referenceRows = await client<{ allowed: boolean }[]>`
+      SELECT
+        CASE WHEN to_regclass('public.users') IS NULL THEN false
+          ELSE has_table_privilege(current_user, 'public.users', 'REFERENCES') END
+        AND CASE WHEN to_regclass('public.entitlement_batches') IS NULL THEN false
+          ELSE has_table_privilege(current_user, 'public.entitlement_batches', 'REFERENCES') END
+        AND CASE WHEN to_regclass('public.casting_sessions') IS NULL THEN false
+          ELSE has_table_privilege(current_user, 'public.casting_sessions', 'REFERENCES') END
+        AND CASE WHEN to_regclass('public.generation_jobs') IS NULL THEN false
+          ELSE has_table_privilege(current_user, 'public.generation_jobs', 'REFERENCES') END
+        AS allowed
+    `;
+    const triggerRows = await client<{ allowed: boolean }[]>`
+      SELECT CASE WHEN to_regclass('public.generation_output_reviews') IS NULL THEN false
+        ELSE has_table_privilege(current_user, 'public.generation_output_reviews', 'TRIGGER') END AS allowed
+    `;
+
+    return {
+      source: resolved.source,
+      connected: true,
+      sameLogicalDatabase,
+      migrationHistoryMatchesRuntime,
+      schemaCreatePrivilege: Boolean(schemaRows[0]?.allowed),
+      requiredReferencesPrivilege: Boolean(referenceRows[0]?.allowed),
+      generationReviewTriggerPrivilege: Boolean(triggerRows[0]?.allowed),
+      error: null,
+    };
+  } catch (error) {
+    return {
+      source: resolved.source,
+      connected: false,
+      sameLogicalDatabase: null,
+      migrationHistoryMatchesRuntime: null,
+      schemaCreatePrivilege: null,
+      requiredReferencesPrivilege: null,
+      generationReviewTriggerPrivilege: null,
+      error: classifyMigrationConnectionError(error),
+    };
+  } finally {
+    try {
+      await client.end({ timeout: 1 });
+    } catch {
+      // Diagnostics must not turn a connection-close failure into secret-bearing output.
+    }
+  }
+}
+
 async function defaultDbProbe(): Promise<DiagnosticDbOverride> {
   const connection = getCommercialDatabaseConnection();
   return {
@@ -188,6 +388,14 @@ async function defaultDbProbe(): Promise<DiagnosticDbOverride> {
         createdAt: Number(row.created_at),
         hash: row.hash,
       }));
+    },
+    queryCurrentDatabase: async () => {
+      const rows = await connection.client<{ database_name: string }[]>`
+        SELECT current_database() AS database_name
+      `;
+      const databaseName = rows[0]?.database_name;
+      if (!databaseName) throw new Error("STAGING_DATABASE_IDENTITY_UNAVAILABLE");
+      return databaseName;
     },
     queryCp5OwnedTypes: async () => {
       const rows = await connection.client<{ name: string }[]>`
@@ -244,6 +452,7 @@ async function defaultDbProbe(): Promise<DiagnosticDbOverride> {
 export async function collectStagingRuntimeDiagnostics(
   env: Record<string, string | undefined> = process.env,
   dbOverride?: DiagnosticDbOverride,
+  migrationProbe: MigrationConnectionProbe = defaultMigrationConnectionProbe,
 ): Promise<StagingRuntimeDiagnostics> {
   const db = dbOverride ?? await defaultDbProbe();
   await db.ping();
@@ -251,6 +460,7 @@ export async function collectStagingRuntimeDiagnostics(
   const tableSet = new Set(tableNames);
   const migrationTablePresent = await db.queryMigrationTablePresent();
   const appliedMigrations = migrationTablePresent ? await db.queryMigrations() : [];
+  const runtimeDatabaseName = db.queryCurrentDatabase ? await db.queryCurrentDatabase() : null;
   const presentCp5OwnedTypes = db.queryCp5OwnedTypes ? await db.queryCp5OwnedTypes() : [];
   const presentCp5OwnedFunctions = db.queryCp5OwnedFunctions ? await db.queryCp5OwnedFunctions() : [];
   const presentCp5OwnedTriggers = db.queryCp5OwnedTriggers ? await db.queryCp5OwnedTriggers() : [];
@@ -268,6 +478,12 @@ export async function collectStagingRuntimeDiagnostics(
     presentCp5OwnedTriggers,
   };
 
+  const migrationConnection = await migrationProbe({
+    env,
+    runtimeDatabaseName,
+    runtimeMigrations: appliedMigrations,
+  });
+
   const prerequisiteEnv = { ...env };
   for (const capability of COMMERCIAL_CAPABILITIES) {
     prerequisiteEnv[COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX[capability].flag] = "true";
@@ -278,6 +494,7 @@ export async function collectStagingRuntimeDiagnostics(
       ...database,
       classification: classifyStagingRuntimeDatabase(database),
     },
+    migrationConnection,
     provider: {
       waffoEnvironmentIsTest: env.WAFFO_ENVIRONMENT?.trim() === "test",
       originChecks: {
