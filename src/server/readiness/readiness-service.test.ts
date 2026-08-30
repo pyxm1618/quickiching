@@ -6,7 +6,10 @@ import {
   REQUIRED_MIGRATION_CHECKPOINT_AT,
 } from "./readiness-service";
 
-const LATEST_CP5_MIGRATION_AT = 1787797500000;
+// A database that has received every migration in the journal. Derived from the
+// checkpoint so that adding a migration cannot silently leave this fixture
+// behind and turn the "reports ready" cases into migration_outdated.
+const LATEST_MIGRATION_AT = REQUIRED_MIGRATION_CHECKPOINT_AT;
 
 function validCommercialEnv(): Record<string, string> {
   return {
@@ -55,7 +58,7 @@ function validCommercialEnv(): Record<string, string> {
   };
 }
 
-function readyDbOverride(migrations: number[] = [LATEST_CP5_MIGRATION_AT]) {
+function readyDbOverride(migrations: number[] = [LATEST_MIGRATION_AT]) {
   return {
     ping: async () => {},
     queryTables: async () => [...REQUIRED_COMMERCIAL_TABLES],
@@ -122,7 +125,7 @@ describe("System Readiness Service", () => {
     const report = await checkSystemReadiness(env, {
       ping: async () => {},
       queryTables: async () => ["users", "sessions"],
-      queryMigrationTimestamps: async () => [LATEST_CP5_MIGRATION_AT],
+      queryMigrationTimestamps: async () => [LATEST_MIGRATION_AT],
     } as any);
 
     expect(report.status).toBe("not_ready");

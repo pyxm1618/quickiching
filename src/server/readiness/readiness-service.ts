@@ -24,11 +24,11 @@ export const REQUIRED_COMMERCIAL_TABLES = Object.freeze([
   "audit_events",
 ] as const);
 
-// The newest entry in drizzle/meta/_journal.json (0010_cp5_audit_remediation).
+// The newest entry in drizzle/meta/_journal.json (0011_cp6_cast_origin).
 // A deployment whose applied migration log is empty or older than this has not
 // received the CP5 payment/entitlement surface, so it must never report ready.
 // readiness-service.test.ts pins this constant to the journal to catch drift.
-export const REQUIRED_MIGRATION_CHECKPOINT_AT = 1787797500000;
+export const REQUIRED_MIGRATION_CHECKPOINT_AT = 1788070703212;
 
 export type CapabilityReadinessDetail = {
   requested: boolean;
