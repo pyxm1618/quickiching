@@ -11,7 +11,7 @@
   "crons": [
     {
       "path": "/api/internal/reconcile",
-      "schedule": "17 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }

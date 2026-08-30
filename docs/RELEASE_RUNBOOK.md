@@ -92,10 +92,11 @@ Vercel 的 Instant Rollback 回到上一个部署。注意：
 
 ## 4. 对账作业
 
-`vercel.json` 配置为每小时第 17 分执行 `/api/internal/reconcile`。
+`vercel.json` 配置为每日 0 点执行 `/api/internal/reconcile`。
 
-- 用非零分钟是为了避开整点的集中调度
-- **每小时需要 Vercel Pro**。Hobby 计划限制 cron 每天一次；如果部署报 cron 频率错误，说明计划不匹配，此时要么升级计划，要么改回 `0 0 * * *` 并接受最长 24 小时的支付异常发现延迟
+- **频率受计划限制。** Hobby 计划只允许 cron 每天一次；配成每小时会让**部署直接被拒**（`cron_jobs_limits_reached`），不是运行时降级。2026-08-30 首次尝试把 CP6 部署到 `quickiching-staging` 时就撞上了这一条，当时 `vercel.json` 是 `17 * * * *`
+- 升级到 Pro 后可改回每小时，建议用非零分钟（如 `17 * * * *`）避开整点的集中调度
+- **每日频率是可接受的，不是将就。** 发放主路径是 `src/server/payments/outbox-workflow.ts` 的持久化工作流，按秒/分级重试；cron 只是最终兜底。最坏情况是「工作流也失败」这一小类异常最长 24 小时才被发现
 - 作业用相对时间窗（10 分钟）判定滞留记录，且发放走 `on conflict do nothing`，因此提高频率是安全的，重复执行不会重复发放
 - 鉴权用 `CRON_SECRET`，`Authorization: Bearer <secret>`，常量时间比较
 
