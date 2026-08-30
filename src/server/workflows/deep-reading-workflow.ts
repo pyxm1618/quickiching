@@ -1,3 +1,4 @@
+import type { ContentLocale } from "@/i18n/config";
 import {
   claimJobLeaseStep,
   generateDeepReadingStep,
@@ -12,6 +13,10 @@ export type DeepReadingWorkflowInput = {
   reservationId: string;
   idempotencyKey: string;
   generationEpoch: number;
+  // Resolved at request time from the reader's locale, not inferred inside the
+  // workflow: casting_sessions has no locale column, and defaulting silently
+  // would hand a Chinese reader an English reading.
+  locale: ContentLocale;
 };
 
 export async function deepReadingWorkflow(input: DeepReadingWorkflowInput) {
@@ -26,6 +31,7 @@ export async function deepReadingWorkflow(input: DeepReadingWorkflowInput) {
       jobId: input.jobId,
       idempotencyKey: input.idempotencyKey,
       generationEpoch: input.generationEpoch,
+      locale: input.locale,
     });
     activeLeaseToken = leaseToken;
 
@@ -65,6 +71,7 @@ export async function deepReadingWorkflow(input: DeepReadingWorkflowInput) {
       generationEpoch: input.generationEpoch,
       inputSnapshotHash,
       leaseToken,
+      locale: input.locale,
       generationResult,
       reviewDecision,
     });

@@ -1,10 +1,24 @@
 import { randomUUID } from "node:crypto";
 import type { TransactionSql } from "postgres";
 import { getPostgresClient } from "@/server/db/client";
-import type { DeterministicFacts, CommercialReadingReport } from "@/domain/generation/schemas";
+import type {
+  DeterministicFacts,
+  CommercialReadingReportV2,
+  GeneratedReading,
+} from "@/domain/generation/schemas";
+import {
+  buildDeterministicVerdict,
+  type DeterministicVerdict,
+} from "@/domain/interpretation/deterministic/verdict";
+import type { ContentLocale } from "@/i18n/config";
+import { validateGeneratedReading } from "@/server/generation/reading-validator";
 import { createAiSdkGenerationProvider, createAiSdkOutputReviewer } from "@/server/generation/ai-sdk-provider";
 import { getServerConfig } from "@/server/config";
-import type { OutputReviewDecision, ProviderGenerationResult, ProviderInput } from "@/server/generation/types";
+import type {
+  OutputReviewDecision,
+  ProviderGenerationResult,
+  ReadingProviderInput,
+} from "@/server/generation/types";
 import {
   calculateDeepReadingInputSnapshotHash,
   calculateDeepReadingResultIntegrity,
@@ -19,6 +33,73 @@ function readingVariant(movingLinePositions: number[]): DeterministicFacts["read
   if (movingLinePositions.length === 6) return "all_lines_moving";
   if (movingLinePositions.length > 1) return "multiple_moving";
   return "standard";
+}
+
+// The deterministic verdict is derived from the already-verified cast facts, so
+// it can be rebuilt at any step without re-reading the database.
+function verdictFromFacts(facts: DeterministicFacts): DeterministicVerdict {
+  return buildDeterministicVerdict({
+    lineValuesBottomUp: facts.lineValuesBottomUp,
+    primaryHexagramNumber: facts.primaryHexagramNumber,
+    movingLinePositions: facts.movingLinePositions,
+    relatingHexagramNumber: facts.relatingHexagramNumber,
+    method: facts.method,
+    algorithmVersion: facts.algorithmVersion,
+    classicMappingVersion: facts.classicMappingVersion,
+  });
+}
+
+const DISCLAIMER: Record<ContentLocale, string> = {
+  "zh-Hans": "本解读用于反思与自我澄清，不构成决定论预言，也不替代医疗、法律、财务或其他专业建议。",
+  en: "This reading is for reflection and self-clarification. It is not a deterministic prediction"
+    + " and does not replace medical, legal, financial or other professional advice.",
+};
+
+// Joins the code-computed half and the model-written half into the stored
+// report. The deterministic fields are copied from the verdict, never from the
+// model's output, so what the reader sees as "依据" cannot drift.
+function assembleReadingReport(
+  verdict: DeterministicVerdict,
+  generated: GeneratedReading,
+  facts: DeterministicFacts,
+  locale: ContentLocale,
+): CommercialReadingReportV2 {
+  const quotes = [
+    { role: "primary" as const, quote: verdict.oracle.primary },
+    ...verdict.oracle.supporting.map((quote) => ({ role: "supporting" as const, quote })),
+  ].map(({ role, quote }) => ({
+    role,
+    hexagramNumber: quote.hexagramNumber,
+    hexagramChineseName: quote.hexagramChineseName,
+    label: quote.label,
+    text: quote.text,
+    sourceWork: quote.source.work,
+    sourceUrl: quote.source.textSourceUrl,
+  }));
+
+  return {
+    schemaVersion: "commercial-reading-v2",
+    locale,
+    readingVariant: facts.readingVariant,
+    deterministic: {
+      primaryHexagramNumber: verdict.primaryHexagram.number,
+      relatingHexagramNumber: verdict.relatingHexagram?.number ?? null,
+      nuclearHexagramNumber: verdict.nuclearHexagram.number,
+      movingLinePositions: [...verdict.movingLinePositions],
+      changeRuleId: verdict.changeRule.ruleId,
+      direction: verdict.direction,
+      tiYong: verdict.tiYong
+        ? {
+            tiTrigram: verdict.tiYong.ti.trigram,
+            yongTrigram: verdict.tiYong.yong.trigram,
+            relation: verdict.tiYong.relation,
+          }
+        : null,
+      quotes,
+    },
+    generated,
+    disclaimer: DISCLAIMER[locale],
+  };
 }
 
 function factsFromSession(session: Row): DeterministicFacts {
@@ -89,7 +170,8 @@ export async function claimJobLeaseStep(input: {
   jobId: string;
   idempotencyKey: string;
   generationEpoch: number;
-}): Promise<{ leaseToken: string; providerInput: ProviderInput; inputSnapshotHash: string }> {
+  locale: ContentLocale;
+}): Promise<{ leaseToken: string; providerInput: ReadingProviderInput; inputSnapshotHash: string }> {
   "use step";
   const sql = getPostgresClient();
 
@@ -164,6 +246,8 @@ export async function claimJobLeaseStep(input: {
         scene: session.scene,
         interpretationGoal: session.interpretation_goal,
         facts,
+        verdict: verdictFromFacts(facts),
+        locale: input.locale,
       },
       inputSnapshotHash: storedSnapshotHash,
     };
@@ -171,7 +255,7 @@ export async function claimJobLeaseStep(input: {
 }
 
 export async function generateDeepReadingStep(input: {
-  providerInput: ProviderInput;
+  providerInput: ReadingProviderInput;
   jobId: string;
   leaseToken: string;
 }): Promise<ProviderGenerationResult> {
@@ -218,6 +302,7 @@ export async function finalizeDeepReadingStep(input: {
   generationEpoch: number;
   inputSnapshotHash: string;
   leaseToken: string;
+  locale: ContentLocale;
   generationResult: ProviderGenerationResult;
   reviewDecision: OutputReviewDecision;
 }): Promise<{ success: boolean }> {
@@ -274,11 +359,26 @@ export async function finalizeDeepReadingStep(input: {
       throw new Error("ENTITLEMENT_RESERVATION_INVALID");
     }
 
-    const output = input.generationResult.output as CommercialReadingReport;
+    // The model returned only its application of the verdict. Rebuild the
+    // verdict from the verified facts and check the generated half against it
+    // mechanically before assembling the stored report.
+    const verdict = verdictFromFacts(facts);
+    const locale = input.locale;
+    const validation = validateGeneratedReading(
+      input.generationResult.output,
+      verdict,
+      questionText,
+      locale,
+    );
+    if (!validation.valid) {
+      throw new Error(`DEEP_READING_VALIDATION_FAILED: ${validation.failures.join(",")}`);
+    }
+    const generated = input.generationResult.output as GeneratedReading;
+    const output = assembleReadingReport(verdict, generated, facts, locale);
     const config = getServerConfig();
     const model = config.aiModelDeepReading ?? "gemini-2.5-pro";
-    const schemaVersion = "commercial-reading-v1";
-    const promptVersion = "v1";
+    const schemaVersion = "commercial-reading-v2";
+    const promptVersion = "v2";
     const provider = "google";
     const integrity = calculateDeepReadingResultIntegrity({
       castingId: input.castingId,

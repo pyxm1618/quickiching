@@ -1,3 +1,4 @@
+import { isContentLocale, type ContentLocale } from "@/i18n/config";
 import { isPaidDeepReadingCapabilityEnabled } from "@/server/generation/deep-reading-capability";
 import { createProductionDeepReadingService } from "@/server/generation/deep-reading-composition";
 import { resolveSession } from "@/lib/auth/session";
@@ -39,6 +40,25 @@ function forbidden(message = "Forbidden"): Response {
   });
 }
 
+// The reading is written in the language the reader is browsing in. Resolved
+// here, where request context exists, rather than defaulted deep in the
+// workflow where a wrong guess would be invisible.
+function requestLocale(request: Request): ContentLocale {
+  const header = request.headers.get("x-quickiching-locale")?.trim();
+  if (header && isContentLocale(header)) return header;
+
+  const referer = request.headers.get("referer");
+  if (referer) {
+    try {
+      const [segment] = new URL(referer).pathname.split("/").filter(Boolean);
+      if (segment === "zh") return "zh-Hans";
+    } catch {
+      // A malformed referer simply falls through to the default.
+    }
+  }
+  return "en";
+}
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ castingId: string }> },
@@ -56,6 +76,7 @@ export async function POST(
     const result = await service.requestDeepReading({
       userId: session.user.id,
       castingId,
+      locale: requestLocale(request),
     });
 
     return json({

@@ -81,6 +81,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     const result = await deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
+      locale: "en",
     });
 
     expect(result.status).toBe("queued");
@@ -129,6 +130,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
+      locale: "en",
     })).rejects.toThrow("CASTING_NOT_READY");
   });
 
@@ -144,6 +146,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
+      locale: "en",
     })).rejects.toThrow("RISK_PROHIBITED");
   });
 
@@ -161,6 +164,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
+      locale: "en",
     })).rejects.toThrow("CASTING_NOT_FOUND");
   });
 
@@ -186,6 +190,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userZeroId,
       castingId,
+      locale: "en",
     })).rejects.toThrow("INSUFFICIENT_CREDITS");
   });
 
@@ -218,6 +223,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
+      locale: "en",
     })).rejects.toThrow("CASTING_NOT_FOUND");
   });
 });

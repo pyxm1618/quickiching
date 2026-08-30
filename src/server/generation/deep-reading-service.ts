@@ -4,6 +4,7 @@ import type { WorkflowStarter } from "@/server/workflows/workflow-starter";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
 import { calculateDeepReadingInputSnapshotHash } from "@/server/generation/integrity";
 import { decryptQuestionForGeneration } from "@/server/generation/question-crypto";
+import type { ContentLocale } from "@/i18n/config";
 
 type Row = Record<string, any>;
 
@@ -24,6 +25,7 @@ export interface DeepReadingService {
   requestDeepReading(options: {
     userId: string;
     castingId: string;
+    locale: ContentLocale;
   }): Promise<DeepReadingRequestResult>;
 
   getDeepReadingStatus(options: {
@@ -329,6 +331,7 @@ export function createDeepReadingService(dependencies: {
           reservationId: prepared.reservationId,
           idempotencyKey: prepared.idempotencyKey,
           generationEpoch: prepared.epoch,
+          locale: options.locale,
         });
         if (!started.started) throw new Error("WORKFLOW_START_FAILED");
       } catch {
