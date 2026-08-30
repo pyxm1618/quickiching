@@ -66,8 +66,25 @@ const completeCheckoutEnv = {
   PAYMENT_CHECKOUT_URL_KEYS: "v1:payment-checkout-url-secret",
 };
 
+// Several cases below assert the closed state before opening a capability. That
+// baseline must be established by the test, not inherited from whatever process
+// the suite happens to run in: `scripts/vercel-build.mjs` runs `bun run test`
+// during the Vercel build, where a fully configured commercial environment is
+// present and would make every "disabled by default" assertion false. Clearing
+// the six flags is sufficient — a capability can never be enabled without
+// having been requested.
+const COMMERCIAL_CAPABILITY_FLAGS = [
+  "COMMERCIAL_V2_AUTH_ENABLED",
+  "COMMERCIAL_V2_AI_PREVIEW_ENABLED",
+  "COMMERCIAL_V2_CHECKOUT_ENABLED",
+  "COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED",
+  "COMMERCIAL_V2_PAID_DEEP_READING_ENABLED",
+  "COMMERCIAL_V2_RECONCILE_ENABLED",
+] as const;
+
 describe("Public V1 middleware boundaries", () => {
   beforeEach(() => {
+    for (const flag of COMMERCIAL_CAPABILITY_FLAGS) vi.stubEnv(flag, "");
     vi.stubEnv("BETTER_AUTH_TRUSTED_ORIGINS", "");
   });
 
