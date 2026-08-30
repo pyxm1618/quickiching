@@ -3,9 +3,12 @@ import type { TransactionSql } from "postgres";
 import { getPostgresClient } from "@/server/db/client";
 import type {
   DeterministicFacts,
-  CommercialReadingReportV2,
   GeneratedReading,
 } from "@/domain/generation/schemas";
+import {
+  assembleReadingReport,
+  readingVariantFor,
+} from "@/domain/generation/assemble-report";
 import {
   buildDeterministicVerdict,
   type DeterministicVerdict,
@@ -28,13 +31,6 @@ import { decryptQuestionForGeneration } from "@/server/generation/question-crypt
 type Row = Record<string, any>;
 const LEASE_DURATION_MS = 5 * 60 * 1000;
 
-function readingVariant(movingLinePositions: number[]): DeterministicFacts["readingVariant"] {
-  if (movingLinePositions.length === 0) return "still_hexagram";
-  if (movingLinePositions.length === 6) return "all_lines_moving";
-  if (movingLinePositions.length > 1) return "multiple_moving";
-  return "standard";
-}
-
 // The deterministic verdict is derived from the already-verified cast facts, so
 // it can be rebuilt at any step without re-reading the database.
 function verdictFromFacts(facts: DeterministicFacts): DeterministicVerdict {
@@ -47,59 +43,6 @@ function verdictFromFacts(facts: DeterministicFacts): DeterministicVerdict {
     algorithmVersion: facts.algorithmVersion,
     classicMappingVersion: facts.classicMappingVersion,
   });
-}
-
-const DISCLAIMER: Record<ContentLocale, string> = {
-  "zh-Hans": "本解读用于反思与自我澄清，不构成决定论预言，也不替代医疗、法律、财务或其他专业建议。",
-  en: "This reading is for reflection and self-clarification. It is not a deterministic prediction"
-    + " and does not replace medical, legal, financial or other professional advice.",
-};
-
-// Joins the code-computed half and the model-written half into the stored
-// report. The deterministic fields are copied from the verdict, never from the
-// model's output, so what the reader sees as "依据" cannot drift.
-function assembleReadingReport(
-  verdict: DeterministicVerdict,
-  generated: GeneratedReading,
-  facts: DeterministicFacts,
-  locale: ContentLocale,
-): CommercialReadingReportV2 {
-  const quotes = [
-    { role: "primary" as const, quote: verdict.oracle.primary },
-    ...verdict.oracle.supporting.map((quote) => ({ role: "supporting" as const, quote })),
-  ].map(({ role, quote }) => ({
-    role,
-    hexagramNumber: quote.hexagramNumber,
-    hexagramChineseName: quote.hexagramChineseName,
-    label: quote.label,
-    text: quote.text,
-    sourceWork: quote.source.work,
-    sourceUrl: quote.source.textSourceUrl,
-  }));
-
-  return {
-    schemaVersion: "commercial-reading-v2",
-    locale,
-    readingVariant: facts.readingVariant,
-    deterministic: {
-      primaryHexagramNumber: verdict.primaryHexagram.number,
-      relatingHexagramNumber: verdict.relatingHexagram?.number ?? null,
-      nuclearHexagramNumber: verdict.nuclearHexagram.number,
-      movingLinePositions: [...verdict.movingLinePositions],
-      changeRuleId: verdict.changeRule.ruleId,
-      direction: verdict.direction,
-      tiYong: verdict.tiYong
-        ? {
-            tiTrigram: verdict.tiYong.ti.trigram,
-            yongTrigram: verdict.tiYong.yong.trigram,
-            relation: verdict.tiYong.relation,
-          }
-        : null,
-      quotes,
-    },
-    generated,
-    disclaimer: DISCLAIMER[locale],
-  };
 }
 
 function factsFromSession(session: Row): DeterministicFacts {
@@ -116,7 +59,7 @@ function factsFromSession(session: Row): DeterministicFacts {
     primaryHexagramNumber: Number(session.primary_hexagram_number),
     movingLinePositions,
     relatingHexagramNumber: session.relating_hexagram_number ? Number(session.relating_hexagram_number) : null,
-    readingVariant: readingVariant(movingLinePositions),
+    readingVariant: readingVariantFor(movingLinePositions),
   };
 }
 
@@ -374,7 +317,12 @@ export async function finalizeDeepReadingStep(input: {
       throw new Error(`DEEP_READING_VALIDATION_FAILED: ${validation.failures.join(",")}`);
     }
     const generated = input.generationResult.output as GeneratedReading;
-    const output = assembleReadingReport(verdict, generated, facts, locale);
+    const output = assembleReadingReport({
+      verdict,
+      generated,
+      readingVariant: facts.readingVariant,
+      locale,
+    });
     const config = getServerConfig();
     const model = config.aiModelDeepReading ?? "gemini-2.5-pro";
     const schemaVersion = "commercial-reading-v2";
