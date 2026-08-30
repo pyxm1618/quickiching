@@ -6,6 +6,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { DeleteAccountControl } from "./delete-account-control";
 
+// This page reads the caller's session, so it can only ever be rendered per
+// request. Without this, prerendering runs getCurrentUser() with Auth enabled,
+// where the headers() bail-out is swallowed by that function's catch and
+// resurfaces as AUTH_INFRASTRUCTURE_UNAVAILABLE, failing the build.
+export const dynamic = "force-dynamic";
+
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/signin");
