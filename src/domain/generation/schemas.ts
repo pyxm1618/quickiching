@@ -30,9 +30,12 @@ export const previewOutputSchema = z.object({
   disclaimer: boundedText(500),
 }).strict();
 
-// Legacy v1 reading shape. Retained for the offline local adapter and the
-// preserved legacy commercial UI. The paid path uses v2 below, where the
-// classical citations are real quotations rather than licence placeholders.
+// Legacy v1 reading shape, frozen. No adapter produces it any more: the offline
+// local adapter and the paid path both emit commercial-reading-v2 below, where
+// the classical citations are real quotations with a source rather than licence
+// placeholders. It is retained because rows written under this version still
+// exist and src/legacy/commercial/ is preserved against it, which is also why
+// the "pending_license" literal stays — it is what those rows say.
 const basisReferenceSchema = z.object({
   source: z.enum(["king_wen_judgment", "king_wen_line", "relating_judgment"]),
   hexagramNumber: z.number().int().min(1).max(64),

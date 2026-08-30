@@ -52,6 +52,18 @@ const CONDITIONAL_MARKERS: Record<ContentLocale, readonly string[]> = {
   en: [" if ", "if ", " when ", " unless ", " provided ", " as long as ", " should you "],
 };
 
+/**
+ * Whether a fragment carries phrasing this validator bans outright.
+ *
+ * Exported so a writer that composes text from untrusted input — the offline
+ * adapter quoting the reader's own words back — can drop an offending fragment
+ * before emitting it, instead of keeping a second copy of these patterns.
+ */
+export function hasProhibitedPhrasing(text: string): boolean {
+  return ABSOLUTE_PREDICTION_PATTERNS.some((pattern) => pattern.test(text))
+    || PROHIBITED_DIRECTIVE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
 function allText(reading: GeneratedReading): string {
   return [
     reading.questionRestatement,

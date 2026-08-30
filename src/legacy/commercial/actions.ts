@@ -388,6 +388,10 @@ async function startDeepReadingActionImpl(unknownInput: unknown): Promise<Action
       scene: session.scene,
       interpretationGoal: session.interpretationGoal,
       context,
+      // This preserved flow has no locale of its own and its UI is English.
+      // Stated rather than defaulted inside the adapter, so the paid v2 path
+      // keeps having to resolve the locale per request.
+      locale: "en",
     });
     repo.completeReadingConsume(freeze.reservationId, report as unknown as Record<string, unknown>);
     return ok({ status: "completed", readingId: reading.id, report });

@@ -1,35 +1,16 @@
-// §12.5 Deep Reading schema (READ-002). All ten modules are always present, even when the
-// reading variant changes module 4/5 titles (READ-004). Personalization is a minimum quality
-// bar for every module, not a separate field.
-
-export type ReadingVariant =
-  | "standard"
-  | "still_hexagram" // no moving lines
-  | "multiple_moving"
-  | "all_lines_moving"; // six lines all moving
-
-export type InterpretiveBasisReference = {
-  // We do NOT generate classic text (G-02 licensing blocked). References describe which
-  // controlled source the production renderer would pull, and are auditable.
-  source: "king_wen_judgment" | "king_wen_line" | "relating_judgment";
-  hexagramNumber: number;
-  linePosition?: number;
-  status: "pending_license";
-};
-
-export type ReadingReport = {
-  readingVariant: ReadingVariant;
-  coreSummary: string;
-  currentStage: string;
-  primaryHexagramPattern: string;
-  changeMechanism: string;
-  possibleDirection: string;
-  obstaclesAndBlindSpots: string;
-  turningConditions: string;
-  conditionalActionDirection: string;
-  uncertaintyAndBoundaries: string;
-  interpretiveBasisReferences: InterpretiveBasisReference[];
-};
+// Offline preview shape.
+//
+// The v1 deep reading types that used to live here (ReadingReport,
+// ReadingVariant and the InterpretiveBasisReference carrying
+// status: "pending_license") are gone. That status encoded an assumption the
+// deep reading design has since dropped: the classical text is in the
+// repository, verified against a fixed Wikisource revision, so a reading cites
+// it for real rather than describing what a licensed renderer would fetch. The
+// deep reading now returns commercial-reading-v2 — see
+// src/domain/generation/schemas.ts and src/domain/generation/assemble-report.ts.
+//
+// The frozen v1 zod shape stays in schemas.ts as readingReportSchema; nothing
+// produces it any more.
 
 export type PreviewOutput = {
   relevanceStatement: string;
