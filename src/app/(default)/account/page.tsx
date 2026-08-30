@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
-import { loadHistory, loadEntitlementBalance } from "@/server/loaders";
+import { loadAccountOverview, AccountDataUnavailableError, type AccountOverviewView } from "@/server/loaders";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { DeleteAccountControl } from "./delete-account-control";
@@ -9,8 +9,27 @@ import { DeleteAccountControl } from "./delete-account-control";
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/signin");
-  const history = await loadHistory();
-  const balance = await loadEntitlementBalance();
+
+  let overview: AccountOverviewView;
+  try {
+    overview = await loadAccountOverview();
+  } catch (error) {
+    if (!(error instanceof AccountDataUnavailableError)) throw error;
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-16">
+        <h1 className="font-display text-[clamp(1.8rem,2.6vw,2.4rem)] font-medium tracking-[-0.015em]">My Account</h1>
+        <Card className="mt-8"><CardContent className="pt-6">
+          <p className="font-display text-lg font-medium">Your account data can’t be loaded right now</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">
+            This is a temporary problem reading your records — your reading credits and history are unchanged.
+            Please refresh in a moment.
+          </p>
+        </CardContent></Card>
+      </div>
+    );
+  }
+
+  const { credits, history } = overview;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-16">
@@ -22,7 +41,7 @@ export default async function AccountPage() {
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <Card><CardContent className="pt-6">
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Reading credits</p>
-          <p className="mt-2 font-display text-4xl font-medium">{balance.available}</p>
+          <p className="mt-2 font-display text-4xl font-medium">{credits.available}</p>
           <p className="mt-1 font-sans text-xs text-[var(--ink-3)]">Valid for 12 months from purchase</p>
           <Link href="/pricing" className="mt-2 inline-block text-sm font-semibold text-[var(--jade)] hover:underline">Buy more →</Link>
         </CardContent></Card>
