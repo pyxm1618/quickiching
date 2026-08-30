@@ -189,6 +189,27 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest(`/api/orders/${orderId}/refund`, { method: "POST" })).status).toBe(404);
   });
 
+  it("opens the signed-in result page only when Paid Deep Reading is enabled", () => {
+    const castingId = "0f1d2f1e-9a3b-4c1d-8e2f-5a6b7c8d9e0f";
+    expect(middleware(makeRequest(`/readings/${castingId}`)).status).toBe(404);
+
+    for (const [name, value] of Object.entries(completeDeepReadingEnv)) vi.stubEnv(name, value);
+
+    expect(middleware(makeRequest(`/readings/${castingId}`)).status).toBe(200);
+    expect(middleware(makeRequest(`/readings/${castingId}/`)).status).toBe(200);
+    expect(middleware(makeRequest(`/readings/${castingId}/extra`)).status).toBe(200);
+  });
+
+  it("never gates the Public V1 reading pages behind a commercial capability", () => {
+    // Closed by default, and these must stay reachable either way.
+    expect(middleware(makeRequest("/readings/three-coin/result")).status).toBe(200);
+    expect(middleware(makeRequest("/readings/three-coin")).status).toBe(200);
+
+    for (const [name, value] of Object.entries(completeDeepReadingEnv)) vi.stubEnv(name, value);
+
+    expect(middleware(makeRequest("/readings/three-coin/result")).status).toBe(200);
+  });
+
   it("opens only the return path under the otherwise Gone /checkout prefix", () => {
     expect(middleware(makeRequest("/checkout/return")).status).toBe(404);
 
