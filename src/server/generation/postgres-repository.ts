@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Sql } from "postgres";
+import { readingVariantFor } from "@/domain/generation/assemble-report";
 import { previewOutputSchema, type DeterministicFacts } from "@/domain/generation/schemas";
 import { decryptJson, decryptJsonWithKeyMaterial } from "@/lib/crypto";
 import { hashGenerationSnapshot } from "./boundary";
@@ -69,13 +70,6 @@ function resultFromRow(row: Row): PreviewResultRecord {
   };
 }
 
-function readingVariant(movingLinePositions: number[]): DeterministicFacts["readingVariant"] {
-  if (movingLinePositions.length === 0) return "still_hexagram";
-  if (movingLinePositions.length === 6) return "all_lines_moving";
-  if (movingLinePositions.length > 1) return "multiple_moving";
-  return "standard";
-}
-
 function contextFromRow(row: Row, questionEncryptionKeys: string | undefined): PreviewGenerationContext {
   if (!row.question_version_id || !row.result_hmac) throw new Error("PREVIEW_CONTEXT_UNAVAILABLE");
   const encrypted = {
@@ -112,7 +106,7 @@ function contextFromRow(row: Row, questionEncryptionKeys: string | undefined): P
       primaryHexagramNumber: Number(row.primary_hexagram_number),
       movingLinePositions,
       relatingHexagramNumber: row.relating_hexagram_number == null ? null : Number(row.relating_hexagram_number),
-      readingVariant: readingVariant(movingLinePositions),
+      readingVariant: readingVariantFor(movingLinePositions),
     },
     resultHmac: String(row.result_hmac),
     resultHmacKeyVersion: String(row.result_hmac_key_version),

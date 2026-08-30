@@ -6,6 +6,7 @@ import type {
   InterpretationGoal,
   Scene,
 } from "@/domain/casting/types";
+import { readingVariantFor } from "@/domain/generation/assemble-report";
 import type { RiskDecision } from "@/domain/risk/engine";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
 import { calculateResultIntegrityHmac } from "@/server/generation/integrity";
@@ -48,13 +49,6 @@ export interface PostgresCastingRepository {
   persistAttestedCast(input: AttestedCastInput): Promise<AttestedCastResult>;
 }
 
-function readingVariant(movingLinePositions: readonly number[]): DeterministicFacts["readingVariant"] {
-  if (movingLinePositions.length === 0) return "still_hexagram";
-  if (movingLinePositions.length === 6) return "all_lines_moving";
-  if (movingLinePositions.length > 1) return "multiple_moving";
-  return "standard";
-}
-
 function deterministicFacts(facts: HexagramResult): DeterministicFacts {
   return {
     method: facts.method,
@@ -64,7 +58,7 @@ function deterministicFacts(facts: HexagramResult): DeterministicFacts {
     primaryHexagramNumber: facts.primaryHexagramNumber,
     movingLinePositions: [...facts.movingLinePositions],
     relatingHexagramNumber: facts.relatingHexagramNumber,
-    readingVariant: readingVariant(facts.movingLinePositions),
+    readingVariant: readingVariantFor(facts.movingLinePositions),
   };
 }
 
