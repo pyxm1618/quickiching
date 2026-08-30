@@ -223,7 +223,25 @@ async function phaseReady(ctx) {
   pass("GET /api/ready returns JSON");
 
   assertEqual("/api/ready status", report.status, ctx.expectedReadyStatus);
-  assertEqual("/api/ready database.status", report.database?.status, ctx.expectedDatabaseStatus);
+
+  // The readiness payload has two legitimate shapes. On branches that expose
+  // the full report it carries `database` and `capabilities`; the CP6 repair
+  // line deliberately reduces this unauthenticated endpoint to coarse status
+  // only, so that a public probe cannot enumerate infrastructure detail. The
+  // gate accepts both and never treats the coarse shape as a silent pass:
+  // capability state is established behaviourally in phaseCapabilityProbe,
+  // which is stronger evidence than a self-reported field either way.
+  const detailed = report.database !== undefined || report.capabilities !== undefined;
+  ctx.readinessIsCoarse = !detailed;
+
+  if (detailed) {
+    assertEqual("/api/ready database.status", report.database?.status, ctx.expectedDatabaseStatus);
+  } else {
+    skip(
+      "/api/ready database.status",
+      "this deployment exposes coarse readiness only (status/overall); the database detail is intentionally not public, so this assertion did not run",
+    );
+  }
 
   // The runbook says this response is safe to paste into a ticket. Unit tests
   // assert that on the report shape; here we assert it on the real deployment,
@@ -244,6 +262,7 @@ async function phaseReady(ctx) {
   for (const name of CAPABILITY_NAMES) {
     const detail = report.capabilities?.[name];
     if (!detail) {
+      if (!detailed) continue; // Covered behaviourally; reported in phaseCapabilityProbe.
       fail(`/api/ready reports capability ${name}`, "capability missing from readiness report");
       continue;
     }
@@ -272,6 +291,74 @@ async function phaseReady(ctx) {
 // response.
 function expectedClosedOrUnauthorized(ctx, capability) {
   return ctx.expectedCapabilities[capability] ? 401 : 404;
+}
+
+// One representative anonymous probe per capability. Middleware answers 404
+// while a capability is closed and the route answers 401 once it is open, so
+// the status code is direct evidence of the runtime capability state — no
+// self-reported field involved. This is the authoritative capability check,
+// and it is the only one available when readiness is coarse.
+const CAPABILITY_PROBES = [
+  { capability: "auth", method: "POST", path: () => "/api/account/delete", sameOrigin: true, json: true },
+  { capability: "checkout", method: "POST", path: () => "/api/checkout", sameOrigin: true, json: true,
+    body: () => JSON.stringify({ productKey: "one", requestId: `gate-${randomUUID()}` }) },
+  { capability: "webhookIngestion", method: "POST", path: () => "/api/webhooks/waffo", json: true, body: () => "{}",
+    headers: { "X-Waffo-Signature": "not-a-valid-signature" } },
+  { capability: "reconcile", method: "GET", path: () => "/api/internal/reconcile" },
+  { capability: "aiPreview", method: "GET", path: () => `/api/readings/${randomUUID()}/preview` },
+  { capability: "paidDeepReading", method: "GET", path: () => `/api/readings/${randomUUID()}/deep` },
+];
+
+async function phaseCapabilityProbe(ctx) {
+  log("--- capability state (behavioural probe) ---");
+  if (ctx.readinessIsCoarse) {
+    log("readiness is coarse on this deployment; capability state is established by probe, not by self-report");
+  }
+
+  const observed = {};
+  for (const probe of CAPABILITY_PROBES) {
+    const headers = {
+      ...(probe.sameOrigin ? sameOriginHeaders(ctx.origin) : {}),
+      ...(probe.json ? { "Content-Type": "application/json" } : {}),
+      ...(probe.headers ?? {}),
+    };
+    const response = await check(`capability probe ${probe.capability}`, () => request(ctx.origin, probe.path(), {
+      method: probe.method,
+      headers,
+      ...(probe.body ? { body: probe.body() } : {}),
+    }));
+    if (!response) continue;
+
+    // 404 means middleware refused before the route existed to answer; any
+    // non-404 means the route ran, which is only possible once the capability
+    // resolved. Anything other than 401/404 is reported verbatim rather than
+    // squeezed into a boolean.
+    observed[probe.capability] = response.status === 404
+      ? false
+      : response.status === 401 || response.status === 403
+        ? true
+        : `unexpected:${response.status}`;
+  }
+
+  log("");
+  log("  capability          expected   observed");
+  for (const name of CAPABILITY_NAMES) {
+    const expected = ctx.expectedCapabilities[name];
+    const actual = observed[name];
+    const shown = actual === true ? "open" : actual === false ? "closed" : String(actual);
+    log(`  ${name.padEnd(20)}${(expected ? "open" : "closed").padEnd(11)}${shown}`);
+  }
+  log("");
+
+  for (const name of CAPABILITY_NAMES) {
+    const expected = ctx.expectedCapabilities[name];
+    assertTrue(
+      `capability ${name} is ${expected ? "open" : "closed"} (behavioural)`,
+      observed[name] === expected,
+      `expected: ${expected ? "open (401 from the route)" : "closed (404 from middleware)"}\n`
+      + `observed: ${observed[name] === undefined ? "probe failed" : observed[name] === true ? "open" : observed[name] === false ? "closed" : observed[name]}`,
+    );
+  }
 }
 
 async function phaseUnauthenticatedBoundaries(ctx) {
@@ -991,6 +1078,7 @@ async function main() {
 
   await phaseHealth(ctx);
   await phaseReady(ctx);
+  await phaseCapabilityProbe(ctx);
   await phaseUnauthenticatedBoundaries(ctx);
   await phaseCrossSite(ctx);
   await phaseReconcile(ctx);
