@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isContentLocale, type ContentLocale } from "@/i18n/config";
 import { isCheckoutCapabilityEnabled } from "@/server/payments/capability";
 import { CheckoutServiceError } from "@/server/payments/checkout-service";
 import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
@@ -38,6 +39,27 @@ async function authenticatedUser(request: Request): Promise<{ id: string; email:
   const session = await getAuth().api.getSession({ headers: request.headers });
   if (!session?.user) return null;
   return { id: session.user.id, email: session.user.email };
+}
+
+/**
+ * Picks the hosted cashier's default language only. Taken from the request
+ * because that is where browsing context lives; the buyer can still switch
+ * language on the checkout page.
+ */
+function requestLocale(request: Request): ContentLocale {
+  const header = request.headers.get("x-quickiching-locale")?.trim();
+  if (header && isContentLocale(header)) return header;
+
+  const referer = request.headers.get("referer");
+  if (referer) {
+    try {
+      const [segment] = new URL(referer).pathname.split("/").filter(Boolean);
+      if (segment === "zh") return "zh-Hans";
+    } catch {
+      // A malformed referer simply falls through to the default.
+    }
+  }
+  return "en";
 }
 
 function serviceFailure(error: unknown): Response {
@@ -100,6 +122,7 @@ export async function POST(request: Request): Promise<Response> {
     const checkout = await service.create({
       userId: user.id,
       buyerEmail: user.email,
+      locale: requestLocale(request),
       ...parsed.data,
     });
     return json({

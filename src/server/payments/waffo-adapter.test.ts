@@ -17,6 +17,7 @@ const runtimeEnv = {
   WAFFO_PROD_PRODUCT_ID_ONE: "PROD_prod_one",
   WAFFO_PROD_PRODUCT_ID_THREE: "PROD_prod_three",
   WAFFO_PROD_PRODUCT_ID_FIVE: "PROD_prod_five",
+  APP_BASE_URL: "https://www.quickiching.com",
 };
 
 describe("Waffo 0.19.1 payment boundary", () => {
@@ -93,14 +94,16 @@ describe("Waffo 0.19.1 payment boundary", () => {
       buyerIdentity: "user-123",
       buyerEmail: "buyer@example.com",
       orderMerchantExternalId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
+      successUrl: "https://www.quickiching.com/checkout/return",
       metadata: {
         internalOrderId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
         productKey: "three",
         providerProductId: "PROD_test_three",
       },
     });
-    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("successUrl");
     expect(create.mock.calls[0]?.[0]).not.toHaveProperty("priceSnapshot");
+    // No locale was supplied, so the cashier is left to infer its own language.
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("language");
     expect(JSON.stringify(result)).not.toContain("tokenExpiresAt");
   });
 
@@ -177,5 +180,89 @@ describe("Waffo 0.19.1 payment boundary", () => {
       buyerEmail: "buyer@example.com",
       productKey: "one",
     })).rejects.toThrow("WAFFO_PROVIDER_RESPONSE_INVALID");
+  });
+});
+
+describe("Waffo post-payment return URL", () => {
+  function checkoutSpy() {
+    return vi.fn(async (_input: unknown) => ({
+      sessionId: "cs_test",
+      checkoutUrl: "https://pancake.waffo.ai/store/test/checkout/cs_test#token=secret-token",
+      expiresAt: "2026-08-24T02:00:00.000Z",
+      token: "secret-token",
+      tokenExpiresAt: "2026-08-24T01:50:00.000Z",
+    }));
+  }
+
+  function adapterFor(env: Record<string, string | undefined>, create = checkoutSpy()) {
+    return {
+      create,
+      adapter: createWaffoPaymentAdapter(resolveWaffoRuntimeConfig(env), {
+        checkout: { authenticated: { create } },
+      }, () => new Date("2026-08-24T01:00:00.000Z")),
+    };
+  }
+
+  function purchase(adapter: ReturnType<typeof adapterFor>["adapter"], locale?: "en" | "zh-Hans") {
+    return adapter.createCheckout({
+      orderId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
+      userId: "user-123",
+      buyerEmail: "buyer@example.com",
+      productKey: "one",
+      ...(locale ? { locale } : {}),
+    });
+  }
+
+  it("derives the return URL from APP_BASE_URL", () => {
+    expect(resolveWaffoRuntimeConfig(runtimeEnv).successUrl)
+      .toBe("https://www.quickiching.com/checkout/return");
+  });
+
+  it("keeps the return URL on the configured origin regardless of the base path", () => {
+    expect(resolveWaffoRuntimeConfig({ ...runtimeEnv, APP_BASE_URL: "https://staging.quickiching.com/anything" }).successUrl)
+      .toBe("https://staging.quickiching.com/checkout/return");
+  });
+
+  it("sends the return URL on every checkout", async () => {
+    const { adapter, create } = adapterFor(runtimeEnv);
+
+    await purchase(adapter);
+
+    expect(create.mock.calls[0]?.[0]).toMatchObject({
+      successUrl: "https://www.quickiching.com/checkout/return",
+    });
+  });
+
+  it("carries no order identity in the return URL", async () => {
+    const { adapter, create } = adapterFor(runtimeEnv);
+
+    await purchase(adapter);
+
+    const url = new URL((create.mock.calls[0]?.[0] as { successUrl: string }).successUrl);
+    expect(url.search).toBe("");
+    expect(url.hash).toBe("");
+    expect(url.pathname).toBe("/checkout/return");
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["blank", "   "],
+    ["not a URL", "not-a-url"],
+    ["a non-HTTP scheme", "ftp://www.quickiching.com"],
+    ["credentials in the authority", "https://user:pass@www.quickiching.com"],
+  ])("fails closed when APP_BASE_URL is %s", (_label, appBaseUrl) => {
+    expect(() => resolveWaffoRuntimeConfig({ ...runtimeEnv, APP_BASE_URL: appBaseUrl }))
+      .toThrow("WAFFO_CONFIGURATION_UNAVAILABLE");
+  });
+
+  it.each([
+    ["en", "en"],
+    ["zh-Hans", "zh-Hans"],
+  ])("passes %s through as the cashier's default language", async (locale, expected) => {
+    const { adapter, create } = adapterFor(runtimeEnv);
+
+    await purchase(adapter, locale as "en" | "zh-Hans");
+
+    expect(create.mock.calls[0]?.[0]).toMatchObject({ language: expected });
   });
 });
