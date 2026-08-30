@@ -1,7 +1,9 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   checkSystemReadiness,
   REQUIRED_COMMERCIAL_TABLES,
+  REQUIRED_MIGRATION_CHECKPOINT_AT,
 } from "./readiness-service";
 
 const LATEST_CP5_MIGRATION_AT = 1787797500000;
@@ -163,8 +165,18 @@ describe("System Readiness Service", () => {
     }
   });
 
-  it("never includes secret values in readiness report", async () => {
-    const secretValue = "super-secret-key-12345-do-not-leak";
+  it("pins the migration checkpoint to the newest entry in the Drizzle journal", () => {
+    const journal = JSON.parse(readFileSync("drizzle/meta/_journal.json", "utf8")) as {
+      entries: { when: number; tag: string }[];
+    };
+    const newest = Math.max(...journal.entries.map((entry) => entry.when));
+
+    // A new migration without a checkpoint bump would let a deployment that is
+    // missing that migration still report ready.
+    expect(REQUIRED_MIGRATION_CHECKPOINT_AT).toBe(newest);
+  });
+
+  it("never includes secret values in readiness report", async () => {    const secretValue = "super-secret-key-12345-do-not-leak";
     const env = validCommercialEnv();
     env.BETTER_AUTH_SECRET = secretValue;
 

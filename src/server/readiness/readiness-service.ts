@@ -12,12 +12,23 @@ export const REQUIRED_COMMERCIAL_TABLES = Object.freeze([
   "casting_sessions",
   "question_versions",
   "generation_jobs",
+  "generation_output_reviews",
+  "deep_reading_results",
   "payment_orders",
   "payment_webhook_inbox",
+  "payment_outbox",
+  "entitlement_batches",
+  "entitlement_reservations",
   "entitlement_ledger",
   "workflow_runs",
   "audit_events",
 ] as const);
+
+// The newest entry in drizzle/meta/_journal.json (0010_cp5_audit_remediation).
+// A deployment whose applied migration log is empty or older than this has not
+// received the CP5 payment/entitlement surface, so it must never report ready.
+// readiness-service.test.ts pins this constant to the journal to catch drift.
+export const REQUIRED_MIGRATION_CHECKPOINT_AT = 1787797500000;
 
 export type CapabilityReadinessDetail = {
   requested: boolean;
@@ -29,10 +40,12 @@ export type CapabilityReadinessDetail = {
 };
 
 export type DatabaseReadinessDetail = {
-  status: "ok" | "not_configured" | "error" | "tables_missing";
+  status: "ok" | "not_configured" | "error" | "tables_missing" | "migration_missing" | "migration_outdated";
   connected: boolean;
   tablesChecked: boolean;
   missingTables?: string[];
+  appliedMigrationAt?: number;
+  requiredMigrationAt?: number;
 };
 
 export type SystemReadinessReport = {
@@ -46,13 +59,17 @@ export async function checkSystemReadiness(
   env: Record<string, string | undefined> = process.env,
   dbOverride?: {
     queryTables?: () => Promise<string[]>;
+    queryMigrationTimestamps?: () => Promise<number[]>;
     ping?: () => Promise<void>;
   },
 ): Promise<SystemReadinessReport> {
   const capabilityConfig = resolveCommercialCapabilities(env);
 
   const capabilitiesReport = {} as Record<CommercialCapability, CapabilityReadinessDetail>;
-  let anyRequestedBlocked = false;
+  // Commercial V2 is a single commercial surface: checkout without paid deep
+  // reading, or auth without generation, is a half-open deployment. Readiness
+  // therefore requires every capability, not just the ones that were requested.
+  let anyCapabilityUnavailable = false;
 
   for (const cap of COMMERCIAL_CAPABILITIES) {
     const status = capabilityConfig.capabilities[cap];
@@ -64,8 +81,8 @@ export async function checkSystemReadiness(
       invalidDependencies: [...status.invalidDependencies],
       blockedDependencies: [...status.blockedDependencies],
     };
-    if (status.requested && !status.enabled) {
-      anyRequestedBlocked = true;
+    if (!status.enabled) {
+      anyCapabilityUnavailable = true;
     }
   }
 
@@ -109,7 +126,32 @@ export async function checkSystemReadiness(
         dbReport.status = "tables_missing";
         dbReport.missingTables = missing;
       } else {
-        dbReport.status = "ok";
+        // Tables can exist while the migration log is behind: a restored
+        // snapshot, or a deploy that ran an older migration set. Compare the
+        // applied log against the checkpoint before reporting ok.
+        let appliedTimestamps: number[];
+        if (dbOverride?.queryMigrationTimestamps) {
+          appliedTimestamps = await dbOverride.queryMigrationTimestamps();
+        } else {
+          const { client } = getCommercialDatabaseConnection(env.DATABASE_URL);
+          const rows = await client<{ created_at: string | number | null }[]>`
+            SELECT created_at FROM drizzle.__drizzle_migrations
+          `;
+          appliedTimestamps = rows
+            .map((row) => Number(row.created_at))
+            .filter((value) => Number.isFinite(value));
+        }
+
+        dbReport.requiredMigrationAt = REQUIRED_MIGRATION_CHECKPOINT_AT;
+        if (appliedTimestamps.length === 0) {
+          dbReport.status = "migration_missing";
+        } else {
+          const latestApplied = Math.max(...appliedTimestamps);
+          dbReport.appliedMigrationAt = latestApplied;
+          dbReport.status = latestApplied < REQUIRED_MIGRATION_CHECKPOINT_AT
+            ? "migration_outdated"
+            : "ok";
+        }
       }
     } catch {
       dbReport.status = "error";
@@ -118,13 +160,13 @@ export async function checkSystemReadiness(
   }
 
   const isDatabaseReady = dbReport.status === "ok" && dbReport.connected;
-  const isCommercialActive = capabilityConfig.commercialEnabled;
 
   // Commercial V2 readiness requires:
-  // 1. Database is configured, reachable, and contains all required commercial tables.
-  // 2. Commercial V2 capabilities are actively configured and enabled.
-  // 3. No requested capability is blocked or missing dependencies.
-  const overallReady = isCommercialActive && isDatabaseReady && !anyRequestedBlocked;
+  // 1. Database is configured, reachable, holds every required commercial
+  //    table, and has the CP5 migration checkpoint applied.
+  // 2. Every commercial capability is enabled — a partially enabled commercial
+  //    surface is not a shippable deployment.
+  const overallReady = isDatabaseReady && !anyCapabilityUnavailable;
 
   return {
     status: overallReady ? "ready" : "not_ready",
