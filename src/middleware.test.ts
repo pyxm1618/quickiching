@@ -165,4 +165,40 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/api/ready")).status).toBe(200);
     expect(middleware(makeRequest("/api/ready/")).status).toBe(200);
   });
+
+  it("opens the claim route only when Paid Deep Reading is enabled", () => {
+    expect(middleware(makeRequest("/api/readings/claim", { method: "POST" })).status).toBe(404);
+
+    for (const [name, value] of Object.entries(completeDeepReadingEnv)) vi.stubEnv(name, value);
+
+    expect(middleware(makeRequest("/api/readings/claim", { method: "POST" })).status).toBe(200);
+    expect(middleware(makeRequest("/api/readings/claim/", { method: "POST" })).status).toBe(200);
+    expect(middleware(makeRequest("/api/readings/claim/extra", { method: "POST" })).status).toBe(404);
+  });
+
+  it("opens the order status route only when Checkout is enabled, and only for a well-formed id", () => {
+    const orderId = "8b6d8846-cdce-4dde-9744-817b8329a5b6";
+    expect(middleware(makeRequest(`/api/orders/${orderId}`)).status).toBe(404);
+
+    for (const [name, value] of Object.entries(completeCheckoutEnv)) vi.stubEnv(name, value);
+
+    expect(middleware(makeRequest(`/api/orders/${orderId}`)).status).toBe(200);
+    expect(middleware(makeRequest(`/api/orders/${orderId}/`)).status).toBe(200);
+    expect(middleware(makeRequest("/api/orders")).status).toBe(404);
+    expect(middleware(makeRequest("/api/orders/not-a-uuid")).status).toBe(404);
+    expect(middleware(makeRequest(`/api/orders/${orderId}/refund`, { method: "POST" })).status).toBe(404);
+  });
+
+  it("opens only the return path under the otherwise Gone /checkout prefix", () => {
+    expect(middleware(makeRequest("/checkout/return")).status).toBe(404);
+
+    for (const [name, value] of Object.entries(completeCheckoutEnv)) vi.stubEnv(name, value);
+
+    expect(middleware(makeRequest("/checkout/return")).status).toBe(200);
+    expect(middleware(makeRequest("/checkout/return/")).status).toBe(200);
+    // The legacy commercial entry points stay permanently Gone.
+    expect(middleware(makeRequest("/checkout")).status).toBe(410);
+    expect(middleware(makeRequest("/checkout/session")).status).toBe(410);
+    expect(middleware(makeRequest("/checkout/return/extra")).status).toBe(410);
+  });
 });

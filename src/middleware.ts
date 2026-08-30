@@ -15,6 +15,14 @@ const PERSONALIZED_API_PATH = "/api/personalized-interpretation";
 const HEALTH_API_PATH = "/api/health";
 const READY_API_PATH = "/api/ready";
 const CHECKOUT_API_PATH = "/api/checkout";
+// The one live path under the otherwise permanently Gone /checkout prefix:
+// where Waffo returns the buyer after payment. Everything else under
+// /checkout stays 410 for Public V1.
+const CHECKOUT_RETURN_PATH = "/checkout/return";
+const ORDER_STATUS_PATH = /^\/api\/orders\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/?$/;
+// The signed-in result page. Only the UUID form is commercial; the Public V1
+// method pages under /readings (e.g. /readings/three-coin/result) never match.
+const READING_PAGE_PATH = /^\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/?$/;
 const WAFFO_WEBHOOK_PATH = "/api/webhooks/waffo";
 const RECONCILE_API_PATH = "/api/internal/reconcile";
 const CLAIM_READING_PATH = "/api/readings/claim";
@@ -72,6 +80,14 @@ export function middleware(request: NextRequest) {
     });
   }
 
+  if (pathname === CHECKOUT_RETURN_PATH || pathname === `${CHECKOUT_RETURN_PATH}/`) {
+    if (isCheckoutCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
   if (GONE_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))) {
     return new NextResponse("This Commercial V2 route is not available in Public V1.", {
       status: 410,
@@ -80,6 +96,14 @@ export function middleware(request: NextRequest) {
   }
 
   if (NOT_FOUND_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))) {
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (READING_PAGE_PATH.test(pathname)) {
+    if (isPaidDeepReadingCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("Not Found", {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
@@ -119,6 +143,14 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname === CHECKOUT_API_PATH || pathname === `${CHECKOUT_API_PATH}/`) {
+    if (isCheckoutCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (ORDER_STATUS_PATH.test(pathname)) {
     if (isCheckoutCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("Not Found", {
       status: 404,
