@@ -181,9 +181,31 @@ run("bun", ["scripts/homepage-seo-audit.mjs"], {
   },
 });
 
+// The gates below assert the PUBLIC site's closed shape — /signin, /account and
+// /checkout/example must answer 410. That baseline has to be established here,
+// not inherited from the deployment environment: this is the same defect as
+// 7f26452, one layer further out. The build runs inside Vercel with staging's
+// complete commercial configuration present, which opens all six capabilities,
+// makes those routes answer 200, and fails the very gate meant to protect the
+// release.
+//
+// Clearing the six flags relaxes nothing: a capability can never be enabled
+// without first being requested, and capability state is read per request (each
+// such route declares force-dynamic), so only this in-build server instance sees
+// the closed baseline — the deployed artifact is untouched. The OPEN shape is
+// verified after deployment by scripts/commercial-v2-staging-gate.mjs.
+const CLOSED_COMMERCIAL_FLAGS = {
+  COMMERCIAL_V2_AUTH_ENABLED: "",
+  COMMERCIAL_V2_AI_PREVIEW_ENABLED: "",
+  COMMERCIAL_V2_CHECKOUT_ENABLED: "",
+  COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "",
+  COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "",
+  COMMERCIAL_V2_RECONCILE_ENABLED: "",
+};
+
 await assertPortAvailable(3000);
 const server = spawn("bun", ["run", "start"], {
-  env: { ...process.env, PORT: "3000", HOSTNAME: "127.0.0.1" },
+  env: { ...process.env, ...CLOSED_COMMERCIAL_FLAGS, PORT: "3000", HOSTNAME: "127.0.0.1" },
   stdio: ["ignore", "inherit", "inherit"],
 });
 
