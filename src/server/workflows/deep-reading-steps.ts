@@ -29,7 +29,14 @@ import {
 import { decryptQuestionForGeneration } from "@/server/generation/question-crypto";
 
 type Row = Record<string, any>;
-const LEASE_DURATION_MS = 5 * 60 * 1000;
+// The lease has to outlive the whole generate → review → finalize chain, not
+// just one step. Measured on staging with deepseek-v4-pro: a single generation
+// takes 33-78s, and a run that had to retry a later step spent 5m07s end to
+// end — seven seconds past the previous 5-minute lease, which then failed
+// reviewDeepReadingStep with GENERATION_LEASE_EXPIRED and made the retries
+// push it further out. Ten minutes leaves room for the slowest generation plus
+// its retries; a job that genuinely wedges still frees its lease, just later.
+const LEASE_DURATION_MS = 10 * 60 * 1000;
 
 // The deterministic verdict is derived from the already-verified cast facts, so
 // it can be rebuilt at any step without re-reading the database.
