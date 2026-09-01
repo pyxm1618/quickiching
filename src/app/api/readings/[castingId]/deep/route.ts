@@ -102,6 +102,16 @@ export async function POST(
     if (message === "QUESTION_DECRYPT_FAILED" || message === "QUESTION_KEY_UNAVAILABLE") {
       return json({ error: message, retryable: false }, 422);
     }
+    // Both are raised by the service and were previously swallowed by the
+    // catch-all below, which made a failure here indistinguishable from any
+    // other on a deployment whose runtime logs are not retained. They carry no
+    // detail a caller could not already infer from its own request.
+    if (message === "CAST_RESULT_UNAVAILABLE") {
+      return json({ error: message, retryable: false }, 500);
+    }
+    if (message === "WORKFLOW_START_FAILED") {
+      return json({ error: message, retryable: true }, 500);
+    }
     return json({ error: "DEEP_READING_FAILED", retryable: true }, 500);
   }
 }
