@@ -589,14 +589,21 @@ const GATE_QUESTION = "Should the staging verification gate proceed with this re
 // Prefer the real claim endpoint: using it verifies P0-1's endpoint as a side
 // effect. Fall back to a direct seed so the rest of the chain is still covered
 // before that endpoint ships.
-async function createRevealedCasting(ctx, sql, cookie) {
+//
+// `question` is a parameter because persistAttestedCast is idempotent over
+// (user, question fingerprint, line values, primary hexagram) inside its
+// window: calling this twice with the same wording returns the SAME casting.
+// A caller that needs a genuinely new casting must vary the question, or it
+// will silently exercise the idempotent-reuse path instead of what it meant
+// to test.
+async function createRevealedCasting(ctx, sql, cookie, question = GATE_QUESTION) {
   const response = await request(ctx.origin, "/api/readings/claim", {
     method: "POST",
     headers: { ...sameOriginHeaders(ctx.origin), "Content-Type": "application/json", Cookie: cookie },
     body: JSON.stringify({
       lineValuesBottomUp: STILL_HEXAGRAM_LINES,
       method: "three_coin",
-      question: GATE_QUESTION,
+      question,
       scene: "choices",
       interpretationGoal: "what_do_i_need_to_see_clearly",
     }),
@@ -802,7 +809,16 @@ async function phaseInsufficientCredits(ctx, sql, cookie) {
     return;
   }
 
-  const casting = await createRevealedCasting(ctx, sql, cookie);
+  // A distinct question, so claim cannot hand back the casting used earlier:
+  // that one already has a completed deep reading and would answer 200 from the
+  // idempotent path, which says nothing about how an exhausted balance is
+  // handled. This has to be a casting that was never read.
+  const casting = await createRevealedCasting(
+    ctx,
+    sql,
+    cookie,
+    `${GATE_QUESTION} (exhausted-credits probe ${ctx.runId})`,
+  );
   ctx.seed.castingIds.push(casting.castingId);
 
   const response = await request(ctx.origin, `/api/readings/${casting.castingId}/deep`, {
