@@ -15,6 +15,11 @@ const PERSONALIZED_API_PATH = "/api/personalized-interpretation";
 const HEALTH_API_PATH = "/api/health";
 const READY_API_PATH = "/api/ready";
 const CHECKOUT_API_PATH = "/api/checkout";
+// Account deletion. It is gated on Auth exactly like the /account page above:
+// the route itself re-checks the capability and the session, but without a
+// branch here the /api catch-all below answers 404 and the endpoint is
+// unreachable even when Auth is open.
+const ACCOUNT_DELETE_API_PATH = "/api/account/delete";
 // The one live path under the otherwise permanently Gone /checkout prefix:
 // where Waffo returns the buyer after payment. Everything else under
 // /checkout stays 410 for Public V1.
@@ -152,6 +157,14 @@ export function middleware(request: NextRequest) {
 
   if (ORDER_STATUS_PATH.test(pathname)) {
     if (isCheckoutCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (pathname === ACCOUNT_DELETE_API_PATH || pathname === `${ACCOUNT_DELETE_API_PATH}/`) {
+    if (isAuthCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("Not Found", {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
