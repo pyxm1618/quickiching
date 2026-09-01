@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import type { NextConfig } from "next";
 import nextConfig from "../../next.config.mjs";
 
 const appRoot = new URL(".", import.meta.url).pathname;
@@ -69,8 +70,14 @@ describe("App Router multilingual architecture", () => {
   });
 
   it("permanently redirects English-prefixed paths to unprefixed paths", async () => {
-    if (!nextConfig.redirects) throw new Error("Next redirect configuration is missing");
-    const redirects = await nextConfig.redirects();
+    // next.config.mjs is wrapped by withWorkflow(), which yields Next's
+    // phase-based config function rather than a plain object. Resolve it first
+    // so this still asserts against the configuration the build actually uses.
+    const resolved: NextConfig = typeof nextConfig === "function"
+      ? await nextConfig("phase-production-build", { defaultConfig: {} as NextConfig })
+      : nextConfig;
+    if (!resolved.redirects) throw new Error("Next redirect configuration is missing");
+    const redirects = await resolved.redirects();
     expect(redirects.find((redirect) => redirect.source === "/en")).toMatchObject({ destination: "/", permanent: true });
     expect(redirects.find((redirect) => redirect.source === "/en/:path*")).toMatchObject({ destination: "/:path*", permanent: true });
   });

@@ -198,5 +198,8 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/:path*"],
+  // Everything except Workflow's internal endpoints. Intercepting
+  // POST /.well-known/workflow/v1/flow interferes with workflow execution and
+  // resumption, so it is excluded rather than falling through the checks above.
+  matcher: ["/((?!.well-known/workflow/).*)"],
 };

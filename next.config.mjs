@@ -1,3 +1,5 @@
+import { withWorkflow } from "workflow/next";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -57,4 +59,8 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// withWorkflow enables the "use workflow" / "use step" directives and mounts
+// Workflow's runtime endpoints. Without it those directives compile to ordinary
+// strings: the build succeeds and start() then fails at runtime, which is how
+// deep reading returned WORKFLOW_START_FAILED on staging.
+export default withWorkflow(nextConfig);
