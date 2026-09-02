@@ -1,8 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { QuestionFirst } from "@/components/public-reading/question-first";
-import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
+import { HomepageThreeCoinReading } from "@/components/public-reading/homepage-three-coin-reading";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { HOME_DESCRIPTION, HOME_H1, HOME_TITLE } from "@/lib/seo";
 
@@ -69,7 +68,7 @@ export default function HomePage() {
       </section>
 
       <section id="three-coin-reading" className="mystic-shell scroll-mt-24 py-16 sm:py-20">
-        <QuestionFirst storageKey="quickiching:public-v1:three-coin" legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]}><ThreeCoinTool compactIntro /></QuestionFirst>
+        <HomepageThreeCoinReading />
       </section>
 
       <section id="other-casting-methods" className="mystic-shell scroll-mt-24 py-16 sm:py-20">
