@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const appRoot = new URL(".", import.meta.url).pathname;
@@ -29,11 +29,22 @@ describe("mobile performance architecture", () => {
     expect(homepage).toContain('data-seo-hub-link="/hexagrams"');
   });
 
-  it("keeps the audited navigation implementation until its interaction contract is split safely", () => {
-    const defaultLayout = source(`${appRoot}(default)/layout.tsx`);
-    const localizedLayout = source(`${appRoot}(localized)/zh/layout.tsx`);
+  it("renders navigation on the server and hydrates behavior separately", () => {
+    const headerPath = `${componentRoot}site-header.tsx`;
+    const behaviorPath = `${componentRoot}site-header-behavior.tsx`;
+    const header = source(headerPath);
 
-    expect(defaultLayout).toContain('from "@/components/site-header"');
-    expect(localizedLayout).toContain('from "@/components/site-header"');
+    expect(header.trimStart().startsWith('"use client"')).toBe(false);
+    expect(header).toContain("SiteHeaderBehavior");
+    expect(header).toContain('id="methods-trig-site"');
+    expect(header).toContain('id="nav-drawer-site"');
+    expect(existsSync(behaviorPath)).toBe(true);
+
+    if (existsSync(behaviorPath)) {
+      const behavior = source(behaviorPath);
+      expect(behavior.trimStart().startsWith('"use client"')).toBe(true);
+      expect(behavior).not.toContain("createPortal");
+      expect(behavior).not.toContain("lucide-react");
+    }
   });
 });
