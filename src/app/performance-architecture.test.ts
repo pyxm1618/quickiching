@@ -28,4 +28,15 @@ describe("mobile performance architecture", () => {
     expect(homepage).toContain("Common Questions About I Ching Online");
     expect(homepage).toContain('data-seo-hub-link="/hexagrams"');
   });
+
+  it("uses a server-rendered global header instead of hydrating the full navigation", () => {
+    const defaultLayout = source(`${appRoot}(default)/layout.tsx`);
+    const localizedLayout = source(`${appRoot}(localized)/zh/layout.tsx`);
+    const header = source(`${componentRoot}site-header-server.tsx`);
+
+    expect(defaultLayout).toContain('from "@/components/site-header-server"');
+    expect(localizedLayout).toContain('from "@/components/site-header-server"');
+    expect(header.trimStart().startsWith('"use client"')).toBe(false);
+    expect(header).toContain("<details");
+  });
 });
