@@ -96,12 +96,44 @@ AI_MODEL_OUTPUT_REVIEW   = deepseek-v4-pro     # 见下：曾误配为 flash
 ### 分层时按「输入长度」判断，不是按「输出长度」
 
 `AI_MODEL_OUTPUT_REVIEW` 一度被配成 flash，理由是它的输出 schema 极小
-（status + reasonCodes + 三个 boolean）。**这个判断是错的**：审查步骤的**输入**
-是整篇深度解读（pro 产出的 3000–8000 字符）加上全部事实数据，属于典型的长输入
-任务——正是 flash 的弱项。结果 `reviewDeepReadingStep` 连续三次
-`AI_NoOutputGeneratedError: No output generated.`
+（status + reasonCodes + 三个 boolean）。这个理由不成立：审查步骤的**输入**
+是整篇深度解读（pro 产出的 3000–8000 字符）加上全部事实数据。
 
-→ **决定用哪档模型，看的是它要读多少，而不是要写多少。**
+但更要紧的是下面这条——当时据此把审查换成 pro，**方向就错了**。
+
+### 最贵的一次误诊：瓶颈是 token 上限，不是模型
+
+`reviewDeepReadingStep` 连续三次 `AI_NoOutputGeneratedError: No output generated.`
+先后被归因为「flash 能力不足」，于是换成 pro——**换完 3 次全失败**，比换之前
+（2 次中 1 次成功）更糟。
+
+本地复现才看清真相：
+
+| maxOutputTokens | 结果 |
+|---|---|
+| 1000 | **0/3**（原配置） |
+| 4000 | 2/3 |
+| 8000 | **3/3**（flash 与 pro 皆然） |
+
+`AI_MAX_REVIEW_OUTPUT_TOKENS=1000` 是按 review schema 的字符数（约 900）推算的，
+**但兼容模式下模型的实际输出远不止 schema 本身**——实测要 920–2732 tokens。
+1000 直接截断，解析不出对象，于是报「没有生成输出」。
+
+换任何模型都不会有用，因为瓶颈根本不在模型。最终配置：
+
+```
+AI_MODEL_DEEP_READING        = deepseek-v4-pro     # 长 prompt 强约束
+AI_MODEL_PREVIEW             = deepseek-v4-flash
+AI_MODEL_OUTPUT_REVIEW       = deepseek-v4-flash   # 8000 下 3/3，比 pro 快 3-5 倍
+AI_MAX_OUTPUT_TOKENS         = 16000
+AI_MAX_REVIEW_OUTPUT_TOKENS  = 8000                # 曾误设为 1000
+```
+
+**教训：`maxOutputTokens` 要按实测的实际输出量设，不能按 schema 大小推算。**
+兼容模式下模型会输出远超 schema 的内容。遇到 `No output generated`，
+先查 token 上限，再怀疑模型。
+
+另注意 pro 有长尾：一次跑到 **130.5s**，超过 Hobby 的 60s 函数上限。
 
 ### 单次通过不等于稳定：必须重复验证
 
