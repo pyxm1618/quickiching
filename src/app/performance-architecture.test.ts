@@ -17,7 +17,7 @@ describe("mobile performance architecture", () => {
     expect(homepage).toContain("HomepageThreeCoinReading");
     expect(homepage).not.toMatch(/import\s+\{\s*ThreeCoinTool\s*\}/);
     expect(homepage).not.toMatch(/import\s+\{\s*QuestionFirst\s*\}/);
-    expect(lazyBoundary).toContain('dynamic(');
+    expect(lazyBoundary).toContain("dynamic(");
     expect(lazyBoundary).toContain('import("@/components/public-reading/three-coin-tool")');
   });
 
@@ -29,14 +29,11 @@ describe("mobile performance architecture", () => {
     expect(homepage).toContain('data-seo-hub-link="/hexagrams"');
   });
 
-  it("uses a server-rendered global header instead of hydrating the full navigation", () => {
+  it("keeps the audited navigation implementation until its interaction contract is split safely", () => {
     const defaultLayout = source(`${appRoot}(default)/layout.tsx`);
     const localizedLayout = source(`${appRoot}(localized)/zh/layout.tsx`);
-    const header = source(`${componentRoot}site-header-server.tsx`);
 
-    expect(defaultLayout).toContain('from "@/components/site-header-server"');
-    expect(localizedLayout).toContain('from "@/components/site-header-server"');
-    expect(header.trimStart().startsWith('"use client"')).toBe(false);
-    expect(header).toContain("<details");
+    expect(defaultLayout).toContain('from "@/components/site-header"');
+    expect(localizedLayout).toContain('from "@/components/site-header"');
   });
 });
