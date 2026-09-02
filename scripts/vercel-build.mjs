@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { spawn, spawnSync } from "node:child_process";
+import net from "node:net";
 
 const BASE = "http://127.0.0.1:3000";
 
@@ -42,8 +43,38 @@ async function fileHash(path) {
   return createHash("sha256").update(await readFile(path)).digest("hex");
 }
 
-async function waitForServer() {
+// A server already listening on this port answers waitForServer just as well as
+// ours would, so without these guards a failed `bun run start` lets the whole
+// audit run against whatever else is on 3000. That has happened, and only a
+// hardcoded title assertion caught it.
+function assertPortAvailable(port) {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.once("error", (error) => {
+      if (error.code === "EADDRINUSE") {
+        reject(new Error(
+          `Port ${port} is already in use. The release gate refuses to run because it`
+          + " cannot tell its own server apart from whatever is already serving that port."
+          + " Stop the other process and re-run.",
+        ));
+        return;
+      }
+      reject(error);
+    });
+    probe.once("listening", () => probe.close(() => resolve()));
+    probe.listen(port, "127.0.0.1");
+  });
+}
+
+async function waitForServer(child) {
   for (let attempt = 1; attempt <= 80; attempt += 1) {
+    if (child.exitCode !== null || child.signalCode !== null) {
+      throw new Error(
+        `Production Next server exited before becoming ready (code=${child.exitCode},`
+        + ` signal=${child.signalCode}). Auditing whatever else may be on ${BASE} would be`
+        + " meaningless, so the gate stops here.",
+      );
+    }
     try {
       const response = await fetch(BASE);
       if (response.ok) return;
@@ -150,13 +181,36 @@ run("bun", ["scripts/homepage-seo-audit.mjs"], {
   },
 });
 
+// The gates below assert the PUBLIC site's closed shape — /signin, /account and
+// /checkout/example must answer 410. That baseline has to be established here,
+// not inherited from the deployment environment: this is the same defect as
+// 7f26452, one layer further out. The build runs inside Vercel with staging's
+// complete commercial configuration present, which opens all six capabilities,
+// makes those routes answer 200, and fails the very gate meant to protect the
+// release.
+//
+// Clearing the six flags relaxes nothing: a capability can never be enabled
+// without first being requested, and capability state is read per request (each
+// such route declares force-dynamic), so only this in-build server instance sees
+// the closed baseline — the deployed artifact is untouched. The OPEN shape is
+// verified after deployment by scripts/commercial-v2-staging-gate.mjs.
+const CLOSED_COMMERCIAL_FLAGS = {
+  COMMERCIAL_V2_AUTH_ENABLED: "",
+  COMMERCIAL_V2_AI_PREVIEW_ENABLED: "",
+  COMMERCIAL_V2_CHECKOUT_ENABLED: "",
+  COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "",
+  COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "",
+  COMMERCIAL_V2_RECONCILE_ENABLED: "",
+};
+
+await assertPortAvailable(3000);
 const server = spawn("bun", ["run", "start"], {
-  env: { ...process.env, PORT: "3000", HOSTNAME: "127.0.0.1" },
+  env: { ...process.env, ...CLOSED_COMMERCIAL_FLAGS, PORT: "3000", HOSTNAME: "127.0.0.1" },
   stdio: ["ignore", "inherit", "inherit"],
 });
 
 try {
-  await waitForServer();
+  await waitForServer(server);
   const browserEnv = { PUBLIC_V1_TEST_BASE_URL: BASE, CHROME_PATH: chromePath };
   log("Production Next server is ready; running homepage SEO semantic audit");
   run("bun", ["scripts/homepage-seo-audit.mjs"], {

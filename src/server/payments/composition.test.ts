@@ -92,6 +92,7 @@ describe("CP4 payment composition", () => {
       WAFFO_PROD_PRODUCT_ID_THREE: "PROD_prod_three",
       WAFFO_PROD_PRODUCT_ID_FIVE: "PROD_prod_five",
       PAYMENT_CHECKOUT_URL_KEYS: "v2:custom-current-key,v1:custom-old-key",
+      APP_BASE_URL: "https://www.quickiching.com",
     };
 
     await createProductionCheckoutService(environment);

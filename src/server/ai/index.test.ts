@@ -14,6 +14,7 @@ const input = {
   scene: "career" as const,
   interpretationGoal: "what_do_i_need_to_see_clearly" as const,
   context: "I want perspective on my next role.",
+  locale: "en" as const,
 };
 
 afterEach(() => vi.unstubAllEnvs());

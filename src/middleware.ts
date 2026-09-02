@@ -12,9 +12,25 @@ import { isReconcileCapabilityEnabled } from "@/server/reconcile/capability";
 const GONE_PREFIXES = ["/checkout"] as const;
 const NOT_FOUND_PREFIXES = ["/result", "/cast"] as const;
 const PERSONALIZED_API_PATH = "/api/personalized-interpretation";
+const HEALTH_API_PATH = "/api/health";
+const READY_API_PATH = "/api/ready";
 const CHECKOUT_API_PATH = "/api/checkout";
+// Account deletion. It is gated on Auth exactly like the /account page above:
+// the route itself re-checks the capability and the session, but without a
+// branch here the /api catch-all below answers 404 and the endpoint is
+// unreachable even when Auth is open.
+const ACCOUNT_DELETE_API_PATH = "/api/account/delete";
+// The one live path under the otherwise permanently Gone /checkout prefix:
+// where Waffo returns the buyer after payment. Everything else under
+// /checkout stays 410 for Public V1.
+const CHECKOUT_RETURN_PATH = "/checkout/return";
+const ORDER_STATUS_PATH = /^\/api\/orders\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/?$/;
+// The signed-in result page. Only the UUID form is commercial; the Public V1
+// method pages under /readings (e.g. /readings/three-coin/result) never match.
+const READING_PAGE_PATH = /^\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/?$/;
 const WAFFO_WEBHOOK_PATH = "/api/webhooks/waffo";
 const RECONCILE_API_PATH = "/api/internal/reconcile";
+const CLAIM_READING_PATH = "/api/readings/claim";
 const COMMERCIAL_PREVIEW_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/preview\/?$/;
 const COMMERCIAL_DEEP_READING_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/deep\/?$/;
 const COMMERCIAL_READING_STATUS_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/?$/;
@@ -69,6 +85,14 @@ export function middleware(request: NextRequest) {
     });
   }
 
+  if (pathname === CHECKOUT_RETURN_PATH || pathname === `${CHECKOUT_RETURN_PATH}/`) {
+    if (isCheckoutCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
   if (GONE_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))) {
     return new NextResponse("This Commercial V2 route is not available in Public V1.", {
       status: 410,
@@ -77,6 +101,22 @@ export function middleware(request: NextRequest) {
   }
 
   if (NOT_FOUND_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))) {
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (READING_PAGE_PATH.test(pathname)) {
+    if (isPaidDeepReadingCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (pathname === CLAIM_READING_PATH || pathname === `${CLAIM_READING_PATH}/`) {
+    if (isPaidDeepReadingCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("Not Found", {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
@@ -99,8 +139,32 @@ export function middleware(request: NextRequest) {
     });
   }
 
+  if (pathname === HEALTH_API_PATH || pathname === `${HEALTH_API_PATH}/`) {
+    return NextResponse.next();
+  }
+
+  if (pathname === READY_API_PATH || pathname === `${READY_API_PATH}/`) {
+    return NextResponse.next();
+  }
+
   if (pathname === CHECKOUT_API_PATH || pathname === `${CHECKOUT_API_PATH}/`) {
     if (isCheckoutCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (ORDER_STATUS_PATH.test(pathname)) {
+    if (isCheckoutCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (pathname === ACCOUNT_DELETE_API_PATH || pathname === `${ACCOUNT_DELETE_API_PATH}/`) {
+    if (isAuthCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("Not Found", {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
@@ -134,5 +198,8 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/:path*"],
+  // Everything except Workflow's internal endpoints. Intercepting
+  // POST /.well-known/workflow/v1/flow interferes with workflow execution and
+  // resumption, so it is excluded rather than falling through the checks above.
+  matcher: ["/((?!.well-known/workflow/).*)"],
 };

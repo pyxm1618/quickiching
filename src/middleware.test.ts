@@ -66,8 +66,25 @@ const completeCheckoutEnv = {
   PAYMENT_CHECKOUT_URL_KEYS: "v1:payment-checkout-url-secret",
 };
 
+// Several cases below assert the closed state before opening a capability. That
+// baseline must be established by the test, not inherited from whatever process
+// the suite happens to run in: `scripts/vercel-build.mjs` runs `bun run test`
+// during the Vercel build, where a fully configured commercial environment is
+// present and would make every "disabled by default" assertion false. Clearing
+// the six flags is sufficient — a capability can never be enabled without
+// having been requested.
+const COMMERCIAL_CAPABILITY_FLAGS = [
+  "COMMERCIAL_V2_AUTH_ENABLED",
+  "COMMERCIAL_V2_AI_PREVIEW_ENABLED",
+  "COMMERCIAL_V2_CHECKOUT_ENABLED",
+  "COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED",
+  "COMMERCIAL_V2_PAID_DEEP_READING_ENABLED",
+  "COMMERCIAL_V2_RECONCILE_ENABLED",
+] as const;
+
 describe("Public V1 middleware boundaries", () => {
   beforeEach(() => {
+    for (const flag of COMMERCIAL_CAPABILITY_FLAGS) vi.stubEnv(flag, "");
     vi.stubEnv("BETTER_AUTH_TRUSTED_ORIGINS", "");
   });
 
@@ -157,5 +174,69 @@ describe("Public V1 middleware boundaries", () => {
     vi.stubEnv("COMMERCIAL_V2_CHECKOUT_ENABLED", "false");
     expect(middleware(makeRequest("/api/checkout", { method: "POST" })).status).toBe(404);
     expect(middleware(makeRequest("/checkout")).status).toBe(410);
+  });
+
+  it("always allows /api/health and /api/ready routes through", () => {
+    expect(middleware(makeRequest("/api/health")).status).toBe(200);
+    expect(middleware(makeRequest("/api/health/")).status).toBe(200);
+    expect(middleware(makeRequest("/api/ready")).status).toBe(200);
+    expect(middleware(makeRequest("/api/ready/")).status).toBe(200);
+  });
+
+  it("opens the claim route only when Paid Deep Reading is enabled", () => {
+    expect(middleware(makeRequest("/api/readings/claim", { method: "POST" })).status).toBe(404);
+
+    for (const [name, value] of Object.entries(completeDeepReadingEnv)) vi.stubEnv(name, value);
+
+    expect(middleware(makeRequest("/api/readings/claim", { method: "POST" })).status).toBe(200);
+    expect(middleware(makeRequest("/api/readings/claim/", { method: "POST" })).status).toBe(200);
+    expect(middleware(makeRequest("/api/readings/claim/extra", { method: "POST" })).status).toBe(404);
+  });
+
+  it("opens the order status route only when Checkout is enabled, and only for a well-formed id", () => {
+    const orderId = "8b6d8846-cdce-4dde-9744-817b8329a5b6";
+    expect(middleware(makeRequest(`/api/orders/${orderId}`)).status).toBe(404);
+
+    for (const [name, value] of Object.entries(completeCheckoutEnv)) vi.stubEnv(name, value);
+
+    expect(middleware(makeRequest(`/api/orders/${orderId}`)).status).toBe(200);
+    expect(middleware(makeRequest(`/api/orders/${orderId}/`)).status).toBe(200);
+    expect(middleware(makeRequest("/api/orders")).status).toBe(404);
+    expect(middleware(makeRequest("/api/orders/not-a-uuid")).status).toBe(404);
+    expect(middleware(makeRequest(`/api/orders/${orderId}/refund`, { method: "POST" })).status).toBe(404);
+  });
+
+  it("opens the signed-in result page only when Paid Deep Reading is enabled", () => {
+    const castingId = "0f1d2f1e-9a3b-4c1d-8e2f-5a6b7c8d9e0f";
+    expect(middleware(makeRequest(`/readings/${castingId}`)).status).toBe(404);
+
+    for (const [name, value] of Object.entries(completeDeepReadingEnv)) vi.stubEnv(name, value);
+
+    expect(middleware(makeRequest(`/readings/${castingId}`)).status).toBe(200);
+    expect(middleware(makeRequest(`/readings/${castingId}/`)).status).toBe(200);
+    expect(middleware(makeRequest(`/readings/${castingId}/extra`)).status).toBe(200);
+  });
+
+  it("never gates the Public V1 reading pages behind a commercial capability", () => {
+    // Closed by default, and these must stay reachable either way.
+    expect(middleware(makeRequest("/readings/three-coin/result")).status).toBe(200);
+    expect(middleware(makeRequest("/readings/three-coin")).status).toBe(200);
+
+    for (const [name, value] of Object.entries(completeDeepReadingEnv)) vi.stubEnv(name, value);
+
+    expect(middleware(makeRequest("/readings/three-coin/result")).status).toBe(200);
+  });
+
+  it("opens only the return path under the otherwise Gone /checkout prefix", () => {
+    expect(middleware(makeRequest("/checkout/return")).status).toBe(404);
+
+    for (const [name, value] of Object.entries(completeCheckoutEnv)) vi.stubEnv(name, value);
+
+    expect(middleware(makeRequest("/checkout/return")).status).toBe(200);
+    expect(middleware(makeRequest("/checkout/return/")).status).toBe(200);
+    // The legacy commercial entry points stay permanently Gone.
+    expect(middleware(makeRequest("/checkout")).status).toBe(410);
+    expect(middleware(makeRequest("/checkout/session")).status).toBe(410);
+    expect(middleware(makeRequest("/checkout/return/extra")).status).toBe(410);
   });
 });

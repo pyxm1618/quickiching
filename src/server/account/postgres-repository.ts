@@ -15,10 +15,26 @@ export type UserAccountSummary = {
   }>;
 };
 
+export type AccountOverview = {
+  credits: { available: number; expiringSoon: number };
+  history: Array<{
+    id: string;
+    method: string;
+    scene: string;
+    createdAt: Date;
+    primaryHexagramNumber: number | null;
+    hasPreview: boolean;
+    hasReading: boolean;
+  }>;
+};
+
 export interface PostgresAccountRepository {
   getAccountSummary(userId: string): Promise<UserAccountSummary>;
+  getAccountOverview(userId: string): Promise<AccountOverview>;
   deleteAccount(userId: string): Promise<{ success: boolean }>;
 }
+
+const EXPIRING_SOON_INTERVAL = "30 days";
 
 export function createPostgresAccountRepository(dependencies: { sql: Sql }): PostgresAccountRepository {
   const { sql } = dependencies;
@@ -64,8 +80,55 @@ export function createPostgresAccountRepository(dependencies: { sql: Sql }): Pos
       };
     },
 
-    async deleteAccount(userId): Promise<{ success: boolean }> {
-      return sql.begin(async (transaction) => {
+    // Backs the signed-in account page. Both result tables hold only terminal
+    // persisted output, so row existence is the completion signal.
+    async getAccountOverview(userId): Promise<AccountOverview> {
+      const creditRows = await sql`
+        select
+          coalesce(sum(quantity_available), 0)::integer as available,
+          coalesce(sum(
+            case when expires_at < clock_timestamp() + ${EXPIRING_SOON_INTERVAL}::interval
+                 then quantity_available else 0 end
+          ), 0)::integer as expiring_soon
+        from entitlement_batches
+        where user_id = ${userId} and expires_at > clock_timestamp()
+      ` as Row[];
+
+      const historyRows = await sql`
+        select
+          s.id, s.method, s.scene, s.created_at,
+          c.primary_hexagram_number,
+          p.casting_id as preview_id,
+          d.casting_id as reading_id
+        from casting_sessions s
+        left join cast_results c on c.casting_id = s.id
+        left join preview_results p on p.casting_id = s.id
+        left join deep_reading_results d on d.casting_id = s.id
+        where s.user_id = ${userId} and s.deleted_at is null
+        order by s.created_at desc
+        limit 50
+      ` as Row[];
+
+      return {
+        credits: {
+          available: Number(creditRows[0]?.available ?? 0),
+          expiringSoon: Number(creditRows[0]?.expiring_soon ?? 0),
+        },
+        history: historyRows.map((row) => ({
+          id: String(row.id),
+          method: String(row.method),
+          scene: String(row.scene),
+          createdAt: new Date(row.created_at),
+          primaryHexagramNumber: row.primary_hexagram_number != null
+            ? Number(row.primary_hexagram_number)
+            : null,
+          hasPreview: row.preview_id != null,
+          hasReading: row.reading_id != null,
+        })),
+      };
+    },
+
+    async deleteAccount(userId): Promise<{ success: boolean }> {      return sql.begin(async (transaction) => {
         const users = await transaction`select id, email from users where id = ${userId} limit 1 for update` as Row[];
         if (!users[0]) return { success: true };
 

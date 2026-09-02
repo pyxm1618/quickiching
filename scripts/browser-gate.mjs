@@ -272,7 +272,23 @@ function attachFailureCollectors(page) {
   const pageErrors = [];
   const badResponses = [];
   page.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(message.text());
+    if (message.type() !== "error") return;
+    // Same rule badResponses below already applies: this gate answers for OUR
+    // site, not for third parties. The page under test is served over plain
+    // HTTP on loopback, so it cannot itself produce a TLS error — anything like
+    // ERR_CERT_DATE_INVALID necessarily comes from the analytics and challenge
+    // scripts the CSP allows (Tag Manager, Clarity, Turnstile, Bing), which the
+    // build container reaches unreliably. A third party failing to load is not
+    // grounds to block a release; a first-party console error still is.
+    const source = message.location()?.url ?? "";
+    if (source) {
+      try {
+        if (new URL(source).origin !== new URL(BASE).origin) return;
+      } catch {
+        // Unparseable source: keep it rather than silently dropping a real error.
+      }
+    }
+    consoleErrors.push(message.text());
   });
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("response", (response) => {

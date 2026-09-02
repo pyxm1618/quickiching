@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { Sql, TransactionSql } from "postgres";
+import { readingVariantFor } from "@/domain/generation/assemble-report";
 import type { WorkflowStarter } from "@/server/workflows/workflow-starter";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
 import { calculateDeepReadingInputSnapshotHash } from "@/server/generation/integrity";
 import { decryptQuestionForGeneration } from "@/server/generation/question-crypto";
+import type { ContentLocale } from "@/i18n/config";
 
 type Row = Record<string, any>;
 
@@ -24,19 +26,13 @@ export interface DeepReadingService {
   requestDeepReading(options: {
     userId: string;
     castingId: string;
+    locale: ContentLocale;
   }): Promise<DeepReadingRequestResult>;
 
   getDeepReadingStatus(options: {
     userId: string;
     castingId: string;
   }): Promise<DeepReadingStatusResult>;
-}
-
-function readingVariant(movingLinePositions: number[]): DeterministicFacts["readingVariant"] {
-  if (movingLinePositions.length === 0) return "still_hexagram";
-  if (movingLinePositions.length === 6) return "all_lines_moving";
-  if (movingLinePositions.length > 1) return "multiple_moving";
-  return "standard";
 }
 
 async function compensateWorkflowStartFailure(
@@ -225,7 +221,7 @@ export function createDeepReadingService(dependencies: {
           primaryHexagramNumber: Number(session.primary_hexagram_number),
           movingLinePositions,
           relatingHexagramNumber: session.relating_hexagram_number ? Number(session.relating_hexagram_number) : null,
-          readingVariant: readingVariant(movingLinePositions),
+          readingVariant: readingVariantFor(movingLinePositions),
         };
 
         const inputSnapshotHash = calculateDeepReadingInputSnapshotHash({
@@ -329,6 +325,7 @@ export function createDeepReadingService(dependencies: {
           reservationId: prepared.reservationId,
           idempotencyKey: prepared.idempotencyKey,
           generationEpoch: prepared.epoch,
+          locale: options.locale,
         });
         if (!started.started) throw new Error("WORKFLOW_START_FAILED");
       } catch {

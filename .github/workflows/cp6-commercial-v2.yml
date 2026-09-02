@@ -1,0 +1,138 @@
+name: CP6 Commercial V2 Staging Gates
+
+on:
+  pull_request:
+    branches:
+      - main
+      - codex/commercial-v2-cp6
+  push:
+    branches:
+      - codex/commercial-v2-cp6
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cp6-commercial-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  application:
+    name: Lint, typecheck, unit, drizzle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Lint
+        run: bun run lint
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Unit tests
+        run: bun run test
+      - name: Drizzle migration metadata check
+        run: bunx drizzle-kit check
+
+  postgres:
+    name: PostgreSQL serial integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install PostgreSQL tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-client
+          PG_BINDIR="$(pg_config --bindir)"
+          echo "$PG_BINDIR" >> "$GITHUB_PATH"
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Run serial PostgreSQL integration suite
+        run: node scripts/test-postgres-serial.mjs
+
+  staging:
+    name: Deployed staging verification gate
+    # Deliberately not run on pull_request: a fork PR cannot read these secrets,
+    # and this job writes to a shared staging database. Running it there would
+    # either fail for the wrong reason or let one PR disturb another.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Serialised against itself: the gate seeds and tears down rows in one
+    # shared staging database, so two concurrent runs would interfere.
+    concurrency:
+      group: cp6-commercial-v2-staging
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+
+      # A gate that goes green because its credentials were never configured is
+      # more dangerous than no gate, so a missing secret is reported loudly and
+      # the run is marked as NOT having verified staging.
+      - name: Check staging credentials
+        id: credentials
+        env:
+          STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+          STAGING_EXPECTED_CAPABILITIES: ${{ secrets.STAGING_EXPECTED_CAPABILITIES }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          STAGING_CRON_SECRET: ${{ secrets.STAGING_CRON_SECRET }}
+          STAGING_BETTER_AUTH_SECRET: ${{ secrets.STAGING_BETTER_AUTH_SECRET }}
+        run: |
+          missing=""
+          for name in STAGING_BASE_URL STAGING_EXPECTED_CAPABILITIES STAGING_DATABASE_URL \
+                      STAGING_CRON_SECRET STAGING_BETTER_AUTH_SECRET; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Commercial V2 staging gate DID NOT RUN"
+              echo
+              echo "Missing repository secrets:$missing"
+              echo
+              echo "Staging was **not verified** by this run. Configure the secrets and re-run"
+              echo "via workflow_dispatch before treating this branch as gated."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning title=Staging gate not run::Missing secrets:$missing — staging was NOT verified"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commercial V2 staging gate
+        if: steps.credentials.outputs.configured == 'true'
+        env:
+          STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+          STAGING_EXPECTED_CAPABILITIES: ${{ secrets.STAGING_EXPECTED_CAPABILITIES }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          STAGING_CRON_SECRET: ${{ secrets.STAGING_CRON_SECRET }}
+          STAGING_BETTER_AUTH_SECRET: ${{ secrets.STAGING_BETTER_AUTH_SECRET }}
+          STAGING_EXPECTED_CHECKOUT_HOST_SUFFIX: ${{ vars.STAGING_EXPECTED_CHECKOUT_HOST_SUFFIX }}
+        run: node scripts/commercial-v2-staging-gate.mjs
+
+      - name: Report that the staging gate was skipped
+        if: steps.credentials.outputs.configured != 'true'
+        run: |
+          echo "Commercial V2 staging gate DID NOT RUN — required secrets are not configured."
+          echo "This job is green only because there was nothing to run. Staging is UNVERIFIED."

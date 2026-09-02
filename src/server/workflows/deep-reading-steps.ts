@@ -1,10 +1,27 @@
 import { randomUUID } from "node:crypto";
 import type { TransactionSql } from "postgres";
 import { getPostgresClient } from "@/server/db/client";
-import type { DeterministicFacts, CommercialReadingReport } from "@/domain/generation/schemas";
+import type {
+  DeterministicFacts,
+  GeneratedReading,
+} from "@/domain/generation/schemas";
+import {
+  assembleReadingReport,
+  readingVariantFor,
+} from "@/domain/generation/assemble-report";
+import {
+  buildDeterministicVerdict,
+  type DeterministicVerdict,
+} from "@/domain/interpretation/deterministic/verdict";
+import type { ContentLocale } from "@/i18n/config";
+import { validateGeneratedReading } from "@/server/generation/reading-validator";
 import { createAiSdkGenerationProvider, createAiSdkOutputReviewer } from "@/server/generation/ai-sdk-provider";
 import { getServerConfig } from "@/server/config";
-import type { OutputReviewDecision, ProviderGenerationResult, ProviderInput } from "@/server/generation/types";
+import type {
+  OutputReviewDecision,
+  ProviderGenerationResult,
+  ReadingProviderInput,
+} from "@/server/generation/types";
 import {
   calculateDeepReadingInputSnapshotHash,
   calculateDeepReadingResultIntegrity,
@@ -12,13 +29,27 @@ import {
 import { decryptQuestionForGeneration } from "@/server/generation/question-crypto";
 
 type Row = Record<string, any>;
-const LEASE_DURATION_MS = 5 * 60 * 1000;
+// The lease has to outlive the whole generate → review → finalize chain, not
+// just one step. Measured on staging with deepseek-v4-pro: a single generation
+// takes 33-78s, and a run that had to retry a later step spent 5m07s end to
+// end — seven seconds past the previous 5-minute lease, which then failed
+// reviewDeepReadingStep with GENERATION_LEASE_EXPIRED and made the retries
+// push it further out. Ten minutes leaves room for the slowest generation plus
+// its retries; a job that genuinely wedges still frees its lease, just later.
+const LEASE_DURATION_MS = 10 * 60 * 1000;
 
-function readingVariant(movingLinePositions: number[]): DeterministicFacts["readingVariant"] {
-  if (movingLinePositions.length === 0) return "still_hexagram";
-  if (movingLinePositions.length === 6) return "all_lines_moving";
-  if (movingLinePositions.length > 1) return "multiple_moving";
-  return "standard";
+// The deterministic verdict is derived from the already-verified cast facts, so
+// it can be rebuilt at any step without re-reading the database.
+function verdictFromFacts(facts: DeterministicFacts): DeterministicVerdict {
+  return buildDeterministicVerdict({
+    lineValuesBottomUp: facts.lineValuesBottomUp,
+    primaryHexagramNumber: facts.primaryHexagramNumber,
+    movingLinePositions: facts.movingLinePositions,
+    relatingHexagramNumber: facts.relatingHexagramNumber,
+    method: facts.method,
+    algorithmVersion: facts.algorithmVersion,
+    classicMappingVersion: facts.classicMappingVersion,
+  });
 }
 
 function factsFromSession(session: Row): DeterministicFacts {
@@ -35,7 +66,7 @@ function factsFromSession(session: Row): DeterministicFacts {
     primaryHexagramNumber: Number(session.primary_hexagram_number),
     movingLinePositions,
     relatingHexagramNumber: session.relating_hexagram_number ? Number(session.relating_hexagram_number) : null,
-    readingVariant: readingVariant(movingLinePositions),
+    readingVariant: readingVariantFor(movingLinePositions),
   };
 }
 
@@ -89,7 +120,8 @@ export async function claimJobLeaseStep(input: {
   jobId: string;
   idempotencyKey: string;
   generationEpoch: number;
-}): Promise<{ leaseToken: string; providerInput: ProviderInput; inputSnapshotHash: string }> {
+  locale: ContentLocale;
+}): Promise<{ leaseToken: string; providerInput: ReadingProviderInput; inputSnapshotHash: string }> {
   "use step";
   const sql = getPostgresClient();
 
@@ -164,6 +196,8 @@ export async function claimJobLeaseStep(input: {
         scene: session.scene,
         interpretationGoal: session.interpretation_goal,
         facts,
+        verdict: verdictFromFacts(facts),
+        locale: input.locale,
       },
       inputSnapshotHash: storedSnapshotHash,
     };
@@ -171,7 +205,7 @@ export async function claimJobLeaseStep(input: {
 }
 
 export async function generateDeepReadingStep(input: {
-  providerInput: ProviderInput;
+  providerInput: ReadingProviderInput;
   jobId: string;
   leaseToken: string;
 }): Promise<ProviderGenerationResult> {
@@ -218,6 +252,7 @@ export async function finalizeDeepReadingStep(input: {
   generationEpoch: number;
   inputSnapshotHash: string;
   leaseToken: string;
+  locale: ContentLocale;
   generationResult: ProviderGenerationResult;
   reviewDecision: OutputReviewDecision;
 }): Promise<{ success: boolean }> {
@@ -274,11 +309,31 @@ export async function finalizeDeepReadingStep(input: {
       throw new Error("ENTITLEMENT_RESERVATION_INVALID");
     }
 
-    const output = input.generationResult.output as CommercialReadingReport;
+    // The model returned only its application of the verdict. Rebuild the
+    // verdict from the verified facts and check the generated half against it
+    // mechanically before assembling the stored report.
+    const verdict = verdictFromFacts(facts);
+    const locale = input.locale;
+    const validation = validateGeneratedReading(
+      input.generationResult.output,
+      verdict,
+      questionText,
+      locale,
+    );
+    if (!validation.valid) {
+      throw new Error(`DEEP_READING_VALIDATION_FAILED: ${validation.failures.join(",")}`);
+    }
+    const generated = input.generationResult.output as GeneratedReading;
+    const output = assembleReadingReport({
+      verdict,
+      generated,
+      readingVariant: facts.readingVariant,
+      locale,
+    });
     const config = getServerConfig();
     const model = config.aiModelDeepReading ?? "gemini-2.5-pro";
-    const schemaVersion = "commercial-reading-v1";
-    const promptVersion = "v1";
+    const schemaVersion = "commercial-reading-v2";
+    const promptVersion = "v2";
     const provider = "google";
     const integrity = calculateDeepReadingResultIntegrity({
       castingId: input.castingId,

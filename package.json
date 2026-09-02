@@ -25,6 +25,7 @@
     "indexnow": "bun scripts/indexnow.ts"
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "^3.0.37",
     "@better-auth/drizzle-adapter": "1.7.1",
     "@waffo/pancake-ts": "0.19.1",
     "ai": "7.0.77",

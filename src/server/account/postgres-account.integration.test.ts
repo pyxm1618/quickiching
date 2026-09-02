@@ -125,4 +125,95 @@ describe("CP5D PostgreSQL Account & Privacy Boundaries (Integration)", () => {
     expect(auditRows[0]?.category).toBe("deletion");
     expect(auditRows[0]?.action).toBe("account_deleted");
   });
+
+  it("returns the account-page overview scoped to one user, excluding deleted castings", async () => {
+    const overviewUserId = "cp5-acc-overview-user";
+    const otherOrderId = randomUUID();
+    const activeOrderId = randomUUID();
+    const expiringOrderId = randomUUID();
+    const expiredOrderId = randomUUID();
+    const activeBatchId = randomUUID();
+    const expiringBatchId = randomUUID();
+    const expiredBatchId = randomUUID();
+    const revealedCastingId = randomUUID();
+    const deletedCastingId = randomUUID();
+    const now = new Date().toISOString();
+
+    await sql`
+      insert into users (id, name, email, email_verified, created_at, updated_at)
+      values (${overviewUserId}, 'Overview User', 'overview@example.com', true, ${now}, ${now})
+    `;
+    // A batch's quantity_total is trigger-bound to its order's quantity, and
+    // product_key/quantity/amount_minor are check-bound as a fixed tuple.
+    await sql`
+      insert into payment_orders (
+        id, user_id, product_key, quantity, amount_minor, currency, request_id,
+        provider, provider_environment, provider_product_id, provider_order_id, provider_payment_id,
+        status, paid_at, created_at, updated_at
+      ) values
+        (${activeOrderId}, ${overviewUserId}, 'three', 3, 699, 'USD', ${`req-${activeOrderId}`}, 'waffo', 'test', 'prod-3', ${`ord-${activeOrderId}`}, ${`pay-${activeOrderId}`}, 'paid', ${now}, ${now}, ${now}),
+        (${expiringOrderId}, ${overviewUserId}, 'one', 1, 299, 'USD', ${`req-${expiringOrderId}`}, 'waffo', 'test', 'prod-1', ${`ord-${expiringOrderId}`}, ${`pay-${expiringOrderId}`}, 'paid', ${now}, ${now}, ${now}),
+        (${expiredOrderId}, ${overviewUserId}, 'five', 5, 999, 'USD', ${`req-${expiredOrderId}`}, 'waffo', 'test', 'prod-5', ${`ord-${expiredOrderId}`}, ${`pay-${expiredOrderId}`}, 'paid', ${now}, ${now}, ${now})
+    `;
+    // 3 available far out, 1 available inside the 30-day window, 5 already expired.
+    await sql`
+      insert into entitlement_batches (
+        id, user_id, order_id, quantity_total, quantity_available, quantity_reserved, quantity_consumed, quantity_revoked, expires_at, created_at, updated_at
+      ) values
+        (${activeBatchId}, ${overviewUserId}, ${activeOrderId}, 3, 3, 0, 0, 0, now() + interval '12 months', ${now}, ${now}),
+        (${expiringBatchId}, ${overviewUserId}, ${expiringOrderId}, 1, 1, 0, 0, 0, now() + interval '10 days', ${now}, ${now}),
+        (${expiredBatchId}, ${overviewUserId}, ${expiredOrderId}, 5, 5, 0, 0, 0, now() - interval '1 day', ${now}, ${now})
+    `;
+    await sql`
+      insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at, deleted_at)
+      values
+        (${revealedCastingId}, ${overviewUserId}, 'three_coin', 'revealed', 'allowed', 'career', 'guidance', ${now}, ${now}, null),
+        (${deletedCastingId}, ${overviewUserId}, 'yarrow', 'revealed', 'allowed', 'career', 'guidance', ${now}, ${now}, ${now})
+    `;
+    await sql`
+      insert into cast_results (
+        casting_id, line_values, primary_hexagram_number, moving_line_positions, relating_hexagram_number,
+        method_calculation, algorithm_version, classic_mapping_version, result_hmac, result_hmac_key_version, created_at
+      ) values (
+        ${revealedCastingId}, ARRAY[7,8,7,8,7,8]::integer[], 11, ARRAY[]::integer[], null,
+        '{}'::jsonb, 'v1', 'v1', 'hmac', 'v1', ${now}
+      )
+    `;
+    // Another user's batch must never leak into this overview.
+    await sql`
+      insert into payment_orders (
+        id, user_id, product_key, quantity, amount_minor, currency, request_id,
+        provider, provider_environment, provider_product_id, provider_order_id, provider_payment_id,
+        status, paid_at, created_at, updated_at
+      ) values (${otherOrderId}, ${userTwoId}, 'one', 1, 299, 'USD', ${`req-${otherOrderId}`}, 'waffo', 'test', 'prod-1', ${`ord-${otherOrderId}`}, ${`pay-${otherOrderId}`}, 'paid', ${now}, ${now}, ${now})
+    `;
+    await sql`
+      insert into entitlement_batches (
+        id, user_id, order_id, quantity_total, quantity_available, quantity_reserved, quantity_consumed, quantity_revoked, expires_at, created_at, updated_at
+      ) values (${randomUUID()}, ${userTwoId}, ${otherOrderId}, 1, 1, 0, 0, 0, now() + interval '12 months', ${now}, ${now})
+    `;
+
+    const overview = await accountRepository.getAccountOverview(overviewUserId);
+
+    expect(overview.credits.available).toBe(4);
+    expect(overview.credits.expiringSoon).toBe(1);
+    expect(overview.history.map((entry) => entry.id)).toEqual([revealedCastingId]);
+    expect(overview.history[0]?.primaryHexagramNumber).toBe(11);
+    expect(overview.history[0]?.hasPreview).toBe(false);
+    expect(overview.history[0]?.hasReading).toBe(false);
+  });
+
+  it("reports a zeroed overview for a user with no orders or castings", async () => {
+    const emptyUserId = "cp5-acc-empty-user";
+    const now = new Date().toISOString();
+    await sql`
+      insert into users (id, name, email, email_verified, created_at, updated_at)
+      values (${emptyUserId}, 'Empty User', 'empty@example.com', true, ${now}, ${now})
+    `;
+
+    const overview = await accountRepository.getAccountOverview(emptyUserId);
+
+    expect(overview.credits).toEqual({ available: 0, expiringSoon: 0 });
+    expect(overview.history).toEqual([]);
+  });
 });

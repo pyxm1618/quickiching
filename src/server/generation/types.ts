@@ -1,7 +1,8 @@
+import type { ContentLocale } from "@/i18n/config";
 import type { InterpretationGoal, RiskStatus, Scene } from "@/domain/casting/types";
+import type { DeterministicVerdict } from "@/domain/interpretation/deterministic/verdict";
 import type {
   CommercialPreviewOutput,
-  CommercialReadingReport,
   DeterministicFacts,
 } from "@/domain/generation/schemas";
 
@@ -63,6 +64,14 @@ export type ProviderInput = {
   facts: DeterministicFacts;
 };
 
+// Deep reading additionally carries the deterministic verdict. It is required
+// rather than optional: the model must never be asked for a reading without the
+// decided direction and the selected classical text.
+export type ReadingProviderInput = ProviderInput & {
+  verdict: DeterministicVerdict;
+  locale: ContentLocale;
+};
+
 export type ProviderGenerationResult = {
   output: unknown;
   deterministicFacts: unknown;
@@ -75,7 +84,7 @@ export interface PreviewProvider {
   readonly provider: string;
   readonly model: string;
   generatePreview(input: ProviderInput, signal: AbortSignal): Promise<ProviderGenerationResult>;
-  generateReading(input: ProviderInput, signal: AbortSignal): Promise<ProviderGenerationResult>;
+  generateReading(input: ReadingProviderInput, signal: AbortSignal): Promise<ProviderGenerationResult>;
 }
 
 export type OutputReviewInput = {
@@ -146,9 +155,4 @@ export type PreviewGenerationResult = {
   jobId: string;
   result?: PreviewResultRecord;
   retryable?: boolean;
-};
-
-export type DeepReadingContract = {
-  output: CommercialReadingReport;
-  facts: DeterministicFacts;
 };

@@ -51,6 +51,11 @@ export const castingSessions = pgTable(
     riskRuleVersion: text("risk_rule_version"),
     scene: text("scene").notNull(),
     interpretationGoal: text("interpretation_goal").notNull(),
+    // How the six line values reached us. `server_generated` is the historical
+    // default: the values were produced under our control. `client_attested`
+    // means the browser cast them and merely submitted the outcome — we
+    // recompute the hexagram from those values but cannot vouch for the draw.
+    castOrigin: text("cast_origin").notNull().default("server_generated"),
     questionFingerprint: text("question_fingerprint"),
     fingerprintKeyVersion: text("fingerprint_key_version"),
     generationEpoch: integer("generation_epoch").notNull().default(0),
@@ -60,6 +65,7 @@ export const castingSessions = pgTable(
   (table) => [
     index("casting_sessions_user_idx").on(table.userId),
     check("casting_sessions_risk_status_check", sql`${table.riskStatus} in ('not_checked', 'allowed', 'professional_decision_blocked', 'needs_clarification', 'emergency_blocked')`),
+    check("casting_sessions_cast_origin_check", sql`${table.castOrigin} in ('server_generated', 'client_attested')`),
     check("casting_sessions_generation_epoch_check", sql`${table.generationEpoch} >= 0`),
   ],
 );

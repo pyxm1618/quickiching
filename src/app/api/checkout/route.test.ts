@@ -100,6 +100,7 @@ describe("CP4 checkout route", () => {
     expect(response.status).toBe(200);
     expect(mocks.createCheckout).toHaveBeenCalledWith({
       userId: "user-1", buyerEmail: "buyer@example.com", productKey: "three", requestId: "request-1234567890",
+      locale: "en",
     });
     await expect(response.json()).resolves.toEqual({
       orderId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",

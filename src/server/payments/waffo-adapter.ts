@@ -1,12 +1,22 @@
 import type { ProductId } from "@/domain/entitlements/pricing";
+import type { ContentLocale } from "@/i18n/config";
 import {
   WaffoPancake,
   type AuthenticatedCheckoutParams,
   type AuthenticatedCheckoutResult,
+  type CashierLanguage,
   type Notice,
 } from "@waffo/pancake-ts";
 
 type RuntimeEnv = Record<string, string | undefined>;
+
+/**
+ * Where Waffo sends the buyer after a successful payment. A fixed path with no
+ * dynamic segment: the order identity the page needs is already in the buyer's
+ * own tab, and anything Waffo appends to this URL is attacker-reachable and
+ * therefore not trusted by the page that receives it.
+ */
+export const CHECKOUT_RETURN_PATH = "/checkout/return";
 
 export type WaffoRuntimeConfig = {
   environment: "test" | "prod";
@@ -14,6 +24,7 @@ export type WaffoRuntimeConfig = {
   privateKey: string;
   storeId: string;
   productIds: Record<ProductId, string>;
+  successUrl: string;
 };
 
 export type WaffoWebhookConfig = Pick<WaffoRuntimeConfig, "environment" | "storeId">;
@@ -22,6 +33,39 @@ function required(env: RuntimeEnv, name: string): string {
   const candidate = env[name]?.trim();
   if (!candidate) throw new Error("WAFFO_CONFIGURATION_UNAVAILABLE");
   return candidate;
+}
+
+/**
+ * Derived only from server configuration — never from a request header. A
+ * Host/Origin-derived return URL would let a forged request point Waffo's
+ * post-payment redirect at someone else's site.
+ *
+ * http is accepted here so local development works; production tightens
+ * APP_BASE_URL to https in the checkout capability requirements, and a
+ * non-https value there disables checkout altogether rather than reaching this.
+ */
+function checkoutReturnUrl(env: RuntimeEnv): string {
+  const base = required(env, "APP_BASE_URL");
+  let url: URL;
+  try {
+    url = new URL(CHECKOUT_RETURN_PATH, base);
+  } catch {
+    throw new Error("WAFFO_CONFIGURATION_UNAVAILABLE");
+  }
+  if (
+    (url.protocol !== "https:" && url.protocol !== "http:") ||
+    !url.hostname ||
+    url.username ||
+    url.password
+  ) {
+    throw new Error("WAFFO_CONFIGURATION_UNAVAILABLE");
+  }
+  return url.toString();
+}
+
+/** Both content locales are also valid Waffo cashier languages, so this is a narrowing, not a lookup. */
+function cashierLanguage(locale: ContentLocale | undefined): CashierLanguage | undefined {
+  return locale === "en" || locale === "zh-Hans" ? locale : undefined;
 }
 
 export function resolveWaffoWebhookConfig(env: RuntimeEnv = process.env): WaffoWebhookConfig {
@@ -49,6 +93,7 @@ export function resolveWaffoRuntimeConfig(env: RuntimeEnv = process.env): WaffoR
     privateKey: required(env, "WAFFO_PRIVATE_KEY"),
     storeId,
     productIds,
+    successUrl: checkoutReturnUrl(env),
   };
 }
 
@@ -74,17 +119,21 @@ export function createWaffoPaymentAdapter(
     userId: string;
     buyerEmail: string;
     productKey: ProductId;
+    locale?: ContentLocale;
   }): Promise<{ sessionId: string; checkoutUrl: string; expiresAt: Date }>;
 } {
   return {
     async createCheckout(input) {
       const productId = config.productIds[input.productKey];
+      const language = cashierLanguage(input.locale);
       const result = await client.checkout.authenticated.create({
         productId,
         currency: "USD",
         buyerIdentity: input.userId,
         buyerEmail: input.buyerEmail,
         orderMerchantExternalId: input.orderId,
+        successUrl: config.successUrl,
+        ...(language ? { language } : {}),
         metadata: {
           internalOrderId: input.orderId,
           productKey: input.productKey,

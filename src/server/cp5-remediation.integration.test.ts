@@ -161,7 +161,7 @@ describe("CP5 audit remediation regressions", () => {
       },
     });
 
-    await expect(service.requestDeepReading({ userId, castingId }))
+    await expect(service.requestDeepReading({ userId, castingId , locale: "en" }))
       .rejects.toThrow("WORKFLOW_START_FAILED");
 
     const jobs = await sql<{ id: string; status: string; structured_error_code: string | null }[]>`
@@ -232,6 +232,7 @@ describe("CP5 audit remediation regressions", () => {
       jobId: activeJobId,
       idempotencyKey: activeIdempotencyKey,
       generationEpoch: 0,
+      locale: "en",
     })).rejects.toThrow("GENERATION_JOB_LEASE_ACTIVE");
 
     await expect(finalizeDeepReadingStep({
@@ -242,6 +243,7 @@ describe("CP5 audit remediation regressions", () => {
       generationEpoch: 0,
       inputSnapshotHash: "not-the-request-snapshot",
       leaseToken: "live-token",
+      locale: "en",
       generationResult: { output: {}, deterministicFacts: {} },
       reviewDecision: {
         status: "pass",
@@ -292,6 +294,7 @@ describe("CP5 audit remediation regressions", () => {
       jobId: changedJobId,
       idempotencyKey: changedIdempotencyKey,
       generationEpoch: 0,
+      locale: "en",
     })).rejects.toThrow("INPUT_SNAPSHOT_MISMATCH");
   });
 
