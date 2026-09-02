@@ -21,8 +21,7 @@ function setMenuOpen(name: MenuName, open: boolean, focus: "first" | "last" | nu
   trigger.setAttribute("aria-expanded", String(open));
   menu.classList.toggle("hidden", !open);
   menu.classList.toggle("block", open);
-  const chevron = trigger.querySelector<HTMLElement>("[data-nav-chevron]");
-  chevron?.classList.toggle("rotate-180", open);
+  trigger.querySelector<HTMLElement>("[data-nav-chevron]")?.classList.toggle("rotate-180", open);
   for (const item of items) item.tabIndex = open ? 0 : -1;
   if (open && focus && items.length > 0) {
     requestAnimationFrame(() => (focus === "first" ? items[0] : items.at(-1))?.focus());
@@ -41,9 +40,9 @@ function visibleFocusable(root: HTMLElement): HTMLElement[] {
   });
 }
 
-function markCurrentPath(header: HTMLElement) {
+function markCurrentPath(root: ParentNode) {
   const pathname = window.location.pathname || "/";
-  for (const link of header.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+  for (const link of root.querySelectorAll<HTMLAnchorElement>("a[href]")) {
     let path: string;
     try {
       path = new URL(link.href, window.location.origin).pathname;
@@ -59,10 +58,6 @@ function markCurrentPath(header: HTMLElement) {
       for (const token of ACTIVE_CLASS.split(" ")) link.classList.remove(token);
     }
   }
-  const methodsTrigger = document.getElementById("methods-trig-site");
-  const guidesTrigger = document.getElementById("guides-trig-site");
-  methodsTrigger?.classList.toggle("text-[var(--ink)]", pathname.startsWith("/methods/"));
-  guidesTrigger?.classList.toggle("text-[var(--ink)]", pathname.startsWith("/guides/"));
 }
 
 export function SiteHeaderBehavior() {
@@ -74,13 +69,15 @@ export function SiteHeaderBehavior() {
     const drawerTrigger = document.getElementById("drawer-trig-site") as HTMLButtonElement | null;
     const drawerRoot = document.getElementById("nav-drawer-site");
     const drawer = drawerRoot?.querySelector<HTMLElement>("[data-nav-dialog]") ?? null;
-    const drawerBackdrop = drawerRoot?.querySelector<HTMLElement>("[data-drawer-backdrop]") ?? null;
     const drawerClose = drawerRoot?.querySelector<HTMLButtonElement>("[data-drawer-close]") ?? null;
     const desktop = window.matchMedia("(min-width: 1024px)");
     let drawerOpen = false;
     let originalOverflow = "";
 
     markCurrentPath(header);
+    if (drawerRoot) markCurrentPath(drawerRoot);
+    document.getElementById("methods-trig-site")?.classList.toggle("text-[var(--ink)]", window.location.pathname.startsWith("/methods/"));
+    document.getElementById("guides-trig-site")?.classList.toggle("text-[var(--ink)]", window.location.pathname.startsWith("/guides/"));
 
     function closeDrawer(returnFocus = true) {
       if (!drawerRoot || !drawerTrigger || !drawer) return;
@@ -180,9 +177,7 @@ export function SiteHeaderBehavior() {
       if (target.closest('[data-header-menu="methods"] [role^="menuitem"]')) setMenuOpen("methods", false);
       if (target.closest('[data-header-menu="guides"] [role^="menuitem"]')) setMenuOpen("guides", false);
       if (drawerOpen && target.closest("#nav-drawer-site a[href]")) closeDrawer(false);
-      if (drawerOpen && target.closest('#nav-drawer-site [data-language-switcher] [role="menuitemradio"]')) {
-        requestAnimationFrame(() => closeDrawer(false));
-      }
+      if (drawerOpen && target.closest('#nav-drawer-site [data-language-switcher] [role="menuitemradio"]')) requestAnimationFrame(() => closeDrawer(false));
     }
 
     function onKeyDown(event: KeyboardEvent) {
@@ -195,8 +190,7 @@ export function SiteHeaderBehavior() {
       const guidesItem = target.closest<HTMLElement>('#guides-menu-site [role^="menuitem"]');
       if (guidesItem) return handleMenuItemKey("guides", event, guidesItem);
 
-      if (!drawerOpen || !drawer) return;
-      if (event.defaultPrevented) return;
+      if (!drawerOpen || !drawer || event.defaultPrevented) return;
       if (event.key === "Escape") {
         const languageMenuOpen = drawer.querySelector('[data-language-switcher] button[aria-haspopup="menu"][aria-expanded="true"]');
         if (languageMenuOpen) return;
@@ -240,17 +234,18 @@ export function SiteHeaderBehavior() {
       closeDesktopMenus();
       if (drawerOpen) closeDrawer(false);
       markCurrentPath(header);
+      if (drawerRoot) markCurrentPath(drawerRoot);
     }
 
-    header.addEventListener("click", onClick);
-    header.addEventListener("keydown", onKeyDown);
+    document.addEventListener("click", onClick);
+    document.addEventListener("keydown", onKeyDown);
     document.addEventListener("mousedown", onDocumentMouseDown);
     desktop.addEventListener("change", onBreakpointChange);
     window.addEventListener("popstate", onPopState);
 
     return () => {
-      header.removeEventListener("click", onClick);
-      header.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("click", onClick);
+      document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("mousedown", onDocumentMouseDown);
       desktop.removeEventListener("change", onBreakpointChange);
       window.removeEventListener("popstate", onPopState);
