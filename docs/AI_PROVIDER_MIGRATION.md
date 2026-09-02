@@ -90,8 +90,25 @@ flash 在简化 prompt 下 8/8，在生产 prompt 下却失败了。
 ```
 AI_MODEL_DEEP_READING    = deepseek-v4-pro     # 付费产出，强约束长 prompt
 AI_MODEL_PREVIEW         = deepseek-v4-flash   # 短任务，flash 足够
-AI_MODEL_OUTPUT_REVIEW   = deepseek-v4-flash   # 只输出几个字段
+AI_MODEL_OUTPUT_REVIEW   = deepseek-v4-pro     # 见下：曾误配为 flash
 ```
+
+### 分层时按「输入长度」判断，不是按「输出长度」
+
+`AI_MODEL_OUTPUT_REVIEW` 一度被配成 flash，理由是它的输出 schema 极小
+（status + reasonCodes + 三个 boolean）。**这个判断是错的**：审查步骤的**输入**
+是整篇深度解读（pro 产出的 3000–8000 字符）加上全部事实数据，属于典型的长输入
+任务——正是 flash 的弱项。结果 `reviewDeepReadingStep` 连续三次
+`AI_NoOutputGeneratedError: No output generated.`
+
+→ **决定用哪档模型，看的是它要读多少，而不是要写多少。**
+
+### 单次通过不等于稳定：必须重复验证
+
+闸门第一次全绿（46/0/0）后若就此收工，会得到「已稳定」的错误结论。
+**同一份部署重跑第二次就失败了**（深度解读 2 次中 1 次成功）。
+兼容模式下的失败是概率性的，**验收这类改动至少要连续跑 3 次全绿**才算数。
+
 
 ### 排查时我犯过的两个错，都值得记住
 
