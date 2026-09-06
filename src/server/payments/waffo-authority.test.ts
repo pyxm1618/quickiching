@@ -157,6 +157,7 @@ describe("Waffo 0.19.1 authoritative one-time boundary", () => {
       buyerIdentity: "user-1",
       providerPaymentId: "PAY_test",
       merchantOrderReference: "11111111-1111-4111-8111-111111111111",
+      expectedProviderProductId: "PROD_test_three",
       amountMinor: 699,
       currency: "USD",
       reason: "Customer request",
