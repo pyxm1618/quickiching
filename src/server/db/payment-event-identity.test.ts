@@ -12,4 +12,15 @@ describe("payment webhook provider event identity", () => {
       'uniqueIndex("payment_inbox_business_event_idx").on(table.provider, table.providerEnvironment, table.eventType, table.eventId)',
     );
   });
+
+  it("does not use delivery id as a cross-event unique identity", () => {
+    const source = readFileSync(new URL("./payment-schema.ts", import.meta.url), "utf8");
+
+    expect(source).toContain(
+      'index("payment_inbox_delivery_idx").on(table.provider, table.providerEnvironment, table.deliveryId)',
+    );
+    expect(source).not.toContain(
+      'uniqueIndex("payment_inbox_delivery_idx").on(table.provider, table.providerEnvironment, table.deliveryId)',
+    );
+  });
 });
