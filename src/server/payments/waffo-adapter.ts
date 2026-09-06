@@ -7,6 +7,7 @@ import {
 } from "@waffo/pancake-ts";
 
 type RuntimeEnv = Record<string, string | undefined>;
+type AppEnvironment = "development" | "test" | "staging" | "production";
 
 export type WaffoRuntimeConfig = {
   environment: "test" | "prod";
@@ -24,12 +25,45 @@ function required(env: RuntimeEnv, name: string): string {
   return candidate;
 }
 
-export function resolveWaffoWebhookConfig(env: RuntimeEnv = process.env): WaffoWebhookConfig {
-  const environment = required(env, "WAFFO_ENVIRONMENT");
-  if (environment !== "test" && environment !== "prod") {
+function resolveAppEnvironment(env: RuntimeEnv): AppEnvironment {
+  const configured = env.APP_ENV?.trim();
+  if (configured) {
+    if (
+      configured !== "development" &&
+      configured !== "test" &&
+      configured !== "staging" &&
+      configured !== "production"
+    ) {
+      throw new Error("WAFFO_CONFIGURATION_UNAVAILABLE");
+    }
+    return configured;
+  }
+
+  // A production Next.js build is also used by preview/staging deployments, so
+  // NODE_ENV alone is not an application-environment authority. Provider-facing
+  // production runtime must name APP_ENV explicitly; local/test processes may
+  // derive a safe non-production default.
+  if (env.NODE_ENV === "production") throw new Error("WAFFO_CONFIGURATION_UNAVAILABLE");
+  return env.NODE_ENV === "test" ? "test" : "development";
+}
+
+export function resolveWaffoEnvironment(env: RuntimeEnv = process.env): "test" | "prod" {
+  const configured = required(env, "WAFFO_ENVIRONMENT");
+  if (configured !== "test" && configured !== "prod") {
     throw new Error("WAFFO_CONFIGURATION_UNAVAILABLE");
   }
-  return { environment, storeId: required(env, "WAFFO_STORE_ID") };
+
+  const appEnvironment = resolveAppEnvironment(env);
+  const expected = appEnvironment === "production" ? "prod" : "test";
+  if (configured !== expected) throw new Error("WAFFO_CONFIGURATION_UNAVAILABLE");
+  return configured;
+}
+
+export function resolveWaffoWebhookConfig(env: RuntimeEnv = process.env): WaffoWebhookConfig {
+  return {
+    environment: resolveWaffoEnvironment(env),
+    storeId: required(env, "WAFFO_STORE_ID"),
+  };
 }
 
 export function resolveWaffoRuntimeConfig(env: RuntimeEnv = process.env): WaffoRuntimeConfig {
