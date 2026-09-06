@@ -1,6 +1,7 @@
 import { getCommercialDatabaseConnection } from "@/server/db/client";
 import { isCheckoutCapabilityEnabled, isWebhookIngestionCapabilityEnabled } from "./capability";
 import { createCheckoutService } from "./checkout-service";
+import { CloseoutPaymentRepository } from "./closeout-repository";
 import { PostgresPaymentRepository } from "./postgres-repository";
 import {
   createWaffoPaymentAdapter,
@@ -37,7 +38,7 @@ export async function createProductionWaffoWebhookService(env: RuntimeEnv = proc
   const config = resolveWaffoWebhookConfig(env);
   const { client } = getCommercialDatabaseConnection(databaseUrl(env));
   return createWaffoWebhookService({
-    repository: new PostgresPaymentRepository(client),
+    repository: new CloseoutPaymentRepository(client),
     verifyAndNormalize: (rawBody, signature) => verifyAndNormalizeWaffoWebhook(rawBody, signature, config),
   });
 }
