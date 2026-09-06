@@ -54,6 +54,7 @@ export interface RefundProviderAuthority extends OneTimePaymentAuthority {
     buyerIdentity: string;
     providerPaymentId: string;
     merchantOrderReference: string;
+    expectedProviderProductId: string;
     amountMinor: number;
     currency: "USD";
     reason: string;
