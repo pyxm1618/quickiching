@@ -1,0 +1,46 @@
+name: Payment Closeout Production Env Audit
+
+on:
+  push:
+    branches: [fix/waffo-payment-closeout]
+    paths: [.github/workflows/payment-closeout-production-env-audit.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: payment-closeout-production-env-audit
+  cancel-in-progress: true
+
+env:
+  VERCEL_PROJECT_ID: prj_pCpeoAys2GOqKZvkbLugYjpJWZBS
+  VERCEL_TEAM_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
+
+jobs:
+  audit:
+    name: Read-only production payment environment audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Lock read-only production scope
+        run: |
+          set -euo pipefail
+          test -n "${VERCEL_TOKEN:-}" || { echo "::error::VERCEL_TOKEN is not configured"; exit 1; }
+          test "$VERCEL_PROJECT_ID" = "prj_pCpeoAys2GOqKZvkbLugYjpJWZBS"
+          test "$VERCEL_TEAM_ID" = "team_z1b9TTQtbNkr43dzs5JVJPnQ"
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify audit contract
+        run: bunx vitest run src/server/readiness/payment-closeout-env-audit.test.ts src/server/payments/environment-contract.test.ts
+      - name: Audit production payment env metadata without exposing values
+        run: bun scripts/payment-closeout-production-env-audit.ts
