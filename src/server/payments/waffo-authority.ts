@@ -301,6 +301,7 @@ export function createWaffoAuthority(
         storeId: input.storeId,
         merchantOrderReference: input.merchantOrderReference,
         providerPaymentId: input.providerPaymentId,
+        expectedProviderOrderId: input.expectedProviderOrderId,
         expectedProviderProductId: input.expectedProviderProductId,
         expectedAmountMinor: input.amountMinor,
         expectedCurrency: input.currency,
