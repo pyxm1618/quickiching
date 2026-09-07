@@ -283,7 +283,7 @@ export class CloseoutPaymentRepository extends PostgresPaymentRepository {
       if (input.refundId) {
         await transaction`
           update refund_intents
-          set status = case when status = 'succeeded' then status else 'reconciliation_required' end,
+          set status = case when status in ('succeeded', 'failed') then status else 'reconciliation_required' end,
               last_error_code = ${input.reason}, next_reconcile_at = null,
               reconcile_lease_token = null, reconcile_lease_expires_at = null,
               updated_at = clock_timestamp()
