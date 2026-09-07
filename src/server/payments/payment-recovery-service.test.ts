@@ -48,8 +48,10 @@ describe("one-time missed payment webhook recovery", () => {
     }));
     expect(settle).toHaveBeenCalledWith(expect.objectContaining({
       orderId: candidate.orderId,
-      providerOrderId: "ORD_1",
-      providerPaymentId: "PAY_1",
+      payment: expect.objectContaining({
+        providerOrderId: "ORD_1",
+        providerPaymentId: "PAY_1",
+      }),
       source: "provider_read_reconciliation",
     }));
   });
