@@ -229,6 +229,7 @@ export function createWaffoAuthority(
         const providerPaymentId = string(payment.id, "payment.id");
         if (input.providerPaymentId && providerPaymentId !== input.providerPaymentId) return { status: "contract_error" };
         const providerOrderId = string(payment.orderId, "payment.orderId");
+        if (input.expectedProviderOrderId && providerOrderId !== input.expectedProviderOrderId) return { status: "contract_error" };
         const merchantOrderReference = string(payment.orderMerchantExternalId, "payment.orderMerchantExternalId");
         if (merchantOrderReference !== input.merchantOrderReference) return { status: "contract_error" };
 
@@ -328,6 +329,7 @@ export function createWaffoAuthority(
         storeId: input.storeId,
         merchantOrderReference: input.merchantOrderReference,
         providerPaymentId: input.providerPaymentId,
+        expectedProviderOrderId: input.expectedProviderOrderId,
         expectedProviderProductId: input.expectedProviderProductId,
         expectedAmountMinor: input.paymentAmountMinor,
         expectedCurrency: input.currency,
