@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Sql } from "postgres";
+import type { RefundWriteResult } from "@/server/payments/provider-authority";
+import type { RefundDispatchClaim } from "./refund-command-service";
 import { screenRefundApplication } from "./refund-policy";
 
 type Row = Record<string, unknown>;
@@ -31,6 +33,27 @@ function mapRefund(row: Row, created: boolean): RefundIntentRecord {
     providerWriteState: String(row.provider_write_state),
     providerWriteAttemptCount: Number(row.provider_write_attempt_count),
     created,
+  };
+}
+
+function dispatchClaim(order: Row, refund: Row, mode: RefundDispatchClaim["mode"]): RefundDispatchClaim {
+  const providerPaymentId = order.provider_payment_id == null ? "" : String(order.provider_payment_id);
+  const providerProductId = order.provider_product_id == null ? "" : String(order.provider_product_id);
+  if (!providerPaymentId || !providerProductId) throw new Error("REFUND_PAYMENT_IDENTITY_UNAVAILABLE");
+  const environment = String(refund.provider_environment);
+  if (environment !== "test" && environment !== "prod") throw new Error("REFUND_ENVIRONMENT_INVALID");
+  if (String(refund.currency) !== "USD") throw new Error("REFUND_CURRENCY_INVALID");
+  return {
+    mode,
+    refundId: String(refund.id),
+    orderId: String(order.id),
+    userId: String(refund.user_id),
+    environment,
+    providerPaymentId,
+    providerProductId,
+    requestedMinor: Number(refund.requested_minor),
+    currency: "USD",
+    reason: String(refund.reason),
   };
 }
 
@@ -188,6 +211,203 @@ export class PostgresRefundRepository {
         )
       `;
       return mapRefund(updated[0], false);
+    });
+  }
+
+  async claimProviderDispatch(refundId: string, now: Date): Promise<RefundDispatchClaim> {
+    if (!Number.isFinite(now.getTime())) throw new Error("REFUND_COMMAND_INVALID");
+    const hints = await this.sql`
+      select order_id from refund_intents where id = ${refundId} limit 1
+    ` as Row[];
+    if (!hints[0]) throw new Error("REFUND_INTENT_NOT_FOUND");
+    const orderId = String(hints[0].order_id);
+
+    return this.sql.begin(async (transaction) => {
+      const orderRows = await transaction`
+        select * from payment_orders where id = ${orderId} limit 1 for update
+      ` as Row[];
+      const order = orderRows[0];
+      if (!order) throw new Error("REFUND_ORDER_NOT_FOUND");
+      const refundRows = await transaction`
+        select * from refund_intents where id = ${refundId} and order_id = ${orderId} limit 1 for update
+      ` as Row[];
+      const refund = refundRows[0];
+      if (!refund) throw new Error("REFUND_INTENT_NOT_FOUND");
+
+      const state = String(refund.provider_write_state);
+      const attempts = Number(refund.provider_write_attempt_count);
+      if (state !== "not_started" || attempts !== 0 || String(refund.status) !== "approved") {
+        return dispatchClaim(order, refund, "read_only");
+      }
+
+      if (
+        String(order.status) !== "paid"
+        || String(order.user_id) !== String(refund.user_id)
+        || String(order.provider_environment) !== String(refund.provider_environment)
+        || Number(order.amount_minor) !== Number(refund.requested_minor)
+        || String(order.currency) !== "USD"
+      ) {
+        throw new Error("REFUND_ORDER_STATE_INVALID");
+      }
+
+      const batchRows = await transaction`
+        select * from entitlement_batches where order_id = ${orderId} limit 1 for update
+      ` as Row[];
+      const batch = batchRows[0];
+      if (!batch) throw new Error("REFUND_ENTITLEMENT_SOURCE_UNAVAILABLE");
+      if (
+        Number(batch.quantity_available) !== Number(batch.quantity_total)
+        || Number(batch.quantity_reserved) !== 0
+        || Number(batch.quantity_consumed) !== 0
+        || Number(batch.quantity_revoked) !== 0
+      ) {
+        await transaction`
+          update refund_intents
+          set status = 'manual_review', auto_screen = 'manual_exception',
+              screen_reason = 'REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE',
+              last_error_code = 'REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE',
+              updated_at = ${now}
+          where id = ${refundId} and provider_write_state = 'not_started'
+        `;
+        await transaction`
+          insert into audit_events (
+            id, category, action, entity_type, entity_id, user_id, payload, created_at
+          ) values (
+            ${randomUUID()}, 'reconcile', 'refund_dispatch_blocked', 'refund_intent', ${refundId},
+            ${String(refund.user_id)}, ${JSON.stringify({
+              reason: "REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE",
+              orderId,
+            })}::jsonb, ${now}
+          )
+        `;
+        throw new Error("REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE");
+      }
+
+      const updated = await transaction`
+        update refund_intents
+        set provider_write_state = 'dispatched', status = 'processing',
+            provider_write_attempt_count = 1, provider_dispatched_at = ${now},
+            next_reconcile_at = ${now}, last_error_code = null, updated_at = ${now}
+        where id = ${refundId} and status = 'approved'
+          and provider_write_state = 'not_started' and provider_write_attempt_count = 0
+        returning *
+      ` as Row[];
+      if (!updated[0]) {
+        const latestRows = await transaction`
+          select * from refund_intents where id = ${refundId} limit 1
+        ` as Row[];
+        if (!latestRows[0]) throw new Error("REFUND_INTENT_NOT_FOUND");
+        return dispatchClaim(order, latestRows[0], "read_only");
+      }
+
+      await transaction`
+        insert into audit_events (
+          id, category, action, entity_type, entity_id, user_id, payload, created_at
+        ) values (
+          ${randomUUID()}, 'reconcile', 'refund_provider_dispatch_fenced', 'refund_intent', ${refundId},
+          ${String(refund.user_id)}, ${JSON.stringify({ orderId, providerWriteAttemptCount: 1 })}::jsonb, ${now}
+        )
+      `;
+      return dispatchClaim(order, updated[0], "dispatch");
+    });
+  }
+
+  async markProviderDispatchConfirmed(input: {
+    refundId: string;
+    result: RefundWriteResult;
+    now: Date;
+  }): Promise<void> {
+    const hints = await this.sql`
+      select order_id from refund_intents where id = ${input.refundId} limit 1
+    ` as Row[];
+    if (!hints[0]) throw new Error("REFUND_INTENT_NOT_FOUND");
+    const orderId = String(hints[0].order_id);
+
+    await this.sql.begin(async (transaction) => {
+      await transaction`select id from payment_orders where id = ${orderId} limit 1 for update`;
+      const rows = await transaction`
+        select * from refund_intents where id = ${input.refundId} limit 1 for update
+      ` as Row[];
+      const refund = rows[0];
+      if (!refund) throw new Error("REFUND_INTENT_NOT_FOUND");
+      if (String(refund.provider_write_state) === "confirmed") {
+        if (String(refund.provider_ticket_id ?? "") === input.result.providerTicketId) return;
+        throw new Error("REFUND_PROVIDER_REFERENCE_CONFLICT");
+      }
+      if (String(refund.provider_write_state) !== "dispatched" || Number(refund.provider_write_attempt_count) !== 1) {
+        throw new Error("REFUND_PROVIDER_WRITE_STATE_CONFLICT");
+      }
+
+      const failed = input.result.status === "failed";
+      const updated = await transaction`
+        update refund_intents
+        set provider_write_state = 'confirmed', provider_ticket_id = ${input.result.providerTicketId},
+            status = ${failed ? "failed" : "processing"},
+            next_reconcile_at = ${failed ? null : input.now},
+            last_error_code = ${failed ? "REFUND_PROVIDER_REJECTED" : null},
+            updated_at = ${input.now}
+        where id = ${input.refundId} and provider_write_state = 'dispatched'
+          and provider_write_attempt_count = 1
+        returning id
+      ` as Row[];
+      if (!updated[0]) throw new Error("REFUND_PROVIDER_WRITE_STATE_CONFLICT");
+      await transaction`
+        insert into audit_events (
+          id, category, action, entity_type, entity_id, user_id, payload, created_at
+        ) values (
+          ${randomUUID()}, 'reconcile', 'refund_provider_dispatch_confirmed', 'refund_intent',
+          ${input.refundId}, ${String(refund.user_id)}, ${JSON.stringify({
+            orderId,
+            providerTicketId: input.result.providerTicketId,
+            providerStatus: input.result.status,
+          })}::jsonb, ${input.now}
+        )
+      `;
+    });
+  }
+
+  async markProviderDispatchAmbiguous(input: {
+    refundId: string;
+    errorCode: string;
+    now: Date;
+  }): Promise<void> {
+    const hints = await this.sql`
+      select order_id from refund_intents where id = ${input.refundId} limit 1
+    ` as Row[];
+    if (!hints[0]) throw new Error("REFUND_INTENT_NOT_FOUND");
+    const orderId = String(hints[0].order_id);
+
+    await this.sql.begin(async (transaction) => {
+      await transaction`select id from payment_orders where id = ${orderId} limit 1 for update`;
+      const rows = await transaction`
+        select * from refund_intents where id = ${input.refundId} limit 1 for update
+      ` as Row[];
+      const refund = rows[0];
+      if (!refund) throw new Error("REFUND_INTENT_NOT_FOUND");
+      const state = String(refund.provider_write_state);
+      if (state === "confirmed" || String(refund.status) === "succeeded" || String(refund.status) === "failed") return;
+      if (state === "ambiguous") return;
+      if (state !== "dispatched" || Number(refund.provider_write_attempt_count) !== 1) {
+        throw new Error("REFUND_PROVIDER_WRITE_STATE_CONFLICT");
+      }
+
+      await transaction`
+        update refund_intents
+        set provider_write_state = 'ambiguous', status = 'reconciliation_required',
+            next_reconcile_at = ${input.now}, last_error_code = ${input.errorCode},
+            updated_at = ${input.now}
+        where id = ${input.refundId} and provider_write_state = 'dispatched'
+          and provider_write_attempt_count = 1
+      `;
+      await transaction`
+        insert into audit_events (
+          id, category, action, entity_type, entity_id, user_id, payload, created_at
+        ) values (
+          ${randomUUID()}, 'reconcile', 'refund_provider_dispatch_ambiguous', 'refund_intent',
+          ${input.refundId}, ${String(refund.user_id)}, ${JSON.stringify({ orderId, errorCode: input.errorCode })}::jsonb,
+          ${input.now}
+        )
+      `;
     });
   }
 }
