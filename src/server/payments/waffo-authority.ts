@@ -1,9 +1,11 @@
-import { WaffoPancake } from "@waffo/pancake-ts";
-import type {
-  AuthoritativePaymentLookup,
-  RefundProviderAuthority,
-  RefundSettlementLookup,
-  RefundWriteResult,
+import { WaffoPancake, WaffoPancakeError } from "@waffo/pancake-ts";
+import {
+  RefundWriteNotDispatchedError,
+  RefundWriteRejectedError,
+  type AuthoritativePaymentLookup,
+  type RefundProviderAuthority,
+  type RefundSettlementLookup,
+  type RefundWriteResult,
 } from "./provider-authority";
 
 const PAYMENT_QUERY_LIMIT = 100;
@@ -131,6 +133,20 @@ function refundStatus(value: unknown): RefundSettlementLookup["status"] {
   if (value === "pending") return "found_processing";
   if (value === "failed" || value === "cancelled") return "failed";
   throw new ProviderContractError("invalid refund status");
+}
+
+function isLocalSdkValidation(error: unknown): boolean {
+  if (!(error instanceof WaffoPancakeError) || error.status !== 400 || error.errors.length === 0) return false;
+  return error.errors.every((item) => item.layer === "sdk"
+    && !item.message.startsWith("Non-JSON response from "));
+}
+
+function isDefiniteProviderRejection(error: unknown): error is WaffoPancakeError {
+  if (!(error instanceof WaffoPancakeError)) return false;
+  if (error.status < 400 || error.status >= 500 || error.status === 408 || error.status === 409 || error.status === 429) {
+    return false;
+  }
+  return error.errors.length > 0 && error.errors.every((item) => item.layer !== "sdk");
 }
 
 function scopedFetch(
@@ -277,32 +293,53 @@ export function createWaffoAuthority(
   async function requestRefund(
     input: Parameters<RefundProviderAuthority["requestRefund"]>[0],
   ): Promise<RefundWriteResult> {
-    exactEnvironment(config, input);
-    const authoritative = await getPayment({
-      environment: input.environment,
-      storeId: input.storeId,
-      merchantOrderReference: input.merchantOrderReference,
-      providerPaymentId: input.providerPaymentId,
-      expectedProviderProductId: input.expectedProviderProductId,
-      expectedAmountMinor: input.amountMinor,
-      expectedCurrency: input.currency,
-    });
-    if (authoritative.status !== "found" || authoritative.payment.status !== "succeeded") {
-      throw new ProviderContractError("refund payment is not authoritative");
+    let customer: ReturnType<ClientLike["customer"]>;
+    try {
+      exactEnvironment(config, input);
+      const authoritative = await getPayment({
+        environment: input.environment,
+        storeId: input.storeId,
+        merchantOrderReference: input.merchantOrderReference,
+        providerPaymentId: input.providerPaymentId,
+        expectedProviderProductId: input.expectedProviderProductId,
+        expectedAmountMinor: input.amountMinor,
+        expectedCurrency: input.currency,
+      });
+      if (authoritative.status !== "found" || authoritative.payment.status !== "succeeded") {
+        throw new ProviderContractError("refund payment is not authoritative");
+      }
+      const client = createClient();
+      const session = await client.auth.issueSessionToken({
+        storeId: input.storeId,
+        buyerIdentity: input.buyerIdentity,
+      });
+      customer = client.customer(session.token, { environment: input.environment });
+    } catch {
+      throw new RefundWriteNotDispatchedError("REFUND_PROVIDER_PREFLIGHT_FAILED");
     }
-    const client = createClient();
-    const session = await client.auth.issueSessionToken({
-      storeId: input.storeId,
-      buyerIdentity: input.buyerIdentity,
-    });
-    const customer = client.customer(session.token, { environment: input.environment });
-    const result = await customer.createRefundTicket({
-      paymentId: input.providerPaymentId,
-      reason: input.reason,
-      requestedAmount: { amount: displayAmount(input.amountMinor), currency: "USD" },
-      refundTicketMerchantExternalId: input.refundIntentId,
-      metadata: { quickIChingRefundIntentId: input.refundIntentId },
-    });
+
+    let result: { ticket: unknown };
+    try {
+      result = await customer.createRefundTicket({
+        paymentId: input.providerPaymentId,
+        reason: input.reason,
+        requestedAmount: { amount: displayAmount(input.amountMinor), currency: "USD" },
+        refundTicketMerchantExternalId: input.refundIntentId,
+        metadata: { quickIChingRefundIntentId: input.refundIntentId },
+      });
+    } catch (error) {
+      if (isLocalSdkValidation(error)) {
+        throw new RefundWriteNotDispatchedError("REFUND_PROVIDER_LOCAL_VALIDATION_FAILED");
+      }
+      if (isDefiniteProviderRejection(error)) {
+        throw new RefundWriteRejectedError("REFUND_PROVIDER_REJECTED", error.status);
+      }
+      throw error;
+    }
+
+    // Everything below occurs after the refund endpoint may have accepted the
+    // request. Contract/parse mismatches therefore remain unknown outcomes and
+    // must be reconciled by authoritative provider READ rather than re-POSTed.
     const ticket = record(result.ticket, "refund ticket");
     const providerTicketId = string(ticket.id, "refund ticket.id");
     if (string(ticket.subjectId, "refund ticket.subjectId") !== input.providerPaymentId) {
