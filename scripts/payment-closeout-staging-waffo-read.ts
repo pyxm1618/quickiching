@@ -16,7 +16,6 @@ const REQUIRED = [
 
 type EnvEntry = { id?: unknown; key?: unknown; target?: unknown; value?: unknown };
 type EnvKey = typeof REQUIRED[number];
-
 type GraphqlResponse<T> = { data?: T; errors?: Array<{ message?: string }>; warnings?: unknown[] };
 
 function targetsProduction(value: unknown): boolean {
@@ -34,6 +33,8 @@ async function vercelJson(url: URL, token: string): Promise<unknown> {
 async function readStagingEnv(token: string): Promise<Record<EnvKey, string>> {
   const listUrl = new URL(`https://api.vercel.com/v10/projects/${PROJECT_ID}/env`);
   listUrl.searchParams.set("teamId", TEAM_ID);
+  listUrl.searchParams.set("decrypt", "true");
+  listUrl.searchParams.set("source", "vercel-cli:pull");
   const list = await vercelJson(listUrl, token) as { envs?: EnvEntry[] };
   if (!Array.isArray(list.envs)) throw new Error("VERCEL_ENV_LIST_INVALID");
 
@@ -42,14 +43,7 @@ async function readStagingEnv(token: string): Promise<Record<EnvKey, string>> {
     const matches = list.envs.filter((entry) => entry.key === key && targetsProduction(entry.target));
     if (matches.length !== 1) throw new Error(`STAGING_ENV_CARDINALITY:${key}`);
     const entry = matches[0];
-    let value = typeof entry.value === "string" ? entry.value : "";
-    if (!value.trim()) {
-      if (typeof entry.id !== "string" || !entry.id) throw new Error(`STAGING_ENV_ID_MISSING:${key}`);
-      const valueUrl = new URL(`https://api.vercel.com/v1/projects/${PROJECT_ID}/env/${entry.id}`);
-      valueUrl.searchParams.set("teamId", TEAM_ID);
-      const resolved = await vercelJson(valueUrl, token) as { value?: unknown };
-      value = typeof resolved.value === "string" ? resolved.value : "";
-    }
+    const value = typeof entry.value === "string" ? entry.value : "";
     if (!value.trim()) throw new Error(`STAGING_ENV_VALUE_UNAVAILABLE:${key}`);
     result[key] = value;
   }
