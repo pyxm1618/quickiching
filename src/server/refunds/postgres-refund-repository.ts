@@ -222,7 +222,7 @@ export class PostgresRefundRepository {
     if (!hints[0]) throw new Error("REFUND_INTENT_NOT_FOUND");
     const orderId = String(hints[0].order_id);
 
-    return this.sql.begin(async (transaction) => {
+    const result = await this.sql.begin(async (transaction) => {
       const orderRows = await transaction`
         select * from payment_orders where id = ${orderId} limit 1 for update
       ` as Row[];
@@ -237,7 +237,7 @@ export class PostgresRefundRepository {
       const state = String(refund.provider_write_state);
       const attempts = Number(refund.provider_write_attempt_count);
       if (state !== "not_started" || attempts !== 0 || String(refund.status) !== "approved") {
-        return dispatchClaim(order, refund, "read_only");
+        return { blocked: false as const, claim: dispatchClaim(order, refund, "read_only") };
       }
 
       if (
@@ -280,7 +280,7 @@ export class PostgresRefundRepository {
             })}::jsonb, ${now.toISOString()}
           )
         `;
-        throw new Error("REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE");
+        return { blocked: true as const };
       }
 
       const updated = await transaction`
@@ -297,7 +297,7 @@ export class PostgresRefundRepository {
           select * from refund_intents where id = ${refundId} limit 1
         ` as Row[];
         if (!latestRows[0]) throw new Error("REFUND_INTENT_NOT_FOUND");
-        return dispatchClaim(order, latestRows[0], "read_only");
+        return { blocked: false as const, claim: dispatchClaim(order, latestRows[0], "read_only") };
       }
 
       await transaction`
@@ -308,8 +308,10 @@ export class PostgresRefundRepository {
           ${String(refund.user_id)}, ${JSON.stringify({ orderId, providerWriteAttemptCount: 1 })}::jsonb, ${now.toISOString()}
         )
       `;
-      return dispatchClaim(order, updated[0], "dispatch");
+      return { blocked: false as const, claim: dispatchClaim(order, updated[0], "dispatch") };
     });
+    if (result.blocked) throw new Error("REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE");
+    return result.claim;
   }
 
   async markProviderDispatchConfirmed(input: {
@@ -343,7 +345,7 @@ export class PostgresRefundRepository {
         update refund_intents
         set provider_write_state = 'confirmed', provider_ticket_id = ${input.result.providerTicketId},
             status = ${failed ? "failed" : "processing"},
-            next_reconcile_at = ${failed ? null : input.now},
+            next_reconcile_at = ${failed ? null : input.now.toISOString()},
             last_error_code = ${failed ? "REFUND_PROVIDER_REJECTED" : null},
             updated_at = ${input.now.toISOString()}
         where id = ${input.refundId} and provider_write_state = 'dispatched'
