@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
@@ -58,6 +58,18 @@ async function dispatchedRefund() {
 describe("PostgreSQL refund reconciliation claims", () => {
   beforeAll(async () => {
     await migrate(db, { migrationsFolder: "drizzle" });
+  });
+  beforeEach(async () => {
+    // The serial suite intentionally shares one database across integration
+    // files. Park any due refund candidates created by earlier tests so each
+    // concurrency assertion observes only the fixture created in this test.
+    await sql`
+      update refund_intents
+      set next_reconcile_at = now() + interval '1 hour'
+      where status in ('processing', 'reconciliation_required')
+        and provider_write_state in ('dispatched', 'confirmed', 'ambiguous')
+        and provider_write_attempt_count = 1
+    `;
   });
   afterAll(async () => {
     await sql.end({ timeout: 5 });
