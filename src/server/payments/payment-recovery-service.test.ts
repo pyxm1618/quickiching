@@ -5,6 +5,8 @@ const candidate = {
   orderId: "11111111-1111-4111-8111-111111111111",
   environment: "test" as const,
   providerProductId: "PROD_test_three",
+  providerOrderId: "ORD_known",
+  providerPaymentId: "PAY_known",
   amountMinor: 699,
   currency: "USD" as const,
 };
@@ -27,8 +29,8 @@ describe("one-time missed payment webhook recovery", () => {
           storeId: "STO_test",
           model: "one_time",
           merchantOrderReference: candidate.orderId,
-          providerOrderId: "ORD_1",
-          providerPaymentId: "PAY_1",
+          providerOrderId: candidate.providerOrderId,
+          providerPaymentId: candidate.providerPaymentId,
           providerProductId: candidate.providerProductId,
           status: "succeeded",
           amountMinor: 699,
@@ -42,6 +44,8 @@ describe("one-time missed payment webhook recovery", () => {
     await expect(service.run()).resolves.toMatchObject({ checked: 1, settled: 1 });
     expect(provider.getPayment).toHaveBeenCalledWith(expect.objectContaining({
       merchantOrderReference: candidate.orderId,
+      providerPaymentId: candidate.providerPaymentId,
+      expectedProviderOrderId: candidate.providerOrderId,
       expectedProviderProductId: candidate.providerProductId,
       expectedAmountMinor: 699,
       expectedCurrency: "USD",
@@ -49,8 +53,8 @@ describe("one-time missed payment webhook recovery", () => {
     expect(settle).toHaveBeenCalledWith(expect.objectContaining({
       orderId: candidate.orderId,
       payment: expect.objectContaining({
-        providerOrderId: "ORD_1",
-        providerPaymentId: "PAY_1",
+        providerOrderId: candidate.providerOrderId,
+        providerPaymentId: candidate.providerPaymentId,
       }),
       source: "provider_read_reconciliation",
     }));
@@ -79,7 +83,7 @@ describe("one-time missed payment webhook recovery", () => {
         status: "found",
         payment: {
           environment: "test", storeId: "STO_test", model: "one_time",
-          merchantOrderReference: candidate.orderId, providerOrderId: "ORD_1", providerPaymentId: "PAY_1",
+          merchantOrderReference: candidate.orderId, providerOrderId: candidate.providerOrderId, providerPaymentId: candidate.providerPaymentId,
           providerProductId: candidate.providerProductId, status: "pending", amountMinor: 699, currency: "USD",
         },
       }),
