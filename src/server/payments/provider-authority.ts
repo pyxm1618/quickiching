@@ -1,5 +1,27 @@
 export type ProviderEnvironment = "test" | "prod";
 
+export class RefundWriteNotDispatchedError extends Error {
+  readonly code: string;
+
+  constructor(code: string) {
+    super(code);
+    this.name = "RefundWriteNotDispatchedError";
+    this.code = code;
+  }
+}
+
+export class RefundWriteRejectedError extends Error {
+  readonly code: string;
+  readonly status: number;
+
+  constructor(code: string, status: number) {
+    super(code);
+    this.name = "RefundWriteRejectedError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
 export type AuthoritativePayment = {
   environment: ProviderEnvironment;
   storeId: string;
