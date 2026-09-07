@@ -61,11 +61,18 @@ export function createRefundReconciliationService(dependencies: {
   const now = dependencies.now ?? (() => new Date());
 
   return {
-    async run(options: { limit?: number } = {}): Promise<{ claimed: number; settled: number; rescheduled: number; manualReview: number }> {
+    async run(options: { limit?: number } = {}): Promise<{
+      claimed: number;
+      settled: number;
+      rescheduled: number;
+      manualReview: number;
+      leaseLost: number;
+    }> {
       const candidates = await dependencies.repository.claimBatch({ limit: options.limit, now: now() });
       let settled = 0;
       let rescheduled = 0;
       let manualReview = 0;
+      let leaseLost = 0;
 
       for (const candidate of candidates) {
         let lookup: Awaited<ReturnType<RefundProviderAuthority["getRefundSettlement"]>>;
@@ -95,23 +102,34 @@ export function createRefundReconciliationService(dependencies: {
         }
 
         if (lookup.status === "succeeded" || lookup.status === "failed") {
-          await dependencies.settle({
-            refundId: candidate.refundId,
-            orderId: candidate.orderId,
-            environment: candidate.environment,
-            providerOrderId: candidate.providerOrderId,
-            providerPaymentId: candidate.providerPaymentId,
-            amountMinor: lookup.amountMinor,
-            currency: lookup.currency,
-            providerTicketId: lookup.providerTicketId,
-            providerRefundId: lookup.providerRefundId,
-            status: lookup.status,
-            source: "provider_read",
-            webhookInboxId: null,
-            reconcileLeaseToken: candidate.leaseToken,
-            now: now(),
-          });
-          settled++;
+          try {
+            await dependencies.settle({
+              refundId: candidate.refundId,
+              orderId: candidate.orderId,
+              environment: candidate.environment,
+              providerOrderId: candidate.providerOrderId,
+              providerPaymentId: candidate.providerPaymentId,
+              amountMinor: lookup.amountMinor,
+              currency: lookup.currency,
+              providerTicketId: lookup.providerTicketId,
+              providerRefundId: lookup.providerRefundId,
+              status: lookup.status,
+              source: "provider_read",
+              webhookInboxId: null,
+              reconcileLeaseToken: candidate.leaseToken,
+              now: now(),
+            });
+            settled++;
+          } catch (error) {
+            if (error instanceof Error && error.message === "REFUND_RECONCILE_LEASE_LOST") {
+              // A webhook or another legitimate settlement path won while the
+              // provider READ was in flight. The fresh authoritative state is
+              // already in the database; a stale worker must simply stop.
+              leaseLost++;
+              continue;
+            }
+            throw error;
+          }
           continue;
         }
 
@@ -142,7 +160,7 @@ export function createRefundReconciliationService(dependencies: {
         rescheduled++;
       }
 
-      return { claimed: candidates.length, settled, rescheduled, manualReview };
+      return { claimed: candidates.length, settled, rescheduled, manualReview, leaseLost };
     },
   };
 }
