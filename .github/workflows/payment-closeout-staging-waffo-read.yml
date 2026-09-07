@@ -1,13 +1,6 @@
 name: Payment Closeout Staging Waffo Read
 
 on:
-  push:
-    branches: [fix/waffo-payment-closeout]
-    paths:
-      - .github/workflows/payment-closeout-staging-waffo-read.yml
-      - scripts/payment-closeout-staging-waffo-read.ts
-      - src/server/payments/waffo-product-readiness.ts
-      - src/server/payments/waffo-product-readiness.test.ts
   workflow_dispatch:
 
 permissions:
