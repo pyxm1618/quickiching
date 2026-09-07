@@ -19,6 +19,8 @@ async function dispatchedRefund() {
   const batchId = randomUUID();
   const providerOrderId = `ORD_${suffix}`;
   const providerPaymentId = `PAY_${suffix}`;
+  const providerTicketId = `RT_${suffix}`;
+  const providerRefundId = `RF_${suffix}`;
   await sql`
     insert into users (id, name, email, email_verified, created_at, updated_at)
     values (${userId}, 'Settlement User', ${`${suffix}@settlement.example.com`}, true, now(), now())
@@ -52,7 +54,16 @@ async function dispatchedRefund() {
   });
   const claim = await refundRepository.claimProviderDispatch(intent.id, new Date());
   expect(claim.mode).toBe("dispatch");
-  return { userId, orderId, batchId, providerOrderId, providerPaymentId, refundId: intent.id };
+  return {
+    userId,
+    orderId,
+    batchId,
+    providerOrderId,
+    providerPaymentId,
+    providerTicketId,
+    providerRefundId,
+    refundId: intent.id,
+  };
 }
 
 function succeededInput(fixture: Awaited<ReturnType<typeof dispatchedRefund>>, source: "provider_read" | "webhook") {
@@ -64,8 +75,8 @@ function succeededInput(fixture: Awaited<ReturnType<typeof dispatchedRefund>>, s
     providerPaymentId: fixture.providerPaymentId,
     amountMinor: 699,
     currency: "USD" as const,
-    providerTicketId: "RT_shared",
-    providerRefundId: source === "provider_read" ? "RF_shared" : null,
+    providerTicketId: fixture.providerTicketId,
+    providerRefundId: source === "provider_read" ? fixture.providerRefundId : null,
     status: "succeeded" as const,
     source,
     webhookInboxId: null,
@@ -133,7 +144,11 @@ describe("shared refund settlement core", () => {
           where l.order_id = r.order_id and l.action = 'revoke') as count
       from refund_intents r where r.id = ${fixture.refundId}
     `;
-    expect(rows[0]).toEqual({ provider_ticket_id: "RT_shared", provider_refund_id: "RF_shared", count: 1 });
+    expect(rows[0]).toEqual({
+      provider_ticket_id: fixture.providerTicketId,
+      provider_refund_id: fixture.providerRefundId,
+      count: 1,
+    });
   });
 
   it("settles refund.failed without changing order or credits", async () => {
