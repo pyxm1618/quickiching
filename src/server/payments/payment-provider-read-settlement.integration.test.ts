@@ -27,7 +27,7 @@ async function checkoutFixture() {
     ) values (
       ${orderId}, ${userId}, 'three', 3, 699, 'USD', ${`payment-recovery-${suffix}`},
       'waffo', 'test', 'PROD_test_three',
-      ${`CHK_${suffix}`}, ${`https://pancake.waffo.ai/#token=${suffix}`}, now() - interval '1 minute',
+      ${`CHK_${suffix}`}, ${`enc:v1:test-fixture-${suffix}`}, now() - interval '1 minute',
       'checkout_created', now() - interval '10 minutes', now() - interval '10 minutes'
     )
   `;
