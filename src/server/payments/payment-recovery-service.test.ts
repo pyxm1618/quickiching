@@ -106,7 +106,7 @@ describe("one-time missed payment webhook recovery", () => {
         },
       }),
     };
-    const settle = vi.fn();
+    const settle = vi.fn().mockResolvedValue({ outcome: "succeeded" });
     const service = createPaymentRecoveryService({ repository: repo, provider, settle, storeId: "STO_test" });
 
     await expect(service.run()).resolves.toMatchObject({ checked: 1, settled: 0, reviewed: 1 });
