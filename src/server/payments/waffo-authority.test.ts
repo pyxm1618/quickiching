@@ -199,7 +199,7 @@ describe("Waffo 0.19.1 authoritative one-time boundary", () => {
     await expect(authority.getRefundSettlement({
       environment: "test", storeId: "STO_test", providerPaymentId: "PAY_test",
       merchantOrderReference: "11111111-1111-4111-8111-111111111111",
-      expectedProviderProductId: "PROD_test_three", paymentAmountMinor: 699,
+      expectedProviderOrderId: "ORD_test", expectedProviderProductId: "PROD_test_three", paymentAmountMinor: 699,
       amountMinor: 699, currency: "USD", refundIntentId, providerTicketId: "RT_test",
     })).resolves.toEqual({
       status: "succeeded",
@@ -213,7 +213,7 @@ describe("Waffo 0.19.1 authoritative one-time boundary", () => {
     await expect(createWaffoAuthority(config, () => mismatched.client as never).getRefundSettlement({
       environment: "test", storeId: "STO_test", providerPaymentId: "PAY_test",
       merchantOrderReference: "11111111-1111-4111-8111-111111111111",
-      expectedProviderProductId: "PROD_test_three", paymentAmountMinor: 699,
+      expectedProviderOrderId: "ORD_test", expectedProviderProductId: "PROD_test_three", paymentAmountMinor: 699,
       amountMinor: 699, currency: "USD", refundIntentId, providerTicketId: "RT_test",
     })).resolves.toEqual({ status: "contract_error" });
   });
