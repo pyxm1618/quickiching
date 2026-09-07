@@ -37,9 +37,12 @@ function mapRefund(row: Row, created: boolean): RefundIntentRecord {
 }
 
 function dispatchClaim(order: Row, refund: Row, mode: RefundDispatchClaim["mode"]): RefundDispatchClaim {
+  const providerOrderId = order.provider_order_id == null ? "" : String(order.provider_order_id);
   const providerPaymentId = order.provider_payment_id == null ? "" : String(order.provider_payment_id);
   const providerProductId = order.provider_product_id == null ? "" : String(order.provider_product_id);
-  if (!providerPaymentId || !providerProductId) throw new Error("REFUND_PAYMENT_IDENTITY_UNAVAILABLE");
+  if (!providerOrderId || !providerPaymentId || !providerProductId) {
+    throw new Error("REFUND_PAYMENT_IDENTITY_UNAVAILABLE");
+  }
   const environment = String(refund.provider_environment);
   if (environment !== "test" && environment !== "prod") throw new Error("REFUND_ENVIRONMENT_INVALID");
   if (String(refund.currency) !== "USD") throw new Error("REFUND_CURRENCY_INVALID");
@@ -49,6 +52,7 @@ function dispatchClaim(order: Row, refund: Row, mode: RefundDispatchClaim["mode"
     orderId: String(order.id),
     userId: String(refund.user_id),
     environment,
+    providerOrderId,
     providerPaymentId,
     providerProductId,
     requestedMinor: Number(refund.requested_minor),
