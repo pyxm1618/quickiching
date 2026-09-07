@@ -4,6 +4,7 @@ import type { OutboxDispatcher } from "@/server/payments/outbox-dispatcher";
 
 export type ReconcileMetrics = {
   outboxProcessed: number;
+  paymentsRecovered: number;
   refundsReconciled: number;
   checkoutCleaned: number;
   jobsTimedOut: number;
@@ -16,6 +17,10 @@ export interface ReconcileService {
   runReconcile(options?: { budgetMs?: number }): Promise<ReconcileMetrics>;
 }
 
+type PaymentRecoveryRunner = {
+  run(options?: { limit?: number }): Promise<{ settled: number }>;
+};
+
 type RefundReconciliationRunner = {
   run(options?: { limit?: number }): Promise<{ claimed: number }>;
 };
@@ -23,9 +28,10 @@ type RefundReconciliationRunner = {
 export function createReconcileService(dependencies: {
   sql: Sql;
   outboxDispatcher: OutboxDispatcher;
+  paymentRecovery?: PaymentRecoveryRunner;
   refundReconciliation?: RefundReconciliationRunner;
 }): ReconcileService {
-  const { sql, outboxDispatcher, refundReconciliation } = dependencies;
+  const { sql, outboxDispatcher, paymentRecovery, refundReconciliation } = dependencies;
 
   return {
     async runReconcile(options = {}): Promise<ReconcileMetrics> {
@@ -34,6 +40,7 @@ export function createReconcileService(dependencies: {
       const deadlineAt = startTime + budgetMs;
 
       let outboxProcessed = 0;
+      let paymentsRecovered = 0;
       let refundsReconciled = 0;
       let checkoutCleaned = 0;
       let jobsTimedOut = 0;
@@ -42,7 +49,7 @@ export function createReconcileService(dependencies: {
 
       const isBudgetExhausted = () => Date.now() >= deadlineAt;
 
-      // 1. Dispatch pending / failed outbox records within the same absolute deadline.
+      // 1. Dispatch pending / failed webhook outbox records.
       if (!isBudgetExhausted()) {
         const dispatchSummary = await outboxDispatcher.dispatchAllPending({
           batchSize: 20,
@@ -52,13 +59,21 @@ export function createReconcileService(dependencies: {
         outboxProcessed = dispatchSummary.processedCount;
       }
 
-      // 2. Reconcile durable refund intents by authenticated provider READ only.
+      // 2. Recover a missed one-time payment webhook by authenticated provider READ.
+      // This must run before expired checkout cleanup so a real succeeded payment
+      // can become paid/granted instead of being prematurely frozen for review.
+      if (!isBudgetExhausted() && paymentRecovery) {
+        const paymentSummary = await paymentRecovery.run({ limit: 5 });
+        paymentsRecovered = paymentSummary.settled;
+      }
+
+      // 3. Reconcile durable refund intents by authenticated provider READ only.
       if (!isBudgetExhausted() && refundReconciliation) {
         const refundSummary = await refundReconciliation.run({ limit: 5 });
         refundsReconciled = refundSummary.claimed;
       }
 
-      // 3. Reconcile expired checkout initializations & expired checkout URLs.
+      // 4. Reconcile expired checkout initializations & expired checkout URLs.
       if (!isBudgetExhausted()) {
         checkoutCleaned = await sql.begin(async (transaction) => {
           const expiredInitializing = await transaction`
@@ -95,7 +110,7 @@ export function createReconcileService(dependencies: {
         });
       }
 
-      // 4. Reconcile timed-out generation jobs.
+      // 5. Reconcile timed-out generation jobs.
       if (!isBudgetExhausted()) {
         const timedOutRows = await sql`
           update generation_jobs
@@ -111,7 +126,7 @@ export function createReconcileService(dependencies: {
         jobsTimedOut = timedOutRows.length;
       }
 
-      // 5. Release stranded reservations (when job failed/timed_out or lease expired).
+      // 6. Release stranded reservations.
       if (!isBudgetExhausted()) {
         reservationsReleased = await sql.begin(async (transaction) => {
           const strandedRows = await transaction`
@@ -166,7 +181,7 @@ export function createReconcileService(dependencies: {
         });
       }
 
-      // 6. Recover stuck workflow runs.
+      // 7. Recover stuck workflow runs.
       if (!isBudgetExhausted()) {
         const recoveredRows = await sql`
           update workflow_runs
@@ -187,6 +202,7 @@ export function createReconcileService(dependencies: {
             ${randomUUID()}, 'reconcile', 'reconcile_sweep_completed', 'system', 'reconcile_cron',
             ${JSON.stringify({
               outboxProcessed,
+              paymentsRecovered,
               refundsReconciled,
               checkoutCleaned,
               jobsTimedOut,
@@ -203,6 +219,7 @@ export function createReconcileService(dependencies: {
 
       return {
         outboxProcessed,
+        paymentsRecovered,
         refundsReconciled,
         checkoutCleaned,
         jobsTimedOut,
