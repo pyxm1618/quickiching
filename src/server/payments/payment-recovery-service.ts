@@ -64,6 +64,16 @@ export function createPaymentRecoveryService(dependencies: {
           continue;
         }
 
+        if (lookup.status === "found" && lookup.payment.storeId !== dependencies.storeId) {
+          await dependencies.repository.markFinancialReview({
+            orderId: candidate.orderId,
+            errorCode: "PAYMENT_PROVIDER_READ_STORE_MISMATCH",
+            now: now(),
+          });
+          reviewed++;
+          continue;
+        }
+
         if (lookup.status === "found" && lookup.payment.status === "succeeded") {
           const result = await dependencies.settle({
             orderId: candidate.orderId,
