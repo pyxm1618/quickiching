@@ -7,6 +7,7 @@ function candidate(): RefundReconciliationCandidate {
     orderId: "22222222-2222-4222-8222-222222222222",
     userId: "user-1",
     environment: "test",
+    providerOrderId: "ORD_1",
     providerPaymentId: "PAY_1",
     providerProductId: "PROD_test_three",
     requestedMinor: 699,
@@ -49,6 +50,9 @@ describe("refund reconciliation service", () => {
 
     await expect(service.run()).resolves.toMatchObject({ claimed: 1, settled: 1 });
     expect(provider.getRefundSettlement).toHaveBeenCalledTimes(1);
+    expect(provider.getRefundSettlement).toHaveBeenCalledWith(expect.objectContaining({
+      expectedProviderOrderId: "ORD_1",
+    }));
     expect(settle).toHaveBeenCalledWith(expect.objectContaining({
       refundId: candidate().refundId,
       orderId: candidate().orderId,
@@ -56,6 +60,7 @@ describe("refund reconciliation service", () => {
       providerRefundId: "RF_1",
       status: "succeeded",
       source: "provider_read",
+      reconcileLeaseToken: "lease-1",
     }));
     expect(repo.reschedule).not.toHaveBeenCalled();
   });
