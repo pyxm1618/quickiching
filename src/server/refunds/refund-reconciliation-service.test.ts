@@ -48,7 +48,7 @@ describe("refund reconciliation service", () => {
       now: () => new Date("2026-09-07T03:00:00.000Z"),
     });
 
-    await expect(service.run()).resolves.toMatchObject({ claimed: 1, settled: 1 });
+    await expect(service.run()).resolves.toMatchObject({ claimed: 1, settled: 1, leaseLost: 0 });
     expect(provider.getRefundSettlement).toHaveBeenCalledTimes(1);
     expect(provider.getRefundSettlement).toHaveBeenCalledWith(expect.objectContaining({
       expectedProviderOrderId: "ORD_1",
@@ -77,16 +77,30 @@ describe("refund reconciliation service", () => {
       }),
     };
     const settle = vi.fn().mockResolvedValue({ outcome: "failed" });
-    const service = createRefundReconciliationService({
-      repository: repo,
-      provider,
-      settle,
-      storeId: "STO_test",
-    });
+    const service = createRefundReconciliationService({ repository: repo, provider, settle, storeId: "STO_test" });
 
     await service.run();
     expect(settle).toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
     expect(repo.reschedule).not.toHaveBeenCalled();
+  });
+
+  it("treats a lost settlement lease as a benign concurrent webhook win", async () => {
+    const repo = repository();
+    const provider = {
+      getRefundSettlement: vi.fn().mockResolvedValue({
+        status: "succeeded",
+        providerTicketId: "RT_1",
+        providerRefundId: "RF_1",
+        amountMinor: 699,
+        currency: "USD",
+      }),
+    };
+    const settle = vi.fn().mockRejectedValue(new Error("REFUND_RECONCILE_LEASE_LOST"));
+    const service = createRefundReconciliationService({ repository: repo, provider, settle, storeId: "STO_test" });
+
+    await expect(service.run()).resolves.toMatchObject({ claimed: 1, settled: 0, leaseLost: 1 });
+    expect(repo.reschedule).not.toHaveBeenCalled();
+    expect(repo.markManualReview).not.toHaveBeenCalled();
   });
 
   it.each(["found_pending", "found_processing", "not_found", "ambiguous"] as const)(
@@ -101,12 +115,7 @@ describe("refund reconciliation service", () => {
         ),
       };
       const settle = vi.fn();
-      const service = createRefundReconciliationService({
-        repository: repo,
-        provider,
-        settle,
-        storeId: "STO_test",
-      });
+      const service = createRefundReconciliationService({ repository: repo, provider, settle, storeId: "STO_test" });
 
       await service.run();
       expect(settle).not.toHaveBeenCalled();
@@ -117,12 +126,7 @@ describe("refund reconciliation service", () => {
   it("fails closed to manual review on provider contract_error", async () => {
     const repo = repository();
     const provider = { getRefundSettlement: vi.fn().mockResolvedValue({ status: "contract_error" }) };
-    const service = createRefundReconciliationService({
-      repository: repo,
-      provider,
-      settle: vi.fn(),
-      storeId: "STO_test",
-    });
+    const service = createRefundReconciliationService({ repository: repo, provider, settle: vi.fn(), storeId: "STO_test" });
 
     await service.run();
     expect(repo.markManualReview).toHaveBeenCalledWith(expect.objectContaining({
@@ -134,12 +138,7 @@ describe("refund reconciliation service", () => {
   it("reschedules transport failures and never turns them into another refund POST", async () => {
     const repo = repository();
     const provider = { getRefundSettlement: vi.fn().mockRejectedValue(new Error("socket reset")) };
-    const service = createRefundReconciliationService({
-      repository: repo,
-      provider,
-      settle: vi.fn(),
-      storeId: "STO_test",
-    });
+    const service = createRefundReconciliationService({ repository: repo, provider, settle: vi.fn(), storeId: "STO_test" });
 
     await service.run();
     expect(repo.reschedule).toHaveBeenCalledWith(expect.objectContaining({
