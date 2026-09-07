@@ -19,7 +19,7 @@ async function paidOrder(input: { consumed?: number; reserved?: number; ageDays?
   const consumed = input.consumed ?? 0;
   const reserved = input.reserved ?? 0;
   const available = 3 - consumed - reserved;
-  const paidAt = new Date(Date.now() - (input.ageDays ?? 1) * 24 * 60 * 60 * 1000);
+  const paidAt = new Date(Date.now() - (input.ageDays ?? 1) * 24 * 60 * 60 * 1000).toISOString();
   await sql`
     insert into users (id, name, email, email_verified, created_at, updated_at)
     values (${userId}, 'Refund User', ${`${suffix}@refund.example.com`}, true, now(), now())
