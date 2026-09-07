@@ -11,6 +11,7 @@ export type RefundDispatchClaim = {
   orderId: string;
   userId: string;
   environment: "test" | "prod";
+  providerOrderId: string;
   providerPaymentId: string;
   providerProductId: string;
   requestedMinor: number;
@@ -67,6 +68,7 @@ export function createRefundCommandService(dependencies: {
           storeId: dependencies.storeId,
           buyerIdentity: claim.userId,
           providerPaymentId: claim.providerPaymentId,
+          expectedProviderOrderId: claim.providerOrderId,
           merchantOrderReference: claim.orderId,
           expectedProviderProductId: claim.providerProductId,
           amountMinor: claim.requestedMinor,
