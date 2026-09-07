@@ -5,29 +5,42 @@ export type PaymentCloseoutEnvEntry = {
   type?: unknown;
 };
 
-const REQUIRED_PRESENCE_KEYS = Object.freeze([
+type AuditMode = "staging" | "production";
+
+type AuditResult<M extends AuditMode> = {
+  ok: boolean;
+  appEnv: M | "invalid" | "unreadable" | "missing";
+  waffoEnvironment: M extends "staging" ? "test" | "invalid" | "unreadable" | "missing" : "prod" | "invalid" | "unreadable" | "missing";
+  missingKeys: string[];
+  unreadableRequiredValues: string[];
+};
+
+const BASE_REQUIRED_KEYS = Object.freeze([
   "DATABASE_URL",
   "WAFFO_MERCHANT_ID",
   "WAFFO_PRIVATE_KEY",
   "WAFFO_STORE_ID",
-  "WAFFO_TEST_PRODUCT_ID_ONE",
-  "WAFFO_TEST_PRODUCT_ID_THREE",
-  "WAFFO_TEST_PRODUCT_ID_FIVE",
   "PAYMENT_CHECKOUT_URL_KEYS",
   "REFUND_OPERATOR_SECRET",
 ] as const);
+
+function requiredKeys(mode: AuditMode): readonly string[] {
+  return [
+    ...BASE_REQUIRED_KEYS,
+    mode === "staging" ? "WAFFO_TEST_PRODUCT_ID_ONE" : "WAFFO_PROD_PRODUCT_ID_ONE",
+    mode === "staging" ? "WAFFO_TEST_PRODUCT_ID_THREE" : "WAFFO_PROD_PRODUCT_ID_THREE",
+    mode === "staging" ? "WAFFO_TEST_PRODUCT_ID_FIVE" : "WAFFO_PROD_PRODUCT_ID_FIVE",
+  ];
+}
 
 function targetsProduction(target: unknown): boolean {
   return target === "production" || (Array.isArray(target) && target.includes("production"));
 }
 
-export function auditPaymentCloseoutStagingEnv(entries: readonly PaymentCloseoutEnvEntry[]): {
-  ok: boolean;
-  appEnv: "staging" | "invalid" | "unreadable" | "missing";
-  waffoEnvironment: "test" | "invalid" | "unreadable" | "missing";
-  missingKeys: string[];
-  unreadableRequiredValues: string[];
-} {
+function auditPaymentCloseoutEnv<M extends AuditMode>(
+  entries: readonly PaymentCloseoutEnvEntry[],
+  mode: M,
+): AuditResult<M> {
   const production = new Map<string, PaymentCloseoutEnvEntry>();
   for (const entry of entries) {
     if (!targetsProduction(entry.target) || typeof entry.key !== "string" || !entry.key.trim()) continue;
@@ -36,7 +49,7 @@ export function auditPaymentCloseoutStagingEnv(entries: readonly PaymentCloseout
     production.set(key, entry);
   }
 
-  const missingKeys = REQUIRED_PRESENCE_KEYS.filter((key) => !production.has(key));
+  const missingKeys = requiredKeys(mode).filter((key) => !production.has(key));
   const unreadableRequiredValues: string[] = [];
 
   function exactValue(key: "APP_ENV" | "WAFFO_ENVIRONMENT", expected: string) {
@@ -49,17 +62,27 @@ export function auditPaymentCloseoutStagingEnv(entries: readonly PaymentCloseout
     return entry.value.trim() === expected ? expected : "invalid" as const;
   }
 
-  const appEnvRaw = exactValue("APP_ENV", "staging");
-  const waffoRaw = exactValue("WAFFO_ENVIRONMENT", "test");
-  const appEnv = appEnvRaw === "staging" ? "staging" : appEnvRaw;
-  const waffoEnvironment = waffoRaw === "test" ? "test" : waffoRaw;
+  const expectedAppEnv = mode;
+  const expectedWaffo = mode === "staging" ? "test" : "prod";
+  const appEnvRaw = exactValue("APP_ENV", expectedAppEnv);
+  const waffoRaw = exactValue("WAFFO_ENVIRONMENT", expectedWaffo);
+  const appEnv = appEnvRaw === expectedAppEnv ? expectedAppEnv : appEnvRaw;
+  const waffoEnvironment = waffoRaw === expectedWaffo ? expectedWaffo : waffoRaw;
 
   return {
     ok: missingKeys.length === 0 && unreadableRequiredValues.length === 0
-      && appEnv === "staging" && waffoEnvironment === "test",
+      && appEnv === expectedAppEnv && waffoEnvironment === expectedWaffo,
     appEnv,
     waffoEnvironment,
     missingKeys: [...missingKeys].sort(),
     unreadableRequiredValues: unreadableRequiredValues.sort(),
-  };
+  } as AuditResult<M>;
+}
+
+export function auditPaymentCloseoutStagingEnv(entries: readonly PaymentCloseoutEnvEntry[]): AuditResult<"staging"> {
+  return auditPaymentCloseoutEnv(entries, "staging");
+}
+
+export function auditPaymentCloseoutProductionEnv(entries: readonly PaymentCloseoutEnvEntry[]): AuditResult<"production"> {
+  return auditPaymentCloseoutEnv(entries, "production");
 }
