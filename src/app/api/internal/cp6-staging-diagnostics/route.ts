@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { collectStagingRuntimeDiagnostics } from "@/server/readiness/staging-runtime-diagnostics";
+import { collectWaffoTestCatalogDiagnostics } from "@/server/readiness/waffo-staging-catalog-read";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -78,6 +79,7 @@ export async function GET(request: Request): Promise<Response> {
 
   try {
     const diagnostics = await collectStagingRuntimeDiagnostics(process.env);
+    const waffoCatalog = await collectWaffoTestCatalogDiagnostics(process.env);
     return Response.json(
       {
         deployment: {
@@ -94,6 +96,7 @@ export async function GET(request: Request): Promise<Response> {
           gitRef: process.env.VERCEL_GIT_COMMIT_REF?.trim() || null,
         },
         ...diagnostics,
+        waffoCatalog,
       },
       { status: 200, headers: responseHeaders() },
     );
