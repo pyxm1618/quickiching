@@ -20,37 +20,55 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          def replace(path, old, new, minimum=1):
+          def replace(path, old, new, minimum=1, exact=None):
               p = Path(path)
               s = p.read_text()
               count = s.count(old)
-              if count < minimum:
+              if exact is not None and count != exact:
+                  raise SystemExit(f'{path}: expected {exact} occurrences of {old!r}, got {count}')
+              if exact is None and count < minimum:
                   raise SystemExit(f'{path}: expected >= {minimum} occurrences of {old!r}, got {count}')
               p.write_text(s.replace(old, new))
-              print(path, old, count)
+              print(path, count, old)
 
-          replace('src/server/refunds/postgres-refund-repository.ts', '${input.now}', '${input.now.toISOString()}', 6)
-          replace('src/server/refunds/postgres-refund-repository.ts', '${screen.eligible ? null : input.now.toISOString()}', '${screen.eligible ? null : input.now.toISOString()}', 1)
-          replace('src/server/refunds/postgres-refund-repository.ts', '${now}', '${now.toISOString()}', 4)
+          replace(
+              'src/server/refunds/postgres-refund-repository.ts',
+              '${screen.eligible ? null : input.now}',
+              '${screen.eligible ? null : input.now.toISOString()}',
+              exact=1,
+          )
+          replace('src/server/refunds/postgres-refund-repository.ts', '${input.now}', '${input.now.toISOString()}', minimum=10)
+          replace('src/server/refunds/postgres-refund-repository.ts', '${now}', '${now.toISOString()}', minimum=4)
 
-          replace('src/server/refunds/refund-settlement-core.ts', '${input.now}', '${input.now.toISOString()}', 8)
+          replace('src/server/refunds/refund-settlement-core.ts', '${input.now}', '${input.now.toISOString()}', minimum=8)
 
-          replace('src/server/refunds/postgres-refund-reconciliation.ts', '${now}', '${now.toISOString()}', 4)
-          replace('src/server/refunds/postgres-refund-reconciliation.ts', '${new Date(now.getTime() + leaseDurationMs)}', '${new Date(now.getTime() + leaseDurationMs).toISOString()}', 1)
-          replace('src/server/refunds/postgres-refund-reconciliation.ts', '${input.now}', '${input.now.toISOString()}', 5)
-          replace('src/server/refunds/postgres-refund-reconciliation.ts', '${new Date(input.now.getTime() + backoffMs(attempts))}', '${new Date(input.now.getTime() + backoffMs(attempts)).toISOString()}', 1)
+          replace(
+              'src/server/refunds/postgres-refund-reconciliation.ts',
+              '${new Date(now.getTime() + leaseDurationMs)}',
+              '${new Date(now.getTime() + leaseDurationMs).toISOString()}',
+              exact=1,
+          )
+          replace(
+              'src/server/refunds/postgres-refund-reconciliation.ts',
+              '${new Date(input.now.getTime() + backoffMs(attempts))}',
+              '${new Date(input.now.getTime() + backoffMs(attempts)).toISOString()}',
+              exact=1,
+          )
+          replace('src/server/refunds/postgres-refund-reconciliation.ts', '${now}', '${now.toISOString()}', minimum=3)
+          replace('src/server/refunds/postgres-refund-reconciliation.ts', '${input.now}', '${input.now.toISOString()}', minimum=5)
 
-          replace('src/server/payments/postgres-payment-recovery.ts', '${input.now}', '${input.now.toISOString()}', 4)
+          replace('src/server/payments/postgres-payment-recovery.ts', '${input.now}', '${input.now.toISOString()}', minimum=2)
 
           p = Path('src/server/payments/payment-provider-read-settlement.ts')
           s = p.read_text()
-          if s.count('${input.now}') < 8:
-              raise SystemExit(f'payment settlement input.now count={s.count("${input.now}")}')
-          s = s.replace('${input.now}', '${input.now.toISOString()}')
           old_expiry = '${new Date(input.now.getTime() + 365 * 24 * 60 * 60 * 1000)}'
           if s.count(old_expiry) != 1:
               raise SystemExit(f'payment settlement expiry count={s.count(old_expiry)}')
           s = s.replace(old_expiry, "${input.now.toISOString()}::timestamptz + interval '12 months'")
+          count = s.count('${input.now}')
+          if count < 8:
+              raise SystemExit(f'payment settlement input.now count={count}')
+          s = s.replace('${input.now}', '${input.now.toISOString()}')
           p.write_text(s)
 
           Path('.github/workflows/payment-closeout-date-patch.yml').unlink()
