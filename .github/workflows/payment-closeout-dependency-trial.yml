@@ -1,0 +1,33 @@
+name: Payment Closeout Dependency Trial
+
+on:
+  push:
+    branches: [fix/waffo-payment-closeout]
+    paths: [.github/workflows/payment-closeout-dependency-trial.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  trial:
+    name: Trial compatible security patches without committing
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Trial patch-level dependency upgrades
+        run: bun update next@15.5.25 eslint-config-next@15.5.25 postcss@8.5.28
+      - name: Audit high and critical vulnerabilities after trial
+        run: bun audit --audit-level=high
+      - name: Verify typecheck and production build after trial
+        run: |
+          bun run typecheck
+          bun run build
