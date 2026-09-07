@@ -148,4 +148,43 @@ describe("refund webhook shared settlement integration", () => {
       revoked: 0,
     });
   });
+
+  it("keeps a terminal failed refund terminal when a contradictory success webhook arrives", async () => {
+    const fixture = await paidRefundFixture();
+    const failed = refundEvent(fixture, "refund.failed");
+    const failedRecord = await paymentRepository.recordVerifiedEvent(failed);
+    await expect(paymentRepository.processInbox(failedRecord.inboxId))
+      .resolves.toMatchObject({ outcome: "ignored" });
+
+    const succeeded = refundEvent(fixture, "refund.succeeded");
+    const succeededRecord = await paymentRepository.recordVerifiedEvent(succeeded);
+    await expect(paymentRepository.processInbox(succeededRecord.inboxId))
+      .resolves.toMatchObject({ outcome: "financial_review" });
+
+    const rows = await sql<Array<{
+      order_status: string;
+      refund_status: string;
+      last_error_code: string | null;
+      available: number;
+      revoked: number;
+      revoke_count: number;
+    }>>`
+      select o.status as order_status, r.status as refund_status, r.last_error_code,
+        b.quantity_available::int as available, b.quantity_revoked::int as revoked,
+        (select count(*)::int from entitlement_ledger l
+          where l.order_id = o.id and l.action = 'revoke') as revoke_count
+      from payment_orders o
+      join refund_intents r on r.order_id = o.id
+      join entitlement_batches b on b.order_id = o.id
+      where o.id = ${fixture.orderId}
+    `;
+    expect(rows[0]).toEqual({
+      order_status: "financial_review",
+      refund_status: "failed",
+      last_error_code: "REFUND_SETTLEMENT_STATUS_CONFLICT",
+      available: 3,
+      revoked: 0,
+      revoke_count: 0,
+    });
+  });
 });
