@@ -52,7 +52,7 @@ jobs:
               'credentialed_database_url': re.compile(r'postgres(?:ql)?://[^\s/:]+:[^\s/@]+@', re.I),
               'github_token': re.compile(r'\b(?:ghp|github_pat)_[A-Za-z0-9_]{20,}\b'),
               'live_provider_token': re.compile(r'\b(?:sk_live|pk_live)_[A-Za-z0-9_-]{16,}\b'),
-              'literal_private_key_assignment': re.compile(r'(?m)^\s*(?:WAFFO_PRIVATE_KEY|REFUND_OPERATOR_SECRET|BETTER_AUTH_SECRET|APP_SECRET)\s*=\s*[^\s#][^\n]*$'),
+              'literal_private_key_assignment': re.compile(r'(?m)^[ \t]*(?:WAFFO_PRIVATE_KEY|REFUND_OPERATOR_SECRET|BETTER_AUTH_SECRET|APP_SECRET)[ \t]*=[ \t]*[^\s#][^\n]*$'),
               'public_secret_env': re.compile(r'NEXT_PUBLIC_[A-Z0-9_]*(?:SECRET|PRIVATE_KEY|DATABASE_URL)\b'),
           }
           hits = [name for name, pattern in patterns.items() if pattern.search(added)]
