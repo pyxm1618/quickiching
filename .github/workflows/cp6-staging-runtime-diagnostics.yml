@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - codex/commercial-v2-cp6-repair
+      - fix/waffo-payment-closeout
     paths:
       - .github/workflows/cp6-staging-runtime-diagnostics.yml
 
@@ -47,10 +48,13 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${VERCEL_TOKEN:-}" || { echo "::error::VERCEL_TOKEN is missing"; exit 1; }
-          test "${GITHUB_REF_NAME}" = "codex/commercial-v2-cp6-repair" || {
-            echo "::error::Ref must be codex/commercial-v2-cp6-repair, got ${GITHUB_REF_NAME}"
-            exit 1
-          }
+          case "${GITHUB_REF_NAME}" in
+            codex/commercial-v2-cp6-repair|fix/waffo-payment-closeout) ;;
+            *)
+              echo "::error::Unexpected ref ${GITHUB_REF_NAME}"
+              exit 1
+              ;;
+          esac
           test "${VERCEL_PROJECT_ID}" = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE"
           test "${VERCEL_PROJECT_NAME}" = "quickiching-staging"
           test "${VERCEL_TEAM_ID}" = "team_z1b9TTQtbNkr43dzs5JVJPnQ"
@@ -70,7 +74,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --check origin/codex/commercial-v2-cp6...HEAD
+          if [ "${GITHUB_REF_NAME}" = "fix/waffo-payment-closeout" ]; then
+            diff_base="origin/codex/commercial-v2-cp6-repair"
+          else
+            diff_base="origin/codex/commercial-v2-cp6"
+          fi
+          git diff --check "${diff_base}...HEAD"
           node scripts/check-migration-integrity.mjs
           bun run lint
           bun run typecheck
