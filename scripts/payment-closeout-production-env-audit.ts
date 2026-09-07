@@ -1,14 +1,18 @@
 import { auditPaymentCloseoutProductionEnv, type PaymentCloseoutEnvEntry } from "../src/server/readiness/payment-closeout-env-audit";
 
 const PRODUCTION_PROJECT_ID = "prj_pCpeoAys2GOqKZvkbLugYjpJWZBS";
+const TEAM_ID = "team_z1b9TTQtbNkr43dzs5JVJPnQ";
 
 async function main(): Promise<void> {
   const token = process.env.VERCEL_TOKEN?.trim();
   const projectId = process.env.VERCEL_PROJECT_ID?.trim();
+  const teamId = process.env.VERCEL_TEAM_ID?.trim();
   if (!token) throw new Error("VERCEL_TOKEN_UNAVAILABLE");
   if (projectId !== PRODUCTION_PROJECT_ID) throw new Error("PRODUCTION_PROJECT_BINDING_MISMATCH");
+  if (teamId !== TEAM_ID) throw new Error("PRODUCTION_TEAM_BINDING_MISMATCH");
 
   const url = new URL(`https://api.vercel.com/v10/projects/${PRODUCTION_PROJECT_ID}/env`);
+  url.searchParams.set("teamId", TEAM_ID);
   url.searchParams.set("decrypt", "true");
   url.searchParams.set("source", "vercel-cli:pull");
   const response = await fetch(url, {
