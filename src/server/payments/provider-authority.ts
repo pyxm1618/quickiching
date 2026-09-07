@@ -40,6 +40,7 @@ export interface OneTimePaymentAuthority {
     storeId: string;
     merchantOrderReference: string;
     providerPaymentId?: string;
+    expectedProviderOrderId?: string;
     expectedProviderProductId: string;
     expectedAmountMinor: number;
     expectedCurrency: "USD";
@@ -66,6 +67,7 @@ export interface RefundProviderAuthority extends OneTimePaymentAuthority {
     storeId: string;
     providerPaymentId: string;
     merchantOrderReference: string;
+    expectedProviderOrderId: string;
     expectedProviderProductId: string;
     paymentAmountMinor: number;
     amountMinor: number;
