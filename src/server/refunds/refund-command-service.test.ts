@@ -11,6 +11,7 @@ const baseClaim: RefundDispatchClaim = {
   orderId: "11111111-1111-4111-8111-111111111111",
   userId: "user-1",
   environment: "test",
+  providerOrderId: "ORD_test",
   providerPaymentId: "PAY_test",
   providerProductId: "PROD_test_three",
   requestedMinor: 699,
@@ -37,7 +38,7 @@ function repository(claimProviderDispatch: ReturnType<typeof vi.fn>) {
 }
 
 describe("refund command provider-write fence", () => {
-  it("calls the provider at most once after the durable dispatch claim", async () => {
+  it("calls the provider at most once after the durable dispatch claim and binds the known provider order", async () => {
     const claimProviderDispatch = vi.fn()
       .mockResolvedValueOnce(baseClaim)
       .mockResolvedValueOnce({ ...baseClaim, mode: "read_only" as const });
@@ -54,6 +55,10 @@ describe("refund command provider-write fence", () => {
     await expect(service.execute(baseClaim.refundId)).resolves.toEqual({ outcome: "read_only" });
 
     expect(requestRefund).toHaveBeenCalledTimes(1);
+    expect(requestRefund).toHaveBeenCalledWith(expect.objectContaining({
+      providerPaymentId: "PAY_test",
+      expectedProviderOrderId: "ORD_test",
+    }));
     expect(repo.markProviderDispatchConfirmed).toHaveBeenCalledTimes(1);
     expect(repo.markProviderDispatchAmbiguous).not.toHaveBeenCalled();
     expect(repo.releaseProviderDispatchNotSent).not.toHaveBeenCalled();
