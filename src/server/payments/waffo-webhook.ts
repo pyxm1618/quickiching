@@ -200,7 +200,10 @@ export function verifyAndNormalizeWaffoWebhook(
     total: event.data.total ?? null,
     payloadSha256: createHash("sha256").update(rawBody).digest("hex"),
     canonicalPayloadSha256: "",
-    supported: event.eventType === "order.completed" || event.eventType === "refund.succeeded" || manualReviewReason !== null,
+    supported: event.eventType === "order.completed"
+      || event.eventType === "refund.succeeded"
+      || event.eventType === "refund.failed"
+      || manualReviewReason !== null,
     manualReviewReason,
   };
   normalized.canonicalPayloadSha256 = canonicalWaffoPayloadHash(normalized);
