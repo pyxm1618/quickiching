@@ -22,12 +22,32 @@ function targetsProduction(value: unknown): boolean {
   return value === "production" || (Array.isArray(value) && value.includes("production"));
 }
 
-async function vercelJson(url: URL, token: string): Promise<unknown> {
+async function vercelJson(url: URL, token: string, failurePrefix = "VERCEL_READ_FAILED"): Promise<unknown> {
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
   });
-  if (!response.ok) throw new Error(`VERCEL_READ_FAILED:${response.status}`);
+  if (!response.ok) throw new Error(`${failurePrefix}:${response.status}`);
   return response.json();
+}
+
+async function readEntryValue(entry: EnvEntry, key: EnvKey, token: string): Promise<string> {
+  const listed = typeof entry.value === "string" ? entry.value.trim() : "";
+  if (listed) return listed;
+
+  const id = typeof entry.id === "string" ? entry.id.trim() : "";
+  if (!id) throw new Error(`STAGING_ENV_VALUE_UNAVAILABLE:${key}`);
+  const detailUrl = new URL(`https://api.vercel.com/v1/projects/${PROJECT_ID}/env/${id}`);
+  detailUrl.searchParams.set("teamId", TEAM_ID);
+  const detail = await vercelJson(detailUrl, token, `STAGING_ENV_DECRYPT_READ_FAILED:${key}`) as {
+    value?: unknown;
+    decrypted?: unknown;
+    key?: unknown;
+  };
+  if (detail.key !== key) throw new Error(`STAGING_ENV_DECRYPT_IDENTITY_MISMATCH:${key}`);
+  const decrypted = detail.decrypted === true || detail.decrypted === "true";
+  const value = typeof detail.value === "string" ? detail.value.trim() : "";
+  if (!decrypted || !value) throw new Error(`STAGING_ENV_VALUE_UNAVAILABLE:${key}`);
+  return value;
 }
 
 async function readStagingEnv(token: string): Promise<Record<EnvKey, string>> {
@@ -42,10 +62,7 @@ async function readStagingEnv(token: string): Promise<Record<EnvKey, string>> {
   for (const key of REQUIRED) {
     const matches = list.envs.filter((entry) => entry.key === key && targetsProduction(entry.target));
     if (matches.length !== 1) throw new Error(`STAGING_ENV_CARDINALITY:${key}`);
-    const entry = matches[0];
-    const value = typeof entry.value === "string" ? entry.value : "";
-    if (!value.trim()) throw new Error(`STAGING_ENV_VALUE_UNAVAILABLE:${key}`);
-    result[key] = value;
+    result[key] = await readEntryValue(matches[0], key, token);
   }
   return result;
 }
@@ -148,6 +165,10 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : "WAFFO_TEST_CATALOG_READ_FAILED");
+  const message = error instanceof Error ? error.message : "WAFFO_TEST_CATALOG_READ_FAILED";
+  const safe = /^(VERCEL_|STAGING_ENV_|STAGING_APP_ENV_INVALID|STAGING_WAFFO_ENV_INVALID|WAFFO_)/.test(message)
+    ? message
+    : "WAFFO_TEST_CATALOG_READ_FAILED";
+  console.error(safe);
   process.exitCode = 1;
 });
