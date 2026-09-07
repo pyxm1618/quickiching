@@ -2,16 +2,6 @@ name: Payment Closeout Staging Readonly Audit
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - fix/waffo-payment-closeout
-    paths:
-      - .github/workflows/payment-closeout-staging-readonly.yml
-      - scripts/payment-closeout-staging-readonly-audit.ts
-      - scripts/payment-closeout-staging-waffo-read.ts
-      - src/server/readiness/staging-runtime-diagnostics.ts
-      - src/server/readiness/waffo-staging-catalog-read.ts
-      - src/server/payments/waffo-product-readiness.ts
 
 permissions:
   contents: read
