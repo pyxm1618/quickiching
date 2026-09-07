@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { auditPaymentCloseoutStagingEnv } from "./payment-closeout-env-audit";
+import {
+  auditPaymentCloseoutProductionEnv,
+  auditPaymentCloseoutStagingEnv,
+} from "./payment-closeout-env-audit";
 
 describe("payment closeout staging env audit", () => {
   it("passes exact staging/test mapping while treating sensitive values as presence-only", () => {
@@ -60,5 +63,58 @@ describe("payment closeout staging env audit", () => {
     expect(result.ok).toBe(false);
     expect(result.appEnv).toBe("invalid");
     expect(result.waffoEnvironment).toBe("invalid");
+  });
+});
+
+describe("payment closeout production env audit", () => {
+  it("requires production/prod mapping and production product IDs", () => {
+    const result = auditPaymentCloseoutProductionEnv([
+      { key: "APP_ENV", target: ["production"], value: "production", type: "plain" },
+      { key: "WAFFO_ENVIRONMENT", target: ["production"], value: "prod", type: "plain" },
+      ...[
+        "DATABASE_URL",
+        "WAFFO_MERCHANT_ID",
+        "WAFFO_PRIVATE_KEY",
+        "WAFFO_STORE_ID",
+        "WAFFO_PROD_PRODUCT_ID_ONE",
+        "WAFFO_PROD_PRODUCT_ID_THREE",
+        "WAFFO_PROD_PRODUCT_ID_FIVE",
+        "PAYMENT_CHECKOUT_URL_KEYS",
+        "REFUND_OPERATOR_SECRET",
+      ].map((key) => ({ key, target: ["production"], type: "sensitive" })),
+    ]);
+
+    expect(result).toEqual({
+      ok: true,
+      appEnv: "production",
+      waffoEnvironment: "prod",
+      missingKeys: [],
+      unreadableRequiredValues: [],
+    });
+  });
+
+  it("does not accept Test product IDs as Production readiness", () => {
+    const result = auditPaymentCloseoutProductionEnv([
+      { key: "APP_ENV", target: ["production"], value: "production", type: "plain" },
+      { key: "WAFFO_ENVIRONMENT", target: ["production"], value: "prod", type: "plain" },
+      ...[
+        "DATABASE_URL",
+        "WAFFO_MERCHANT_ID",
+        "WAFFO_PRIVATE_KEY",
+        "WAFFO_STORE_ID",
+        "WAFFO_TEST_PRODUCT_ID_ONE",
+        "WAFFO_TEST_PRODUCT_ID_THREE",
+        "WAFFO_TEST_PRODUCT_ID_FIVE",
+        "PAYMENT_CHECKOUT_URL_KEYS",
+        "REFUND_OPERATOR_SECRET",
+      ].map((key) => ({ key, target: ["production"], type: "sensitive" })),
+    ]);
+
+    expect(result.ok).toBe(false);
+    expect(result.missingKeys).toEqual([
+      "WAFFO_PROD_PRODUCT_ID_FIVE",
+      "WAFFO_PROD_PRODUCT_ID_ONE",
+      "WAFFO_PROD_PRODUCT_ID_THREE",
+    ]);
   });
 });
