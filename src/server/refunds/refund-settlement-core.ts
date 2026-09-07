@@ -16,6 +16,7 @@ type RefundSettlementInput = {
   status: "succeeded" | "failed";
   source: "provider_read" | "webhook";
   webhookInboxId: string | null;
+  reconcileLeaseToken?: string;
   now: Date;
 };
 
@@ -140,6 +141,10 @@ export async function applyRefundSettlement(
     ` as Row[];
     const refund = refundRows[0];
     if (!refund) throw new Error("REFUND_INTENT_NOT_FOUND");
+    if (input.reconcileLeaseToken !== undefined
+      && String(refund.reconcile_lease_token ?? "") !== input.reconcileLeaseToken) {
+      throw new Error("REFUND_RECONCILE_LEASE_LOST");
+    }
 
     if (!settlementIdentityMatches(order, refund, input)) {
       return markFinancialReview(transaction, input, "REFUND_SETTLEMENT_IDENTITY_MISMATCH");
