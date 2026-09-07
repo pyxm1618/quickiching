@@ -82,7 +82,7 @@ A request with partially consumed, reserved, or otherwise unavailable source cre
 
 Approval and provider dispatch are intentionally separate operations. Immediately before dispatch, the repository re-locks the payment order, refund intent, and source entitlement batch and re-checks that the original credits remain fully available.
 
-Before the Waffo POST, local state is durably changed from:
+Before the Waffo refund request, local state is durably changed from:
 
 `not_started / attempt=0`
 
@@ -90,11 +90,17 @@ to:
 
 `dispatched / attempt=1`
 
-Only the worker that wins this fence may call the provider. Concurrent workers and every later retry are read-only.
+Only the worker that wins this fence may call the provider. Concurrent workers and every later retry are read-only unless the adapter can prove that the Waffo refund endpoint itself was never dispatched.
 
 The stable local refund intent UUID is sent as `refundTicketMerchantExternalId` and in Quick I Ching refund metadata. A confirmed provider response stores Waffo's refund-ticket ID but is not treated as final settlement unless provider state is final.
 
-If the provider call times out, resets, loses its response, or local persistence fails after the provider may have accepted the request, the intent becomes `ambiguous / reconciliation_required`. There is no automatic second refund POST.
+Waffo Pancake TS `0.19.1` uses the customer-session HTTP client for `createRefundTicket`; that customer refund path does not send a gateway `X-Idempotency-Key`. Quick therefore enforces its own durable one-shot fence and classifies write outcomes conservatively:
+
+- **A — definitely not dispatched:** authoritative payment/session preflight fails before the refund endpoint, or SDK-local validation fails before network dispatch. The local fence may be reset to `not_started / attempt=0`, permitting a later explicitly safe retry.
+- **B — definite provider rejection:** a structured non-retryable provider 4xx response proves rejection. The intent becomes terminal `failed`; the original provider-write attempt remains recorded and no automatic second POST is allowed.
+- **C — possibly dispatched / unknown:** network errors, non-JSON responses, 5xx, timeout-like/conflict/rate-limit responses, or any contract/persistence failure after the refund endpoint may have accepted the request. The intent becomes `ambiguous / reconciliation_required`; every later worker is provider-read only.
+
+If the provider call times out, resets, loses its response, or local persistence fails after the provider may have accepted the request, the intent therefore remains in class C. There is no automatic second refund POST.
 
 ## Refund reconciliation and settlement
 
@@ -111,7 +117,7 @@ Webhook settlement and provider-read settlement call the same refund settlement 
 
 A successful full refund revokes only the still-available source entitlement batch and marks the order refunded. If the source credits changed after dispatch, the system enters financial review instead of revoking unrelated balance or creating a negative balance.
 
-Reconciliation attempts are capped. Exhaustion moves the order to financial review while leaving the provider write attempt count at exactly one.
+Reconciliation attempts are capped. Exhaustion moves the order to financial review while leaving the provider write attempt count at exactly one for any actually/possibly dispatched refund request.
 
 ## Legacy refund safety
 
