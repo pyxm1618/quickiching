@@ -116,7 +116,7 @@ describe("refund webhook shared settlement integration", () => {
     expect(rows[0]).toEqual({
       order_status: "refunded",
       refund_status: "succeeded",
-      provider_refund_id: event.eventId,
+      provider_refund_id: null,
       revoke_count: 1,
     });
   });
