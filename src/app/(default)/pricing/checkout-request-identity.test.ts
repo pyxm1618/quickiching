@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createCheckoutRequestIdentityStore } from "./checkout-request-identity";
+import {
+  checkoutFailurePresentation,
+  createCheckoutRequestIdentityStore,
+} from "./checkout-request-identity";
 
 describe("checkout request identity", () => {
   it("keeps one transaction identity across retryable/unknown checkout attempts", () => {
@@ -27,5 +30,17 @@ describe("checkout request identity", () => {
     expect(store.getOrCreate("three")).toBe("request-a");
     store.complete("three");
     expect(store.getOrCreate("three")).toBe("request-b");
+  });
+
+  it("presents HTTP 409 as an explicit safe conflict state rather than a generic outage", () => {
+    expect(checkoutFailurePresentation(409)).toEqual({
+      kind: "conflict",
+      message: "This checkout is already being resolved. Your purchase identity was preserved; review or retry this same checkout instead of starting a new purchase.",
+    });
+  });
+
+  it("keeps rate limit and generic transport failures distinct from checkout conflicts", () => {
+    expect(checkoutFailurePresentation(429).kind).toBe("rate_limited");
+    expect(checkoutFailurePresentation(503).kind).toBe("unavailable");
   });
 });
