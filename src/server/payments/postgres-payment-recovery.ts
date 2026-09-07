@@ -27,8 +27,8 @@ export class PostgresPaymentRecoveryRepository implements PaymentRecoveryReposit
       from payment_orders
       where provider = 'waffo'
         and (
-          (status = 'checkout_created' and checkout_expires_at is not null and checkout_expires_at <= ${input.now})
-          or (status = 'checkout_initializing' and checkout_claim_expires_at is not null and checkout_claim_expires_at <= ${input.now})
+          (status = 'checkout_created' and checkout_expires_at is not null and checkout_expires_at <= ${input.now.toISOString()})
+          or (status = 'checkout_initializing' and checkout_claim_expires_at is not null and checkout_claim_expires_at <= ${input.now.toISOString()})
           or (
             status = 'financial_review'
             and checkout_error_code in ('CHECKOUT_EXPIRED', 'CHECKOUT_PROVIDER_OUTCOME_UNCERTAIN', 'PAYMENT_PROVIDER_READ_UNAVAILABLE')
@@ -56,7 +56,7 @@ export class PostgresPaymentRecoveryRepository implements PaymentRecoveryReposit
             provider_checkout_session_id = null,
             provider_checkout_url = null,
             checkout_expires_at = null,
-            updated_at = ${input.now}
+            updated_at = ${input.now.toISOString()}
         where id = ${input.orderId}
       `;
     });

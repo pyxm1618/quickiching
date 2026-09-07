@@ -48,7 +48,7 @@ export async function applyAuthoritativePaymentSettlement(
             checkout_claim_token = null,
             checkout_claim_expires_at = null,
             checkout_expires_at = null,
-            updated_at = ${input.now}
+            updated_at = ${input.now.toISOString()}
         where id = ${input.orderId}
       `;
       await transaction`
@@ -59,7 +59,7 @@ export async function applyAuthoritativePaymentSettlement(
           ${input.orderId}, ${String(order.user_id)}, ${JSON.stringify({
             source: input.source,
             reason,
-          })}::jsonb, ${input.now}
+          })}::jsonb, ${input.now.toISOString()}
         )
       `;
       return { outcome: "financial_review" as const };
@@ -115,8 +115,8 @@ export async function applyAuthoritativePaymentSettlement(
         created_at, updated_at
       ) values (
         ${batchId}, ${String(order.user_id)}, ${input.orderId}, ${Number(order.quantity)},
-        ${Number(order.quantity)}, 0, 0, 0, ${new Date(input.now.getTime() + 365 * 24 * 60 * 60 * 1000)},
-        ${input.now}, ${input.now}
+        ${Number(order.quantity)}, 0, 0, 0, ${input.now.toISOString()}::timestamptz + interval '12 months',
+        ${input.now.toISOString()}, ${input.now.toISOString()}
       )
     `;
     await transaction`
@@ -124,7 +124,7 @@ export async function applyAuthoritativePaymentSettlement(
         id, batch_id, order_id, webhook_inbox_id, action, quantity, business_key, created_at
       ) values (
         ${randomUUID()}, ${batchId}, ${input.orderId}, null, 'grant', ${Number(order.quantity)},
-        ${`grant:${input.orderId}`}, ${input.now}
+        ${`grant:${input.orderId}`}, ${input.now.toISOString()}
       )
     `;
     await transaction`
@@ -138,8 +138,8 @@ export async function applyAuthoritativePaymentSettlement(
           checkout_expires_at = null,
           checkout_error_code = null,
           status = 'paid',
-          paid_at = coalesce(paid_at, ${input.now}),
-          updated_at = ${input.now}
+          paid_at = coalesce(paid_at, ${input.now.toISOString()}),
+          updated_at = ${input.now.toISOString()}
       where id = ${input.orderId}
     `;
     await transaction`
@@ -152,7 +152,7 @@ export async function applyAuthoritativePaymentSettlement(
           providerOrderId: payment.providerOrderId,
           providerPaymentId: payment.providerPaymentId,
           quantity: Number(order.quantity),
-        })}::jsonb, ${input.now}
+        })}::jsonb, ${input.now.toISOString()}
       )
     `;
 

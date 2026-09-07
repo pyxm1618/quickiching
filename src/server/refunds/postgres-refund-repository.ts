@@ -111,7 +111,7 @@ export class PostgresRefundRepository {
           ${id}, ${input.orderId}, ${input.userId}, ${String(order.provider_environment)},
           ${Number(order.amount_minor)}, ${String(order.currency)}, ${reason},
           ${screen.autoScreen}, ${screen.reasonCode}, ${status}, 'not_started', 0,
-          ${id}, ${screen.eligible ? null : input.now}, ${input.now}, ${input.now}
+          ${id}, ${screen.eligible ? null : input.now.toISOString()}, ${input.now.toISOString()}, ${input.now.toISOString()}
         ) returning *
       ` as Row[];
       if (!inserted[0]) throw new Error("REFUND_INTENT_UNAVAILABLE");
@@ -128,7 +128,7 @@ export class PostgresRefundRepository {
             screenReason: screen.reasonCode,
             requestedMinor: Number(order.amount_minor),
             currency: String(order.currency),
-          })}::jsonb, ${input.now}
+          })}::jsonb, ${input.now.toISOString()}
         )
       `;
       return mapRefund(inserted[0], true);
@@ -173,8 +173,8 @@ export class PostgresRefundRepository {
         }
         const updated = await transaction`
           update refund_intents
-          set status = 'approved', approved_at = ${input.now}, operator_note = ${note},
-              updated_at = ${input.now}
+          set status = 'approved', approved_at = ${input.now.toISOString()}, operator_note = ${note},
+              updated_at = ${input.now.toISOString()}
           where id = ${input.refundId} and status = 'manual_review'
           returning *
         ` as Row[];
@@ -185,7 +185,7 @@ export class PostgresRefundRepository {
           ) values (
             ${randomUUID()}, 'reconcile', 'refund_operator_approved', 'refund_intent',
             ${input.refundId}, ${JSON.stringify({ source: "operator", operatorId: input.operatorId, note })}::jsonb,
-            ${input.now}
+            ${input.now.toISOString()}
           )
         `;
         return mapRefund(updated[0], false);
@@ -195,8 +195,8 @@ export class PostgresRefundRepository {
       if (status !== "manual_review") throw new Error("REFUND_DECISION_CONFLICT");
       const updated = await transaction`
         update refund_intents
-        set status = 'rejected', rejected_at = ${input.now}, operator_note = ${note},
-            updated_at = ${input.now}
+        set status = 'rejected', rejected_at = ${input.now.toISOString()}, operator_note = ${note},
+            updated_at = ${input.now.toISOString()}
         where id = ${input.refundId} and status = 'manual_review'
         returning *
       ` as Row[];
@@ -207,7 +207,7 @@ export class PostgresRefundRepository {
         ) values (
           ${randomUUID()}, 'reconcile', 'refund_operator_rejected', 'refund_intent',
           ${input.refundId}, ${JSON.stringify({ source: "operator", operatorId: input.operatorId, note })}::jsonb,
-          ${input.now}
+          ${input.now.toISOString()}
         )
       `;
       return mapRefund(updated[0], false);
@@ -266,7 +266,7 @@ export class PostgresRefundRepository {
           set status = 'manual_review', auto_screen = 'manual_exception',
               screen_reason = 'REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE',
               last_error_code = 'REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE',
-              updated_at = ${now}
+              updated_at = ${now.toISOString()}
           where id = ${refundId} and provider_write_state = 'not_started'
         `;
         await transaction`
@@ -277,7 +277,7 @@ export class PostgresRefundRepository {
             ${String(refund.user_id)}, ${JSON.stringify({
               reason: "REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE",
               orderId,
-            })}::jsonb, ${now}
+            })}::jsonb, ${now.toISOString()}
           )
         `;
         throw new Error("REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE");
@@ -286,8 +286,8 @@ export class PostgresRefundRepository {
       const updated = await transaction`
         update refund_intents
         set provider_write_state = 'dispatched', status = 'processing',
-            provider_write_attempt_count = 1, provider_dispatched_at = ${now},
-            next_reconcile_at = ${now}, last_error_code = null, updated_at = ${now}
+            provider_write_attempt_count = 1, provider_dispatched_at = ${now.toISOString()},
+            next_reconcile_at = ${now.toISOString()}, last_error_code = null, updated_at = ${now.toISOString()}
         where id = ${refundId} and status = 'approved'
           and provider_write_state = 'not_started' and provider_write_attempt_count = 0
         returning *
@@ -305,7 +305,7 @@ export class PostgresRefundRepository {
           id, category, action, entity_type, entity_id, user_id, payload, created_at
         ) values (
           ${randomUUID()}, 'reconcile', 'refund_provider_dispatch_fenced', 'refund_intent', ${refundId},
-          ${String(refund.user_id)}, ${JSON.stringify({ orderId, providerWriteAttemptCount: 1 })}::jsonb, ${now}
+          ${String(refund.user_id)}, ${JSON.stringify({ orderId, providerWriteAttemptCount: 1 })}::jsonb, ${now.toISOString()}
         )
       `;
       return dispatchClaim(order, updated[0], "dispatch");
@@ -345,7 +345,7 @@ export class PostgresRefundRepository {
             status = ${failed ? "failed" : "processing"},
             next_reconcile_at = ${failed ? null : input.now},
             last_error_code = ${failed ? "REFUND_PROVIDER_REJECTED" : null},
-            updated_at = ${input.now}
+            updated_at = ${input.now.toISOString()}
         where id = ${input.refundId} and provider_write_state = 'dispatched'
           and provider_write_attempt_count = 1
         returning id
@@ -360,7 +360,7 @@ export class PostgresRefundRepository {
             orderId,
             providerTicketId: input.result.providerTicketId,
             providerStatus: input.result.status,
-          })}::jsonb, ${input.now}
+          })}::jsonb, ${input.now.toISOString()}
         )
       `;
     });
@@ -394,8 +394,8 @@ export class PostgresRefundRepository {
       await transaction`
         update refund_intents
         set provider_write_state = 'ambiguous', status = 'reconciliation_required',
-            next_reconcile_at = ${input.now}, last_error_code = ${input.errorCode},
-            updated_at = ${input.now}
+            next_reconcile_at = ${input.now.toISOString()}, last_error_code = ${input.errorCode},
+            updated_at = ${input.now.toISOString()}
         where id = ${input.refundId} and provider_write_state = 'dispatched'
           and provider_write_attempt_count = 1
       `;
@@ -405,7 +405,7 @@ export class PostgresRefundRepository {
         ) values (
           ${randomUUID()}, 'reconcile', 'refund_provider_dispatch_ambiguous', 'refund_intent',
           ${input.refundId}, ${String(refund.user_id)}, ${JSON.stringify({ orderId, errorCode: input.errorCode })}::jsonb,
-          ${input.now}
+          ${input.now.toISOString()}
         )
       `;
     });

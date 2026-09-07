@@ -71,8 +71,8 @@ export class PostgresRefundReconciliationRepository implements RefundReconciliat
       where status in ('processing', 'reconciliation_required')
         and provider_write_state in ('dispatched', 'confirmed', 'ambiguous')
         and provider_write_attempt_count = 1
-        and (next_reconcile_at is null or next_reconcile_at <= ${now})
-        and (reconcile_lease_expires_at is null or reconcile_lease_expires_at <= ${now})
+        and (next_reconcile_at is null or next_reconcile_at <= ${now.toISOString()})
+        and (reconcile_lease_expires_at is null or reconcile_lease_expires_at <= ${now.toISOString()})
       order by coalesce(next_reconcile_at, created_at) asc, created_at asc, id asc
       limit ${limit * 3}
     `;
@@ -99,7 +99,7 @@ export class PostgresRefundReconciliationRepository implements RefundReconciliat
           await transaction`
             update payment_orders
             set status = case when status = 'refunded' then status else 'financial_review' end,
-                updated_at = ${now}
+                updated_at = ${now.toISOString()}
             where id = ${hint.order_id}
           `;
           await transaction`
@@ -109,7 +109,7 @@ export class PostgresRefundReconciliationRepository implements RefundReconciliat
                 reconcile_lease_token = null,
                 reconcile_lease_expires_at = null,
                 last_error_code = 'REFUND_RECONCILE_MAX_ATTEMPTS',
-                updated_at = ${now}
+                updated_at = ${now.toISOString()}
             where id = ${hint.id}
           `;
           await transaction`
@@ -120,7 +120,7 @@ export class PostgresRefundReconciliationRepository implements RefundReconciliat
               ${hint.id}, ${String(refund.user_id)}, ${JSON.stringify({
                 orderId: hint.order_id,
                 reconcileAttemptCount: attempts,
-              })}::jsonb, ${now}
+              })}::jsonb, ${now.toISOString()}
             )
           `;
           return null;
@@ -132,11 +132,11 @@ export class PostgresRefundReconciliationRepository implements RefundReconciliat
           update refund_intents
           set reconcile_attempt_count = ${nextAttempt},
               reconcile_lease_token = ${leaseToken},
-              reconcile_lease_expires_at = ${new Date(now.getTime() + leaseDurationMs)},
-              updated_at = ${now}
+              reconcile_lease_expires_at = ${new Date(now.getTime() + leaseDurationMs).toISOString()},
+              updated_at = ${now.toISOString()}
           where id = ${hint.id}
             and reconcile_attempt_count = ${attempts}
-            and (reconcile_lease_expires_at is null or reconcile_lease_expires_at <= ${now})
+            and (reconcile_lease_expires_at is null or reconcile_lease_expires_at <= ${now.toISOString()})
           returning *
         ` as Row[];
         if (!updated[0]) return null;
@@ -173,14 +173,14 @@ export class PostgresRefundReconciliationRepository implements RefundReconciliat
         await transaction`
           update payment_orders
           set status = case when status = 'refunded' then status else 'financial_review' end,
-              updated_at = ${input.now}
+              updated_at = ${input.now.toISOString()}
           where id = ${hints[0]!.order_id}
         `;
         await transaction`
           update refund_intents
           set status = 'reconciliation_required', next_reconcile_at = null,
               reconcile_lease_token = null, reconcile_lease_expires_at = null,
-              last_error_code = 'REFUND_PROVIDER_REFERENCE_CONFLICT', updated_at = ${input.now}
+              last_error_code = 'REFUND_PROVIDER_REFERENCE_CONFLICT', updated_at = ${input.now.toISOString()}
           where id = ${input.refundId}
         `;
         return;
@@ -190,11 +190,11 @@ export class PostgresRefundReconciliationRepository implements RefundReconciliat
       await transaction`
         update refund_intents
         set provider_ticket_id = ${input.providerTicketId ?? currentTicket},
-            next_reconcile_at = ${new Date(input.now.getTime() + backoffMs(attempts))},
+            next_reconcile_at = ${new Date(input.now.getTime() + backoffMs(attempts)).toISOString()},
             reconcile_lease_token = null,
             reconcile_lease_expires_at = null,
             last_error_code = ${input.errorCode},
-            updated_at = ${input.now}
+            updated_at = ${input.now.toISOString()}
         where id = ${input.refundId} and reconcile_lease_token = ${input.leaseToken}
       `;
     });
@@ -223,14 +223,14 @@ export class PostgresRefundReconciliationRepository implements RefundReconciliat
       await transaction`
         update payment_orders
         set status = case when status = 'refunded' then status else 'financial_review' end,
-            updated_at = ${input.now}
+            updated_at = ${input.now.toISOString()}
         where id = ${hints[0]!.order_id}
       `;
       await transaction`
         update refund_intents
         set status = 'reconciliation_required', next_reconcile_at = null,
             reconcile_lease_token = null, reconcile_lease_expires_at = null,
-            last_error_code = ${input.errorCode}, updated_at = ${input.now}
+            last_error_code = ${input.errorCode}, updated_at = ${input.now.toISOString()}
         where id = ${input.refundId} and reconcile_lease_token = ${input.leaseToken}
       `;
       await transaction`
@@ -241,7 +241,7 @@ export class PostgresRefundReconciliationRepository implements RefundReconciliat
           ${input.refundId}, ${String(refund.user_id)}, ${JSON.stringify({
             orderId: hints[0]!.order_id,
             errorCode: input.errorCode,
-          })}::jsonb, ${input.now}
+          })}::jsonb, ${input.now.toISOString()}
         )
       `;
     });

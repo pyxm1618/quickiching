@@ -46,13 +46,13 @@ async function markFinancialReview(
         next_reconcile_at = null,
         reconcile_lease_token = null,
         reconcile_lease_expires_at = null,
-        updated_at = ${input.now}
+        updated_at = ${input.now.toISOString()}
     where id = ${input.refundId}
   `;
   await transaction`
     update payment_orders
     set status = case when status = 'refunded' then status else 'financial_review' end,
-        updated_at = ${input.now}
+        updated_at = ${input.now.toISOString()}
     where id = ${input.orderId}
   `;
   if (input.webhookInboxId) {
@@ -61,7 +61,7 @@ async function markFinancialReview(
         id, order_id, inbox_id, reason_code, status, created_at, updated_at
       ) values (
         ${randomUUID()}, ${input.orderId}, ${input.webhookInboxId}, ${reason},
-        'open', ${input.now}, ${input.now}
+        'open', ${input.now.toISOString()}, ${input.now.toISOString()}
       ) on conflict (inbox_id) do nothing
     `;
   }
@@ -74,7 +74,7 @@ async function markFinancialReview(
         source: input.source,
         orderId: input.orderId,
         reason,
-      })}::jsonb, ${input.now}
+      })}::jsonb, ${input.now.toISOString()}
     )
   `;
   return { outcome: "financial_review" };
@@ -110,7 +110,7 @@ async function fillProviderReferences(
     update refund_intents
     set provider_ticket_id = ${ticket},
         provider_refund_id = ${providerRefund},
-        updated_at = ${input.now}
+        updated_at = ${input.now.toISOString()}
     where id = ${input.refundId}
   `;
   return true;
@@ -183,7 +183,7 @@ export async function applyRefundSettlement(
             reconcile_lease_token = null,
             reconcile_lease_expires_at = null,
             last_error_code = 'REFUND_PROVIDER_REPORTED_FAILED',
-            updated_at = ${input.now}
+            updated_at = ${input.now.toISOString()}
         where id = ${input.refundId}
       `;
       await transaction`
@@ -192,7 +192,7 @@ export async function applyRefundSettlement(
         ) values (
           ${randomUUID()}, 'reconcile', 'refund_settlement_failed', 'refund_intent',
           ${input.refundId}, ${JSON.stringify({ source: input.source, orderId: input.orderId })}::jsonb,
-          ${input.now}
+          ${input.now.toISOString()}
         )
       `;
       return { outcome: "failed" };
@@ -224,7 +224,7 @@ export async function applyRefundSettlement(
       update entitlement_batches
       set quantity_available = 0,
           quantity_revoked = ${quantity},
-          updated_at = ${input.now}
+          updated_at = ${input.now.toISOString()}
       where id = ${String(batch.id)}
     `;
     await transaction`
@@ -232,12 +232,12 @@ export async function applyRefundSettlement(
         id, batch_id, order_id, webhook_inbox_id, action, quantity, business_key, created_at
       ) values (
         ${randomUUID()}, ${String(batch.id)}, ${input.orderId}, ${input.webhookInboxId},
-        'revoke', ${quantity}, ${`revoke:${input.orderId}`}, ${input.now}
+        'revoke', ${quantity}, ${`revoke:${input.orderId}`}, ${input.now.toISOString()}
       ) on conflict (business_key) do nothing
     `;
     await transaction`
       update payment_orders
-      set status = 'refunded', refunded_at = coalesce(refunded_at, ${input.now}), updated_at = ${input.now}
+      set status = 'refunded', refunded_at = coalesce(refunded_at, ${input.now.toISOString()}), updated_at = ${input.now.toISOString()}
       where id = ${input.orderId}
     `;
     await transaction`
@@ -250,7 +250,7 @@ export async function applyRefundSettlement(
           reconcile_lease_token = null,
           reconcile_lease_expires_at = null,
           last_error_code = null,
-          updated_at = ${input.now}
+          updated_at = ${input.now.toISOString()}
       where id = ${input.refundId}
     `;
     await transaction`
@@ -262,7 +262,7 @@ export async function applyRefundSettlement(
           source: input.source,
           orderId: input.orderId,
           quantityRevoked: quantity,
-        })}::jsonb, ${input.now}
+        })}::jsonb, ${input.now.toISOString()}
       )
     `;
     return { outcome: "succeeded" };
