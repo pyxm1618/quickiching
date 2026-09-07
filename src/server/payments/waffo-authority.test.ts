@@ -100,6 +100,7 @@ const refundRequest = {
   storeId: "STO_test",
   buyerIdentity: "user-1",
   providerPaymentId: "PAY_test",
+  expectedProviderOrderId: "ORD_test",
   merchantOrderReference: "11111111-1111-4111-8111-111111111111",
   expectedProviderProductId: "PROD_test_three",
   amountMinor: 699,
@@ -179,6 +180,15 @@ describe("Waffo 0.19.1 authoritative one-time boundary", () => {
       refundTicketMerchantExternalId: refundRequest.refundIntentId,
       metadata: { quickIChingRefundIntentId: refundRequest.refundIntentId },
     });
+  });
+
+  it("fails the refund preflight before POST when the known provider order does not match", async () => {
+    const fake = fakeClient({});
+    const authority = createWaffoAuthority(config, () => fake.client as never);
+
+    await expect(authority.requestRefund({ ...refundRequest, expectedProviderOrderId: "ORD_wrong" }))
+      .rejects.toBeInstanceOf(RefundWriteNotDispatchedError);
+    expect(fake.createRefundTicket).not.toHaveBeenCalled();
   });
 
   it("classifies authoritative preflight failure as definitely not dispatched", async () => {
