@@ -10,6 +10,7 @@ on:
     branches:
       - codex/commercial-v2-cp6
       - codex/commercial-v2-cp6-repair
+      - fix/waffo-payment-closeout
   workflow_dispatch:
 
 permissions:
