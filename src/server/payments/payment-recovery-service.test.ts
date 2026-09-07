@@ -93,4 +93,27 @@ describe("one-time missed payment webhook recovery", () => {
     await service.run();
     expect(settle).not.toHaveBeenCalled();
   });
+
+  it("fails closed if a provider adapter returns a succeeded payment from another store", async () => {
+    const repo = repository();
+    const provider = {
+      getPayment: vi.fn().mockResolvedValue({
+        status: "found",
+        payment: {
+          environment: "test", storeId: "STO_other", model: "one_time",
+          merchantOrderReference: candidate.orderId, providerOrderId: candidate.providerOrderId, providerPaymentId: candidate.providerPaymentId,
+          providerProductId: candidate.providerProductId, status: "succeeded", amountMinor: 699, currency: "USD",
+        },
+      }),
+    };
+    const settle = vi.fn();
+    const service = createPaymentRecoveryService({ repository: repo, provider, settle, storeId: "STO_test" });
+
+    await expect(service.run()).resolves.toMatchObject({ checked: 1, settled: 0, reviewed: 1 });
+    expect(settle).not.toHaveBeenCalled();
+    expect(repo.markFinancialReview).toHaveBeenCalledWith(expect.objectContaining({
+      orderId: candidate.orderId,
+      errorCode: "PAYMENT_PROVIDER_READ_STORE_MISMATCH",
+    }));
+  });
 });
