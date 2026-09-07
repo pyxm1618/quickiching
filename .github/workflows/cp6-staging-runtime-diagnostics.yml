@@ -258,6 +258,31 @@ jobs:
           test "$(jq -r '.deployment.productionUrlMatchesStaging // false' "$diagnostics_file")" = "true"
           test "$(jq -r '.deployment.tierConfigured // false' "$diagnostics_file")" = "true"
           test "$(jq -r '.deployment.appBaseUrlMatchesStaging // false' "$diagnostics_file")" = "true"
+
+          test "$(jq -r '.database.connected // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.database.migrationTablePresent // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.database.migrationStatus // empty' "$diagnostics_file")" = "ok"
+          test "$(jq -r '.database.classification // empty' "$diagnostics_file")" = "ready"
+          test "$(jq -r '.database.missingTables | length' "$diagnostics_file")" = "0"
+          test "$(jq -r '.database.appliedMigrationCount == .database.expectedMigrationCount' "$diagnostics_file")" = "true"
+          test "$(jq -r '.migrationConnection.connected // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.migrationConnection.sameLogicalDatabase // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.migrationConnection.migrationHistoryMatchesRuntime // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.migrationConnection.schemaCreatePrivilege // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.migrationConnection.requiredReferencesPrivilege // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.migrationConnection.generationReviewTriggerPrivilege // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.provider.waffoEnvironmentIsTest // false' "$diagnostics_file")" = "true"
+
+          test "$(jq -r '.waffoCatalog.ok // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.waffoCatalog.environment // empty' "$diagnostics_file")" = "test"
+          test "$(jq -r '.waffoCatalog.model // empty' "$diagnostics_file")" = "one_time"
+          test "$(jq -r '.waffoCatalog.store.status // empty' "$diagnostics_file")" = "active"
+          test "$(jq -r '.waffoCatalog.packs | length' "$diagnostics_file")" = "3"
+          test "$(jq -r '[.waffoCatalog.packs[].productId] | unique | length' "$diagnostics_file")" = "3"
+          test "$(jq -r '.waffoCatalog.packs[] | select(.pack == 1) | .amountMinor' "$diagnostics_file")" = "299"
+          test "$(jq -r '.waffoCatalog.packs[] | select(.pack == 3) | .amountMinor' "$diagnostics_file")" = "699"
+          test "$(jq -r '.waffoCatalog.packs[] | select(.pack == 5) | .amountMinor' "$diagnostics_file")" = "999"
+          test "$(jq -r '[.waffoCatalog.packs[] | select(.currency == "USD" and .status == "active" and .hasTestVersion == true)] | length' "$diagnostics_file")" = "3"
           cp "$diagnostics_file" cp6-staging-runtime-diagnostics.json
 
       - name: Upload non-sensitive diagnostics evidence
