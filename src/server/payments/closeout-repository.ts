@@ -105,8 +105,10 @@ export class CloseoutPaymentRepository extends PostgresPaymentRepository {
         'WEBHOOK_BUSINESS_EVENT_CONFLICT', 'open', clock_timestamp(), clock_timestamp()
       ) on conflict (inbox_id) do nothing
     `;
-    const orderId = existingOrderId ?? incomingOrderId;
-    if (orderId) {
+    const reviewOrderIds = [...new Set(
+      [existingOrderId, incomingOrderId].filter((orderId): orderId is string => orderId !== null),
+    )].sort();
+    for (const orderId of reviewOrderIds) {
       await transaction`
         update payment_orders
         set status = case when status = 'refunded' then status else 'financial_review' end,
@@ -124,6 +126,8 @@ export class CloseoutPaymentRepository extends PostgresPaymentRepository {
           eventId: event.eventId,
           existingEventType: String(existing.event_type),
           incomingEventType: event.eventType,
+          existingOrderId,
+          incomingOrderId,
         })}::jsonb, clock_timestamp()
       )
     `;
