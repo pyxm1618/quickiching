@@ -4,6 +4,7 @@ import type { OutboxDispatcher } from "@/server/payments/outbox-dispatcher";
 
 export type ReconcileMetrics = {
   outboxProcessed: number;
+  refundsReconciled: number;
   checkoutCleaned: number;
   jobsTimedOut: number;
   reservationsReleased: number;
@@ -15,11 +16,16 @@ export interface ReconcileService {
   runReconcile(options?: { budgetMs?: number }): Promise<ReconcileMetrics>;
 }
 
+type RefundReconciliationRunner = {
+  run(options?: { limit?: number }): Promise<{ claimed: number }>;
+};
+
 export function createReconcileService(dependencies: {
   sql: Sql;
   outboxDispatcher: OutboxDispatcher;
+  refundReconciliation?: RefundReconciliationRunner;
 }): ReconcileService {
-  const { sql, outboxDispatcher } = dependencies;
+  const { sql, outboxDispatcher, refundReconciliation } = dependencies;
 
   return {
     async runReconcile(options = {}): Promise<ReconcileMetrics> {
@@ -28,6 +34,7 @@ export function createReconcileService(dependencies: {
       const deadlineAt = startTime + budgetMs;
 
       let outboxProcessed = 0;
+      let refundsReconciled = 0;
       let checkoutCleaned = 0;
       let jobsTimedOut = 0;
       let reservationsReleased = 0;
@@ -45,7 +52,13 @@ export function createReconcileService(dependencies: {
         outboxProcessed = dispatchSummary.processedCount;
       }
 
-      // 2. Reconcile expired checkout initializations & expired checkout URLs
+      // 2. Reconcile durable refund intents by authenticated provider READ only.
+      if (!isBudgetExhausted() && refundReconciliation) {
+        const refundSummary = await refundReconciliation.run({ limit: 5 });
+        refundsReconciled = refundSummary.claimed;
+      }
+
+      // 3. Reconcile expired checkout initializations & expired checkout URLs.
       if (!isBudgetExhausted()) {
         checkoutCleaned = await sql.begin(async (transaction) => {
           const expiredInitializing = await transaction`
@@ -82,7 +95,7 @@ export function createReconcileService(dependencies: {
         });
       }
 
-      // 3. Reconcile timed-out generation jobs
+      // 4. Reconcile timed-out generation jobs.
       if (!isBudgetExhausted()) {
         const timedOutRows = await sql`
           update generation_jobs
@@ -98,7 +111,7 @@ export function createReconcileService(dependencies: {
         jobsTimedOut = timedOutRows.length;
       }
 
-      // 4. Release stranded reservations (when job failed/timed_out or lease expired)
+      // 5. Release stranded reservations (when job failed/timed_out or lease expired).
       if (!isBudgetExhausted()) {
         reservationsReleased = await sql.begin(async (transaction) => {
           const strandedRows = await transaction`
@@ -122,19 +135,14 @@ export function createReconcileService(dependencies: {
           }>;
 
           let releasedCount = 0;
-
           for (const row of strandedRows) {
             if (isBudgetExhausted()) break;
-
             await transaction`
               update entitlement_reservations
-              set status = 'released',
-                  lease_token = null,
-                  lease_expires_at = null,
+              set status = 'released', lease_token = null, lease_expires_at = null,
                   updated_at = clock_timestamp()
               where id = ${row.res_id} and status = 'reserved'
             `;
-
             await transaction`
               update entitlement_batches
               set quantity_reserved = greatest(0, quantity_reserved - 1),
@@ -142,33 +150,27 @@ export function createReconcileService(dependencies: {
                   updated_at = clock_timestamp()
               where id = ${row.batch_id}
             `;
-
             await transaction`
               insert into entitlement_ledger (
                 id, batch_id, order_id, action, quantity, business_key, created_at
               )
-              select
-                ${randomUUID()}, ${row.batch_id}, b.order_id, 'release', 1,
+              select ${randomUUID()}, ${row.batch_id}, b.order_id, 'release', 1,
                 ${`release:${row.res_id}`}, clock_timestamp()
               from entitlement_batches b
               where b.id = ${row.batch_id}
               on conflict (business_key) do nothing
             `;
-
             releasedCount++;
           }
-
           return releasedCount;
         });
       }
 
-      // 5. Recover stuck workflow runs
+      // 6. Recover stuck workflow runs.
       if (!isBudgetExhausted()) {
         const recoveredRows = await sql`
           update workflow_runs
-          set status = 'failed',
-              error_code = 'WORKFLOW_START_TIMED_OUT',
-              updated_at = clock_timestamp()
+          set status = 'failed', error_code = 'WORKFLOW_START_TIMED_OUT', updated_at = clock_timestamp()
           where status = 'start_pending'
             and created_at <= clock_timestamp() - interval '10 minutes'
           returning id
@@ -177,8 +179,6 @@ export function createReconcileService(dependencies: {
       }
 
       const durationMs = Date.now() - startTime;
-
-      // 6. Record structured audit event
       try {
         await sql`
           insert into audit_events (
@@ -187,6 +187,7 @@ export function createReconcileService(dependencies: {
             ${randomUUID()}, 'reconcile', 'reconcile_sweep_completed', 'system', 'reconcile_cron',
             ${JSON.stringify({
               outboxProcessed,
+              refundsReconciled,
               checkoutCleaned,
               jobsTimedOut,
               reservationsReleased,
@@ -197,11 +198,12 @@ export function createReconcileService(dependencies: {
           )
         `;
       } catch {
-        // Audit recording non-blocking
+        // Audit recording non-blocking.
       }
 
       return {
         outboxProcessed,
+        refundsReconciled,
         checkoutCleaned,
         jobsTimedOut,
         reservationsReleased,
