@@ -4,6 +4,8 @@ export type PaymentRecoveryCandidate = {
   orderId: string;
   environment: "test" | "prod";
   providerProductId: string;
+  providerOrderId: string | null;
+  providerPaymentId: string | null;
   amountMinor: number;
   currency: "USD";
 };
@@ -46,6 +48,8 @@ export function createPaymentRecoveryService(dependencies: {
             environment: candidate.environment,
             storeId: dependencies.storeId,
             merchantOrderReference: candidate.orderId,
+            ...(candidate.providerPaymentId ? { providerPaymentId: candidate.providerPaymentId } : {}),
+            ...(candidate.providerOrderId ? { expectedProviderOrderId: candidate.providerOrderId } : {}),
             expectedProviderProductId: candidate.providerProductId,
             expectedAmountMinor: candidate.amountMinor,
             expectedCurrency: candidate.currency,
