@@ -126,6 +126,29 @@ describe("Waffo signed webhook boundary", () => {
     )).toThrowError(expect.objectContaining({ code: "WEBHOOK_CURRENCY_MISMATCH" }));
   });
 
+  it("ingests refund.failed as a supported one-time refund event", () => {
+    const base = JSON.parse(signedEvent().rawBody) as { data: Record<string, unknown> };
+    const failed = signedEvent({
+      eventType: "refund.failed",
+      eventId: "RF_failed_123",
+      data: {
+        ...base.data,
+        refundTicketMerchantExternalId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
+        refundStatus: "failed",
+      },
+    });
+    expect(verifyAndNormalizeWaffoWebhook(
+      failed.rawBody,
+      failed.signatureHeader,
+      verifierConfig,
+    )).toMatchObject({
+      eventType: "refund.failed",
+      eventId: "RF_failed_123",
+      supported: true,
+      refundTicketMerchantExternalId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
+    });
+  });
+
   it("accepts a verified unsupported event only as an ignored normalized record", () => {
     const unsupported = signedEvent({ eventType: "subscription.activated" });
     const normalized = verifyAndNormalizeWaffoWebhook(
