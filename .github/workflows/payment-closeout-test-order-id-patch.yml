@@ -1,0 +1,36 @@
+name: Payment closeout refund-read test patch
+
+on:
+  push:
+    branches: [fix/waffo-payment-closeout]
+    paths: [.github/workflows/payment-closeout-test-order-id-patch.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/waffo-payment-closeout
+      - name: Add exact provider order identity to refund read tests
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/server/payments/waffo-authority.test.ts')
+          s = p.read_text()
+          old = 'expectedProviderProductId: "PROD_test_three", paymentAmountMinor: 699,'
+          new = 'expectedProviderOrderId: "ORD_test", expectedProviderProductId: "PROD_test_three", paymentAmountMinor: 699,'
+          if s.count(old) != 2:
+              raise SystemExit(f'expected exactly 2 anchors, got {s.count(old)}')
+          p.write_text(s.replace(old, new))
+          Path('.github/workflows/payment-closeout-test-order-id-patch.yml').unlink()
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git diff --cached --check
+          git commit -m "test(payment): pass provider order identity to refund reads"
+          git push origin HEAD:fix/waffo-payment-closeout
