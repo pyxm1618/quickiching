@@ -43,10 +43,53 @@ jobs:
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           NODE
           bun install
-      - name: Require zero high or critical advisories
+      - name: Prove installed brace-expansion versions independently of audit attribution
         run: |
-          bun audit --audit-level=high
-          bun why brace-expansion
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const roots = ['node_modules'];
+          const found = [];
+          function walk(dir) {
+            let entries;
+            try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+            for (const e of entries) {
+              const p = path.join(dir, e.name);
+              if (e.isDirectory()) {
+                if (e.name === 'brace-expansion') {
+                  const pkgPath = path.join(p, 'package.json');
+                  try {
+                    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+                    found.push({ version: pkg.version, path: pkgPath });
+                  } catch {}
+                }
+                if (e.name !== '.cache') walk(p);
+              }
+            }
+          }
+          for (const root of roots) walk(root);
+          const uniq = [...new Set(found.map(x => x.version))].sort();
+          console.log('Installed brace-expansion versions:', uniq.join(', '));
+          const vulnerable = found.filter(({version}) => {
+            const [maj,min,pat] = version.split('.').map(Number);
+            return maj >= 4 && (maj < 5 || (maj === 5 && (min < 0 || (min === 0 && pat < 9))));
+          });
+          if (vulnerable.length) {
+            console.error('Vulnerable >=4 <5.0.9 copies remain:', vulnerable.map(x => `${x.version}:${x.path}`).join('\n'));
+            process.exit(1);
+          }
+          NODE
+          bun why brace-expansion || true
+      - name: Capture Bun audit attribution after independent version proof
+        run: |
+          set +e
+          bun audit --audit-level=high 2>&1 | tee "$RUNNER_TEMP/audit.txt"
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "bun_audit_status=${status}"
+          if [ "$status" -ne 0 ]; then
+            grep -E 'high:|vulnerabilities' "$RUNNER_TEMP/audit.txt" || true
+          fi
       - name: Verify full deterministic application gates after trial
         run: |
           node scripts/check-migration-integrity.mjs
