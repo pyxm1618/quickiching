@@ -38,17 +38,30 @@ async function markFinancialReview(
   transaction: TransactionSql,
   input: RefundSettlementInput,
   reason: string,
+  options: { preserveRefundStatus?: boolean } = {},
 ): Promise<RefundSettlementResult> {
-  await transaction`
-    update refund_intents
-    set status = 'reconciliation_required',
-        last_error_code = ${reason},
-        next_reconcile_at = null,
-        reconcile_lease_token = null,
-        reconcile_lease_expires_at = null,
-        updated_at = ${input.now.toISOString()}
-    where id = ${input.refundId}
-  `;
+  if (options.preserveRefundStatus) {
+    await transaction`
+      update refund_intents
+      set last_error_code = ${reason},
+          next_reconcile_at = null,
+          reconcile_lease_token = null,
+          reconcile_lease_expires_at = null,
+          updated_at = ${input.now.toISOString()}
+      where id = ${input.refundId}
+    `;
+  } else {
+    await transaction`
+      update refund_intents
+      set status = 'reconciliation_required',
+          last_error_code = ${reason},
+          next_reconcile_at = null,
+          reconcile_lease_token = null,
+          reconcile_lease_expires_at = null,
+          updated_at = ${input.now.toISOString()}
+      where id = ${input.refundId}
+    `;
+  }
   await transaction`
     update payment_orders
     set status = case when status = 'refunded' then status else 'financial_review' end,
@@ -157,7 +170,12 @@ export async function applyRefundSettlement(
     const currentStatus = String(refund.status);
     if (currentStatus === "succeeded") {
       if (input.status !== "succeeded") {
-        return markFinancialReview(transaction, input, "REFUND_SETTLEMENT_STATUS_CONFLICT");
+        return markFinancialReview(
+          transaction,
+          input,
+          "REFUND_SETTLEMENT_STATUS_CONFLICT",
+          { preserveRefundStatus: true },
+        );
       }
       const filled = await fillProviderReferences(transaction, refund, input);
       if (!filled) return markFinancialReview(transaction, input, "REFUND_PROVIDER_REFERENCE_CONFLICT");
@@ -165,7 +183,12 @@ export async function applyRefundSettlement(
     }
     if (currentStatus === "failed") {
       if (input.status !== "failed") {
-        return markFinancialReview(transaction, input, "REFUND_SETTLEMENT_STATUS_CONFLICT");
+        return markFinancialReview(
+          transaction,
+          input,
+          "REFUND_SETTLEMENT_STATUS_CONFLICT",
+          { preserveRefundStatus: true },
+        );
       }
       const filled = await fillProviderReferences(transaction, refund, input);
       if (!filled) return markFinancialReview(transaction, input, "REFUND_PROVIDER_REFERENCE_CONFLICT");
