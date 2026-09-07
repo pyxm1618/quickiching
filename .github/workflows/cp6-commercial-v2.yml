@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - codex/commercial-v2-cp6
+      - codex/commercial-v2-cp6-repair
   push:
     branches:
       - codex/commercial-v2-cp6
