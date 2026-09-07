@@ -2,6 +2,11 @@ name: Payment Closeout Production Env Audit
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - fix/waffo-payment-closeout
+    paths:
+      - .github/workflows/payment-closeout-production-env-audit.yml
 
 permissions:
   contents: read
