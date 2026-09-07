@@ -3,7 +3,6 @@ name: Payment Closeout Security Gate
 on:
   push:
     branches: [fix/waffo-payment-closeout]
-    paths: [.github/workflows/payment-closeout-security.yml]
   workflow_dispatch:
 
 permissions:
