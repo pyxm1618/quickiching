@@ -1,4 +1,9 @@
-import type { RefundProviderAuthority, RefundWriteResult } from "@/server/payments/provider-authority";
+import {
+  RefundWriteNotDispatchedError,
+  RefundWriteRejectedError,
+  type RefundProviderAuthority,
+  type RefundWriteResult,
+} from "@/server/payments/provider-authority";
 
 export type RefundDispatchClaim = {
   mode: "dispatch" | "read_only";
@@ -21,6 +26,16 @@ export type RefundCommandRepository = {
     now: Date;
   }): Promise<void>;
   markProviderDispatchAmbiguous(input: {
+    refundId: string;
+    errorCode: string;
+    now: Date;
+  }): Promise<void>;
+  releaseProviderDispatchNotSent(input: {
+    refundId: string;
+    errorCode: string;
+    now: Date;
+  }): Promise<void>;
+  markProviderDispatchRejected(input: {
     refundId: string;
     errorCode: string;
     now: Date;
@@ -70,6 +85,24 @@ export function createRefundCommandService(dependencies: {
         });
         return { outcome: "dispatched" };
       } catch (error) {
+        if (error instanceof RefundWriteNotDispatchedError) {
+          await dependencies.repository.releaseProviderDispatchNotSent({
+            refundId: claim.refundId,
+            errorCode: error.code,
+            now: now(),
+          });
+          throw new Error("REFUND_PROVIDER_WRITE_NOT_DISPATCHED");
+        }
+
+        if (error instanceof RefundWriteRejectedError) {
+          await dependencies.repository.markProviderDispatchRejected({
+            refundId: claim.refundId,
+            errorCode: error.code,
+            now: now(),
+          });
+          throw new Error("REFUND_PROVIDER_REJECTED");
+        }
+
         try {
           await dependencies.repository.markProviderDispatchAmbiguous({
             refundId: claim.refundId,
