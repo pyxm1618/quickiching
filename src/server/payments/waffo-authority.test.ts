@@ -1,4 +1,9 @@
+import { WaffoPancakeError } from "@waffo/pancake-ts";
 import { describe, expect, it, vi } from "vitest";
+import {
+  RefundWriteNotDispatchedError,
+  RefundWriteRejectedError,
+} from "./provider-authority";
 import { createWaffoAuthority } from "./waffo-authority";
 
 const config = {
@@ -90,6 +95,19 @@ function fakeClient(input: {
   return { client, customerOptions, createRefundTicket };
 }
 
+const refundRequest = {
+  environment: "test" as const,
+  storeId: "STO_test",
+  buyerIdentity: "user-1",
+  providerPaymentId: "PAY_test",
+  merchantOrderReference: "11111111-1111-4111-8111-111111111111",
+  expectedProviderProductId: "PROD_test_three",
+  amountMinor: 699,
+  currency: "USD" as const,
+  reason: "Customer request",
+  refundIntentId: "22222222-2222-4222-8222-222222222222",
+};
+
 describe("Waffo 0.19.1 authoritative one-time boundary", () => {
   it("accepts exactly one matching succeeded one-time payment", async () => {
     const fake = fakeClient({});
@@ -149,33 +167,70 @@ describe("Waffo 0.19.1 authoritative one-time boundary", () => {
   it("passes explicit customer environment and stable local refund correlation", async () => {
     const fake = fakeClient({});
     const authority = createWaffoAuthority(config, () => fake.client as never);
-    const refundIntentId = "22222222-2222-4222-8222-222222222222";
 
-    await expect(authority.requestRefund({
-      environment: "test",
-      storeId: "STO_test",
-      buyerIdentity: "user-1",
-      providerPaymentId: "PAY_test",
-      merchantOrderReference: "11111111-1111-4111-8111-111111111111",
-      expectedProviderProductId: "PROD_test_three",
-      amountMinor: 699,
-      currency: "USD",
-      reason: "Customer request",
-      refundIntentId,
-    })).resolves.toEqual({ providerTicketId: "RT_test", status: "pending" });
+    await expect(authority.requestRefund(refundRequest))
+      .resolves.toEqual({ providerTicketId: "RT_test", status: "pending" });
 
     expect(fake.customerOptions).toEqual([{ environment: "test" }]);
     expect(fake.createRefundTicket).toHaveBeenCalledWith({
       paymentId: "PAY_test",
       reason: "Customer request",
       requestedAmount: { amount: "6.99", currency: "USD" },
-      refundTicketMerchantExternalId: refundIntentId,
-      metadata: { quickIChingRefundIntentId: refundIntentId },
+      refundTicketMerchantExternalId: refundRequest.refundIntentId,
+      metadata: { quickIChingRefundIntentId: refundRequest.refundIntentId },
     });
   });
 
+  it("classifies authoritative preflight failure as definitely not dispatched", async () => {
+    const fake = fakeClient({ payments: [] });
+    const authority = createWaffoAuthority(config, () => fake.client as never);
+
+    await expect(authority.requestRefund(refundRequest))
+      .rejects.toBeInstanceOf(RefundWriteNotDispatchedError);
+    expect(fake.createRefundTicket).not.toHaveBeenCalled();
+  });
+
+  it("classifies SDK validation before the refund request as definitely not dispatched", async () => {
+    const createRefundTicket = vi.fn(async () => {
+      throw new WaffoPancakeError(400, [{ message: "Invalid paymentId", layer: "sdk" }]);
+    });
+    const fake = fakeClient({ createRefundTicket });
+    const authority = createWaffoAuthority(config, () => fake.client as never);
+
+    await expect(authority.requestRefund(refundRequest))
+      .rejects.toBeInstanceOf(RefundWriteNotDispatchedError);
+    expect(createRefundTicket).toHaveBeenCalledTimes(1);
+  });
+
+  it("classifies a structured non-retryable 4xx as definite provider rejection", async () => {
+    const createRefundTicket = vi.fn(async () => {
+      throw new WaffoPancakeError(422, [{ message: "Refund request rejected", layer: "ticket" }]);
+    });
+    const fake = fakeClient({ createRefundTicket });
+    const authority = createWaffoAuthority(config, () => fake.client as never);
+
+    const promise = authority.requestRefund(refundRequest);
+    await expect(promise).rejects.toBeInstanceOf(RefundWriteRejectedError);
+    await expect(promise).rejects.toMatchObject({ status: 422 });
+  });
+
+  it("keeps non-JSON and conflict responses in the unknown-outcome class", async () => {
+    for (const error of [
+      new WaffoPancakeError(502, [{
+        message: "Non-JSON response from /v1/actions/refund-ticket/create-ticket",
+        layer: "sdk",
+      }]),
+      new WaffoPancakeError(409, [{ message: "Conflict", layer: "ticket" }]),
+    ]) {
+      const fake = fakeClient({ createRefundTicket: vi.fn(async () => { throw error; }) });
+      const authority = createWaffoAuthority(config, () => fake.client as never);
+
+      await expect(authority.requestRefund(refundRequest)).rejects.toBe(error);
+    }
+  });
+
   it("requires exact refund ticket correlation and exact refund relation", async () => {
-    const refundIntentId = "22222222-2222-4222-8222-222222222222";
+    const refundIntentId = refundRequest.refundIntentId;
     const ticket = {
       id: "RT_test",
       status: "processing",
