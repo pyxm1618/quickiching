@@ -53,6 +53,7 @@ export function createRefundCommandService(dependencies: {
           buyerIdentity: claim.userId,
           providerPaymentId: claim.providerPaymentId,
           merchantOrderReference: claim.orderId,
+          expectedProviderProductId: claim.providerProductId,
           amountMinor: claim.requestedMinor,
           currency: claim.currency,
           reason: claim.reason,
