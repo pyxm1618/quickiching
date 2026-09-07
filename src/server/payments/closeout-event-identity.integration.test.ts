@@ -130,6 +130,33 @@ describe("closeout webhook business-event identity", () => {
     expect(orders[0]?.status).toBe("financial_review");
   });
 
+  it("freezes both local orders when one business eventId conflicts across two orders", async () => {
+    const existing = await orderFixture();
+    const incoming = await orderFixture();
+    const eventId = `EVT_${randomUUID()}`;
+
+    await repository.recordVerifiedEvent(event({ fixture: existing, eventId }));
+    await expect(repository.recordVerifiedEvent(event({ fixture: incoming, eventId })))
+      .rejects.toThrow("WEBHOOK_BUSINESS_EVENT_CONFLICT");
+
+    const conflicts = await sql<Array<{ existing_order_id: string; incoming_order_id: string }>>`
+      select existing_order_id, incoming_order_id from payment_webhook_conflicts
+      where provider = 'waffo' and provider_environment = 'test'
+        and reason_code = 'WEBHOOK_BUSINESS_EVENT_CONFLICT'
+        and existing_order_id = ${existing.orderId}
+        and incoming_order_id = ${incoming.orderId}
+    `;
+    expect(conflicts).toHaveLength(1);
+
+    const orders = await sql<Array<{ id: string; status: string }>>`
+      select id, status from payment_orders
+      where id in (${existing.orderId}, ${incoming.orderId})
+      order by id
+    `;
+    expect(orders).toHaveLength(2);
+    expect(orders.map((row) => row.status)).toEqual(["financial_review", "financial_review"]);
+  });
+
   it("lets exactly one concurrent recorder insert an eventId and treats all others as replay", async () => {
     const fixture = await orderFixture();
     const eventId = `EVT_${randomUUID()}`;
