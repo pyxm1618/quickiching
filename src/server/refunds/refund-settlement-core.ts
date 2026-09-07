@@ -172,6 +172,10 @@ export async function applyRefundSettlement(
       return { outcome: "already_settled" };
     }
 
+    if (refund.approved_at == null) {
+      return markFinancialReview(transaction, input, "REFUND_SETTLEMENT_NOT_APPROVED");
+    }
+
     if (input.status === "failed") {
       await transaction`
         update refund_intents
