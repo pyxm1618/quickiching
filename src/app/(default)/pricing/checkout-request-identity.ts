@@ -6,6 +6,28 @@ type CreateId = () => string;
 
 const keyFor = (productKey: ProductId) => `quickiching:checkout-request:${productKey}`;
 
+export function checkoutFailurePresentation(status: number): {
+  kind: "conflict" | "rate_limited" | "unavailable";
+  message: string;
+} {
+  if (status === 409) {
+    return {
+      kind: "conflict",
+      message: "This checkout is already being resolved. Your purchase identity was preserved; review or retry this same checkout instead of starting a new purchase.",
+    };
+  }
+  if (status === 429) {
+    return {
+      kind: "rate_limited",
+      message: "Too many checkout attempts. Please try again shortly.",
+    };
+  }
+  return {
+    kind: "unavailable",
+    message: "Checkout is temporarily unavailable. Please try again.",
+  };
+}
+
 export function createCheckoutRequestIdentityStore(storage: StorageLike, createId: CreateId = () => crypto.randomUUID()) {
   return {
     getOrCreate(productKey: ProductId): string {
