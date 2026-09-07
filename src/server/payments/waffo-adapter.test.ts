@@ -7,6 +7,7 @@ import {
 } from "./waffo-adapter";
 
 const runtimeEnv = {
+  APP_ENV: "staging",
   WAFFO_ENVIRONMENT: "test",
   WAFFO_MERCHANT_ID: "MER_test",
   WAFFO_PRIVATE_KEY: "private-key",
@@ -22,6 +23,7 @@ const runtimeEnv = {
 describe("Waffo 0.19.1 payment boundary", () => {
   it("resolves signed webhook verification without checkout credentials", () => {
     expect(resolveWaffoWebhookConfig({
+      APP_ENV: "staging",
       WAFFO_ENVIRONMENT: "test",
       WAFFO_STORE_ID: "STO_test",
     })).toEqual({ environment: "test", storeId: "STO_test" });
@@ -42,7 +44,11 @@ describe("Waffo 0.19.1 payment boundary", () => {
       },
     });
 
-    const prodOnlyEnvironment = { ...runtimeEnv, WAFFO_ENVIRONMENT: "prod" } as Record<string, string | undefined>;
+    const prodOnlyEnvironment = {
+      ...runtimeEnv,
+      APP_ENV: "production",
+      WAFFO_ENVIRONMENT: "prod",
+    } as Record<string, string | undefined>;
     delete prodOnlyEnvironment.WAFFO_TEST_PRODUCT_ID_ONE;
     delete prodOnlyEnvironment.WAFFO_TEST_PRODUCT_ID_THREE;
     delete prodOnlyEnvironment.WAFFO_TEST_PRODUCT_ID_FIVE;
