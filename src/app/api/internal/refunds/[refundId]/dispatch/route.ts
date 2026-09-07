@@ -45,6 +45,20 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
     ) {
       return json({ error: code }, 409);
     }
+    if (code === "REFUND_PROVIDER_WRITE_NOT_DISPATCHED") {
+      return json({
+        error: code,
+        providerWriteDispatched: false,
+        retryProviderWrite: true,
+      }, 503);
+    }
+    if (code === "REFUND_PROVIDER_REJECTED") {
+      return json({
+        error: code,
+        providerRejected: true,
+        retryProviderWrite: false,
+      }, 422);
+    }
     if (code === "REFUND_PROVIDER_WRITE_OUTCOME_UNKNOWN") {
       return json({ error: code, reconciliationRequired: true, retryProviderWrite: false }, 503);
     }
