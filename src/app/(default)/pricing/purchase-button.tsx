@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import type { ProductId } from "@/domain/entitlements/pricing";
-import { createCheckoutRequestIdentityStore } from "./checkout-request-identity";
+import {
+  checkoutFailurePresentation,
+  createCheckoutRequestIdentityStore,
+} from "./checkout-request-identity";
 
 export function PurchaseButton({ productKey }: { productKey: ProductId }) {
   const [pending, setPending] = useState(false);
@@ -42,16 +45,14 @@ export function PurchaseButton({ productKey }: { productKey: ProductId }) {
         // 409, transport uncertainty and retryable failures must keep the same
         // requestId. The server remains the authority for the existing order.
         requestIdentity.retain(productKey);
-        setError(response.status === 429
-          ? "Too many checkout attempts. Please try again shortly."
-          : "Checkout is temporarily unavailable. Please try again.");
+        setError(checkoutFailurePresentation(response.status).message);
         return;
       }
 
       const checkoutUrl = new URL(body.checkoutUrl);
       if (checkoutUrl.protocol !== "https:") {
         requestIdentity.retain(productKey);
-        setError("Checkout is temporarily unavailable. Please try again.");
+        setError(checkoutFailurePresentation(503).message);
         return;
       }
 
@@ -62,7 +63,7 @@ export function PurchaseButton({ productKey }: { productKey: ProductId }) {
       window.location.assign(checkoutUrl.toString());
     } catch {
       requestIdentity.retain(productKey);
-      setError("Checkout is temporarily unavailable. Please try again.");
+      setError(checkoutFailurePresentation(503).message);
     } finally {
       setPending(false);
     }
