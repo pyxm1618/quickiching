@@ -8,6 +8,7 @@ on:
     paths:
       - .github/workflows/payment-closeout-staging-readonly.yml
       - scripts/payment-closeout-staging-readonly-audit.ts
+      - scripts/payment-closeout-staging-waffo-read.ts
       - src/server/readiness/staging-runtime-diagnostics.ts
       - src/server/readiness/waffo-staging-catalog-read.ts
       - src/server/payments/waffo-product-readiness.ts
@@ -47,7 +48,14 @@ jobs:
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
 
-      - name: Read authoritative staging configuration, database, and Waffo Test catalog
+      - name: Read authoritative Waffo Test catalog from staging project configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun scripts/payment-closeout-staging-waffo-read.ts > staging-waffo-read.json
+          jq . staging-waffo-read.json
+
+      - name: Read authoritative staging configuration and database
         shell: bash
         run: |
           set -euo pipefail
@@ -55,9 +63,12 @@ jobs:
           jq . staging-readonly-audit.json
 
       - name: Upload non-sensitive evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: payment-closeout-staging-readonly-${{ github.sha }}
-          path: staging-readonly-audit.json
-          if-no-files-found: error
+          path: |
+            staging-waffo-read.json
+            staging-readonly-audit.json
+          if-no-files-found: warn
           retention-days: 14
