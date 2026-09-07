@@ -3,6 +3,10 @@ import type { PaymentRecoveryCandidate, PaymentRecoveryRepository } from "./paym
 
 type Row = Record<string, unknown>;
 
+function nullableString(value: unknown): string | null {
+  return value == null ? null : String(value);
+}
+
 function mapCandidate(row: Row): PaymentRecoveryCandidate {
   const environment = String(row.provider_environment);
   if (environment !== "test" && environment !== "prod") throw new Error("PAYMENT_RECOVERY_ENVIRONMENT_INVALID");
@@ -11,6 +15,8 @@ function mapCandidate(row: Row): PaymentRecoveryCandidate {
     orderId: String(row.id),
     environment,
     providerProductId: String(row.provider_product_id),
+    providerOrderId: nullableString(row.provider_order_id),
+    providerPaymentId: nullableString(row.provider_payment_id),
     amountMinor: Number(row.amount_minor),
     currency: "USD",
   };
@@ -23,7 +29,8 @@ export class PostgresPaymentRecoveryRepository implements PaymentRecoveryReposit
     if (!Number.isFinite(input.now.getTime())) throw new Error("PAYMENT_RECOVERY_INVALID");
     const limit = Math.max(1, Math.min(input.limit, 20));
     const rows = await this.sql`
-      select id, provider_environment, provider_product_id, amount_minor, currency
+      select id, provider_environment, provider_product_id, provider_order_id,
+        provider_payment_id, amount_minor, currency
       from payment_orders
       where provider = 'waffo'
         and (
