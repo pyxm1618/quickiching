@@ -218,7 +218,7 @@ describe("forward upgrade from a populated CP2 database through CP4", () => {
     if (preCp4MigrationFolder) await rm(preCp4MigrationFolder, { recursive: true, force: true });
   });
 
-  it("preserves CP2 identity rows while applying CP3 and the forward-only CP4 payment migration", async () => {
+  it("preserves CP2 identity rows while applying all forward migrations", async () => {
     const users = await sql<{ id: string; email: string }[]>`
       select id, email from users where id = 'cp2-upgrade-user'
     `;
@@ -241,7 +241,7 @@ describe("forward upgrade from a populated CP2 database through CP4", () => {
       where table_schema = 'public' and table_name in ('payment_orders', 'payment_webhook_inbox', 'entitlement_batches')
     `;
 
-    expect(migrations[0]?.count).toBe("11");
+    expect(migrations[0]?.count).toBe("12");
     expect(repairConstraint[0]?.count).toBe("1");
     expect(paymentTables[0]?.count).toBe("3");
     const preserved = await sql<{ users: string; jobs: string; orders: string; ledgers: string }[]>`

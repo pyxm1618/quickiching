@@ -66,8 +66,18 @@ const completeCheckoutEnv = {
   PAYMENT_CHECKOUT_URL_KEYS: "v1:payment-checkout-url-secret",
 };
 
+const commercialCapabilityFlags = [
+  "COMMERCIAL_V2_AUTH_ENABLED",
+  "COMMERCIAL_V2_AI_PREVIEW_ENABLED",
+  "COMMERCIAL_V2_CHECKOUT_ENABLED",
+  "COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED",
+  "COMMERCIAL_V2_PAID_DEEP_READING_ENABLED",
+  "COMMERCIAL_V2_RECONCILE_ENABLED",
+] as const;
+
 describe("Public V1 middleware boundaries", () => {
   beforeEach(() => {
+    for (const flag of commercialCapabilityFlags) vi.stubEnv(flag, "false");
     vi.stubEnv("BETTER_AUTH_TRUSTED_ORIGINS", "");
     vi.stubEnv("VERCEL_ENV", "");
     vi.stubEnv("VERCEL_PROJECT_ID", "");

@@ -151,8 +151,8 @@ export const paymentWebhookInbox = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("payment_inbox_delivery_idx").on(table.provider, table.providerEnvironment, table.deliveryId),
-    uniqueIndex("payment_inbox_business_event_idx").on(table.provider, table.providerEnvironment, table.eventType, table.eventId),
+    index("payment_inbox_delivery_idx").on(table.provider, table.providerEnvironment, table.deliveryId),
+    uniqueIndex("payment_inbox_business_event_idx").on(table.provider, table.providerEnvironment, table.eventId),
     index("payment_inbox_order_idx").on(table.orderMerchantExternalId, table.createdAt),
     index("payment_inbox_pending_refund_idx")
       .on(table.linkedOrderId, table.status, table.eventType, table.createdAt)

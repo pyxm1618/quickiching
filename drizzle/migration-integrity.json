@@ -12,6 +12,7 @@
     {"idx":7,"tag":"0007_cp4_payment_repair_followup","createdAt":1787618599382,"hash":"746454f4edf2db532be66ef6b7a114d1bc93ab92376101a0a9fc4874d03d0470","gitBlobSha1":"dbe4ebad4c6207c9bf197286a83c8aba02322f63"},
     {"idx":8,"tag":"0008_cp4_payment_repair_final","createdAt":1787731051082,"hash":"195668957253c7e5f2bdf555c7c6c1f0cfa85015eebc5fc47ea87902a99d1b85","gitBlobSha1":"d3e8a52468fa6b1750e1de9a0b726717e0a67ee1"},
     {"idx":9,"tag":"0009_cp5_commercial_v2_core","createdAt":1787757784089,"hash":"bb4400f15a3d457fa6c78eaea9c5d2795d2d170560d63f6170d2ace480d536ea","gitBlobSha1":"d2b4bd43b4bc9bbb4be59878a5958126537e4c5f"},
-    {"idx":10,"tag":"0010_cp5_audit_remediation","createdAt":1787797500000,"hash":"08b6ddd2b01aeb4e1d228dd2440b4e867d0fc9ca1680ae003ed90084fb720ef3","gitBlobSha1":"952f25262c67bf10f142e981cf795cd593072660"}
+    {"idx":10,"tag":"0010_cp5_audit_remediation","createdAt":1787797500000,"hash":"08b6ddd2b01aeb4e1d228dd2440b4e867d0fc9ca1680ae003ed90084fb720ef3","gitBlobSha1":"952f25262c67bf10f142e981cf795cd593072660"},
+    {"idx":11,"tag":"0011_payment_closeout","createdAt":1788738000000,"hash":"92772b10670a73ceb740fb37c3d7232ef9c90438c892627f894fb97d5b5cff88","gitBlobSha1":"89ff3929a749497a485fd930e683a4cfe3aae012"}
   ]
 }

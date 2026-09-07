@@ -2,15 +2,20 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { loadHistory, loadEntitlementBalance } from "@/server/loaders";
+import { loadAccountPurchases } from "@/server/account/purchase-loader";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { DeleteAccountControl } from "./delete-account-control";
+import { RefundRequestControl } from "./refund-request-control";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/signin");
-  const history = await loadHistory();
-  const balance = await loadEntitlementBalance();
+  const [history, balance, purchases] = await Promise.all([
+    loadHistory(),
+    loadEntitlementBalance(),
+    loadAccountPurchases(),
+  ]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-16">
@@ -31,6 +36,37 @@ export default async function AccountPage() {
           <p className="mt-2 font-display text-4xl font-medium">{history.length}</p>
         </CardContent></Card>
       </div>
+
+      <h2 className="mt-12 font-display text-xl font-medium">Purchases</h2>
+      {purchases.length === 0 ? (
+        <p className="mt-3 text-sm text-[var(--ink-3)]">
+          No purchases yet. <Link href="/pricing" className="font-semibold text-[var(--jade)] hover:underline">View reading packs →</Link>
+        </p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {purchases.map((purchase) => (
+            <div key={purchase.id} className="rounded-lg border border-[var(--line)] bg-[var(--paper-raised)] p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-display font-medium">{purchase.quantity} reading credit{purchase.quantity === 1 ? "" : "s"}</p>
+                  <p className="mt-1 font-mono text-xs text-[var(--ink-3)]">
+                    US${(purchase.amountMinor / 100).toFixed(2)} · {purchase.status.replace(/_/g, " ")}
+                    {purchase.paidAt ? ` · paid ${formatDate(purchase.paidAt)}` : ` · created ${formatDate(purchase.createdAt)}`}
+                  </p>
+                </div>
+                <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-[var(--ink-3)]">
+                  {purchase.productKey} pack
+                </span>
+              </div>
+              <RefundRequestControl
+                orderId={purchase.id}
+                orderStatus={purchase.status}
+                existingRefund={purchase.refund}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       <h2 className="mt-12 font-display text-xl font-medium">History</h2>
       {history.length === 0 ? (

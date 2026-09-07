@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - codex/commercial-v2-cp6-repair
+      - fix/waffo-payment-closeout
     paths:
       - .github/workflows/cp6-staging-runtime-diagnostics.yml
 
@@ -47,10 +48,13 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${VERCEL_TOKEN:-}" || { echo "::error::VERCEL_TOKEN is missing"; exit 1; }
-          test "${GITHUB_REF_NAME}" = "codex/commercial-v2-cp6-repair" || {
-            echo "::error::Ref must be codex/commercial-v2-cp6-repair, got ${GITHUB_REF_NAME}"
-            exit 1
-          }
+          case "${GITHUB_REF_NAME}" in
+            codex/commercial-v2-cp6-repair|fix/waffo-payment-closeout) ;;
+            *)
+              echo "::error::Unexpected ref ${GITHUB_REF_NAME}"
+              exit 1
+              ;;
+          esac
           test "${VERCEL_PROJECT_ID}" = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE"
           test "${VERCEL_PROJECT_NAME}" = "quickiching-staging"
           test "${VERCEL_TEAM_ID}" = "team_z1b9TTQtbNkr43dzs5JVJPnQ"
@@ -70,7 +74,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --check origin/codex/commercial-v2-cp6...HEAD
+          if [ "${GITHUB_REF_NAME}" = "fix/waffo-payment-closeout" ]; then
+            diff_base="origin/codex/commercial-v2-cp6-repair"
+          else
+            diff_base="origin/codex/commercial-v2-cp6"
+          fi
+          git diff --check "${diff_base}...HEAD"
           node scripts/check-migration-integrity.mjs
           bun run lint
           bun run typecheck
@@ -249,6 +258,31 @@ jobs:
           test "$(jq -r '.deployment.productionUrlMatchesStaging // false' "$diagnostics_file")" = "true"
           test "$(jq -r '.deployment.tierConfigured // false' "$diagnostics_file")" = "true"
           test "$(jq -r '.deployment.appBaseUrlMatchesStaging // false' "$diagnostics_file")" = "true"
+
+          test "$(jq -r '.database.connected // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.database.migrationTablePresent // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.database.migrationStatus // empty' "$diagnostics_file")" = "ok"
+          test "$(jq -r '.database.classification // empty' "$diagnostics_file")" = "ready"
+          test "$(jq -r '.database.missingTables | length' "$diagnostics_file")" = "0"
+          test "$(jq -r '.database.appliedMigrationCount == .database.expectedMigrationCount' "$diagnostics_file")" = "true"
+          test "$(jq -r '.migrationConnection.connected // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.migrationConnection.sameLogicalDatabase // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.migrationConnection.migrationHistoryMatchesRuntime // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.migrationConnection.schemaCreatePrivilege // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.migrationConnection.requiredReferencesPrivilege // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.migrationConnection.generationReviewTriggerPrivilege // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.provider.waffoEnvironmentIsTest // false' "$diagnostics_file")" = "true"
+
+          test "$(jq -r '.waffoCatalog.ok // false' "$diagnostics_file")" = "true"
+          test "$(jq -r '.waffoCatalog.environment // empty' "$diagnostics_file")" = "test"
+          test "$(jq -r '.waffoCatalog.model // empty' "$diagnostics_file")" = "one_time"
+          test "$(jq -r '.waffoCatalog.store.status // empty' "$diagnostics_file")" = "active"
+          test "$(jq -r '.waffoCatalog.packs | length' "$diagnostics_file")" = "3"
+          test "$(jq -r '[.waffoCatalog.packs[].productId] | unique | length' "$diagnostics_file")" = "3"
+          test "$(jq -r '.waffoCatalog.packs[] | select(.pack == 1) | .amountMinor' "$diagnostics_file")" = "299"
+          test "$(jq -r '.waffoCatalog.packs[] | select(.pack == 3) | .amountMinor' "$diagnostics_file")" = "699"
+          test "$(jq -r '.waffoCatalog.packs[] | select(.pack == 5) | .amountMinor' "$diagnostics_file")" = "999"
+          test "$(jq -r '[.waffoCatalog.packs[] | select(.currency == "USD" and .status == "active" and .hasTestVersion == true)] | length' "$diagnostics_file")" = "3"
           cp "$diagnostics_file" cp6-staging-runtime-diagnostics.json
 
       - name: Upload non-sensitive diagnostics evidence
