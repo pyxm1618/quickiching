@@ -77,6 +77,29 @@ function assertReady(result: Awaited<ReturnType<typeof collectStagingRuntimeDiag
   if (!result.provider.waffoEnvironmentIsTest) throw new Error("STAGING_WAFFO_ENVIRONMENT_INVALID");
 }
 
+function safeFailureCode(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  const safePrefixes = [
+    "VERCEL_ENV_READ_FAILED:",
+    "VERCEL_ENV_LIST_INVALID",
+    "STAGING_ENV_AMBIGUOUS:",
+    "STAGING_ENV_REQUIRED:",
+    "STAGING_APP_ENV_INVALID",
+    "STAGING_WAFFO_ENV_INVALID",
+    "STAGING_DATABASE_",
+    "STAGING_MIGRATION_",
+    "STAGING_SCHEMA_",
+    "STAGING_REFERENCES_",
+    "STAGING_TRIGGER_",
+    "STAGING_WAFFO_ENVIRONMENT_INVALID",
+    "WAFFO_TEST_CATALOG_NOT_READY:",
+    "VERCEL_TOKEN_UNAVAILABLE",
+  ];
+  return safePrefixes.some((prefix) => message.startsWith(prefix))
+    ? message
+    : "STAGING_READONLY_AUDIT_FAILED";
+}
+
 async function main(): Promise<void> {
   const token = process.env.VERCEL_TOKEN?.trim();
   if (!token) throw new Error("VERCEL_TOKEN_UNAVAILABLE");
@@ -134,7 +157,7 @@ async function main(): Promise<void> {
 
 main()
   .catch((error) => {
-    console.error(error instanceof Error ? error.message : "STAGING_READONLY_AUDIT_FAILED");
+    console.error(safeFailureCode(error));
     process.exitCode = 1;
   })
   .finally(async () => {
