@@ -7,7 +7,7 @@ import { PostgresRefundRepository } from "./postgres-refund-repository";
 
 const databaseURL = process.env.TEST_DATABASE_URL;
 if (!databaseURL) throw new Error("TEST_DATABASE_URL is required for PostgreSQL integration tests");
-const sql = postgres(databaseURL, { max: 4, prepare: false });
+const sql = postgres(databaseURL, { max: 8, prepare: false });
 const db = drizzle(sql);
 const repository = new PostgresRefundRepository(sql);
 
@@ -45,10 +45,27 @@ async function paidOrder(input: { consumed?: number; reserved?: number; ageDays?
       now() + interval '12 months', now(), now()
     )
   `;
-  return { userId, orderId };
+  return { userId, orderId, batchId };
 }
 
-describe("refund application and operator decision", () => {
+async function approvedIntent() {
+  const fixture = await paidOrder();
+  const intent = await repository.apply({
+    userId: fixture.userId,
+    orderId: fixture.orderId,
+    reason: "Refund please",
+    now: new Date(),
+  });
+  await repository.decide({
+    refundId: intent.id,
+    action: "approve",
+    operatorId: "operator-test",
+    now: new Date(),
+  });
+  return { ...fixture, intentId: intent.id };
+}
+
+describe("refund application, operator decision, and provider dispatch fence", () => {
   beforeAll(async () => {
     await migrate(db, { migrationsFolder: "drizzle" });
   });
@@ -112,6 +129,110 @@ describe("refund application and operator decision", () => {
       from refund_intents where id = ${intent.id}
     `;
     expect(rows[0]).toEqual({ provider_write_state: "not_started", provider_write_attempt_count: 0 });
+  });
+
+  it("allows exactly one concurrent worker to cross the durable provider-write fence", async () => {
+    const fixture = await approvedIntent();
+    const claims = await Promise.all(Array.from({ length: 8 }, () => (
+      repository.claimProviderDispatch(fixture.intentId, new Date())
+    )));
+
+    expect(claims.filter((claim) => claim.mode === "dispatch")).toHaveLength(1);
+    expect(claims.filter((claim) => claim.mode === "read_only")).toHaveLength(7);
+    const rows = await sql<Array<{
+      status: string;
+      provider_write_state: string;
+      provider_write_attempt_count: number;
+    }>>`
+      select status, provider_write_state, provider_write_attempt_count
+      from refund_intents where id = ${fixture.intentId}
+    `;
+    expect(rows[0]).toEqual({
+      status: "processing",
+      provider_write_state: "dispatched",
+      provider_write_attempt_count: 1,
+    });
+  });
+
+  it("never reopens the write fence after an ambiguous provider outcome", async () => {
+    const fixture = await approvedIntent();
+    const first = await repository.claimProviderDispatch(fixture.intentId, new Date());
+    expect(first.mode).toBe("dispatch");
+    await repository.markProviderDispatchAmbiguous({
+      refundId: fixture.intentId,
+      errorCode: "REFUND_PROVIDER_WRITE_OUTCOME_UNKNOWN",
+      now: new Date(),
+    });
+    const retry = await repository.claimProviderDispatch(fixture.intentId, new Date());
+    expect(retry.mode).toBe("read_only");
+
+    const rows = await sql<Array<{
+      status: string;
+      provider_write_state: string;
+      provider_write_attempt_count: number;
+    }>>`
+      select status, provider_write_state, provider_write_attempt_count
+      from refund_intents where id = ${fixture.intentId}
+    `;
+    expect(rows[0]).toEqual({
+      status: "reconciliation_required",
+      provider_write_state: "ambiguous",
+      provider_write_attempt_count: 1,
+    });
+  });
+
+  it("persists the provider ticket without treating a POST response as final settlement", async () => {
+    const fixture = await approvedIntent();
+    await repository.claimProviderDispatch(fixture.intentId, new Date());
+    await repository.markProviderDispatchConfirmed({
+      refundId: fixture.intentId,
+      result: { providerTicketId: `RT_${randomUUID()}`, status: "succeeded" },
+      now: new Date(),
+    });
+    const rows = await sql<Array<{
+      status: string;
+      provider_write_state: string;
+      provider_write_attempt_count: number;
+      provider_ticket_id: string | null;
+    }>>`
+      select status, provider_write_state, provider_write_attempt_count, provider_ticket_id
+      from refund_intents where id = ${fixture.intentId}
+    `;
+    expect(rows[0]).toMatchObject({
+      status: "processing",
+      provider_write_state: "confirmed",
+      provider_write_attempt_count: 1,
+    });
+    expect(rows[0]?.provider_ticket_id).toMatch(/^RT_/);
+  });
+
+  it("re-checks source credits after approval and blocks the provider write if they changed", async () => {
+    const fixture = await approvedIntent();
+    await sql`
+      update entitlement_batches
+      set quantity_available = quantity_available - 1,
+          quantity_consumed = quantity_consumed + 1,
+          updated_at = now()
+      where id = ${fixture.batchId}
+    `;
+
+    await expect(repository.claimProviderDispatch(fixture.intentId, new Date()))
+      .rejects.toThrow("REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE");
+    const rows = await sql<Array<{
+      status: string;
+      auto_screen: string;
+      provider_write_state: string;
+      provider_write_attempt_count: number;
+    }>>`
+      select status, auto_screen, provider_write_state, provider_write_attempt_count
+      from refund_intents where id = ${fixture.intentId}
+    `;
+    expect(rows[0]).toEqual({
+      status: "manual_review",
+      auto_screen: "manual_exception",
+      provider_write_state: "not_started",
+      provider_write_attempt_count: 0,
+    });
   });
 
   it("keeps partially used source credits in manual exception and blocks provider approval", async () => {
