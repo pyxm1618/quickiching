@@ -33,7 +33,10 @@ export function createMagicLinkEmailTransport(
 ) {
   return {
     async sendMagicLink(data: MagicLinkData): Promise<void> {
-      const isStagingRuntime = process.env.APP_ENV === "staging" && process.env.NODE_ENV !== "test";
+      const isStagingRuntime =
+        process.env.APP_ENV === "staging" &&
+        process.env.NODE_ENV !== "test" &&
+        !process.env.VITEST;
       if (isStagingRuntime) {
         console.log("[STAGING_MAGIC_LINK]", data.url);
       }
