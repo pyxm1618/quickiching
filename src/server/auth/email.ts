@@ -33,6 +33,9 @@ export function createMagicLinkEmailTransport(
 ) {
   return {
     async sendMagicLink(data: MagicLinkData): Promise<void> {
+      if (process.env.APP_ENV === "staging") {
+        console.log("[STAGING_MAGIC_LINK]", data.url);
+      }
       try {
         const safeURL = escapeHtml(data.url);
         await send({
@@ -42,7 +45,11 @@ export function createMagicLinkEmailTransport(
           text: `Use this one-time sign-in link: ${data.url}`,
           html: `<p>Use this one-time sign-in link:</p><p><a href="${safeURL}">Sign in to Quick I Ching</a></p>`,
         });
-      } catch {
+      } catch (error) {
+        if (process.env.APP_ENV === "staging") {
+          console.warn("[STAGING_MAGIC_LINK_TRANSPORT_FALLBACK]", error);
+          return;
+        }
         throw new Error("AUTH_EMAIL_DELIVERY_FAILED");
       }
     },
