@@ -32,4 +32,15 @@ describe("CP3 native AI SDK adapter", () => {
     expect(provider).toMatchObject({ provider: "vercel-ai-gateway", model: "preview-model" });
     expect(reviewer).toMatchObject({ reviewerModel: "review-model" });
   });
+
+  it("supports OpenAI-compatible providers like DeepSeek with normalized model names", async () => {
+    const deepseekEnv = {
+      ...validEnvironment,
+      AI_SDK_GATEWAY_BASE_URL: "https://api.deepseek.com/v1",
+      AI_MODEL_DEEP_READING: "deepseek-v4-pro",
+    };
+    const provider = await createAiSdkGenerationProvider(deepseekEnv);
+    expect(provider).toBeDefined();
+    expect(provider.model).toBe("preview-model");
+  });
 });

@@ -95,13 +95,38 @@ export function assertAiSdkAdapterConfigured(env: RuntimeEnv = process.env): voi
   }
 }
 
+function normalizeModelName(modelName: string): string {
+  const trimmed = modelName.trim();
+  if (trimmed.includes("deepseek") && !["deepseek-chat", "deepseek-reasoner"].includes(trimmed)) {
+    return "deepseek-chat";
+  }
+  return trimmed;
+}
+
+async function resolveLanguageModel(modelName: string, env: RuntimeEnv) {
+  const sdkBaseUrl = env.AI_SDK_GATEWAY_BASE_URL?.trim() || "";
+  const apiKey = required(env, "AI_GATEWAY_API_KEY");
+  const effectiveModel = normalizeModelName(modelName);
+
+  if (sdkBaseUrl.includes("api.deepseek.com") || (sdkBaseUrl.includes("/v1") && !sdkBaseUrl.includes("ai-gateway.vercel.sh"))) {
+    const { createOpenAI } = await import("@ai-sdk/openai");
+    const openai = createOpenAI({
+      baseURL: sdkBaseUrl,
+      apiKey,
+    });
+    return openai.chat(effectiveModel);
+  }
+
+  const { createGateway } = await import("@ai-sdk/gateway");
+  const gateway = createGateway(gatewayOptions(env));
+  return gateway.languageModel(effectiveModel);
+}
+
 export async function createAiSdkGenerationProvider(env: RuntimeEnv = process.env): Promise<PreviewProvider> {
   assertAiSdkAdapterConfigured(env);
-  const [{ generateText, Output }, { createGateway }] = await Promise.all([
+  const [{ generateText, Output }] = await Promise.all([
     import("ai"),
-    import("@ai-sdk/gateway"),
   ]);
-  const gateway = createGateway(gatewayOptions(env));
   const previewModel = required(env, "AI_MODEL_PREVIEW");
   const deepReadingModel = env.AI_MODEL_DEEP_READING?.trim();
   const maxOutputTokens = positiveInteger(env, "AI_MAX_OUTPUT_TOKENS");
@@ -114,10 +139,11 @@ export async function createAiSdkGenerationProvider(env: RuntimeEnv = process.en
     schema: ZodType<unknown>,
     signal: AbortSignal,
   ): Promise<ProviderGenerationResult> {
+    const languageModel = await resolveLanguageModel(model, env);
     const result = await withAbortTimeout(
       AI_PROVIDER_REQUEST_TIMEOUT_MS,
       (effectiveSignal) => generateText({
-        model: gateway.languageModel(model),
+        model: languageModel,
         system,
         prompt: user,
         output: Output.object({ schema }),
@@ -155,11 +181,9 @@ export async function createAiSdkGenerationProvider(env: RuntimeEnv = process.en
 
 export async function createAiSdkOutputReviewer(env: RuntimeEnv = process.env): Promise<OutputReviewer> {
   assertAiSdkAdapterConfigured(env);
-  const [{ generateText, Output }, { createGateway }] = await Promise.all([
+  const [{ generateText, Output }] = await Promise.all([
     import("ai"),
-    import("@ai-sdk/gateway"),
   ]);
-  const gateway = createGateway(gatewayOptions(env));
   const model = required(env, "AI_MODEL_OUTPUT_REVIEW");
   const maxOutputTokens = positiveInteger(env, "AI_MAX_REVIEW_OUTPUT_TOKENS");
   const reviewSchema = z.object({
@@ -173,10 +197,11 @@ export async function createAiSdkOutputReviewer(env: RuntimeEnv = process.env): 
   return {
     reviewerModel: model,
     async review(input, signal): Promise<OutputReviewDecision> {
+      const languageModel = await resolveLanguageModel(model, env);
       const result = await withAbortTimeout(
         AI_PROVIDER_REQUEST_TIMEOUT_MS,
         (effectiveSignal) => generateText({
-          model: gateway.languageModel(model),
+          model: languageModel,
           system: "Review only the supplied structured output and verified facts. Do not infer or store user identity, question text, chain-of-thought, or provider raw output. Return only the review schema.",
           prompt: JSON.stringify({ output: input.output, verifiedFacts: input.facts }),
           output: Output.object({ schema: reviewSchema }),
