@@ -12,6 +12,15 @@ export async function GET() {
     const report = await checkSystemReadiness(process.env);
     const statusCode = report.overall === "ready" ? 200 : 503;
 
+    if (report.overall !== "ready") {
+      console.error("[READY_AUDIT]", JSON.stringify({
+        status: report.status,
+        overall: report.overall,
+        db: report.database,
+        caps: Object.entries(report.capabilities).map(([k, v]) => `${k}:${v.enabled}(${v.status},miss:${v.missingDependencies.join(",")},inv:${v.invalidDependencies.join(",")},blk:${v.blockedDependencies.join(",")})`).join("; ")
+      }));
+    }
+
     return NextResponse.json(
       {
         status: report.status,
@@ -22,7 +31,8 @@ export async function GET() {
         headers: noStoreHeaders,
       },
     );
-  } catch {
+  } catch (error) {
+    console.error("[READY_CATCH_ERROR]", error);
     return NextResponse.json(
       {
         status: "not_ready",
