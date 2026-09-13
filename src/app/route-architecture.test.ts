@@ -69,8 +69,9 @@ describe("App Router multilingual architecture", () => {
   });
 
   it("permanently redirects English-prefixed paths to unprefixed paths", async () => {
-    if (!nextConfig.redirects) throw new Error("Next redirect configuration is missing");
-    const redirects = await nextConfig.redirects();
+    const config = typeof nextConfig === "function" ? await nextConfig("phase-production-build", { defaultConfig: {} }) : nextConfig;
+    if (!config.redirects) throw new Error("Next redirect configuration is missing");
+    const redirects = await config.redirects();
     expect(redirects.find((redirect) => redirect.source === "/en")).toMatchObject({ destination: "/", permanent: true });
     expect(redirects.find((redirect) => redirect.source === "/en/:path*")).toMatchObject({ destination: "/:path*", permanent: true });
   });

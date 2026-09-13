@@ -65,6 +65,7 @@ export async function POST(
       ...(result.output ? { output: result.output } : {}),
     }, result.status === "completed" ? 200 : 202);
   } catch (error) {
+    console.error("[DEEP_READING_ROUTE_ERROR]", error);
     const message = error instanceof Error ? error.message : "";
     if (message === "CASTING_NOT_FOUND" || message === "USER_NOT_FOUND" || message === "USER_NOT_FOUND_OR_DELETED") {
       return notFound();

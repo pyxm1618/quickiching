@@ -329,7 +329,8 @@ export function createDeepReadingService(dependencies: {
           generationEpoch: prepared.epoch,
         });
         if (!started.started) throw new Error("WORKFLOW_START_FAILED");
-      } catch {
+      } catch (error) {
+        console.error("[REQUEST_DEEP_READING_WORKFLOW_ERROR]", error);
         await sql.begin((transaction) => compensateWorkflowStartFailure(transaction, {
           jobId: prepared.jobId,
           reservationId: prepared.reservationId,

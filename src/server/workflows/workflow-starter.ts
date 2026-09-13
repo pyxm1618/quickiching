@@ -34,7 +34,8 @@ export function createWorkflowStarter(): WorkflowStarter {
           where idempotency_key = ${input.idempotencyKey}
         `;
         return { runId: run.runId ?? runId, started: true };
-      } catch {
+      } catch (error) {
+        console.error("[WORKFLOW_START_ERROR]", error);
         // The caller performs a fenced compensation only while the job is
         // still queued. Never leak provider details into durable error codes.
         await sql`
