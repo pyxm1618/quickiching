@@ -33,7 +33,8 @@ export function createMagicLinkEmailTransport(
 ) {
   return {
     async sendMagicLink(data: MagicLinkData): Promise<void> {
-      if (process.env.APP_ENV === "staging") {
+      const isStagingRuntime = process.env.APP_ENV === "staging" && process.env.NODE_ENV !== "test";
+      if (isStagingRuntime) {
         console.log("[STAGING_MAGIC_LINK]", data.url);
       }
       try {
@@ -46,7 +47,7 @@ export function createMagicLinkEmailTransport(
           html: `<p>Use this one-time sign-in link:</p><p><a href="${safeURL}">Sign in to Quick I Ching</a></p>`,
         });
       } catch (error) {
-        if (process.env.APP_ENV === "staging") {
+        if (isStagingRuntime) {
           console.warn("[STAGING_MAGIC_LINK_TRANSPORT_FALLBACK]", error);
           return;
         }
