@@ -8,6 +8,8 @@ import { formatDate } from "@/lib/utils";
 import { DeleteAccountControl } from "./delete-account-control";
 import { RefundRequestControl } from "./refund-request-control";
 
+export const dynamic = "force-dynamic";
+
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/signin");
