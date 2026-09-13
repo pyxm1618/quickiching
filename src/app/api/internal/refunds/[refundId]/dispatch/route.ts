@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createProductionRefundCommandService } from "@/server/refunds/composition";
-import { verifyRefundOperatorAuthorization } from "@/server/refunds/operator-auth";
+import { resolveRefundOperatorSecret, verifyRefundOperatorAuthorization } from "@/server/refunds/operator-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ async function refundId(context: RouteContext): Promise<string | null> {
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
-  const secret = process.env.REFUND_OPERATOR_SECRET?.trim() ?? "";
+  const secret = resolveRefundOperatorSecret();
   if (!secret) return notFound();
   if (!verifyRefundOperatorAuthorization(request, secret)) return unauthorized();
   const id = await refundId(context);

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
   verifyAuthorization: vi.fn(() => true),
+  resolveSecret: vi.fn(() => "operator-secret"),
 }));
 
 vi.mock("@/server/refunds/composition", () => ({
@@ -10,6 +11,7 @@ vi.mock("@/server/refunds/composition", () => ({
 }));
 vi.mock("@/server/refunds/operator-auth", () => ({
   verifyRefundOperatorAuthorization: mocks.verifyAuthorization,
+  resolveRefundOperatorSecret: mocks.resolveSecret,
 }));
 
 import { POST } from "./route";
