@@ -103,6 +103,61 @@ function normalizeModelName(modelName: string): string {
   return trimmed;
 }
 
+function stripMarkdownFences(text: string): string {
+  const trimmed = text.trim();
+  const match = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(trimmed);
+  return match ? match[1].trim() : trimmed;
+}
+
+async function customCompatibleFetch(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
+  let requestInit = options;
+  if (options?.body && typeof options.body === "string") {
+    try {
+      const parsed = JSON.parse(options.body);
+      if (parsed.response_format?.type === "json_schema") {
+        parsed.response_format = { type: "json_object" };
+        requestInit = { ...options, body: JSON.stringify(parsed) };
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const response = await fetch(url, requestInit);
+  if (!response.ok) {
+    return response;
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    return response;
+  }
+
+  try {
+    const text = await response.text();
+    const data = JSON.parse(text);
+    if (data.choices && Array.isArray(data.choices)) {
+      for (const choice of data.choices) {
+        if (typeof choice.message?.content === "string") {
+          choice.message.content = stripMarkdownFences(choice.message.content);
+        }
+      }
+      return new Response(JSON.stringify(data), {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      });
+    }
+    return new Response(text, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
+  } catch {
+    return response;
+  }
+}
+
 async function resolveLanguageModel(modelName: string, env: RuntimeEnv) {
   const sdkBaseUrl = env.AI_SDK_GATEWAY_BASE_URL?.trim() || "";
   const apiKey = required(env, "AI_GATEWAY_API_KEY");
@@ -113,6 +168,7 @@ async function resolveLanguageModel(modelName: string, env: RuntimeEnv) {
     const openai = createOpenAI({
       baseURL: sdkBaseUrl,
       apiKey,
+      fetch: customCompatibleFetch,
     });
     return openai.chat(effectiveModel);
   }
