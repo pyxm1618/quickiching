@@ -116,6 +116,15 @@ async function customCompatibleFetch(url: RequestInfo | URL, options?: RequestIn
       const parsed = JSON.parse(options.body);
       if (parsed.response_format?.type === "json_schema") {
         parsed.response_format = { type: "json_object" };
+        if (Array.isArray(parsed.messages) && parsed.messages.length > 0) {
+          const hasJson = parsed.messages.some((m: any) => typeof m.content === "string" && /json/i.test(m.content));
+          if (!hasJson) {
+            const first = parsed.messages[0];
+            if (first && typeof first.content === "string") {
+              first.content += "\nRespond strictly in valid JSON format conforming to the requested schema.";
+            }
+          }
+        }
         requestInit = { ...options, body: JSON.stringify(parsed) };
       }
     } catch {
