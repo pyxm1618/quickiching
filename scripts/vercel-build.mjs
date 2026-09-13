@@ -150,8 +150,17 @@ run("bun", ["scripts/homepage-seo-audit.mjs"], {
   },
 });
 
+const CLOSED_COMMERCIAL_FLAGS = {
+  COMMERCIAL_V2_AUTH_ENABLED: "",
+  COMMERCIAL_V2_AI_PREVIEW_ENABLED: "",
+  COMMERCIAL_V2_CHECKOUT_ENABLED: "",
+  COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "",
+  COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "",
+  COMMERCIAL_V2_RECONCILE_ENABLED: "",
+};
+
 const server = spawn("bun", ["run", "start"], {
-  env: { ...process.env, PORT: "3000", HOSTNAME: "127.0.0.1" },
+  env: { ...process.env, ...CLOSED_COMMERCIAL_FLAGS, PORT: "3000", HOSTNAME: "127.0.0.1" },
   stdio: ["ignore", "inherit", "inherit"],
 });
 
