@@ -183,8 +183,13 @@ export async function generateDeepReadingStep(input: {
   ` as Row[];
   if (!leaseRows[0]?.active) throw new Error("GENERATION_LEASE_EXPIRED");
 
-  const provider = await createAiSdkGenerationProvider();
-  return provider.generateReading(input.providerInput, new AbortController().signal);
+  try {
+    const provider = await createAiSdkGenerationProvider();
+    return await provider.generateReading(input.providerInput, new AbortController().signal);
+  } catch (error) {
+    console.error("[DEEP_READING_STEP_GENERATE_ERROR]", error);
+    throw error;
+  }
 }
 
 export async function reviewDeepReadingStep(input: {
@@ -202,11 +207,16 @@ export async function reviewDeepReadingStep(input: {
   ` as Row[];
   if (!leaseRows[0]?.active) throw new Error("GENERATION_LEASE_EXPIRED");
 
-  const reviewer = await createAiSdkOutputReviewer();
-  return reviewer.review(
-    { kind: "deep_reading", output: input.output, facts: input.facts },
-    new AbortController().signal,
-  );
+  try {
+    const reviewer = await createAiSdkOutputReviewer();
+    return await reviewer.review(
+      { kind: "deep_reading", output: input.output, facts: input.facts },
+      new AbortController().signal,
+    );
+  } catch (error) {
+    console.error("[DEEP_READING_STEP_REVIEW_ERROR]", error);
+    throw error;
+  }
 }
 
 export async function finalizeDeepReadingStep(input: {

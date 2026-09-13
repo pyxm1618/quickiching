@@ -12,6 +12,16 @@ export async function GET() {
     const report = await checkSystemReadiness(process.env);
     const statusCode = report.overall === "ready" ? 200 : 503;
 
+    console.info("[PROD_AI_CONFIG_AUDIT]", JSON.stringify({
+      apiKeyPrefix: process.env.AI_GATEWAY_API_KEY ? process.env.AI_GATEWAY_API_KEY.slice(0, 4) : "empty",
+      apiKeyLength: process.env.AI_GATEWAY_API_KEY?.length ?? 0,
+      modelDeepReading: process.env.AI_MODEL_DEEP_READING ?? "empty",
+      modelPreview: process.env.AI_MODEL_PREVIEW ?? "empty",
+      modelReview: process.env.AI_MODEL_OUTPUT_REVIEW ?? "empty",
+      aiSdkGatewayBaseUrl: process.env.AI_SDK_GATEWAY_BASE_URL ?? "empty",
+      aiGatewayBaseUrl: process.env.AI_GATEWAY_BASE_URL ?? "empty",
+    }));
+
     if (report.overall !== "ready") {
       console.error("[READY_AUDIT]", JSON.stringify({
         status: report.status,
