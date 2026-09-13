@@ -198,6 +198,18 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/checkout")).status).toBe(410);
   });
 
+  it("allows Refund and Internal Refund routes when Checkout capability is enabled", () => {
+    for (const [name, value] of Object.entries(completeCheckoutEnv)) vi.stubEnv(name, value);
+
+    expect(middleware(makeRequest("/api/refunds", { method: "POST" })).status).toBe(200);
+    expect(middleware(makeRequest("/api/refunds/", { method: "POST" })).status).toBe(200);
+    expect(middleware(makeRequest("/api/internal/refunds/00000000-0000-4000-8000-000000000001/dispatch", { method: "POST" })).status).toBe(200);
+
+    vi.stubEnv("COMMERCIAL_V2_CHECKOUT_ENABLED", "false");
+    expect(middleware(makeRequest("/api/refunds", { method: "POST" })).status).toBe(404);
+    expect(middleware(makeRequest("/api/internal/refunds/00000000-0000-4000-8000-000000000001/dispatch", { method: "POST" })).status).toBe(404);
+  });
+
   it("always allows /api/health and /api/ready routes through", () => {
     expect(middleware(makeRequest("/api/health")).status).toBe(200);
     expect(middleware(makeRequest("/api/health/")).status).toBe(200);

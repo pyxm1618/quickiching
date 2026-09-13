@@ -15,6 +15,8 @@ const PERSONALIZED_API_PATH = "/api/personalized-interpretation";
 const HEALTH_API_PATH = "/api/health";
 const READY_API_PATH = "/api/ready";
 const CHECKOUT_API_PATH = "/api/checkout";
+const REFUNDS_API_PATH = "/api/refunds";
+const INTERNAL_REFUNDS_API_PREFIX = "/api/internal/refunds";
 const ACCOUNT_DELETE_API_PATH = "/api/account/delete";
 const WAFFO_WEBHOOK_PATH = "/api/webhooks/waffo";
 const RECONCILE_API_PATH = "/api/internal/reconcile";
@@ -143,6 +145,22 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname === CHECKOUT_API_PATH || pathname === `${CHECKOUT_API_PATH}/`) {
+    if (isCheckoutCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (pathname === REFUNDS_API_PATH || pathname === `${REFUNDS_API_PATH}/`) {
+    if (isCheckoutCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
+  if (matchesPrefix(pathname, INTERNAL_REFUNDS_API_PREFIX)) {
     if (isCheckoutCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("Not Found", {
       status: 404,
