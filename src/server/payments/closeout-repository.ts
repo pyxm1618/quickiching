@@ -408,12 +408,12 @@ export class CloseoutPaymentRepository extends PostgresPaymentRepository {
             id, order_id, user_id, provider_environment, requested_minor, currency,
             reason, auto_screen, screen_reason, status, provider_write_state,
             provider_write_attempt_count, refund_ticket_merchant_external_id,
-            created_at, updated_at
+            approved_at, created_at, updated_at
           ) values (
             ${autoRefundId}, ${orderTargetId}, ${String(order.user_id)}, ${String(order.provider_environment)},
             ${Number(order.amount_minor)}, ${String(order.currency)}, 'Provider initiated refund',
-            'pass', 'PROVIDER_INITIATED', 'approved', 'not_started', 0,
-            ${autoRefundId}, ${nowIso}, ${nowIso}
+            'clear', 'PROVIDER_INITIATED', 'approved', 'not_started', 0,
+            ${autoRefundId}, ${nowIso}, ${nowIso}, ${nowIso}
           ) returning *
         ` as Row[];
         refund = insertedRefund[0] ?? null;
