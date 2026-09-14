@@ -11,13 +11,19 @@ type ResultIntegrityInput = {
   resultHmacKeyVersion: string;
 };
 
-function parseKeys(raw: string | undefined): VersionedKey[] {
+export function parseKeys(raw: string | undefined): VersionedKey[] {
   if (!raw?.trim()) return [];
   return raw.split(",").map((entry) => {
     const match = /^([A-Za-z0-9][A-Za-z0-9._-]*):(.+)$/.exec(entry.trim());
     if (!match || !match[2].trim()) throw new Error("RESULT_INTEGRITY_KEYS_INVALID");
     return { version: match[1], material: match[2].trim() };
   });
+}
+
+export function getActiveResultIntegrityKey(env: Record<string, string | undefined> = process.env): VersionedKey {
+  const keys = parseKeys(env.RESULT_INTEGRITY_KEYS);
+  if (keys.length === 0) throw new Error("RESULT_INTEGRITY_KEYS_INVALID");
+  return keys[0];
 }
 
 function canonicalize(value: unknown): unknown {

@@ -358,31 +358,78 @@ export class CloseoutPaymentRepository extends PostgresPaymentRepository {
     if (!lease.leaseToken || !lease.event) throw new Error("PAYMENT_OUTBOX_UNAVAILABLE");
     const { leaseToken, event } = lease;
 
-    const correlation = event.refundTicketMerchantExternalId;
-    if (!correlation || !UUID_PATTERN.test(correlation)) {
-      const orderId = await linkedOrderIdFromSql(this.closeoutSql, event);
-      return this.finalizeRefundWebhookReview({
-        inboxId, leaseToken, orderId, refundId: null, reason: "REFUND_CORRELATION_MISSING",
-      });
-    }
+    const rawCorrelation = event.refundTicketMerchantExternalId;
+    const initialCorrelation = rawCorrelation && UUID_PATTERN.test(rawCorrelation) ? rawCorrelation : null;
 
     const identity = await this.closeoutSql.begin(async (transaction) => {
-      const refundRows = await transaction`
-        select * from refund_intents where id = ${correlation} limit 1
-      ` as Row[];
-      const refund = refundRows[0];
-      if (!refund) return { reason: "REFUND_CORRELATION_UNKNOWN" as const, order: null, refund: null };
+      let refund: Row | null = null;
+      let correlation: string | null = initialCorrelation;
+
+      if (correlation) {
+        const refundRows = await transaction`
+          select * from refund_intents where id = ${correlation} limit 1
+        ` as Row[];
+        refund = refundRows[0] ?? null;
+      }
+
+      const resolvedOrderId = await linkedOrderIdFromSql(transaction, event);
+
+      if (!refund && resolvedOrderId) {
+        const existingIntents = await transaction`
+          select * from refund_intents
+          where order_id = ${resolvedOrderId}
+          order by case when status in ('approved', 'manual_review') then 0 else 1 end, created_at desc
+          limit 1
+        ` as Row[];
+        if (existingIntents[0]) {
+          refund = existingIntents[0];
+          correlation = String(refund.id);
+        }
+      }
+
+      const orderTargetId = refund ? String(refund.order_id) : resolvedOrderId;
+      if (!orderTargetId) {
+        return { reason: "REFUND_CORRELATION_MISSING" as const, order: null, refund: null, correlation: null };
+      }
+
       const orderRows = await transaction`
-        select * from payment_orders where id = ${String(refund.order_id)} limit 1
+        select * from payment_orders where id = ${orderTargetId} limit 1
       ` as Row[];
-      return { reason: null, order: orderRows[0] ?? null, refund };
+      const order = orderRows[0] ?? null;
+      if (!order) {
+        return { reason: "REFUND_ORDER_NOT_FOUND" as const, order: null, refund: null, correlation: null };
+      }
+
+      if (!refund) {
+        const autoRefundId = randomUUID();
+        const nowIso = new Date().toISOString();
+        const insertedRefund = await transaction`
+          insert into refund_intents (
+            id, order_id, user_id, provider_environment, requested_minor, currency,
+            reason, auto_screen, screen_reason, status, provider_write_state,
+            provider_write_attempt_count, refund_ticket_merchant_external_id,
+            created_at, updated_at
+          ) values (
+            ${autoRefundId}, ${orderTargetId}, ${String(order.user_id)}, ${String(order.provider_environment)},
+            ${Number(order.amount_minor)}, ${String(order.currency)}, 'Provider initiated refund',
+            'pass', 'PROVIDER_INITIATED', 'approved', 'not_started', 0,
+            ${autoRefundId}, ${nowIso}, ${nowIso}
+          ) returning *
+        ` as Row[];
+        refund = insertedRefund[0] ?? null;
+        correlation = autoRefundId;
+      }
+
+      return { reason: null, order, refund, correlation };
     });
+
+    const correlation = identity.correlation;
     const order = identity.order;
     const refund = identity.refund;
-    if (!order || !refund) {
+    if (!order || !refund || !correlation) {
       const orderId = await linkedOrderIdFromSql(this.closeoutSql, event);
       return this.finalizeRefundWebhookReview({
-        inboxId, leaseToken, orderId, refundId: null, reason: identity.reason ?? "REFUND_ORDER_NOT_FOUND",
+        inboxId, leaseToken, orderId, refundId: correlation, reason: identity.reason ?? "REFUND_CORRELATION_MISSING",
       });
     }
     const orderId = String(order.id);
@@ -438,13 +485,14 @@ export class CloseoutPaymentRepository extends PostgresPaymentRepository {
         reason: rows[0]?.last_error_code == null ? "REFUND_SETTLEMENT_FINANCIAL_REVIEW" : String(rows[0].last_error_code),
       });
     }
+
     const mapped = result.outcome === "succeeded"
       ? "revoked"
       : result.outcome === "failed" ? "ignored" : "already_processed";
     return this.completeRefundWebhook(inboxId, leaseToken, mapped, orderId);
   }
 
-  override async processInbox(
+  async processInbox(
     inboxId: string,
     options: { leaseToken?: string } = {},
   ): Promise<PaymentProcessOutcome> {
@@ -459,10 +507,14 @@ export class CloseoutPaymentRepository extends PostgresPaymentRepository {
   }
 }
 
-async function linkedOrderIdFromSql(sql: Sql, event: NormalizedWaffoWebhook): Promise<string | null> {
+async function linkedOrderIdFromSql(sql: Sql | TransactionSql, event: NormalizedWaffoWebhook): Promise<string | null> {
   for (const candidate of [event.orderMerchantExternalId, event.internalOrderId]) {
     if (!candidate || !UUID_PATTERN.test(candidate)) continue;
     const rows = await sql`select id from payment_orders where id = ${candidate} limit 1` as Row[];
+    if (rows[0]) return String(rows[0].id);
+  }
+  if (event.providerOrderId) {
+    const rows = await sql`select id from payment_orders where provider_order_id = ${event.providerOrderId} limit 1` as Row[];
     if (rows[0]) return String(rows[0].id);
   }
   return null;

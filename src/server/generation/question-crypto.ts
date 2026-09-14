@@ -1,4 +1,4 @@
-import { decryptJsonWithKeyMaterial } from "@/lib/crypto";
+import { decryptJsonWithKeyMaterial, encryptJsonWithKeyMaterial } from "@/lib/crypto";
 
 type Row = Record<string, unknown>;
 
@@ -59,4 +59,37 @@ export function decryptQuestionForGeneration(
     if (error instanceof Error && error.message === "QUESTION_DECRYPT_FAILED") throw error;
     throw new Error("QUESTION_DECRYPT_FAILED");
   }
+}
+
+export function encryptQuestionForStorage(
+  input: {
+    castingId: string;
+    questionVersionId: string;
+    question: string;
+  },
+  env: Record<string, string | undefined> = process.env,
+): {
+  ciphertext: string;
+  iv: string;
+  authTag: string;
+  encryptionKeyVersion: string;
+} {
+  const keys = parseQuestionKeys(env.QUESTION_ENCRYPTION_KEYS);
+  const activeKey = keys[0];
+  if (!activeKey) throw new Error("QUESTION_KEY_UNAVAILABLE");
+
+  const encrypted = encryptJsonWithKeyMaterial(
+    { context: input.question },
+    "context",
+    activeKey.version,
+    activeKey.material,
+    `${input.castingId}:${input.questionVersionId}`,
+  );
+
+  return {
+    ciphertext: encrypted.data,
+    iv: encrypted.iv,
+    authTag: encrypted.tag,
+    encryptionKeyVersion: encrypted.v,
+  };
 }

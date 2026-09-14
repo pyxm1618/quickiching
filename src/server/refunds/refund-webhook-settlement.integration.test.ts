@@ -187,4 +187,93 @@ describe("refund webhook shared settlement integration", () => {
       revoke_count: 0,
     });
   });
+
+  it("automatically correlates and resolves refund when refundTicketMerchantExternalId is null (provider console refund)", async () => {
+    const suffix = randomUUID();
+    const userId = `refund-console-user-${suffix}`;
+    const orderId = randomUUID();
+    const batchId = randomUUID();
+    const providerOrderId = `ORD_CONSOLE_${suffix}`;
+    const providerPaymentId = `PAY_CONSOLE_${suffix}`;
+    await sql`
+      insert into users (id, name, email, email_verified, created_at, updated_at)
+      values (${userId}, 'Console Refund User', ${`${suffix}@refund-console.example.com`}, true, now(), now())
+    `;
+    await sql`
+      insert into payment_orders (
+        id, user_id, product_key, quantity, amount_minor, currency, request_id,
+        provider, provider_environment, provider_product_id, provider_order_id,
+        provider_payment_id, status, paid_at, created_at, updated_at
+      ) values (
+        ${orderId}, ${userId}, 'three', 3, 699, 'USD', ${`refund-console-${suffix}`},
+        'waffo', 'test', 'PROD_test_three', ${providerOrderId}, ${providerPaymentId},
+        'paid', ${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}, now(), now()
+      )
+    `;
+    await sql`
+      insert into entitlement_batches (
+        id, user_id, order_id, quantity_total, quantity_available,
+        quantity_reserved, quantity_consumed, quantity_revoked, expires_at,
+        created_at, updated_at
+      ) values (
+        ${batchId}, ${userId}, ${orderId}, 3, 3, 0, 0, 0,
+        now() + interval '12 months', now(), now()
+      )
+    `;
+
+    // 模拟商户控制台退款，没有 refundTicketMerchantExternalId
+    const event: NormalizedWaffoWebhook = {
+      provider: "waffo",
+      providerEnvironment: "test",
+      deliveryId: randomUUID(),
+      eventId: `RF_CONSOLE_${randomUUID()}`,
+      eventType: "refund.succeeded",
+      storeId: "STO_test",
+      orderMerchantExternalId: orderId,
+      merchantProvidedBuyerIdentity: userId,
+      internalOrderId: orderId,
+      refundTicketMerchantExternalId: null,
+      providerOrderId,
+      providerPaymentId,
+      productKey: "three",
+      providerProductId: "PROD_test_three",
+      currency: "USD",
+      amountMinor: 699,
+      taxAmount: "0.00",
+      total: "6.99",
+      payloadSha256: randomUUID().replaceAll("-", "").padEnd(64, "0").slice(0, 64),
+      canonicalPayloadSha256: "",
+      supported: true,
+      manualReviewReason: null,
+    };
+    event.canonicalPayloadSha256 = canonicalWaffoPayloadHash(event);
+
+    const recorded = await paymentRepository.recordVerifiedEvent(event);
+    const result = await paymentRepository.processInbox(recorded.inboxId);
+    expect(result.outcome).toBe("revoked");
+
+    const rows = await sql<Array<{
+      order_status: string;
+      refund_status: string;
+      available: number;
+      revoked: number;
+      revoke_count: number;
+    }>>`
+      select o.status as order_status, r.status as refund_status,
+        b.quantity_available::int as available, b.quantity_revoked::int as revoked,
+        (select count(*)::int from entitlement_ledger l
+          where l.order_id = o.id and l.action = 'revoke') as revoke_count
+      from payment_orders o
+      join refund_intents r on r.order_id = o.id
+      join entitlement_batches b on b.order_id = o.id
+      where o.id = ${orderId}
+    `;
+    expect(rows[0]).toEqual({
+      order_status: "refunded",
+      refund_status: "succeeded",
+      available: 0,
+      revoked: 3,
+      revoke_count: 1,
+    });
+  });
 });
