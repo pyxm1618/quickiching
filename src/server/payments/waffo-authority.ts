@@ -329,6 +329,12 @@ export function createWaffoAuthority(
         metadata: { quickIChingRefundIntentId: input.refundIntentId },
       });
     } catch (error) {
+      console.error("[WAFFO_CREATE_REFUND_TICKET_ERROR]", {
+        status: (error as any)?.status,
+        message: (error as any)?.message,
+        errors: (error as any)?.errors,
+        raw: String(error),
+      });
       if (isLocalSdkValidation(error)) {
         throw new RefundWriteNotDispatchedError("REFUND_PROVIDER_LOCAL_VALIDATION_FAILED");
       }
