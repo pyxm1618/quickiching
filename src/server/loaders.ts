@@ -59,10 +59,10 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
     if (!row) return null;
 
     const owns = user ? String(row.user_id) === user.id : false;
-    const canReadResult = owns || row.lifecycle === "revealed";
+    if (!owns) return null;
 
     let context = "";
-    if (canReadResult && row.question_version_id != null) {
+    if (row.question_version_id != null) {
       try {
         const { decryptQuestionForGeneration } = await import("@/server/generation/question-crypto");
         context = decryptQuestionForGeneration(row);
@@ -76,7 +76,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
     const lineVals = (row.line_values as number[]) ?? [];
     const movingLines = (row.moving_line_positions as number[]) ?? [];
 
-    const result = canReadResult && hexNum != null
+    const result = hexNum != null
       ? {
           primaryHexagramNumber: hexNum,
           primaryName: hexagramByNumber(hexNum).englishName,
@@ -89,7 +89,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
         }
       : null;
 
-    const reading = canReadResult && row.reading_output != null
+    const reading = row.reading_output != null
       ? { status: "completed", report: row.reading_output, id: String(row.reading_job_id ?? "") }
       : null;
 

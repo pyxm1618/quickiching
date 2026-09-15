@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth/session";
+import { validateAuthCallbackURL } from "@/server/auth/callback";
+import { loadEntitlementBalance } from "@/server/loaders";
 import { isCheckoutCapabilityEnabled } from "@/server/payments/capability";
 import { buildPricingView } from "./pricing-model";
 import { PurchaseButton } from "./purchase-button";
+import { CheckoutReturnRecovery } from "./checkout-return-recovery";
 
 export const metadata: Metadata = {
   title: "Deep Reading Credits | Quick I Ching",
@@ -14,8 +18,25 @@ export const metadata: Metadata = {
 // Commercial capability flags are deployment-time server configuration.
 export const dynamic = "force-dynamic";
 
-export default function PricingPage() {
+function validatedReturnUrl(candidate: string | undefined): string | undefined {
+  if (!candidate) return undefined;
+  const baseUrl = process.env.APP_BASE_URL ?? process.env.BETTER_AUTH_URL;
+  if (!baseUrl) return undefined;
+  try {
+    return validateAuthCallbackURL(candidate, baseUrl);
+  } catch {
+    return undefined;
+  }
+}
+
+export default async function PricingPage(props: {
+  searchParams?: Promise<{ returnUrl?: string }>;
+}) {
+  const searchParams = props.searchParams ? await props.searchParams : undefined;
+  const returnUrl = validatedReturnUrl(searchParams?.returnUrl);
   const pricing = buildPricingView(isCheckoutCapabilityEnabled());
+  const user = await getCurrentUser({ allowUnavailable: true });
+  const balance = user ? await loadEntitlementBalance() : { available: 0, expiringSoon: 0 };
 
   if (!pricing.enabled) {
     return (
@@ -47,10 +68,16 @@ export default function PricingPage() {
             <p className="mt-3 text-3xl font-semibold tracking-tight">{product.total}</p>
             <p className="mt-1 text-sm text-[var(--ink-3)]">{product.perReading} per reading · USD</p>
             <p className="mt-4 min-h-6 text-sm font-medium text-[var(--ink-2)]">{product.label}</p>
-            <PurchaseButton productKey={product.id} />
+            <PurchaseButton
+              productKey={product.id}
+              returnUrl={returnUrl}
+              creditsBeforeCheckout={balance.available}
+            />
           </article>
         ))}
       </div>
+
+      <CheckoutReturnRecovery credits={balance.available} />
 
       <div className="mt-8 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-6 text-sm leading-7 text-[var(--ink-2)]">
         Credits are valid for 12 months from successful payment. Checkout requires sign-in. A credit is reserved when a paid Deep Reading starts and is consumed only after the reading is successfully delivered; failed or blocked generation releases the reservation.

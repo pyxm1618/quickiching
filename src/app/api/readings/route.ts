@@ -28,6 +28,7 @@ function json(body: unknown, status = 200): Response {
 const lineValueSchema = z.union([z.literal(6), z.literal(7), z.literal(8), z.literal(9)]);
 
 const saveReadingSchema = z.object({
+  clientCastingId: z.string().uuid(),
   lineValuesBottomUp: z.array(lineValueSchema).length(6),
   question: z.string().trim().max(1000).optional(),
   scene: z.enum(["general", "career", "relationships", "decision", "timing", "wealth", "spiritual"]).default("general"),
@@ -38,6 +39,40 @@ const saveReadingSchema = z.object({
     "what_is_the_likely_direction",
   ]).default("what_do_i_need_to_see_clearly"),
 });
+
+type ExistingSavedReading = {
+  id: string;
+  user_id: string | null;
+  scene: string;
+  interpretation_goal: string;
+  question_fingerprint: string | null;
+  deleted_at: Date | string | null;
+  line_values: number[] | null;
+};
+
+function sameNumberArray(left: readonly number[] | null, right: readonly number[]): boolean {
+  return Array.isArray(left)
+    && left.length === right.length
+    && left.every((value, index) => Number(value) === right[index]);
+}
+
+function matchesStableSave(
+  row: ExistingSavedReading,
+  input: {
+    userId: string;
+    scene: string;
+    interpretationGoal: string;
+    questionFingerprint: string | null;
+    lineValuesBottomUp: readonly number[];
+  },
+): boolean {
+  return row.deleted_at == null
+    && row.user_id === input.userId
+    && row.scene === input.scene
+    && row.interpretation_goal === input.interpretationGoal
+    && row.question_fingerprint === input.questionFingerprint
+    && sameNumberArray(row.line_values, input.lineValuesBottomUp);
+}
 
 export async function POST(request: Request): Promise<Response> {
   if (!isStrictSameOriginRequest(request)) {
@@ -62,8 +97,15 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "INVALID_READING_INPUT", details: parsed.error.issues }, 422);
   }
 
-  const { lineValuesBottomUp, question, scene, interpretationGoal } = parsed.data;
+  const { clientCastingId, lineValuesBottomUp, question, scene, interpretationGoal } = parsed.data;
   const questionText = question && question.trim().length > 0 ? question.trim() : null;
+  const fingerprintKeyVersion = "v1";
+  let fingerprint: string | null = null;
+  if (questionText) {
+    const composite = normalizeComposite(scene as any, interpretationGoal as any, questionText);
+    const secret = process.env.APP_SECRET ?? "fallback-question-secret";
+    fingerprint = fingerprintQuestion(composite, secret, fingerprintKeyVersion);
+  }
 
   const hexResult = buildHexagramResult({ lineValuesBottomUp, method: "three_coin" });
   const movingLinePositions = hexResult.movingLinePositions;
@@ -98,49 +140,51 @@ export async function POST(request: Request): Promise<Response> {
   if (isPostgres) {
     try {
       const sql = getPostgresClient();
+      const identityInput = {
+        userId,
+        scene,
+        interpretationGoal,
+        questionFingerprint: fingerprint,
+        lineValuesBottomUp,
+      };
 
-      // 幂等性检查：1小时内相同用户、相同六爻、未删除的记录直接复用
-      const existingRows = await sql`
-        select c.id
-        from casting_sessions c
-        join cast_results r on r.casting_id = c.id
-        where c.user_id = ${userId}
-          and c.deleted_at is null
-          and c.lifecycle = 'revealed'
-          and r.line_values = ${lineValuesBottomUp}
-          and c.created_at > clock_timestamp() - interval '1 hour'
-        order by c.created_at desc
-        limit 1
-      ` as Array<{ id: string }>;
+      const findExisting = async (): Promise<ExistingSavedReading | null> => {
+        const rows = await sql`
+          select c.id, c.user_id, c.scene, c.interpretation_goal,
+                 c.question_fingerprint, c.deleted_at, r.line_values
+          from casting_sessions c
+          left join cast_results r on r.casting_id = c.id
+          where c.id = ${clientCastingId}
+          limit 1
+        ` as ExistingSavedReading[];
+        return rows[0] ?? null;
+      };
 
-      if (existingRows[0]?.id) {
-        return json({ castingId: existingRows[0].id, idempotent: true }, 200);
+      const existing = await findExisting();
+      if (existing) {
+        if (!matchesStableSave(existing, identityInput)) {
+          return json({ error: "READING_IDEMPOTENCY_CONFLICT" }, 409);
+        }
+        return json({ castingId: existing.id, idempotent: true }, 200);
       }
 
       const key = getActiveResultIntegrityKey();
       const resultHmac = resultIntegrityHmac(facts, key);
       const resultHmacKeyVersion = key.version;
-
-      const castingId = randomUUID();
+      const castingId = clientCastingId;
       const questionVersionId = randomUUID();
 
       let questionEncrypted = null;
-      let fingerprint: string | null = null;
-      const fingerprintKeyVersion = "v1";
-
       if (questionText) {
         questionEncrypted = encryptQuestionForStorage({
           castingId,
           questionVersionId,
           question: questionText,
         });
-        const composite = normalizeComposite(scene as any, interpretationGoal as any, questionText);
-        const secret = process.env.APP_SECRET ?? "fallback-question-secret";
-        fingerprint = fingerprintQuestion(composite, secret, fingerprintKeyVersion);
       }
 
-      await sql.begin(async (tx) => {
-        await tx`
+      const created = await sql.begin(async (tx) => {
+        const inserted = await tx`
           insert into casting_sessions (
             id, user_id, method, lifecycle, risk_status, scene,
             interpretation_goal, question_fingerprint, fingerprint_key_version,
@@ -150,7 +194,11 @@ export async function POST(request: Request): Promise<Response> {
             ${interpretationGoal}, ${fingerprint}, ${fingerprint ? fingerprintKeyVersion : null},
             0, clock_timestamp(), clock_timestamp()
           )
-        `;
+          on conflict (id) do nothing
+          returning id
+        ` as Array<{ id: string }>;
+
+        if (!inserted[0]?.id) return false;
 
         await tx`
           insert into cast_results (
@@ -177,7 +225,17 @@ export async function POST(request: Request): Promise<Response> {
             )
           `;
         }
+
+        return true;
       });
+
+      if (!created) {
+        const raced = await findExisting();
+        if (!raced || !matchesStableSave(raced, identityInput)) {
+          return json({ error: "READING_IDEMPOTENCY_CONFLICT" }, 409);
+        }
+        return json({ castingId: raced.id, idempotent: true }, 200);
+      }
 
       return json({ castingId, idempotent: false }, 201);
     } catch (error) {
@@ -186,7 +244,8 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
-  // 内存模式降级
+  // Local/test memory mode keeps its existing repository semantics. Production
+  // idempotency is enforced by the stable UUID persisted as casting_sessions.id.
   const memorySession = repo.createCastingSession({
     userId,
     anonHash: null,

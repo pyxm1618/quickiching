@@ -2,12 +2,22 @@
 
 import { useState } from "react";
 import type { ProductId } from "@/domain/entitlements/pricing";
+import { buildPricingSigninHref } from "@/lib/commercial-navigation";
 import {
   checkoutFailurePresentation,
   createCheckoutRequestIdentityStore,
 } from "./checkout-request-identity";
+import { writeCheckoutReturnContext } from "./checkout-return-context";
 
-export function PurchaseButton({ productKey }: { productKey: ProductId }) {
+export function PurchaseButton({
+  productKey,
+  returnUrl,
+  creditsBeforeCheckout,
+}: {
+  productKey: ProductId;
+  returnUrl?: string;
+  creditsBeforeCheckout: number;
+}) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,16 +42,19 @@ export function PurchaseButton({ productKey }: { productKey: ProductId }) {
       if (response.status === 401) {
         // No provider/local checkout was created before the authentication gate.
         requestIdentity.complete(productKey);
-        window.location.assign("/signin?callbackURL=%2Fpricing");
+        window.location.assign(returnUrl
+          ? buildPricingSigninHref(returnUrl)
+          : "/signin?callbackURL=%2Fpricing");
         return;
       }
 
       const body = await response.json().catch(() => null) as {
+        orderId?: unknown;
         checkoutUrl?: unknown;
         error?: unknown;
       } | null;
 
-      if (!response.ok || typeof body?.checkoutUrl !== "string") {
+      if (!response.ok || typeof body?.checkoutUrl !== "string" || typeof body.orderId !== "string") {
         // 409, transport uncertainty and retryable failures must keep the same
         // requestId. The server remains the authority for the existing order.
         requestIdentity.retain(productKey);
@@ -54,6 +67,15 @@ export function PurchaseButton({ productKey }: { productKey: ProductId }) {
         requestIdentity.retain(productKey);
         setError(checkoutFailurePresentation(503).message);
         return;
+      }
+
+      if (returnUrl) {
+        writeCheckoutReturnContext(window.sessionStorage, {
+          returnUrl,
+          creditsBeforeCheckout,
+          orderId: body.orderId,
+          createdAt: Date.now(),
+        });
       }
 
       // A provider checkout URL has now been authoritatively created/resolved.

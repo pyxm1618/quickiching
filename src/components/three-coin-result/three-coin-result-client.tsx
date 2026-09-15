@@ -10,10 +10,9 @@ import type { CommercialReadingReport } from "@/domain/generation/schemas";
 import {
   clearThreeCoinReading,
   completedThreeCoinSteps,
-  readThreeCoinSteps,
-  THREE_COIN_SESSION_STORAGE_KEY,
+  readThreeCoinSession,
 } from "@/lib/three-coin-session";
-import { readPublicReadingSessionState } from "@/lib/public-reading-session";
+import { buildPricingHref, buildResultSigninHref } from "@/lib/commercial-navigation";
 import { ReadingResultView } from "./reading-result-view";
 import { CommercialReadingReportView } from "./commercial-reading-report-view";
 import styles from "./result-page.module.css";
@@ -43,6 +42,11 @@ function errorCode(error: unknown): string {
   return error instanceof Error ? error.message : "THREE_COIN_READING_UNAVAILABLE";
 }
 
+function currentBrowserReturnPath(): string {
+  if (typeof window === "undefined") return "/readings/three-coin/result";
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
 async function buildFreeReadingFromLines(lineValues: number[]): Promise<FreeReading> {
   const result = buildHexagramResult({
     lineValuesBottomUp: lineValues as any,
@@ -65,6 +69,7 @@ export function ThreeCoinResultClient({
 }: ThreeCoinResultClientProps) {
   const [state, setState] = useState<ResultState>({ kind: "loading" });
   const [clearError, setClearError] = useState<string | null>(null);
+  const [clientCastingId, setClientCastingId] = useState<string | null>(null);
 
   const [castingId, setCastingId] = useState<string | null>(
     initialCastingView?.castingId ?? initialSessionId ?? null,
@@ -108,21 +113,25 @@ export function ThreeCoinResultClient({
         return;
       }
 
-      // 否则从本地 sessionStorage 恢复
-      const storedSteps = readThreeCoinSteps();
-      const completedSteps = completedThreeCoinSteps(storedSteps);
+      // 否则从本地 sessionStorage 恢复，同一个本地 session.id 就是本次起卦的稳定保存身份。
+      const localSession = readThreeCoinSession();
+      const completedSteps = completedThreeCoinSteps(localSession?.data?.steps ?? []);
       if (!completedSteps) {
         if (active) setState({ kind: "empty" });
         return;
       }
 
       const lineValues = completedSteps.map((s) => s.lineValue);
-      const sessionState = readPublicReadingSessionState(THREE_COIN_SESSION_STORAGE_KEY);
-      const question = sessionState.question;
       const reading = await buildFreeReadingFromLines(lineValues);
 
       if (active) {
-        setState({ kind: "ready", reading, lineValues, question });
+        setClientCastingId(localSession?.id ?? null);
+        setState({
+          kind: "ready",
+          reading,
+          lineValues,
+          question: localSession?.question,
+        });
       }
     }
 
@@ -135,42 +144,57 @@ export function ThreeCoinResultClient({
     };
   }, [initialCastingView]);
 
-  // 2. 如果已登录但尚未持久化起卦，自动将本次起卦幂等保存到后端并替换 URL
-  useEffect(() => {
-    if (!user || castingId || state.kind !== "ready") return;
-
-    let active = true;
-
-    async function autoSave() {
-      if (state.kind !== "ready") return;
-      try {
-        const res = await fetch("/api/readings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lineValuesBottomUp: state.lineValues,
-            question: state.question,
-          }),
-        });
-        if (!res.ok) return;
-        const data = await res.json() as { castingId?: string };
-        if (data.castingId && active) {
-          setCastingId(data.castingId);
-          const currentUrl = new URL(window.location.href);
-          currentUrl.searchParams.set("session", data.castingId);
-          window.history.replaceState(null, "", currentUrl.toString());
-        }
-      } catch {
-        // 静默处理，用户可重试手动触发
-      }
+  async function persistCurrentReading(showError: boolean): Promise<string | null> {
+    if (castingId) return castingId;
+    if (state.kind !== "ready" || !clientCastingId) {
+      if (showError) setActionError("保存本次起卦失败，请重新起卦后再试");
+      return null;
     }
 
-    void autoSave();
+    try {
+      const res = await fetch("/api/readings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientCastingId,
+          lineValuesBottomUp: state.lineValues,
+          question: state.question,
+        }),
+      });
 
-    return () => {
-      active = false;
-    };
-  }, [user, castingId, state]);
+      if (res.status === 401) {
+        window.location.assign(buildResultSigninHref(currentBrowserReturnPath()));
+        return null;
+      }
+      if (!res.ok) {
+        if (showError) setActionError("保存本次起卦失败，请稍后重试");
+        return null;
+      }
+
+      const data = await res.json() as { castingId?: string };
+      if (!data.castingId) {
+        if (showError) setActionError("保存本次起卦失败，请稍后重试");
+        return null;
+      }
+
+      setCastingId(data.castingId);
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set("session", data.castingId);
+      window.history.replaceState(null, "", currentUrl.toString());
+      return data.castingId;
+    } catch {
+      if (showError) setActionError("网络连接失败，请重试");
+      return null;
+    }
+  }
+
+  // 2. 如果已登录但尚未持久化起卦，自动将本次起卦幂等保存到后端并替换 URL
+  useEffect(() => {
+    if (!user || castingId || state.kind !== "ready" || !clientCastingId) return;
+    void persistCurrentReading(false);
+    // persistCurrentReading intentionally follows the current render state; these are its save prerequisites.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, castingId, state, clientCastingId]);
 
   // 3. 检查是否有后台运行中或已完成的 deep reading
   useEffect(() => {
@@ -237,38 +261,8 @@ export function ThreeCoinResultClient({
     if (state.kind !== "ready") return;
     setActionError(null);
 
-    let activeCastingId = castingId;
-
-    // 若尚未完成持久化，先强制保存一次
-    if (!activeCastingId) {
-      try {
-        const saveRes = await fetch("/api/readings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lineValuesBottomUp: state.lineValues,
-            question: state.question,
-          }),
-        });
-        if (!saveRes.ok) {
-          setActionError("保存本次起卦失败，请稍后重试");
-          return;
-        }
-        const saveData = await saveRes.json() as { castingId?: string };
-        if (!saveData.castingId) {
-          setActionError("保存本次起卦失败，请稍后重试");
-          return;
-        }
-        activeCastingId = saveData.castingId;
-        setCastingId(activeCastingId);
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set("session", activeCastingId);
-        window.history.replaceState(null, "", currentUrl.toString());
-      } catch {
-        setActionError("网络连接失败，请重试");
-        return;
-      }
-    }
+    const activeCastingId = await persistCurrentReading(true);
+    if (!activeCastingId) return;
 
     setDeepStatus("generating");
 
@@ -286,7 +280,7 @@ export function ThreeCoinResultClient({
 
       if (res.status === 401) {
         setDeepStatus("idle");
-        window.location.assign(`/signin?callbackUrl=${encodeURIComponent(window.location.href)}`);
+        window.location.assign(buildResultSigninHref(currentBrowserReturnPath()));
         return;
       }
 
@@ -312,6 +306,17 @@ export function ThreeCoinResultClient({
       setDeepStatus("failed");
       setActionError("网络请求中断，已为您保留解读次数，请点击重试");
     }
+  }
+
+  async function handleOpenPricing() {
+    setActionError(null);
+    const activeCastingId = await persistCurrentReading(true);
+    if (!activeCastingId) return;
+
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set("session", activeCastingId);
+    const returnPath = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
+    window.location.assign(buildPricingHref(returnPath));
   }
 
   function startNewReading() {
@@ -376,10 +381,7 @@ export function ThreeCoinResultClient({
     );
   }
 
-  // 构造回调与购买跳转链接
-  const currentPathWithSession = typeof window !== "undefined" ? window.location.href : "/readings/three-coin/result";
-  const pricingHref = `/pricing?returnUrl=${encodeURIComponent(currentPathWithSession)}`;
-  const signinHref = `/signin?callbackUrl=${encodeURIComponent(currentPathWithSession)}`;
+  const signinHref = buildResultSigninHref(currentBrowserReturnPath());
 
   return (
     <>
@@ -422,9 +424,9 @@ export function ThreeCoinResultClient({
                 <p className="mt-3 text-sm font-semibold text-[var(--danger)]">{actionError}</p>
               ) : null}
               <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-                <Link href={pricingHref} className="mystic-button">
+                <button type="button" onClick={handleOpenPricing} className="mystic-button">
                   获取解读次数
-                </Link>
+                </button>
               </div>
             </div>
           ) : (
