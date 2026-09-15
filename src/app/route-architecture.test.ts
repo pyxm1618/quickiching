@@ -52,9 +52,12 @@ describe("App Router multilingual architecture", () => {
     expect(catchAllModule.metadata.robots).toEqual({ index: false, follow: false });
   });
 
-  it("keeps Commercial V2 routes and actions outside the Public V1 App Router graph", () => {
+  it("adds only the reviewed CP4 commercial API surface without restoring legacy pages", () => {
+    expect(existsSync(`${appRoot}(default)/signin/page.tsx`)).toBe(true);
+    expect(existsSync(`${appRoot}api/auth/[...all]/route.ts`)).toBe(true);
+    expect(existsSync(`${appRoot}api/checkout/route.ts`)).toBe(true);
+    expect(existsSync(`${appRoot}api/webhooks/waffo/route.ts`)).toBe(true);
     for (const route of [
-      `${appRoot}(default)/signin/page.tsx`,
       `${appRoot}(default)/checkout/simulate/page.tsx`,
       `${appRoot}(default)/cast/[method]/page.tsx`,
       `${appRoot}(default)/result/[castingId]/page.tsx`,
@@ -66,8 +69,9 @@ describe("App Router multilingual architecture", () => {
   });
 
   it("permanently redirects English-prefixed paths to unprefixed paths", async () => {
-    if (!nextConfig.redirects) throw new Error("Next redirect configuration is missing");
-    const redirects = await nextConfig.redirects();
+    const config = typeof nextConfig === "function" ? await nextConfig("phase-production-build", { defaultConfig: {} }) : nextConfig;
+    if (!config.redirects) throw new Error("Next redirect configuration is missing");
+    const redirects = await config.redirects();
     expect(redirects.find((redirect) => redirect.source === "/en")).toMatchObject({ destination: "/", permanent: true });
     expect(redirects.find((redirect) => redirect.source === "/en/:path*")).toMatchObject({ destination: "/:path*", permanent: true });
   });

@@ -1,0 +1,90 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1787481005189,
+      "tag": "0000_cp2_auth_identity",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787500104664,
+      "tag": "0001_flaky_wiccan",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787530118809,
+      "tag": "0002_cp3_generation_repair",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787540000000,
+      "tag": "0003_cp3_generation_repair2",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787541000000,
+      "tag": "0004_cp3_generation_repair3",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787542000000,
+      "tag": "0005_cp4_payments_entitlements",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787586848393,
+      "tag": "0006_cp4_payment_repair",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787618599382,
+      "tag": "0007_cp4_payment_repair_followup",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787731051082,
+      "tag": "0008_cp4_payment_repair_final",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787757784089,
+      "tag": "0009_cp5_commercial_v2_core",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787797500000,
+      "tag": "0010_cp5_audit_remediation",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788738000000,
+      "tag": "0011_payment_closeout",
+      "breakpoints": true
+    }
+  ]
+}

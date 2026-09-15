@@ -1,54 +1,33 @@
 import * as z from "zod";
-
-export type VersionedKey = {
-  version: string;
-  value: string;
-};
+import {
+  resolveCommercialCapabilities,
+  type CommercialCapabilityConfig,
+} from "./capabilities";
 
 type LocalRuntimeConfig = {
   mode: "development" | "test";
-  ai: "local";
-  auth: "dev";
-  payment: "simulated";
-  database: "memory";
+  ai: "local" | "ai-sdk";
+  auth: "dev" | "better-auth";
+  payment: "simulated" | "waffo";
+  database: "memory" | "postgres";
   workflow: "local";
+  capabilities: CommercialCapabilityConfig;
 };
 
 type ProductionRuntimeConfig = {
   mode: "production";
-  ai: "ai-sdk";
-  auth: "better-auth";
-  payment: "creem";
-  database: "postgres";
+  // Public V1 has no production AI adapter. This is deliberately not a local
+  // fallback: a commercial AI path must be enabled by a later checkpoint.
+  ai: "disabled" | "ai-sdk";
+  auth: "disabled" | "better-auth";
+  // Waffo is the only approved payment target. The capability remains closed
+  // until the provider adapter and its separately reviewed credentials exist.
+  payment: "waffo";
+  database: "disabled" | "postgres";
+  workflow: "disabled";
   baseUrl: string;
-  credentials: {
-    aiGatewayApiKey: string;
-    aiModelPreview: string;
-    aiModelDeepReading: string;
-    aiModelOutputReview: string;
-    betterAuthSecret: string;
-    betterAuthUrl: string;
-    googleClientId: string;
-    googleClientSecret: string;
-    resendApiKey: string;
-    emailFrom: string;
-    creemApiKey: string;
-    creemWebhookSecret: string;
-    creemProductIdOne: string;
-    creemProductIdThree: string;
-    creemProductIdFive: string;
-    databaseUrl: string;
-    turnstileSecretKey: string;
-    turnstileSiteKey: string;
-    publicAppUrl: string;
-    workflowAdapterMode: "vercel";
-  };
-  keys: {
-    sessionSigning: VersionedKey[];
-    questionFingerprint: VersionedKey[];
-    questionEncryption: VersionedKey[];
-    resultIntegrity: VersionedKey[];
-  };
+  publicAppUrl: string;
+  capabilities: CommercialCapabilityConfig;
 };
 
 export type RuntimeConfig = LocalRuntimeConfig | ProductionRuntimeConfig;
@@ -59,12 +38,6 @@ const modeSchema = z.enum(["development", "test", "production"]);
 
 function invalid(message: string, production = false): never {
   throw new Error(`${production ? "PRODUCTION_CONFIG_INVALID" : "CONFIG_INVALID"}: ${message}`);
-}
-
-function required(env: RuntimeEnv, name: string): string {
-  const parsed = z.string().trim().min(1).safeParse(env[name]);
-  if (parsed.success) return parsed.data;
-  return invalid(`${name} is required`, true);
 }
 
 function oneOf<T extends string>(
@@ -80,107 +53,75 @@ function oneOf<T extends string>(
   return invalid(`${name} must be one of: ${allowed.join(", ")}`, production);
 }
 
-function versionedKeySet(env: RuntimeEnv, name: string): VersionedKey[] {
-  const raw = required(env, name);
-  const entries = raw.split(",").map((entry) => entry.trim());
-  const keys: VersionedKey[] = [];
-  const versions = new Set<string>();
-
-  for (const entry of entries) {
-    const match = /^([A-Za-z0-9][A-Za-z0-9._-]*):(.+)$/.exec(entry);
-    if (!match || !match[2].trim() || versions.has(match[1]))
-      invalid(`${name} must use version:key entries`, true);
-    versions.add(match[1]);
-    keys.push({ version: match[1], value: match[2].trim() });
+function optionalUrl(
+  env: RuntimeEnv,
+  name: string,
+  fallback: string,
+  production = false,
+): string {
+  const candidate = env[name]?.trim() || fallback;
+  let isHttp = false;
+  try {
+    const parsed = new URL(candidate);
+    isHttp = (parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.hostname.length > 0;
+  } catch {
+    isHttp = false;
   }
-
-  return keys;
-}
-
-function assertPurposeSeparated(keys: ProductionRuntimeConfig["keys"]): void {
-  const materials = new Set<string>();
-  for (const keySet of Object.values(keys)) {
-    for (const key of keySet) {
-      if (materials.has(key.value)) invalid("key material must not be reused across purposes", true);
-      materials.add(key.value);
-    }
+  if (!isHttp) {
+    invalid(`${name} must be a valid HTTP or HTTPS URL`, production);
   }
+  return candidate;
 }
 
 function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
-  const ai = oneOf(env.AI_ADAPTER_MODE, ["ai-sdk"] as const, "AI_ADAPTER_MODE", undefined, true);
-  const auth = oneOf(env.AUTH_ADAPTER_MODE, ["better-auth"] as const, "AUTH_ADAPTER_MODE", undefined, true);
-  const payment = oneOf(env.PAYMENT_ADAPTER_MODE, ["creem"] as const, "PAYMENT_ADAPTER_MODE", undefined, true);
-  const database = oneOf(env.DATABASE_ADAPTER_MODE, ["postgres"] as const, "DATABASE_ADAPTER_MODE", undefined, true);
-  const workflowAdapterMode = oneOf(
-    env.WORKFLOW_ADAPTER_MODE,
-    ["vercel"] as const,
-    "WORKFLOW_ADAPTER_MODE",
-    undefined,
+  // This is a target selection, not an adapter activation. It must never
+  // require Waffo credentials while all commercial capabilities are closed.
+  const payment = oneOf(
+    env.PAYMENT_ADAPTER_MODE,
+    ["waffo"] as const,
+    "PAYMENT_ADAPTER_MODE",
+    "waffo",
     true,
   );
-  const baseUrl = required(env, "APP_BASE_URL");
-  if (!z.string().url().safeParse(baseUrl).success) invalid("APP_BASE_URL must be a valid URL", true);
-  const publicAppUrl = required(env, "NEXT_PUBLIC_APP_URL");
-  if (!z.string().url().safeParse(publicAppUrl).success) invalid("NEXT_PUBLIC_APP_URL must be a valid URL", true);
-  const betterAuthUrl = required(env, "BETTER_AUTH_URL");
-  if (!z.string().url().safeParse(betterAuthUrl).success) invalid("BETTER_AUTH_URL must be a valid URL", true);
-  const emailFrom = required(env, "EMAIL_FROM");
-  if (!z.string().email().safeParse(emailFrom.match(/<([^>]+)>$/)?.[1] ?? emailFrom).success)
-    invalid("EMAIL_FROM must contain a valid email address", true);
-  const databaseUrl = required(env, "DATABASE_URL");
-  if (!z.string().url().safeParse(databaseUrl).success || !databaseUrl.startsWith("postgres"))
-    invalid("DATABASE_URL must be a PostgreSQL URL", true);
-
-  const keys = {
-    sessionSigning: versionedKeySet(env, "SESSION_SIGNING_KEYS"),
-    questionFingerprint: versionedKeySet(env, "QUESTION_FINGERPRINT_KEYS"),
-    questionEncryption: versionedKeySet(env, "QUESTION_ENCRYPTION_KEYS"),
-    resultIntegrity: versionedKeySet(env, "RESULT_INTEGRITY_KEYS"),
-  };
-  assertPurposeSeparated(keys);
+  const baseUrl = optionalUrl(env, "APP_BASE_URL", "https://www.quickiching.com", true);
+  const publicAppUrl = optionalUrl(env, "NEXT_PUBLIC_APP_URL", baseUrl, true);
+  const capabilities = resolveCommercialCapabilities(env, { production: true });
+  const auth = capabilities.capabilities.auth.enabled ? "better-auth" : "disabled";
+  const database = Object.values(capabilities.capabilities).some((capability) =>
+    capability.enabled && ["auth", "aiPreview", "checkout", "webhookIngestion", "paidDeepReading", "reconcile"]
+      .includes(capability.capability)
+  ) ? "postgres" : "disabled";
 
   return {
     mode: "production",
-    ai,
+    ai: capabilities.capabilities.aiPreview.enabled ? "ai-sdk" : "disabled",
     auth,
     payment,
     database,
+    workflow: "disabled",
     baseUrl,
-    credentials: {
-      aiGatewayApiKey: required(env, "AI_GATEWAY_API_KEY"),
-      aiModelPreview: required(env, "AI_MODEL_PREVIEW"),
-      aiModelDeepReading: required(env, "AI_MODEL_DEEP_READING"),
-      aiModelOutputReview: required(env, "AI_MODEL_OUTPUT_REVIEW"),
-      betterAuthSecret: required(env, "BETTER_AUTH_SECRET"),
-      betterAuthUrl,
-      googleClientId: required(env, "GOOGLE_CLIENT_ID"),
-      googleClientSecret: required(env, "GOOGLE_CLIENT_SECRET"),
-      resendApiKey: required(env, "RESEND_API_KEY"),
-      emailFrom,
-      creemApiKey: required(env, "CREEM_API_KEY"),
-      creemWebhookSecret: required(env, "CREEM_WEBHOOK_SECRET"),
-      creemProductIdOne: required(env, "CREEM_PRODUCT_ID_ONE"),
-      creemProductIdThree: required(env, "CREEM_PRODUCT_ID_THREE"),
-      creemProductIdFive: required(env, "CREEM_PRODUCT_ID_FIVE"),
-      databaseUrl,
-      turnstileSecretKey: required(env, "TURNSTILE_SECRET_KEY"),
-      turnstileSiteKey: required(env, "NEXT_PUBLIC_TURNSTILE_SITE_KEY"),
-      publicAppUrl,
-      workflowAdapterMode,
-    },
-    keys,
+    publicAppUrl,
+    capabilities,
   };
 }
 
 function loadLocalConfig(env: RuntimeEnv, mode: "development" | "test"): LocalRuntimeConfig {
+  const capabilities = resolveCommercialCapabilities(env);
   return {
     mode,
-    ai: oneOf(env.AI_ADAPTER_MODE, ["local"] as const, "AI_ADAPTER_MODE", "local"),
-    auth: oneOf(env.AUTH_ADAPTER_MODE, ["dev"] as const, "AUTH_ADAPTER_MODE", "dev"),
-    payment: oneOf(env.PAYMENT_ADAPTER_MODE, ["simulated"] as const, "PAYMENT_ADAPTER_MODE", "simulated"),
-    database: oneOf(env.DATABASE_ADAPTER_MODE, ["memory"] as const, "DATABASE_ADAPTER_MODE", "memory"),
+    ai: oneOf(env.AI_ADAPTER_MODE, ["local", "ai-sdk"] as const, "AI_ADAPTER_MODE", "local"),
+    auth: capabilities.capabilities.auth.enabled ? "better-auth" : "dev",
+    payment: oneOf(
+      env.PAYMENT_ADAPTER_MODE,
+      ["simulated", "waffo"] as const,
+      "PAYMENT_ADAPTER_MODE",
+      "simulated",
+    ),
+    database: Object.values(capabilities.capabilities).some((capability) => capability.enabled)
+      ? "postgres"
+      : "memory",
     workflow: oneOf(env.WORKFLOW_ADAPTER_MODE, ["local"] as const, "WORKFLOW_ADAPTER_MODE", "local"),
+    capabilities,
   };
 }
 
@@ -197,4 +138,20 @@ export function validateRuntimeConfig(env: RuntimeEnv = process.env): RuntimeCon
 
 export function runtimeConfig(): RuntimeConfig {
   return loadRuntimeConfig();
+}
+
+export type ServerConfig = {
+  cronSecret?: string;
+  appSecret?: string;
+  aiModelDeepReading?: string;
+  aiModelPreview?: string;
+};
+
+export function getServerConfig(env: RuntimeEnv = process.env): ServerConfig {
+  return {
+    cronSecret: env.CRON_SECRET?.trim(),
+    appSecret: env.APP_SECRET?.trim(),
+    aiModelDeepReading: env.AI_MODEL_DEEP_READING?.trim() ?? "gemini-2.5-pro",
+    aiModelPreview: env.AI_MODEL_PREVIEW?.trim() ?? "gemini-2.5-pro",
+  };
 }

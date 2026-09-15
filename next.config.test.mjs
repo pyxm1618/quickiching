@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 import nextConfig from "./next.config.mjs";
 
+const getConfig = async () =>
+  typeof nextConfig === "function"
+    ? await nextConfig("phase-production-build", { defaultConfig: {} })
+    : nextConfig;
+
 describe("Next.js redirect policy", () => {
   it("permanently redirects the bare domain and named Vercel alias to www", async () => {
-    const redirects = await nextConfig.redirects();
+    const config = await getConfig();
+    const redirects = await config.redirects();
     const bare = redirects.find((redirect) => redirect.has?.some((condition) => condition.type === "host" && condition.value === "quickiching.com"));
     const alias = redirects.find((redirect) => redirect.has?.some((condition) => condition.type === "host" && condition.value === "ichingcoin.vercel.app"));
     expect(bare).toMatchObject({ destination: "https://www.quickiching.com/:path*", permanent: true });
@@ -11,7 +17,8 @@ describe("Next.js redirect policy", () => {
   });
 
   it("uses permanent relevant redirects for every known legacy route", async () => {
-    const redirects = await nextConfig.redirects();
+    const config = await getConfig();
+    const redirects = await config.redirects();
     const expected = new Map([
       ["/i-ching-coin", "/methods/three-coin"],
       ["/three-coin-method", "/methods/three-coin"],
@@ -32,7 +39,8 @@ describe("Next.js redirect policy", () => {
 
 describe("Next.js security headers", () => {
   it("allows only the external origins required by GA4 and Microsoft Clarity", async () => {
-    const headerGroups = await nextConfig.headers();
+    const config = await getConfig();
+    const headerGroups = await config.headers();
     const globalHeaders = headerGroups.find((group) => group.source === "/:path*")?.headers ?? [];
     const csp = globalHeaders.find((header) => header.key === "Content-Security-Policy")?.value;
 

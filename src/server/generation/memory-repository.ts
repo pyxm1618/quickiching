@@ -1,0 +1,238 @@
+import { randomUUID } from "node:crypto";
+import { hashGenerationSnapshot } from "./boundary";
+import {
+  PREVIEW_RETRY_BUDGET_MAX_FAILURES,
+  PREVIEW_RETRY_BUDGET_WINDOW_MS,
+  STALE_PREVIEW_INVALIDATED_ERROR,
+} from "./retry-policy";
+import { assertReusablePreviewJob, GenerationRepositoryError } from "./repository-error";
+import type {
+  CreateJobInput,
+  GenerationJobRecord,
+  PersistPreviewSuccessInput,
+  PreviewGenerationContext,
+  PreviewGenerationRepository,
+  PreviewResultRecord,
+} from "./types";
+
+function clone<T>(value: T): T {
+  return structuredClone(value);
+}
+
+export class InMemoryPreviewGenerationRepository implements PreviewGenerationRepository {
+  private context: PreviewGenerationContext;
+  private readonly jobs = new Map<string, GenerationJobRecord>();
+  private preview: PreviewResultRecord | null = null;
+  readonly entitlementTouched = false;
+  private readonly persistFailure: boolean;
+
+  constructor(context: PreviewGenerationContext & { persistFailure?: boolean }) {
+    this.context = clone(context);
+    this.persistFailure = context.persistFailure === true;
+  }
+
+  async getPreviewContext(castingId: string): Promise<PreviewGenerationContext | null> {
+    return this.context.castingId === castingId ? clone(this.context) : null;
+  }
+
+  async getPreview(castingId: string): Promise<PreviewResultRecord | null> {
+    return this.preview?.castingId === castingId ? clone(this.preview) : null;
+  }
+
+  async getJobStatus(castingId: string, idempotencyKey?: string): Promise<GenerationJobRecord | null> {
+    const matches = [...this.jobs.values()].filter((job) =>
+      job.castingId === castingId && (idempotencyKey === undefined || job.idempotencyKey === idempotencyKey),
+    );
+    const previewJobId = this.preview?.castingId === castingId ? this.preview.jobId : null;
+    const rank = (job: GenerationJobRecord): number => {
+      if (job.id === previewJobId) return 2;
+      if (["queued", "running"].includes(job.status)) return 1;
+      return 0;
+    };
+    const job = matches.sort((a, b) =>
+      rank(b) - rank(a)
+      || b.createdAt.getTime() - a.createdAt.getTime()
+      || b.id.localeCompare(a.id)
+    )[0];
+    return job ? clone(job) : null;
+  }
+
+  async createOrReuseJob(input: CreateJobInput): Promise<{ job: GenerationJobRecord; created: boolean }> {
+    if (
+      this.context.castingId !== input.castingId
+      || this.context.userId !== input.userId
+      || this.context.generationEpoch !== input.generationEpoch
+    ) {
+      throw new GenerationRepositoryError("GENERATION_IDEMPOTENCY_CONFLICT");
+    }
+    const existingByKey = [...this.jobs.values()].find((job) =>
+      job.castingId === input.castingId && job.kind === input.kind && job.idempotencyKey === input.idempotencyKey,
+    );
+    if (existingByKey) {
+      if (
+        ["queued", "running", "completed"].includes(existingByKey.status)
+        && (
+          existingByKey.generationEpoch !== input.generationEpoch
+          || existingByKey.inputSnapshotHash !== input.inputSnapshotHash
+        )
+      ) {
+        throw new GenerationRepositoryError("GENERATION_IDEMPOTENCY_CONFLICT");
+      }
+      return { job: clone(existingByKey), created: false };
+    }
+
+    const completed = [...this.jobs.values()].find((job) =>
+      job.castingId === input.castingId
+      && job.kind === input.kind
+      && job.status === "completed"
+      && this.preview?.castingId === input.castingId
+      && this.preview.jobId === job.id,
+    );
+    if (completed) {
+      if (
+        completed.generationEpoch === input.generationEpoch
+        && completed.inputSnapshotHash === input.inputSnapshotHash
+      ) {
+        return { job: clone(completed), created: false };
+      }
+      this.preview = null;
+      completed.status = "failed";
+      completed.structuredErrorCode = STALE_PREVIEW_INVALIDATED_ERROR;
+      completed.updatedAt = clone(input.now);
+    }
+
+    const active = [...this.jobs.values()].find((job) =>
+      job.castingId === input.castingId && job.kind === input.kind && ["queued", "running"].includes(job.status),
+    );
+    if (active) {
+      assertReusablePreviewJob(active, input);
+      return { job: clone(active), created: false };
+    }
+
+    const retryWindowStart = input.now.getTime() - PREVIEW_RETRY_BUDGET_WINDOW_MS;
+    const recentFailures = [...this.jobs.values()].filter((job) =>
+      job.castingId === input.castingId
+      && job.kind === input.kind
+      && ["failed", "timed_out", "dead_letter"].includes(job.status)
+      && job.structuredErrorCode !== STALE_PREVIEW_INVALIDATED_ERROR
+      && job.updatedAt.getTime() >= retryWindowStart
+    );
+    if (recentFailures.length >= PREVIEW_RETRY_BUDGET_MAX_FAILURES) {
+      throw new GenerationRepositoryError("PREVIEW_RETRY_BUDGET_EXCEEDED");
+    }
+
+    const job: GenerationJobRecord = {
+      id: `job_${randomUUID()}`,
+      castingId: input.castingId,
+      kind: input.kind,
+      status: "queued",
+      generationEpoch: input.generationEpoch,
+      idempotencyKey: input.idempotencyKey,
+      inputSnapshotHash: input.inputSnapshotHash,
+      attemptCount: 0,
+      leaseToken: null,
+      leaseExpiresAt: null,
+      provider: null,
+      model: null,
+      structuredErrorCode: null,
+      createdAt: clone(input.now),
+      updatedAt: clone(input.now),
+    };
+    this.jobs.set(job.id, job);
+    return { job: clone(job), created: true };
+  }
+
+  async markJobRunning(input: { jobId: string; leaseToken: string; now: Date; leaseDurationMs: number }): Promise<boolean> {
+    const job = this.jobs.get(input.jobId);
+    if (!job || job.status !== "queued") return false;
+    job.status = "running";
+    job.attemptCount += 1;
+    job.leaseToken = input.leaseToken;
+    job.leaseExpiresAt = new Date(input.now.getTime() + input.leaseDurationMs);
+    job.updatedAt = clone(input.now);
+    return true;
+  }
+
+  async persistPreviewSuccess(input: PersistPreviewSuccessInput): Promise<PreviewResultRecord> {
+    if (this.persistFailure) throw new Error("DB_WRITE_FAILED");
+    const job = this.jobs.get(input.jobId);
+    if (
+      !job
+      || job.status !== "running"
+      || job.leaseToken !== input.leaseToken
+      || this.context.userId !== input.userId
+      || job.generationEpoch !== input.generationEpoch
+      || job.inputSnapshotHash !== input.inputSnapshotHash
+      || hashGenerationSnapshot({
+        castingId: this.context.castingId,
+        userId: this.context.userId,
+        generationEpoch: this.context.generationEpoch,
+        question: this.context.question,
+        scene: this.context.scene,
+        interpretationGoal: this.context.interpretationGoal,
+        facts: this.context.facts,
+      }) !== input.inputSnapshotHash
+      || !job.leaseExpiresAt
+      || job.leaseExpiresAt.getTime() <= input.now.getTime()
+    ) {
+      throw new Error("LATE_RESULT_REJECTED");
+    }
+    if (
+      this.context.castingId !== job.castingId
+      || this.context.generationEpoch !== input.generationEpoch
+      || this.context.lifecycle !== "revealed"
+      || this.context.riskStatus !== "allowed"
+      || this.context.deletedAt != null
+    ) {
+      throw new Error("LATE_RESULT_REJECTED");
+    }
+    if (this.preview) return clone(this.preview);
+    const result: PreviewResultRecord = {
+      castingId: job.castingId,
+      jobId: job.id,
+      output: clone(input.output),
+      schemaVersion: input.output.schemaVersion,
+      promptVersion: "commercial-preview-prompt-v1",
+      provider: input.provider,
+      model: input.model,
+      integrityHash: "memory-integrity",
+      persistedAt: clone(input.now),
+    };
+    this.preview = result;
+    job.status = "completed";
+    job.provider = input.provider;
+    job.model = input.model;
+    job.leaseToken = null;
+    job.leaseExpiresAt = null;
+    job.updatedAt = clone(input.now);
+    return clone(result);
+  }
+
+  async markJobFailed(input: {
+    jobId: string;
+    leaseToken: string;
+    status: "failed" | "timed_out" | "dead_letter";
+    errorCode: string;
+    now: Date;
+  }): Promise<void> {
+    const job = this.jobs.get(input.jobId);
+    if (!job || job.leaseToken !== input.leaseToken || ["completed", "failed", "timed_out", "dead_letter"].includes(job.status)) return;
+    job.status = input.status;
+    job.structuredErrorCode = input.errorCode;
+    job.leaseToken = null;
+    job.leaseExpiresAt = null;
+    job.updatedAt = clone(input.now);
+  }
+
+  setContext(patch: Partial<PreviewGenerationContext>): void {
+    this.context = { ...this.context, ...clone(patch) };
+  }
+
+  getPreviewSync(castingId: string): PreviewResultRecord | null {
+    return this.preview?.castingId === castingId ? clone(this.preview) : null;
+  }
+
+  listJobs(): GenerationJobRecord[] {
+    return [...this.jobs.values()].map(clone);
+  }
+}
