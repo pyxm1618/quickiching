@@ -15,6 +15,9 @@ export function CheckoutReturnRecovery({ credits }: { credits: number }) {
   const startedAtRef = useRef(Date.now());
   const [waiting, setWaiting] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
+  // tick increments each time we want to re-poll, even when credits hasn't changed.
+  // This forces useEffect to re-run after every router.refresh() cycle.
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     const context = readCheckoutReturnContext(window.sessionStorage);
@@ -30,16 +33,21 @@ export function CheckoutReturnRecovery({ credits }: { credits: number }) {
     }
 
     setWaiting(true);
+
     if (Date.now() - startedAtRef.current >= AUTO_REFRESH_WINDOW_MS) {
       setTimedOut(true);
       return;
     }
 
     const timer = window.setTimeout(() => {
+      // Increment tick first so useEffect re-runs regardless of whether
+      // router.refresh() changes credits. This maintains polling every
+      // AUTO_REFRESH_INTERVAL_MS for the full AUTO_REFRESH_WINDOW_MS window.
+      setTick((t) => t + 1);
       router.refresh();
     }, AUTO_REFRESH_INTERVAL_MS);
     return () => window.clearTimeout(timer);
-  }, [credits, router]);
+  }, [credits, router, tick]);
 
   if (!waiting) return null;
 
@@ -50,7 +58,7 @@ export function CheckoutReturnRecovery({ credits }: { credits: number }) {
         <button
           type="button"
           className="underline"
-          onClick={() => router.refresh()}
+          onClick={() => { setTimedOut(false); startedAtRef.current = Date.now(); setTick((t) => t + 1); router.refresh(); }}
         >
           Check again
         </button>
