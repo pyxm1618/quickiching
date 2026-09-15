@@ -14,6 +14,7 @@ export function CheckoutReturnRecovery({ credits }: { credits: number }) {
   const router = useRouter();
   const startedAtRef = useRef(Date.now());
   const [waiting, setWaiting] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     const context = readCheckoutReturnContext(window.sessionStorage);
@@ -29,7 +30,10 @@ export function CheckoutReturnRecovery({ credits }: { credits: number }) {
     }
 
     setWaiting(true);
-    if (Date.now() - startedAtRef.current >= AUTO_REFRESH_WINDOW_MS) return;
+    if (Date.now() - startedAtRef.current >= AUTO_REFRESH_WINDOW_MS) {
+      setTimedOut(true);
+      return;
+    }
 
     const timer = window.setTimeout(() => {
       router.refresh();
@@ -38,6 +42,23 @@ export function CheckoutReturnRecovery({ credits }: { credits: number }) {
   }, [credits, router]);
 
   if (!waiting) return null;
+
+  if (timedOut) {
+    return (
+      <p className="mt-6 text-center text-sm leading-6 text-[var(--ink-2)]" role="status">
+        Credit confirmation is taking longer than expected.{" "}
+        <button
+          type="button"
+          className="underline"
+          onClick={() => router.refresh()}
+        >
+          Check again
+        </button>
+        , or return to your reading from{" "}
+        <a href="/account" className="underline">account history</a>.
+      </p>
+    );
+  }
 
   return (
     <p className="mt-6 text-center text-sm leading-6 text-[var(--ink-2)]" role="status">
