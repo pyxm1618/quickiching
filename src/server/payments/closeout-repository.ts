@@ -31,8 +31,16 @@ function zeroTax(value: string): boolean {
 }
 
 function refundEventFromPayload(value: unknown): NormalizedWaffoWebhook | null {
-  if (!value || typeof value !== "object") return null;
-  const event = value as Partial<NormalizedWaffoWebhook>;
+  let objectValue = value;
+  if (typeof objectValue === "string") {
+    try {
+      objectValue = JSON.parse(objectValue);
+    } catch {
+      return null;
+    }
+  }
+  if (!objectValue || typeof objectValue !== "object") return null;
+  const event = objectValue as Partial<NormalizedWaffoWebhook>;
   if (
     event.provider !== "waffo"
     || (event.providerEnvironment !== "test" && event.providerEnvironment !== "prod")
