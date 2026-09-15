@@ -125,6 +125,14 @@ export function middleware(request: NextRequest) {
     });
   }
 
+  if (pathname === "/api/readings" || pathname === "/api/readings/") {
+    if (isAuthCapabilityEnabled()) return NextResponse.next();
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+    });
+  }
+
   if (pathname === HEALTH_API_PATH || pathname === `${HEALTH_API_PATH}/`) {
     return NextResponse.next();
   }

@@ -110,6 +110,7 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/signin")).status).toBe(410);
     expect(middleware(makeRequest("/account")).status).toBe(410);
     expect(middleware(makeRequest("/api/auth/get-session")).status).toBe(404);
+    expect(middleware(makeRequest("/api/readings", { method: "POST" })).status).toBe(404);
     expect(middleware(makeRequest("/api/account/delete", { method: "POST" })).status).toBe(404);
   });
 
@@ -119,6 +120,8 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/signin")).status).toBe(200);
     expect(middleware(makeRequest("/account")).status).toBe(200);
     expect(middleware(makeRequest("/api/auth/get-session")).status).toBe(200);
+    expect(middleware(makeRequest("/api/readings", { method: "POST" })).status).toBe(200);
+    expect(middleware(makeRequest("/api/readings/", { method: "POST" })).status).toBe(200);
     expect(middleware(makeRequest("/api/account/delete", { method: "POST" })).status).toBe(200);
     expect(middleware(makeRequest("/api/account/delete/extra", { method: "POST" })).status).toBe(404);
     expect(middleware(makeRequest("/api/account/profile", { method: "GET" })).status).toBe(404);
