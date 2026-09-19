@@ -32,7 +32,7 @@ export function UserNavControl({
     let active = true;
     async function fetchUser() {
       try {
-        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        const res = await fetch("/api/user/me", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json() as { user: UserState };
           if (active) setUser(data.user);
