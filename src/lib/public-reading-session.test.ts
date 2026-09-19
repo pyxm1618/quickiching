@@ -18,31 +18,8 @@ function installSessionStorage(initial?: string) {
     key: (index: number) => [...values.keys()][index] ?? null,
     get length() { return values.size; },
   } as Storage;
-  vi.stubGlobal("window", { sessionStorage, localStorage: null });
+  vi.stubGlobal("window", { sessionStorage });
   return sessionStorage;
-}
-
-function installStoragePair(initialSession?: string, initialLocal?: string) {
-  const sessionValues = new Map<string, string>(initialSession ? [["reading", initialSession]] : []);
-  const localValues = new Map<string, string>(initialLocal ? [["reading", initialLocal]] : []);
-  const sessionStorage = {
-    getItem: (key: string) => sessionValues.get(key) ?? null,
-    setItem: (key: string, value: string) => sessionValues.set(key, value),
-    removeItem: (key: string) => sessionValues.delete(key),
-    clear: () => sessionValues.clear(),
-    key: (index: number) => [...sessionValues.keys()][index] ?? null,
-    get length() { return sessionValues.size; },
-  } as Storage;
-  const localStorage = {
-    getItem: (key: string) => localValues.get(key) ?? null,
-    setItem: (key: string, value: string) => localValues.set(key, value),
-    removeItem: (key: string) => localValues.delete(key),
-    clear: () => localValues.clear(),
-    key: (index: number) => [...localValues.keys()][index] ?? null,
-    get length() { return localValues.size; },
-  } as Storage;
-  vi.stubGlobal("window", { sessionStorage, localStorage });
-  return { sessionStorage, localStorage };
 }
 
 afterEach(() => vi.unstubAllGlobals());
@@ -94,29 +71,5 @@ describe("public reading session envelope", () => {
       started: true,
       question: "What deserves attention?",
     });
-  });
-
-  it("restores reading data from localStorage fallback when sessionStorage is empty (cross-tab recovery)", () => {
-    const backupEnvelope = {
-      schemaVersion: 1,
-      id: "casting-backup-id",
-      createdAt: "2026-09-19T09:00:00.000Z",
-      started: true,
-      question: "Will this project succeed?",
-      data: { lines: [9, 7, 8, 7, 8, 9] },
-    };
-    const { sessionStorage } = installStoragePair(undefined, JSON.stringify(backupEnvelope));
-
-    // sessionStorage initially empty
-    expect(sessionStorage.getItem("reading")).toBeNull();
-
-    // reading falls back to localStorage and hydrates sessionStorage
-    const restored = readPublicReadingSession("reading", (value) => value as { lines: number[] });
-    expect(restored).toMatchObject({
-      id: "casting-backup-id",
-      question: "Will this project succeed?",
-      data: { lines: [9, 7, 8, 7, 8, 9] },
-    });
-    expect(sessionStorage.getItem("reading")).toBe(JSON.stringify(backupEnvelope));
   });
 });

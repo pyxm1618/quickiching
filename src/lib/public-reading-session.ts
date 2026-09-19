@@ -31,15 +31,6 @@ function browserStorage(): Storage {
   return window.sessionStorage;
 }
 
-function fallbackStorage(): Storage | null {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) return null;
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
 type IdentifiedRecord = Record<string, unknown> & { id: string; createdAt: string };
 
 function validIdentity(value: unknown): value is IdentifiedRecord {
@@ -87,18 +78,7 @@ function legacyEnvelope(value: unknown): RawSession | null {
 }
 
 function readRawSession(key: string): { raw: unknown; envelope: RawSession | null } {
-  let raw = browserStorage().getItem(key);
-  if (!raw) {
-    const backup = fallbackStorage()?.getItem(key);
-    if (backup) {
-      raw = backup;
-      try {
-        browserStorage().setItem(key, backup);
-      } catch {
-        // ignore
-      }
-    }
-  }
+  const raw = browserStorage().getItem(key);
   const parsed = parseRaw(raw);
   return { raw: parsed, envelope: asEnvelope(parsed) ?? legacyEnvelope(parsed) };
 }
@@ -152,13 +132,7 @@ export function writePublicReadingSession<T>(key: string, data: T): PublicReadin
       ...(current?.question ? { question: current.question } : {}),
       data,
     };
-    const serialized = JSON.stringify(next);
-    browserStorage().setItem(key, serialized);
-    try {
-      fallbackStorage()?.setItem(key, serialized);
-    } catch {
-      // ignore
-    }
+    browserStorage().setItem(key, JSON.stringify(next));
     return next;
   } catch (error) {
     if (error instanceof Error && error.message === "PUBLIC_READING_SESSION_UNAVAILABLE") throw error;
@@ -175,11 +149,6 @@ export function patchPublicReadingSession(
     const current = readRawSession(key).envelope;
     if (!patch.started) {
       browserStorage().removeItem(key);
-      try {
-        fallbackStorage()?.removeItem(key);
-      } catch {
-        // ignore
-      }
       for (const legacyKey of legacyKeys) {
         browserStorage().removeItem(`${legacyKey}:started`);
         browserStorage().removeItem(`${legacyKey}:question`);
@@ -205,13 +174,7 @@ export function patchPublicReadingSession(
       ...(patch.question ?? legacyQuestion ? { question: patch.question ?? legacyQuestion } : {}),
       ...(current && "data" in current ? { data: current.data } : {}),
     };
-    const serialized = JSON.stringify(next);
-    browserStorage().setItem(key, serialized);
-    try {
-      fallbackStorage()?.setItem(key, serialized);
-    } catch {
-      // ignore
-    }
+    browserStorage().setItem(key, JSON.stringify(next));
     for (const legacyKey of legacyKeys) {
       browserStorage().removeItem(`${legacyKey}:started`);
       browserStorage().removeItem(`${legacyKey}:question`);
@@ -224,11 +187,6 @@ export function patchPublicReadingSession(
 export function clearPublicReadingSession(key: string): void {
   try {
     browserStorage().removeItem(key);
-    try {
-      fallbackStorage()?.removeItem(key);
-    } catch {
-      // ignore
-    }
   } catch (error) {
     if (error instanceof Error && error.message === "PUBLIC_READING_SESSION_UNAVAILABLE") throw error;
     throw new Error("PUBLIC_READING_SESSION_CLEAR_FAILED");
@@ -248,13 +206,7 @@ export function restartPublicReadingSession(key: string): PublicReadingSession {
       started: true,
       ...(current?.question ? { question: current.question } : {}),
     };
-    const serialized = JSON.stringify(next);
-    browserStorage().setItem(key, serialized);
-    try {
-      fallbackStorage()?.setItem(key, serialized);
-    } catch {
-      // ignore
-    }
+    browserStorage().setItem(key, JSON.stringify(next));
     return next;
   } catch (error) {
     if (error instanceof Error && error.message === "PUBLIC_READING_SESSION_UNAVAILABLE") throw error;

@@ -70,9 +70,37 @@ function parseThreeCoinSessionData(value: unknown): ThreeCoinSessionData | null 
   return steps.length === value.steps.length ? { steps } : null;
 }
 
+export const THREE_COIN_BACKUP_STORAGE_KEY = "quickiching:public-v1:three-coin-completed-backup";
+
+function safeLocalStorage(): Storage | null {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return null;
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 export function readThreeCoinSession(): ThreeCoinReadingSession | null {
   try {
-    return readPublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, parseThreeCoinSessionData);
+    const session = readPublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, parseThreeCoinSessionData);
+    if (session) return session;
+
+    const backupRaw = safeLocalStorage()?.getItem(THREE_COIN_BACKUP_STORAGE_KEY);
+    if (backupRaw) {
+      try {
+        const parsed = JSON.parse(backupRaw) as unknown;
+        if (typeof parsed === "object" && parsed !== null && "data" in parsed) {
+          const parsedData = parseThreeCoinSessionData((parsed as { data: unknown }).data);
+          if (parsedData && parsedData.steps.length === 6) {
+            return writePublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, parsedData);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return null;
   } catch (error) {
     if (error instanceof Error && error.message === "PUBLIC_READING_SESSION_UNAVAILABLE") {
       throw new Error("THREE_COIN_SESSION_UNAVAILABLE");
@@ -105,7 +133,15 @@ export function writeThreeCoinSteps(steps: readonly ThreeCoinStep[]): ThreeCoinR
       clearThreeCoinReading();
       throw new Error("THREE_COIN_SESSION_EMPTY");
     }
-    return writePublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, { steps: [...steps] });
+    const session = writePublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, { steps: [...steps] });
+    if (steps.length === 6) {
+      try {
+        safeLocalStorage()?.setItem(THREE_COIN_BACKUP_STORAGE_KEY, JSON.stringify(session));
+      } catch {
+        // ignore
+      }
+    }
+    return session;
   } catch (error) {
     if (error instanceof Error && ["THREE_COIN_SESSION_UNAVAILABLE", "THREE_COIN_SESSION_EMPTY"].includes(error.message)) throw error;
     throw new Error("THREE_COIN_SESSION_WRITE_FAILED");
@@ -115,6 +151,11 @@ export function writeThreeCoinSteps(steps: readonly ThreeCoinStep[]): ThreeCoinR
 export function clearThreeCoinReading(): void {
   try {
     clearPublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY);
+    try {
+      safeLocalStorage()?.removeItem(THREE_COIN_BACKUP_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
   } catch (error) {
     if (error instanceof Error && error.message === "PUBLIC_READING_SESSION_UNAVAILABLE") throw new Error("THREE_COIN_SESSION_UNAVAILABLE");
     throw new Error("THREE_COIN_SESSION_CLEAR_FAILED");
@@ -123,6 +164,11 @@ export function clearThreeCoinReading(): void {
 
 export function restartThreeCoinReading(): ThreeCoinReadingSession {
   try {
+    try {
+      safeLocalStorage()?.removeItem(THREE_COIN_BACKUP_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
     return restartPublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY) as ThreeCoinReadingSession;
   } catch {
     throw new Error("THREE_COIN_SESSION_RESTART_FAILED");

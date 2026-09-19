@@ -5,6 +5,7 @@ import {
   clearThreeCoinReading,
   completedThreeCoinSteps,
   parseThreeCoinSteps,
+  readThreeCoinSession,
   readThreeCoinSteps,
   THREE_COIN_SESSION_STORAGE_KEY,
   writeThreeCoinSteps,
@@ -112,5 +113,47 @@ describe("Three-Coin browser session contract", () => {
     }));
 
     expect(() => clearThreeCoinReading()).toThrowError("THREE_COIN_SESSION_CLEAR_FAILED");
+  });
+
+  it("restores completed 6-line reading from localStorage backup when sessionStorage is empty (cross-tab return)", () => {
+    const backupStorage = new Map<string, string>();
+    const sessionMemory = new Map<string, string>();
+
+    const fakeSessionStorage = {
+      getItem: (key: string) => sessionMemory.get(key) ?? null,
+      setItem: (key: string, val: string) => sessionMemory.set(key, val),
+      removeItem: (key: string) => sessionMemory.delete(key),
+      clear: () => sessionMemory.clear(),
+      key: (i: number) => [...sessionMemory.keys()][i] ?? null,
+      get length() { return sessionMemory.size; },
+    } as Storage;
+
+    const fakeLocalStorage = {
+      getItem: (key: string) => backupStorage.get(key) ?? null,
+      setItem: (key: string, val: string) => backupStorage.set(key, val),
+      removeItem: (key: string) => backupStorage.delete(key),
+      clear: () => backupStorage.clear(),
+      key: (i: number) => [...backupStorage.keys()][i] ?? null,
+      get length() { return backupStorage.size; },
+    } as Storage;
+
+    vi.stubGlobal("window", {
+      sessionStorage: fakeSessionStorage,
+      localStorage: fakeLocalStorage,
+    });
+
+    // Write full 6 steps in the original tab
+    writeThreeCoinSteps(validSteps(6));
+    expect(sessionMemory.size).toBeGreaterThan(0);
+    expect(backupStorage.size).toBeGreaterThan(0);
+
+    // Simulate opening a new tab: sessionStorage is empty, localStorage remains
+    sessionMemory.clear();
+    expect(fakeSessionStorage.getItem("quickiching:public-v1:three-coin")).toBeNull();
+
+    // Read in new tab: automatically restores 6 steps from backup
+    const restored = readThreeCoinSession();
+    expect(restored?.data?.steps.length).toBe(6);
+    expect(fakeSessionStorage.getItem("quickiching:public-v1:three-coin")).not.toBeNull();
   });
 });
