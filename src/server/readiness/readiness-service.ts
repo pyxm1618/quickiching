@@ -79,7 +79,9 @@ export async function checkSystemReadiness(
   env: Record<string, string | undefined> = process.env,
   dbOverride?: ReadinessDbOverride,
 ): Promise<SystemReadinessReport> {
-  const capabilityConfig = resolveCommercialCapabilities(env);
+  const capabilityConfig = resolveCommercialCapabilities(env, {
+    production: env.NODE_ENV === "production",
+  });
 
   const capabilitiesReport = {} as Record<CommercialCapability, CapabilityReadinessDetail>;
   let allCommercialCapabilitiesReady = true;
