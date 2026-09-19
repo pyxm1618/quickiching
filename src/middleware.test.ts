@@ -106,6 +106,11 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/api/personalized-interpretation", { method: "POST" })).status).toBe(200);
   });
 
+  it("leaves the user session probe API available to its route", () => {
+    expect(middleware(makeRequest("/api/user/me")).status).toBe(200);
+    expect(middleware(makeRequest("/api/user/me/")).status).toBe(200);
+  });
+
   it("keeps Auth routes closed when the server capability is disabled", () => {
     expect(middleware(makeRequest("/signin")).status).toBe(410);
     expect(middleware(makeRequest("/account")).status).toBe(410);

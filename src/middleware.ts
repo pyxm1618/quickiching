@@ -14,6 +14,7 @@ const NOT_FOUND_PREFIXES = ["/result", "/cast"] as const;
 const PERSONALIZED_API_PATH = "/api/personalized-interpretation";
 const HEALTH_API_PATH = "/api/health";
 const READY_API_PATH = "/api/ready";
+const USER_ME_API_PATH = "/api/user/me";
 const CHECKOUT_API_PATH = "/api/checkout";
 const REFUNDS_API_PATH = "/api/refunds";
 const INTERNAL_REFUNDS_API_PREFIX = "/api/internal/refunds";
@@ -138,6 +139,10 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname === READY_API_PATH || pathname === `${READY_API_PATH}/`) {
+    return NextResponse.next();
+  }
+
+  if (pathname === USER_ME_API_PATH || pathname === `${USER_ME_API_PATH}/`) {
     return NextResponse.next();
   }
 
