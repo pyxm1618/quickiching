@@ -1,0 +1,46 @@
+Quick I Ching Three-Coin Experience V1 — Final QA
+Date: 2026-08-21
+
+Scope
+- V8 casting / toss / line formation / primary / moving-line transformation chain retained.
+- Reading experience rebuilt across 10 internal iterations.
+
+10-pass reading review
+1. Removed V8 left-copy/right-hex report composition.
+2. Made the living hexagram the spatial axis of all five reading stages.
+3. Bound line interpretation to the selected line itself.
+4. Unified motion grammar around form / reveal / change / reunite.
+5. Grounded reading text in actual trigrams and moving-line positions.
+6. Rebuilt Direction as primary-ghost -> relating structure inside one hexagram.
+7. Rebuilt Reflection so the question is the title and the hexagram recedes.
+8. Replaced Unicode trigram glyphs with bespoke mini yin/yang line structures.
+9. Added a distinct mobile reading choreography.
+10. Replaced generic progress dots with a named, clickable Reading Path.
+
+Static contract verification
+- 27 / 27 checks passed.
+- JavaScript syntax: PASS (node --check).
+- Exactly one #livingHexagram object: PASS.
+- Five reading stages: Pattern / Change / Direction / Synthesis / Reflection: PASS.
+- Five named, clickable reading-path stages: PASS.
+- All literal $() DOM references resolve to existing ids: PASS.
+- Direct line interpretation anchor + leader: PASS.
+- Primary ghost retained during Direction: PASS.
+- Relating structure morphs inside same #hexStack: PASS.
+- Moving-line position semantics use POSITION_NOTES: PASS.
+- Bespoke mini-trigram structures: PASS.
+- Reflection removes V8 giant “Return to the question.” heading: PASS.
+- No external runtime scripts or stylesheets: PASS.
+- 10 iteration files present: PASS.
+
+Visual composition review
+- Desktop Pattern: reviewed via static renderer.
+- Desktop Change: reviewed via static renderer.
+- Desktop Direction: reviewed via static renderer.
+- Desktop Synthesis: reviewed; long side copy was shortened after collision review.
+- Desktop Reflection: reviewed; no text/hexagram overlap.
+- Mobile rules: separate choreography authored at <=720px.
+
+Important verification boundary
+- The environment's Chromium binary cannot complete headless launches in this container (DBus/administrator runtime issue), so final V9 browser-runtime interaction was not re-executed here.
+- The V8-fixed casting/transformation chain was left intact; V9 changes are confined to Reading markup/CSS and Reading population/state presentation. Structural DOM-reference and JavaScript syntax checks pass.
