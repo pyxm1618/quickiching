@@ -23,7 +23,13 @@ const MENU_ITEM_CLASS =
 const DRAWER_LINK_CLASS =
   "flex min-h-11 items-center rounded-xl px-4 py-3 text-sm font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cinnabar)]";
 
-export function SiteHeader({ locale = "en" }: { locale?: ContentLocale }) {
+export function SiteHeader({
+  locale = "en",
+  authEnabled = false,
+}: {
+  locale?: ContentLocale;
+  authEnabled?: boolean;
+}) {
   const dictionary = getDictionary(locale);
   const isChinese = locale === "zh-Hans";
   const pathname = usePathname() ?? "/";
@@ -460,12 +466,12 @@ export function SiteHeader({ locale = "en" }: { locale?: ContentLocale }) {
           />
 
           {/* User Account / Avatar Control */}
-          <UserNavControl />
+          {authEnabled && <UserNavControl />}
         </nav>
 
         {/* Mobile & Tablet Controls (< 1024px, including 768px, 390px, 375px, 320px) */}
         <div className="flex lg:hidden items-center gap-2">
-          <UserNavControl />
+          {authEnabled && <UserNavControl />}
           <button
             ref={drawerTriggerRef}
             id={drawerTriggerId}
@@ -650,7 +656,9 @@ export function SiteHeader({ locale = "en" }: { locale?: ContentLocale }) {
           </nav>
 
           {/* User Account / Sign In inside Mobile Drawer */}
-          <UserNavControl isMobileDrawer onItemClick={() => closeDrawer()} />
+          {authEnabled && (
+            <UserNavControl isMobileDrawer onItemClick={() => closeDrawer()} />
+          )}
 
           {/* Footer inside Drawer */}
           <div className="border-t border-[var(--line)] pt-4">

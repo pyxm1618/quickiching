@@ -93,6 +93,7 @@ export function UserNavControl({
         <div className="border-t border-white/[0.08] pt-3 mt-2">
           <Link
             href={signinHref}
+            prefetch={false}
             onClick={onItemClick}
             className="flex min-h-11 items-center justify-center rounded-xl bg-white/[0.08] px-4 py-2.5 text-sm font-medium text-[var(--gold-2)] transition-colors hover:bg-white/[0.14]"
           >
@@ -119,6 +120,7 @@ export function UserNavControl({
         <div className="space-y-1">
           <Link
             href="/account"
+            prefetch={false}
             onClick={onItemClick}
             className="flex min-h-11 items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--ink)]"
           >
@@ -143,6 +145,7 @@ export function UserNavControl({
     return (
       <Link
         href={signinHref}
+        prefetch={false}
         className="relative min-h-11 inline-flex items-center rounded-lg border border-white/[0.14] bg-white/[0.04] px-3 py-1.5 text-[13px] font-medium text-[var(--ink-2)] transition-colors hover:border-[var(--gold)]/50 hover:bg-white/[0.08] hover:text-[var(--gold-2)]"
       >
         Sign In
@@ -185,6 +188,7 @@ export function UserNavControl({
 
           <Link
             href="/account"
+            prefetch={false}
             role="menuitem"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--gold-2)]"
@@ -195,6 +199,7 @@ export function UserNavControl({
 
           <Link
             href="/history"
+            prefetch={false}
             role="menuitem"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--ink)]"
