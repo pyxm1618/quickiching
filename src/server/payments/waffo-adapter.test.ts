@@ -110,6 +110,37 @@ describe("Waffo 0.19.1 payment boundary", () => {
     expect(JSON.stringify(result)).not.toContain("tokenExpiresAt");
   });
 
+  it("passes successUrl when APP_BASE_URL is configured", async () => {
+    const create = vi.fn(async (_input: unknown) => ({
+      sessionId: "cs_test",
+      checkoutUrl: "https://pancake.waffo.ai/store/test/checkout/cs_test#token=secret-token",
+      expiresAt: "2026-08-24T02:00:00.000Z",
+      token: "secret-token",
+      tokenExpiresAt: "2026-08-24T01:20:00.000Z",
+    }));
+    const adapter = createWaffoPaymentAdapter(
+      resolveWaffoRuntimeConfig({
+        ...runtimeEnv,
+        APP_BASE_URL: "https://staging.quickiching.com",
+      }),
+      { checkout: { authenticated: { create } } },
+      () => new Date("2026-08-24T01:00:00.000Z"),
+    );
+
+    await adapter.createCheckout({
+      orderId: "order-success-url-test",
+      userId: "user-123",
+      buyerEmail: "buyer@example.com",
+      productKey: "one",
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        successUrl: "https://staging.quickiching.com/pricing?orderId=order-success-url-test",
+      }),
+    );
+  });
+
   it("uses the session deadline when it is earlier than the token deadline", async () => {
     const create = vi.fn(async () => ({
       sessionId: "cs_test",

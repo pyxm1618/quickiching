@@ -389,7 +389,18 @@ export function ThreeCoinResultClient({
         {/* AI 深度解读商业版板块 */}
         <section className="mt-12" aria-labelledby="commercial-deep-section">
           {deepStatus === "completed" && deepReport ? (
-            <CommercialReadingReportView report={deepReport} />
+            <>
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] px-5 py-3 text-xs text-[var(--ink-2)]">
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[var(--jade)]" />
+                  本报告已安全永久保存至您的账户
+                </span>
+                <Link href="/account" className="font-semibold text-[var(--gold-2)] hover:underline">
+                  查看账户与历史记录 →
+                </Link>
+              </div>
+              <CommercialReadingReportView report={deepReport} />
+            </>
           ) : deepStatus === "generating" ? (
             <div className="rounded-3xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] p-8 text-center sm:p-12">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/15">

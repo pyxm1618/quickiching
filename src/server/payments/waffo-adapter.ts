@@ -15,6 +15,7 @@ export type WaffoRuntimeConfig = {
   privateKey: string;
   storeId: string;
   productIds: Record<ProductId, string>;
+  appBaseUrl?: string;
 };
 
 export type WaffoWebhookConfig = Pick<WaffoRuntimeConfig, "environment" | "storeId">;
@@ -77,12 +78,14 @@ export function resolveWaffoRuntimeConfig(env: RuntimeEnv = process.env): WaffoR
   if (new Set(Object.values(productIds)).size !== 3) {
     throw new Error("WAFFO_CONFIGURATION_UNAVAILABLE");
   }
+  const appBaseUrl = env.APP_BASE_URL?.trim() || env.NEXT_PUBLIC_APP_URL?.trim() || undefined;
   return {
     environment,
     merchantId: required(env, "WAFFO_MERCHANT_ID"),
     privateKey: required(env, "WAFFO_PRIVATE_KEY"),
     storeId,
     productIds,
+    appBaseUrl,
   };
 }
 
@@ -113,12 +116,16 @@ export function createWaffoPaymentAdapter(
   return {
     async createCheckout(input) {
       const productId = config.productIds[input.productKey];
+      const successUrl = config.appBaseUrl
+        ? `${config.appBaseUrl.replace(/\/+$/, "")}/pricing?orderId=${encodeURIComponent(input.orderId)}`
+        : undefined;
       const result = await client.checkout.authenticated.create({
         productId,
         currency: "USD",
         buyerIdentity: input.userId,
         buyerEmail: input.buyerEmail,
         orderMerchantExternalId: input.orderId,
+        ...(successUrl ? { successUrl } : {}),
         metadata: {
           internalOrderId: input.orderId,
           productKey: input.productKey,

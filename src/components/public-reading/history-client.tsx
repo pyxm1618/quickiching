@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import { deleteHistoryRecord, publicReadingFromHistory, readHistoryRecords, renameHistoryRecord, type PublicHistoryRecord } from "@/domain/public-reading/history";
@@ -69,7 +70,18 @@ export function HistoryClient() {
 
   return (
     <div data-history-page>
-      <div className="mystic-card-soft mb-7 p-5 text-sm leading-7 text-[var(--ink-2)] sm:p-6"><strong className="text-[var(--gold-2)]">Browser-only history.</strong> Saved readings stay in this browser’s localStorage. There is no account, database, cloud sync, shareable reading URL, or sitemap entry. Clearing site data can remove them.</div>
+      <div className="mystic-card-soft mb-5 p-5 text-sm leading-7 text-[var(--ink-2)] sm:p-6"><strong className="text-[var(--gold-2)]">Browser-only history.</strong> Saved readings stay in this browser’s localStorage. There is no account, database, cloud sync, shareable reading URL, or sitemap entry. Clearing site data can remove them.</div>
+      <div className="mb-7 rounded-2xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] p-5 text-sm leading-7 text-[var(--ink-2)] sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <strong className="text-[var(--gold-2)] text-base">Looking for your cloud readings, purchases, or AI reports?</strong>
+            <p className="mt-1 text-xs text-[var(--ink-3)]">Readings and reports saved with your account are securely stored in the cloud.</p>
+          </div>
+          <Link href="/account" className="mystic-button !py-2.5 !px-5 text-xs shrink-0 font-medium">
+            Open My Account →
+          </Link>
+        </div>
+      </div>
       {records.length === 0 ? (
         <div className="mystic-card p-7 text-center"><p className="mystic-kicker">No saved readings</p><h2 className="mt-2 font-display text-3xl font-normal">Your local reflection shelf is empty</h2><p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--ink-2)]">Use Save reading on any completed cast. The browser stores up to 50 records and rebuilds each result from its six-line facts.</p></div>
       ) : (

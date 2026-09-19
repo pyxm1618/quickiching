@@ -202,7 +202,7 @@ export async function loadHistory(): Promise<
       select
         s.id, s.method, s.scene, s.lifecycle, s.risk_status, s.created_at,
         c.primary_hexagram_number,
-        p.id as preview_id,
+        p.casting_id as preview_id,
         d.casting_id as reading_id
       from casting_sessions s
       left join cast_results c on c.casting_id = s.id
