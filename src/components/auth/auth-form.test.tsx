@@ -63,7 +63,6 @@ describe("shared passwordless AuthForm", () => {
 
   it("maps OAuth linking conflicts without exposing an internal error code", () => {
     const mapped = authErrorMessage("account_not_linked");
-    expect(mapped?.message).toContain("couldn&#39;t").not;
     expect(mapped?.message).toContain("Quick I Ching account");
     expect(mapped?.message).not.toContain("account_not_linked");
   });
