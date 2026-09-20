@@ -8,6 +8,7 @@ import { User, LogOut, FileText, ChevronDown } from "lucide-react";
 export type UserNavControlProps = {
   initialUser?: { id: string; email: string } | null;
   isMobileDrawer?: boolean;
+  hideUnauthenticated?: boolean;
   onItemClick?: () => void;
 };
 
@@ -19,6 +20,7 @@ type UserState = {
 export function UserNavControl({
   initialUser,
   isMobileDrawer = false,
+  hideUnauthenticated = false,
   onItemClick,
 }: UserNavControlProps) {
   const pathname = usePathname() ?? "/";
@@ -152,6 +154,8 @@ export function UserNavControl({
   }
 
   // 2. 桌面端顶部导航布局
+  if (!user && hideUnauthenticated) return null;
+
   if (!user) {
     return (
       <div className="inline-flex items-center gap-2">
