@@ -471,7 +471,7 @@ export function SiteHeader({
 
         {/* Mobile & Tablet Controls (< 1024px, including 768px, 390px, 375px, 320px) */}
         <div className="flex lg:hidden items-center gap-2">
-          {authEnabled && <UserNavControl />}
+          {authEnabled && <UserNavControl hideUnauthenticated />}
           <button
             ref={drawerTriggerRef}
             id={drawerTriggerId}
