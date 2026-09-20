@@ -57,7 +57,6 @@ function createGoogleIdTokenAuth(input: {
         verifyIdToken: async () => true,
         getUserInfo: async () => ({
           user: {
-            id: input.subject,
             name: "Google Test User",
             email: input.email,
             emailVerified: input.emailVerified ?? true,
