@@ -113,6 +113,7 @@ describe("Public V1 middleware boundaries", () => {
 
   it("keeps Auth routes closed when the server capability is disabled", () => {
     expect(middleware(makeRequest("/signin")).status).toBe(410);
+    expect(middleware(makeRequest("/signup")).status).toBe(410);
     expect(middleware(makeRequest("/account")).status).toBe(410);
     expect(middleware(makeRequest("/api/auth/get-session")).status).toBe(404);
     expect(middleware(makeRequest("/api/readings", { method: "POST" })).status).toBe(404);
@@ -123,6 +124,7 @@ describe("Public V1 middleware boundaries", () => {
     for (const [name, value] of Object.entries(completeAuthEnv)) vi.stubEnv(name, value);
 
     expect(middleware(makeRequest("/signin")).status).toBe(200);
+    expect(middleware(makeRequest("/signup")).status).toBe(200);
     expect(middleware(makeRequest("/account")).status).toBe(200);
     expect(middleware(makeRequest("/api/auth/get-session")).status).toBe(200);
     expect(middleware(makeRequest("/api/readings", { method: "POST" })).status).toBe(200);
