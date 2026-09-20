@@ -26,7 +26,7 @@ describe("Better Auth server options", () => {
       account: {
         accountLinking: {
           enabled: true,
-          disableImplicitLinking: true,
+          disableImplicitLinking: false,
           requireLocalEmailVerified: true,
           trustedProviders: [],
         },
