@@ -46,15 +46,14 @@ function createGoogleIdTokenAuth(input: {
       sentLinks.push({ email: data.email, url: data.url, token: data.token });
     },
   });
-  const google = options.socialProviders?.google;
-  if (!google) throw new Error("GOOGLE_PROVIDER_MISSING");
-
   return betterAuth({
     ...options,
     socialProviders: {
       ...options.socialProviders,
       google: {
-        ...google,
+        clientId: "google-client-id",
+        clientSecret: "google-client-secret",
+        requireEmailVerification: true,
         verifyIdToken: async () => true,
         getUserInfo: async () => ({
           user: {
