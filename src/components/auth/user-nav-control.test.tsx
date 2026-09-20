@@ -17,10 +17,12 @@ vi.mock("next/navigation", () => ({
 import { UserNavControl } from "./user-nav-control";
 
 describe("UserNavControl Component Render", () => {
-  it("renders Sign In when unauthenticated", () => {
+  it("renders Sign in and Sign up when unauthenticated", () => {
     const html = renderToStaticMarkup(<UserNavControl initialUser={null} />);
-    expect(html).toContain("Sign In");
+    expect(html).toContain("Sign in");
+    expect(html).toContain("Sign up");
     expect(html).toContain('href="/signin?callbackURL=%2Faccount"');
+    expect(html).toContain('href="/signup?callbackURL=%2Faccount"');
   });
 
   it("renders user initial and email prefix when authenticated", () => {
@@ -45,10 +47,13 @@ describe("UserNavControl Component Render", () => {
     expect(html).toContain("Sign Out");
   });
 
-  it("renders mobile drawer sign-in when unauthenticated", () => {
+  it("renders mobile drawer Sign in and Sign up when unauthenticated", () => {
     const html = renderToStaticMarkup(
       <UserNavControl initialUser={null} isMobileDrawer={true} />,
     );
-    expect(html).toContain("Sign In");
+    expect(html).toContain("Sign in");
+    expect(html).toContain("Sign up");
+    expect(html).toContain('href="/signin?callbackURL=%2Faccount"');
+    expect(html).toContain('href="/signup?callbackURL=%2Faccount"');
   });
 });
