@@ -4,7 +4,7 @@ import { betterAuth } from "better-auth";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { authTables, sessions, users, verifications } from "@/server/db/auth-schema";
+import { accounts, authTables, sessions, users, verifications } from "@/server/db/auth-schema";
 import { buildAuthOptions } from "./server";
 import { createMagicLinkEmailTransport } from "./email";
 
@@ -27,6 +27,76 @@ const auth = betterAuth(buildAuthOptions(db, {
     sentLinks.push({ email: data.email, url: data.url, token: data.token });
   },
 }));
+
+function createGoogleIdTokenAuth(input: {
+  email: string;
+  subject: string;
+  emailVerified?: boolean;
+}) {
+  const options = buildAuthOptions(db, {
+    NODE_ENV: "test",
+    BETTER_AUTH_URL: "https://www.quickiching.com",
+    BETTER_AUTH_SECRET: "linking-test-secret-with-32-character-minimum",
+    GOOGLE_CLIENT_ID: "google-client-id",
+    GOOGLE_CLIENT_SECRET: "google-client-secret",
+    RESEND_API_KEY: "re_test_key",
+    EMAIL_FROM: "Quick I Ching <noreply@example.com>",
+  }, {
+    sendMagicLink: async (data) => {
+      sentLinks.push({ email: data.email, url: data.url, token: data.token });
+    },
+  });
+  const google = options.socialProviders?.google;
+  if (!google) throw new Error("GOOGLE_PROVIDER_MISSING");
+
+  return betterAuth({
+    ...options,
+    socialProviders: {
+      ...options.socialProviders,
+      google: {
+        ...google,
+        verifyIdToken: async () => true,
+        getUserInfo: async () => ({
+          user: {
+            id: input.subject,
+            name: "Google Test User",
+            email: input.email,
+            emailVerified: input.emailVerified ?? true,
+          },
+          data: {
+            sub: input.subject,
+            email: input.email,
+            email_verified: input.emailVerified ?? true,
+            name: "Google Test User",
+          },
+        }),
+      },
+    },
+  });
+}
+
+async function signInWithGoogleIdToken(
+  testAuth: ReturnType<typeof createGoogleIdTokenAuth>,
+  token: string,
+) {
+  return testAuth.handler(authRequest("/sign-in/social", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      provider: "google",
+      callbackURL: "/signin",
+      idToken: { token },
+    }),
+  }));
+}
+
+async function redeemLatestMagicLink(testAuth: ReturnType<typeof createGoogleIdTokenAuth>) {
+  const link = sentLinks.at(-1);
+  if (!link) throw new Error("MAGIC_LINK_NOT_SENT");
+  return testAuth.handler(new Request(link.url, {
+    headers: { origin: "https://www.quickiching.com" },
+  }));
+}
 
 const externalProviderRequests: string[] = [];
 const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
@@ -223,6 +293,177 @@ describe("Better Auth 1.7.1 PostgreSQL integration", () => {
     }));
     expect([302, 303]).toContain(expired.status);
     expect(expired.headers.get("location")).toContain("error=INVALID_TOKEN");
+  });
+
+  it("links Google to an existing Magic Link user with the same verified email", async () => {
+    const email = "magic-then-google.integration@example.com";
+    const testAuth = createGoogleIdTokenAuth({
+      email,
+      subject: "google-magic-then-google",
+    });
+
+    sentLinks.length = 0;
+    const magicStart = await testAuth.handler(authRequest("/sign-in/magic-link", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, callbackURL: "/signin" }),
+    }));
+    expect(magicStart.status).toBe(200);
+    const magicVerified = await redeemLatestMagicLink(testAuth);
+    expect([200, 302, 303]).toContain(magicVerified.status);
+
+    const beforeGoogle = await db.select().from(users).where(eq(users.email, email));
+    expect(beforeGoogle).toHaveLength(1);
+    expect(beforeGoogle[0]?.emailVerified).toBe(true);
+    const originalUserId = beforeGoogle[0]!.id;
+
+    const googleSignIn = await signInWithGoogleIdToken(testAuth, "token-magic-then-google");
+    expect(googleSignIn.status).toBe(200);
+
+    const afterGoogle = await db.select().from(users).where(eq(users.email, email));
+    expect(afterGoogle).toHaveLength(1);
+    expect(afterGoogle[0]!.id).toBe(originalUserId);
+
+    const googleAccounts = await db.select().from(accounts).where(eq(accounts.providerId, "google"));
+    const linked = googleAccounts.find((account) => account.accountId === "google-magic-then-google");
+    expect(linked?.userId).toBe(originalUserId);
+
+    const userSessions = await db.select().from(sessions).where(eq(sessions.userId, originalUserId));
+    expect(userSessions.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("reuses an existing Google user when the same email later uses Magic Link", async () => {
+    const email = "google-then-magic.integration@example.com";
+    const testAuth = createGoogleIdTokenAuth({
+      email,
+      subject: "google-google-then-magic",
+    });
+
+    const googleSignIn = await signInWithGoogleIdToken(testAuth, "token-google-then-magic");
+    expect(googleSignIn.status).toBe(200);
+    const afterGoogle = await db.select().from(users).where(eq(users.email, email));
+    expect(afterGoogle).toHaveLength(1);
+    const originalUserId = afterGoogle[0]!.id;
+
+    sentLinks.length = 0;
+    const magicStart = await testAuth.handler(authRequest("/sign-in/magic-link", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, callbackURL: "/signin" }),
+    }));
+    expect(magicStart.status).toBe(200);
+    const magicVerified = await redeemLatestMagicLink(testAuth);
+    expect([200, 302, 303]).toContain(magicVerified.status);
+
+    const afterMagic = await db.select().from(users).where(eq(users.email, email));
+    expect(afterMagic).toHaveLength(1);
+    expect(afterMagic[0]!.id).toBe(originalUserId);
+
+    const userSessions = await db.select().from(sessions).where(eq(sessions.userId, originalUserId));
+    expect(userSessions.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("keeps one user and one Google identity across alternating Google and Magic Link sign-ins", async () => {
+    const email = "alternating.integration@example.com";
+    const subject = "google-alternating";
+    const testAuth = createGoogleIdTokenAuth({ email, subject });
+
+    expect((await signInWithGoogleIdToken(testAuth, "token-alternating-1")).status).toBe(200);
+
+    sentLinks.length = 0;
+    expect((await testAuth.handler(authRequest("/sign-in/magic-link", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, callbackURL: "/signin" }),
+    }))).status).toBe(200);
+    expect([200, 302, 303]).toContain((await redeemLatestMagicLink(testAuth)).status);
+
+    expect((await signInWithGoogleIdToken(testAuth, "token-alternating-2")).status).toBe(200);
+
+    sentLinks.length = 0;
+    expect((await testAuth.handler(authRequest("/sign-in/magic-link", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, callbackURL: "/signin" }),
+    }))).status).toBe(200);
+    expect([200, 302, 303]).toContain((await redeemLatestMagicLink(testAuth)).status);
+
+    const matchingUsers = await db.select().from(users).where(eq(users.email, email));
+    expect(matchingUsers).toHaveLength(1);
+
+    const googleAccounts = await db.select().from(accounts).where(eq(accounts.providerId, "google"));
+    const matchingAccounts = googleAccounts.filter((account) => account.accountId === subject);
+    expect(matchingAccounts).toHaveLength(1);
+    expect(matchingAccounts[0]!.userId).toBe(matchingUsers[0]!.id);
+  });
+
+  it("does not create duplicate users for repeated use of the same Google identity", async () => {
+    const email = "same-google.integration@example.com";
+    const subject = "google-same-identity";
+    const testAuth = createGoogleIdTokenAuth({ email, subject });
+
+    expect((await signInWithGoogleIdToken(testAuth, "same-google-token-1")).status).toBe(200);
+    expect((await signInWithGoogleIdToken(testAuth, "same-google-token-2")).status).toBe(200);
+
+    const matchingUsers = await db.select().from(users).where(eq(users.email, email));
+    expect(matchingUsers).toHaveLength(1);
+    const googleAccounts = await db.select().from(accounts).where(eq(accounts.providerId, "google"));
+    expect(googleAccounts.filter((account) => account.accountId === subject)).toHaveLength(1);
+  });
+
+  it("keeps different verified emails as different logical users", async () => {
+    const firstEmail = "different-a.integration@example.com";
+    const secondEmail = "different-b.integration@example.com";
+    const firstAuth = createGoogleIdTokenAuth({ email: firstEmail, subject: "google-different-a" });
+    const secondAuth = createGoogleIdTokenAuth({ email: secondEmail, subject: "google-different-b" });
+
+    expect((await signInWithGoogleIdToken(firstAuth, "different-token-a")).status).toBe(200);
+    expect((await signInWithGoogleIdToken(secondAuth, "different-token-b")).status).toBe(200);
+
+    const firstUsers = await db.select().from(users).where(eq(users.email, firstEmail));
+    const secondUsers = await db.select().from(users).where(eq(users.email, secondEmail));
+    expect(firstUsers).toHaveLength(1);
+    expect(secondUsers).toHaveLength(1);
+    expect(firstUsers[0]!.id).not.toBe(secondUsers[0]!.id);
+  });
+
+  it("rejects an unverified Google email without creating a user or account", async () => {
+    const email = "unverified-google.integration@example.com";
+    const subject = "google-unverified";
+    const testAuth = createGoogleIdTokenAuth({
+      email,
+      subject,
+      emailVerified: false,
+    });
+
+    const response = await signInWithGoogleIdToken(testAuth, "unverified-google-token");
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(await db.select().from(users).where(eq(users.email, email))).toHaveLength(0);
+
+    const googleAccounts = await db.select().from(accounts).where(eq(accounts.providerId, "google"));
+    expect(googleAccounts.filter((account) => account.accountId === subject)).toHaveLength(0);
+  });
+
+  it("never rebinds an existing Google identity to a different email", async () => {
+    const subject = "google-non-rebindable";
+    const firstEmail = "identity-owner.integration@example.com";
+    const attemptedEmail = "identity-takeover.integration@example.com";
+    const ownerAuth = createGoogleIdTokenAuth({ email: firstEmail, subject });
+    const conflictingAuth = createGoogleIdTokenAuth({ email: attemptedEmail, subject });
+
+    expect((await signInWithGoogleIdToken(ownerAuth, "identity-owner-token")).status).toBe(200);
+    const ownerUsers = await db.select().from(users).where(eq(users.email, firstEmail));
+    expect(ownerUsers).toHaveLength(1);
+    const ownerUserId = ownerUsers[0]!.id;
+
+    const secondSignIn = await signInWithGoogleIdToken(conflictingAuth, "identity-conflict-token");
+    expect(secondSignIn.status).toBe(200);
+
+    expect(await db.select().from(users).where(eq(users.email, attemptedEmail))).toHaveLength(0);
+    const googleAccounts = await db.select().from(accounts).where(eq(accounts.providerId, "google"));
+    const matchingAccounts = googleAccounts.filter((account) => account.accountId === subject);
+    expect(matchingAccounts).toHaveLength(1);
+    expect(matchingAccounts[0]!.userId).toBe(ownerUserId);
   });
 
   it("never performs Google, Resend, or other provider HTTP during the integration suite", () => {
