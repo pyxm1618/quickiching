@@ -47,10 +47,11 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel
 
-      - name: Pull production project settings
+      - name: Link and pull production project settings
         run: |
           rm -rf .vercel
-          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel link --yes --project=ichingcoin --scope=pyxm1618s-projects --token="$VERCEL_TOKEN"
+          vercel pull --yes --environment=production --scope=pyxm1618s-projects --token="$VERCEL_TOKEN"
 
       - name: Build exact release with production settings
         run: vercel build --prod --token="$VERCEL_TOKEN"
