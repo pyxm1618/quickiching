@@ -1,0 +1,66 @@
+name: One-off Production Deploy — Auth + SEO
+
+on:
+  push:
+    branches:
+      - ops/deploy-auth-seo-20260922
+
+permissions:
+  contents: read
+
+concurrency:
+  group: one-off-production-deploy-auth-seo-20260922
+  cancel-in-progress: false
+
+env:
+  VERCEL_ORG_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
+  VERCEL_PROJECT_ID: prj_pCpeoAys2GOqKZvkbLugYjpJWZBS
+  RELEASE_SHA: 4ff71abfd6abe3dbfc3866aacc8d33ae8cac7170
+
+jobs:
+  deploy:
+    name: Build and deploy exact merged release to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Verify deploy credential exists
+        run: test -n "${VERCEL_TOKEN:-}" || { echo "::error::VERCEL_TOKEN is not configured"; exit 1; }
+
+      - name: Checkout exact merged release
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+
+      - name: Pull production project settings
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build exact release with production settings
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy prebuilt artifact to production
+        id: deploy
+        run: |
+          url="$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Production URL: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record release identity
+        run: |
+          echo "Release commit: $RELEASE_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Expected tree: 678ee6134e3501b4052bea84823a330c46536a15" >> "$GITHUB_STEP_SUMMARY"
