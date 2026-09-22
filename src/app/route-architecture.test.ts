@@ -54,6 +54,7 @@ describe("App Router multilingual architecture", () => {
 
   it("adds only the reviewed CP4 commercial API surface without restoring legacy pages", () => {
     expect(existsSync(`${appRoot}(default)/signin/page.tsx`)).toBe(true);
+    expect(existsSync(`${appRoot}(default)/signup/page.tsx`)).toBe(true);
     expect(existsSync(`${appRoot}api/auth/[...all]/route.ts`)).toBe(true);
     expect(existsSync(`${appRoot}api/checkout/route.ts`)).toBe(true);
     expect(existsSync(`${appRoot}api/webhooks/waffo/route.ts`)).toBe(true);

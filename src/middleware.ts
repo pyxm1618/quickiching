@@ -64,7 +64,7 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  if (matchesPrefix(pathname, "/signin")) {
+  if (matchesPrefix(pathname, "/signin") || matchesPrefix(pathname, "/signup")) {
     if (isAuthCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("This Commercial V2 route is not available in Public V1.", {
       status: 410,

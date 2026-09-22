@@ -8,6 +8,7 @@ import { User, LogOut, FileText, ChevronDown } from "lucide-react";
 export type UserNavControlProps = {
   initialUser?: { id: string; email: string } | null;
   isMobileDrawer?: boolean;
+  hideUnauthenticated?: boolean;
   onItemClick?: () => void;
 };
 
@@ -19,6 +20,7 @@ type UserState = {
 export function UserNavControl({
   initialUser,
   isMobileDrawer = false,
+  hideUnauthenticated = false,
   onItemClick,
 }: UserNavControlProps) {
   const pathname = usePathname() ?? "/";
@@ -77,6 +79,7 @@ export function UserNavControl({
   }
 
   const signinHref = `/signin?callbackURL=${encodeURIComponent(pathname)}`;
+  const signupHref = `/signup?callbackURL=${encodeURIComponent(pathname)}`;
 
   if (loading) {
     return (
@@ -90,15 +93,25 @@ export function UserNavControl({
   if (isMobileDrawer) {
     if (!user) {
       return (
-        <div className="border-t border-white/[0.08] pt-3 mt-2">
-          <Link
-            href={signinHref}
-            prefetch={false}
-            onClick={onItemClick}
-            className="flex min-h-11 items-center justify-center rounded-xl bg-white/[0.08] px-4 py-2.5 text-sm font-medium text-[var(--gold-2)] transition-colors hover:bg-white/[0.14]"
-          >
-            Sign In
-          </Link>
+        <div className="mt-2 border-t border-white/[0.08] pt-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              href={signinHref}
+              prefetch={false}
+              onClick={onItemClick}
+              className="flex min-h-11 items-center justify-center rounded-xl border border-white/[0.12] px-4 py-2.5 text-sm font-medium text-[var(--ink-2)] transition-colors hover:border-[var(--gold)]/40 hover:bg-white/[0.06] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)]"
+            >
+              Sign in
+            </Link>
+            <Link
+              href={signupHref}
+              prefetch={false}
+              onClick={onItemClick}
+              className="flex min-h-11 items-center justify-center rounded-xl border border-[var(--gold)]/35 bg-[var(--gold)]/12 px-4 py-2.5 text-sm font-semibold text-[var(--gold-2)] transition-colors hover:bg-[var(--gold)]/18 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)]"
+            >
+              Sign up
+            </Link>
+          </div>
         </div>
       );
     }
@@ -141,15 +154,26 @@ export function UserNavControl({
   }
 
   // 2. 桌面端顶部导航布局
+  if (!user && hideUnauthenticated) return null;
+
   if (!user) {
     return (
-      <Link
-        href={signinHref}
-        prefetch={false}
-        className="relative min-h-11 inline-flex items-center rounded-lg border border-white/[0.14] bg-white/[0.04] px-3 py-1.5 text-[13px] font-medium text-[var(--ink-2)] transition-colors hover:border-[var(--gold)]/50 hover:bg-white/[0.08] hover:text-[var(--gold-2)]"
-      >
-        Sign In
-      </Link>
+      <div className="inline-flex items-center gap-2">
+        <Link
+          href={signinHref}
+          prefetch={false}
+          className="inline-flex min-h-11 items-center rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.05] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)]"
+        >
+          Sign in
+        </Link>
+        <Link
+          href={signupHref}
+          prefetch={false}
+          className="inline-flex min-h-11 items-center rounded-lg border border-[var(--gold)]/35 bg-[var(--gold)]/10 px-3 py-1.5 text-[13px] font-semibold text-[var(--gold-2)] transition-colors hover:bg-[var(--gold)]/16 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)]"
+        >
+          Sign up
+        </Link>
+      </div>
     );
   }
 

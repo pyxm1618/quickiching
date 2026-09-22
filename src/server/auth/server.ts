@@ -79,7 +79,7 @@ export function buildAuthOptions(
     account: {
       accountLinking: {
         enabled: true,
-        disableImplicitLinking: true,
+        disableImplicitLinking: false,
         requireLocalEmailVerified: true,
         trustedProviders: [],
       },

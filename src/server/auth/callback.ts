@@ -25,22 +25,26 @@ export function validateAuthCallbackURL(candidate: string | undefined, baseURL: 
   const origin = parseOrigin(baseURL);
   if (candidate === undefined || candidate.trim() === "") return "/";
   if (candidate.trim() !== candidate || candidate.length > 2048) throw new Error("AUTH_CALLBACK_INVALID");
+  if (candidate.includes("\\") || /%(?:25)*(?:5c)/i.test(candidate)) throw new Error("AUTH_CALLBACK_INVALID");
 
-  let decoded = candidate;
+  const splitIndex = candidate.search(/[?#]/);
+  const pathPart = splitIndex >= 0 ? candidate.slice(0, splitIndex) : candidate;
+
+  let decodedPath = pathPart;
   try {
     let stable = false;
     for (let pass = 0; pass < 8; pass += 1) {
-      if (/%(?:25)*(?:2f|5c)/i.test(decoded) || decoded.includes("\\") || decoded.startsWith("//")) {
+      if (/%(?:25)*(?:2f|5c)/i.test(decodedPath) || decodedPath.includes("\\") || decodedPath.startsWith("//")) {
         throw new Error();
       }
-      const next = decodeURIComponent(decoded);
-      if (next === decoded) {
+      const next = decodeURIComponent(decodedPath);
+      if (next === decodedPath) {
         stable = true;
         break;
       }
-      decoded = next;
+      decodedPath = next;
     }
-    if (!stable || /%(?:25)*(?:2f|5c)/i.test(decoded) || decoded.includes("\\") || decoded.startsWith("//")) {
+    if (!stable || /%(?:25)*(?:2f|5c)/i.test(decodedPath) || decodedPath.includes("\\") || decodedPath.startsWith("//")) {
       throw new Error();
     }
   } catch {
@@ -49,7 +53,7 @@ export function validateAuthCallbackURL(candidate: string | undefined, baseURL: 
 
   let parsed: URL;
   try {
-    parsed = new URL(decoded, origin);
+    parsed = new URL(candidate, origin);
   } catch {
     throw new Error("AUTH_CALLBACK_INVALID");
   }
