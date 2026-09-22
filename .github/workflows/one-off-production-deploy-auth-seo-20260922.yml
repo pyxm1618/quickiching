@@ -48,7 +48,9 @@ jobs:
         run: npm install --global vercel
 
       - name: Pull production project settings
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        run: |
+          rm -rf .vercel
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       - name: Build exact release with production settings
         run: vercel build --prod --token="$VERCEL_TOKEN"
