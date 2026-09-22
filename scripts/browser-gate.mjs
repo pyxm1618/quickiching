@@ -521,7 +521,7 @@ async function verifyBrowserFlows() {
           await page.keyboard.press("Escape");
           await page.waitForFunction(() => !document.querySelector('[role="dialog"][aria-modal="true"]'), { timeout: 5000 });
           const opened = await page.evaluate(() => {
-            const summary = [...document.querySelectorAll("summary")].find((node) => node.textContent?.trim() === "What is an I Ching reading?");
+            const summary = [...document.querySelectorAll("summary")].find((node) => node.textContent?.trim() === "What is an I Ching online reading?");
             if (!(summary instanceof HTMLElement)) return false;
             summary.click();
             return true;
