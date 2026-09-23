@@ -29,7 +29,7 @@ export default function ChineseThreeCoinMethodPage() {
       <header className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
         <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--bronze)]">周易起卦 · 三枚铜钱法</p>
         <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{SEO.finalH1}</h1>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">三枚铜钱起卦把六次掷币依次转换成六爻。第一次结果是最下方的初爻，之后逐爻向上；爻值 6 和 9 是动爻，会翻转形成之卦（变卦）。下面的工具直接完成完整流程，不需要切换到英文页面。</p>
+        <p data-seo-early-copy className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">三枚铜钱起卦把六次掷币依次转换成六爻。第一次结果是最下方的初爻，之后逐爻向上；爻值 6 和 9 是动爻，会翻转形成之卦（变卦）。下面的工具直接完成完整流程，不需要切换到英文页面。</p>
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
