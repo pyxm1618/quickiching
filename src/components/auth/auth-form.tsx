@@ -197,7 +197,7 @@ export function AuthForm({
           }}
           className="mt-5 min-h-11 rounded-lg border border-[var(--line)] px-4 py-2 text-sm font-medium text-[var(--ink-2)] transition-colors hover:bg-[var(--ink)]/[0.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cinnabar)]"
         >
-          Use a different email
+          {copy.differentEmail}
         </button>
       </div>
     );
