@@ -1,9 +1,20 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import Script from "next/script";
-import { ADSTERRA_RESULT_UNIT, isAdsterraEnabled } from "@/lib/adsterra";
+import { ADSTERRA_RESULT_UNIT, isAdsterraEnabled, isAdsterraRuntimeHost } from "@/lib/adsterra";
+
+const BUILD_ENABLED = isAdsterraEnabled();
 
 export function AdsterraResultAd() {
-  if (!isAdsterraEnabled()) return null;
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    if (!BUILD_ENABLED) return;
+    setEnabled(isAdsterraRuntimeHost(window.location.hostname));
+  }, []);
+
+  if (!enabled) return null;
 
   return (
     <aside
