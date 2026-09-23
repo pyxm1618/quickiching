@@ -89,22 +89,27 @@ async function verifyHttpBoundaries() {
     assert.equal(location.pathname, destination, `${path}: wrong redirect destination`);
   }
 
-  for (const path of [
-    "/fr",
-    "/ja",
-    "/zh-Hans",
-    "/zh/methods/three-coin",
-    "/zh/methods/yarrow-stalks",
-    "/zh/methods/manual-cast",
-  ]) {
+  for (const path of ["/fr", "/ja", "/zh-Hans"]) {
     await expectStatus(path, 404);
   }
 
-  for (const path of ["/zh/hexagrams", "/zh/hexagrams/1-the-creative", "/zh/hexagrams/64-before-completion"]) {
+  for (const path of [
+    "/zh",
+    "/zh/methods/three-coin",
+    "/zh/methods/yarrow-stalks",
+    "/zh/methods/mei-hua-yi-shu",
+    "/zh/methods/manual-cast",
+    "/zh/guides/how-to-ask-the-i-ching",
+    "/zh/guides/changing-lines",
+    "/zh/guides/primary-relating-hexagrams",
+    "/zh/hexagrams",
+    "/zh/hexagrams/1-the-creative",
+    "/zh/hexagrams/64-before-completion",
+  ]) {
     await expectStatus(path, 200);
   }
 
-  for (const path of ["/this-page-must-not-exist", "/fr", "/de", "/zh-Hans", "/zh/does-not-exist", "/zh/methods/three-coin"]) {
+  for (const path of ["/this-page-must-not-exist", "/fr", "/de", "/zh-Hans", "/zh/does-not-exist"]) {
     await expectStatus(path, 404);
   }
 
@@ -114,8 +119,8 @@ async function verifyHttpBoundaries() {
 
   const sitemap = await expectStatus("/sitemap.xml", 200);
   const locs = [...(await sitemap.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-  assert.equal(new Set(locs).size, 140, `Sitemap must contain 140 unique URLs, received ${locs.length}`);
-  assert.equal(locs.filter((url) => new URL(url).pathname.startsWith("/zh")).length, 67, "Sitemap must contain exactly 67 Chinese URLs");
+  assert.equal(new Set(locs).size, 146, `Sitemap must contain 146 unique URLs, received ${locs.length}`);
+  assert.equal(locs.filter((url) => new URL(url).pathname.startsWith("/zh")).length, 73, "Sitemap must contain exactly 73 Chinese URLs");
   assert.equal(locs.filter((url) => !new URL(url).pathname.startsWith("/zh")).length, 73, "Sitemap must retain the 73 English URLs");
   assert(locs.every((url) => url.startsWith(`${CANONICAL_ORIGIN}/`)), "Sitemap contains a non-canonical origin");
   assert(!locs.some((url) => new URL(url).pathname.startsWith("/en")), "Sitemap must not contain /en URLs");
@@ -123,8 +128,8 @@ async function verifyHttpBoundaries() {
   const metadataChecks = [
     ["/", "en", `${CANONICAL_ORIGIN}/`, "I Ching Online — Cast Your Hexagram", "I Ching Online — Free Hexagram Reading | Quick I Ching"],
     ["/methods/mei-hua-yi-shu", "en", `${CANONICAL_ORIGIN}/methods/mei-hua-yi-shu`, "Mei Hua Yi Shu", "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting | Quick I Ching"],
-    ["/zh", "zh-Hans", `${CANONICAL_ORIGIN}/zh`, "用易经整理问题，回到现实行动", "易经在线｜Quick I Ching 中文入口"],
-    ["/zh/methods/mei-hua-yi-shu", "zh-Hans", `${CANONICAL_ORIGIN}/zh/methods/mei-hua-yi-shu`, "梅花易数时间起卦", "梅花易数公历适配版｜在线起卦 | Quick I Ching"],
+    ["/zh", "zh-Hans", `${CANONICAL_ORIGIN}/zh`, "易经在线起卦：从起卦到本卦、动爻与变卦", "易经在线起卦｜四种起卦方法与六十四卦解读 | Quick I Ching"],
+    ["/zh/methods/mei-hua-yi-shu", "zh-Hans", `${CANONICAL_ORIGIN}/zh/methods/mei-hua-yi-shu`, "梅花易数起卦：按公历当前时间在线起卦", "梅花易数起卦｜在线时间起卦与计算说明 | Quick I Ching"],
   ];
   for (const [path, htmlLang, canonical, requiredText, title] of metadataChecks) {
     const html = await (await expectStatus(path, 200)).text();
@@ -141,15 +146,23 @@ async function verifyHttpBoundaries() {
   }
 
   const zhHomeHtml = await (await expectStatus("/zh", 200)).text();
-  for (const forbidden of ["/zh/methods/three-coin", "/zh/methods/yarrow-stalks", "/zh/methods/manual-cast"]) {
-    assert(!zhHomeHtml.includes(`href="${forbidden}"`), `Chinese home exposes an unpublished localized path: ${forbidden}`);
+  for (const required of [
+    "/zh/methods/three-coin",
+    "/zh/methods/yarrow-stalks",
+    "/zh/methods/mei-hua-yi-shu",
+    "/zh/methods/manual-cast",
+    "/zh/guides/how-to-ask-the-i-ching",
+    "/zh/guides/changing-lines",
+    "/zh/guides/primary-relating-hexagrams",
+    "/zh/hexagrams",
+  ]) {
+    assert(zhHomeHtml.includes(`href="${required}"`), `Chinese home must link localized route: ${required}`);
   }
-  assert(zhHomeHtml.includes('href="/zh/hexagrams"'), "Chinese home must link the published Chinese hexagram Hub");
 
   const chineseHomeHeaderLinks = [...zhHomeHtml.matchAll(/<header\b[\s\S]*?<\/header>/gi)][0]?.[0] ?? "";
   assert.equal((chineseHomeHeaderLinks.match(/href="\/"/g) ?? []).length, 1, "Chinese header must expose exactly one root English link");
 
-  log("HTTP redirects, locale 404s, Accept-Language stability, 140-URL sitemap, metadata, and published Chinese Hub link PASS");
+  log("HTTP redirects, locale 404s, Accept-Language stability, 146-URL sitemap, metadata, and full Chinese canonical route set PASS");
 }
 
 function attachFailureCollectors(page) {
@@ -221,7 +234,7 @@ async function verifyChineseReading(page, viewport) {
   const label = `${viewport.width}px Chinese Mei Hua`;
   await page.setViewport(viewport);
   await page.goto(`${BASE}/zh`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await waitForText(page, "用易经整理问题，回到现实行动");
+  await waitForText(page, "易经在线起卦：从起卦到本卦、动爻与变卦");
   await assertNoOverflow(page, `${viewport.width}px Chinese home`);
   assert.equal(await page.$$eval("header [data-language-switch]", (nodes) => nodes.length), 1, `${label}: Chinese header must have one language switcher`);
   assert.equal(await page.$$eval('header a[href="/"]', (nodes) => nodes.length), 1, `${label}: Chinese home must have one root English header link`);
@@ -301,7 +314,6 @@ async function verifyBrowserFlows() {
       ["/de", "Page Not Found | Quick I Ching", "en", "Page Not Found"],
       ["/zh-Hans", "Page Not Found | Quick I Ching", "en", "Page Not Found"],
       ["/zh/does-not-exist", "页面不存在 | Quick I Ching", "zh-Hans", "找不到这个页面"],
-      ["/zh/methods/three-coin", "页面不存在 | Quick I Ching", "zh-Hans", "找不到这个页面"],
     ];
     const metadataContext = await browser.createBrowserContext();
     const metadataPage = await metadataContext.newPage();
