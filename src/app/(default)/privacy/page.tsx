@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How Quick I Ching handles browser data, account data, analytics, technical logs, and support messages.",
+  description: "How Quick I Ching handles browser data, account data, analytics, advertising, technical logs, and support messages.",
   alternates: { canonical: "/privacy" },
   robots: { index: false, follow: true },
 };
@@ -13,7 +13,7 @@ export default function PrivacyPage() {
     <article className="mx-auto max-w-3xl px-4 py-12 sm:py-16">
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Legal</p>
       <h1 className="mt-3 font-display text-4xl font-medium tracking-tight">Privacy Policy</h1>
-      <p className="mt-4 text-sm text-[var(--ink-3)]">Last updated: August 27, 2026</p>
+      <p className="mt-4 text-sm text-[var(--ink-3)]">Last updated: September 23, 2026</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">Public reading data</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">The public Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, and Manual Cast tools do not require an account or payment. Casting progress and fixed method facts may be stored in your browser’s <code>sessionStorage</code> so the current reading can survive a page refresh. A separate <code>localStorage</code>-only History shelf is written only after you explicitly choose Save; it is not account history or cloud sync.</p>
@@ -26,6 +26,9 @@ export default function PrivacyPage() {
 
       <h2 className="mt-10 font-display text-2xl font-medium">Analytics and session insights</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching uses Google Analytics 4 to understand traffic sources, page views, and aggregate site usage, and Microsoft Clarity to understand interactions such as clicks, scrolling, heatmaps, and session-level experience. The site initializes analytics and advertising storage as denied by default; where supported, these services may operate in a limited cookieless mode unless a valid consent signal allows additional storage. Provider processing is also subject to Google’s and Microsoft’s applicable privacy terms.</p>
+
+      <h2 className="mt-10 font-display text-2xl font-medium">Advertising</h2>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">The Three-Coin result page may display a Native Banner supplied by Adsterra. Loading that ad connects your browser to Adsterra delivery infrastructure, including effectivecpmnetwork.com. The advertising provider may receive ordinary network and device information such as IP address, browser or device characteristics, requested page, timestamp, and ad interaction data, and may use cookies or similar technologies under its own privacy terms. Advertising is separate from Quick I Ching reading content, account credentials, and payment-card processing.</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">Question privacy and optional interpretation</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Questions are optional, capped, masked for session replay, and kept out of URLs, metadata, structured data, analytics events, and application logs. When personalized interpretation is activated, the full question and verified reading facts are sent through Vercel AI Gateway to the configured downstream model provider. Those providers may process or retain the request under their configured controls and privacy terms, so do not enter unnecessary sensitive personal, health, legal, or financial information. Generation endpoints are not cached and fail closed when required security, key, provider, or safety controls are unavailable.</p>
