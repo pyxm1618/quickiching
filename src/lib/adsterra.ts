@@ -16,3 +16,10 @@ export function isAdsterraEnabled(
 
   return environment.NODE_ENV === "production";
 }
+
+export function isAdsterraRuntimeHost(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase();
+  return normalized === "www.quickiching.com"
+    || normalized === "quickiching.com"
+    || normalized.endsWith(".vercel.app");
+}
