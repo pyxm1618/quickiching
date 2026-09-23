@@ -42,8 +42,13 @@ export default function ChineseHexagramsHubPage() {
       <header className="mt-6">
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">周易 · 简体中文导航</p>
         <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{SEO.finalH1}</h1>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">易经六十四卦按通行的文王卦序排列，从乾卦、坤卦一直到未济卦。这里集中提供 64 个中文卦象详情入口；每页保留有来源的卦辞、大象和六条爻辞，并补充结构说明、无动爻阅读与现实反思。</p>
+        <p data-seo-early-copy className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">易经六十四卦按通行的文王卦序排列，从乾卦、坤卦一直到未济卦。这里集中提供 64 个中文卦象详情入口；每页保留有来源的卦辞、大象和六条爻辞，并补充结构说明、无动爻阅读与现实反思。</p>
       </header>
+
+      <section className="mt-10 max-w-4xl">
+        <h2 className="font-display text-2xl font-medium">如何使用易经六十四卦目录</h2>
+        <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">可以按文王卦序浏览易经六十四卦，也可以从起卦结果直接进入对应本卦或之卦。每个详情页使用独立中文关键词和固定卦序，并连接前后卦与相关中文指南。</p>
+      </section>
 
       <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CLASSICAL_HEXAGRAMS.map((hexagram) => {
