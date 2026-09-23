@@ -111,7 +111,7 @@ export function UserNavControl({
               onClick={onItemClick}
               className="flex min-h-11 items-center justify-center rounded-xl border border-white/[0.12] px-4 py-2.5 text-sm font-medium text-[var(--ink-2)] transition-colors hover:border-[var(--gold)]/40 hover:bg-white/[0.06] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)]"
             >
-              Sign in
+              {copy.signIn}
             </Link>
             <Link
               href={signupHref}
@@ -119,7 +119,7 @@ export function UserNavControl({
               onClick={onItemClick}
               className="flex min-h-11 items-center justify-center rounded-xl border border-[var(--gold)]/35 bg-[var(--gold)]/12 px-4 py-2.5 text-sm font-semibold text-[var(--gold-2)] transition-colors hover:bg-[var(--gold)]/18 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)]"
             >
-              Sign up
+              {copy.signUp}
             </Link>
           </div>
         </div>
@@ -174,15 +174,15 @@ export function UserNavControl({
           prefetch={false}
           className="inline-flex min-h-11 items-center rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.05] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)]"
         >
-          Sign in
-        </Link>
+              {copy.signIn}
+            </Link>
         <Link
           href={signupHref}
           prefetch={false}
           className="inline-flex min-h-11 items-center rounded-lg border border-[var(--gold)]/35 bg-[var(--gold)]/10 px-3 py-1.5 text-[13px] font-semibold text-[var(--gold-2)] transition-colors hover:bg-[var(--gold)]/16 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)]"
         >
-          Sign up
-        </Link>
+              {copy.signUp}
+            </Link>
       </div>
     );
   }
