@@ -2,9 +2,16 @@
 
 import React, { useEffect, useState } from "react";
 import Script from "next/script";
-import { ADSTERRA_RESULT_UNIT, isAdsterraEnabled, isAdsterraRuntimeHost } from "@/lib/adsterra";
+import {
+  ADSTERRA_RESULT_UNIT,
+  isAdsterraRuntimeHost,
+  resolveAdsterraEnabled,
+} from "@/lib/adsterra";
 
-const BUILD_ENABLED = isAdsterraEnabled();
+const BUILD_ENABLED = resolveAdsterraEnabled({
+  publicFlag: process.env.NEXT_PUBLIC_ADSTERRA_ENABLED,
+  nodeEnv: process.env.NODE_ENV,
+});
 
 export function AdsterraResultAd() {
   const [enabled, setEnabled] = useState(false);
