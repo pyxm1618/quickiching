@@ -9,20 +9,14 @@ vi.mock("next/script", () => ({
   ),
 }));
 
-const originalFlag = process.env.NEXT_PUBLIC_ADSTERRA_ENABLED;
-const originalNodeEnv = process.env.NODE_ENV;
-
 afterEach(() => {
-  if (originalFlag === undefined) delete process.env.NEXT_PUBLIC_ADSTERRA_ENABLED;
-  else process.env.NEXT_PUBLIC_ADSTERRA_ENABLED = originalFlag;
-  if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-  else process.env.NODE_ENV = originalNodeEnv;
+  vi.unstubAllEnvs();
 });
 
 describe("AdsterraResultAd", () => {
   it("renders on a deployed environment", () => {
-    delete process.env.NEXT_PUBLIC_ADSTERRA_ENABLED;
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NEXT_PUBLIC_ADSTERRA_ENABLED", "");
+    vi.stubEnv("NODE_ENV", "production");
     const html = renderToStaticMarkup(<AdsterraResultAd />);
 
     expect(html).toContain('data-adsterra-result-slot="true"');
@@ -33,8 +27,8 @@ describe("AdsterraResultAd", () => {
   });
 
   it("supports an explicit off switch", () => {
-    process.env.NODE_ENV = "production";
-    process.env.NEXT_PUBLIC_ADSTERRA_ENABLED = "false";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_ADSTERRA_ENABLED", "false");
     expect(renderToStaticMarkup(<AdsterraResultAd />)).toBe("");
   });
 });
