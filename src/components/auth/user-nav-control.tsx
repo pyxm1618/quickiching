@@ -4,12 +4,15 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User, LogOut, FileText, ChevronDown } from "lucide-react";
+import { getDictionary } from "@/i18n/dictionaries";
+import type { ContentLocale } from "@/i18n/config";
 
 export type UserNavControlProps = {
   initialUser?: { id: string; email: string } | null;
   isMobileDrawer?: boolean;
   hideUnauthenticated?: boolean;
   onItemClick?: () => void;
+  locale?: ContentLocale;
 };
 
 type UserState = {
@@ -22,7 +25,11 @@ export function UserNavControl({
   isMobileDrawer = false,
   hideUnauthenticated = false,
   onItemClick,
+  locale = "en",
 }: UserNavControlProps) {
+  const dictionary = getDictionary(locale);
+  const copy = dictionary.userNav;
+  const isChinese = locale === "zh-Hans";
   const pathname = usePathname() ?? "/";
   const [user, setUser] = useState<UserState>(initialUser !== undefined ? initialUser : null);
   const [loading, setLoading] = useState(initialUser === undefined);
@@ -75,11 +82,14 @@ export function UserNavControl({
     } catch {
       // 降级刷新
     }
-    window.location.assign("/");
+    window.location.assign(isChinese ? "/zh" : "/");
   }
 
-  const signinHref = `/signin?callbackURL=${encodeURIComponent(pathname)}`;
-  const signupHref = `/signup?callbackURL=${encodeURIComponent(pathname)}`;
+  const authPrefix = isChinese ? "/zh" : "";
+  const signinHref = `${authPrefix}/signin?callbackURL=${encodeURIComponent(pathname)}`;
+  const signupHref = `${authPrefix}/signup?callbackURL=${encodeURIComponent(pathname)}`;
+  const accountHref = `${authPrefix}/account`;
+  const historyHref = `${authPrefix}/history`;
 
   if (loading) {
     return (
@@ -126,19 +136,19 @@ export function UserNavControl({
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-medium text-[var(--ink)]">{user.email}</p>
-            <p className="text-[10px] text-[var(--jade)]">Active Account</p>
+            <p className="text-[10px] text-[var(--jade)]">{copy.activeAccount}</p>
           </div>
         </div>
 
         <div className="space-y-1">
           <Link
-            href="/account"
+            href={accountHref}
             prefetch={false}
             onClick={onItemClick}
             className="flex min-h-11 items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--ink)]"
           >
             <User className="h-4 w-4 text-[var(--gold)]" />
-            <span>My Account & History</span>
+            <span>{copy.accountAndHistory}</span>
           </Link>
           <button
             type="button"
@@ -146,7 +156,7 @@ export function UserNavControl({
             className="flex min-h-11 w-full items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--danger)] transition-colors hover:bg-white/[0.08]"
           >
             <LogOut className="h-4 w-4" />
-            <span>Sign Out</span>
+            <span>{copy.signOut}</span>
           </button>
         </div>
       </div>
@@ -186,7 +196,7 @@ export function UserNavControl({
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        aria-label={`User menu for ${user.email}`}
+        aria-label={copy.menuAria.replace("{email}", user.email)}
         className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.04] py-1 pl-1.5 pr-2.5 transition-all hover:border-[var(--gold)]/40 hover:bg-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)] cursor-pointer"
       >
         <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/20 text-xs font-semibold text-[var(--gold-2)] shadow-sm">
@@ -204,7 +214,7 @@ export function UserNavControl({
           className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-white/[0.12] bg-[#120f1d]/95 p-2 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in zoom-in-95 duration-150"
         >
           <div className="px-3 py-2 border-b border-white/[0.08] mb-1">
-            <p className="text-[10.5px] uppercase tracking-[0.08em] text-[var(--ink-3)]">Signed in as</p>
+            <p className="text-[10.5px] uppercase tracking-[0.08em] text-[var(--ink-3)]">{copy.signedInAs}</p>
             <p className="truncate text-xs font-medium text-[var(--ink)] mt-0.5" title={user.email}>
               {user.email}
             </p>
@@ -218,18 +228,18 @@ export function UserNavControl({
             className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--gold-2)]"
           >
             <User className="h-3.5 w-3.5 text-[var(--gold)]" />
-            <span>My Account</span>
+            <span>{copy.account}</span>
           </Link>
 
           <Link
-            href="/history"
+            href={historyHref}
             prefetch={false}
             role="menuitem"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--ink)]"
           >
             <FileText className="h-3.5 w-3.5 text-[var(--ink-3)]" />
-            <span>Local History</span>
+            <span>{copy.history}</span>
           </Link>
 
           <div className="my-1 border-t border-white/[0.08]" />
@@ -241,7 +251,7 @@ export function UserNavControl({
             className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-[var(--danger)] transition-colors hover:bg-white/[0.08] cursor-pointer"
           >
             <LogOut className="h-3.5 w-3.5" />
-            <span>Sign Out</span>
+            <span>{copy.signOut}</span>
           </button>
         </div>
       )}
