@@ -292,14 +292,161 @@ export function SiteHeader({
         >
           {isChinese ? (
             <>
-              <Link href="/zh/methods/mei-hua-yi-shu" aria-current={isCurrentPath("/zh/methods/mei-hua-yi-shu") ? "page" : undefined} className={linkClassName(NAV_LINK_CLASS, "/zh/methods/mei-hua-yi-shu")}>
-                {dictionary.nav.meiHua}
-              </Link>
+              {/* Methods Dropdown */}
+              <div ref={methodsContainerRef} className="relative inline-block text-left">
+                <button
+                  ref={methodsTriggerRef}
+                  id={methodsTriggerId}
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={isMethodsOpen}
+                  aria-controls={methodsMenuId}
+                  onClick={() => {
+                    setIsMethodsOpen((prev) => !prev);
+                    setIsGuidesOpen(false);
+                  }}
+                  onKeyDown={handleMethodsTriggerKeyDown}
+                  className={`${DROPDOWN_BTN_CLASS} ${pathname.startsWith("/zh/methods/") ? "text-[var(--ink)]" : ""}`}
+                >
+                  <span>{dictionary.nav.methods}</span>
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ${isMethodsOpen ? "rotate-180" : ""}`}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                <div
+                  id={methodsMenuId}
+                  role="menu"
+                  aria-labelledby={methodsTriggerId}
+                  className={`absolute left-0 mt-1.5 z-50 min-w-[200px] origin-top-left rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-1.5 shadow-xl backdrop-blur-md focus:outline-none ${isMethodsOpen ? "block" : "hidden"}`}
+                >
+                  <Link
+                    ref={(el) => { methodsItemRefs.current[0] = el; }}
+                    href="/zh/methods/three-coin"
+                    aria-current={isCurrentPath("/zh/methods/three-coin") ? "page" : undefined}
+                    role="menuitem"
+                    tabIndex={isMethodsOpen ? 0 : -1}
+                    onClick={() => setIsMethodsOpen(false)}
+                    onKeyDown={(e) => handleMethodsItemKeyDown(e, 0)}
+                    className={linkClassName(MENU_ITEM_CLASS, "/zh/methods/three-coin")}
+                  >
+                    {dictionary.nav.threeCoin}
+                  </Link>
+                  <Link
+                    ref={(el) => { methodsItemRefs.current[1] = el; }}
+                    href="/zh/methods/yarrow-stalks"
+                    aria-current={isCurrentPath("/zh/methods/yarrow-stalks") ? "page" : undefined}
+                    role="menuitem"
+                    tabIndex={isMethodsOpen ? 0 : -1}
+                    onClick={() => setIsMethodsOpen(false)}
+                    onKeyDown={(e) => handleMethodsItemKeyDown(e, 1)}
+                    className={linkClassName(MENU_ITEM_CLASS, "/zh/methods/yarrow-stalks")}
+                  >
+                    {dictionary.nav.yarrow}
+                  </Link>
+                  <Link
+                    ref={(el) => { methodsItemRefs.current[2] = el; }}
+                    href="/zh/methods/mei-hua-yi-shu"
+                    aria-current={isCurrentPath("/zh/methods/mei-hua-yi-shu") ? "page" : undefined}
+                    role="menuitem"
+                    tabIndex={isMethodsOpen ? 0 : -1}
+                    onClick={() => setIsMethodsOpen(false)}
+                    onKeyDown={(e) => handleMethodsItemKeyDown(e, 2)}
+                    className={linkClassName(MENU_ITEM_CLASS, "/zh/methods/mei-hua-yi-shu")}
+                  >
+                    {dictionary.nav.meiHua}
+                  </Link>
+                  <Link
+                    ref={(el) => { methodsItemRefs.current[3] = el; }}
+                    href="/zh/methods/manual-cast"
+                    aria-current={isCurrentPath("/zh/methods/manual-cast") ? "page" : undefined}
+                    role="menuitem"
+                    tabIndex={isMethodsOpen ? 0 : -1}
+                    onClick={() => setIsMethodsOpen(false)}
+                    onKeyDown={(e) => handleMethodsItemKeyDown(e, 3)}
+                    className={linkClassName(MENU_ITEM_CLASS, "/zh/methods/manual-cast")}
+                  >
+                    {dictionary.nav.manual}
+                  </Link>
+                </div>
+              </div>
+
+              {/* Guides Dropdown */}
+              <div ref={guidesContainerRef} className="relative inline-block text-left">
+                <button
+                  ref={guidesTriggerRef}
+                  id={guidesTriggerId}
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={isGuidesOpen}
+                  aria-controls={guidesMenuId}
+                  onClick={() => {
+                    setIsGuidesOpen((prev) => !prev);
+                    setIsMethodsOpen(false);
+                  }}
+                  onKeyDown={handleGuidesTriggerKeyDown}
+                  className={`${DROPDOWN_BTN_CLASS} ${pathname.startsWith("/zh/guides/") ? "text-[var(--ink)]" : ""}`}
+                >
+                  <span>{dictionary.nav.guides}</span>
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ${isGuidesOpen ? "rotate-180" : ""}`}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                <div
+                  id={guidesMenuId}
+                  role="menu"
+                  aria-labelledby={guidesTriggerId}
+                  className={`absolute left-0 mt-1.5 z-50 min-w-[240px] origin-top-left rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-1.5 shadow-xl backdrop-blur-md focus:outline-none ${isGuidesOpen ? "block" : "hidden"}`}
+                >
+                  <Link
+                    ref={(el) => { guidesItemRefs.current[0] = el; }}
+                    href="/zh/guides/how-to-ask-the-i-ching"
+                    aria-current={isCurrentPath("/zh/guides/how-to-ask-the-i-ching") ? "page" : undefined}
+                    role="menuitem"
+                    tabIndex={isGuidesOpen ? 0 : -1}
+                    onClick={() => setIsGuidesOpen(false)}
+                    onKeyDown={(e) => handleGuidesItemKeyDown(e, 0)}
+                    className={linkClassName(MENU_ITEM_CLASS, "/zh/guides/how-to-ask-the-i-ching")}
+                  >
+                    {dictionary.nav.howToAsk}
+                  </Link>
+                  <Link
+                    ref={(el) => { guidesItemRefs.current[1] = el; }}
+                    href="/zh/guides/changing-lines"
+                    aria-current={isCurrentPath("/zh/guides/changing-lines") ? "page" : undefined}
+                    role="menuitem"
+                    tabIndex={isGuidesOpen ? 0 : -1}
+                    onClick={() => setIsGuidesOpen(false)}
+                    onKeyDown={(e) => handleGuidesItemKeyDown(e, 1)}
+                    className={linkClassName(MENU_ITEM_CLASS, "/zh/guides/changing-lines")}
+                  >
+                    {dictionary.nav.changingLines}
+                  </Link>
+                  <Link
+                    ref={(el) => { guidesItemRefs.current[2] = el; }}
+                    href="/zh/guides/primary-relating-hexagrams"
+                    aria-current={isCurrentPath("/zh/guides/primary-relating-hexagrams") ? "page" : undefined}
+                    role="menuitem"
+                    tabIndex={isGuidesOpen ? 0 : -1}
+                    onClick={() => setIsGuidesOpen(false)}
+                    onKeyDown={(e) => handleGuidesItemKeyDown(e, 2)}
+                    className={linkClassName(MENU_ITEM_CLASS, "/zh/guides/primary-relating-hexagrams")}
+                  >
+                    {dictionary.nav.primaryRelating}
+                  </Link>
+                </div>
+              </div>
+
               <Link href="/zh/hexagrams" aria-current={isCurrentPath("/zh/hexagrams") ? "page" : undefined} className={linkClassName(NAV_LINK_CLASS, "/zh/hexagrams")}>
                 {dictionary.nav.hexagrams}
               </Link>
-            </>
-          ) : (
+              <Link href="/zh/history" aria-current={isCurrentPath("/zh/history") ? "page" : undefined} className={linkClassName(NAV_LINK_CLASS, "/zh/history")}>
+                {dictionary.nav.history}
+              </Link>
+            </>) : (
             <>
               {/* Methods Dropdown */}
               <div ref={methodsContainerRef} className="relative inline-block text-left">
@@ -466,12 +613,12 @@ export function SiteHeader({
           />
 
           {/* User Account / Avatar Control */}
-          {authEnabled && <UserNavControl />}
+          {authEnabled && <UserNavControl locale={locale} />}
         </nav>
 
         {/* Mobile & Tablet Controls (< 1024px, including 768px, 390px, 375px, 320px) */}
         <div className="flex lg:hidden items-center gap-2">
-          {authEnabled && <UserNavControl hideUnauthenticated />}
+          {authEnabled && <UserNavControl locale={locale} hideUnauthenticated />}
           <button
             ref={drawerTriggerRef}
             id={drawerTriggerId}
@@ -528,36 +675,123 @@ export function SiteHeader({
           {/* Scrollable Navigation Links */}
           <nav className="mt-6 flex-1 space-y-6 overflow-y-auto" aria-label={dictionary.nav.ariaLabel}>
             {isChinese ? (
-              <div className="space-y-1">
-                <p className="px-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">
-                  中文导航
-                </p>
-                <Link
-                  href="/zh"
-                  aria-current={isCurrentPath("/zh") ? "page" : undefined}
-                  onClick={() => closeDrawer()}
-                  className={linkClassName(DRAWER_LINK_CLASS, "/zh")}
-                >
-                  {dictionary.nav.home}
-                </Link>
-                <Link
-                  href="/zh/methods/mei-hua-yi-shu"
-                  aria-current={isCurrentPath("/zh/methods/mei-hua-yi-shu") ? "page" : undefined}
-                  onClick={() => closeDrawer()}
-                  className={linkClassName(DRAWER_LINK_CLASS, "/zh/methods/mei-hua-yi-shu")}
-                >
-                  {dictionary.nav.meiHua}
-                </Link>
-                <Link
-                  href="/zh/hexagrams"
-                  aria-current={isCurrentPath("/zh/hexagrams") ? "page" : undefined}
-                  onClick={() => closeDrawer()}
-                  className={linkClassName(DRAWER_LINK_CLASS, "/zh/hexagrams")}
-                >
-                  {dictionary.nav.hexagrams}
-                </Link>
-              </div>
-            ) : (
+            <>
+                {/* Methods Group */}
+                <div className="space-y-1">
+                  <p className="px-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">
+                    {dictionary.nav.methods}
+                  </p>
+                  <Link
+                    href="/zh/methods/three-coin"
+                    aria-current={isCurrentPath("/zh/methods/three-coin") ? "page" : undefined}
+                    onClick={() => closeDrawer()}
+                    className={linkClassName(DRAWER_LINK_CLASS, "/zh/methods/three-coin")}
+                  >
+                    {dictionary.nav.threeCoin}
+                  </Link>
+                  <Link
+                    href="/zh/methods/yarrow-stalks"
+                    aria-current={isCurrentPath("/zh/methods/yarrow-stalks") ? "page" : undefined}
+                    onClick={() => closeDrawer()}
+                    className={linkClassName(DRAWER_LINK_CLASS, "/zh/methods/yarrow-stalks")}
+                  >
+                    {dictionary.nav.yarrow}
+                  </Link>
+                  <Link
+                    href="/zh/methods/mei-hua-yi-shu"
+                    aria-current={isCurrentPath("/zh/methods/mei-hua-yi-shu") ? "page" : undefined}
+                    onClick={() => closeDrawer()}
+                    className={linkClassName(DRAWER_LINK_CLASS, "/zh/methods/mei-hua-yi-shu")}
+                  >
+                    {dictionary.nav.meiHua}
+                  </Link>
+                  <Link
+                    href="/zh/methods/manual-cast"
+                    aria-current={isCurrentPath("/zh/methods/manual-cast") ? "page" : undefined}
+                    onClick={() => closeDrawer()}
+                    className={linkClassName(DRAWER_LINK_CLASS, "/zh/methods/manual-cast")}
+                  >
+                    {dictionary.nav.manual}
+                  </Link>
+                </div>
+
+                {/* Guides Group */}
+                <div className="space-y-1">
+                  <p className="px-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">
+                    {dictionary.nav.guides}
+                  </p>
+                  <Link
+                    href="/zh/guides/how-to-ask-the-i-ching"
+                    aria-current={isCurrentPath("/zh/guides/how-to-ask-the-i-ching") ? "page" : undefined}
+                    onClick={() => closeDrawer()}
+                    className={linkClassName(DRAWER_LINK_CLASS, "/zh/guides/how-to-ask-the-i-ching")}
+                  >
+                    {dictionary.nav.howToAsk}
+                  </Link>
+                  <Link
+                    href="/zh/guides/changing-lines"
+                    aria-current={isCurrentPath("/zh/guides/changing-lines") ? "page" : undefined}
+                    onClick={() => closeDrawer()}
+                    className={linkClassName(DRAWER_LINK_CLASS, "/zh/guides/changing-lines")}
+                  >
+                    {dictionary.nav.changingLines}
+                  </Link>
+                  <Link
+                    href="/zh/guides/primary-relating-hexagrams"
+                    aria-current={isCurrentPath("/zh/guides/primary-relating-hexagrams") ? "page" : undefined}
+                    onClick={() => closeDrawer()}
+                    className={linkClassName(DRAWER_LINK_CLASS, "/zh/guides/primary-relating-hexagrams")}
+                  >
+                    {dictionary.nav.primaryRelating}
+                  </Link>
+                </div>
+
+                {/* Reference & History Group */}
+                <div className="space-y-1">
+                  <p className="px-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">
+                    Reference
+                  </p>
+                  <Link
+                    href="/zh/hexagrams"
+                    aria-current={isCurrentPath("/zh/hexagrams") ? "page" : undefined}
+                    onClick={() => closeDrawer()}
+                    className={linkClassName(DRAWER_LINK_CLASS, "/zh/hexagrams")}
+                  >
+                    {dictionary.nav.hexagrams}
+                  </Link>
+                  <Link
+                    href="/zh/history"
+                    aria-current={isCurrentPath("/zh/history") ? "page" : undefined}
+                    onClick={() => closeDrawer()}
+                    className={linkClassName(DRAWER_LINK_CLASS, "/zh/history")}
+                  >
+                    {dictionary.nav.history}
+                  </Link>
+                </div>
+              </>
+            )}
+          </nav>
+
+          {/* User Account / Sign In inside Mobile Drawer */}
+          {authEnabled && (
+            <UserNavControl locale={locale} isMobileDrawer onItemClick={() => closeDrawer()} />
+          )}
+
+          {/* Footer inside Drawer */}
+          <div className="border-t border-[var(--line)] pt-4">
+            <p className="mb-2 px-1 font-mono text-[11px] text-[var(--ink-3)]">{dictionary.nav.languageLabel}</p>
+            <LanguageSwitcher
+              locale={locale}
+              labels={dictionary.language}
+              idPrefix="drawer"
+              className="w-full"
+              fullWidth
+              placement="up"
+              onNavigate={() => closeDrawer()}
+            />
+          </div>
+            </div>
+            </>) : (
               <>
                 {/* Methods Group */}
                 <div className="space-y-1">
@@ -657,7 +891,7 @@ export function SiteHeader({
 
           {/* User Account / Sign In inside Mobile Drawer */}
           {authEnabled && (
-            <UserNavControl isMobileDrawer onItemClick={() => closeDrawer()} />
+            <UserNavControl locale={locale} isMobileDrawer onItemClick={() => closeDrawer()} />
           )}
 
           {/* Footer inside Drawer */}
