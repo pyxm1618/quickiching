@@ -30,7 +30,7 @@ export const ZH_HANS_UI_DICTIONARY = {
     languageLabel: "语言",
   },
   footer: {
-    description: "提供公历时间约定的梅花易数时间起卦、64卦经典研读与基础反思说明。",
+    description: "提供三枚铜钱、蓍草、梅花易数与手动起卦四种在线方式、六十四卦经典研读与中文基础反思解读。",
     casting: "中文功能",
     guides: "相关说明",
     trust: "边界与条款",
@@ -122,7 +122,7 @@ export const ZH_HANS_UI_DICTIONARY = {
     newReading: "重新起一卦",
   },
   reading: {
-    staticKicker: "梅花易数公历适配版 · 基础解读 · {methodVersion}",
+    staticKicker: "基础解读 · {methodVersion}",
     title: "你的易经解读",
     questionLabel: "你的问题 ·",
     primary: "本卦",

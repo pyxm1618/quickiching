@@ -1,25 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
 import { ZH_HANS_READING_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { deleteHistoryRecord, publicReadingFromHistory, readHistoryRecords, renameHistoryRecord, type PublicHistoryRecord } from "@/domain/public-reading/history";
 
-export function HistoryClient({ showCloudBanner = false, locale = "en" }: { showCloudBanner?: boolean; locale?: ContentLocale }) {
+export function HistoryClient({
+  showCloudBanner = false,
+  locale = "en",
+  initialRecords,
+  initialEditingId = null,
+  initialConfirmDeleteId = null,
+  initialStorageError = null,
+}: {
+  showCloudBanner?: boolean;
+  locale?: ContentLocale;
+  initialRecords?: PublicHistoryRecord[];
+  initialEditingId?: string | null;
+  initialConfirmDeleteId?: string | null;
+  initialStorageError?: string | null;
+}) {
   const dictionary = getDictionary(locale);
   const zh = locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
-  const [records, setRecords] = useState<PublicHistoryRecord[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [titleDraft, setTitleDraft] = useState("");
-  const [storageError, setStorageError] = useState<string | null>(null);
+  const [records, setRecords] = useState<PublicHistoryRecord[]>(() => initialRecords ?? []);
+  const [selectedId, setSelectedId] = useState<string | null>(() => initialRecords?.[0]?.id ?? null);
+  const [editingId, setEditingId] = useState<string | null>(initialEditingId);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(initialConfirmDeleteId);
+  const [titleDraft, setTitleDraft] = useState(() => {
+    if (initialEditingId && initialRecords) {
+      const rec = initialRecords.find((r) => r.id === initialEditingId);
+      return rec ? rec.title : "";
+    }
+    return "";
+  });
+  const [storageError, setStorageError] = useState<string | null>(initialStorageError);
 
   useEffect(() => {
+    if (initialRecords !== undefined || initialStorageError !== null) return;
     try {
       const restored = readHistoryRecords();
       setRecords(restored);
@@ -27,7 +48,7 @@ export function HistoryClient({ showCloudBanner = false, locale = "en" }: { show
     } catch (error: unknown) {
       setStorageError(error instanceof Error ? error.message : "HISTORY_STORAGE_UNAVAILABLE");
     }
-  }, []);
+  }, [initialRecords, initialStorageError]);
 
   const selectedRecord = useMemo(() => records.find((record) => record.id === selectedId) ?? null, [records, selectedId]);
   const selectedReading = useMemo(() => {
@@ -85,7 +106,7 @@ export function HistoryClient({ showCloudBanner = false, locale = "en" }: { show
               <p className="mt-1 text-xs text-[var(--ink-3)]">{t("Readings and reports saved with your account are securely stored in the cloud.", "通过账户保存的起卦和解读报告会保存在云端账户记录中。")}</p>
             </div>
             <Link href={zh ? "/zh/account" : "/account"} prefetch={false} className="mystic-button !py-2.5 !px-5 text-xs shrink-0 font-medium">
-              Open My Account →
+              {t("Open My Account →", "打开我的账户 →")}
             </Link>
           </div>
         </div>
@@ -104,7 +125,7 @@ export function HistoryClient({ showCloudBanner = false, locale = "en" }: { show
                   ) : (
                     <>
                       <button type="button" onClick={() => setSelectedId(record.id)} className="block w-full text-left" data-history-view={record.id}><span className="block font-semibold text-[var(--ink)]">{record.title}</span><span className="mt-1 block text-xs leading-5 text-[var(--ink-3)]">{zh ? record.method.replace("three-coin", "三枚铜钱").replace("yarrow", "蓍草").replace("mei-hua", "梅花易数").replace("manual", "手动起卦") : record.method} · {new Date(record.updatedAt).toLocaleString(zh ? "zh-CN" : undefined)}</span>{record.question ? <span className="mt-2 block truncate text-xs text-[var(--ink-2)]" data-clarity-mask="true" data-private-question="true">{record.question}</span> : null}</button>
-                      <div className="mt-3 flex flex-wrap gap-3 text-xs"><button type="button" onClick={() => beginRename(record)} className="font-semibold text-[var(--cyan)] hover:underline">{t("Rename", "重命名")}</button>{confirmDeleteId === record.id ? <><button type="button" onClick={() => remove(record.id)} className="font-semibold text-[var(--danger)] hover:underline" data-history-confirm-delete>{t("Confirm delete", "确认删除")}</button><button type="button" onClick={() => setConfirmDeleteId(null)} className="font-semibold text-[var(--ink-2)] hover:underline">Cancel</button></> : <button type="button" onClick={() => remove(record.id)} className="font-semibold text-[var(--danger)] hover:underline">{t("Delete", "删除")}</button>}</div>
+                      <div className="mt-3 flex flex-wrap gap-3 text-xs"><button type="button" onClick={() => beginRename(record)} className="font-semibold text-[var(--cyan)] hover:underline">{t("Rename", "重命名")}</button>{confirmDeleteId === record.id ? <><button type="button" onClick={() => remove(record.id)} className="font-semibold text-[var(--danger)] hover:underline" data-history-confirm-delete>{t("Confirm delete", "确认删除")}</button><button type="button" onClick={() => setConfirmDeleteId(null)} className="font-semibold text-[var(--ink-2)] hover:underline">{t("Cancel", "取消")}</button></> : <button type="button" onClick={() => remove(record.id)} className="font-semibold text-[var(--danger)] hover:underline">{t("Delete", "删除")}</button>}</div>
                     </>
                   )}
                 </li>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
@@ -20,6 +20,24 @@ function relatingLines(reading: PublicReading): number[] {
 
 function formatCopy(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, String(value)), template);
+}
+
+const METHOD_NAMES_ZH: Record<string, string> = {
+  "three-coin": "三枚铜钱",
+  "yarrow": "蓍草起卦",
+  "yarrow-stalks": "蓍草起卦",
+  "mei-hua": "梅花易数",
+  "mei-hua-yi-shu": "梅花易数",
+  "manual": "手动起卦",
+};
+
+export function resolveReadingKicker(reading: PublicReading, dictionary: UiDictionary): string {
+  const baseKicker = formatCopy(dictionary.reading.staticKicker, { methodVersion: reading.methodVersion });
+  if (dictionary.locale !== "zh-Hans") {
+    return baseKicker;
+  }
+  const methodName = METHOD_NAMES_ZH[reading.method] ?? "";
+  return methodName ? `${methodName} · ${baseKicker}` : baseKicker;
 }
 
 export function PublicReadingResult({
@@ -76,7 +94,7 @@ export function PublicReadingResult({
   return (
     <section className="reading-reveal" aria-live="polite" aria-labelledby="public-reading-result-title" data-public-reading-result data-reading-fingerprint={readingFingerprint(reading)}>
       <div className="text-center">
-        <p className="mystic-kicker">{formatCopy(dictionary.reading.staticKicker, { methodVersion: reading.methodVersion })}</p>
+        <p className="mystic-kicker">{resolveReadingKicker(reading, dictionary)}</p>
         <h3 id="public-reading-result-title" className="mt-2 font-display text-3xl font-normal tracking-[-0.03em] sm:text-4xl">{dictionary.reading.title}</h3>
         {reading.question ? (
           <p className="mx-auto mt-4 max-w-2xl rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 py-3 text-left text-sm leading-7 text-[var(--ink-2)]" data-clarity-mask="true" data-private-question="true">

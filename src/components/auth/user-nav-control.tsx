@@ -13,6 +13,7 @@ export type UserNavControlProps = {
   hideUnauthenticated?: boolean;
   onItemClick?: () => void;
   locale?: ContentLocale;
+  initialOpen?: boolean;
 };
 
 type UserState = {
@@ -26,6 +27,7 @@ export function UserNavControl({
   hideUnauthenticated = false,
   onItemClick,
   locale = "en",
+  initialOpen = false,
 }: UserNavControlProps) {
   const dictionary = getDictionary(locale);
   const copy = dictionary.userNav;
@@ -33,7 +35,7 @@ export function UserNavControl({
   const pathname = usePathname() ?? "/";
   const [user, setUser] = useState<UserState>(initialUser !== undefined ? initialUser : null);
   const [loading, setLoading] = useState(initialUser === undefined);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(initialOpen);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -193,6 +195,7 @@ export function UserNavControl({
     <div className="relative inline-flex items-center" ref={menuRef}>
       <button
         type="button"
+        data-user-nav-menu-button
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-haspopup="menu"
@@ -211,6 +214,7 @@ export function UserNavControl({
       {isOpen && (
         <div
           role="menu"
+          data-user-nav-dropdown
           className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-white/[0.12] bg-[#120f1d]/95 p-2 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in zoom-in-95 duration-150"
         >
           <div className="px-3 py-2 border-b border-white/[0.08] mb-1">
@@ -221,7 +225,7 @@ export function UserNavControl({
           </div>
 
           <Link
-            href="/account"
+            href={accountHref}
             prefetch={false}
             role="menuitem"
             onClick={() => setIsOpen(false)}

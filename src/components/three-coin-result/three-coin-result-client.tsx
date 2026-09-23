@@ -436,7 +436,7 @@ export function ThreeCoinResultClient({
             </div>
           ) : credits <= 0 ? (
             <div className="rounded-3xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.05)] p-8 sm:p-10 text-center">
-              <p className="mystic-kicker">AI 深度解读 · 商业专业版</p>
+              <p className="mystic-kicker">智能深度解读 · 商业专业版</p>
               <h3 className="mt-2 font-display text-2xl font-normal text-white sm:text-3xl">获取深度解读次数包</h3>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
                 深度解读涵盖核心摘要、卦象格局、动爻机理、走向推演、盲区防范及行动方向等十模块。单次消耗 1 次额度。
@@ -453,7 +453,7 @@ export function ThreeCoinResultClient({
           ) : (
             <div className="rounded-3xl border border-[var(--gold)]/40 bg-gradient-to-b from-[rgba(235,178,85,0.09)] to-transparent p-8 sm:p-10 text-center shadow-xl">
               <p className="mystic-kicker">已拥有解读权益</p>
-              <h3 className="mt-2 font-display text-2xl font-normal text-white sm:text-3xl">解锁本次起卦的 AI 深度解读</h3>
+              <h3 className="mt-2 font-display text-2xl font-normal text-white sm:text-3xl">解锁本次起卦的智能深度解读</h3>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
                 您当前拥有 <strong className="text-[var(--gold-2)]">{credits}</strong> 次可用解读次数。生成将消耗 1 次额度，生成失败全额保留。
               </p>

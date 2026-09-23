@@ -6,25 +6,32 @@ type CreateId = () => string;
 
 const keyFor = (productKey: ProductId) => `quickiching:checkout-request:${productKey}`;
 
-export function checkoutFailurePresentation(status: number): {
+export function checkoutFailurePresentation(status: number, locale: "en" | "zh-Hans" = "en"): {
   kind: "conflict" | "rate_limited" | "unavailable";
   message: string;
 } {
+  const isZh = locale === "zh-Hans";
   if (status === 409) {
     return {
       kind: "conflict",
-      message: "This checkout is already being resolved. Your purchase identity was preserved; review or retry this same checkout instead of starting a new purchase.",
+      message: isZh
+        ? "当前支付正在处理中。本次交易已保留，请复核或继续当前支付，无需重复发起新购买。"
+        : "This checkout is already being resolved. Your purchase identity was preserved; review or retry this same checkout instead of starting a new purchase.",
     };
   }
   if (status === 429) {
     return {
       kind: "rate_limited",
-      message: "Too many checkout attempts. Please try again shortly.",
+      message: isZh
+        ? "尝试支付过于频繁，请稍候再试。"
+        : "Too many checkout attempts. Please try again shortly.",
     };
   }
   return {
     kind: "unavailable",
-    message: "Checkout is temporarily unavailable. Please try again.",
+    message: isZh
+      ? "暂时无法发起支付，请重试。"
+      : "Checkout is temporarily unavailable. Please try again.",
   };
 }
 

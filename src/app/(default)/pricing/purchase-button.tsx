@@ -47,7 +47,7 @@ export function PurchaseButton({
         // No provider/local checkout was created before the authentication gate.
         requestIdentity.complete(productKey);
         window.location.assign(returnUrl
-          ? buildPricingSigninHref(returnUrl)
+          ? buildPricingSigninHref(returnUrl, locale)
           : zh ? "/zh/signin?callbackURL=%2Fzh%2Fpricing" : "/signin?callbackURL=%2Fpricing");
         return;
       }
@@ -62,14 +62,14 @@ export function PurchaseButton({
         // 409, transport uncertainty and retryable failures must keep the same
         // requestId. The server remains the authority for the existing order.
         requestIdentity.retain(productKey);
-        setError(checkoutFailurePresentation(response.status).message);
+        setError(checkoutFailurePresentation(response.status, locale).message);
         return;
       }
 
       const checkoutUrl = new URL(body.checkoutUrl);
       if (checkoutUrl.protocol !== "https:") {
         requestIdentity.retain(productKey);
-        setError(checkoutFailurePresentation(503).message);
+        setError(checkoutFailurePresentation(503, locale).message);
         return;
       }
 
@@ -89,7 +89,7 @@ export function PurchaseButton({
       window.location.assign(checkoutUrl.toString());
     } catch {
       requestIdentity.retain(productKey);
-      setError(checkoutFailurePresentation(503).message);
+      setError(checkoutFailurePresentation(503, locale).message);
     } finally {
       setPending(false);
     }
