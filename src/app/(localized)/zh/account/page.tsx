@@ -16,7 +16,9 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const statusZh = (status: string) => ({ paid: "已付款", pending: "处理中", failed: "失败", refunded: "已退款", partially_refunded: "部分退款" } as Record<string,string>)[status] ?? status.replace(/_/g, " ");
+const statusZh = (status: string) => ({ paid: "已付款", pending: "处理中", failed: "失败", refunded: "已退款", partially_refunded: "部分退款" } as Record<string,string>)[status] ?? "状态待确认";
+const methodZh = (method: string) => ({ three_coin: "三枚铜钱", "three-coin": "三枚铜钱", yarrow: "蓍草", mei_hua: "梅花易数", "mei-hua": "梅花易数", manual: "手动起卦" } as Record<string,string>)[method] ?? "起卦";
+const sceneZh = (scene: string) => ({ career: "事业", relationship: "感情", wealth: "财富", timing: "时机", growth: "成长", general: "综合" } as Record<string,string>)[scene] ?? "综合";
 
 export default async function ChineseAccountPage() {
   const user = await getCurrentUser();
@@ -32,12 +34,12 @@ export default async function ChineseAccountPage() {
       <h2 className="mt-12 font-display text-xl font-medium">购买记录</h2>
       {purchases.length === 0 ? <p className="mt-3 text-sm text-[var(--ink-3)]">还没有购买记录。<Link href="/zh/pricing" className="ml-1 font-semibold text-[var(--jade)] hover:underline">查看深度解读次数包 →</Link></p> :
         <div className="mt-4 space-y-3">{purchases.map((purchase) => <div key={purchase.id} className="rounded-lg border border-[var(--line)] bg-[var(--paper-raised)] p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-display font-medium">{purchase.quantity} 次深度解读</p><p className="mt-1 font-mono text-xs text-[var(--ink-3)]">US{(purchase.amountMinor / 100).toFixed(2)} · {statusZh(purchase.status)}{purchase.paidAt ? <> · 付款 {formatDate(purchase.paidAt)}</> : <> · 创建 {formatDate(purchase.createdAt)}</>}</p></div><span className="font-mono text-[10.5px] tracking-[0.06em] text-[var(--ink-3)]">{purchase.quantity} 次包</span></div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-display font-medium">{purchase.quantity} 次深度解读</p><p className="mt-1 font-mono text-xs text-[var(--ink-3)]">美元 {(purchase.amountMinor / 100).toFixed(2)} · {statusZh(purchase.status)}{purchase.paidAt ? <> · 付款 {formatDate(purchase.paidAt)}</> : <> · 创建 {formatDate(purchase.createdAt)}</>}</p></div><span className="font-mono text-[10.5px] tracking-[0.06em] text-[var(--ink-3)]">{purchase.quantity} 次包</span></div>
           <RefundRequestControl orderId={purchase.id} orderStatus={purchase.status} existingRefund={purchase.refund} locale="zh-Hans" />
         </div>)}</div>}
       <h2 className="mt-12 font-display text-xl font-medium">账户起卦历史</h2>
       {history.length === 0 ? <p className="mt-3 text-[var(--ink-3)]">还没有账户起卦记录。{" "}<Link href="/zh/methods/three-coin" className="font-semibold text-[var(--jade)] hover:underline">开始三枚铜钱起卦 →</Link></p> :
-        <div className="mt-4 divide-y divide-[var(--line)] rounded-lg border border-[var(--line)] bg-[var(--paper-raised)]">{history.map((h) => <Link key={h.id} href={"/zh/readings/three-coin/result?session=" + h.id} className="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-[var(--ink)]/[0.03]"><div><p className="font-display font-medium">{h.primaryName ?? "尚未揭示的卦象"}</p><p className="mt-0.5 font-mono text-xs text-[var(--ink-3)]">{h.method.replace(/_/g," ")} · {h.scene} · {formatDate(h.createdAt)}</p></div><div className="flex gap-2 font-mono text-[10.5px] tracking-[0.06em]">{h.hasPreview && <span className="rounded-[3px] bg-[var(--jade-wash)] px-2 py-1 text-[var(--jade)]">预览</span>}{h.hasReading && <span className="rounded-[3px] bg-[var(--cinnabar-wash)] px-2 py-1 text-[var(--cinnabar)]">解读</span>}</div></Link>)}</div>}
+        <div className="mt-4 divide-y divide-[var(--line)] rounded-lg border border-[var(--line)] bg-[var(--paper-raised)]">{history.map((h) => <Link key={h.id} href={"/zh/readings/three-coin/result?session=" + h.id} className="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-[var(--ink)]/[0.03]"><div><p className="font-display font-medium">{h.primaryName ?? "尚未揭示的卦象"}</p><p className="mt-0.5 font-mono text-xs text-[var(--ink-3)]">{methodZh(h.method)} · {sceneZh(h.scene)} · {formatDate(h.createdAt)}</p></div><div className="flex gap-2 font-mono text-[10.5px] tracking-[0.06em]">{h.hasPreview && <span className="rounded-[3px] bg-[var(--jade-wash)] px-2 py-1 text-[var(--jade)]">预览</span>}{h.hasReading && <span className="rounded-[3px] bg-[var(--cinnabar-wash)] px-2 py-1 text-[var(--cinnabar)]">解读</span>}</div></Link>)}</div>}
       <div className="mt-12"><DeleteAccountControl locale="zh-Hans" /><p className="mt-3 text-sm text-[var(--ink-3)]">数据保留规则见<Link href="/zh/privacy" className="mx-1 font-semibold text-[var(--jade)] hover:underline">隐私政策</Link>。</p></div>
     </div>
   );
