@@ -21,12 +21,12 @@ const examples = [
 
 export default function ChineseHowToAskGuidePage() {
   return (
-    <article className="mx-auto max-w-5xl px-4 py-12 sm:py-16" data-seo-primary={SEO.primaryKeyword}>
+    <article className="mx-auto max-w-5xl px-4 py-12 sm:py-16" data-seo-primary={SEO.primaryKeyword}><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "WebPage", name: SEO.finalH1, description: SEO.finalDescription, url: CANONICAL, inLanguage: "zh-Hans" }) }} />
       <nav className="text-sm text-[var(--ink-3)]" aria-label="面包屑"><Link href="/zh" className="hover:text-[var(--jade)]">中文首页</Link><span className="mx-2">/</span><span>使用指南</span></nav>
       <header className="mt-6 max-w-4xl">
         <p className="mystic-kicker">问卦前的提问方法</p>
         <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{SEO.finalH1}</h1>
-        <p className="mt-5 text-lg leading-8 text-[var(--ink-2)]">如果你在想易经怎么问，重点不是找到一句“最灵”的措辞，而是把现实处境、你真正需要判断的事情和可观察的时间范围说清楚。本站建议一次只处理一个核心问题，并把卦象作为反思框架，不把决定交给一句吉凶。</p>
+        <p data-seo-early-copy className="mt-5 text-lg leading-8 text-[var(--ink-2)]">如果你在想易经怎么问，重点不是找到一句“最灵”的措辞，而是把现实处境、你真正需要判断的事情和可观察的时间范围说清楚。本站建议一次只处理一个核心问题，并把卦象作为反思框架，不把决定交给一句吉凶。</p>
       </header>
 
       <section className="mt-12">
