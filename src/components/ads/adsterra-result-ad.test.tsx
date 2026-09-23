@@ -1,4 +1,4 @@
-import type { ScriptHTMLAttributes } from "react";
+import React, { type ScriptHTMLAttributes } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdsterraResultAd } from "./adsterra-result-ad";
