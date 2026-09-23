@@ -3,15 +3,15 @@ import { ADSTERRA_RESULT_UNIT, isAdsterraEnabled } from "./adsterra";
 
 describe("Adsterra result ad configuration", () => {
   it("enables deployed environments by default while local development stays off", () => {
-    expect(isAdsterraEnabled({ VERCEL_ENV: "production" })).toBe(true);
-    expect(isAdsterraEnabled({ VERCEL_ENV: "preview" })).toBe(true);
-    expect(isAdsterraEnabled({ VERCEL_ENV: "development" })).toBe(false);
+    expect(isAdsterraEnabled({ NODE_ENV: "production" })).toBe(true);
+    expect(isAdsterraEnabled({ NODE_ENV: "development" })).toBe(false);
+    expect(isAdsterraEnabled({ NODE_ENV: "test" })).toBe(false);
     expect(isAdsterraEnabled({})).toBe(false);
   });
 
   it("allows an explicit emergency override", () => {
-    expect(isAdsterraEnabled({ VERCEL_ENV: "production", NEXT_PUBLIC_ADSTERRA_ENABLED: "false" })).toBe(false);
-    expect(isAdsterraEnabled({ VERCEL_ENV: "development", NEXT_PUBLIC_ADSTERRA_ENABLED: " true " })).toBe(true);
+    expect(isAdsterraEnabled({ NODE_ENV: "production", NEXT_PUBLIC_ADSTERRA_ENABLED: "false" })).toBe(false);
+    expect(isAdsterraEnabled({ NODE_ENV: "development", NEXT_PUBLIC_ADSTERRA_ENABLED: " true " })).toBe(true);
   });
 
   it("pins the reviewed native unit", () => {
