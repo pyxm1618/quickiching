@@ -86,7 +86,7 @@ export default function ChineseHomePage() {
       <header className="mx-auto max-w-5xl px-4 pb-10 pt-14 sm:pb-12 sm:pt-20">
         <p className="mystic-kicker">周易 · 四种起卦方法 · 中文六十四卦</p>
         <h1 className="mt-4 max-w-4xl font-display text-4xl font-medium tracking-[-0.035em] sm:text-6xl">{SEO.finalH1}</h1>
-        <p className="mt-6 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">
+        <p data-seo-early-copy className="mt-6 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">
           Quick I Ching 的中文站现在提供完整易经在线起卦流程：先把问题写清楚，再选择三枚铜钱、蓍草、梅花易数或手动起卦。结果会展示本卦、动爻、存在时的之卦，并连接到中文六十四卦和阅读指南。
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
