@@ -28,7 +28,7 @@ export default function ChineseYarrowStalksPage() {
       <header className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
         <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--bronze)]">周易筮法 · 四十九蓍</p>
         <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{SEO.finalH1}</h1>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">蓍草起卦不是点击一次就直接得到六爻。每一爻经过三变，六爻合计十八变。本站把每次分堆、余数和剩余蓍草都展示出来，并把进度保存在浏览器会话中。</p>
+        <p data-seo-early-copy className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">蓍草起卦不是点击一次就直接得到六爻。每一爻经过三变，六爻合计十八变。本站把每次分堆、余数和剩余蓍草都展示出来，并把进度保存在浏览器会话中。</p>
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
