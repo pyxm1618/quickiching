@@ -32,8 +32,13 @@ describe("Simplified Chinese non-hexagram SEO registry", () => {
       expect(entry.finalDescription, entry.routeId).toContain(entry.primaryKeyword);
       expect(entry.finalH1, entry.routeId).toContain(entry.primaryKeyword);
       expect(entry.requiredPlacement, entry.routeId).toEqual(
-        expect.arrayContaining(["title", "description", "h1", "early-copy", "h2", "inbound-anchor"]),
+        expect.arrayContaining(["title", "description", "h1", "early-copy", "h2"]),
       );
+      if (entry.canonicalUrl === "/zh") {
+        expect(entry.requiredPlacement, entry.routeId).not.toContain("inbound-anchor");
+      } else {
+        expect(entry.requiredPlacement, entry.routeId).toContain("inbound-anchor");
+      }
     }
   });
 
