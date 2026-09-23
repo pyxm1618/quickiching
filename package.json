@@ -22,6 +22,7 @@
     "seo:zh": "bun scripts/chinese-seo-browser-gate.mjs",
     "verify:classical-sources": "bun scripts/verify-classical-sources.ts",
     "gate:navigation": "node scripts/navigation-audit-gate.mjs",
+    "gate:interactive:zh": "bun scripts/chinese-interactive-language-gate.mjs",
     "test:watch": "vitest",
     "indexnow": "bun scripts/indexnow.ts"
   },
