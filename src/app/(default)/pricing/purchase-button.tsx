@@ -13,11 +13,15 @@ export function PurchaseButton({
   productKey,
   returnUrl,
   creditsBeforeCheckout,
+  locale = "en",
 }: {
   productKey: ProductId;
   returnUrl?: string;
   creditsBeforeCheckout: number;
+  locale?: "en" | "zh-Hans";
 }) {
+  const zh = locale === "zh-Hans";
+  const t = (en: string, cn: string) => zh ? cn : en;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +48,7 @@ export function PurchaseButton({
         requestIdentity.complete(productKey);
         window.location.assign(returnUrl
           ? buildPricingSigninHref(returnUrl)
-          : "/signin?callbackURL=%2Fpricing");
+          : zh ? "/zh/signin?callbackURL=%2Fzh%2Fpricing" : "/signin?callbackURL=%2Fpricing");
         return;
       }
 
@@ -99,7 +103,7 @@ export function PurchaseButton({
         disabled={pending}
         className="w-full rounded-lg bg-[var(--jade)] px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
       >
-        {pending ? "Opening secure checkout…" : "Buy reading credits"}
+        {pending ? t("Opening secure checkout…", "正在打开安全支付页面…") : t("Buy reading credits", "购买深度解读次数")}
       </button>
       {error ? <p className="mt-2 text-xs leading-5 text-red-700" role="alert">{error}</p> : null}
     </div>
