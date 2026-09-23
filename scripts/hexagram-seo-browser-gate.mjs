@@ -197,8 +197,9 @@ try {
   }
   const chineseHubStatus = await page.goto(`${BASE}/zh/hexagrams`, { waitUntil: "load", timeout: 30_000 });
   assert([200, 304].includes(chineseHubStatus?.status() ?? 0), `Chinese Hub must be reachable, received ${chineseHubStatus?.status()}`);
-  assert.equal(await page.$eval("[data-tdh-status]", (node) => node.getAttribute("data-tdh-status")), "PENDING_RESEARCH", "Chinese Hub TDH status must remain PENDING_RESEARCH");
-  log("English and Chinese Hub → 64 detail links, reachable Chinese Hub, and PENDING_RESEARCH marker PASS");
+  const hasPendingResearch = await page.evaluate(() => document.body.innerHTML.includes("PENDING_RESEARCH"));
+  assert(!hasPendingResearch, "Chinese Hub must not contain legacy PENDING_RESEARCH marker");
+  log("English and Chinese Hub → 64 detail links, reachable Chinese Hub, and no PENDING_RESEARCH marker PASS");
 
   for (const entry of HEXAGRAM_SEO_REGISTRY.filter((candidate) => sampleNumbers.includes(candidate.number))) {
     await page.setViewport({ width: 390, height: 844 });

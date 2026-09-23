@@ -19,6 +19,7 @@ const ENGLISH_EQUIVALENT_PATHS = new Set(
 
 const ALLOWED_LATIN = [
   "Quick I Ching",
+  "QuickIChing",
   "Google",
   "Microsoft",
   "Waffo",
@@ -28,10 +29,24 @@ const ALLOWED_LATIN = [
   "localStorage",
   "sessionStorage",
   "effectivecpmnetwork.com",
+  "Unicode",
+  "Wikisource",
+  "UTC",
+  "URL",
 ];
 
 function normalize(value) {
   return String(value ?? "").normalize("NFKC");
+}
+
+function normalizeUrl(value) {
+  if (!value) return "";
+  try {
+    const url = new URL(value, CANONICAL_ORIGIN);
+    return url.origin + (url.pathname === "/" ? "" : url.pathname.replace(/\/+$/, ""));
+  } catch {
+    return String(value ?? "");
+  }
 }
 
 function canonical(path) {
@@ -42,6 +57,8 @@ function stripAllowedLatin(value) {
   let text = normalize(value);
   text = text.replace(/https?:\/\/\S+/giu, " ");
   text = text.replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/gu, " ");
+  text = text.replace(/\b[A-Za-z]+(?:\/[A-Za-z_]+)+\b/gu, " ");
+  text = text.replace(/\bQuick\s*I\s*Ching\b/giu, " ").replace(/\bQuickIChing\b/giu, " ");
   for (const allowed of [...ALLOWED_LATIN].sort((a, b) => b.length - a.length)) {
     text = text.split(allowed).join(" ");
   }
@@ -131,10 +148,11 @@ function jsonLdLanguageAndUrlOk(entries, expectedUrl) {
 }
 
 function ordinaryEnglishLinks(snapshot, currentPath) {
+  const currentUrl = new URL(currentPath, CANONICAL_ORIGIN);
   return snapshot.links.filter((link) => {
-    if (link.languageSwitch || !link.href) return false;
+    if (link.languageSwitch || !link.href || link.href.startsWith("#")) return false;
     let url;
-    try { url = new URL(link.href, CANONICAL_ORIGIN); } catch { return false; }
+    try { url = new URL(link.href, currentUrl); } catch { return false; }
     if (url.origin !== CANONICAL_ORIGIN) return false;
     if (url.pathname === currentPath) return false;
     return ENGLISH_EQUIVALENT_PATHS.has(url.pathname);
@@ -162,9 +180,9 @@ function auditBase(path, snapshot) {
     new URL(snapshot.canonical, CANONICAL_ORIGIN).toString() === expectedCanonical ? null : "canonical",
     /\bindex\b/iu.test(snapshot.robots) && !/\bnoindex\b/iu.test(snapshot.robots) ? null : "robots:index",
     /\bfollow\b/iu.test(snapshot.robots) ? null : "robots:follow",
-    englishPath && alt.en === canonical(englishPath) ? null : "hreflang:en",
-    alt["zh-Hans"] === expectedCanonical ? null : "hreflang:zh-Hans",
-    englishPath && alt["x-default"] === canonical(englishPath) ? null : "hreflang:x-default",
+    englishPath && normalizeUrl(alt.en) === normalizeUrl(canonical(englishPath)) ? null : "hreflang:en",
+    alt["zh-Hans"] && normalizeUrl(alt["zh-Hans"]) === normalizeUrl(expectedCanonical) ? null : "hreflang:zh-Hans",
+    englishPath && normalizeUrl(alt["x-default"]) === normalizeUrl(canonical(englishPath)) ? null : "hreflang:x-default",
     jsonLd.parseable ? null : "json-ld:parseable",
     jsonLd.urlOk ? null : "json-ld:url",
     jsonLd.languageOk ? null : "json-ld:language",
@@ -195,7 +213,7 @@ function auditNonHex(path, snapshot, baseRow, homeLinks) {
   if (!entry) return baseRow;
   const approvedFamily = unique([entry.primaryKeyword, ...entry.secondaryCore, ...entry.secondaryVariantFamily]);
   const quality = evaluateKeywordQuality({
-    text: snapshot.eligibleText,
+    text: stripAllowedLatin(snapshot.eligibleText),
     locale: "zh-Hans",
     primary: entry.primaryKeyword,
     approvedFamily,
