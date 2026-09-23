@@ -14,5 +14,5 @@ export function isAdsterraEnabled(
     return override.trim().toLowerCase() === "true";
   }
 
-  return environment.VERCEL_ENV === "production" || environment.VERCEL_ENV === "preview";
+  return environment.NODE_ENV === "production";
 }
