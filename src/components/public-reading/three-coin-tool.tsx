@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
+import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
+import type { UiDictionary } from "@/i18n/dictionaries/types";
+import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import { useQuestionFirstContext } from "@/components/public-reading/question-first";
 import { generateThreeCoinLine, type CoinFace, type ThreeCoinStep } from "@/domain/casting/three-coin/algorithm";
@@ -20,18 +23,18 @@ const ROMAN = ["I", "II", "III", "IV", "V", "VI"] as const;
 type MotionState = "idle" | "holding" | "casting" | "settled";
 type UnpersistedCommit = { steps: ThreeCoinStep[]; step: ThreeCoinStep };
 
-function lineName(value: number): string {
-  if (value === 6) return "Old yin · changing";
-  if (value === 7) return "Young yang";
-  if (value === 8) return "Young yin";
-  return "Old yang · changing";
+function lineName(value: number, zh = false): string {
+  if (value === 6) return zh ? "老阴 · 动爻" : "Old yin · changing";
+  if (value === 7) return zh ? "少阳" : "Young yang";
+  if (value === 8) return zh ? "少阴" : "Young yin";
+  return zh ? "老阳 · 动爻" : "Old yang · changing";
 }
 
 function storageErrorCode(error: unknown): string {
   return error instanceof Error ? error.message : "THREE_COIN_SESSION_UNAVAILABLE";
 }
 
-function CashCoin({ face, index }: { face: CoinFace; index: number }) {
+function CashCoin({ face, index, zh = false }: { face: CoinFace; index: number; zh?: boolean }) {
   return (
     <div className={`ritual-coin-shell c${index + 1}`} aria-hidden="true">
       <div className="ritual-coin" data-face={face}>
@@ -44,18 +47,33 @@ function CashCoin({ face, index }: { face: CoinFace; index: number }) {
         </div>
         <div className="ritual-coin-face back">
           <span className="ritual-coin-hole" />
-          <span className="ritual-coin-mint m1 before:content-[attr(data-visual-label)]" data-visual-label="BOO" />
-          <span className="ritual-coin-mint m2 before:content-[attr(data-visual-label)]" data-visual-label="YUN" />
+          <span className="ritual-coin-mint m1 before:content-[attr(data-visual-label)]" data-visual-label={zh ? "宝" : "BOO"} />
+          <span className="ritual-coin-mint m2 before:content-[attr(data-visual-label)]" data-visual-label={zh ? "源" : "YUN"} />
         </div>
       </div>
     </div>
   );
 }
 
-export function ThreeCoinTool({ compactIntro = false, question: questionProp, onNewReading: onNewReadingProp }: { compactIntro?: boolean; question?: string; onNewReading?: () => void }) {
+export function ThreeCoinTool({
+  compactIntro = false,
+  question: questionProp,
+  onNewReading: onNewReadingProp,
+  dictionary = EN_UI_DICTIONARY,
+  localizedContent,
+}: {
+  compactIntro?: boolean;
+  question?: string;
+  onNewReading?: () => void;
+  dictionary?: UiDictionary;
+  localizedContent?: LocalizedReadingContent;
+}) {
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
   const onNewReading = onNewReadingProp ?? questionContext?.restartQuestion;
+  const zh = dictionary.locale === "zh-Hans";
+  const t = (en: string, cn: string) => zh ? cn : en;
+  const lineMarkers = zh ? ["一", "二", "三", "四", "五", "六"] as const : ROMAN;
   const [steps, setSteps] = useState<ThreeCoinStep[]>([]);
   const [readingMeta, setReadingMeta] = useState<{ id: string; createdAt: string } | null>(null);
   const [revealedCount, setRevealedCount] = useState(0);
@@ -103,12 +121,12 @@ export function ThreeCoinTool({ compactIntro = false, question: questionProp, on
   const storageBlocked = storageError !== null;
   const busy = motion === "holding" || motion === "casting" || storageBlocked || !restored;
   const visualButtonLabel = storageBlocked
-    ? "Browser storage unavailable"
+    ? t("Browser storage unavailable", "浏览器存储不可用")
     : motion === "casting"
-      ? "Coins are settling…"
+      ? t("Coins are settling…", "铜钱正在落定…")
       : complete
-        ? "Reading complete"
-        : "Press & hold to shake · release to cast";
+        ? t("Reading complete", "起卦完成")
+        : t("Press & hold to shake · release to cast", "按住摇动 · 松开起爻");
   const publicReading = useMemo(() => complete && readingMeta
     ? buildPublicReading({
         id: readingMeta.id,
@@ -330,28 +348,30 @@ export function ThreeCoinTool({ compactIntro = false, question: questionProp, on
     <section data-realm="chamber" aria-labelledby="three-coin-tool-title">
       <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
         <div>
-          <p className="mystic-kicker">Three-Coin Method</p>
-          <h2 id="three-coin-tool-title" className="mt-2 font-display text-3xl font-normal tracking-[-0.03em] sm:text-4xl">Cast six lines, bottom to top</h2>
+          <p className="mystic-kicker">{t("Three-Coin Method", "三枚铜钱起卦")}</p>
+          <h2 id="three-coin-tool-title" className="mt-2 font-display text-3xl font-normal tracking-[-0.03em] sm:text-4xl">{t("Cast six lines, bottom to top", "自下而上起出六爻")}</h2>
           {!compactIntro ? (
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ink-2)]">Each toss uses three fair browser-crypto bits. Heads/yang count as 3, tails/yin as 2, producing 6, 7, 8, or 9. Repeat six times from the bottom upward; a line is sealed only after its browser-session write succeeds.</p>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ink-2)]">{t("Each toss uses three fair browser-crypto bits. Heads/yang count as 3, tails/yin as 2, producing 6, 7, 8, or 9. Repeat six times from the bottom upward; a line is sealed only after its browser-session write succeeds.", "每一爻同时掷三枚铜钱，阳面记 3、阴面记 2，得到 6、7、8 或 9。共起六次，从初爻到上爻依次形成卦象；每一爻只有在浏览器会话成功保存后才算落定。")}</p>
           ) : null}
         </div>
         <div className="flex items-center gap-3">
-          <span className="ritual-progress-badge" style={{ textTransform: "none" }}>{revealedCount} / 6 lines</span>
-          <button type="button" className="sound-toggle" onClick={() => setSoundOn((value) => !value)} aria-pressed={soundOn}>{soundOn ? "Sound on" : "Sound off"}</button>
+          <span className="ritual-progress-badge" style={{ textTransform: "none" }}>{revealedCount} / 6 {t("lines", "爻")}</span>
+          <button type="button" className="sound-toggle" onClick={() => setSoundOn((value) => !value)} aria-pressed={soundOn}>{soundOn ? t("Sound on", "声音开") : t("Sound off", "声音关")}</button>
         </div>
       </div>
 
       {storageError ? (
         <div className="mb-6 rounded-[1.2rem] border border-[rgba(239,129,112,0.36)] bg-[rgba(239,129,112,0.08)] px-5 py-4" role="alert" data-three-coin-storage-error={storageError}>
-          <p className="text-sm font-semibold text-[var(--danger)]">This cast cannot safely continue until browser session storage is available.</p>
+          <p className="text-sm font-semibold text-[var(--danger)]">{t("This cast cannot safely continue until browser session storage is available.", "浏览器会话存储恢复前，本次起卦不能安全继续。")}</p>
           <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">
             {unpersistedCommit
-              ? `Line ${unpersistedCommit.step.lineIndex + 1} was cast as ${unpersistedCommit.step.lineValue}, but it was not sealed. Retrying saves this same cast; it does not toss again.`
-              : "Quick I Ching could not read or clear the sealed browser session. Your in-memory reading has not been replaced."}
+              ? zh
+                ? `第 ${unpersistedCommit.step.lineIndex + 1} 爻已经得到 ${unpersistedCommit.step.lineValue}，但尚未成功保存。重试只会保存同一个结果，不会重新掷币。`
+                : `Line ${unpersistedCommit.step.lineIndex + 1} was cast as ${unpersistedCommit.step.lineValue}, but it was not sealed. Retrying saves this same cast; it does not toss again.`
+              : t("Quick I Ching could not read or clear the sealed browser session. Your in-memory reading has not been replaced.", "Quick I Ching 无法读取或清除已保存的浏览器会话；当前内存中的卦象没有被替换。")}
           </p>
-          <p className="mt-2 font-mono text-xs text-[var(--ink-3)]">{storageError}</p>
-          <button type="button" className="sound-toggle mt-3" onClick={retryStorage}>{unpersistedCommit ? "Retry saving this cast" : "Retry browser storage"}</button>
+          {!zh ? <p className="mt-2 font-mono text-xs text-[var(--ink-3)]">{storageError}</p> : null}
+          <button type="button" className="sound-toggle mt-3" onClick={retryStorage}>{unpersistedCommit ? t("Retry saving this cast", "重试保存本爻") : t("Retry browser storage", "重试浏览器存储")}</button>
         </div>
       ) : null}
 
@@ -359,8 +379,8 @@ export function ThreeCoinTool({ compactIntro = false, question: questionProp, on
         <div className="ritual-stage">
           <div className="ritual-progress">
             <div>
-              <p className="mystic-kicker">{visuallyComplete ? "Your hexagram is formed" : "Casting in progress"}</p>
-              <p className="mt-1 text-sm text-[var(--ink-2)]"><strong className="text-white">{visuallyComplete ? "Six lines sealed" : `Line ${revealedCount + 1} of 6`}</strong>{!visuallyComplete && revealedCount < 3 ? " · forming the lower trigram" : !visuallyComplete ? " · forming the upper trigram" : ""}</p>
+              <p className="mystic-kicker">{visuallyComplete ? t("Your hexagram is formed", "卦象已经形成") : t("Casting in progress", "正在起卦")}</p>
+              <p className="mt-1 text-sm text-[var(--ink-2)]"><strong className="text-white">{visuallyComplete ? t("Six lines sealed", "六爻已落定") : (zh ? `第 ${revealedCount + 1} 爻 / 共 6 爻` : `Line ${revealedCount + 1} of 6`)}</strong>{!visuallyComplete && revealedCount < 3 ? t(" · forming the lower trigram", " · 正在形成下卦") : !visuallyComplete ? t(" · forming the upper trigram", " · 正在形成上卦") : ""}</p>
             </div>
           </div>
 
@@ -368,21 +388,21 @@ export function ThreeCoinTool({ compactIntro = false, question: questionProp, on
             <HexagramLines lines={revealedLines} sealedCount={revealedCount} animateLast size="lg" showLabels />
           </div>
 
-          <div className="coin-motion-stage" data-motion={motion} aria-label="Three-coin casting chamber">
+          <div className="coin-motion-stage" data-motion={motion} aria-label={t("Three-coin casting chamber", "三枚铜钱起卦区")}>
             <div className="coin-palm" aria-hidden="true" />
-            {visibleFaces.map((face, index) => <CashCoin key={index} face={face} index={index} />)}
+            {visibleFaces.map((face, index) => <CashCoin key={index} face={face} index={index} zh={zh} />)}
             <div className="coin-energy" aria-hidden="true" />
             <div className="coin-motion-result" aria-live="polite">
-              {!unpersistedCommit && motion !== "casting" && visibleStep ? <><strong>{visibleStep.lineValue} · {lineName(visibleStep.lineValue)}</strong><span>line {visibleStep.lineIndex + 1} sealed</span></> : null}
+              {!unpersistedCommit && motion !== "casting" && visibleStep ? <><strong>{visibleStep.lineValue} · {lineName(visibleStep.lineValue, zh)}</strong><span>{zh ? `第 ${visibleStep.lineIndex + 1} 爻已落定` : `line ${visibleStep.lineIndex + 1} sealed`}</span></> : null}
             </div>
           </div>
 
           {visuallyComplete ? (
             <div className="hold-zone">
               <div className="mx-auto max-w-xl rounded-[1.4rem] border border-[rgba(232,198,122,0.24)] bg-[rgba(232,198,122,0.055)] px-5 py-6 text-center">
-                <p className="mystic-kicker">Six lines complete</p>
-                <h3 className="mt-2 font-display text-2xl font-normal text-[var(--gold-2)] sm:text-3xl">Your hexagram is formed</h3>
-                <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[var(--ink-2)]">The six sealed lines are ready. Your facts are fixed; the question can still be edited above.</p>
+                <p className="mystic-kicker">{t("Six lines complete", "六爻已完成")}</p>
+                <h3 className="mt-2 font-display text-2xl font-normal text-[var(--gold-2)] sm:text-3xl">{t("Your hexagram is formed", "卦象已经形成")}</h3>
+                <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[var(--ink-2)]">{t("The six sealed lines are ready. Your facts are fixed; the question can still be edited above.", "六爻已经落定，起卦事实不会再变化；你仍可在上方调整问题文字。")}</p>
               </div>
             </div>
           ) : (
@@ -392,7 +412,7 @@ export function ThreeCoinTool({ compactIntro = false, question: questionProp, on
                 className="hold-button after:relative after:z-[2] after:content-[attr(data-visual-label)]"
                 data-holding={motion === "holding"}
                 data-visual-label={visualButtonLabel}
-                aria-label={storageBlocked ? "Browser session storage unavailable. Resolve the storage error before casting." : complete ? "Reading complete" : "Toss three coins. Press and hold to shake, then release to cast."}
+                aria-label={storageBlocked ? t("Browser session storage unavailable. Resolve the storage error before casting.", "浏览器会话存储不可用，请先解决存储错误。") : complete ? t("Reading complete", "起卦完成") : t("Toss three coins. Press and hold to shake, then release to cast.", "掷三枚铜钱：按住摇动，松开起爻。")}
                 onPointerDown={onPointerDown}
                 onPointerUp={onPointerUp}
                 onPointerCancel={onPointerCancel}
@@ -401,25 +421,25 @@ export function ThreeCoinTool({ compactIntro = false, question: questionProp, on
                 onClick={onAccessibleClick}
                 disabled={!restored || storageBlocked || complete || motion === "casting"}
               >
-                <span className="sr-only">Toss three coins</span>
+                <span className="sr-only">{t("Toss three coins", "掷三枚铜钱")}</span>
               </button>
-              <p className="hold-hint">All three coins remain together until you release them.</p>
+              <p className="hold-hint">{t("All three coins remain together until you release them.", "按住时三枚铜钱一起摇动，松开后同时落定。")}</p>
             </div>
           )}
         </div>
 
-        <aside className="ritual-sidebar" aria-label="Casting progress and completed toss history">
-          <p className="mystic-kicker">Ritual map</p>
+        <aside className="ritual-sidebar" aria-label={t("Casting progress and completed toss history", "起卦进度与掷币记录")}>
+          <p className="mystic-kicker">{t("Ritual map", "六爻进度")}</p>
           <div className="ritual-map">
             {Array.from({ length: 6 }, (_, index) => {
               const step = revealedSteps[index];
               const state = step ? "done" : index === revealedCount && !visuallyComplete ? "current" : "waiting";
               return (
                 <div key={index} className="ritual-map-step" data-state={state}>
-                  <span className="ritual-map-n">{ROMAN[index]}</span>
+                  <span className="ritual-map-n">{lineMarkers[index]}</span>
                   <div>
-                    <p style={{ margin: "1px 0 3px", color: "inherit", fontSize: 13, fontWeight: 650, lineHeight: "inherit" }}>{step ? `Line ${index + 1} sealed` : index === revealedCount && !visuallyComplete ? `Line ${index + 1} awaiting cast` : `Line ${index + 1}`}</p>
-                    <p>{step ? `${lineName(step.lineValue)} · value ${step.lineValue}` : index === 2 ? "Completes the lower trigram" : index === 5 ? "Completes the upper trigram" : "Bottom → top"}</p>
+                    <p style={{ margin: "1px 0 3px", color: "inherit", fontSize: 13, fontWeight: 650, lineHeight: "inherit" }}>{step ? (zh ? `第 ${index + 1} 爻已落定` : `Line ${index + 1} sealed`) : index === revealedCount && !visuallyComplete ? (zh ? `等待起第 ${index + 1} 爻` : `Line ${index + 1} awaiting cast`) : (zh ? `第 ${index + 1} 爻` : `Line ${index + 1}`)}</p>
+                    <p>{step ? `${lineName(step.lineValue, zh)} · ${zh ? "爻值" : "value"} ${step.lineValue}` : index === 2 ? t("Completes the lower trigram", "完成下卦") : index === 5 ? t("Completes the upper trigram", "完成上卦") : t("Bottom → top", "自下而上")}</p>
                   </div>
                 </div>
               );
@@ -428,16 +448,16 @@ export function ThreeCoinTool({ compactIntro = false, question: questionProp, on
 
           <div className="cast-history">
             <div className="flex items-center justify-between gap-3">
-              <p className="mystic-kicker">Completed tosses</p>
-              {!visuallyComplete ? <button type="button" onClick={() => reset(true)} disabled={steps.length === 0 || busy} className="sound-toggle">Restart casting</button> : null}
+              <p className="mystic-kicker">{t("Completed tosses", "已完成的掷币")}</p>
+              {!visuallyComplete ? <button type="button" onClick={() => reset(true)} disabled={steps.length === 0 || busy} className="sound-toggle">{t("Restart casting", "重新起卦")}</button> : null}
             </div>
             {revealedSteps.length === 0 ? (
-              <p className="mt-3 text-xs leading-6 text-[var(--ink-3)]">The first toss becomes line 1 at the bottom of the hexagram.</p>
+              <p className="mt-3 text-xs leading-6 text-[var(--ink-3)]">{t("The first toss becomes line 1 at the bottom of the hexagram.", "第一次掷币形成最下方的初爻，之后依次向上。")}</p>
             ) : (
-              <ol aria-label="Completed coin tosses">
+              <ol aria-label={t("Completed coin tosses", "已完成的掷币记录")}>
                 {revealedSteps.map((step) => (
                   <li key={step.lineIndex}>
-                    <span>Line {step.lineIndex + 1}: {step.coinFaces.join(" · ")}</span>
+                    <span>{zh ? `第 ${step.lineIndex + 1} 爻：${step.coinFaces.map((face) => face === "yang" ? "阳" : "阴").join(" · ")}` : `Line ${step.lineIndex + 1}: ${step.coinFaces.join(" · ")}`}</span>
                     <strong>{step.lineValue}</strong>
                   </li>
                 ))}
@@ -446,7 +466,7 @@ export function ThreeCoinTool({ compactIntro = false, question: questionProp, on
           </div>
         </aside>
       </div>
-      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} /> : null}
+      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} dictionary={dictionary} localizedContent={localizedContent} /> : null}
     </section>
   );
 }
