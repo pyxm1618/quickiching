@@ -7,7 +7,7 @@ function isAdsterraEnabled(environment = process.env) {
   if (override !== undefined && override.trim() !== "") {
     return override.trim().toLowerCase() === "true";
   }
-  return environment.VERCEL_ENV === "production" || environment.VERCEL_ENV === "preview";
+  return environment.NODE_ENV === "production";
 }
 
 export function buildContentSecurityPolicy(environment = process.env) {
