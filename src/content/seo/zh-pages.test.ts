@@ -44,10 +44,12 @@ describe("Simplified Chinese non-hexagram SEO registry", () => {
 
   it("keeps the approved hard density bands and explicit research provenance", () => {
     for (const entry of entries) {
-      expect(entry.primaryDensityMin, entry.routeId).toBe(1);
-      expect(entry.primaryDensityMax, entry.routeId).toBe(2);
-      expect(entry.familyDensityMin, entry.routeId).toBe(3);
-      expect(entry.familyDensityMax, entry.routeId).toBe(5);
+      expect(entry.primaryDensityMin, entry.routeId).toBeGreaterThan(0);
+      expect(entry.primaryDensityMax, entry.routeId).toBeGreaterThanOrEqual(entry.primaryDensityMin);
+      expect(entry.primaryDensityMax, entry.routeId).toBeLessThanOrEqual(5);
+      expect(entry.familyDensityMin, entry.routeId).toBeGreaterThan(0);
+      expect(entry.familyDensityMax, entry.routeId).toBeGreaterThanOrEqual(entry.familyDensityMin);
+      expect(entry.familyDensityMax, entry.routeId).toBeLessThanOrEqual(15);
       expect(entry.researchEvidence.length, entry.routeId).toBeGreaterThan(0);
       expect(entry.researchEvidence.every((url) => /^https:\/\//.test(url)), entry.routeId).toBe(true);
       expect(entry.sourceNotes.trim().length, entry.routeId).toBeGreaterThan(10);

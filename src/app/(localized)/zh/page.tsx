@@ -137,7 +137,7 @@ export default function ChineseHomePage() {
         <p className="mystic-kicker">阅读结构</p>
         <h2 id="reading-title" className="mt-2 font-display text-3xl font-normal sm:text-4xl">理解一次易经在线起卦结果</h2>
         <div className="mt-8 grid gap-5 md:grid-cols-3">
-          <div className="mystic-card-soft p-6"><h3 className="font-display text-2xl font-medium">本卦</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">最初形成的六爻结构。先用它理解当下的整体形态，再进入具体变化位置。</p><Link href="/zh/hexagrams" className="mt-4 inline-flex text-sm font-semibold text-[var(--jade)] hover:underline">查易经六十四卦</Link></div>
+          <div className="mystic-card-soft p-6"><h3 className="font-display text-2xl font-medium">本卦</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">最初形成的六爻结构。先用它理解当下的整体形态，再进入具体变化位置。</p><Link href="/zh/hexagrams" data-seo-hub-link="/zh/hexagrams" className="mt-4 inline-flex text-sm font-semibold text-[var(--jade)] hover:underline">查易经六十四卦</Link></div>
           <div className="mystic-card-soft p-6"><h3 className="font-display text-2xl font-medium">动爻</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">实际发生阴阳翻转的爻。它指出结构中的变化位置，不等于一个脱离本卦的独立预言。</p><Link href="/zh/guides/changing-lines" className="mt-4 inline-flex text-sm font-semibold text-[var(--jade)] hover:underline">查看动爻说明</Link></div>
           <div className="mystic-card-soft p-6"><h3 className="font-display text-2xl font-medium">之卦（变卦）</h3><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">所有动爻翻转后的六爻结构。没有动爻时不生成，用作观察变化方向的第二个结构参照。</p><Link href="/zh/guides/primary-relating-hexagrams" className="mt-4 inline-flex text-sm font-semibold text-[var(--jade)] hover:underline">理解本卦与之卦</Link></div>
         </div>

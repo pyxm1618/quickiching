@@ -60,7 +60,7 @@ export default function ChineseHexagramsHubPage() {
               <p className="font-mono text-xs text-[var(--bronze)]">第 {hexagram.number} 卦 · {hexagram.symbol}</p>
               <h2 className="mt-2 font-display text-lg font-medium"><Link href={"/zh/hexagrams/" + hexagram.slug} data-seo-inbound-anchor={seo.primaryKeyword} className="hover:text-[var(--jade)]">{seo.primaryKeyword}：{fullName}（{hexagram.chineseName}）</Link></h2>
               <p className="mt-2 text-sm font-semibold text-[var(--ink)]">{content.theme}</p>
-              <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">{content.coreMeaning.replace(/QuickIChing/gu, "本站")}</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">{content.coreMeaning.replace(/Quick ?I ?Ching|QuickIChing/giu, "本站")}</p>
               <Link href={"/zh/hexagrams/" + hexagram.slug} className="mt-4 inline-flex text-sm font-semibold text-[var(--jade)] hover:underline">查看第 {hexagram.number} 卦详情 →</Link>
             </li>
           );
