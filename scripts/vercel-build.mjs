@@ -178,6 +178,7 @@ try {
     env: { ...browserEnv, HEXAGRAM_SEO_AUDIT_BASE_URL: BASE, HEXAGRAM_SEO_AUDIT_OUTPUT_DIR: "/tmp/quickiching-hexagram-seo-quality" },
   });
   run("bun", ["run", "seo:browser"], { env: { ...browserEnv, HEXAGRAM_SEO_BROWSER_BASE_URL: BASE } });
+  run("bun", ["run", "seo:zh"], { env: { ...browserEnv, CHINESE_SEO_AUDIT_BASE_URL: BASE, CHINESE_SEO_AUDIT_OUTPUT_DIR: "/tmp/quickiching-chinese-seo-quality" } });
   run("bun", ["scripts/browser-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/on-page-seo-browser-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/three-coin-v2-browser-gate.mjs"], { env: browserEnv });
