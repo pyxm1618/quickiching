@@ -10,9 +10,10 @@ export function SiteFooter({ locale = "en" }: { locale?: ContentLocale }) {
   const isChinese = locale === "zh-Hans";
 
   if (isChinese) {
+    const zh = (path: string) => path === "/" ? "/zh" : `/zh${path}`;
     return (
       <footer className="mt-20 border-t border-[var(--line)] bg-[var(--paper-raised)]">
-        <div className="mx-auto grid max-w-[1240px] gap-9 px-5 py-14 sm:grid-cols-2 sm:px-7 lg:grid-cols-3">
+        <div className="mx-auto grid max-w-[1240px] gap-9 px-5 py-14 sm:grid-cols-2 sm:px-7 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-3">
               <BrandMark size="md" />
@@ -21,20 +22,31 @@ export function SiteFooter({ locale = "en" }: { locale?: ContentLocale }) {
             <p className="mt-4 max-w-md text-sm leading-7 text-[var(--ink-3)]">{dictionary.footer.description}</p>
           </div>
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.14em] text-[var(--bronze)]">{dictionary.footer.casting}</p>
+            <p className="font-mono text-xs tracking-[0.14em] text-[var(--bronze)]">{dictionary.footer.casting}</p>
             <ul className="mt-4 space-y-2 text-sm">
-              <li><Link href="/zh/methods/mei-hua-yi-shu" className={LINK}>{dictionary.footer.meiHua}</Link></li>
-              <li><Link href="/zh/hexagrams" className={LINK}>{dictionary.footer.hexagrams}</Link></li>
-              <li><Link href="/zh" className={LINK}>{dictionary.footer.home}</Link></li>
+              <li><Link href={zh("/methods/three-coin")} className={LINK}>{dictionary.footer.threeCoin}</Link></li>
+              <li><Link href={zh("/methods/yarrow-stalks")} className={LINK}>{dictionary.footer.yarrow}</Link></li>
+              <li><Link href={zh("/methods/mei-hua-yi-shu")} className={LINK}>{dictionary.footer.meiHua}</Link></li>
+              <li><Link href={zh("/methods/manual-cast")} className={LINK}>{dictionary.footer.manual}</Link></li>
+              <li><Link href={zh("/history")} className={LINK}>{dictionary.footer.localHistory}</Link></li>
             </ul>
           </div>
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.14em] text-[var(--bronze)]">{dictionary.footer.trust}</p>
+            <p className="font-mono text-xs tracking-[0.14em] text-[var(--bronze)]">{dictionary.footer.guides}</p>
             <ul className="mt-4 space-y-2 text-sm">
-              <li><Link href="/privacy" className={LINK}>{dictionary.footer.privacy}</Link></li>
-              <li><Link href="/terms" className={LINK}>{dictionary.footer.terms}</Link></li>
-              <li><Link href="/acceptable-use" className={LINK}>{dictionary.footer.acceptableUse}</Link></li>
-              <li><Link href="/help" className={LINK}>{dictionary.footer.help}</Link></li>
+              <li><Link href={zh("/hexagrams")} className={LINK}>{dictionary.footer.hexagrams}</Link></li>
+              <li><Link href={zh("/guides/how-to-ask-the-i-ching")} className={LINK}>{dictionary.footer.howToAsk}</Link></li>
+              <li><Link href={zh("/guides/changing-lines")} className={LINK}>{dictionary.footer.changingLines}</Link></li>
+              <li><Link href={zh("/guides/primary-relating-hexagrams")} className={LINK}>{dictionary.footer.primaryRelating}</Link></li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-mono text-xs tracking-[0.14em] text-[var(--bronze)]">{dictionary.footer.trust}</p>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li><Link href={zh("/privacy")} className={LINK}>{dictionary.footer.privacy}</Link></li>
+              <li><Link href={zh("/terms")} className={LINK}>{dictionary.footer.terms}</Link></li>
+              <li><Link href={zh("/acceptable-use")} className={LINK}>{dictionary.footer.acceptableUse}</Link></li>
+              <li><Link href={zh("/help")} className={LINK}>{dictionary.footer.help}</Link></li>
             </ul>
           </div>
         </div>
