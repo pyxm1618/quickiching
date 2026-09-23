@@ -50,7 +50,7 @@ describe("multilingual locale registry", () => {
       switchable: true,
     });
     expect(localizedRoute("mei-hua-yi-shu").paths["zh-Hans"]).toBe("/zh/methods/mei-hua-yi-shu");
-    expect(localizedRoute("three-coin-method").paths["zh-Hans"]).toBeUndefined();
+    expect(localizedRoute("three-coin-method").paths["zh-Hans"]).toBe("/zh/methods/three-coin");
     expect(localizedRoute("hexagrams-hub")).toMatchObject({
       paths: { en: "/hexagrams", "zh-Hans": "/zh/hexagrams" },
       renderable: { en: true, "zh-Hans": true },
@@ -77,7 +77,11 @@ describe("multilingual locale registry", () => {
       "zh-Hans": "https://www.quickiching.com/zh/methods/mei-hua-yi-shu",
       "x-default": "https://www.quickiching.com/methods/mei-hua-yi-shu",
     });
-    expect(alternateLanguages("three-coin-method")).toBeUndefined();
+    expect(alternateLanguages("three-coin-method")).toEqual({
+      en: "https://www.quickiching.com/methods/three-coin",
+      "zh-Hans": "https://www.quickiching.com/zh/methods/three-coin",
+      "x-default": "https://www.quickiching.com/methods/three-coin",
+    });
     expect(alternateLanguages("hexagram:1-the-creative")).toEqual({
       en: "https://www.quickiching.com/hexagrams/1-the-creative",
       "zh-Hans": "https://www.quickiching.com/zh/hexagrams/1-the-creative",
@@ -98,7 +102,7 @@ describe("multilingual locale registry", () => {
   it("resolves language switches without inventing Chinese equivalents", () => {
     expect(languageSwitchTarget("homepage", "en")).toEqual({ href: "/zh", label: "简体中文", equivalent: true });
     expect(languageSwitchTarget("homepage", "zh-Hans")).toEqual({ href: "/", label: "English", equivalent: true });
-    expect(languageSwitchTarget("three-coin-method", "en")).toEqual({ href: "/zh", label: "中文首页", equivalent: false });
+    expect(languageSwitchTarget("three-coin-method", "en")).toEqual({ href: "/zh/methods/three-coin", label: "简体中文", equivalent: true });
     expect(routeForPath("/zh/methods/mei-hua-yi-shu")?.id).toBe("mei-hua-yi-shu");
     expect(routeForPath("/fr")?.id).toBeUndefined();
   });
@@ -106,10 +110,16 @@ describe("multilingual locale registry", () => {
   it("derives a unique sitemap inventory from the registry", () => {
     expect(ENGLISH_INDEXABLE_PATHS).toHaveLength(73);
     expect(ENGLISH_INDEXABLE_PATHS.filter((path) => path.startsWith("/hexagrams/")).length).toBe(64);
-    expect(indexablePathInventory()).toHaveLength(140);
-    expect(sitemapUrlInventory()).toHaveLength(140);
+    expect(indexablePathInventory()).toHaveLength(146);
+    expect(sitemapUrlInventory()).toHaveLength(146);
     expect(indexablePathInventory()).toContain("/zh");
+    expect(indexablePathInventory()).toContain("/zh/methods/three-coin");
+    expect(indexablePathInventory()).toContain("/zh/methods/yarrow-stalks");
     expect(indexablePathInventory()).toContain("/zh/methods/mei-hua-yi-shu");
+    expect(indexablePathInventory()).toContain("/zh/methods/manual-cast");
+    expect(indexablePathInventory()).toContain("/zh/guides/how-to-ask-the-i-ching");
+    expect(indexablePathInventory()).toContain("/zh/guides/changing-lines");
+    expect(indexablePathInventory()).toContain("/zh/guides/primary-relating-hexagrams");
     expect(indexablePathInventory()).toContain("/zh/hexagrams");
     expect(indexablePathInventory()).toContain("/zh/hexagrams/1-the-creative");
     for (let number = 1; number <= 64; number += 1) {
