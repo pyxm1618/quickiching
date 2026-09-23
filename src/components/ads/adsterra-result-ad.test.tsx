@@ -10,19 +10,19 @@ vi.mock("next/script", () => ({
 }));
 
 const originalFlag = process.env.NEXT_PUBLIC_ADSTERRA_ENABLED;
-const originalVercelEnv = process.env.VERCEL_ENV;
+const originalNodeEnv = process.env.NODE_ENV;
 
 afterEach(() => {
   if (originalFlag === undefined) delete process.env.NEXT_PUBLIC_ADSTERRA_ENABLED;
   else process.env.NEXT_PUBLIC_ADSTERRA_ENABLED = originalFlag;
-  if (originalVercelEnv === undefined) delete process.env.VERCEL_ENV;
-  else process.env.VERCEL_ENV = originalVercelEnv;
+  if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+  else process.env.NODE_ENV = originalNodeEnv;
 });
 
 describe("AdsterraResultAd", () => {
   it("renders on a deployed environment", () => {
     delete process.env.NEXT_PUBLIC_ADSTERRA_ENABLED;
-    process.env.VERCEL_ENV = "preview";
+    process.env.NODE_ENV = "production";
     const html = renderToStaticMarkup(<AdsterraResultAd />);
 
     expect(html).toContain('data-adsterra-result-slot="true"');
@@ -33,7 +33,7 @@ describe("AdsterraResultAd", () => {
   });
 
   it("supports an explicit off switch", () => {
-    process.env.VERCEL_ENV = "production";
+    process.env.NODE_ENV = "production";
     process.env.NEXT_PUBLIC_ADSTERRA_ENABLED = "false";
     expect(renderToStaticMarkup(<AdsterraResultAd />)).toBe("");
   });
