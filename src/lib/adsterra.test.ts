@@ -1,17 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { ADSTERRA_RESULT_UNIT, isAdsterraEnabled } from "./adsterra";
+import {
+  ADSTERRA_RESULT_UNIT,
+  isAdsterraRuntimeHost,
+  resolveAdsterraEnabled,
+} from "./adsterra";
 
 describe("Adsterra result ad configuration", () => {
-  it("enables deployed environments by default while local development stays off", () => {
-    expect(isAdsterraEnabled({ NODE_ENV: "production" })).toBe(true);
-    expect(isAdsterraEnabled({ NODE_ENV: "development" })).toBe(false);
-    expect(isAdsterraEnabled({ NODE_ENV: "test" })).toBe(false);
-    expect(isAdsterraEnabled({})).toBe(false);
+  it("enables production by default and keeps non-production environments off", () => {
+    expect(resolveAdsterraEnabled({ nodeEnv: "production" })).toBe(true);
+    expect(resolveAdsterraEnabled({ nodeEnv: "development" })).toBe(false);
+    expect(resolveAdsterraEnabled({ nodeEnv: "test" })).toBe(false);
+    expect(resolveAdsterraEnabled({ nodeEnv: undefined })).toBe(false);
   });
 
-  it("allows an explicit emergency override", () => {
-    expect(isAdsterraEnabled({ NODE_ENV: "production", NEXT_PUBLIC_ADSTERRA_ENABLED: "false" })).toBe(false);
-    expect(isAdsterraEnabled({ NODE_ENV: "development", NEXT_PUBLIC_ADSTERRA_ENABLED: " true " })).toBe(true);
+  it("honors the explicit public emergency override", () => {
+    expect(resolveAdsterraEnabled({ nodeEnv: "production", publicFlag: "false" })).toBe(false);
+    expect(resolveAdsterraEnabled({ nodeEnv: "development", publicFlag: " true " })).toBe(true);
+    expect(resolveAdsterraEnabled({ nodeEnv: "production", publicFlag: " FALSE " })).toBe(false);
+  });
+
+  it("restricts live provider loading to Quick I Ching and Vercel deployment hosts", () => {
+    expect(isAdsterraRuntimeHost("www.quickiching.com")).toBe(true);
+    expect(isAdsterraRuntimeHost("quickiching.com")).toBe(true);
+    expect(isAdsterraRuntimeHost("quickiching-git-feature.example.vercel.app")).toBe(true);
+    expect(isAdsterraRuntimeHost("127.0.0.1")).toBe(false);
+    expect(isAdsterraRuntimeHost("localhost")).toBe(false);
+    expect(isAdsterraRuntimeHost("example.com")).toBe(false);
   });
 
   it("pins the reviewed native unit", () => {
