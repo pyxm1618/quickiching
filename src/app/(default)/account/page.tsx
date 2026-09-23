@@ -2,84 +2,100 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { loadHistory, loadEntitlementBalance } from "@/server/loaders";
+import { loadAccountPurchases } from "@/server/account/purchase-loader";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
+import { DeleteAccountControl } from "./delete-account-control";
+import { RefundRequestControl } from "./refund-request-control";
+
+export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/signin");
-  const history = await loadHistory();
-  const balance = await loadEntitlementBalance();
+  const [history, balance, purchases] = await Promise.all([
+    loadHistory(),
+    loadEntitlementBalance(),
+    loadAccountPurchases(),
+  ]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-16">
       <div className="flex items-baseline justify-between">
-        <h1 className="font-display text-[clamp(1.8rem,2.6vw,2.4rem)] font-medium tracking-[-0.015em]">
-          My Account
-        </h1>
+        <h1 className="font-display text-[clamp(1.8rem,2.6vw,2.4rem)] font-medium tracking-[-0.015em]">My Account</h1>
         <span className="font-mono text-xs text-[var(--ink-3)]">{user.email}</span>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">
-              Reading credits
-            </p>
-            <p className="mt-2 font-display text-4xl font-medium">{balance.available}</p>
-            <Link href="/pricing" className="mt-2 inline-block text-sm font-semibold text-[var(--jade)] hover:underline">
-              Buy more →
-            </Link>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Casts</p>
-            <p className="mt-2 font-display text-4xl font-medium">{history.length}</p>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="pt-6">
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Reading credits</p>
+          <p className="mt-2 font-display text-4xl font-medium">{balance.available}</p>
+          <p className="mt-1 font-sans text-xs text-[var(--ink-3)]">Valid for 12 months from purchase</p>
+          <Link href="/pricing" className="mt-2 inline-block text-sm font-semibold text-[var(--jade)] hover:underline">Buy more →</Link>
+        </CardContent></Card>
+        <Card><CardContent className="pt-6">
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Casts</p>
+          <p className="mt-2 font-display text-4xl font-medium">{history.length}</p>
+        </CardContent></Card>
       </div>
+
+      <h2 className="mt-12 font-display text-xl font-medium">Purchases</h2>
+      {purchases.length === 0 ? (
+        <p className="mt-3 text-sm text-[var(--ink-3)]">
+          No purchases yet. <Link href="/pricing" className="font-semibold text-[var(--jade)] hover:underline">View reading packs →</Link>
+        </p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {purchases.map((purchase) => (
+            <div key={purchase.id} className="rounded-lg border border-[var(--line)] bg-[var(--paper-raised)] p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-display font-medium">{purchase.quantity} reading credit{purchase.quantity === 1 ? "" : "s"}</p>
+                  <p className="mt-1 font-mono text-xs text-[var(--ink-3)]">
+                    US${(purchase.amountMinor / 100).toFixed(2)} · {purchase.status.replace(/_/g, " ")}
+                    {purchase.paidAt ? ` · paid ${formatDate(purchase.paidAt)}` : ` · created ${formatDate(purchase.createdAt)}`}
+                  </p>
+                </div>
+                <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-[var(--ink-3)]">
+                  {purchase.productKey} pack
+                </span>
+              </div>
+              <RefundRequestControl
+                orderId={purchase.id}
+                orderStatus={purchase.status}
+                existingRefund={purchase.refund}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       <h2 className="mt-12 font-display text-xl font-medium">History</h2>
       {history.length === 0 ? (
-        <p className="mt-3 text-[var(--ink-3)]">
-          No readings yet.{" "}
-          <Link href="/cast/three_coin" className="font-semibold text-[var(--jade)] hover:underline">
-            Start a coin reading →
-          </Link>
+        <p className="mt-3 text-[var(--ink-3)]">No readings yet.{" "}
+          <Link href="/methods/three-coin" className="font-semibold text-[var(--jade)] hover:underline">Start a coin reading →</Link>
         </p>
       ) : (
         <div className="mt-4 divide-y divide-[var(--line)] rounded-lg border border-[var(--line)] bg-[var(--paper-raised)]">
           {history.map((h) => (
-            <Link
-              key={h.id}
-              href={`/result/${h.id}`}
-              className="flex items-center justify-between p-4 transition-colors hover:bg-[var(--ink)]/[0.03]"
-            >
+            <Link key={h.id} href={`/readings/three-coin/result?session=${h.id}`}
+              className="flex items-center justify-between p-4 transition-colors hover:bg-[var(--ink)]/[0.03]">
               <div>
                 <p className="font-display font-medium">{h.primaryName ?? "Unrevealed cast"}</p>
-                <p className="mt-0.5 font-mono text-xs text-[var(--ink-3)]">
-                  {h.method.replace(/_/g, " ")} · {h.scene} · {formatDate(h.createdAt)}
-                </p>
+                <p className="mt-0.5 font-mono text-xs text-[var(--ink-3)]">{h.method.replace(/_/g, " ")} · {h.scene} · {formatDate(h.createdAt)}</p>
               </div>
               <div className="flex gap-2 font-mono text-[10.5px] uppercase tracking-[0.06em]">
-                {h.hasPreview && (
-                  <span className="rounded-[3px] bg-[var(--jade-wash)] px-2 py-1 text-[var(--jade)]">Preview</span>
-                )}
-                {h.hasReading && (
-                  <span className="rounded-[3px] bg-[var(--cinnabar-wash)] px-2 py-1 text-[var(--cinnabar)]">Reading</span>
-                )}
+                {h.hasPreview && <span className="rounded-[3px] bg-[var(--jade-wash)] px-2 py-1 text-[var(--jade)]">Preview</span>}
+                {h.hasReading && <span className="rounded-[3px] bg-[var(--cinnabar-wash)] px-2 py-1 text-[var(--cinnabar)]">Reading</span>}
               </div>
             </Link>
           ))}
         </div>
       )}
 
-      <div className="mt-10">
-        <Link href="/privacy">
-          <Button variant="outline">Manage data &amp; delete account</Button>
-        </Link>
+      <div className="mt-12">
+        <DeleteAccountControl />
+        <p className="mt-3 text-sm text-[var(--ink-3)]">See the <Link href="/privacy" className="font-semibold text-[var(--jade)] hover:underline">Privacy Policy</Link> for retention details.</p>
       </div>
     </div>
   );

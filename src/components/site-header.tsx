@@ -9,6 +9,7 @@ import { BrandMark } from "@/components/brand-mark";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
+import { UserNavControl } from "@/components/auth/user-nav-control";
 
 const NAV_LINK_CLASS =
   "relative min-h-11 inline-flex items-center text-[13px] font-medium text-[var(--ink-2)] transition-colors hover:text-[var(--ink)] after:absolute after:bottom-1 after:left-0 after:h-px after:w-0 after:bg-[var(--cinnabar)] after:transition-all hover:after:w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cinnabar)]";
@@ -22,7 +23,13 @@ const MENU_ITEM_CLASS =
 const DRAWER_LINK_CLASS =
   "flex min-h-11 items-center rounded-xl px-4 py-3 text-sm font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cinnabar)]";
 
-export function SiteHeader({ locale = "en" }: { locale?: ContentLocale }) {
+export function SiteHeader({
+  locale = "en",
+  authEnabled = false,
+}: {
+  locale?: ContentLocale;
+  authEnabled?: boolean;
+}) {
   const dictionary = getDictionary(locale);
   const isChinese = locale === "zh-Hans";
   const pathname = usePathname() ?? "/";
@@ -457,10 +464,14 @@ export function SiteHeader({ locale = "en" }: { locale?: ContentLocale }) {
             labels={dictionary.language}
             idPrefix="desktop"
           />
+
+          {/* User Account / Avatar Control */}
+          {authEnabled && <UserNavControl />}
         </nav>
 
         {/* Mobile & Tablet Controls (< 1024px, including 768px, 390px, 375px, 320px) */}
         <div className="flex lg:hidden items-center gap-2">
+          {authEnabled && <UserNavControl hideUnauthenticated />}
           <button
             ref={drawerTriggerRef}
             id={drawerTriggerId}
@@ -643,6 +654,11 @@ export function SiteHeader({ locale = "en" }: { locale?: ContentLocale }) {
               </>
             )}
           </nav>
+
+          {/* User Account / Sign In inside Mobile Drawer */}
+          {authEnabled && (
+            <UserNavControl isMobileDrawer onItemClick={() => closeDrawer()} />
+          )}
 
           {/* Footer inside Drawer */}
           <div className="border-t border-[var(--line)] pt-4">

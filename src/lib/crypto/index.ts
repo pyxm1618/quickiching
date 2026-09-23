@@ -4,6 +4,7 @@ import {
   createHmac,
   randomBytes,
   scryptSync,
+  timingSafeEqual,
 } from "node:crypto";
 
 // Server-only crypto. Never imported by client components.
@@ -41,8 +42,38 @@ export function encryptJson(value: unknown, purpose = "context", version = "v1",
   return { v: version, iv: b64(iv), tag: b64(tag), data: b64(enc) };
 }
 
+export function encryptJsonWithKeyMaterial(
+  value: unknown,
+  purpose: string,
+  version: string,
+  keyMaterial: string,
+  aad?: string,
+): EncryptedBlob {
+  const key = scryptSync(`${purpose}:${version}:${keyMaterial}`, "iching-coin-salt", 32);
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  if (aad) cipher.setAAD(Buffer.from(aad, "utf8"));
+  const enc = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return { v: version, iv: b64(iv), tag: b64(tag), data: b64(enc) };
+}
+
 export function decryptJson<T = unknown>(blob: EncryptedBlob, purpose = "context", aad?: string): T {
   const key = deriveKey(purpose, blob.v);
+  const decipher = createDecipheriv("aes-256-gcm", key, fromB64(blob.iv));
+  if (aad) decipher.setAAD(Buffer.from(aad, "utf8"));
+  decipher.setAuthTag(fromB64(blob.tag));
+  const dec = Buffer.concat([decipher.update(fromB64(blob.data)), decipher.final()]);
+  return JSON.parse(dec.toString("utf8")) as T;
+}
+
+export function decryptJsonWithKeyMaterial<T = unknown>(
+  blob: EncryptedBlob,
+  purpose: string,
+  keyMaterial: string,
+  aad?: string,
+): T {
+  const key = scryptSync(`${purpose}:${blob.v}:${keyMaterial}`, "iching-coin-salt", 32);
   const decipher = createDecipheriv("aes-256-gcm", key, fromB64(blob.iv));
   if (aad) decipher.setAAD(Buffer.from(aad, "utf8"));
   decipher.setAuthTag(fromB64(blob.tag));
@@ -54,6 +85,28 @@ export function decryptJson<T = unknown>(blob: EncryptedBlob, purpose = "context
 export function hmac(value: string, purpose: string, version = "v1"): string {
   const key = deriveKey(purpose, version);
   return b64(createHmac("sha256", key).update(value).digest());
+}
+
+export function hmacWithKeyMaterial(
+  value: string,
+  purpose: string,
+  version: string,
+  keyMaterial: string,
+): string {
+  const key = scryptSync(`${purpose}:${version}:${keyMaterial}`, "iching-coin-salt", 32);
+  return b64(createHmac("sha256", key).update(value).digest());
+}
+
+export function verifyHmacWithKeyMaterial(
+  value: string,
+  signature: string,
+  purpose: string,
+  version: string,
+  keyMaterial: string,
+): boolean {
+  const expected = Buffer.from(hmacWithKeyMaterial(value, purpose, version, keyMaterial));
+  const actual = Buffer.from(signature);
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
 export function randomToken(bytes = 32): string {

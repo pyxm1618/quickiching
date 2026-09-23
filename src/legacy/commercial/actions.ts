@@ -316,12 +316,12 @@ async function createCheckoutActionImpl(unknownInput: unknown): Promise<ActionRe
     currency: CURRENCY,
     requestId,
   });
-  // Production: call Creem and return its HTTPS checkout URL (whitelisted). Dev: simulate.
+  // Legacy development-only simulation. The CP1 production Waffo capability is closed.
   const checkoutUrl = `/checkout/simulate?orderId=${order.id}`;
   return ok({ orderId: order.id, checkoutUrl, amountUsd: product.unitPriceUsd });
 }
 
-// ---- 10. Dev payment simulation (production = Creem webhook) ----
+// ---- 10. Dev payment simulation (production Waffo webhook is not implemented in CP1) ----
 async function simulatePaymentActionImpl(unknownInput: unknown): Promise<ActionResult<{ granted: boolean }>> {
   const parsed = parseBoundaryInput(actionSchemas.simulatePayment, unknownInput, "simulatePaymentAction");
   if (isActionFailure(parsed)) return parsed;

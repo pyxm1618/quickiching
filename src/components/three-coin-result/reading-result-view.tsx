@@ -49,9 +49,11 @@ function CopyBlock({ title, children }: { title: string; children: React.ReactNo
 export function ReadingResultView({
   reading,
   onStartNewReading,
+  children,
 }: {
   reading: FreeReading;
   onStartNewReading: () => void;
+  children?: React.ReactNode;
 }) {
   const moving = movingLabel(reading);
   const relatingValues = relatingLines(reading.result.lineValuesBottomUp);
@@ -253,6 +255,8 @@ export function ReadingResultView({
           </ul>
         </section>
       </div>
+
+      {children}
 
       <div className={`${styles.divider} mt-12`} />
       <footer className="mx-auto mt-8 max-w-4xl text-center">

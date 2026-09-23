@@ -6,7 +6,7 @@
 
 **Architecture:** Server Actions are thin validated transports over focused application services. Domain services enforce lifecycle and authorization invariants against a repository interface; PostgreSQL is the production source of truth, while the in-memory repository remains an explicit test/local adapter. Authentication, payment, AI, and background execution sit behind narrow provider interfaces, and production startup fails closed until their credentials are present.
 
-**Tech Stack:** Next.js 15, React 19, TypeScript, Zod, Vitest, Drizzle ORM, PostgreSQL, Better Auth, Creem HTTP/Webhook API, Vercel Workflow-compatible job boundary, structured AI provider boundary.
+**Tech Stack:** Next.js 15, React 19, TypeScript, Zod, Vitest, Drizzle ORM, PostgreSQL, Better Auth, Waffo HTTP/Webhook API, Vercel Workflow-compatible job boundary, structured AI provider boundary.
 
 ## Global Constraints
 
@@ -241,20 +241,20 @@
 - [ ] Keep provider network calls behind testable boundaries and reject production startup without required keys.
 - [ ] Run contract tests; defer only live Google/Resend smoke tests when credentials are unavailable.
 
-### Task 12: Creem payment, Webhook Inbox, refund, and dispute
+### Task 12: Waffo payment, Webhook Inbox, refund, and dispute
 
 **Files:**
 - Create: `src/server/payments/payment-provider.ts`
-- Create: `src/server/payments/creem-provider.ts`
+- Create: `src/server/payments/waffo-provider.ts`
 - Create: `src/server/services/payment-service.ts`
-- Create: `src/app/api/webhooks/creem/route.ts`
+- Create: `src/app/api/webhooks/waffo/route.ts`
 - Test: `src/server/payments/*.test.ts`
 
 **Interfaces:**
 - Produces: checkout creation and verified raw-body webhook processing with Inbox idempotency.
 
 - [ ] Write failing tests for invalid signatures, duplicate/reordered events, browser return without webhook, paid grant, refund, and dispute revocation.
-- [ ] Implement the minimal Creem HTTP adapter without granting from return URLs.
+- [ ] Implement the minimal Waffo HTTP adapter without granting from return URLs.
 - [ ] Persist Inbox before applying order and ledger transitions in one transaction.
 - [ ] Run signed fixture contract tests; defer only live merchant smoke tests when credentials are unavailable.
 
@@ -313,4 +313,3 @@
 - [ ] Reconcile current-state documentation, test counts, provider blockers, and release gates without creating more files under `docs/`.
 - [ ] Run lint, typecheck, all tests, production build, line/function/parameter/cycle checks, migration generation, and credential-free contract tests.
 - [ ] Produce a final blocker report containing only absent external credentials, provider approvals, DNS/domain settings, or live database endpoints.
-

@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { HOME_DESCRIPTION, HOME_TITLE, SITE_ORIGIN } from "@/lib/seo";
+import { isAuthCapabilityEnabled } from "@/server/auth/capability";
 
 const systemFontVariables = {
   "--font-fraunces": 'Georgia, "Times New Roman", serif',
@@ -28,10 +29,11 @@ export const metadata: Metadata = {
 };
 
 export default function DefaultRootLayout({ children }: { children: React.ReactNode }) {
+  const authEnabled = isAuthCapabilityEnabled();
   return (
     <html lang="en" style={systemFontVariables}>
       <body className="flex min-h-screen flex-col">
-        <SiteHeader locale="en" />
+        <SiteHeader locale="en" authEnabled={authEnabled} />
         <main className="flex-1">{children}</main>
         <SiteFooter locale="en" />
         <SiteAnalytics />

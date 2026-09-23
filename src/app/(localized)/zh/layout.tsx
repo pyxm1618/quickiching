@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { SITE_ORIGIN } from "@/lib/seo";
+import { isAuthCapabilityEnabled } from "@/server/auth/capability";
 
 const systemFontVariables = {
   "--font-fraunces": 'Georgia, "Times New Roman", serif',
@@ -32,10 +33,11 @@ export default function LocalizedRootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const authEnabled = isAuthCapabilityEnabled();
   return (
     <html lang="zh-Hans" style={systemFontVariables}>
       <body className="flex min-h-screen flex-col">
-        <SiteHeader locale="zh-Hans" />
+        <SiteHeader locale="zh-Hans" authEnabled={authEnabled} />
         <main className="flex-1">{children}</main>
         <SiteFooter locale="zh-Hans" />
         <SiteAnalytics />
