@@ -33,7 +33,7 @@ export const ZH_INDEXABLE_PAGE_SEO = {
     finalTitle: "易经在线起卦｜四种起卦方法与六十四卦解读 | Quick I Ching",
     finalDescription: "使用易经在线起卦：可选三枚铜钱、蓍草、梅花易数或手动起卦，查看本卦、动爻、变卦与六十四卦中文说明。",
     finalH1: "易经在线起卦：从起卦到本卦、动爻与变卦",
-    requiredPlacement: ["title", "description", "h1", "early-copy", "h2", "inbound-anchor"],
+    requiredPlacement: ["title", "description", "h1", "early-copy", "h2"],
     primaryDensityMin: 1.0,
     primaryDensityMax: 2.0,
     familyDensityMin: 3.0,
