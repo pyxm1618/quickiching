@@ -47,8 +47,14 @@ describe("Navigation and multi-language routing contract", () => {
   it("maps core hub and homepage routes symmetrically", () => {
     const pairs: Array<[string, string, string]> = [
       ["homepage", "/", "/zh"],
-      ["hexagrams-hub", "/hexagrams", "/zh/hexagrams"],
+      ["three-coin-method", "/methods/three-coin", "/zh/methods/three-coin"],
+      ["yarrow-stalks-method", "/methods/yarrow-stalks", "/zh/methods/yarrow-stalks"],
       ["mei-hua-yi-shu", "/methods/mei-hua-yi-shu", "/zh/methods/mei-hua-yi-shu"],
+      ["manual-cast-method", "/methods/manual-cast", "/zh/methods/manual-cast"],
+      ["guides-how-to-ask", "/guides/how-to-ask-the-i-ching", "/zh/guides/how-to-ask-the-i-ching"],
+      ["guides-changing-lines", "/guides/changing-lines", "/zh/guides/changing-lines"],
+      ["guides-primary-relating", "/guides/primary-relating-hexagrams", "/zh/guides/primary-relating-hexagrams"],
+      ["hexagrams-hub", "/hexagrams", "/zh/hexagrams"],
     ];
 
     for (const [routeId, enPath, zhPath] of pairs) {
@@ -77,34 +83,14 @@ describe("Navigation and multi-language routing contract", () => {
     }
   });
 
-  it("safely falls back single-language English pages to the Chinese home without 404s", () => {
-    const registeredEnglishRoutes = [
-      "/methods/three-coin",
-      "/methods/yarrow-stalks",
-      "/methods/manual-cast",
-      "/guides/how-to-ask-the-i-ching",
-      "/guides/changing-lines",
-      "/guides/primary-relating-hexagrams",
-    ];
+  it("keeps all canonical SEO routes bidirectionally switchable", () => {
+    const seoRoutes = ROUTE_REGISTRY.filter((route) => route.indexable.en);
+    expect(seoRoutes).toHaveLength(73);
+    expect(seoRoutes.every((route) => route.paths["zh-Hans"]?.startsWith("/zh") === true)).toBe(true);
+    expect(seoRoutes.every((route) => route.hreflangGroup && route.switchable)).toBe(true);
 
-    for (const path of registeredEnglishRoutes) {
-      const route = currentRouteForPath(path);
-      expect(route, `Registered English-only route ${path} not found in registry`).toBeDefined();
-      const target = languageSwitchTarget(route!.id, "en");
-      expect(target).toEqual({
-        href: "/zh",
-        label: "中文首页",
-        equivalent: false,
-      });
-      expect(alternateLanguages(route!.id)).toBeUndefined();
-    }
-
-    // Standalone client routes are intentionally absent from the registry;
-    // their rendered fallback is verified by the navigation browser gate.
     const standaloneRoutes = ["/history", "/privacy", "/terms", "/acceptable-use", "/help"];
-    for (const path of standaloneRoutes) {
-      expect(currentRouteForPath(path)).toBeUndefined();
-    }
+    for (const path of standaloneRoutes) expect(currentRouteForPath(path)).toBeUndefined();
   });
 
   it("ensures Chinese navigation labels contain natural simplified Chinese and no fake English labels", () => {
@@ -125,13 +111,13 @@ describe("Navigation and multi-language routing contract", () => {
     expect(EN_UI_DICTIONARY.nav.hexagrams).toBe("64 Hexagrams");
   });
 
-  it("ensures Chinese footer links distinguish localized features from explicit English trust pages", () => {
+  it("ensures Chinese footer labels are fully localized", () => {
     const footer = ZH_HANS_UI_DICTIONARY.footer;
     expect(footer.meiHua).toBe("梅花易数起卦");
     expect(footer.hexagrams).toBe("简体中文易经卦库");
-    expect(footer.privacy).toBe("隐私政策（英文）");
-    expect(footer.terms).toBe("服务条款（英文）");
-    expect(footer.acceptableUse).toBe("使用规范（英文）");
-    expect(footer.help).toBe("帮助支持（英文）");
+    expect(footer.privacy).toBe("隐私政策");
+    expect(footer.terms).toBe("服务条款");
+    expect(footer.acceptableUse).toBe("使用规范");
+    expect(footer.help).toBe("帮助支持");
   });
 });
