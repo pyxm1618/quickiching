@@ -22,12 +22,12 @@ const values = [
 
 export default function ChineseChangingLinesGuidePage() {
   return (
-    <article className="mx-auto max-w-5xl px-4 py-12 sm:py-16" data-seo-primary={SEO.primaryKeyword}>
+    <article className="mx-auto max-w-5xl px-4 py-12 sm:py-16" data-seo-primary={SEO.primaryKeyword}><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "WebPage", name: SEO.finalH1, description: SEO.finalDescription, url: CANONICAL, inLanguage: "zh-Hans" }) }} />
       <nav className="text-sm text-[var(--ink-3)]" aria-label="面包屑"><Link href="/zh" className="hover:text-[var(--jade)]">中文首页</Link><span className="mx-2">/</span><span>使用指南</span></nav>
       <header className="mt-6 max-w-4xl">
         <p className="mystic-kicker">六爻中的变化位置</p>
         <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{SEO.finalH1}</h1>
-        <p className="mt-5 text-lg leading-8 text-[var(--ink-2)]">易经动爻指六爻中实际发生阴阳翻转的位置。三枚铜钱和蓍草法常用 6、7、8、9 表示四种爻值，其中 6 与 9 会变化，7 与 8 保持稳定。把动爻翻转后，才得到之卦（也常称变卦）。</p>
+        <p data-seo-early-copy className="mt-5 text-lg leading-8 text-[var(--ink-2)]">易经动爻指六爻中实际发生阴阳翻转的位置。三枚铜钱和蓍草法常用 6、7、8、9 表示四种爻值，其中 6 与 9 会变化，7 与 8 保持稳定。把动爻翻转后，才得到之卦（也常称变卦）。</p>
       </header>
 
       <section className="mt-12">
