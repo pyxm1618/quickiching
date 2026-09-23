@@ -20,11 +20,11 @@ export const metadata: Metadata = {
 export default function ChineseManualCastPage() {
   const dictionary = getDictionary("zh-Hans");
   return (
-    <article data-seo-primary={SEO.primaryKeyword}>
+    <article data-seo-primary={SEO.primaryKeyword}><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "WebPage", name: SEO.finalH1, description: SEO.finalDescription, url: CANONICAL, inLanguage: "zh-Hans" }) }} />
       <header className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
         <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--bronze)]">易经 · 手动输入卦象</p>
         <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{SEO.finalH1}</h1>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">手动起卦适合你已经有六个爻值、纸上卦象或明确的本卦与动爻位置时使用。它不会重新随机生成任何信息，只把你输入的结构转换成本卦、动爻和之卦。</p>
+        <p data-seo-early-copy className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">手动起卦适合你已经有六个爻值、纸上卦象或明确的本卦与动爻位置时使用。它不会重新随机生成任何信息，只把你输入的结构转换成本卦、动爻和之卦。</p>
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
