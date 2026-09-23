@@ -15,16 +15,16 @@ export const metadata: Metadata = {
 
 export default function ChinesePrimaryRelatingGuidePage() {
   return (
-    <article className="mx-auto max-w-5xl px-4 py-12 sm:py-16" data-seo-primary={SEO.primaryKeyword}>
+    <article className="mx-auto max-w-5xl px-4 py-12 sm:py-16" data-seo-primary={SEO.primaryKeyword}><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "WebPage", name: SEO.finalH1, description: SEO.finalDescription, url: CANONICAL, inLanguage: "zh-Hans" }) }} />
       <nav className="text-sm text-[var(--ink-3)]" aria-label="面包屑"><Link href="/zh" className="hover:text-[var(--jade)]">中文首页</Link><span className="mx-2">/</span><span>使用指南</span></nav>
       <header className="mt-6 max-w-4xl">
         <p className="mystic-kicker">六爻变化的两个结构</p>
         <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{SEO.finalH1}</h1>
-        <p className="mt-5 text-lg leading-8 text-[var(--ink-2)]">理解本卦变卦时，先把它们看成同一次起卦里的两个六爻结构：本卦是最初得到的六爻，动爻是真正发生阴阳翻转的位置，翻转后的结构在本站统一称为之卦，并注明它也常被称为变卦。</p>
+        <p data-seo-early-copy className="mt-5 text-lg leading-8 text-[var(--ink-2)]">理解本卦变卦时，先把它们看成同一次起卦里的两个六爻结构：本卦是最初得到的六爻，动爻是真正发生阴阳翻转的位置，翻转后的结构在本站统一称为之卦，并注明它也常被称为变卦。</p>
       </header>
 
       <section className="mt-12">
-        <h2 className="font-display text-2xl font-medium">本卦：最初得到的六爻结构</h2>
+        <h2 className="font-display text-2xl font-medium">本卦变卦的第一步：理解本卦结构</h2>
         <p className="mt-4 max-w-4xl text-sm leading-7 text-[var(--ink-2)]">无论你使用三枚铜钱、蓍草、梅花易数还是手动输入，起卦首先都会得到一个本卦。它记录六个位置当前的阴阳状态，是后续判断哪些位置变化、怎样形成之卦的基础。</p>
       </section>
 
