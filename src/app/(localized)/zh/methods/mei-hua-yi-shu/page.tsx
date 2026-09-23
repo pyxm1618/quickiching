@@ -5,26 +5,29 @@ import { QuestionFirst } from "@/components/public-reading/question-first";
 import { getDictionary } from "@/i18n/dictionaries";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { ZH_HANS_MEI_HUA_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
+import { zhSeoFor } from "@/content/seo/zh-pages";
 
 export function generateMetadata(): Metadata {
-  const canonical = canonicalUrl("/zh/methods/mei-hua-yi-shu");
+  const seo = zhSeoFor("mei-hua-yi-shu");
+  const canonical = canonicalUrl(seo.canonicalUrl);
   return {
-    title: { absolute: ZH_HANS_MEI_HUA_CONTENT.metadata.title },
-    description: ZH_HANS_MEI_HUA_CONTENT.metadata.description,
+    title: { absolute: seo.finalTitle },
+    description: seo.finalDescription,
     alternates: { canonical, languages: alternateLanguages("mei-hua-yi-shu") },
-    openGraph: { title: ZH_HANS_MEI_HUA_CONTENT.metadata.title, description: ZH_HANS_MEI_HUA_CONTENT.metadata.description, url: canonical, type: "article", locale: "zh_CN" },
+    openGraph: { title: seo.finalTitle, description: seo.finalDescription, url: canonical, type: "article", locale: "zh_CN" },
   };
 }
 
 export default function ChineseMeiHuaPage() {
   const dictionary = getDictionary("zh-Hans");
   const content = ZH_HANS_MEI_HUA_CONTENT;
+  const seo = zhSeoFor("mei-hua-yi-shu");
 
   return (
-    <article>
+    <article data-seo-primary={seo.primaryKeyword}>
       <header className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
         <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--bronze)]">{content.eyebrow}</p>
-        <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{content.h1}</h1>
+        <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{seo.finalH1}</h1>
         <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">{content.introduction}</p>
       </header>
 
@@ -57,7 +60,7 @@ export default function ChineseMeiHuaPage() {
         <p className="mystic-kicker">阅读结果</p>
         <h2 id="zh-interpretation-title" className="mt-2 font-display text-2xl font-normal">{content.interpretation.heading}</h2>
         {content.interpretation.paragraphs.map((paragraph) => <p key={paragraph} className="mt-4 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">{paragraph}</p>)}
-        <nav className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm" aria-label="中文梅花易数相关链接"><Link href="/zh" className="font-semibold text-[var(--jade)] hover:underline">{content.navigation.home}</Link><Link href="/hexagrams" className="font-semibold text-[var(--jade)] hover:underline">{content.navigation.hexagrams}</Link><Link href="/guides/changing-lines" className="font-semibold text-[var(--jade)] hover:underline">{content.navigation.changingLines}</Link></nav>
+        <nav className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm" aria-label="中文梅花易数相关链接"><Link href="/zh" className="font-semibold text-[var(--jade)] hover:underline">{content.navigation.home}</Link><Link href="/zh/hexagrams" className="font-semibold text-[var(--jade)] hover:underline">{content.navigation.hexagrams}</Link><Link href="/zh/guides/changing-lines" className="font-semibold text-[var(--jade)] hover:underline">{content.navigation.changingLines}</Link></nav>
       </section>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
