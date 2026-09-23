@@ -769,29 +769,7 @@ export function SiteHeader({
                   </Link>
                 </div>
               </>
-            )}
-          </nav>
-
-          {/* User Account / Sign In inside Mobile Drawer */}
-          {authEnabled && (
-            <UserNavControl locale={locale} isMobileDrawer onItemClick={() => closeDrawer()} />
-          )}
-
-          {/* Footer inside Drawer */}
-          <div className="border-t border-[var(--line)] pt-4">
-            <p className="mb-2 px-1 font-mono text-[11px] text-[var(--ink-3)]">{dictionary.nav.languageLabel}</p>
-            <LanguageSwitcher
-              locale={locale}
-              labels={dictionary.language}
-              idPrefix="drawer"
-              className="w-full"
-              fullWidth
-              placement="up"
-              onNavigate={() => closeDrawer()}
-            />
-          </div>
-            </div>
-            </>) : (
+            ) : (
               <>
                 {/* Methods Group */}
                 <div className="space-y-1">

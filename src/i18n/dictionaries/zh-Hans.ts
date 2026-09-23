@@ -130,7 +130,7 @@ export const ZH_HANS_UI_DICTIONARY = {
     noRelating: "没有之卦",
     changingLines: "动爻",
     classicalLine: "经典爻辞",
-    originalExplanation: "Quick I Ching 原创说明",
+    originalExplanation: "QuickIChing 原创说明",
     positionHint: "爻位结构提示",
     judgment: "卦辞",
     image: "大象（《象传》）",

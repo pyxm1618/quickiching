@@ -44,7 +44,7 @@ export const SUMMARY_BY_NUMBER: Record<number, { theme: string; coreMeaning: str
   40: { theme: "松绑与释放", coreMeaning: "解卦强调从紧张、负担或纠结中释放出来。先解决最迫切的结点，再放下已经完成的责任，给行动恢复弹性。" },
   41: { theme: "减少与取舍", coreMeaning: "损卦邀请你看见哪些减少可以换来更重要的稳定。取舍应有意识、有边界，并确认牺牲没有把基础能力一并耗尽。" },
   42: { theme: "增加与投入", coreMeaning: "益卦关注投入、互惠和使事情变好的增量。增加资源时要让受益关系透明，并把善意落实为可持续的行动。" },
-  43: { theme: "公开决断与戒慎", coreMeaning: "夬卦强调把问题公开陈明、作出决断并保持戒慎。卦辞说“不利即戎”，因此 Quick I Ching 的原创说明关注公开行动、风险警惕和有分寸的推进，而不是把它缩减为关系决裂。" },
+  43: { theme: "公开决断与戒慎", coreMeaning: "夬卦强调把问题公开陈明、作出决断并保持戒慎。卦辞说“不利即戎”，因此 QuickIChing 的原创说明关注公开行动、风险警惕和有分寸的推进，而不是把它缩减为关系决裂。" },
   44: { theme: "相遇与警觉", coreMeaning: "姤卦提示突然出现的吸引、机会或影响。相遇可以带来新信息，也需要尽早辨认边界，避免短暂冲动占据全部判断。" },
   45: { theme: "聚集与承载", coreMeaning: "萃卦关注人群、资源和注意力的聚集。聚集之后仍要建立承载这些力量的规则，才能让共同目标不被混乱消耗。" },
   46: { theme: "积累与上升", coreMeaning: "升卦强调从基础处一点点向上。稳定积累、接受指导和持续修正，通常比追求一步到位更能带来可见的成长。" },
@@ -96,7 +96,7 @@ export const ZH_HANS_READING_CONTENT: LocalizedReadingContent = {
     oldYang: "老阳",
     yinToYang: "阴 → 阳",
     yangToYin: "阳 → 阴",
-    originalExplanationTemplate: "第{position}爻的变化提醒你观察：{phase} 这是 Quick I Ching 的原创说明与结构性观察，不是对事件结果的保证。",
+    originalExplanationTemplate: "第{position}爻的变化提醒你观察：{phase} 这是 QuickIChing 的原创说明与结构性观察，不是对事件结果的保证。",
     oldYinCaution: "阴性承接正在转向行动；不要把变化本身误认为确定性。",
     oldYangCaution: "阳性推进正在转向承接；不要把已有势头当作可以越界的许可。",
     reflectionTemplate: "什么可观察的事实能说明第{position}爻的变化正在被适度地处理？",
@@ -136,7 +136,7 @@ export const ZH_HANS_MEI_HUA_CONTENT: MeiHuaPageContent = {
   },
   eyebrow: "梅花易数 · 公历当前时间起卦",
   h1: "梅花易数公历适配版",
-  introduction: "Quick I Ching 提供一套适合国际网站、公开可验证的公历当前时间起卦约定。你可以先写下一个中文问题，确认 IANA 时区，再固定当前时刻，查看本卦、动爻、之卦与中文基础说明。它是一种帮助整理处境的反思框架，不是确定性预言。",
+  introduction: "本页提供梅花易数起卦的公历当前时间约定。你可以先写下一个中文问题，确认 IANA 时区，再固定当前时刻完成梅花易数起卦，查看本卦、动爻、之卦与中文基础说明。它是一种帮助整理处境的反思框架，不是确定性预言。",
   positioning: {
     heading: "这套在线工具具体实现了什么",
     paragraphs: [
