@@ -1,3 +1,4 @@
+import React from "react";
 import Script from "next/script";
 import { ADSTERRA_RESULT_UNIT, isAdsterraEnabled } from "@/lib/adsterra";
 
