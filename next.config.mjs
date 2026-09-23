@@ -1,5 +1,43 @@
 import { withWorkflow } from "workflow/next";
 
+const ADSTERRA_CSP_ORIGIN = "https://*.effectivecpmnetwork.com";
+
+function isAdsterraEnabled(environment = process.env) {
+  const override = environment.NEXT_PUBLIC_ADSTERRA_ENABLED;
+  if (override !== undefined && override.trim() !== "") {
+    return override.trim().toLowerCase() === "true";
+  }
+  return environment.NODE_ENV === "production";
+}
+
+export function buildContentSecurityPolicy(environment = process.env) {
+  const adsterra = isAdsterraEnabled(environment);
+  const scriptSources = ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://challenges.cloudflare.com"];
+  const imageSources = ["'self'", "data:", "https://*.google-analytics.com", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://c.bing.com"];
+  const connectSources = ["'self'", "https://*.google-analytics.com", "https://*.analytics.google.com", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://c.bing.com", "https://challenges.cloudflare.com"];
+  const frameSources = ["https://challenges.cloudflare.com"];
+
+  if (adsterra) {
+    scriptSources.push(ADSTERRA_CSP_ORIGIN);
+    imageSources.push(ADSTERRA_CSP_ORIGIN);
+    connectSources.push(ADSTERRA_CSP_ORIGIN);
+    frameSources.push(ADSTERRA_CSP_ORIGIN);
+  }
+
+  return [
+    "default-src 'self'",
+    `script-src ${scriptSources.join(" ")}`,
+    "style-src 'self' 'unsafe-inline'",
+    `img-src ${imageSources.join(" ")}`,
+    "font-src 'self' data:",
+    `connect-src ${connectSources.join(" ")}`,
+    `frame-src ${frameSources.join(" ")}`,
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -50,7 +88,7 @@ const nextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms https://c.bing.com; font-src 'self' data:; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.clarity.ms https://c.bing.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+            value: buildContentSecurityPolicy(),
           },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
