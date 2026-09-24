@@ -32,11 +32,11 @@ const METHOD_NAMES_ZH: Record<string, string> = {
 };
 
 export function resolveReadingKicker(reading: PublicReading, dictionary: UiDictionary): string {
-  const baseKicker = formatCopy(dictionary.reading.staticKicker, { methodVersion: reading.methodVersion });
   if (dictionary.locale !== "zh-Hans") {
-    return baseKicker;
+    return formatCopy(dictionary.reading.staticKicker, { methodVersion: reading.methodVersion });
   }
   const methodName = METHOD_NAMES_ZH[reading.method] ?? "";
+  const baseKicker = dictionary.reading.staticKicker;
   return methodName ? `${methodName} · ${baseKicker}` : baseKicker;
 }
 
@@ -109,7 +109,7 @@ export function PublicReadingResult({
           <div className="reading-number mt-5">{model.primary.number}</div>
           <h4 className="reading-title">{model.primary.englishName}</h4>
           <p className="reading-cn mt-2">{isChinese ? model.primary.chineseName : `${model.primary.chineseName} · ${model.primary.pinyin}`}</p>
-          <HexagramLines lines={[...reading.lineValuesBottomUp]} size="lg" showLabels className="mt-8 max-w-sm" />
+          <HexagramLines lines={[...reading.lineValuesBottomUp]} size="lg" showLabels locale={dictionary.locale} className="mt-8 max-w-sm" />
           <p className="mystic-kicker mt-8">{dictionary.reading.originalExplanation}</p>
           <p className="reading-theme">{model.primary.theme}</p>
           <p className="reading-copy">{model.primary.coreMeaning}</p>
@@ -130,7 +130,7 @@ export function PublicReadingResult({
             <div className="reading-number mt-5">{model.relating.number}</div>
             <h4 className="reading-title">{model.relating.englishName}</h4>
             <p className="reading-cn mt-2">{isChinese ? model.relating.chineseName : `${model.relating.chineseName} · ${model.relating.pinyin}`}</p>
-            <HexagramLines lines={relatingLines(reading)} size="lg" showLabels className="mt-8 max-w-sm" />
+            <HexagramLines lines={relatingLines(reading)} size="lg" showLabels locale={dictionary.locale} className="mt-8 max-w-sm" />
             <p className="mystic-kicker mt-8">{dictionary.reading.originalExplanation}</p>
             <p className="reading-theme">{model.relating.theme}</p>
             <p className="reading-copy">{model.relating.coreMeaning}</p>

@@ -16,7 +16,7 @@ export function SiteFooter({ locale = "en" }: { locale?: ContentLocale }) {
         <div className="mx-auto grid max-w-[1240px] gap-9 px-5 py-14 sm:grid-cols-2 sm:px-7 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-3">
-              <BrandMark size="md" />
+              <BrandMark size="md" locale="zh-Hans" />
               <span className="font-display font-medium text-base text-[var(--ink)]">周易 · 易经在线</span>
             </div>
             <p className="mt-4 max-w-md text-sm leading-7 text-[var(--ink-3)]">{dictionary.footer.description}</p>

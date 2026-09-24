@@ -1,7 +1,7 @@
 "use client";
 
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { describeRefundRequestResult, type RefundRequestResult } from "./refund-request-state";
 
@@ -74,7 +74,7 @@ export function RefundRequestControl(props: {
         {t("Requests must be submitted within 7 days. Submission starts review only; it does not issue a refund automatically.", "退款申请须在购买后 7 天内提交。提交只会进入审核流程，不会自动发出退款。")}
       </p>
       <label className="mt-3 block text-xs font-medium" htmlFor={`refund-reason-${props.orderId}`}>
-        Reason
+        {t("Reason", "退款原因")}
       </label>
       <textarea
         id={`refund-reason-${props.orderId}`}

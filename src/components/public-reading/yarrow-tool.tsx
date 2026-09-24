@@ -168,7 +168,7 @@ export function YarrowTool({
               <span key={index} className="mx-[2px] h-20 w-px origin-bottom bg-gradient-to-b from-[var(--gold-2)] to-[#7c5d2b] opacity-70" style={{ transform: `rotate(${(index - 6) * 2.2}deg) translateY(${Math.abs(index - 6) * 1.2}px)` }} />
             ))}
           </div>
-          <HexagramLines lines={lines} sealedCount={lines.length} animateLast size="lg" showLabels />
+          <HexagramLines lines={lines} sealedCount={lines.length} animateLast size="lg" showLabels locale={dictionary.locale} />
         </div>
 
         <div className="mystic-card-soft p-5 text-sm leading-7 text-[var(--ink-2)] sm:p-6">

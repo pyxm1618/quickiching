@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildFreeReading } from "@/domain/interpretation/v2/build-free-reading";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
@@ -17,11 +17,18 @@ import { ReadingResultView } from "./reading-result-view";
 import { CommercialReadingReportView } from "./commercial-reading-report-view";
 import styles from "./result-page.module.css";
 
+export type ResultState =
+  | { kind: "loading" }
+  | { kind: "empty" }
+  | { kind: "ready"; reading: FreeReading; lineValues: number[]; question?: string }
+  | { kind: "error"; code: string };
+
 export type ThreeCoinResultClientProps = {
   initialSessionId?: string;
   initialUser?: { id: string; email: string } | null;
   initialCredits?: number;
   locale?: "en" | "zh-Hans";
+  initialState?: ResultState;
   initialCastingView?: {
     castingId: string;
     context: string;
@@ -30,12 +37,6 @@ export type ThreeCoinResultClientProps = {
     owns: boolean;
   } | null;
 };
-
-type ResultState =
-  | { kind: "loading" }
-  | { kind: "empty" }
-  | { kind: "ready"; reading: FreeReading; lineValues: number[]; question?: string }
-  | { kind: "error"; code: string };
 
 type DeepStatus = "idle" | "generating" | "completed" | "failed";
 
@@ -67,6 +68,7 @@ export function ThreeCoinResultClient({
   initialUser = null,
   initialCredits = 0,
   initialCastingView = null,
+  initialState,
   locale = "en",
 }: ThreeCoinResultClientProps) {
   const zh = locale === "zh-Hans";
@@ -77,7 +79,7 @@ export function ThreeCoinResultClient({
   const pricingHref = (returnPath: string) => zh
     ? "/zh/pricing?returnUrl=" + encodeURIComponent(returnPath)
     : buildPricingHref(returnPath);
-  const [state, setState] = useState<ResultState>({ kind: "loading" });
+  const [state, setState] = useState<ResultState>(() => initialState ?? { kind: "loading" });
   const [clearError, setClearError] = useState<string | null>(null);
   const [clientCastingId, setClientCastingId] = useState<string | null>(null);
 
@@ -103,6 +105,7 @@ export function ThreeCoinResultClient({
 
   // 1. 初始化起卦数据（服务端优先 -> 本地 sessionStorage 降级）
   useEffect(() => {
+    if (initialState) return;
     let active = true;
 
     async function init() {
@@ -152,7 +155,7 @@ export function ThreeCoinResultClient({
     return () => {
       active = false;
     };
-  }, [initialCastingView]);
+  }, [initialCastingView, initialState]);
 
   async function persistCurrentReading(showError: boolean): Promise<string | null> {
     if (castingId) return castingId;
@@ -290,7 +293,7 @@ export function ThreeCoinResultClient({
 
       if (res.status === 401) {
         setDeepStatus("idle");
-        window.location.assign(buildResultSigninHref(currentBrowserReturnPath()));
+        window.location.assign(resultSigninHref());
         return;
       }
 
@@ -364,7 +367,7 @@ export function ThreeCoinResultClient({
           <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[var(--ink-2)] sm:text-base">
             {t("Complete a six-line Three-Coin reading before opening a result.", "请先完成六爻三枚铜钱起卦，再打开结果页。")}
           </p>
-          <Link href="/#three-coin-reading" className={`${styles.newReadingButton} mt-7`}>
+          <Link href={zh ? "/zh/methods/three-coin" : "/#three-coin-reading"} className={`${styles.newReadingButton} mt-7`}>
             {t("Start a Three-Coin Reading", "开始三枚铜钱起卦")}
           </Link>
         </section>
@@ -383,7 +386,7 @@ export function ThreeCoinResultClient({
           <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
             {zh ? "请返回三枚铜钱页面重新检查本次起卦。" : <>Error: <code className="font-mono text-[var(--cyan)]">{state.code}</code></>}
           </p>
-          <Link href="/#three-coin-reading" className={`${styles.newReadingButton} mt-7`}>
+          <Link href={zh ? "/zh/methods/three-coin" : "/#three-coin-reading"} className={`${styles.newReadingButton} mt-7`}>
             {t("Return to Three-Coin Reading", "返回三枚铜钱起卦")}
           </Link>
         </section>

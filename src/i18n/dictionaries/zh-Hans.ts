@@ -122,7 +122,7 @@ export const ZH_HANS_UI_DICTIONARY = {
     newReading: "重新起一卦",
   },
   reading: {
-    staticKicker: "基础解读 · {methodVersion}",
+    staticKicker: "基础解读",
     title: "你的易经解读",
     questionLabel: "你的问题 ·",
     primary: "本卦",

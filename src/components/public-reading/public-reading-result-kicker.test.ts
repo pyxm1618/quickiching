@@ -18,30 +18,34 @@ function mockReading(method: PublicReadingMethod, version: string) {
 }
 
 describe("PublicReadingResult Kicker Method Perception", () => {
-  it("resolves Three-Coin Chinese kicker accurately without Mei Hua contamination", () => {
+  it("resolves Three-Coin Chinese kicker accurately without internal version numbers", () => {
     const reading = mockReading("three-coin", "three-coin-v1");
     const kicker = resolveReadingKicker(reading, ZH_HANS_UI_DICTIONARY);
-    expect(kicker).toBe("三枚铜钱 · 基础解读 · three-coin-v1");
+    expect(kicker).toBe("三枚铜钱 · 基础解读");
+    expect(kicker).not.toContain("-v1");
     expect(kicker).not.toContain("梅花易数");
   });
 
-  it("resolves Yarrow Chinese kicker accurately without Mei Hua contamination", () => {
+  it("resolves Yarrow Chinese kicker accurately without internal version numbers", () => {
     const reading = mockReading("yarrow-stalks", "yarrow-v1");
     const kicker = resolveReadingKicker(reading, ZH_HANS_UI_DICTIONARY);
-    expect(kicker).toBe("蓍草起卦 · 基础解读 · yarrow-v1");
+    expect(kicker).toBe("蓍草起卦 · 基础解读");
+    expect(kicker).not.toContain("-v1");
     expect(kicker).not.toContain("梅花易数");
   });
 
-  it("resolves Mei Hua Chinese kicker accurately", () => {
+  it("resolves Mei Hua Chinese kicker accurately without internal version numbers", () => {
     const reading = mockReading("mei-hua-yi-shu", "mei-hua-v1");
     const kicker = resolveReadingKicker(reading, ZH_HANS_UI_DICTIONARY);
-    expect(kicker).toBe("梅花易数 · 基础解读 · mei-hua-v1");
+    expect(kicker).toBe("梅花易数 · 基础解读");
+    expect(kicker).not.toContain("-v1");
   });
 
-  it("resolves Manual Cast Chinese kicker accurately without Mei Hua contamination", () => {
+  it("resolves Manual Cast Chinese kicker accurately without internal version numbers", () => {
     const reading = mockReading("manual", "manual-v1");
     const kicker = resolveReadingKicker(reading, ZH_HANS_UI_DICTIONARY);
-    expect(kicker).toBe("手动起卦 · 基础解读 · manual-v1");
+    expect(kicker).toBe("手动起卦 · 基础解读");
+    expect(kicker).not.toContain("-v1");
     expect(kicker).not.toContain("梅花易数");
   });
 

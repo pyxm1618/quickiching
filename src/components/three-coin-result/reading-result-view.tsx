@@ -1,3 +1,4 @@
+import React from "react";
 import { AdsterraResultAd } from "@/components/ads/adsterra-result-ad";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import type { Trigram } from "@/domain/casting/hexagrams/king-wen";

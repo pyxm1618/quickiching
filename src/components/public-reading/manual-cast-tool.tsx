@@ -215,7 +215,7 @@ export function ManualCastTool({
                   })}
                 </div>
               </div>
-              <div className="mystic-card-soft p-5"><p className="mystic-kicker">{t("Mapped values · bottom to top", "映射后的爻值 · 自下而上")}</p><HexagramLines lines={[...modeBValues]} size="lg" showLabels className="mt-6" /><p className="mt-4 text-center font-mono text-sm text-[var(--gold-2)]">{modeBValues.join(" · ")}</p></div>
+              <div className="mystic-card-soft p-5"><p className="mystic-kicker">{t("Mapped values · bottom to top", "映射后的爻值 · 自下而上")}</p><HexagramLines lines={[...modeBValues]} size="lg" showLabels locale={dictionary.locale} className="mt-6" /><p className="mt-4 text-center font-mono text-sm text-[var(--gold-2)]">{modeBValues.join(" · ")}</p></div>
             </div>
           )}
 

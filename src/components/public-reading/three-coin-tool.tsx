@@ -385,7 +385,7 @@ export function ThreeCoinTool({
           </div>
 
           <div className="mx-auto mt-7 w-full max-w-[440px]">
-            <HexagramLines lines={revealedLines} sealedCount={revealedCount} animateLast size="lg" showLabels />
+            <HexagramLines lines={revealedLines} sealedCount={revealedCount} animateLast size="lg" showLabels locale={dictionary.locale} />
           </div>
 
           <div className="coin-motion-stage" data-motion={motion} aria-label={t("Three-coin casting chamber", "三枚铜钱起卦区")}>

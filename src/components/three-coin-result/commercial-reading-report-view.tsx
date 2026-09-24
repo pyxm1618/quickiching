@@ -1,3 +1,4 @@
+import React from "react";
 import type { CommercialReadingReport } from "@/domain/generation/schemas";
 
 export function CommercialReadingReportView({ report, locale = "en" }: { report: CommercialReadingReport; locale?: "en" | "zh-Hans" }) {
