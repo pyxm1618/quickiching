@@ -1,6 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": {
+      "**": false,
+      "main": true,
+      "staging": true
+    }
+  },
   "installCommand": "bunx bun@1.3.14 install --frozen-lockfile",
   "buildCommand": "node scripts/vercel-build.mjs",
   "functions": {
