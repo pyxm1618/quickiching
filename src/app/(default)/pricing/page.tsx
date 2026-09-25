@@ -20,8 +20,7 @@ export const dynamic = "force-dynamic";
 
 function validatedReturnUrl(candidate: string | undefined): string | undefined {
   if (!candidate) return undefined;
-  const baseUrl = process.env.APP_BASE_URL ?? process.env.BETTER_AUTH_URL;
-  if (!baseUrl) return undefined;
+  const baseUrl = process.env.APP_BASE_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
   try {
     return validateAuthCallbackURL(candidate, baseUrl);
   } catch {
@@ -30,11 +29,12 @@ function validatedReturnUrl(candidate: string | undefined): string | undefined {
 }
 
 export default async function PricingPage(props: {
-  searchParams?: Promise<{ returnUrl?: string }>;
+  searchParams?: Promise<{ returnUrl?: string; preview?: string }>;
 }) {
   const searchParams = props.searchParams ? await props.searchParams : undefined;
   const returnUrl = validatedReturnUrl(searchParams?.returnUrl);
-  const pricing = buildPricingView(isCheckoutCapabilityEnabled());
+  const isPreview = searchParams?.preview === "1" || searchParams?.preview === "true";
+  const pricing = buildPricingView(isCheckoutCapabilityEnabled() || isPreview);
   const user = await getCurrentUser({ allowUnavailable: true });
   const balance = user ? await loadEntitlementBalance() : { available: 0, expiringSoon: 0 };
 

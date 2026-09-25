@@ -1,8 +1,51 @@
 export type ZhSeoResearchStatus = "VERIFIED" | "UNVERIFIED";
 
+export type ZhDensityProfile = "hub" | "portal" | "tool" | "guide";
+
+export const ZH_DENSITY_PROFILES: Record<
+  ZhDensityProfile,
+  {
+    primaryMin: number;
+    primaryMax: number;
+    familyMin: number;
+    familyMax: number;
+    description: string;
+  }
+> = {
+  hub: {
+    primaryMin: 0.1,
+    primaryMax: 0.8,
+    familyMin: 0.2,
+    familyMax: 2.0,
+    description: "64卦全景索引与聚合导航页",
+  },
+  portal: {
+    primaryMin: 0.8,
+    primaryMax: 2.0,
+    familyMin: 2.0,
+    familyMax: 5.0,
+    description: "中文主站门户与综合入口",
+  },
+  tool: {
+    primaryMin: 0.4,
+    primaryMax: 2.5,
+    familyMin: 1.5,
+    familyMax: 10.0,
+    description: "特定起卦流程工具交互与操作指引",
+  },
+  guide: {
+    primaryMin: 0.5,
+    primaryMax: 2.0,
+    familyMin: 1.0,
+    familyMax: 11.0,
+    description: "易经义理深度解释与研读指南",
+  },
+};
+
 export type ZhSeoPageDefinition = {
   routeId: string;
   canonicalUrl: string;
+  densityProfile: ZhDensityProfile;
   searchIntent: string;
   primaryKeyword: string;
   secondaryCore: readonly string[];
@@ -25,6 +68,7 @@ export const ZH_INDEXABLE_PAGE_SEO = {
   homepage: {
     routeId: "homepage",
     canonicalUrl: "/zh",
+    densityProfile: "portal",
     searchIntent: "在线完成易经起卦，并理解本卦、动爻和变卦",
     primaryKeyword: "易经在线起卦",
     secondaryCore: ["周易在线起卦", "易经起卦", "在线起卦"],
@@ -45,6 +89,7 @@ export const ZH_INDEXABLE_PAGE_SEO = {
   "three-coin-method": {
     routeId: "three-coin-method",
     canonicalUrl: "/zh/methods/three-coin",
+    densityProfile: "tool",
     searchIntent: "学习并在线完成三枚铜钱起卦",
     primaryKeyword: "三枚铜钱起卦",
     secondaryCore: ["铜钱起卦", "三枚铜钱法", "易经铜钱起卦"],
@@ -65,6 +110,7 @@ export const ZH_INDEXABLE_PAGE_SEO = {
   "yarrow-stalks-method": {
     routeId: "yarrow-stalks-method",
     canonicalUrl: "/zh/methods/yarrow-stalks",
+    densityProfile: "tool",
     searchIntent: "了解蓍草筮法并在线完成十八变",
     primaryKeyword: "蓍草起卦",
     secondaryCore: ["蓍草法", "蓍草筮法", "大衍筮法"],
@@ -85,6 +131,7 @@ export const ZH_INDEXABLE_PAGE_SEO = {
   "mei-hua-yi-shu": {
     routeId: "mei-hua-yi-shu",
     canonicalUrl: "/zh/methods/mei-hua-yi-shu",
+    densityProfile: "tool",
     searchIntent: "使用时间或数字理解并完成梅花易数起卦",
     primaryKeyword: "梅花易数起卦",
     secondaryCore: ["梅花易数", "梅花易数时间起卦", "梅花易数怎么起卦"],
@@ -105,6 +152,7 @@ export const ZH_INDEXABLE_PAGE_SEO = {
   "manual-cast-method": {
     routeId: "manual-cast-method",
     canonicalUrl: "/zh/methods/manual-cast",
+    densityProfile: "tool",
     searchIntent: "已有六爻值或本卦时手动输入并生成变卦",
     primaryKeyword: "手动起卦",
     secondaryCore: ["易经手动起卦", "六爻手动起卦", "手动输入卦象"],
@@ -125,6 +173,7 @@ export const ZH_INDEXABLE_PAGE_SEO = {
   "guides-how-to-ask": {
     routeId: "guides-how-to-ask",
     canonicalUrl: "/zh/guides/how-to-ask-the-i-ching",
+    densityProfile: "guide",
     searchIntent: "学习易经问卦时如何把问题问清楚",
     primaryKeyword: "易经怎么问",
     secondaryCore: ["易经问卦", "问卦怎么问", "易经提问"],
@@ -145,6 +194,7 @@ export const ZH_INDEXABLE_PAGE_SEO = {
   "guides-changing-lines": {
     routeId: "guides-changing-lines",
     canonicalUrl: "/zh/guides/changing-lines",
+    densityProfile: "guide",
     searchIntent: "理解易经动爻、变爻以及6/9如何生成变卦",
     primaryKeyword: "易经动爻",
     secondaryCore: ["动爻", "变爻", "易经变爻"],
@@ -165,6 +215,7 @@ export const ZH_INDEXABLE_PAGE_SEO = {
   "guides-primary-relating": {
     routeId: "guides-primary-relating",
     canonicalUrl: "/zh/guides/primary-relating-hexagrams",
+    densityProfile: "guide",
     searchIntent: "理解本卦、动爻与变卦之间的结构关系",
     primaryKeyword: "本卦变卦",
     secondaryCore: ["本卦", "变卦", "之卦"],
@@ -185,6 +236,7 @@ export const ZH_INDEXABLE_PAGE_SEO = {
   "hexagrams-hub": {
     routeId: "hexagrams-hub",
     canonicalUrl: "/zh/hexagrams",
+    densityProfile: "hub",
     searchIntent: "按文王卦序浏览易经六十四卦并进入每一卦详情",
     primaryKeyword: "易经六十四卦",
     secondaryCore: ["周易六十四卦", "六十四卦", "易经64卦"],

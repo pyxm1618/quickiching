@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ZH_INDEXABLE_PAGE_SEO } from "./zh-pages";
+import { ZH_INDEXABLE_PAGE_SEO, ZH_DENSITY_PROFILES } from "./zh-pages";
 
 describe("Simplified Chinese non-hexagram SEO registry", () => {
   const entries = Object.values(ZH_INDEXABLE_PAGE_SEO);
@@ -42,23 +42,23 @@ describe("Simplified Chinese non-hexagram SEO registry", () => {
     }
   });
 
-  it("keeps the approved hard density bands and explicit research provenance", () => {
+  it("binds each page to a densityProfile and enforces internal anti-stuffing guardrail limits", () => {
     for (const entry of entries) {
-      expect(entry.primaryDensityMin, entry.routeId).toBeGreaterThan(0);
+      expect(["hub", "portal", "tool", "guide"], entry.routeId).toContain(entry.densityProfile);
+      const profile = ZH_DENSITY_PROFILES[entry.densityProfile];
+      expect(profile, entry.routeId).toBeDefined();
+
+      // Page configured range must sit within its profile contract
+      expect(entry.primaryDensityMin, entry.routeId).toBeGreaterThanOrEqual(profile.primaryMin);
+      expect(entry.primaryDensityMax, entry.routeId).toBeLessThanOrEqual(profile.primaryMax);
+      expect(entry.familyDensityMin, entry.routeId).toBeGreaterThanOrEqual(profile.familyMin);
+      expect(entry.familyDensityMax, entry.routeId).toBeLessThanOrEqual(profile.familyMax);
+
+      // Sanity relations within the page
       expect(entry.primaryDensityMax, entry.routeId).toBeGreaterThanOrEqual(entry.primaryDensityMin);
-      expect(entry.primaryDensityMax, entry.routeId).toBeLessThanOrEqual(5);
-      expect(entry.familyDensityMin, entry.routeId).toBeGreaterThan(0);
       expect(entry.familyDensityMax, entry.routeId).toBeGreaterThanOrEqual(entry.familyDensityMin);
       expect(entry.familyDensityMax, entry.routeId).toBeLessThanOrEqual(11.0);
-      if (entry.routeId === "hexagrams-hub") {
-        expect(entry.familyDensityMax, entry.routeId).toBeLessThanOrEqual(2.0);
-      } else if (entry.routeId === "homepage") {
-        expect(entry.familyDensityMax, entry.routeId).toBeLessThanOrEqual(5.0);
-      } else if (entry.canonicalUrl.startsWith("/zh/methods/")) {
-        expect(entry.familyDensityMax, entry.routeId).toBeLessThanOrEqual(10.0);
-      } else if (entry.canonicalUrl.startsWith("/zh/guides/")) {
-        expect(entry.familyDensityMax, entry.routeId).toBeLessThanOrEqual(11.0);
-      }
+
       expect(entry.researchEvidence.length, entry.routeId).toBeGreaterThan(0);
       expect(entry.researchEvidence.every((url) => /^https:\/\//.test(url)), entry.routeId).toBe(true);
       expect(entry.sourceNotes.trim().length, entry.routeId).toBeGreaterThan(10);

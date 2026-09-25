@@ -99,13 +99,16 @@ export function PurchaseButton({
     <div className="mt-5">
       <button
         type="button"
+        data-checkout-button="true"
+        data-product-key={productKey}
+        data-purchase-product={productKey}
         onClick={beginCheckout}
         disabled={pending}
         className="w-full rounded-lg bg-[var(--jade)] px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
       >
         {pending ? t("Opening secure checkout…", "正在打开安全支付页面…") : t("Buy reading credits", "购买深度解读次数")}
       </button>
-      {error ? <p className="mt-2 text-xs leading-5 text-red-700" role="alert">{error}</p> : null}
+      {error ? <p data-checkout-error="true" className="mt-2 text-xs leading-5 text-red-700" role="alert">{error}</p> : null}
     </div>
   );
 }

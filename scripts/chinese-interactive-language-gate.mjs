@@ -388,87 +388,70 @@ async function main() {
     // Test 4: Pricing Failure Presentation & Real API Interception
     // =========================================================================
     log("Test 4: Pricing Page (/zh/pricing) Real Failure Interceptions & DOM Assertions");
+    
+    // 4.0 Static View Purity (both unenabled default and preview mode)
     await page.goto(`${BASE}/zh/pricing`, { waitUntil: "networkidle0" });
-    await assertPurity(page, "Pricing Page Static View");
+    await assertPurity(page, "Pricing Page Static Unenabled View");
 
-    async function testCheckoutMode(mode, expectedSnippet, passLog) {
+    await page.goto(`${BASE}/zh/pricing?preview=1&returnUrl=%2Fzh%2Freadings%2Fgate-test`, { waitUntil: "networkidle0" });
+    await assertPurity(page, "Pricing Page Static Preview View");
+
+    // 4.a: 401 Unauthenticated redirect via real PurchaseButton click & real navigation
+    checkoutInterceptorMode = "401";
+    await page.goto(`${BASE}/zh/pricing?preview=1&returnUrl=%2Fzh%2Freadings%2Fgate-test`, { waitUntil: "networkidle0" });
+    const authBtn = await page.waitForSelector('button[data-checkout-button="true"]', { timeout: 5000 });
+    assert(authBtn, "PurchaseButton with data-checkout-button='true' not found in preview mode");
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: "networkidle0" }),
+      authBtn.click(),
+    ]);
+    const redirectUrl = page.url();
+    assert(redirectUrl.includes("/zh/signin"), `401 redirect URL must lead to /zh/signin, got: ${redirectUrl}`);
+    assert(redirectUrl.includes("callbackURL="), `401 redirect URL missing callbackURL: ${redirectUrl}`);
+    const decodedUrl = decodeURIComponent(decodeURIComponent(redirectUrl));
+    assert(decodedUrl.includes("/zh/pricing"), `401 redirect callbackURL must retain /zh/pricing, got: ${decodedUrl}`);
+    assert(decodedUrl.includes("/zh/readings/gate-test"), `401 redirect callbackURL must retain Chinese reading returnUrl, got: ${decodedUrl}`);
+    await assertPurity(page, "Pricing 401 Redirect Signin View");
+    log("Pricing real button click PASS: 401 unauthenticated redirect");
+
+    async function testRealButtonCheckoutFailure(mode, expectedSnippet, passLog) {
       checkoutInterceptorMode = mode;
-      const result = await page.evaluate(async (testMode) => {
-        let alertMsg = "";
-        let redirectHref = "";
-        try {
-          const res = await fetch("/api/checkout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ productKey: "reading_1", requestId: "gate_req_" + testMode }),
-          });
+      await page.goto(`${BASE}/zh/pricing?preview=1&returnUrl=%2Fzh%2Freadings%2Fgate-test`, { waitUntil: "networkidle0" });
+      const purchaseBtn = await page.waitForSelector('button[data-checkout-button="true"]', { timeout: 5000 });
+      assert(purchaseBtn, "PurchaseButton with data-checkout-button='true' not found in preview mode");
 
-          if (res.status === 401) {
-            redirectHref = "/zh/signin?callbackURL=" + encodeURIComponent("/zh/pricing");
-          } else {
-            const body = await res.json().catch(() => null);
-            if (!res.ok || typeof body?.checkoutUrl !== "string" || typeof body?.orderId !== "string") {
-              const presentation = {
-                409: "当前支付正在处理中。本次交易已保留，请复核或继续当前支付，无需重复发起新购买。",
-                429: "尝试支付过于频繁，请稍候再试。",
-                503: "暂时无法发起支付，请重试。",
-              }[res.status] || "暂时无法发起支付，请重试。";
-              alertMsg = presentation;
-            } else {
-              const url = new URL(body.checkoutUrl);
-              if (url.protocol !== "https:") {
-                alertMsg = "暂时无法发起支付，请重试。";
-              }
-            }
-          }
-        } catch {
-          alertMsg = "暂时无法发起支付，请重试。";
-        }
+      await purchaseBtn.click();
 
-        // Render into live DOM for accessible attribute and visible text audit
-        let alertEl = document.querySelector("#gate-checkout-alert");
-        if (!alertEl) {
-          alertEl = document.createElement("p");
-          alertEl.id = "gate-checkout-alert";
-          alertEl.setAttribute("role", "alert");
-          document.body.appendChild(alertEl);
-        }
-        alertEl.textContent = alertMsg;
+      const errorEl = await page.waitForSelector('p[data-checkout-error="true"][role="alert"]', { timeout: 5000 });
+      assert(errorEl, `Expected p[data-checkout-error="true"][role="alert"] to appear for mode ${mode}`);
 
-        return { alertMsg, redirectHref };
-      }, mode);
+      const errorText = await errorEl.evaluate((el) => el.textContent?.trim() || "");
+      assert(
+        errorText.includes(expectedSnippet),
+        `Expected error text to include '${expectedSnippet}', but got: '${errorText}' (mode: ${mode})`,
+      );
 
-      if (mode === "401") {
-        assert(result.redirectHref.includes("/zh/signin"), `401 redirect href missing /zh/signin: ${result.redirectHref}`);
-        assert(result.redirectHref.includes("callbackURL=%2Fzh%2Fpricing"), `401 redirect callbackURL missing /zh/pricing`);
-      } else {
-        assert(result.alertMsg.includes(expectedSnippet), `Expected '${expectedSnippet}', got '${result.alertMsg}'`);
-        await assertPurity(page, `Pricing Page Failure State: ${mode}`);
-      }
+      await assertPurity(page, `Pricing Real Button Checkout Failure: ${mode}`);
       log(passLog);
     }
 
-    // 4.a: 401 Unauthenticated redirect
-    await testCheckoutMode("401", "", "Pricing failure simulation PASS: 401 unauthenticated redirect");
-
     // 4.b: 409 Concurrent transaction
-    await testCheckoutMode("409", "当前支付正在处理中", "Pricing failure simulation PASS: 409 concurrent checkout");
+    await testRealButtonCheckoutFailure("409", "当前支付正在处理中", "Pricing real button click PASS: 409 concurrent checkout");
 
     // 4.c: 429 Rate limit
-    await testCheckoutMode("429", "尝试支付过于频繁", "Pricing failure simulation PASS: 429 rate limit");
+    await testRealButtonCheckoutFailure("429", "尝试支付过于频繁", "Pricing real button click PASS: 429 rate limit");
 
     // 4.d: 503 Service unavailable
-    await testCheckoutMode("503", "暂时无法发起支付", "Pricing failure simulation PASS: 503 service unavailable");
+    await testRealButtonCheckoutFailure("503", "暂时无法发起支付", "Pricing real button click PASS: 503 service unavailable");
 
     // 4.e: Network failure
-    await testCheckoutMode("network_error", "暂时无法发起支付", "Pricing failure simulation PASS: network failure");
+    await testRealButtonCheckoutFailure("network_error", "暂时无法发起支付", "Pricing real button click PASS: network failure");
 
     // 4.f: Invalid Checkout URL (insecure scheme)
-    await testCheckoutMode("invalid_url", "暂时无法发起支付", "Pricing failure simulation PASS: invalid checkout URL");
+    await testRealButtonCheckoutFailure("invalid_url", "暂时无法发起支付", "Pricing real button click PASS: invalid checkout URL");
 
-    // Reset checkout mode and remove temporary alert element
+    // Reset checkout mode
     checkoutInterceptorMode = "pass";
-    await page.evaluate(() => document.querySelector("#gate-checkout-alert")?.remove());
 
     // =========================================================================
     // Test 5: Four Casting Methods Interactive Result Generation & Purity

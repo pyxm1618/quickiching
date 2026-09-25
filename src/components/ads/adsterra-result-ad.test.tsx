@@ -24,4 +24,13 @@ describe("AdsterraResultAd client build contract", () => {
     expect(source).toContain("ADSTERRA_RESULT_UNIT.containerId");
     expect(source).toContain("ADSTERRA_RESULT_UNIT.scriptUrl");
   });
+
+  it("supports Chinese and English locale labels and aria-labels without regression", () => {
+    const source = componentSource();
+
+    expect(source).toContain('locale = "en"');
+    expect(source).toContain('const isChinese = locale === "zh-Hans"');
+    expect(source).toContain('const label = isChinese ? "广告" : "Advertisement"');
+    expect(source).toContain("aria-label={label}");
+  });
 });
