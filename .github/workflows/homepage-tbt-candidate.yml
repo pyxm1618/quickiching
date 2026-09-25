@@ -51,7 +51,15 @@ jobs:
           cat /tmp/quickiching-candidate.log
           exit 1
 
+      - name: Install ephemeral browser tooling
+        run: |
+          bun add --no-save --cache-dir=/tmp/quickiching-bun-cache \
+            puppeteer-core@25.1.0 \
+            @sparticuz/chromium@149.0.0
+
       - name: Existing navigation gate
+        env:
+          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3000
         run: bun run gate:navigation
 
       - name: Existing Chinese interactive gate
