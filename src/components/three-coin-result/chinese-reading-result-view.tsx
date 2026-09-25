@@ -130,20 +130,20 @@ export function ChineseReadingResultView({
       </section>
 
       <section className={styles.section + " " + styles.revealDelay} aria-labelledby="synthesis-heading">
-        <p className="mystic-kicker">第四部分</p>
-        <h2 id="synthesis-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] sm:text-4xl">把本卦、动爻与之卦放在一起</h2>
+        <p className="mystic-kicker">第四部分 · 卦象综合</p>
+        <h2 id="synthesis-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] sm:text-4xl">卦象综合</h2>
         <div className="mt-7 grid gap-6 lg:grid-cols-3">
-          <CopyBlock title="当前结构"><p>{primary?.coreMeaning ?? "先确认本卦的整体结构。"}</p></CopyBlock>
-          <CopyBlock title="变化发生在哪里"><p>{movingPositions.length > 0 ? "本次变化集中在第 " + movingText + " 爻。先看这些位置如何改变原有结构。" : "本次没有动爻，结构保持稳定。"}</p></CopyBlock>
-          <CopyBlock title="变化后的参照"><p>{relating ? relating.coreMeaning : "没有动爻，因此不需要额外的变化后结构。"}</p></CopyBlock>
+          <CopyBlock title="一般结构"><p>{primary?.coreMeaning ?? "先确认本卦的整体结构。"}</p></CopyBlock>
+          <CopyBlock title="变化位置"><p>{movingPositions.length > 0 ? "本次变化集中在第 " + movingText + " 爻。先看这些位置如何改变原有结构。" : "本次没有动爻，结构保持稳定。"}</p></CopyBlock>
+          <CopyBlock title="一般变化方向"><p>{relating ? relating.coreMeaning : "没有动爻，因此不需要额外的变化后结构。"}</p></CopyBlock>
         </div>
       </section>
 
       <AdsterraResultAd locale="zh-Hans" />
 
       <section className={styles.section + " " + styles.revealDelay} aria-labelledby="reflection-heading">
-        <p className="mystic-kicker">第五部分 · 现实反思</p>
-        <h2 id="reflection-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em]">把卦象带回现实</h2>
+        <p className="mystic-kicker">第五部分 · 卦象反思</p>
+        <h2 id="reflection-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em]">通用思考方向</h2>
         <div className="mt-6 grid gap-4">
           <p className="rounded-2xl border border-white/[0.07] bg-black/10 p-4 text-sm leading-7 text-[var(--ink-2)]">当前处境中，哪些事实最能支持或反驳“{primary?.theme ?? "这个结构"}”这一理解？</p>
           <p className="rounded-2xl border border-white/[0.07] bg-black/10 p-4 text-sm leading-7 text-[var(--ink-2)]">{movingPositions.length > 0 ? "第 " + movingText + " 爻对应的变化，在现实中有哪些可观察信号？" : "如果目前结构稳定，什么新信息出现时才值得重新评估？"}</p>

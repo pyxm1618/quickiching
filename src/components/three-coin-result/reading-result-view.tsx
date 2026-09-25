@@ -227,17 +227,17 @@ export function ReadingResultView({
 
       <section className={`${styles.surface} mt-12 p-5 sm:p-8 lg:p-10`} aria-labelledby="synthesis-heading">
         <p className="mystic-kicker">Section 6</p>
-        <h2 id="synthesis-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] sm:text-4xl">Bringing the Reading Together</h2>
+        <h2 id="synthesis-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] sm:text-4xl">General Cast Synthesis</h2>
         <div className="mt-8 grid gap-8 lg:grid-cols-3">
-          <CopyBlock title="The Situation"><p>{reading.synthesis.situation}</p></CopyBlock>
-          <CopyBlock title="Where Change Is Happening"><p>{reading.synthesis.whereChangeIsHappening}</p></CopyBlock>
-          <CopyBlock title="Direction of Change"><p>{reading.synthesis.directionOfChange}</p></CopyBlock>
+          <CopyBlock title="General Pattern"><p>{reading.synthesis.situation}</p></CopyBlock>
+          <CopyBlock title="Structural Change"><p>{reading.synthesis.whereChangeIsHappening}</p></CopyBlock>
+          <CopyBlock title="General Direction of Change"><p>{reading.synthesis.directionOfChange}</p></CopyBlock>
         </div>
       </section>
 
       <section className={`${styles.bottomLine} mt-6 p-6 sm:p-8 lg:p-10`} aria-labelledby="bottom-line-heading">
         <p className="mystic-kicker">Synthesis</p>
-        <h2 id="bottom-line-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] text-[var(--gold-2)] sm:text-4xl">Bottom Line</h2>
+        <h2 id="bottom-line-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] text-[var(--gold-2)] sm:text-4xl">Cast Takeaway</h2>
         <p className="mt-5 max-w-4xl text-base leading-8 text-[var(--ink-2)] sm:text-lg sm:leading-9">{reading.synthesis.bottomLine}</p>
       </section>
 

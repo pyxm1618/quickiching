@@ -37,6 +37,34 @@ function ReportSection({ title, children }: { title: string; children: React.Rea
   );
 }
 
+function buildBasisSummary(snapshot: DeepReadingContextSnapshot | null | undefined, zh: boolean): string | null {
+  if (!snapshot) return null;
+  const p = snapshot.knowledge.primary;
+  const pName = zh ? `第 ${p.number} 卦「${p.chineseName}」` : `Hexagram ${p.number} (${p.name})`;
+  const lines = snapshot.facts.movingLinePositions;
+  const r = snapshot.knowledge.relating;
+
+  if (lines.length === 0) {
+    return zh
+      ? `本次解读主要基于 ${pName} 的稳定卦象结构（无动爻）。`
+      : `Primarily based on the stable structure of ${pName} with no changing lines.`;
+  }
+  const lineStr = zh
+    ? `第 ${lines.join("、")} 爻动爻`
+    : `changing line${lines.length > 1 ? "s" : ""} ${lines.join(", ")}`;
+
+  if (r) {
+    const rName = zh ? `第 ${r.number} 卦「${r.chineseName}」` : `Hexagram ${r.number} (${r.name})`;
+    return zh
+      ? `本次解读主要基于 ${pName}，${lineStr}，以及向 ${rName}的结构变化。`
+      : `Primarily based on ${pName}, ${lineStr}, and the movement toward ${rName}.`;
+  }
+
+  return zh
+    ? `本次解读主要基于 ${pName} 与 ${lineStr}。`
+    : `Primarily based on ${pName} and ${lineStr}.`;
+}
+
 export function CommercialReadingReportView({
   report,
   snapshot,
@@ -49,6 +77,7 @@ export function CommercialReadingReportView({
   const zh = locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
   const evidenceById = new Map(snapshot?.knowledge.evidence.map((evidence) => [evidence.id, evidence]) ?? []);
+  const whySummary = buildBasisSummary(snapshot, zh);
 
   return (
     <section className="space-y-5" aria-labelledby="deep-reading-title" data-deep-reading-report>
@@ -70,6 +99,14 @@ export function CommercialReadingReportView({
                 {snapshot.context.concerns.map((item) => <li key={`concern:${item}`}><strong>{t("Concern:", "顾虑：")}</strong> {item}</li>)}
               </ul>
             ) : null}
+          </div>
+        ) : null}
+        {whySummary ? (
+          <div className="mt-6 rounded-2xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] px-5 py-4 text-sm leading-7 text-white" data-why-this-interpretation>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--gold-2)]">
+              {t("Why this interpretation", "解读依据概述")}
+            </p>
+            <p className="mt-1 text-sm text-[var(--ink-2)]">{whySummary}</p>
           </div>
         ) : null}
         <p className="mt-6 text-xs leading-6 text-[var(--ink-3)]">

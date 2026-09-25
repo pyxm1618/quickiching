@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { patchPublicReadingSession, readPublicReadingSessionState } from "@/lib/public-reading-session";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
@@ -29,11 +29,26 @@ export function useQuestionFirstContext(): QuestionContext | undefined {
 }
 
 export function QuestionFirst({ storageKey, legacyStorageKeys = [], dictionary = EN_UI_DICTIONARY, children }: QuestionFirstProps) {
-  const [started, setStarted] = useState(false);
-  const [question, setQuestionState] = useState<string | undefined>(undefined);
-  const [coreQuestionAtCast, setCoreQuestionAtCast] = useState<string | undefined>(undefined);
-  const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(false);
-  const [draft, setDraft] = useState("");
+  const [started, setStarted] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return readPublicReadingSessionState(storageKey, legacyStorageKeys).started;
+  });
+  const [question, setQuestionState] = useState<string | undefined>(() => {
+    if (typeof window === "undefined") return undefined;
+    return readPublicReadingSessionState(storageKey, legacyStorageKeys).question;
+  });
+  const [coreQuestionAtCast, setCoreQuestionAtCast] = useState<string | undefined>(() => {
+    if (typeof window === "undefined") return undefined;
+    return readPublicReadingSessionState(storageKey, legacyStorageKeys).coreQuestionAtCast;
+  });
+  const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return readPublicReadingSessionState(storageKey, legacyStorageKeys).coreQuestionFrozenAtCast;
+  });
+  const [draft, setDraft] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return readPublicReadingSessionState(storageKey, legacyStorageKeys).question ?? "";
+  });
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -118,6 +133,7 @@ export function QuestionFirst({ storageKey, legacyStorageKeys = [], dictionary =
   }
 
   function restartQuestion() {
+    if (coreQuestionFrozenAtCast) return;
     if (!persist(false, undefined)) {
       setError(dictionary.questionFirst.saveError);
       return;
@@ -204,7 +220,9 @@ export function QuestionFirst({ storageKey, legacyStorageKeys = [], dictionary =
               ) : null}
               {error ? <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{error}</p> : null}
             </div>
-            <button type="button" onClick={restartQuestion} className="mystic-button-secondary">{dictionary.questionFirst.newQuestion}</button>
+            {!coreQuestionFrozenAtCast ? (
+              <button type="button" onClick={restartQuestion} className="mystic-button-secondary">{dictionary.questionFirst.newQuestion}</button>
+            ) : null}
           </div>
         </section>
       )}

@@ -130,6 +130,7 @@ export function ThreeCoinResultClient({
   const [legacyReport, setLegacyReport] = useState<CommercialReadingReport | null>(initialLegacyReport.success ? initialLegacyReport.data : null);
   const [deepSnapshot, setDeepSnapshot] = useState<DeepReadingContextSnapshot | null>(null);
   const [contextDraft, setContextDraft] = useState<ContextDraft>(EMPTY_CONTEXT_DRAFT);
+  const [showDetailedContext, setShowDetailedContext] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const resultReading = useMemo(() => {
     if (state.kind !== "ready") return null;
@@ -609,13 +610,16 @@ export function ThreeCoinResultClient({
               <h2 id="commercial-deep-section" className="mt-2 max-w-3xl font-display text-2xl font-normal text-white sm:text-3xl">
                 {t("What does this reading mean for your specific situation?", "这次卦象对你的具体处境意味着什么？")}
               </h2>
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.08)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--gold-2)]">
+                {t("Personalized Deep Reading · from $2.99", "个性化深度解读 · $2.99 起")}
+              </div>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">
-                {t("Deep Reading uses the question you asked before casting, the context you add here, your exact Three-Coin result, and cited I Ching material. The free cast interpretation remains complete and never calls AI.", "深度解读会结合起卦前提出的问题、你在此补充的现实背景、本次三枚铜钱卦象及可核对的易经材料。免费卦象解读仍然完整，且绝不调用 AI。")}
+                {t("Free explains the cast itself. Deep Reading connects this exact cast to the question you asked, using the situation context you supply here and cited Quick I Ching source material. Free reading never calls AI.", "免费解读说明卦象本身；深度解读结合你起卦前锁定的核心问题、在此补充的现实背景和确切卦象，给出有依据的针对性解释。免费解读绝不调用 AI。")}
               </p>
 
               {!state.question || Array.from(state.question.trim()).length < 8 ? (
                 <div className="mt-6 rounded-2xl border border-[var(--gold)]/25 bg-black/15 p-5" data-deep-reading-blocked="missing-question">
-                  <p className="text-sm leading-7 text-[var(--ink-2)]">{t("This cast was not bound to a clear question before its first changing line. It stays available as a free reading; start a new cast with one core question to use Deep Reading.", "这次起卦在第一爻落定前没有绑定清晰的核心问题，因此仍可作为免费解读查看；如需深度解读，请带着一个核心问题重新起卦。")}</p>
+                  <p className="text-sm leading-7 text-[var(--ink-2)]">{t("This cast was not bound to a clear question before the first line was cast. It stays available as a free reading; start a new cast with one core question to use Deep Reading.", "这次起卦在第一爻落定前没有绑定清晰的核心问题，因此仍可作为免费解读查看；如需深度解读，请带着一个核心问题重新起卦。")}</p>
                   <button type="button" onClick={startNewReading} className="mystic-button mt-5">{t("Start a new reading with a question", "带着问题重新起卦")}</button>
                 </div>
               ) : (
@@ -630,49 +634,122 @@ export function ThreeCoinResultClient({
                       {t("This generation already has a saved input snapshot. A retry will reuse the same question and context.", "本次生成已保存输入快照；重试会继续使用相同的问题与背景。")}
                     </p>
                   ) : (
-                    <div className="mt-6 grid gap-4 md:grid-cols-2" data-context-enrichment-form>
-                      <label className="md:col-span-2">
-                        <span className="text-sm font-semibold text-white">{t("Relevant situation", "相关现实背景")}</span>
-                        <textarea value={contextDraft.contextNotes} onChange={(event) => setContextDraft((draft) => ({ ...draft, contextNotes: event.target.value }))} maxLength={2000} rows={3} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm leading-6 text-white" placeholder={t("What has happened, and what matters most here?", "目前发生了什么？哪些事实最重要？")} />
-                      </label>
-                      <label>
-                        <span className="text-sm font-semibold text-white">{t("Options", "正在考虑的选项")}</span>
-                        <textarea value={contextDraft.optionsText} onChange={(event) => setContextDraft((draft) => ({ ...draft, optionsText: event.target.value }))} rows={2} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm leading-6 text-white" placeholder={t("One option per line (optional)", "每行一个选项（可选）")} />
-                      </label>
-                      <label>
-                        <span className="text-sm font-semibold text-white">{t("Constraints", "现实限制")}</span>
-                        <textarea value={contextDraft.constraintsText} onChange={(event) => setContextDraft((draft) => ({ ...draft, constraintsText: event.target.value }))} rows={2} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm leading-6 text-white" placeholder={t("One constraint per line (optional)", "每行一条限制（可选）")} />
-                      </label>
-                      <label>
-                        <span className="text-sm font-semibold text-white">{t("Concerns", "主要顾虑")}</span>
-                        <textarea value={contextDraft.concernsText} onChange={(event) => setContextDraft((draft) => ({ ...draft, concernsText: event.target.value }))} rows={2} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm leading-6 text-white" placeholder={t("What are you worried about? (optional)", "你最担心什么？（可选）")} />
-                      </label>
-                      <label>
-                        <span className="text-sm font-semibold text-white">{t("What would you like to understand?", "你最想看清什么？")}</span>
-                        <select value={contextDraft.interpretationGoal} onChange={(event) => setContextDraft((draft) => ({ ...draft, interpretationGoal: event.target.value as ContextDraft["interpretationGoal"] }))} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm leading-6 text-white">
+                    <div className="mt-6 space-y-4" data-context-enrichment-form>
+                      <div>
+                        <label htmlFor="deep-context-situation" className="block text-sm font-semibold text-white">
+                          {t("Tell us what matters in your situation", "说明你的具体处境与关键事实")}
+                        </label>
+                        <textarea
+                          id="deep-context-situation"
+                          value={contextDraft.contextNotes}
+                          onChange={(event) => setContextDraft((draft) => ({ ...draft, contextNotes: event.target.value }))}
+                          maxLength={2000}
+                          rows={3}
+                          className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm leading-6 text-white placeholder:text-[var(--ink-3)] focus:border-[var(--gold)] focus:outline-none"
+                          placeholder={t("What has happened? What options are you considering? What constraints or concerns matter?", "目前发生了什么？你在考虑哪些选项？有哪些现实限制或主要顾虑？")}
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="deep-interpretation-goal" className="block text-sm font-semibold text-white">
+                          {t("What would you like clarity on?", "你最想看清什么？")}
+                        </label>
+                        <select
+                          id="deep-interpretation-goal"
+                          value={contextDraft.interpretationGoal}
+                          onChange={(event) => setContextDraft((draft) => ({ ...draft, interpretationGoal: event.target.value as ContextDraft["interpretationGoal"] }))}
+                          className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm leading-6 text-white focus:border-[var(--gold)] focus:outline-none"
+                        >
                           <option value="what_do_i_need_to_see_clearly">{t("Understand the situation", "理解当前局势")}</option>
-                          <option value="what_should_i_pay_attention_to_next">{t("Know what to watch next", "看清接下来应关注什么")}</option>
+                          <option value="what_should_i_pay_attention_to_next">{t("See what matters next", "看清接下来应关注什么")}</option>
                           <option value="how_should_i_act">{t("Reflect on a next step", "思考下一步")}</option>
-                          <option value="what_is_the_likely_direction">{t("Explore a conditional direction", "理解可能的条件性走向")}</option>
+                          <option value="what_is_the_likely_direction">{t("Explore the possible direction", "理解可能的条件性走向")}</option>
                         </select>
-                      </label>
-                      <p className="md:col-span-2 text-xs leading-6 text-[var(--ink-3)]">{t("Add at least 24 characters across the situation, options, constraints, and concerns. This context is encrypted with the saved reading and is not used to change its core question.", "请在背景、选项、限制和顾虑中合计补充至少 24 个字符。背景会与起卦结果一并加密保存，不会改变原核心问题。")}</p>
+                      </div>
+
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setShowDetailedContext((prev) => !prev)}
+                          className="inline-flex items-center gap-1.5 py-1 text-xs font-semibold text-[var(--gold-2)] hover:underline"
+                        >
+                          {showDetailedContext
+                            ? t("− Hide optional structured details", "− 收起附加结构项")
+                            : t("+ Add more details (options, constraints, concerns)", "+ 补充选项、限制与顾虑（可选）")}
+                        </button>
+                      </div>
+
+                      {showDetailedContext ? (
+                        <div className="grid gap-4 rounded-2xl border border-white/[0.08] bg-black/15 p-4 sm:grid-cols-3">
+                          <label>
+                            <span className="text-xs font-semibold text-[var(--ink-2)]">{t("Options", "正在考虑的选项")}</span>
+                            <textarea
+                              value={contextDraft.optionsText}
+                              onChange={(event) => setContextDraft((draft) => ({ ...draft, optionsText: event.target.value }))}
+                              rows={2}
+                              className="mt-1 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-xs leading-5 text-white placeholder:text-[var(--ink-3)]"
+                              placeholder={t("One option per line", "每行一个选项")}
+                            />
+                          </label>
+                          <label>
+                            <span className="text-xs font-semibold text-[var(--ink-2)]">{t("Constraints", "现实限制")}</span>
+                            <textarea
+                              value={contextDraft.constraintsText}
+                              onChange={(event) => setContextDraft((draft) => ({ ...draft, constraintsText: event.target.value }))}
+                              rows={2}
+                              className="mt-1 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-xs leading-5 text-white placeholder:text-[var(--ink-3)]"
+                              placeholder={t("One constraint per line", "每行一条限制")}
+                            />
+                          </label>
+                          <label>
+                            <span className="text-xs font-semibold text-[var(--ink-2)]">{t("Concerns", "主要顾虑")}</span>
+                            <textarea
+                              value={contextDraft.concernsText}
+                              onChange={(event) => setContextDraft((draft) => ({ ...draft, concernsText: event.target.value }))}
+                              rows={2}
+                              className="mt-1 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-xs leading-5 text-white placeholder:text-[var(--ink-3)]"
+                              placeholder={t("What are you worried about?", "你最担心什么？")}
+                            />
+                          </label>
+                        </div>
+                      ) : null}
+
+                      <p className="text-xs leading-6 text-[var(--ink-3)]">
+                        {t("Add at least 24 characters across your situation details. This context is encrypted with the saved reading and is not used to change its core question.", "请在处境说明中合计补充至少 24 个字符。背景会与起卦结果一并加密保存，不会改变原核心问题。")}
+                      </p>
                     </div>
                   )}
 
                   {actionError ? <p className="mt-4 text-sm font-semibold text-[var(--danger)]" role="alert">{actionError}</p> : null}
                   <div className="mt-6 flex flex-wrap items-center gap-3">
                     {!user ? (
-                      <Link href={signinHref} className="mystic-button">{t("Sign in to continue", "登录并继续")}</Link>
+                      <>
+                        <Link href={signinHref} className="mystic-button">
+                          {t("Sign in to continue · $2.99", "登录并继续 · $2.99")}
+                        </Link>
+                        <span className="text-xs text-[var(--ink-3)]">
+                          {t("Personalized Deep Reading is $2.99 per cast (packages from $2.00/reading). Your free cast interpretation is always free.", "深度解读单次 $2.99（次数包单次低至 $2.00）。免费卦象解读随时可看。")}
+                        </span>
+                      </>
                     ) : credits <= 0 ? (
-                      <button type="button" onClick={handleOpenPricing} className="mystic-button">{t("Choose a Deep Reading pack", "选择深度解读次数包")}</button>
+                      <>
+                        <button type="button" onClick={handleOpenPricing} className="mystic-button">
+                          {t("Choose a Deep Reading pack · from $2.99", "选择深度解读次数包 · $2.99 起")}
+                        </button>
+                        <span className="text-xs text-[var(--ink-3)]">
+                          {t("Your cast remains free to review. No generation starts until a credit is available.", "你的免费卦象解读仍可查看；获得次数前不会启动生成。")}
+                        </span>
+                      </>
                     ) : (
-                      <button type="button" onClick={handleUnlockDeepReading} className="mystic-button" data-start-deep-reading>
-                        {deepStatus === "failed" ? t("Retry this reading", "重试本次解读") : t("Read my situation with this cast", "结合本次卦象解读我的处境")}
-                      </button>
+                      <>
+                        <button type="button" onClick={handleUnlockDeepReading} className="mystic-button" data-start-deep-reading>
+                          {deepStatus === "failed" ? t("Retry this reading", "重试本次解读") : t("Read my situation with this cast", "结合本次卦象解读我的处境")}
+                        </button>
+                        <span className="text-xs text-[var(--ink-3)]">
+                          {t(`${credits} credit${credits === 1 ? "" : "s"} available · one reserved per generation · released if generation fails`, `可用 ${credits} 次 · 每次生成预留 1 次 · 失败则释放`)}
+                        </span>
+                      </>
                     )}
-                    {user && credits > 0 ? <span className="text-xs text-[var(--ink-3)]">{t(`${credits} credit${credits === 1 ? "" : "s"} available · one reserved per generation · released if generation fails`, `可用 ${credits} 次 · 每次生成预留 1 次 · 失败则释放`)}</span> : null}
-                    {user && credits <= 0 ? <span className="text-xs text-[var(--ink-3)]">{t("Your cast remains free to review. No generation starts until a credit is available.", "你的免费卦象解读仍可查看；获得次数前不会启动生成。")}</span> : null}
                   </div>
                 </>
               )}

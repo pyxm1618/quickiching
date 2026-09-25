@@ -11,6 +11,7 @@ vi.mock("next/link", () => ({
 }));
 
 import { ThreeCoinResultClient } from "./three-coin-result-client";
+import { CommercialReadingReportView } from "./commercial-reading-report-view";
 
 describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => {
   it("renders empty state pointing to /zh/methods/three-coin in Chinese mode", () => {
@@ -226,5 +227,150 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(boundaryPosition).toBeGreaterThanOrEqual(0);
     expect(deepPosition).toBeGreaterThan(boundaryPosition);
     expect(freeDetailsPosition).toBeGreaterThan(deepPosition);
+  });
+
+  it("renders streamlined context form with $2.99 pricing disclosure and expandable details", () => {
+    const htmlZh = renderToStaticMarkup(
+      <ThreeCoinResultClient
+        locale="zh-Hans"
+        initialState={{
+          kind: "ready",
+          reading: {} as any,
+          lineValues: [7, 7, 7, 7, 7, 7],
+          question: "我的核心问题是否能够解决？",
+          createdAt: "2026-09-25T10:00:00.000Z",
+        }}
+        initialCastingView={{
+          castingId: "cast_pricing_test",
+          context: "我的核心问题是否能够解决？",
+          lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+          readingReport: null,
+          owns: false,
+        }}
+      />,
+    );
+
+    expect(htmlZh).toContain("个性化深度解读 · $2.99 起");
+    expect(htmlZh).toContain("说明你的具体处境与关键事实");
+    expect(htmlZh).toContain("你最想看清什么？");
+    expect(htmlZh).toContain("+ 补充选项、限制与顾虑（可选）");
+    expect(htmlZh).toContain("登录并继续 · $2.99");
+
+    const htmlEn = renderToStaticMarkup(
+      <ThreeCoinResultClient
+        locale="en"
+        initialState={{
+          kind: "ready",
+          reading: {} as any,
+          lineValues: [7, 7, 7, 7, 7, 7],
+          question: "How should I approach this transition?",
+          createdAt: "2026-09-25T10:00:00.000Z",
+        }}
+        initialCastingView={{
+          castingId: "cast_pricing_test_en",
+          context: "How should I approach this transition?",
+          lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+          readingReport: null,
+          owns: false,
+        }}
+      />,
+    );
+
+    expect(htmlEn).toContain("Personalized Deep Reading · from $2.99");
+    expect(htmlEn).toContain("Tell us what matters in your situation");
+    expect(htmlEn).toContain("What would you like clarity on?");
+    expect(htmlEn).toContain("+ Add more details (options, constraints, concerns)");
+    expect(htmlEn).toContain("Sign in to continue · $2.99");
+  });
+
+  it("renders Why this interpretation summary in completed Deep Reading report", () => {
+    const mockReport = {
+      schemaVersion: "deep-reading-v2" as const,
+      readingVariant: "standard" as const,
+      directAnswer: "Direct answer text explaining the specific context in relation to the hexagram.",
+      situationMapping: "Situation mapping text with clear ties to the cast facts and user situation.",
+      keyTensions: ["Tension between current stagnation and coming movement"],
+      conditionalDirection: "If external conditions stabilize, advance cautiously.",
+      signalsToWatch: ["Clear written agreement from the counterpart"],
+      practicalReflection: "Observe before making irreversible financial or career decisions.",
+      uncertaintyAndBoundaries: "Separate what the cast indicates from unknown organizational dynamics.",
+      interpretiveBasisReferences: [{ evidenceId: "primary.judgment" }],
+      disclaimer: "Reflective interpretation only.",
+    };
+
+    const mockSnapshot = {
+      schemaVersion: "deep-reading-context-v1" as const,
+      coreQuestionAtCast: "How should I approach this transition?",
+      context: {
+        contextNotes: "I have been in this position for two years and received an offer.",
+        options: ["Accept offer", "Stay"],
+        constraints: ["Must decide in 3 days"],
+        concerns: ["Work culture"],
+        interpretationGoal: "what_do_i_need_to_see_clearly" as const,
+        locale: "en" as const,
+      },
+      scene: "general" as const,
+      castMethod: "three_coin" as const,
+      methodVersion: "three-coin-v1",
+      facts: {
+        method: "three_coin" as const,
+        algorithmVersion: "three-coin-v1",
+        classicMappingVersion: "king-wen",
+        lineValuesBottomUp: [7, 9, 7, 7, 7, 7] as any,
+        primaryHexagramNumber: 47,
+        movingLinePositions: [2],
+        relatingHexagramNumber: 45,
+        readingVariant: "standard" as const,
+      },
+      snapshotAt: new Date().toISOString(),
+      knowledgeVersion: "quickiching-knowledge-v1",
+      risk: { status: "allowed" as const, ruleVersion: "v1", reasonCode: "SAFE" },
+      knowledge: {
+        version: "quickiching-knowledge-v1",
+        primary: {
+          number: 47,
+          name: "Oppression",
+          chineseName: "困",
+          judgment: "困：亨，贞，大人吉，无咎。",
+          image: "泽无水，困。君子以致命遂志。",
+          interpretation: {
+            coreTheme: "Constraints",
+            coreMeaning: "A situation under pressure",
+            strength: "Persistence",
+            challenge: "Limited resources",
+            orientation: "Work within real limits",
+            structureInterpretation: "Water below the lake",
+            transitionTheme: "Pressure changing the structure",
+            stabilityTheme: "Recognize what remains available",
+          },
+        },
+        changingLines: [],
+        relating: {
+          number: 45,
+          name: "Gathering Together",
+          chineseName: "萃",
+          judgment: "萃：亨。王假有庙。",
+          image: "泽上于地，萃。",
+          coreMeaning: "Gathering of forces",
+          orientation: "Unity in common purpose",
+        },
+        structuralChange: "Line 2 changes",
+        evidence: [{ id: "primary.judgment", source: "king_wen_judgment" as const, hexagramNumber: 47, content: "困：亨" }],
+      },
+    };
+
+    const htmlEn = renderToStaticMarkup(
+      <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="en" />,
+    );
+    expect(htmlEn).toContain('data-why-this-interpretation');
+    expect(htmlEn).toContain("Why this interpretation");
+    expect(htmlEn).toContain("Primarily based on Hexagram 47 (Oppression), changing line 2, and the movement toward Hexagram 45 (Gathering Together).");
+
+    const htmlZh = renderToStaticMarkup(
+      <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="zh-Hans" />,
+    );
+    expect(htmlZh).toContain('data-why-this-interpretation');
+    expect(htmlZh).toContain("解读依据概述");
+    expect(htmlZh).toContain("本次解读主要基于 第 47 卦「困」，第 2 爻动爻，以及向 第 45 卦「萃」的结构变化。");
   });
 });

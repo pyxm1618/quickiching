@@ -34,7 +34,9 @@ export async function buildDeepReadingKnowledgeBundle(
   addEvidence("primary.challenge", "interpretation_challenge", primary.number, primary.interpretation.challenge);
   addEvidence("primary.orientation", "interpretation_orientation", primary.number, primary.interpretation.orientation);
   addEvidence("primary.structure", "interpretation_structure", primary.number, primary.interpretation.structureInterpretation);
-  addEvidence("primary.transition", "interpretation_transition", primary.number, primary.interpretation.transitionTheme);
+  if (facts.readingVariant !== "still_hexagram") {
+    addEvidence("primary.transition", "interpretation_transition", primary.number, primary.interpretation.transitionTheme);
+  }
   addEvidence("primary.stability", "interpretation_stability", primary.number, primary.interpretation.stabilityTheme);
 
   const changingLines = facts.movingLinePositions.map((position) => {
