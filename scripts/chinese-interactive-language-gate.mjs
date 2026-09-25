@@ -388,7 +388,7 @@ async function main() {
     // Test 4: Pricing Failure Presentation & Real API Interception
     // =========================================================================
     log("Test 4: Pricing Page (/zh/pricing) Real Failure Interceptions & DOM Assertions");
-    
+
     // 4.0 Static View Purity (both unenabled default and preview mode)
     await page.goto(`${BASE}/zh/pricing`, { waitUntil: "networkidle0" });
     await assertPurity(page, "Pricing Page Static Unenabled View");
