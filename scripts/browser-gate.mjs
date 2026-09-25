@@ -382,7 +382,6 @@ async function finishThreeCoin(page) {
     await waitForText(page, `${line} / 6 lines`);
   }
 
-  await waitForText(page, "Your hexagram is formed");
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
   const sealedBeforeReveal = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
   assert(sealedBeforeReveal, "Completed Three-Coin reading must remain sealed after direct result navigation");
@@ -391,14 +390,28 @@ async function finishThreeCoin(page) {
   assert.equal(locationAfterReveal.search, "", "Three-Coin result URL must carry no cast state in query parameters");
   await waitForText(page, "Your Three-Coin Reading");
   for (const expected of [
-    "The Primary Hexagram",
-    "Understanding the Structure",
+    "Primary Hexagram",
+    "Classical line text",
+    "Core meaning",
     "Changing Lines",
-    "Bringing the Reading Together",
-    "Bottom Line",
-    "Questions to Sit With",
-    "What to Watch",
+    "A way to return to the question",
+    "Bottom line",
+    "Three questions to carry forward",
   ]) await waitForText(page, expected);
+
+  const resultSections = await page.evaluate(() => {
+    const result = document.querySelector("[data-public-reading-result]");
+    const deepReading = result?.querySelector("[data-deep-reading-entry]");
+    const freeDetails = result?.querySelector("[data-primary-card]");
+    return {
+      hasFreeBoundary: result?.querySelector("[data-free-cast-boundary]") !== null,
+      hasHexagramDetailsLink: freeDetails?.querySelector('a[href^="/hexagrams/"]') !== null,
+      deepReadingBeforeDetails: Boolean(deepReading && freeDetails && deepReading.compareDocumentPosition(freeDetails) & Node.DOCUMENT_POSITION_FOLLOWING),
+    };
+  });
+  assert(resultSections.hasFreeBoundary, "Result must label the free cast interpretation boundary");
+  assert(resultSections.hasHexagramDetailsLink, "Free cast interpretation must link to the primary hexagram details");
+  assert(resultSections.deepReadingBeforeDetails, "Deep Reading value must appear before the detailed free interpretation");
 
   const readingBeforeRefresh = await page.$eval("main", (node) => node.textContent ?? "");
   await page.reload({ waitUntil: "networkidle0" });

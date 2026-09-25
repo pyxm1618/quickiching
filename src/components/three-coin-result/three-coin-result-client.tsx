@@ -4,10 +4,13 @@ import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
-import { saveHistoryRecord } from "@/domain/public-reading/history";
 import { buildFreeReading } from "@/domain/interpretation/v2/build-free-reading";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 import type { FreeReading } from "@/domain/interpretation/v2/types";
+import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
+import { ZH_HANS_READING_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
+import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
+import { ZH_HANS_UI_DICTIONARY } from "@/i18n/dictionaries/zh-Hans";
 import {
   deepReadingContextEnrichmentSchema,
   deepReadingContextSnapshotSchema,
@@ -26,7 +29,6 @@ import {
   readThreeCoinSession,
 } from "@/lib/three-coin-session";
 import { buildPricingHref, buildResultSigninHref } from "@/lib/commercial-navigation";
-import { ReadingResultView } from "./reading-result-view";
 import { CommercialReadingReportView, LegacyCommercialReadingReportView } from "./commercial-reading-report-view";
 import styles from "./result-page.module.css";
 
@@ -115,7 +117,6 @@ export function ThreeCoinResultClient({
   const [state, setState] = useState<ResultState>(() => initialState ?? { kind: "loading" });
   const [clearError, setClearError] = useState<string | null>(null);
   const [clientCastingId, setClientCastingId] = useState<string | null>(null);
-  const [localHistorySaveState, setLocalHistorySaveState] = useState<"idle" | "saved" | "error">("idle");
 
   const [castingId, setCastingId] = useState<string | null>(
     initialCastingView?.castingId ?? initialSessionId ?? null,
@@ -130,13 +131,12 @@ export function ThreeCoinResultClient({
   const [deepSnapshot, setDeepSnapshot] = useState<DeepReadingContextSnapshot | null>(null);
   const [contextDraft, setContextDraft] = useState<ContextDraft>(EMPTY_CONTEXT_DRAFT);
   const [actionError, setActionError] = useState<string | null>(null);
-  const historyReading = useMemo(() => {
-    if (state.kind !== "ready" || !state.createdAt) return null;
+  const resultReading = useMemo(() => {
+    if (state.kind !== "ready") return null;
     const id = clientCastingId ?? castingId;
-    if (!id) return null;
     return buildPublicReading({
-      id,
-      createdAt: state.createdAt,
+      ...(id ? { id } : {}),
+      ...(state.createdAt ? { createdAt: state.createdAt } : {}),
       method: "three-coin",
       methodVersion: "three-coin-v1",
       question: state.question,
@@ -499,16 +499,6 @@ export function ThreeCoinResultClient({
     window.location.assign(pricingHref(returnPath));
   }
 
-  function handleSaveToLocalHistory() {
-    if (!historyReading) return;
-    try {
-      saveHistoryRecord(historyReading);
-      setLocalHistorySaveState("saved");
-    } catch {
-      setLocalHistorySaveState("error");
-    }
-  }
-
   function startNewReading() {
     try {
       clearThreeCoinReading();
@@ -572,20 +562,20 @@ export function ThreeCoinResultClient({
   }
 
   const signinHref = resultSigninHref();
+  const resultDictionary = zh ? ZH_HANS_UI_DICTIONARY : EN_UI_DICTIONARY;
 
   return (
     <>
-      <ReadingResultView reading={state.reading} onStartNewReading={startNewReading} locale={locale}>
+      <PublicReadingResult
+        reading={resultReading!}
+        onNewReading={startNewReading}
+        dictionary={resultDictionary}
+        localizedContent={zh ? ZH_HANS_READING_CONTENT : undefined}
+        title={zh ? "本次三枚铜钱起卦结果" : "Your Three-Coin Reading"}
+        headingLevel="h1"
+        newReadingLabel={zh ? "重新起一卦" : "Start a New Reading"}
+      >
         <section className="mt-6 rounded-3xl border border-[var(--gold)]/25 bg-gradient-to-b from-[rgba(235,178,85,0.07)] to-transparent p-5 sm:p-8" aria-labelledby="commercial-deep-section" data-deep-reading-entry>
-          <div className="mb-5 flex flex-wrap items-center gap-3" data-local-history-actions>
-            {historyReading ? (
-              <button type="button" onClick={handleSaveToLocalHistory} className="mystic-button-secondary" data-save-reading>
-                {localHistorySaveState === "saved" ? t("Saved in this browser", "已保存到此浏览器") : t("Save reading", "保存本次起卦")}
-              </button>
-            ) : null}
-            <Link href={zh ? "/zh/history" : "/history"} className="mystic-button-secondary">{t("History", "历史记录")}</Link>
-            {localHistorySaveState === "error" ? <span role="status" className="text-sm text-[var(--danger)]">{t("Could not save this reading. Check browser storage and try again.", "无法保存本次起卦，请检查浏览器存储后重试。")}</span> : null}
-          </div>
           {deepStatus === "completed" && (deepReport || legacyReport) ? (
             <>
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] px-5 py-3 text-xs text-[var(--ink-2)]">
@@ -689,7 +679,7 @@ export function ThreeCoinResultClient({
             </>
           )}
         </section>
-      </ReadingResultView>
+      </PublicReadingResult>
 
       {clearError ? (
         <div

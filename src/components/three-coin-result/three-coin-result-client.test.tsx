@@ -194,4 +194,37 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).toContain("data-context-enrichment-form");
     expect(html).not.toContain("data-start-deep-reading");
   });
+
+  it("keeps the complete free interpretation and early Deep Reading entry in one localized result", () => {
+    const html = renderToStaticMarkup(
+      <ThreeCoinResultClient
+        locale="zh-Hans"
+        initialState={{
+          kind: "ready",
+          reading: {} as any,
+          lineValues: [7, 7, 7, 7, 7, 7],
+          question: "这次变化中我应该先看清什么？",
+          createdAt: "2026-09-25T10:00:00.000Z",
+        }}
+        initialCastingView={{
+          castingId: "cast_public_result",
+          context: "这次变化中我应该先看清什么？",
+          lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+          readingReport: null,
+          owns: false,
+        }}
+      />,
+    );
+
+    const boundaryPosition = html.indexOf("data-free-cast-boundary");
+    const deepPosition = html.indexOf("data-deep-reading-entry");
+    const freeDetailsPosition = html.indexOf("data-primary-card");
+    expect(html).toContain('data-public-reading-result');
+    expect(html).toContain("本次三枚铜钱起卦结果");
+    expect(html).toContain("免费：理解卦象 · 付费：解读卦象与你处境的关系");
+    expect(html).toContain('href="/zh/hexagrams/1-the-creative"');
+    expect(boundaryPosition).toBeGreaterThanOrEqual(0);
+    expect(deepPosition).toBeGreaterThan(boundaryPosition);
+    expect(freeDetailsPosition).toBeGreaterThan(deepPosition);
+  });
 });
