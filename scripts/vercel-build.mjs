@@ -160,7 +160,13 @@ const CLOSED_COMMERCIAL_FLAGS = {
 };
 
 const server = spawn("bun", ["run", "start"], {
-  env: { ...process.env, ...CLOSED_COMMERCIAL_FLAGS, PORT: "3000", HOSTNAME: "127.0.0.1" },
+  env: {
+    ...process.env,
+    ...CLOSED_COMMERCIAL_FLAGS,
+    CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW: "1",
+    PORT: "3000",
+    HOSTNAME: "127.0.0.1",
+  },
   stdio: ["ignore", "inherit", "inherit"],
 });
 

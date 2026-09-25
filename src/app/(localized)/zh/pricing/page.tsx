@@ -1,3 +1,4 @@
+import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -24,7 +25,8 @@ function validatedReturnUrl(candidate: string | undefined): string | undefined {
 export default async function ChinesePricingPage(props: { searchParams?: Promise<{ returnUrl?: string; preview?: string }> }) {
   const searchParams = props.searchParams ? await props.searchParams : undefined;
   const returnUrl = validatedReturnUrl(searchParams?.returnUrl);
-  const isPreview = searchParams?.preview === "1" || searchParams?.preview === "true";
+  const testPreviewAllowed = process.env.CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW === "1";
+  const isPreview = testPreviewAllowed && (searchParams?.preview === "1" || searchParams?.preview === "true");
   const pricing = buildPricingView(isCheckoutCapabilityEnabled() || isPreview);
   const user = await getCurrentUser({ allowUnavailable: true });
   const balance = user ? await loadEntitlementBalance() : { available: 0, expiringSoon: 0 };

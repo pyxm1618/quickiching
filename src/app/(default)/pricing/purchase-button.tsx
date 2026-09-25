@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import type { ProductId } from "@/domain/entitlements/pricing";
 import { buildPricingSigninHref } from "@/lib/commercial-navigation";
 import {

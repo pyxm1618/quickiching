@@ -391,6 +391,8 @@ async function main() {
 
     // 4.0 Static View Purity (both unenabled default and preview mode)
     await page.goto(`${BASE}/zh/pricing`, { waitUntil: "networkidle0" });
+    const defaultCheckoutBtn = await page.$('button[data-checkout-button="true"]');
+    assert(!defaultCheckoutBtn, "Default /zh/pricing must not render PurchaseButton when commercial capability is closed");
     await assertPurity(page, "Pricing Page Static Unenabled View");
 
     await page.goto(`${BASE}/zh/pricing?preview=1&returnUrl=%2Fzh%2Freadings%2Fgate-test`, { waitUntil: "networkidle0" });

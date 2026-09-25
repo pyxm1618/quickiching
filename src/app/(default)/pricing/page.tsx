@@ -29,12 +29,11 @@ function validatedReturnUrl(candidate: string | undefined): string | undefined {
 }
 
 export default async function PricingPage(props: {
-  searchParams?: Promise<{ returnUrl?: string; preview?: string }>;
+  searchParams?: Promise<{ returnUrl?: string }>;
 }) {
   const searchParams = props.searchParams ? await props.searchParams : undefined;
   const returnUrl = validatedReturnUrl(searchParams?.returnUrl);
-  const isPreview = searchParams?.preview === "1" || searchParams?.preview === "true";
-  const pricing = buildPricingView(isCheckoutCapabilityEnabled() || isPreview);
+  const pricing = buildPricingView(isCheckoutCapabilityEnabled());
   const user = await getCurrentUser({ allowUnavailable: true });
   const balance = user ? await loadEntitlementBalance() : { available: 0, expiringSoon: 0 };
 
