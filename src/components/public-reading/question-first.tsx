@@ -8,7 +8,10 @@ import type { UiDictionary } from "@/i18n/dictionaries/types";
 
 export type QuestionContext = {
   question?: string;
+  coreQuestionAtCast?: string;
+  coreQuestionFrozenAtCast: boolean;
   setQuestion: (value: string | undefined) => void;
+  freezeCoreQuestion: () => string | undefined | false;
   restartQuestion: () => void;
 };
 
@@ -28,6 +31,8 @@ export function useQuestionFirstContext(): QuestionContext | undefined {
 export function QuestionFirst({ storageKey, legacyStorageKeys = [], dictionary = EN_UI_DICTIONARY, children }: QuestionFirstProps) {
   const [started, setStarted] = useState(false);
   const [question, setQuestionState] = useState<string | undefined>(undefined);
+  const [coreQuestionAtCast, setCoreQuestionAtCast] = useState<string | undefined>(undefined);
+  const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
 
@@ -36,19 +41,34 @@ export function QuestionFirst({ storageKey, legacyStorageKeys = [], dictionary =
     setStarted(restored.started);
     setQuestionState(restored.question);
     setDraft(restored.question ?? "");
+    setCoreQuestionAtCast(restored.coreQuestionAtCast);
+    setCoreQuestionFrozenAtCast(restored.coreQuestionFrozenAtCast);
   }, [legacyStorageKeys, storageKey]);
 
-  function persist(nextStarted: boolean, nextQuestion: string | undefined) {
-    patchPublicReadingSession(storageKey, { started: nextStarted, ...(nextQuestion ? { question: nextQuestion } : {}) }, legacyStorageKeys);
+  function persist(
+    nextStarted: boolean,
+    nextQuestion: string | undefined,
+    frozenQuestion?: string,
+    frozen = coreQuestionFrozenAtCast,
+  ): boolean {
+    return patchPublicReadingSession(storageKey, {
+      started: nextStarted,
+      ...(nextQuestion ? { question: nextQuestion } : {}),
+      ...(frozen ? { coreQuestionAtCast: frozenQuestion ?? coreQuestionAtCast ?? "", coreQuestionFrozenAtCast: true } : {}),
+    }, legacyStorageKeys);
   }
 
   function setQuestion(value: string | undefined) {
+    if (coreQuestionFrozenAtCast) return;
     try {
       const normalized = normalizePublicQuestion(value);
+      if (!persist(true, normalized)) {
+        setError(dictionary.questionFirst.saveError);
+        return;
+      }
       setQuestionState(normalized);
       setDraft(normalized ?? "");
       setError("");
-      persist(true, normalized);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? dictionary.questionFirst.tooLong.replace("{max}", String(PUBLIC_QUESTION_MAX_CODE_POINTS))
@@ -58,12 +78,26 @@ export function QuestionFirst({ storageKey, legacyStorageKeys = [], dictionary =
 
   function continueToCasting() {
     try {
+      if (coreQuestionFrozenAtCast) {
+        if (!persist(true, coreQuestionAtCast, coreQuestionAtCast ?? "", true)) {
+          setError(dictionary.questionFirst.saveError);
+          return;
+        }
+        setQuestionState(coreQuestionAtCast);
+        setDraft(coreQuestionAtCast ?? "");
+        setError("");
+        setStarted(true);
+        return;
+      }
       const normalized = normalizePublicQuestion(draft);
+      if (!persist(true, normalized)) {
+        setError(dictionary.questionFirst.saveError);
+        return;
+      }
       setQuestionState(normalized);
       setDraft(normalized ?? "");
       setError("");
       setStarted(true);
-      persist(true, normalized);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? dictionary.questionFirst.tooLong.replace("{max}", String(PUBLIC_QUESTION_MAX_CODE_POINTS))
@@ -72,22 +106,53 @@ export function QuestionFirst({ storageKey, legacyStorageKeys = [], dictionary =
   }
 
   function skip() {
+    if (coreQuestionFrozenAtCast) return;
+    if (!persist(true, undefined)) {
+      setError(dictionary.questionFirst.saveError);
+      return;
+    }
     setQuestionState(undefined);
     setDraft("");
     setError("");
     setStarted(true);
-    persist(true, undefined);
   }
 
   function restartQuestion() {
+    if (!persist(false, undefined)) {
+      setError(dictionary.questionFirst.saveError);
+      return;
+    }
     setStarted(false);
     setQuestionState(undefined);
+    setCoreQuestionAtCast(undefined);
+    setCoreQuestionFrozenAtCast(false);
     setDraft("");
     setError("");
-    persist(false, undefined);
   }
 
-  const context: QuestionContext = { question, setQuestion, restartQuestion };
+  function freezeCoreQuestion(): string | undefined | false {
+    if (coreQuestionFrozenAtCast) return coreQuestionAtCast;
+    const frozenQuestion = question;
+    if (!persist(true, frozenQuestion, frozenQuestion ?? "", true)) {
+      setError(dictionary.questionFirst.saveError);
+      return false;
+    }
+    setCoreQuestionAtCast(frozenQuestion);
+    setCoreQuestionFrozenAtCast(true);
+    setQuestionState(frozenQuestion);
+    setDraft(frozenQuestion ?? "");
+    setError("");
+    return frozenQuestion;
+  }
+
+  const context: QuestionContext = {
+    question: coreQuestionFrozenAtCast ? coreQuestionAtCast : question,
+    coreQuestionAtCast,
+    coreQuestionFrozenAtCast,
+    setQuestion,
+    freezeCoreQuestion,
+    restartQuestion,
+  };
 
   return (
     <QuestionFirstContext.Provider value={context}>
@@ -107,13 +172,15 @@ export function QuestionFirst({ storageKey, legacyStorageKeys = [], dictionary =
             placeholder={dictionary.questionFirst.placeholder}
             data-clarity-mask="true"
             data-private-question="true"
+            disabled={coreQuestionFrozenAtCast}
             aria-describedby={`${storageKey}-question-help ${storageKey}-question-error`}
           />
           <p id={`${storageKey}-question-help`} className="mt-2 text-xs leading-6 text-[var(--ink-3)]">{dictionary.questionFirst.help.replace("{max}", String(PUBLIC_QUESTION_MAX_CODE_POINTS))}</p>
           {error ? <p id={`${storageKey}-question-error`} role="alert" className="mt-2 text-sm text-[var(--danger)]">{error}</p> : null}
+          {coreQuestionFrozenAtCast ? <p className="mt-2 text-xs leading-6 text-[var(--ink-3)]">{dictionary.locale === "zh-Hans" ? "这次起卦已包含落定的卦象，问题不能事后补写或更改。继续可查看免费解读；如需绑定问题，请重新起卦。" : "This cast already has sealed lines, so its question cannot be added or changed afterward. Continue to view the free reading, or start a new cast to bind a question."}</p> : null}
           <div className="mt-5 flex flex-wrap gap-3">
             <button type="button" onClick={continueToCasting} className="mystic-button">{dictionary.questionFirst.continueButton}</button>
-            <button type="button" onClick={skip} className="mystic-button-secondary">{dictionary.questionFirst.skipButton}</button>
+            {!coreQuestionFrozenAtCast ? <button type="button" onClick={skip} className="mystic-button-secondary">{dictionary.questionFirst.skipButton}</button> : null}
           </div>
         </section>
       ) : (
@@ -130,7 +197,11 @@ export function QuestionFirst({ storageKey, legacyStorageKeys = [], dictionary =
                 placeholder={dictionary.questionFirst.activePlaceholder}
                 data-clarity-mask="true"
                 data-private-question="true"
+                disabled={coreQuestionFrozenAtCast}
               />
+              {coreQuestionFrozenAtCast ? (
+                <p className="mt-2 text-xs leading-6 text-[var(--ink-3)]">{dictionary.locale === "zh-Hans" ? "核心问题已与本次起卦绑定。换问题请开始新起卦。" : "This core question is locked to this cast. Start a new reading to ask a different question."}</p>
+              ) : null}
               {error ? <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{error}</p> : null}
             </div>
             <button type="button" onClick={restartQuestion} className="mystic-button-secondary">{dictionary.questionFirst.newQuestion}</button>

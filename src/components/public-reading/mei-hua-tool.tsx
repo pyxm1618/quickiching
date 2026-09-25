@@ -113,6 +113,7 @@ export function MeiHuaTool({
       setError(dictionary.meiHua.invalidTimezone);
       return;
     }
+    if (questionContext?.freezeCoreQuestion() === false) return;
     const next = { utcMillis: Date.now(), ianaTimeZone: zone };
     const session = writePublicReadingSession(STORAGE_KEY, { cast: next });
     setReadingMeta({ id: session.id, createdAt: session.createdAt });

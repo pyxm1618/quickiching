@@ -64,22 +64,31 @@ async function assertNoOverflow(page, label) {
   assert(dimensions.scrollWidth <= dimensions.clientWidth + 1, `${label}: horizontal overflow ${dimensions.scrollWidth} > ${dimensions.clientWidth}`);
 }
 
-async function seedThreeCoin(page) {
+async function resetThreeCoin(page) {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.evaluate(({ key, steps }) => sessionStorage.setItem(key, JSON.stringify(steps)), { key: THREE_COIN_STORAGE_KEY, steps: FIXTURE_STEPS });
+  await page.evaluate((key) => {
+    sessionStorage.removeItem(key);
+    sessionStorage.removeItem("quickiching:question:three-coin:started");
+    sessionStorage.removeItem("quickiching:question:three-coin:question");
+  }, THREE_COIN_STORAGE_KEY);
 }
 
-async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS) {
+async function seedThreeCoin(page, question) {
+  await seedThreeCoinSession(page, `fixture-${Date.now()}`, new Date().toISOString(), FIXTURE_STEPS, question);
+}
+
+async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, question = "") {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.evaluate(({ key, id: readingId, createdAt: readingCreatedAt, steps }) => {
+  await page.evaluate(({ key, id: readingId, createdAt: readingCreatedAt, steps, question: coreQuestionAtCast }) => {
     sessionStorage.setItem(key, JSON.stringify({
       schemaVersion: 1,
       id: readingId,
       createdAt: readingCreatedAt,
-      started: false,
+      started: true,
+      ...(coreQuestionAtCast ? { question: coreQuestionAtCast, coreQuestionAtCast, coreQuestionFrozenAtCast: true } : {}),
       data: { steps },
     }));
-  }, { key: THREE_COIN_STORAGE_KEY, id, createdAt, steps });
+  }, { key: THREE_COIN_STORAGE_KEY, id, createdAt, steps, question });
 }
 
 async function assertQuestionPrivacy(page, question) {
@@ -91,7 +100,7 @@ async function assertQuestionPrivacy(page, question) {
     resourceUrls: performance.getEntriesByType("resource").map((entry) => entry.name),
     activeQuestion: (document.querySelector('input[data-private-question]') instanceof HTMLInputElement)
       ? document.querySelector('input[data-private-question]').value
-      : "",
+      : document.querySelector('[data-core-question-at-cast]')?.textContent?.trim() ?? "",
   }), question);
   assert(state.activeQuestion === question, "Question was not preserved in the editable reading flow");
   assert(!state.url.includes(encodeURIComponent(question)) && !state.url.includes(question), "Question leaked into the URL");
@@ -147,9 +156,10 @@ async function verifySeoAssets(page) {
 
   const historyHtml = await (await fetch(`${BASE}/history/`)).text();
   assert(/name="robots"[^>]*content="[^"]*noindex[^"]*follow/i.test(historyHtml) || /content="[^"]*noindex[^"]*follow[^\"]*"[^>]*name="robots"/i.test(historyHtml), "History must be noindex, follow");
-  const getApi = await fetch(`${BASE}/api/personalized-interpretation`);
-  assert.equal(getApi.status, 405, "Personalized endpoint must reject GET");
-  assert.equal(getApi.headers.get("allow"), "POST", "Personalized endpoint must advertise POST only");
+  const retiredGet = await fetch(`${BASE}/api/personalized-interpretation`);
+  assert.equal(retiredGet.status, 404, "Retired free personalized endpoint must be closed");
+  const retiredPost = await fetch(`${BASE}/api/personalized-interpretation`, { method: "POST" });
+  assert.equal(retiredPost.status, 404, "Retired free personalized endpoint must not accept POST");
   const otherApi = await fetch(`${BASE}/api/not-a-route`);
   assert.equal(otherApi.status, 404, "Unlisted API routes must remain closed");
   log("140-URL sitemap, English/Chinese hubs, entity metadata/anchors, History noindex, and API closure PASS");
@@ -157,56 +167,71 @@ async function verifySeoAssets(page) {
 
 async function verifyQuestionReading(page) {
   const question = "What deserves my attention in this transition?";
-  const updatedQuestion = "What should I protect next?";
-  await seedThreeCoin(page);
+  await resetThreeCoin(page);
   await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector("textarea[data-private-question]");
   await page.type("textarea[data-private-question]", question);
   await clickText(page, "Continue to casting");
-  await waitForText(page, "Your I Ching reading");
+  const castButtonSelector = 'button[aria-label^="Toss three coins"]';
+  for (let line = 1; line <= 6; line += 1) {
+    await page.waitForSelector(castButtonSelector, { timeout: 15_000 });
+    await page.click(castButtonSelector);
+    await waitForText(page, `${line} / 6 lines`);
+  }
+  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await waitForText(page, "Your Three-Coin Reading");
   await waitForText(page, question);
   await assertQuestionPrivacy(page, question);
+  const questionState = await page.evaluate(() => ({
+    displayedQuestion: document.querySelector("[data-core-question-at-cast]")?.textContent?.trim() ?? "",
+    session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
+  }));
+  assert.equal(questionState.displayedQuestion, question, "The unified result must restore the question frozen before the first line");
+  assert.equal(questionState.session.coreQuestionAtCast, question, "The frozen question must be stored with this cast");
+  assert.equal(questionState.session.coreQuestionFrozenAtCast, true, "The session must record the question freeze");
+  await waitForText(page, "What does this reading mean for your specific situation?");
   await clickText(page, "Save reading");
   await waitForText(page, "Saved in this browser");
-  const beforeQuestionEdit = await page.evaluate(() => JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"));
-  const questionInput = await page.$("input[data-private-question]");
-  assert(questionInput, "Editable question input missing after the reading");
-  await page.$eval("input[data-private-question]", (node) => {
-    if (node instanceof HTMLInputElement) {
-      node.focus();
-      node.select();
-    }
+  const savedLocalReading = await page.evaluate(() => {
+    const records = JSON.parse(localStorage.getItem("quickiching:public-history:v1") || "[]");
+    return Array.isArray(records) ? records[0] ?? null : null;
   });
-  await page.$eval("input[data-private-question]", (node, value) => {
-    if (!(node instanceof HTMLInputElement)) return;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-    setter?.call(node, value);
-    node.dispatchEvent(new Event("input", { bubbles: true }));
-    node.dispatchEvent(new Event("change", { bubbles: true }));
-  }, updatedQuestion);
-  await page.keyboard.press("Tab");
-  await waitForText(page, updatedQuestion);
-  const afterQuestionEdit = await page.evaluate(() => JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"));
-  assert.equal(afterQuestionEdit.id, beforeQuestionEdit.id, "Editing the question must not create a new reading");
-  assert.equal(afterQuestionEdit.createdAt, beforeQuestionEdit.createdAt, "Editing the question must not change createdAt");
-  assert.deepEqual(afterQuestionEdit.data, beforeQuestionEdit.data, "Editing the question must not re-cast or change facts");
-  await waitForText(page, "Save reading");
-  assert.equal(await page.$eval("[data-save-reading]", (node) => node.textContent?.trim()), "Save reading", "Editing a saved reading must reset its saved status");
-  await assertQuestionPrivacy(page, updatedQuestion);
-  const beforeClick = await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("personalized-interpretation")).length);
-  assert.equal(beforeClick, 0, "Question must not be sent to the personalized endpoint automatically");
+  assert.equal(savedLocalReading?.question, question, "Explicit History save must preserve the question with the cast");
+  assert.equal(savedLocalReading?.method, "three-coin", "History save must retain the casting method");
+  assert.equal(savedLocalReading?.lineValuesBottomUp?.length, 6, "History save must retain the exact six cast lines");
+  const freeEndpointCalls = await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("personalized-interpretation") || entry.name.includes("/api/readings/")).length);
+  assert.equal(freeEndpointCalls, 0, "The free cast must not call an AI or paid generation endpoint");
+  assert.equal(await page.$("[data-interpret-question]"), null, "The retired free personalized CTA must not render");
   await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "Your I Ching reading");
-  await assertQuestionPrivacy(page, updatedQuestion);
-  const personalizedButton = await page.$("button[data-interpret-question]");
-  if (personalizedButton) {
-    await clickText(page, "Interpret for my question");
-    await page.waitForFunction(() => document.body?.innerText.includes("not activated") || Boolean(document.querySelector("[data-personalized-response]")), { timeout: 15_000 });
-  } else {
-    assert(await page.$("[data-personalized-disabled]"), "Unconfigured personalized interpretation must expose a static status, not a clickable CTA");
-  }
-  assert(await page.$("[data-public-reading-result]"), "Static reading disappeared during personalized fallback");
-  log("Question-first, refresh recovery, no metadata/URL leak, explicit AI click, and static fallback PASS");
+  await waitForText(page, "Your Three-Coin Reading");
+  await assertQuestionPrivacy(page, question);
+  await waitForText(page, "What does this reading mean for your specific situation?");
+  await waitForText(page, "Sign in to continue");
+  const paidEndpointCalls = await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/api/readings/")).length);
+  assert.equal(paidEndpointCalls, 0, "An anonymous visit must not start paid generation");
+  assert(await page.$("[data-deep-reading-entry]"), "Deep Reading entry must appear alongside the complete free cast interpretation");
+  assert(await page.$("#general-cast-interpretation"), "Complete free cast interpretation must remain available on the Deep Reading page");
+  log("Question-before-cast, immutable first-line binding, refresh recovery, free endpoint closure, and sign-in gated Deep Reading PASS");
+}
+
+async function verifyChineseQuestionAndDeepEntry(page) {
+  const question = "面对职业选择，我现在最需要看清什么？";
+  await seedThreeCoin(page, question);
+  await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForFunction(() => location.pathname === "/zh/readings/three-coin/result", { timeout: 15_000 });
+  await waitForText(page, "本次三枚铜钱起卦结果");
+  await assertQuestionPrivacy(page, question);
+  assert.equal(await page.$eval("[data-core-question-at-cast]", (node) => node.textContent?.trim()), question, "Chinese unified result must restore the frozen question");
+  assert.equal(await page.$("[data-interpret-question]"), null, "Retired free personalized CTA must not render in Chinese");
+  await assertNoOverflow(page, "Chinese Three-Coin result 390px");
+
+  await waitForText(page, "这次卦象对你的具体处境意味着什么？");
+  await waitForText(page, "登录并继续");
+  assert(await page.$("[data-deep-reading-entry]"), "Chinese Deep Reading entry is missing");
+  assert(await page.$("#general-cast-interpretation"), "Chinese complete free cast interpretation must remain available");
+  const apiCalls = await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/api/readings/")).length);
+  assert.equal(apiCalls, 0, "Anonymous Chinese visit must not start paid generation");
+  log("Chinese question binding, mobile layout, localized Deep Reading entry, and anonymous generation boundary PASS");
 }
 
 async function setManualValues(page, values) {
@@ -275,11 +300,8 @@ async function verifyManualAndMovement(page) {
 
 async function verifyPartialRestart(page) {
   const question = "What remains important if I begin again?";
-  await seedThreeCoinSession(page, "partial-reading-before", "2026-08-19T10:00:00.000Z", FIXTURE_STEPS.slice(0, 1));
+  await seedThreeCoinSession(page, "partial-reading-before", "2026-08-19T10:00:00.000Z", FIXTURE_STEPS.slice(0, 1), question);
   await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForSelector("textarea[data-private-question]");
-  await page.type("textarea[data-private-question]", question);
-  await clickText(page, "Continue to casting");
   await waitForText(page, "1 / 6 lines");
   const before = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
   await clickText(page, "Restart casting");
@@ -319,21 +341,17 @@ async function verifyYarrowPartialRestart(page) {
 async function verifyHistory(page) {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(() => localStorage.removeItem("quickiching:public-history:v1"));
-  await seedThreeCoin(page);
+  await seedThreeCoin(page, "Same facts · first question");
   await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForSelector("textarea[data-private-question]");
-  await page.type("textarea[data-private-question]", "Same facts · first question");
-  await clickText(page, "Continue to casting");
-  await waitForText(page, "Your I Ching reading");
+  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await waitForText(page, "Your Three-Coin Reading");
   await clickText(page, "Save reading");
   await waitForText(page, "Saved in this browser");
 
-  await seedThreeCoinSession(page, "history-three-coin-second", "2026-08-19T12:00:00.000Z");
+  await seedThreeCoinSession(page, "history-three-coin-second", "2026-08-19T12:00:00.000Z", FIXTURE_STEPS, "Same facts · second question");
   await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForSelector("textarea[data-private-question]");
-  await page.type("textarea[data-private-question]", "Same facts · second question");
-  await clickText(page, "Continue to casting");
-  await waitForText(page, "Your I Ching reading");
+  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await waitForText(page, "Your Three-Coin Reading");
   await clickText(page, "Save reading");
   await waitForText(page, "Saved in this browser");
 
@@ -395,6 +413,8 @@ try {
   const page = await context.newPage();
   await verifySeoAssets(page);
   await verifyQuestionReading(page);
+  await page.setViewport({ width: 390, height: 844 });
+  await verifyChineseQuestionAndDeepEntry(page);
   await verifyPartialRestart(page);
   await verifyYarrowPartialRestart(page);
   await verifyManualAndMovement(page);

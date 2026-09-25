@@ -25,6 +25,14 @@ function postRequest(castingId: string, extraHeaders: Record<string, string> = {
       "sec-fetch-site": "same-origin",
       ...extraHeaders,
     },
+    body: JSON.stringify({
+      contextNotes: "The team changed its timeline and I need a clear next step.",
+      options: [],
+      constraints: [],
+      concerns: [],
+      interpretationGoal: "what_do_i_need_to_see_clearly",
+      locale: "en",
+    }),
   });
 }
 
@@ -83,6 +91,30 @@ describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
     mocks.requestDeepReading.mockRejectedValue(new Error("INSUFFICIENT_CREDITS"));
     const res = await POST(postRequest(castingId), { params: Promise.resolve({ castingId }) });
     expect(res.status).toBe(402);
+  });
+
+  it("rejects insufficient context before calling the reservation service", async () => {
+    const req = new Request(`https://www.quickiching.com/api/readings/${castingId}/deep`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://www.quickiching.com",
+        referer: "https://www.quickiching.com/account",
+        "sec-fetch-site": "same-origin",
+      },
+      body: JSON.stringify({
+        contextNotes: "",
+        options: [],
+        constraints: [],
+        concerns: [],
+        interpretationGoal: "what_do_i_need_to_see_clearly",
+        locale: "en",
+      }),
+    });
+    const res = await POST(req, { params: Promise.resolve({ castingId }) });
+    expect(res.status).toBe(422);
+    await expect(res.json()).resolves.toMatchObject({ error: "CONTEXT_INSUFFICIENT", retryable: false });
+    expect(mocks.requestDeepReading).not.toHaveBeenCalled();
   });
 
   it("surfaces encrypted-question failures without reserving/retrying", async () => {

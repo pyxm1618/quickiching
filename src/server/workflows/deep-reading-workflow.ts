@@ -4,7 +4,9 @@ import {
   reviewDeepReadingStep,
   finalizeDeepReadingStep,
   handleWorkflowFailureStep,
+  handleUnclaimedWorkflowFailureStep,
 } from "./deep-reading-steps";
+import { reviewDecisionPassed } from "@/server/generation/types";
 
 export type DeepReadingWorkflowInput = {
   castingId: string;
@@ -39,12 +41,12 @@ export async function deepReadingWorkflow(input: DeepReadingWorkflowInput) {
     // Step 3: Review Output
     const reviewDecision = await reviewDeepReadingStep({
       output: generationResult.output,
-      facts: providerInput.facts,
+      providerInput,
       jobId: input.jobId,
       leaseToken,
     });
 
-    if (reviewDecision.status !== "pass") {
+    if (!reviewDecisionPassed(reviewDecision)) {
       await handleWorkflowFailureStep({
         jobId: input.jobId,
         leaseToken: activeLeaseToken,
@@ -76,6 +78,15 @@ export async function deepReadingWorkflow(input: DeepReadingWorkflowInput) {
       await handleWorkflowFailureStep({
         jobId: input.jobId,
         leaseToken: activeLeaseToken,
+        generationEpoch: input.generationEpoch,
+        reservationId: input.reservationId,
+        idempotencyKey: input.idempotencyKey,
+        errorCode,
+      });
+    } else {
+      await handleUnclaimedWorkflowFailureStep({
+        jobId: input.jobId,
+        castingId: input.castingId,
         generationEpoch: input.generationEpoch,
         reservationId: input.reservationId,
         idempotencyKey: input.idempotencyKey,

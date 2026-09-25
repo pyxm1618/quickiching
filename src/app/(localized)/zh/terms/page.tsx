@@ -15,10 +15,10 @@ export default function ChineseTermsPage() {
       <p className="mt-4 text-sm text-[var(--ink-3)]">最后更新：2026 年 9 月 13 日</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">服务提供什么</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching 提供四种可在浏览器中使用的易经起卦方法：三枚铜钱、蓍草、一套公开说明的梅花易数当前时间约定，以及手动起卦；同时提供免费的通用解读与本地历史。注册用户在相关商业功能开放时，可以选择购买一次性的深度解读次数包（1、3 或 5 次，并非自动续费订阅），支付由 Waffo 处理，并可申请个性化智能深度解读。</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching 提供四种可在浏览器中使用的易经起卦方法：三枚铜钱、蓍草、一套公开说明的梅花易数当前时间约定，以及手动起卦；同时提供完整免费的通用卦象解读与本地历史。免费解读绝不调用 AI。付费深度解读和支付只会在当前定价页与部署能力均开放时提供；开放时仅支持三枚铜钱起卦，并解释本次卦象与起卦前锁定的问题、补充背景和有依据的易经材料之间的关系。</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">解读次数、智能生成与退款</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">深度解读次数自购买起有效 12 个月。启动一次付费深度解读时会临时冻结一个次数，只有成功交付解读后才会正式扣除；如果生成失败或被阻断，冻结次数会安全释放。你可以在购买后 7 天内通过“我的账户”或联系 support@quickiching.com 提交退款申请，并按既定退款标准审核。已记录的技术交付失败、结构缺失、卦象引用错误，或未结合你提交的问题背景，属于有效的退款理由；仅因主观上不认同解读或感觉“不准”，不会自动获得退款。</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">如果深度解读次数包开放，购买前会显示有效期、支付和退款条款。启动生成时预留一次；成功交付后扣除，生成或复核失败则释放预留次数。免费起卦不会将问题或卦象发送给 AI 提供方。</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">用于反思，而非确定性预测或专业建议</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">本站用于文化探索和个人反思。起卦结果不能确立事实、保证未来、诊断疾病、确定法律权利，也不提供医疗、法律、财务、投资、税务、紧急事件或安全建议。你仍需对自己的决定负责，并在适当情况下依赖合格专业人士与现实证据。</p>

@@ -30,7 +30,6 @@ const completeValidEnvironment = {
   AI_GATEWAY_BASE_URL: "https://ai-gateway.example.com/v1",
   AI_SDK_GATEWAY_BASE_URL: "https://ai-sdk-gateway.example.com",
   APP_SECRET: "app-secret-with-at-least-32-characters",
-  AI_MODEL_PREVIEW: "provider/preview-model",
   AI_MODEL_DEEP_READING: "provider/deep-model",
   AI_MODEL_OUTPUT_REVIEW: "provider/review-model",
   AI_MAX_OUTPUT_TOKENS: "700",
@@ -159,12 +158,6 @@ describe("commercial capability matrix", () => {
       missingDependencies: [],
       invalidDependencies: [],
     });
-    expect(result.capabilities.aiPreview).toMatchObject({
-      requested: true,
-      enabled: true,
-      reason: "enabled",
-      blockedDependencies: [],
-    });
     expect(result.capabilities.checkout).toMatchObject({
       requested: true,
       enabled: true,
@@ -206,7 +199,6 @@ describe("commercial capability matrix", () => {
   it("opens only the Auth capability after the CP2 implementation is connected", () => {
     const result = resolveCommercialCapabilities({
       ...completeValidEnvironment,
-      COMMERCIAL_V2_AI_PREVIEW_ENABLED: "false",
       COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
       COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "false",
       COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "false",
@@ -311,7 +303,6 @@ describe("commercial capability matrix", () => {
     const environment: Record<string, string | undefined> = {
       ...completeValidEnvironment,
       COMMERCIAL_V2_AUTH_ENABLED: "false",
-      COMMERCIAL_V2_AI_PREVIEW_ENABLED: "false",
       COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
       COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "true",
       COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "false",
@@ -392,40 +383,11 @@ describe("commercial capability matrix", () => {
     expect(status.invalidDependencies).toContain("APP_BASE_URL");
   });
 
-  it("requires Auth, PostgreSQL and AI for the commercial AI Preview", () => {
-    const environment = {
-      ...completeValidEnvironment,
-      COMMERCIAL_V2_AI_PREVIEW_ENABLED: "true",
-      COMMERCIAL_V2_AUTH_ENABLED: "false",
-    };
-    const status = resolveCommercialCapabilities(environment).capabilities.aiPreview;
-
-    expect(status.reason).toBe("blocked_dependencies");
-    expect(status.blockedDependencies).toContain("auth");
-  });
-
-  it("requires versioned generation encryption and integrity keys for AI Preview", () => {
-    const environment: Record<string, string | undefined> = { ...completeValidEnvironment };
-    delete environment.QUESTION_ENCRYPTION_KEYS;
-    delete environment.QUESTION_FINGERPRINT_KEYS;
-    delete environment.RESULT_INTEGRITY_KEYS;
-
-    const status = resolveCommercialCapabilities(environment).capabilities.aiPreview;
-
-    expect(status.enabled).toBe(false);
-    expect(status.missingDependencies).toEqual(expect.arrayContaining([
-      "QUESTION_ENCRYPTION_KEYS",
-      "QUESTION_FINGERPRINT_KEYS",
-      "RESULT_INTEGRITY_KEYS",
-    ]));
-  });
-
   it("requires Auth, AI, PostgreSQL and Workflow for Paid Deep Reading", () => {
     const environment = {
       ...completeValidEnvironment,
       COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "true",
       COMMERCIAL_V2_AUTH_ENABLED: "false",
-      COMMERCIAL_V2_AI_PREVIEW_ENABLED: "false",
     };
     const status = resolveCommercialCapabilities(environment).capabilities.paidDeepReading;
 
@@ -449,11 +411,10 @@ describe("commercial capability matrix", () => {
   it.each([
     ["BETTER_AUTH_URL", "not-a-url", "BETTER_AUTH_URL", "auth"],
     ["BETTER_AUTH_URL", "https://user:password@auth.example.com", "BETTER_AUTH_URL", "auth"],
-    ["AI_GATEWAY_BASE_URL", "ftp://gateway.example.com", "AI_GATEWAY_BASE_URL", "aiPreview"],
+    ["AI_GATEWAY_BASE_URL", "ftp://gateway.example.com", "AI_GATEWAY_BASE_URL", "paidDeepReading"],
     ["DATABASE_URL", "https://not-postgres.example.com", "DATABASE_URL", "auth"],
     ["EMAIL_FROM", "not-an-email", "EMAIL_FROM", "auth"],
     ["WAFFO_ENVIRONMENT", "sandbox", "WAFFO_ENVIRONMENT=test|prod", "checkout"],
-    ["AI_MODEL_PREVIEW", "   ", "AI_MODEL_PREVIEW", "aiPreview"],
     ["WAFFO_TEST_PRODUCT_ID_ONE", "   ", "WAFFO_TEST_PRODUCT_ID_ONE", "checkout"],
   ] as const)("rejects invalid %s without exposing its value", (name, value, label, capability) => {
     const result = resolveCommercialCapabilities({ ...completeValidEnvironment, [name]: value });
@@ -519,8 +480,8 @@ describe("commercial capability matrix", () => {
   it("requires separate native SDK gateway configuration and HTTPS in production", () => {
     const ready = resolveCommercialCapabilities(completeValidEnvironment, {
       production: true,
-      definitions: definitionsWithImplementations("auth", "aiPreview"),
-    }).capabilities.aiPreview;
+      definitions: definitionsWithImplementations("auth", "reconcile", "paidDeepReading"),
+    }).capabilities.paidDeepReading;
     expect(ready).toMatchObject({ enabled: true, reason: "enabled" });
 
     const nativeHttp = resolveCommercialCapabilities({
@@ -528,8 +489,8 @@ describe("commercial capability matrix", () => {
       AI_SDK_GATEWAY_BASE_URL: "http://ai-sdk-gateway.example.com",
     }, {
       production: true,
-      definitions: definitionsWithImplementations("auth", "aiPreview"),
-    }).capabilities.aiPreview;
+      definitions: definitionsWithImplementations("auth", "reconcile", "paidDeepReading"),
+    }).capabilities.paidDeepReading;
     expect(nativeHttp.enabled).toBe(false);
     expect(nativeHttp.invalidDependencies).toContain("AI_SDK_GATEWAY_BASE_URL");
 
@@ -538,8 +499,8 @@ describe("commercial capability matrix", () => {
       AI_GATEWAY_BASE_URL: "http://ai-gateway.example.com/v1",
     }, {
       production: true,
-      definitions: definitionsWithImplementations("auth", "aiPreview"),
-    }).capabilities.aiPreview;
+      definitions: definitionsWithImplementations("auth", "reconcile", "paidDeepReading"),
+    }).capabilities.paidDeepReading;
     expect(publicHttp.enabled).toBe(false);
     expect(publicHttp.invalidDependencies).toContain("AI_GATEWAY_BASE_URL");
   });
@@ -551,15 +512,6 @@ describe("commercial capability matrix", () => {
   });
 
   it("requires final enabled dependencies, not only valid dependency configuration", () => {
-    const onlyPreview = resolveCommercialCapabilities(completeValidEnvironment, {
-      definitions: definitionsWithImplementations("aiPreview"),
-    }).capabilities.aiPreview;
-    expect(onlyPreview).toMatchObject({
-      enabled: false,
-      reason: "blocked_dependencies",
-      blockedDependencies: ["auth"],
-    });
-
     const onlyCheckout = resolveCommercialCapabilities(completeValidEnvironment, {
       definitions: definitionsWithImplementations("checkout"),
     }).capabilities.checkout;
@@ -631,27 +583,6 @@ describe("commercial capability matrix", () => {
     expect(status.reason).toBe("invalid_dependencies");
     expect(status.invalidDependencies).toContain("PAYMENT_CHECKOUT_URL_KEYS");
     expect(result.capabilities.auth.invalidDependencies).toContain("ANONYMOUS_OWNER_KEYS");
-  });
-
-  it("does not couple Paid Deep Reading to the AI Preview product capability", () => {
-    const environment: Record<string, string | undefined> = { ...completeValidEnvironment };
-    environment.COMMERCIAL_V2_AI_PREVIEW_ENABLED = "false";
-    environment.AI_MODEL_PREVIEW = undefined;
-
-    const result = resolveCommercialCapabilities(environment, {
-      definitions: definitionsWithImplementations("auth", "reconcile", "paidDeepReading"),
-    });
-    const status = result.capabilities.paidDeepReading;
-
-    expect(status).toMatchObject({
-      enabled: true,
-      reason: "enabled",
-      blockedDependencies: [],
-      missingDependencies: [],
-      invalidDependencies: [],
-    });
-    expect(status.blockedDependencies).not.toContain("aiPreview");
-    expect(status.missingDependencies).not.toContain("AI_MODEL_PREVIEW");
   });
 
   it("fails closed for cyclic capability dependencies", () => {

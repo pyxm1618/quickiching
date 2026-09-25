@@ -1,3 +1,5 @@
+> Historical design note, superseded on 2026-09-25. The `Reveal Your Reading` step described here is retired; after six lines are safely saved, the flow opens the unified result page directly.
+
 # Three-Coin Free Reading V2 Design
 
 ## Goal

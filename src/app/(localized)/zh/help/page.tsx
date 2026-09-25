@@ -16,8 +16,8 @@ export default function ChineseHelpPage() {
       <h2 className="mt-10 font-display text-2xl font-medium">四种起卦都免费吗？</h2><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">是。三枚铜钱、蓍草、梅花易数当前时间起卦和手动起卦，都可以得到本卦、动爻、存在时的之卦以及通用基础解读，不要求登录或付款。</p>
       <h2 className="mt-10 font-display text-2xl font-medium">我的起卦记录保存在哪里？</h2><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">当前起卦或尚未完成的步骤使用浏览器会话存储（<code>sessionStorage</code>）。当你明确选择“保存本次解读”时，历史页最多在当前浏览器的本地存储（<code>localStorage</code>）中保存 50 条记录；这不是云端账户历史。清除站点或会话数据会移除相应本地记录。</p>
       <h2 className="mt-10 font-display text-2xl font-medium">为什么梅花易数需要时区？</h2><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">当前时间约定需要确定当地民用日期和时辰。IANA 时区让浏览器知道固定起卦时刻对应的当地日期、小时与夏令时偏移。</p>
-      <h2 className="mt-10 font-display text-2xl font-medium">可以使用个性化深度解读吗？</h2><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">当对应商业能力已启用、你已登录且账户中有可用解读次数时，可以申请基于本次卦象和问题背景的可选个性化深度解读。只有成功生成并交付后才正式扣除一次；如果生成失败，冻结的次数会释放。</p>
-      <h2 className="mt-10 font-display text-2xl font-medium">次数包与退款怎么处理？</h2><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">解读次数是一次性购买的 1、3 或 5 次包，不是自动续费订阅，并由 Waffo 安全处理支付。可在购买后 7 天内通过“我的账户”或 support@quickiching.com 提交退款申请。技术交付失败、结构缺失、引用错误或未结合已提交的问题属于可审核理由；仅因主观不满意不会自动退款。</p>
+      <h2 className="mt-10 font-display text-2xl font-medium">能否获得针对我具体处境的解读？</h2><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">免费解读完整说明卦象本身，绝不调用 AI。只有当定价页显示已开放购买时，才能申请个性化深度解读；当前仅支持三枚铜钱起卦。开放时，它会结合起卦前锁定的问题、你补充的处境、本次确切卦象及可核对的易经依据生成条件性解读。</p>
+      <h2 className="mt-10 font-display text-2xl font-medium">次数包与退款怎么处理？</h2><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">仅当支付已开放且定价页显示次数包时才能购买，适用的价格、有效期和退款条款会在结账前展示。启动深度解读时预留一次；成功交付后才正式扣除，生成或复核失败则释放预留次数。</p>
       <h2 className="mt-10 font-display text-2xl font-medium">还需要帮助？</h2><p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">请发送邮件至 support@quickiching.com。起卦概念可以继续查看<Link href="/zh/guides/changing-lines" className="mx-1 font-semibold text-[var(--jade)] hover:underline">动爻说明</Link>和<Link href="/zh/guides/primary-relating-hexagrams" className="mx-1 font-semibold text-[var(--jade)] hover:underline">本卦与之卦</Link>。</p>
     </article>
   );

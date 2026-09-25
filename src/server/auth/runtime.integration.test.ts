@@ -17,7 +17,6 @@ const db = drizzle(sql, { schema: authTables });
 const runtimeEnv: Record<string, string> = {
   NODE_ENV: "test",
   COMMERCIAL_V2_AUTH_ENABLED: "true",
-  COMMERCIAL_V2_AI_PREVIEW_ENABLED: "false",
   COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
   COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "false",
   COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "false",
@@ -32,6 +31,9 @@ const runtimeEnv: Record<string, string> = {
   RESEND_API_KEY: "re_test_key",
   EMAIL_FROM: "Quick I Ching <noreply@example.com>",
   ANONYMOUS_OWNER_KEYS: "v1:anonymous-owner-secret",
+  QUESTION_FINGERPRINT_KEYS: "v1:fingerprint-secret",
+  QUESTION_ENCRYPTION_KEYS: "v1:encryption-secret",
+  RESULT_INTEGRITY_KEYS: "v1:integrity-secret",
 };
 
 describe("CP2 Auth capability runtime", () => {

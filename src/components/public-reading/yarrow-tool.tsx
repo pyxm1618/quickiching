@@ -126,6 +126,7 @@ export function YarrowTool({
 
   function performChange() {
     if (complete) return;
+    if (changes.length === 0 && questionContext?.freezeCoreQuestion() === false) return;
     const lineIndex = Math.floor(changes.length / 3) as 0 | 1 | 2 | 3 | 4 | 5;
     const changeIndex = (changes.length % 3) as 0 | 1 | 2;
     const startingStalks = changeIndex === 0 ? 49 : changes[changes.length - 1].endingStalks;

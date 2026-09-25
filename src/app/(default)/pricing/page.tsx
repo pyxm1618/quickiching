@@ -42,8 +42,8 @@ export default async function PricingPage(props: {
       <section className="mx-auto max-w-3xl px-4 py-12 sm:py-16">
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Commercial V2 · Not active</p>
         <h1 className="mt-3 font-display text-4xl font-medium tracking-tight">Personalized deep readings are not on sale</h1>
-        <p className="mt-5 text-lg leading-8 text-[var(--ink-2)]">Public V1 already includes complete free casting and a static hexagram interpretation for Three Coin, Yarrow Stalk, Mei Hua Yi Shu, and Manual Cast. There is currently no production checkout, credit purchase, account requirement, or paid AI deep-reading service.</p>
-        <div className="mt-8 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-6 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--ink)]">Future boundary:</strong> a Commercial V2 may add an optional personalized deep reading that uses a user’s specific situation and goal. Pricing and purchase terms will be published only when that service is actually available.</div>
+        <p className="mt-5 text-lg leading-8 text-[var(--ink-2)]">All four methods include a complete free general interpretation, and free readings never call AI. There is currently no production checkout, credit purchase, account requirement, or paid AI Deep Reading service.</p>
+        <div className="mt-8 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-6 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--ink)]">Product boundary:</strong> if Deep Reading becomes available, it will use your frozen core question, situation, interpretation goal, exact cast, changing lines, relating hexagram, and cited I Ching material to explain what the cast means for your specific situation. It will support Three-Coin readings only. Purchase terms will appear here only when checkout is active.</div>
         <p className="mt-8 text-sm leading-7 text-[var(--ink-2)]"><Link href="/" className="font-semibold text-[var(--jade)] hover:underline">Return to the free I Ching online reading</Link>.</p>
       </section>
     );
@@ -54,8 +54,15 @@ export default async function PricingPage(props: {
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Personalized Deep Reading</p>
       <h1 className="mt-3 font-display text-4xl font-medium tracking-tight">Choose a reading credit pack</h1>
       <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">
-        Your free casting and hexagram result remain available without purchase. Credits are only for the optional personalized Deep Reading generated from your revealed casting, question context, and interpretation goal.
+        Personalized Deep Reading addresses what your cast means for your specific situation. It combines the core question frozen before casting, the situation and interpretation goal you supply, your exact Three-Coin cast and moving lines, any relating hexagram, and cited Quick I Ching source material. The free interpretation still explains the cast itself and never calls AI.
       </p>
+      <ul className="mt-4 grid gap-2 text-sm leading-6 text-[var(--ink-2)] sm:grid-cols-2" data-deep-reading-scope>
+        <li>• Your question and real-world context</li>
+        <li>• Exact Three-Coin cast facts and changing lines</li>
+        <li>• Primary and relating hexagram source material</li>
+        <li>• Evidence-backed, conditional guidance and signals to watch</li>
+      </ul>
+      <p className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--paper-raised)] p-4 text-sm leading-6 text-[var(--ink-2)]">Currently supported method: <strong className="text-[var(--ink)]">Three-Coin only</strong>. Other methods remain fully available as free readings and cannot be purchased for Deep Reading.</p>
 
       <div className="mt-10 grid gap-5 md:grid-cols-3">
         {pricing.products.map((product) => (

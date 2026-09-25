@@ -1,3 +1,5 @@
+> Historical implementation plan, superseded on 2026-09-25. `Reveal Your Reading` is no longer a required action; completed casts enter the unified result page directly.
+
 # Three-Coin V2 Review Fixes Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

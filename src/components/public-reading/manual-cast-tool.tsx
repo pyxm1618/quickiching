@@ -129,6 +129,7 @@ export function ManualCastTool({
   }
 
   function cast() {
+    if (questionContext?.freezeCoreQuestion() === false) return;
     const values = mode === "line-values" ? manualFromLineValues(lineValues) : modeBValues;
     const evidence: PublicReadingEvidence = mode === "line-values"
       ? { kind: "manual", mode: "line-values" }

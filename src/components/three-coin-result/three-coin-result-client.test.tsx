@@ -65,25 +65,29 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       primaryInterpretation: { coreTheme: "创造与开始", orientation: "积极向前" },
     };
     const mockReport: any = {
-      executiveSummary: "测试摘要",
-      coreHexagramStructure: "测试结构",
-      changingDynamics: "测试动态",
-      futureTrajectory: "测试走向",
-      blindSpotAnalysis: "测试盲区",
-      strategicActions: ["行动一", "行动二"],
-      riskFactors: ["风险一"],
-      timingConsiderations: "时机考量",
-      philosophicalReflection: "哲学反思",
-      closingGuidance: "结语指导",
+      schemaVersion: "commercial-reading-v1",
+      readingVariant: "standard",
+      coreSummary: "测试摘要",
+      currentStage: "当前阶段",
+      primaryHexagramPattern: "测试结构",
+      changeMechanism: "测试动态",
+      possibleDirection: "测试走向",
+      obstaclesAndBlindSpots: "测试盲区",
+      turningConditions: "转机条件",
+      conditionalActionDirection: "行动方向",
+      uncertaintyAndBoundaries: "不确定性",
+      interpretiveBasisReferences: [],
+      disclaimer: "仅供反思。",
     };
 
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
         locale="zh-Hans"
         initialUser={{ id: "usr_1", email: "test@example.com" }}
-        initialState={{ kind: "ready", reading: mockReading, lineValues: [7, 7, 7, 9, 7, 7] }}
+        initialState={{ kind: "ready", reading: mockReading, lineValues: [7, 7, 7, 9, 7, 7], createdAt: "2026-09-25T10:00:00.000Z" }}
         initialCastingView={{
           castingId: "cast_1",
+          createdAt: "2026-09-25T10:00:00.000Z",
           context: "事业测试",
           lineValuesBottomUp: [7, 7, 7, 9, 7, 7],
           readingReport: mockReport,
@@ -94,6 +98,9 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).toContain('href="/zh/account"');
     expect(html).not.toContain('href="/account"');
     expect(html).toContain("查看账户与历史记录 →");
+    expect(html).toContain("旧版报告格式");
+    expect(html).toContain("测试摘要");
+    expect(html).toContain('data-save-reading');
   });
 
   it("renders completed report banner pointing to /account in English mode", () => {
@@ -121,16 +128,17 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       },
     };
     const mockReport: any = {
-      executiveSummary: "Test summary",
-      coreHexagramStructure: "Test structure",
-      changingDynamics: "Test dynamics",
-      futureTrajectory: "Test trajectory",
-      blindSpotAnalysis: "Test blindspot",
-      strategicActions: ["Action 1"],
-      riskFactors: ["Risk 1"],
-      timingConsiderations: "Timing",
-      philosophicalReflection: "Reflection",
-      closingGuidance: "Closing",
+      schemaVersion: "deep-reading-v2",
+      readingVariant: "standard",
+      directAnswer: "A clear next step depends on what is confirmed in the current situation and which option remains reversible.",
+      situationMapping: "The cast describes an active transition, while the supplied context determines which part of that pattern applies now.",
+      keyTensions: ["Move with purpose while keeping the decision open to new evidence."],
+      conditionalDirection: "If the relevant support is present, a measured next step can test the direction without committing to the full outcome.",
+      signalsToWatch: ["Watch whether the other party follows through on the specific commitment."],
+      practicalReflection: "Write down what would count as reliable evidence, then choose one action that can be reviewed soon.",
+      uncertaintyAndBoundaries: "The cast cannot establish what another person will decide; that remains unknown until observable actions occur.",
+      interpretiveBasisReferences: [{ evidenceId: "primary:judgment" }],
+      disclaimer: "This is conditional reflection and not a certain prediction.",
     };
 
     const html = renderToStaticMarkup(
@@ -149,5 +157,41 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     );
     expect(html).toContain('href="/account"');
     expect(html).not.toContain('href="/zh/account"');
+    expect(html).toContain("Restoring the saved evidence bundle");
+    expect(html).not.toContain("Unresolved evidence reference");
+  });
+
+  it("keeps the paid request disabled until an authenticated user has a credit", () => {
+    const freeReading: any = {
+      primary: { number: 1, englishName: "The Creative", chineseName: "乾", upper: "qian", lower: "qian" },
+      relating: null,
+      result: { lineValuesBottomUp: [7, 7, 7, 7, 7, 7], movingLinePositions: [] },
+      primaryInterpretation: {
+        coreTheme: "Creation",
+        orientation: "Forward",
+        coreMeaning: "Initiating force and perseverance",
+        strength: "Strong purpose",
+        challenge: "Impatience",
+        structureInterpretation: "Heaven above heaven represents potential",
+        reflectionQuestions: ["Where should initiative be focused?"],
+        watchFor: ["Overextension"],
+      },
+      activeLines: [],
+      synthesis: { situation: "A beginning", whereChangeIsHappening: "No moving lines", directionOfChange: "Stable", bottomLine: "Proceed steadily" },
+    };
+    const html = renderToStaticMarkup(
+      <ThreeCoinResultClient
+        locale="en"
+        initialUser={{ id: "usr_1", email: "test@example.com" }}
+        initialCredits={0}
+        initialState={{ kind: "ready", reading: freeReading, lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on now?" }}
+        initialCastingView={{ castingId: "cast_1", context: "Career test", lineValuesBottomUp: [7, 7, 7, 7, 7, 7], readingReport: null, owns: true }}
+      />,
+    );
+
+    expect(html).toContain("Choose a Deep Reading pack");
+    expect(html).toContain("No generation starts until a credit is available");
+    expect(html).toContain("data-context-enrichment-form");
+    expect(html).not.toContain("data-start-deep-reading");
   });
 });

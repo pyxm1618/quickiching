@@ -12,7 +12,6 @@ import { buildStaticReading } from "@/domain/public-reading/static-reading";
 import { saveHistoryRecord } from "@/domain/public-reading/history";
 import { readingFingerprint } from "@/domain/public-reading/reading";
 import type { PublicReading } from "@/domain/public-reading/types";
-import { PersonalizedInterpretation } from "./personalized-interpretation";
 
 function relatingLines(reading: PublicReading): number[] {
   return reading.lineValuesBottomUp.map((value) => value === 6 ? 7 : value === 9 ? 8 : value);
@@ -205,13 +204,11 @@ export function PublicReadingResult({
         <ol className="mt-4 grid gap-3 text-sm leading-7 text-[var(--ink-2)] sm:grid-cols-3">{model.reflections.map((item, index) => <li key={item} className="rounded-2xl border border-white/[0.08] p-4"><span className="font-mono text-xs text-[var(--gold-2)]">0{index + 1}</span><p className="mt-2">{item}</p></li>)}</ol>
       </section>
 
-      {dictionary.locale === "en" ? <PersonalizedInterpretation reading={reading} /> : null}
 
       <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-white/[0.08] pt-6">
         <button type="button" onClick={save} className="mystic-button" data-save-reading>{saveState === "saved" ? dictionary.reading.saved : dictionary.reading.save}</button>
         {onNewReading ? <button type="button" onClick={onNewReading} className="mystic-button-secondary">{dictionary.reading.newReading}</button> : null}
         <Link href={isChinese ? "/zh/history" : "/history"} className="mystic-button-secondary">{dictionary.reading.history}</Link>
-        {reading.method === "three-coin" ? <Link href={isChinese ? "/zh/readings/three-coin/result" : "/readings/three-coin/result"} className="mystic-button-secondary">{isChinese ? "查看本次结果" : "Reveal Your Reading"}</Link> : null}
         {saveState === "error" ? <span role="status" className="text-sm text-[var(--danger)]">{dictionary.reading.saveError}</span> : null}
       </div>
 

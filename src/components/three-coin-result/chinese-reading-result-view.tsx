@@ -82,6 +82,11 @@ export function ChineseReadingResultView({
         </div>
       </section>
 
+      <p className="mt-4 rounded-2xl border border-white/[0.08] bg-black/10 px-5 py-4 text-sm leading-7 text-[var(--ink-2)]" data-free-cast-boundary>
+        这部分免费内容解释卦象本身，尚未结合你的具体处境进行解读。
+      </p>
+      {children}
+
       <div className={styles.revealDelay + " mt-5 " + styles.path} aria-label="本卦到之卦的变化路径">
         <div className={styles.pathNode}>
           <p className="mystic-kicker">本卦</p>
@@ -95,7 +100,7 @@ export function ChineseReadingResultView({
         </div>
       </div>
 
-      <section className={styles.section + " " + styles.revealDelay} aria-labelledby="primary-heading">
+      <section id="general-cast-interpretation" className={styles.section + " " + styles.revealDelay} aria-labelledby="primary-heading">
         <p className="mystic-kicker">第一部分</p>
         <h2 id="primary-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] sm:text-4xl">理解本卦</h2>
         <div className="mt-7 grid gap-6 lg:grid-cols-2">
@@ -146,8 +151,6 @@ export function ChineseReadingResultView({
         </div>
         <p className="mx-auto mt-8 max-w-4xl text-center text-xs leading-6 text-[var(--ink-3)]">Quick I Ching 提供结构化反思框架，不提供确定性预测，也不能代替你的判断或合格专业人士提供的医疗、法律、财务与安全建议。</p>
       </section>
-
-      {children}
 
       <div className="mt-12 text-center">
         <button type="button" onClick={onStartNewReading} className={styles.newReadingButton}>开始新的三枚铜钱起卦</button>

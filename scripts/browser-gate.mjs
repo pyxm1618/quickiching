@@ -383,12 +383,9 @@ async function finishThreeCoin(page) {
   }
 
   await waitForText(page, "Your hexagram is formed");
-  await waitForText(page, "Reveal Your Reading");
-  const sealedBeforeReveal = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
-  assert(sealedBeforeReveal, "Completed Three-Coin reading must remain sealed before reveal navigation");
-
-  await clickLink(page, "Reveal Your Reading");
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  const sealedBeforeReveal = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
+  assert(sealedBeforeReveal, "Completed Three-Coin reading must remain sealed after direct result navigation");
   const locationAfterReveal = await page.evaluate(() => ({ pathname: location.pathname, search: location.search }));
   assert.equal(locationAfterReveal.pathname, "/readings/three-coin/result");
   assert.equal(locationAfterReveal.search, "", "Three-Coin result URL must carry no cast state in query parameters");

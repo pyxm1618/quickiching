@@ -114,16 +114,19 @@ async function seedCompletedReading(page) {
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
   await clickButton(page, "Skip for now");
   await waitForText(page, "Ask · editable before the result");
-  await waitForText(page, "6 / 6 lines");
+  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await waitForText(page, "Your Three-Coin Reading");
 
   const completedState = await page.evaluate(() => ({
-    anchorCount: document.querySelectorAll("#three-coin-reading").length,
-    sidebarResetCount: [...document.querySelectorAll(".ritual-sidebar button")].filter((node) => node.textContent?.trim() === "New reading").length,
+    pathname: location.pathname,
+    resultHeading: [...document.querySelectorAll("h1")].some((node) => node.textContent?.trim() === "Your Three-Coin Reading"),
+    deepReadingEntry: document.querySelector("[data-deep-reading-entry]") !== null,
     hasReveal: [...document.querySelectorAll("a")].some((node) => node.textContent?.trim() === "Reveal Your Reading"),
   }));
-  assert.equal(completedState.anchorCount, 1, "Homepage must contain exactly one #three-coin-reading anchor");
-  assert.equal(completedState.sidebarResetCount, 0, "Completed Three-Coin chamber must not expose the sidebar destructive New reading control");
-  assert(completedState.hasReveal, "Completed Three-Coin chamber must expose Reveal Your Reading");
+  assert.equal(completedState.pathname, "/readings/three-coin/result", "A completed cast must open the unified result experience directly");
+  assert(completedState.resultHeading, "Unified result experience must show the completed Three-Coin reading");
+  assert(completedState.deepReadingEntry, "Unified result experience must expose its situation-based Deep Reading state");
+  assert.equal(completedState.hasReveal, false, "Completed reading must not require a redundant reveal action");
 }
 
 async function assertNoHorizontalOverflow(page) {

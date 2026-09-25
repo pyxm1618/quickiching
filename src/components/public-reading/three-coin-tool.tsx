@@ -88,6 +88,7 @@ export function ThreeCoinTool({
   const audioRef = useRef<AudioContext | null>(null);
   const shakeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resultNavigationStartedRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -137,6 +138,21 @@ export function ThreeCoinTool({
         evidence: { kind: "three-coin", steps },
       })
     : null, [complete, question, readingMeta, steps, lines]);
+
+  useEffect(() => {
+    if (
+      !restored ||
+      !complete ||
+      !visuallyComplete ||
+      !readingMeta ||
+      storageBlocked ||
+      unpersistedCommit ||
+      resultNavigationStartedRef.current
+    ) return;
+
+    resultNavigationStartedRef.current = true;
+    window.location.assign(zh ? "/zh/readings/three-coin/result" : "/readings/three-coin/result");
+  }, [complete, readingMeta, restored, storageBlocked, unpersistedCommit, visuallyComplete, zh]);
 
   function audio(): AudioContext | null {
     if (!soundOn || typeof window === "undefined") return null;
@@ -244,6 +260,7 @@ export function ThreeCoinTool({
     if (!holdingRef.current || complete || storageBlocked) return;
     stopShake();
 
+    if (steps.length === 0 && questionContext?.freezeCoreQuestion() === false) return;
     const lineIndex = steps.length as 0 | 1 | 2 | 3 | 4 | 5;
     const next = generateThreeCoinLine(lineIndex, browserRandomBit);
     const committedSteps = [...steps, next];
@@ -402,7 +419,7 @@ export function ThreeCoinTool({
               <div className="mx-auto max-w-xl rounded-[1.4rem] border border-[rgba(232,198,122,0.24)] bg-[rgba(232,198,122,0.055)] px-5 py-6 text-center">
                 <p className="mystic-kicker">{t("Six lines complete", "六爻已完成")}</p>
                 <h3 className="mt-2 font-display text-2xl font-normal text-[var(--gold-2)] sm:text-3xl">{t("Your hexagram is formed", "卦象已经形成")}</h3>
-                <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[var(--ink-2)]">{t("The six sealed lines are ready. Your facts are fixed; the question can still be edited above.", "六爻已经落定，起卦事实不会再变化；你仍可在上方调整问题文字。")}</p>
+                <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[var(--ink-2)]">{t("The six sealed lines are ready. Their core question is locked to the first cast; start a new reading to ask a different question.", "六爻已经落定，核心问题已与第一次起爻绑定；如需换问题，请开始新起卦。")}</p>
               </div>
             </div>
           ) : (
