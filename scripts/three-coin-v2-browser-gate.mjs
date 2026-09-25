@@ -115,6 +115,11 @@ async function seedCompletedReading(page) {
   await clickButton(page, "Skip for now");
   await waitForText(page, "Ask · editable before the result");
   await waitForText(page, "6 / 6 lines");
+  // PublicReadingResult is intentionally code-split from the fresh homepage.
+  // A restored completed session may paint the sealed chamber before the lazy
+  // result chunk finishes loading, so assert the product contract after that
+  // async boundary resolves rather than assuming same-tick availability.
+  await waitForText(page, "Reveal Your Reading");
 
   const completedState = await page.evaluate(() => ({
     anchorCount: document.querySelectorAll("#three-coin-reading").length,
