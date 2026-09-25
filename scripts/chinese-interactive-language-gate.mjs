@@ -152,7 +152,7 @@ async function main() {
     await page.setViewport({ width: 1440, height: 900 });
 
     let mockUser = {
-      user: { id: "usr_gate", email: "tester@quickiching.com" },
+      user: { id: "usr_gate", email: "1@quickiching.com" },
     };
 
     let checkoutInterceptorMode = "pass";
@@ -236,11 +236,11 @@ async function main() {
       assert(href.startsWith("/zh"), `Header navigation on /zh contains non-zh link: ${href}`);
     }
 
-    const userMenuButton = await page.$('button[aria-label*="tester@quickiching.com"], [data-user-nav-menu-button]');
+    const userMenuButton = await page.$('[data-user-nav-menu-button]');
     if (userMenuButton) {
       await userMenuButton.click();
       const menuLinks = await page.evaluate(() => {
-        const btn = document.querySelector('button[aria-label*="tester@quickiching.com"], [data-user-nav-menu-button]');
+        const btn = document.querySelector('[data-user-nav-menu-button]');
         const menu = btn?.parentElement?.querySelector('[role="menu"]');
         if (!menu) return [];
         const items = Array.from(menu.querySelectorAll("a, button"));
