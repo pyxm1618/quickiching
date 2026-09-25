@@ -273,7 +273,7 @@ export function SiteHeader({
   };
 
   return (
-    <UserNavProvider>
+    <UserNavProvider enabled={authEnabled}>
       <header className="sticky top-0 z-40 w-full border-b border-white/[0.07] bg-[#09070f]/80 backdrop-blur-[18px]">
       <div className="mx-auto flex min-h-[74px] max-w-[1240px] items-center justify-between gap-x-6 px-5 py-2 sm:px-7">
         {/* Brand Logo - exactly 1 visible product name */}
