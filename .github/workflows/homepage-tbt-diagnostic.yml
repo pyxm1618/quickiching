@@ -52,21 +52,21 @@ jobs:
       - name: Prepare Lighthouse
         run: |
           mkdir -p perf-baseline
-          npx --yes lighthouse@latest --version
+          npm install --global lighthouse@latest\n          lighthouse --version
 
       - name: Local production baseline (3 runs)
         run: |
           for i in 1 2 3; do
-            npx --yes lighthouse@latest http://127.0.0.1:3000/               --preset=desktop               --only-categories=performance               --output=json               --output-path="perf-baseline/local-run-${i}.json"               --save-assets               --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage --disable-extensions"               --quiet
+            lighthouse http://127.0.0.1:3000/               --preset=desktop               --only-categories=performance               --output=json               --output-path="perf-baseline/local-run-${i}.json"               --save-assets               --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage --disable-extensions"               --quiet
           done
 
       - name: Canonical production baseline
         run: |
-          npx --yes lighthouse@latest https://www.quickiching.com/             --preset=desktop             --only-categories=performance             --output=json             --output-path="perf-baseline/www-normal.json"             --save-assets             --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage --disable-extensions"             --quiet
+          lighthouse https://www.quickiching.com/             --preset=desktop             --only-categories=performance             --output=json             --output-path="perf-baseline/www-normal.json"             --save-assets             --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage --disable-extensions"             --quiet
 
       - name: Canonical production with GA and Clarity blocked
         run: |
-          npx --yes lighthouse@latest https://www.quickiching.com/             --preset=desktop             --only-categories=performance             --blocked-url-patterns="*googletagmanager.com*"             --blocked-url-patterns="*clarity.ms*"             --output=json             --output-path="perf-baseline/www-block-third-party.json"             --save-assets             --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage --disable-extensions"             --quiet
+          lighthouse https://www.quickiching.com/             --preset=desktop             --only-categories=performance             --blocked-url-patterns="*googletagmanager.com*"             --blocked-url-patterns="*clarity.ms*"             --output=json             --output-path="perf-baseline/www-block-third-party.json"             --save-assets             --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage --disable-extensions"             --quiet
 
       - name: Print performance evidence
         run: |
