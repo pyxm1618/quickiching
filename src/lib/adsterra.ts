@@ -6,15 +6,20 @@ export const ADSTERRA_RESULT_UNIT = {
   scriptElementId: "adsterra-result-native-loader",
 } as const;
 
-export function isAdsterraEnabled(
-  environment: Record<string, string | undefined> = process.env,
-): boolean {
-  const override = environment.NEXT_PUBLIC_ADSTERRA_ENABLED;
-  if (override !== undefined && override.trim() !== "") {
-    return override.trim().toLowerCase() === "true";
+export type AdsterraEnablementInput = {
+  publicFlag?: string;
+  nodeEnv?: string;
+};
+
+export function resolveAdsterraEnabled({
+  publicFlag,
+  nodeEnv,
+}: AdsterraEnablementInput): boolean {
+  if (publicFlag !== undefined && publicFlag.trim() !== "") {
+    return publicFlag.trim().toLowerCase() === "true";
   }
 
-  return environment.NODE_ENV === "production";
+  return nodeEnv === "production";
 }
 
 export function isAdsterraRuntimeHost(hostname: string): boolean {
