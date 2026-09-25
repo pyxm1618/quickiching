@@ -29,13 +29,24 @@ type UserNavContextValue = {
 
 const UserNavContext = React.createContext<UserNavContextValue | null>(null);
 
-export function UserNavProvider({ children }: { children: React.ReactNode }) {
+export function UserNavProvider({
+  children,
+  enabled = true,
+}: {
+  children: React.ReactNode;
+  enabled?: boolean;
+}) {
   const pathname = usePathname() ?? "/";
   const [user, setUser] = useState<UserState>(null);
   const [loading, setLoading] = useState(true);
   const hasFetchedRef = useRef(false);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
     let active = true;
     if (!hasFetchedRef.current) setLoading(true);
 
@@ -60,7 +71,7 @@ export function UserNavProvider({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, [pathname]);
+  }, [enabled, pathname]);
 
   return (
     <UserNavContext.Provider value={{ user, loading, setUser }}>
@@ -136,7 +147,7 @@ export function UserNavControl({
     } catch {
       // Fall back to a full navigation even if the sign-out request fails.
     }
-    if (hasSharedUserState) sharedUserState.setUser(null);
+    if (sharedUserState) sharedUserState.setUser(null);
     else setLocalUser(null);
     window.location.assign(isChinese ? "/zh" : "/");
   }
