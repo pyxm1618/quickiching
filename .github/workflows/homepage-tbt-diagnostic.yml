@@ -79,8 +79,16 @@ jobs:
               with open(path, "r", encoding="utf-8") as f:
                   return json.load(f)
 
+          def as_dict(value):
+              return value if isinstance(value, dict) else {}
+
+          def audit_items(audit):
+              details = as_dict(as_dict(audit).get("details"))
+              items = details.get("items", [])
+              return items if isinstance(items, list) else []
+
           def metric(audits, key):
-              a = audits.get(key, {})
+              a = as_dict(as_dict(audits).get(key))
               return {
                   "numericValue": a.get("numericValue"),
                   "displayValue": a.get("displayValue"),
@@ -88,24 +96,26 @@ jobs:
               }
 
           def report(path):
-              d = load(path)
-              a = d.get("audits", {})
+              d = as_dict(load(path))
+              a = as_dict(d.get("audits"))
+              categories = as_dict(d.get("categories"))
+              performance = as_dict(categories.get("performance"))
               return {
                   "path": path,
                   "lighthouseVersion": d.get("lighthouseVersion"),
                   "requestedUrl": d.get("requestedUrl"),
                   "finalDisplayedUrl": d.get("finalDisplayedUrl"),
-                  "performance": d.get("categories", {}).get("performance", {}).get("score"),
+                  "performance": performance.get("score"),
                   "fcp": metric(a, "first-contentful-paint"),
                   "lcp": metric(a, "largest-contentful-paint"),
                   "speedIndex": metric(a, "speed-index"),
                   "tbt": metric(a, "total-blocking-time"),
                   "cls": metric(a, "cumulative-layout-shift"),
-                  "longTasks": a.get("long-tasks", {}).get("details", {}).get("items", []),
-                  "mainThread": a.get("mainthread-work-breakdown", {}).get("details", {}).get("items", []),
-                  "bootup": a.get("bootup-time", {}).get("details", {}).get("items", []),
-                  "unusedJs": a.get("unused-javascript", {}).get("details", {}).get("items", []),
-                  "thirdParty": a.get("third-party-summary", {}).get("details", {}).get("items", []),
+                  "longTasks": audit_items(a.get("long-tasks")),
+                  "mainThread": audit_items(a.get("mainthread-work-breakdown")),
+                  "bootup": audit_items(a.get("bootup-time")),
+                  "unusedJs": audit_items(a.get("unused-javascript")),
+                  "thirdParty": audit_items(a.get("third-party-summary")),
               }
 
           locals_ = [report(p) for p in sorted(glob.glob("perf-baseline/local-run-*.json"))]
@@ -132,6 +142,7 @@ jobs:
           PY
 
       - name: Upload raw Lighthouse reports and traces
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: homepage-tbt-baseline
