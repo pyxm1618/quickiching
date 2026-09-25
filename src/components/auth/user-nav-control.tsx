@@ -21,6 +21,54 @@ type UserState = {
   email: string;
 } | null;
 
+type UserNavContextValue = {
+  user: UserState;
+  loading: boolean;
+  setUser: React.Dispatch<React.SetStateAction<UserState>>;
+};
+
+const UserNavContext = React.createContext<UserNavContextValue | null>(null);
+
+export function UserNavProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname() ?? "/";
+  const [user, setUser] = useState<UserState>(null);
+  const [loading, setLoading] = useState(true);
+  const hasFetchedRef = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!hasFetchedRef.current) setLoading(true);
+
+    async function fetchUser() {
+      try {
+        const res = await fetch("/api/user/me", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json() as { user: UserState };
+          if (active) setUser(data.user);
+        }
+      } catch {
+        // User-state probing must not block navigation.
+      } finally {
+        if (active) {
+          hasFetchedRef.current = true;
+          setLoading(false);
+        }
+      }
+    }
+
+    void fetchUser();
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
+
+  return (
+    <UserNavContext.Provider value={{ user, loading, setUser }}>
+      {children}
+    </UserNavContext.Provider>
+  );
+}
+
 export function UserNavControl({
   initialUser,
   isMobileDrawer = false,
@@ -33,32 +81,36 @@ export function UserNavControl({
   const copy = dictionary.userNav;
   const isChinese = locale === "zh-Hans";
   const pathname = usePathname() ?? "/";
-  const [user, setUser] = useState<UserState>(initialUser !== undefined ? initialUser : null);
-  const [loading, setLoading] = useState(initialUser === undefined);
+  const sharedUserState = React.useContext(UserNavContext);
+  const hasSharedUserState = sharedUserState !== null;
+  const [localUser, setLocalUser] = useState<UserState>(initialUser !== undefined ? initialUser : null);
+  const [localLoading, setLocalLoading] = useState(initialUser === undefined);
+  const user = hasSharedUserState ? sharedUserState.user : localUser;
+  const loading = hasSharedUserState ? sharedUserState.loading : localLoading;
   const [isOpen, setIsOpen] = useState(initialOpen);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (initialUser !== undefined) return;
+    if (hasSharedUserState || initialUser !== undefined) return;
     let active = true;
     async function fetchUser() {
       try {
         const res = await fetch("/api/user/me", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json() as { user: UserState };
-          if (active) setUser(data.user);
+          if (active) setLocalUser(data.user);
         }
       } catch {
-        // 忽略探测异常
+        // Ignore probe failures; unauthenticated rendering remains available.
       } finally {
-        if (active) setLoading(false);
+        if (active) setLocalLoading(false);
       }
     }
     void fetchUser();
     return () => {
       active = false;
     };
-  }, [pathname, initialUser]);
+  }, [pathname, initialUser, hasSharedUserState]);
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -82,8 +134,10 @@ export function UserNavControl({
         headers: { "Content-Type": "application/json" },
       });
     } catch {
-      // 降级刷新
+      // Fall back to a full navigation even if the sign-out request fails.
     }
+    if (hasSharedUserState) sharedUserState.setUser(null);
+    else setLocalUser(null);
     window.location.assign(isChinese ? "/zh" : "/");
   }
 
