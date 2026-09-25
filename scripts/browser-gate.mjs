@@ -385,19 +385,29 @@ async function finishThreeCoin(page) {
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
   const sealedBeforeReveal = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
   assert(sealedBeforeReveal, "Completed Three-Coin reading must remain sealed after direct result navigation");
+  const castLineValues = await page.evaluate((key) => {
+    const parsed = JSON.parse(sessionStorage.getItem(key) || "null");
+    const steps = Array.isArray(parsed) ? parsed : parsed?.data?.steps;
+    return Array.isArray(steps) ? steps.map((step) => step?.lineValue) : null;
+  }, storageKey);
+  assert.equal(castLineValues?.length, 6, "Completed Three-Coin reading must preserve all six cast lines");
+  assert(castLineValues.every((value) => [6, 7, 8, 9].includes(value)), "Completed Three-Coin reading must preserve valid line values");
+  const expectedActiveLinePositions = castLineValues.flatMap((value, index) => value === 6 || value === 9 ? [index + 1] : []);
   const locationAfterReveal = await page.evaluate(() => ({ pathname: location.pathname, search: location.search }));
   assert.equal(locationAfterReveal.pathname, "/readings/three-coin/result");
   assert.equal(locationAfterReveal.search, "", "Three-Coin result URL must carry no cast state in query parameters");
   await waitForText(page, "Your Three-Coin Reading");
   for (const expected of [
     "Primary Hexagram",
-    "Classical line text",
     "Core meaning",
     "Changing Lines",
     "A way to return to the question",
     "Bottom line",
     "Three questions to carry forward",
   ]) await waitForText(page, expected);
+  if (expectedActiveLinePositions.length > 0) await waitForText(page, "Classical line text");
+  const actualActiveLinePositions = await page.$$eval("[data-active-line]", (nodes) => nodes.map((node) => Number(node.getAttribute("data-active-line"))));
+  assert.deepEqual(actualActiveLinePositions, expectedActiveLinePositions, "Result active-line detail must match the sealed cast");
 
   const resultSections = await page.evaluate(() => {
     const result = document.querySelector("[data-public-reading-result]");
