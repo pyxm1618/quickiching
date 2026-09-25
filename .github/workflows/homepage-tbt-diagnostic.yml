@@ -51,8 +51,10 @@ jobs:
 
       - name: Prepare Lighthouse
         run: |
-          mkdir -p perf-baseline
-          npm install --global lighthouse@latest\n          lighthouse --version
+          mkdir -p perf-baseline /tmp/lighthouse
+          npm install --prefix /tmp/lighthouse lighthouse@latest
+          echo "/tmp/lighthouse/node_modules/.bin" >> "$GITHUB_PATH"
+          /tmp/lighthouse/node_modules/.bin/lighthouse --version
 
       - name: Local production baseline (3 runs)
         run: |
