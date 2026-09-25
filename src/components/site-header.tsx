@@ -9,7 +9,7 @@ import { BrandMark } from "@/components/brand-mark";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
-import { UserNavControl } from "@/components/auth/user-nav-control";
+import { UserNavControl, UserNavProvider } from "@/components/auth/user-nav-control";
 
 const NAV_LINK_CLASS =
   "relative min-h-11 inline-flex items-center text-[13px] font-medium text-[var(--ink-2)] transition-colors hover:text-[var(--ink)] after:absolute after:bottom-1 after:left-0 after:h-px after:w-0 after:bg-[var(--cinnabar)] after:transition-all hover:after:w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cinnabar)]";
@@ -273,7 +273,8 @@ export function SiteHeader({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/[0.07] bg-[#09070f]/80 backdrop-blur-[18px]">
+    <UserNavProvider>
+      <header className="sticky top-0 z-40 w-full border-b border-white/[0.07] bg-[#09070f]/80 backdrop-blur-[18px]">
       <div className="mx-auto flex min-h-[74px] max-w-[1240px] items-center justify-between gap-x-6 px-5 py-2 sm:px-7">
         {/* Brand Logo - exactly 1 visible product name */}
         <Link
@@ -891,6 +892,7 @@ export function SiteHeader({
         </div>,
         portalRoot,
       )}
-    </header>
+      </header>
+    </UserNavProvider>
   );
 }
