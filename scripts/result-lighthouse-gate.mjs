@@ -63,7 +63,7 @@ async function auditResult(browser, desktop) {
         disableStorageReset: true,
       },
     });
-    await page.waitForFunction(() => document.body?.innerText.includes("Bottom Line"), { timeout: 15_000 });
+    await page.waitForFunction(() => document.body?.innerText.toLocaleLowerCase().includes("bottom line"), { timeout: 15_000 });
     const visible = await page.evaluate(() => document.body?.innerText.includes("Fellowship") && document.body?.innerText.includes("Gentle penetration"));
     assert(visible, `${desktop ? "desktop" : "mobile"}: Lighthouse audited an empty/incorrect result state`);
     return summarize(desktop ? "RESULT_DESKTOP" : "RESULT_MOBILE", runnerResult);
