@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
@@ -20,6 +20,24 @@ function relatingLines(reading: PublicReading): number[] {
 
 function formatCopy(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, String(value)), template);
+}
+
+const METHOD_NAMES_ZH: Record<string, string> = {
+  "three-coin": "三枚铜钱",
+  "yarrow": "蓍草起卦",
+  "yarrow-stalks": "蓍草起卦",
+  "mei-hua": "梅花易数",
+  "mei-hua-yi-shu": "梅花易数",
+  "manual": "手动起卦",
+};
+
+export function resolveReadingKicker(reading: PublicReading, dictionary: UiDictionary): string {
+  if (dictionary.locale !== "zh-Hans") {
+    return formatCopy(dictionary.reading.staticKicker, { methodVersion: reading.methodVersion });
+  }
+  const methodName = METHOD_NAMES_ZH[reading.method] ?? "";
+  const baseKicker = dictionary.reading.staticKicker;
+  return methodName ? `${methodName} · ${baseKicker}` : baseKicker;
 }
 
 export function PublicReadingResult({
@@ -60,7 +78,9 @@ export function PublicReadingResult({
   }, [localizedContent, reading.primaryHexagram, reading.relatingHexagram]);
 
   const model = useMemo(() => buildStaticReading(reading, bundles, localizedContent), [reading, bundles, localizedContent]);
-  const movingLabel = reading.changingLines.length > 0 ? reading.changingLines.join(", ") : dictionary.locale === "zh-Hans" ? "无" : "None";
+  const isChinese = dictionary.locale === "zh-Hans";
+  const movingLabel = reading.changingLines.length > 0 ? reading.changingLines.join(isChinese ? "、" : ", ") : isChinese ? "无" : "None";
+  const localizedHref = (href: string) => isChinese && href.startsWith("/hexagrams/") ? `/zh${href}` : href;
 
   function save() {
     try {
@@ -74,7 +94,7 @@ export function PublicReadingResult({
   return (
     <section className="reading-reveal" aria-live="polite" aria-labelledby="public-reading-result-title" data-public-reading-result data-reading-fingerprint={readingFingerprint(reading)}>
       <div className="text-center">
-        <p className="mystic-kicker">{formatCopy(dictionary.reading.staticKicker, { methodVersion: reading.methodVersion })}</p>
+        <p className="mystic-kicker">{resolveReadingKicker(reading, dictionary)}</p>
         <h3 id="public-reading-result-title" className="mt-2 font-display text-3xl font-normal tracking-[-0.03em] sm:text-4xl">{dictionary.reading.title}</h3>
         {reading.question ? (
           <p className="mx-auto mt-4 max-w-2xl rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 py-3 text-left text-sm leading-7 text-[var(--ink-2)]" data-clarity-mask="true" data-private-question="true">
@@ -88,15 +108,15 @@ export function PublicReadingResult({
           <p className="mystic-kicker">{dictionary.reading.primary}</p>
           <div className="reading-number mt-5">{model.primary.number}</div>
           <h4 className="reading-title">{model.primary.englishName}</h4>
-          <p className="reading-cn mt-2">{model.primary.chineseName} · {model.primary.pinyin}</p>
-          <HexagramLines lines={[...reading.lineValuesBottomUp]} size="lg" showLabels className="mt-8 max-w-sm" />
+          <p className="reading-cn mt-2">{isChinese ? model.primary.chineseName : `${model.primary.chineseName} · ${model.primary.pinyin}`}</p>
+          <HexagramLines lines={[...reading.lineValuesBottomUp]} size="lg" showLabels locale={dictionary.locale} className="mt-8 max-w-sm" />
           <p className="mystic-kicker mt-8">{dictionary.reading.originalExplanation}</p>
           <p className="reading-theme">{model.primary.theme}</p>
           <p className="reading-copy">{model.primary.coreMeaning}</p>
-          <Link href={model.primary.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--cyan)] hover:underline">{formatCopy(dictionary.reading.linkPrimary, { number: model.primary.number })}</Link>
+          <Link href={localizedHref(model.primary.href)} className="mt-5 inline-flex text-sm font-semibold text-[var(--cyan)] hover:underline">{formatCopy(dictionary.reading.linkPrimary, { number: model.primary.number })}</Link>
           <p className="mt-5 border-t border-white/[0.08] pt-4 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--gold-2)]">{dictionary.reading.judgment} · </strong>{model.primary.judgment}</p>
           <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--gold-2)]">{dictionary.reading.image} · </strong>{model.primary.image}</p>
-          <a href={model.primary.sourceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-[var(--cyan)] hover:underline">{dictionary.reading.source} · oldid {model.primary.sourceRevision}</a>
+          <a href={model.primary.sourceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-[var(--cyan)] hover:underline">{isChinese ? dictionary.reading.source : `${dictionary.reading.source} · oldid ${model.primary.sourceRevision}`}</a>
         </article>
 
         <div className="change-bridge" aria-label={`${dictionary.reading.changingLines}: ${movingLabel}`}>
@@ -109,12 +129,12 @@ export function PublicReadingResult({
             <p className="mystic-kicker">{dictionary.reading.relating}</p>
             <div className="reading-number mt-5">{model.relating.number}</div>
             <h4 className="reading-title">{model.relating.englishName}</h4>
-            <p className="reading-cn mt-2">{model.relating.chineseName} · {model.relating.pinyin}</p>
-            <HexagramLines lines={relatingLines(reading)} size="lg" showLabels className="mt-8 max-w-sm" />
+            <p className="reading-cn mt-2">{isChinese ? model.relating.chineseName : `${model.relating.chineseName} · ${model.relating.pinyin}`}</p>
+            <HexagramLines lines={relatingLines(reading)} size="lg" showLabels locale={dictionary.locale} className="mt-8 max-w-sm" />
             <p className="mystic-kicker mt-8">{dictionary.reading.originalExplanation}</p>
             <p className="reading-theme">{model.relating.theme}</p>
             <p className="reading-copy">{model.relating.coreMeaning}</p>
-            <Link href={model.relating.href} className="mt-5 inline-flex text-sm font-semibold text-[var(--cyan)] hover:underline">{dictionary.reading.linkRelating}</Link>
+            <Link href={localizedHref(model.relating.href)} className="mt-5 inline-flex text-sm font-semibold text-[var(--cyan)] hover:underline">{dictionary.reading.linkRelating}</Link>
           </article>
         ) : null}
       </div>
@@ -137,7 +157,7 @@ export function PublicReadingResult({
               <div className="mt-4 rounded-2xl border border-[var(--gold)]/25 bg-[var(--gold)]/[0.05] p-4">
                 <p className="mystic-kicker">{dictionary.reading.classicalLine}</p>
                 <p className="mt-2 text-base leading-7 text-[var(--ink)]"><strong className="text-[var(--gold-2)]">{line.classicalLine.label}：</strong>{line.classicalLine.text}</p>
-                <a href={line.classicalLine.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-xs font-semibold text-[var(--cyan)] hover:underline">{dictionary.reading.source} · oldid {line.classicalLine.sourceRevision}</a>
+                <a href={line.classicalLine.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-xs font-semibold text-[var(--cyan)] hover:underline">{isChinese ? dictionary.reading.source : `${dictionary.reading.source} · oldid ${line.classicalLine.sourceRevision}`}</a>
               </div>
               <div className="mt-4 rounded-2xl border border-white/[0.08] p-4">
                 <p className="mystic-kicker">{dictionary.reading.originalExplanation}</p>
@@ -149,7 +169,7 @@ export function PublicReadingResult({
               </div>
               <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--gold-2)]">{dictionary.reading.caution} </strong>{line.caution}</p>
               <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--gold-2)]">{dictionary.reading.reflection} </strong>{line.reflection}</p>
-              <Link href={line.href} className="mt-4 inline-flex text-xs font-semibold text-[var(--cyan)] hover:underline">{formatCopy(dictionary.reading.readFullLine, { number: model.primary.number })}</Link>
+              <Link href={localizedHref(line.href)} className="mt-4 inline-flex text-xs font-semibold text-[var(--cyan)] hover:underline">{formatCopy(dictionary.reading.readFullLine, { number: model.primary.number })}</Link>
             </article>
           ))}
         </section>
@@ -188,11 +208,11 @@ export function PublicReadingResult({
       {dictionary.locale === "en" ? <PersonalizedInterpretation reading={reading} /> : null}
 
       <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-white/[0.08] pt-6">
-        {dictionary.locale === "en" ? <button type="button" onClick={save} className="mystic-button" data-save-reading>{saveState === "saved" ? dictionary.reading.saved : dictionary.reading.save}</button> : null}
+        <button type="button" onClick={save} className="mystic-button" data-save-reading>{saveState === "saved" ? dictionary.reading.saved : dictionary.reading.save}</button>
         {onNewReading ? <button type="button" onClick={onNewReading} className="mystic-button-secondary">{dictionary.reading.newReading}</button> : null}
-        {dictionary.locale === "en" ? <Link href="/history" className="mystic-button-secondary">{dictionary.reading.history}</Link> : null}
-        {dictionary.locale === "en" && reading.method === "three-coin" ? <Link href="/readings/three-coin/result" className="mystic-button-secondary">Reveal Your Reading</Link> : null}
-        {dictionary.locale === "en" && saveState === "error" ? <span role="status" className="text-sm text-[var(--danger)]">{dictionary.reading.saveError}</span> : null}
+        <Link href={isChinese ? "/zh/history" : "/history"} className="mystic-button-secondary">{dictionary.reading.history}</Link>
+        {reading.method === "three-coin" ? <Link href={isChinese ? "/zh/readings/three-coin/result" : "/readings/three-coin/result"} className="mystic-button-secondary">{isChinese ? "查看本次结果" : "Reveal Your Reading"}</Link> : null}
+        {saveState === "error" ? <span role="status" className="text-sm text-[var(--danger)]">{dictionary.reading.saveError}</span> : null}
       </div>
 
       <p className="mt-7 border-t border-white/[0.08] pt-5 text-xs leading-6 text-[var(--ink-3)]">{dictionary.reading.safety}</p>

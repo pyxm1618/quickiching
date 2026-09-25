@@ -26,18 +26,22 @@ describe("Authentication intent pages", () => {
   });
 
   it("uses only Google and email Magic Link, with Google presented first", () => {
-    const googleIndex = sharedAuthSource.indexOf("Continue with Google");
-    const emailIndex = sharedAuthSource.indexOf("Continue with email");
+    const googleIndex = sharedAuthSource.indexOf("copy.continueGoogle") !== -1
+      ? sharedAuthSource.indexOf("copy.continueGoogle")
+      : sharedAuthSource.indexOf("Continue with Google");
+    const emailIndex = sharedAuthSource.indexOf("copy.continueEmail") !== -1
+      ? sharedAuthSource.indexOf("copy.continueEmail")
+      : sharedAuthSource.indexOf("Continue with email");
     expect(googleIndex).toBeGreaterThanOrEqual(0);
     expect(emailIndex).toBeGreaterThan(googleIndex);
     expect(sharedAuthSource).not.toMatch(/type="password"|forgot password|reset password|confirm password/i);
   });
 
   it("contains explicit loading, sent, and visible error states", () => {
-    expect(sharedAuthSource).toContain("Connecting to Google…");
-    expect(sharedAuthSource).toContain("Sending…");
-    expect(sharedAuthSource).toContain("Check your email");
-    expect(sharedAuthSource).toContain("The link expires in 10 minutes.");
+    expect(sharedAuthSource.includes("Connecting to Google…") || sharedAuthSource.includes("copy.connectingGoogle")).toBe(true);
+    expect(sharedAuthSource.includes("Sending…") || sharedAuthSource.includes("copy.sending")).toBe(true);
+    expect(sharedAuthSource.includes("Check your email") || sharedAuthSource.includes("copy.checkEmail")).toBe(true);
+    expect(sharedAuthSource.includes("The link expires in 10 minutes.") || sharedAuthSource.includes("copy.expires")).toBe(true);
     expect(sharedAuthSource).toContain('role="alert"');
     expect(sharedAuthSource).toContain('aria-live="polite"');
   });

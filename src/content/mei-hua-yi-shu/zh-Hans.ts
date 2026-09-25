@@ -136,7 +136,7 @@ export const ZH_HANS_MEI_HUA_CONTENT: MeiHuaPageContent = {
   },
   eyebrow: "梅花易数 · 公历当前时间起卦",
   h1: "梅花易数公历适配版",
-  introduction: "Quick I Ching 提供一套适合国际网站、公开可验证的公历当前时间起卦约定。你可以先写下一个中文问题，确认 IANA 时区，再固定当前时刻，查看本卦、动爻、之卦与中文基础说明。它是一种帮助整理处境的反思框架，不是确定性预言。",
+  introduction: "本页提供梅花易数起卦的公历当前时间约定。你可以先写下一个中文问题，确认 IANA 时区，再固定当前时刻完成梅花易数起卦，查看本卦、动爻、之卦与中文基础说明。它是一种帮助整理处境的反思框架，不是确定性预言。",
   positioning: {
     heading: "这套在线工具具体实现了什么",
     paragraphs: [
@@ -146,7 +146,7 @@ export const ZH_HANS_MEI_HUA_CONTENT: MeiHuaPageContent = {
   },
   scope: {
     supported: ["中文提问", "公历当前时间起卦", "本卦", "一个动爻", "之卦", "卦辞与大象（《象传》）", "经典爻辞", "结构性的中文反思提示"],
-    notSupported: ["三枚铜钱", "蓍草", "Manual Cast", "数字起卦或报数起卦", "农历标准时间起卦", "互卦", "体用生克", "完整梅花易数排盘", "中文 History", "中文 Personalized AI", "确定性吉凶预测"],
+    notSupported: ["数字起卦或报数起卦", "农历标准时间起卦", "互卦", "体用生克", "完整梅花易数排盘", "确定性吉凶预测"],
   },
   convention: {
     heading: "本页采用的公历时间约定",
@@ -168,7 +168,7 @@ export const ZH_HANS_MEI_HUA_CONTENT: MeiHuaPageContent = {
     ],
   },
   navigation: {
-    hexagrams: "英文卦义详情",
+    hexagrams: "易经六十四卦",
     changingLines: "了解动爻",
     home: "返回中文首页",
   },

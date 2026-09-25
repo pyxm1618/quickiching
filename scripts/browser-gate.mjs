@@ -41,7 +41,13 @@ const ENGLISH_INDEXABLE_PATHS = [
 ];
 const CHINESE_INDEXABLE_PATHS = [
   "/zh",
+  "/zh/methods/three-coin",
+  "/zh/methods/yarrow-stalks",
   "/zh/methods/mei-hua-yi-shu",
+  "/zh/methods/manual-cast",
+  "/zh/guides/how-to-ask-the-i-ching",
+  "/zh/guides/changing-lines",
+  "/zh/guides/primary-relating-hexagrams",
   "/zh/hexagrams",
   ...HEXAGRAM_PATHS.map((path) => "/zh" + path),
 ];
@@ -150,7 +156,7 @@ async function verifyHttpAndSeo() {
   const sitemapXml = await sitemap.text();
   const locs = [...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]).sort();
   const expectedLocs = SITEMAP_PATHS.map((path) => new URL(path, "https://www.quickiching.com").toString()).sort();
-  assert.deepEqual(locs, expectedLocs, "Sitemap must contain exactly the 73 English and 67 Chinese canonical Public V1 pages");
+  assert.deepEqual(locs, expectedLocs, "Sitemap must contain exactly the 73 English and 73 Chinese canonical Public V1 pages");
   for (const forbidden of ["/pricing", "/signin", "/three-coin-method", "/checkout", "/readings/three-coin/result", "/en", "vercel.app"]) {
     assert(!sitemapXml.includes(forbidden), `Sitemap contains forbidden entry: ${forbidden}`);
   }

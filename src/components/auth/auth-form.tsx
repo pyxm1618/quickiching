@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { createAuthClient } from "better-auth/client";
 import { magicLinkClient } from "better-auth/client/plugins";
+import { getDictionary } from "@/i18n/dictionaries";
+import type { ContentLocale } from "@/i18n/config";
 
 const authClient = createAuthClient({
   basePath: "/api/auth",
@@ -32,28 +34,29 @@ export function maskAuthEmail(email: string): string {
   return `${local.slice(0, 1)}***@${domain}`;
 }
 
-export function authErrorMessage(errorCode: string | null | undefined): {
+export function authErrorMessage(errorCode: string | null | undefined, locale: ContentLocale = "en"): {
   message: string;
   requestNewLink: boolean;
 } | null {
   if (!errorCode) return null;
+  const copy = getDictionary(locale).auth;
   const code = errorCode.trim().toLowerCase();
 
   if (["invalid_token", "token_expired", "expired_token", "already_used"].includes(code)) {
     return {
-      message: "This sign-in link is no longer valid. Request a new link and try again.",
+      message: copy.invalidLink,
       requestNewLink: true,
     };
   }
   if (["access_denied", "oauth_cancelled", "oauth_canceled", "user_cancelled", "user_canceled"].includes(code)) {
     return {
-      message: "Google sign-in was cancelled. You can try again.",
+      message: copy.cancelled,
       requestNewLink: false,
     };
   }
   if (["email_not_verified", "provider_email_unverified"].includes(code)) {
     return {
-      message: "Google could not verify the email address for this account. Try another Google account or continue with email.",
+      message: copy.emailUnverified,
       requestNewLink: false,
     };
   }
@@ -63,7 +66,7 @@ export function authErrorMessage(errorCode: string | null | undefined): {
     "account_already_linked_to_different_user",
   ].includes(code)) {
     return {
-      message: "We couldn't connect that Google account to this Quick I Ching account. Try another sign-in method.",
+      message: copy.accountLinkFailed,
       requestNewLink: false,
     };
   }
@@ -76,19 +79,20 @@ export function authErrorMessage(errorCode: string | null | undefined): {
     "invalid_code",
   ].includes(code)) {
     return {
-      message: "This sign-in request is no longer valid. Start again and try once more.",
+      message: copy.invalidRequest,
       requestNewLink: false,
     };
   }
 
   return {
-    message: "We couldn't complete sign-in. Please try again.",
+    message: copy.genericError,
     requestNewLink: false,
   };
 }
 
-function authPageURL(mode: AuthMode, callbackURL: string): string {
-  const route = mode === "signup" ? "/signup" : "/signin";
+function authPageURL(mode: AuthMode, callbackURL: string, locale: ContentLocale = "en"): string {
+  const prefix = locale === "zh-Hans" ? "/zh" : "";
+  const route = mode === "signup" ? `${prefix}/signup` : `${prefix}/signin`;
   return `${route}?callbackURL=${encodeURIComponent(callbackURL)}`;
 }
 
@@ -107,18 +111,21 @@ export function AuthForm({
   mode,
   callbackURL,
   initialErrorCode,
+  locale = "en",
 }: {
   mode: AuthMode;
   callbackURL: string;
   initialErrorCode?: string | null;
+  locale?: ContentLocale;
 }) {
-  const initialError = authErrorMessage(initialErrorCode);
+  const copy = getDictionary(locale).auth;
+  const initialError = authErrorMessage(initialErrorCode, locale);
   const [email, setEmail] = useState("");
   const [sentEmail, setSentEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(initialError?.message ?? null);
   const [requestNewLink, setRequestNewLink] = useState(initialError?.requestNewLink ?? false);
   const [pendingAction, setPendingAction] = useState<"google" | "email" | null>(null);
-  const errorCallbackURL = authPageURL(mode, callbackURL);
+  const errorCallbackURL = authPageURL(mode, callbackURL, locale);
 
   async function requestMagicLink(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -133,7 +140,7 @@ export function AuthForm({
         errorCallbackURL,
       }));
       if (!ok) {
-        setError("We couldn't send the sign-in email. Please try again.");
+        setError(copy.sendEmailError);
         return;
       }
       setSentEmail(maskAuthEmail(email));
@@ -154,16 +161,16 @@ export function AuthForm({
         errorCallbackURL,
       });
       if (result.error) {
-        setError("We couldn't start Google sign-in. Please try again.");
+        setError(copy.googleStartError);
         return;
       }
       if (result.data?.url) {
         window.location.assign(result.data.url);
         return;
       }
-      setError("We couldn't start Google sign-in. Please try again.");
+      setError(copy.googleStartError);
     } catch {
-      setError("We couldn't start Google sign-in. Please try again.");
+      setError(copy.googleStartError);
     } finally {
       setPendingAction(null);
     }
@@ -175,13 +182,13 @@ export function AuthForm({
         className="rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-6 text-center"
         aria-live="polite"
       >
-        <h2 className="font-display text-2xl font-medium text-[var(--ink)]">Check your email</h2>
+        <h2 className="font-display text-2xl font-medium text-[var(--ink)]">{copy.checkEmail}</h2>
         <p className="mt-3 text-sm leading-6 text-[var(--ink-2)]">
-          We sent a secure sign-in link to
+          {copy.sentTo}
           <br />
           <strong className="font-semibold text-[var(--ink)]">{sentEmail}</strong>
         </p>
-        <p className="mt-2 text-xs text-[var(--ink-3)]">The link expires in 10 minutes.</p>
+        <p className="mt-2 text-xs text-[var(--ink-3)]">{copy.expires}</p>
         <button
           type="button"
           onClick={() => {
@@ -190,7 +197,7 @@ export function AuthForm({
           }}
           className="mt-5 min-h-11 rounded-lg border border-[var(--line)] px-4 py-2 text-sm font-medium text-[var(--ink-2)] transition-colors hover:bg-[var(--ink)]/[0.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cinnabar)]"
         >
-          Use a different email
+          {copy.differentEmail}
         </button>
       </div>
     );
@@ -217,19 +224,19 @@ export function AuthForm({
         className="inline-flex min-h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-[var(--line)] bg-transparent px-4 py-3 text-sm font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--ink)]/[0.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cinnabar)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <GoogleMark />
-        {pendingAction === "google" ? "Connecting to Google…" : "Continue with Google"}
+        {pendingAction === "google" ? copy.connectingGoogle : copy.continueGoogle}
       </button>
 
       <div className="flex items-center gap-3 text-xs text-[var(--ink-3)]" aria-hidden="true">
         <span className="h-px flex-1 bg-[var(--line)]" />
-        <span>or</span>
+        <span>{copy.separator}</span>
         <span className="h-px flex-1 bg-[var(--line)]" />
       </div>
 
       <form onSubmit={requestMagicLink} className="space-y-4" aria-busy={pendingAction === "email"}>
         <div>
           <label htmlFor={`${mode}-email`} className="block text-sm font-medium text-[var(--ink)]">
-            Email
+            {copy.emailLabel}
           </label>
           <input
             id={`${mode}-email`}
@@ -250,10 +257,10 @@ export function AuthForm({
           className="min-h-11 w-full rounded-lg bg-[var(--ink)] px-4 py-3 text-sm font-semibold text-[var(--paper)] transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cinnabar)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pendingAction === "email"
-            ? "Sending…"
+            ? copy.sending
             : requestNewLink
-              ? "Send a new link"
-              : "Continue with email"}
+              ? copy.sendNewLink
+              : copy.continueEmail}
         </button>
       </form>
     </div>

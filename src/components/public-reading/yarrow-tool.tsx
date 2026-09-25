@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
+import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
+import type { UiDictionary } from "@/i18n/dictionaries/types";
+import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import { useQuestionFirstContext } from "@/components/public-reading/question-first";
 import { generateYarrowChange, type YarrowChange, type YarrowLineResult } from "@/domain/casting/yarrow/algorithm";
@@ -53,10 +56,22 @@ function completedLineValues(changes: YarrowChange[]): LineValue[] {
   return values;
 }
 
-export function YarrowTool({ question: questionProp, onNewReading: onNewReadingProp }: { question?: string; onNewReading?: () => void }) {
+export function YarrowTool({
+  question: questionProp,
+  onNewReading: onNewReadingProp,
+  dictionary = EN_UI_DICTIONARY,
+  localizedContent,
+}: {
+  question?: string;
+  onNewReading?: () => void;
+  dictionary?: UiDictionary;
+  localizedContent?: LocalizedReadingContent;
+}) {
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
   const onNewReading = onNewReadingProp ?? questionContext?.restartQuestion;
+  const zh = dictionary.locale === "zh-Hans";
+  const t = (en: string, cn: string) => zh ? cn : en;
   const [changes, setChanges] = useState<YarrowChange[]>([]);
   const [readingMeta, setReadingMeta] = useState<{ id: string; createdAt: string } | null>(null);
 
@@ -138,11 +153,11 @@ export function YarrowTool({ question: questionProp, onNewReading: onNewReadingP
     <section className="mystic-card overflow-hidden p-5 sm:p-8" aria-labelledby="yarrow-tool-title">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="mystic-kicker">Yarrow Stalk Method</p>
-          <h2 id="yarrow-tool-title" className="mt-2 font-display text-3xl font-normal tracking-[-.03em]">Complete 18 yarrow changes</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ink-2)]">Three changes form one line; six lines form the hexagram. Each completed change is saved in this browser session so a refresh can resume the ritual.</p>
+          <p className="mystic-kicker">{t("Yarrow Stalk Method", "蓍草起卦")}</p>
+          <h2 id="yarrow-tool-title" className="mt-2 font-display text-3xl font-normal tracking-[-.03em]">{t("Complete 18 yarrow changes", "完成蓍草十八变")}</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--ink-2)]">{t("Three changes form one line; six lines form the hexagram. Each completed change is saved in this browser session so a refresh can resume the ritual.", "每三变形成一爻，六爻共十八变。每完成一变都会保存到当前浏览器会话，刷新页面后仍可继续。")}</p>
         </div>
-        <span className="ritual-progress-badge" style={{ textTransform: "none" }}>{changes.length} / 18 changes</span>
+        <span className="ritual-progress-badge" style={{ textTransform: "none" }}>{changes.length} / 18 {t("changes", "变")}</span>
       </div>
 
       <div className="mt-7 grid gap-6 md:grid-cols-[minmax(0,1fr),minmax(15rem,.9fr)] md:items-stretch">
@@ -153,34 +168,34 @@ export function YarrowTool({ question: questionProp, onNewReading: onNewReadingP
               <span key={index} className="mx-[2px] h-20 w-px origin-bottom bg-gradient-to-b from-[var(--gold-2)] to-[#7c5d2b] opacity-70" style={{ transform: `rotate(${(index - 6) * 2.2}deg) translateY(${Math.abs(index - 6) * 1.2}px)` }} />
             ))}
           </div>
-          <HexagramLines lines={lines} sealedCount={lines.length} animateLast size="lg" showLabels />
+          <HexagramLines lines={lines} sealedCount={lines.length} animateLast size="lg" showLabels locale={dictionary.locale} />
         </div>
 
         <div className="mystic-card-soft p-5 text-sm leading-7 text-[var(--ink-2)] sm:p-6">
-          <p className="mystic-kicker">Current change</p>
-          <p className="mt-3"><strong className="text-[var(--ink)]">Current position:</strong> line {currentLine}, change {currentChange}</p>
+          <p className="mystic-kicker">{t("Current change", "当前进度")}</p>
+          <p className="mt-3"><strong className="text-[var(--ink)]">{t("Current position:", "当前位置：")}</strong> {zh ? `第 ${currentLine} 爻，第 ${currentChange} 变` : `line ${currentLine}, change ${currentChange}`}</p>
           {latest ? (
             <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
-              <dt>Started</dt><dd className="text-right font-mono text-[var(--gold-2)]">{latest.startingStalks}</dd>
-              <dt>Left / right</dt><dd className="text-right font-mono text-[var(--gold-2)]">{latest.leftGroup} / {latest.rightGroup}</dd>
-              <dt>Remainders</dt><dd className="text-right font-mono text-[var(--gold-2)]">{latest.leftRemainder} / {latest.rightRemainder}</dd>
-              <dt>Remaining</dt><dd className="text-right font-mono text-[var(--gold-2)]">{latest.endingStalks}</dd>
+              <dt>{t("Started", "起始蓍草")}</dt><dd className="text-right font-mono text-[var(--gold-2)]">{latest.startingStalks}</dd>
+              <dt>{t("Left / right", "左堆 / 右堆")}</dt><dd className="text-right font-mono text-[var(--gold-2)]">{latest.leftGroup} / {latest.rightGroup}</dd>
+              <dt>{t("Remainders", "余数")}</dt><dd className="text-right font-mono text-[var(--gold-2)]">{latest.leftRemainder} / {latest.rightRemainder}</dd>
+              <dt>{t("Remaining", "剩余蓍草")}</dt><dd className="text-right font-mono text-[var(--gold-2)]">{latest.endingStalks}</dd>
             </dl>
           ) : (
-            <p className="mt-4">Begin with 49 working stalks. The digital convention records a valid split and remainder calculation for every change.</p>
+            <p className="mt-4">{t("Begin with 49 working stalks. The digital convention records a valid split and remainder calculation for every change.", "从实际使用的 49 根蓍草开始。每一变都会记录分堆、取余与剩余数量，便于复核。")}</p>
           )}
-          <p className="mt-5 text-xs leading-6 text-[var(--ink-3)]">Quick I Ching uses an explicit Zhu Xi-style digital probability convention: the first change removes 5 or 9; later changes remove 4 or 8. This preserves the standard 6/7/8/9 line distribution while keeping every stalk calculation auditable.</p>
+          <p className="mt-5 text-xs leading-6 text-[var(--ink-3)]">{t("Quick I Ching uses an explicit Zhu Xi-style digital probability convention: the first change removes 5 or 9; later changes remove 4 or 8. This preserves the standard 6/7/8/9 line distribution while keeping every stalk calculation auditable.", "Quick I Ching 使用明确的朱熹式数字化概率约定：每爻第一变去 5 或 9，后两变去 4 或 8，以保留标准的 6、7、8、9 爻值分布，并让每一步蓍草计算都可以复核。")}</p>
         </div>
       </div>
 
       <div className="mt-7 flex flex-wrap gap-3">
         <button type="button" onClick={performChange} disabled={complete} className="mystic-button">
-          {complete ? "Reading complete" : `Perform change ${changes.length + 1}`}
+          {complete ? t("Reading complete", "起卦完成") : (zh ? `进行第 ${changes.length + 1} 变` : `Perform change ${changes.length + 1}`)}
         </button>
-        <button type="button" onClick={() => reset(true)} disabled={changes.length === 0 || complete} className="mystic-button-secondary">Restart casting</button>
+        <button type="button" onClick={() => reset(true)} disabled={changes.length === 0 || complete} className="mystic-button-secondary">{t("Restart casting", "重新起卦")}</button>
       </div>
 
-      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} /> : null}
+      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} dictionary={dictionary} localizedContent={localizedContent} /> : null}
     </section>
   );
 }

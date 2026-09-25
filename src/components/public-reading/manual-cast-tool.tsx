@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
+import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
+import type { UiDictionary } from "@/i18n/dictionaries/types";
+import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import { useQuestionFirstContext } from "@/components/public-reading/question-first";
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
@@ -57,10 +60,22 @@ function readFacts(): ManualFacts | null {
   }
 }
 
-export function ManualCastTool({ question: questionProp, onNewReading: onNewReadingProp }: { question?: string; onNewReading?: () => void }) {
+export function ManualCastTool({
+  question: questionProp,
+  onNewReading: onNewReadingProp,
+  dictionary = EN_UI_DICTIONARY,
+  localizedContent,
+}: {
+  question?: string;
+  onNewReading?: () => void;
+  dictionary?: UiDictionary;
+  localizedContent?: LocalizedReadingContent;
+}) {
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
   const onNewReading = onNewReadingProp ?? questionContext?.restartQuestion;
+  const zh = dictionary.locale === "zh-Hans";
+  const t = (en: string, cn: string) => zh ? cn : en;
   const [mode, setMode] = useState<ManualMode>("line-values");
   const [lineValues, setLineValues] = useState<PublicLineTuple>(DEFAULT_LINE_VALUES);
   const [primaryHexagram, setPrimaryHexagram] = useState(1);
@@ -157,30 +172,30 @@ export function ManualCastTool({ question: questionProp, onNewReading: onNewRead
     <section className="mystic-card overflow-hidden p-5 sm:p-8" aria-labelledby="manual-cast-tool-title">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="mystic-kicker">Manual Cast · deterministic input</p>
-          <h2 id="manual-cast-tool-title" className="mt-2 font-display text-3xl font-normal tracking-[-.03em]">Enter the six-line structure</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">Manual Cast never rolls or samples anything. Choose six values from bottom to top, or choose a primary hexagram and the moving positions; both modes feed the same transformation engine.</p>
+          <p className="mystic-kicker">{t("Manual Cast · deterministic input", "手动起卦 · 确定性输入")}</p>
+          <h2 id="manual-cast-tool-title" className="mt-2 font-display text-3xl font-normal tracking-[-.03em]">{t("Enter the six-line structure", "输入六爻结构")}</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">{t("Manual Cast never rolls or samples anything. Choose six values from bottom to top, or choose a primary hexagram and the moving positions; both modes feed the same transformation engine.", "手动起卦不会生成任何随机结果。你可以自下而上输入六个爻值，也可以直接选择本卦和动爻位置；两种输入最终进入同一个卦象变化计算。")}</p>
         </div>
-        <span className="ritual-progress-badge" style={{ textTransform: "none" }}>No randomness</span>
+        <span className="ritual-progress-badge" style={{ textTransform: "none" }}>{t("No randomness", "无随机过程")}</span>
       </div>
 
       {!facts ? (
         <>
-          <div className="mt-7 flex flex-wrap gap-3" role="tablist" aria-label="Manual cast input mode">
-            <button ref={(node) => { modeTabRefs.current[0] = node; }} id="manual-mode-line-values-tab" type="button" role="tab" aria-controls="manual-mode-line-values-panel" aria-selected={mode === "line-values"} tabIndex={mode === "line-values" ? 0 : -1} onClick={() => selectMode("line-values")} onKeyDown={(event) => handleModeKeyDown(event, 0)} className={mode === "line-values" ? "mystic-button" : "mystic-button-secondary"}>Mode A · six values</button>
-            <button ref={(node) => { modeTabRefs.current[1] = node; }} id="manual-mode-primary-changing-tab" type="button" role="tab" aria-controls="manual-mode-primary-changing-panel" aria-selected={mode === "primary-changing"} tabIndex={mode === "primary-changing" ? 0 : -1} onClick={() => selectMode("primary-changing")} onKeyDown={(event) => handleModeKeyDown(event, 1)} className={mode === "primary-changing" ? "mystic-button" : "mystic-button-secondary"}>Mode B · primary + moving</button>
+          <div className="mt-7 flex flex-wrap gap-3" role="tablist" aria-label={t("Manual cast input mode", "手动起卦输入方式")}>
+            <button ref={(node) => { modeTabRefs.current[0] = node; }} id="manual-mode-line-values-tab" type="button" role="tab" aria-controls="manual-mode-line-values-panel" aria-selected={mode === "line-values"} tabIndex={mode === "line-values" ? 0 : -1} onClick={() => selectMode("line-values")} onKeyDown={(event) => handleModeKeyDown(event, 0)} className={mode === "line-values" ? "mystic-button" : "mystic-button-secondary"}>{t("Mode A · six values", "方式一 · 输入六个爻值")}</button>
+            <button ref={(node) => { modeTabRefs.current[1] = node; }} id="manual-mode-primary-changing-tab" type="button" role="tab" aria-controls="manual-mode-primary-changing-panel" aria-selected={mode === "primary-changing"} tabIndex={mode === "primary-changing" ? 0 : -1} onClick={() => selectMode("primary-changing")} onKeyDown={(event) => handleModeKeyDown(event, 1)} className={mode === "primary-changing" ? "mystic-button" : "mystic-button-secondary"}>{t("Mode B · primary + moving", "方式二 · 本卦 + 动爻")}</button>
           </div>
 
           {mode === "line-values" ? (
-            <div id="manual-mode-line-values-panel" role="tabpanel" aria-labelledby="manual-mode-line-values-tab" className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Manual line values bottom to top">
+            <div id="manual-mode-line-values-panel" role="tabpanel" aria-labelledby="manual-mode-line-values-tab" className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label={t("Manual line values bottom to top", "自下而上的六爻值")}>
               {lineValues.map((value, index) => (
                 <label key={index} className="mystic-card-soft p-4 text-sm">
-                  <span className="mystic-kicker">Line {index + 1} · {index === 0 ? "bottom" : index === 5 ? "top" : ""}</span>
+                  <span className="mystic-kicker">{zh ? `第 ${index + 1} 爻 · ${index === 0 ? "初爻" : index === 5 ? "上爻" : ""}` : `Line ${index + 1} · ${index === 0 ? "bottom" : index === 5 ? "top" : ""}`}</span>
                   <select value={value} onChange={(event) => updateLine(index, Number(event.target.value))} className="mt-3 min-h-12 w-full rounded-2xl border border-white/[0.12] bg-[#100d18] px-4 text-[var(--ink)] outline-none focus:border-[var(--gold)]">
-                    <option value={6}>6 · old yin · changing</option>
-                    <option value={7}>7 · young yang</option>
-                    <option value={8}>8 · young yin</option>
-                    <option value={9}>9 · old yang · changing</option>
+                    <option value={6}>{t("6 · old yin · changing", "6 · 老阴 · 动爻")}</option>
+                    <option value={7}>{t("7 · young yang", "7 · 少阳")}</option>
+                    <option value={8}>{t("8 · young yin", "8 · 少阴")}</option>
+                    <option value={9}>{t("9 · old yang · changing", "9 · 老阳 · 动爻")}</option>
                   </select>
                 </label>
               ))}
@@ -188,27 +203,27 @@ export function ManualCastTool({ question: questionProp, onNewReading: onNewRead
           ) : (
             <div id="manual-mode-primary-changing-panel" role="tabpanel" aria-labelledby="manual-mode-primary-changing-tab" className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr),minmax(18rem,.8fr)]">
               <div>
-                <label htmlFor="manual-primary-hexagram" className="block text-sm font-semibold text-[var(--ink)]">Primary hexagram</label>
+                <label htmlFor="manual-primary-hexagram" className="block text-sm font-semibold text-[var(--ink)]">{t("Primary hexagram", "本卦")}</label>
                 <select id="manual-primary-hexagram" value={primaryHexagram} onChange={(event) => setPrimaryHexagram(Number(event.target.value))} className="mt-2 min-h-12 w-full rounded-2xl border border-white/[0.12] bg-[#100d18] px-4 text-[var(--ink)] outline-none focus:border-[var(--gold)]">
-                  {CLASSICAL_HEXAGRAMS.map((hexagram) => <option key={hexagram.number} value={hexagram.number}>{hexagram.number} · {hexagram.chineseName} · {hexagram.englishName}</option>)}
+                  {CLASSICAL_HEXAGRAMS.map((hexagram) => <option key={hexagram.number} value={hexagram.number}>{hexagram.number} · {hexagram.chineseName}{zh ? "" : ` · ${hexagram.englishName}`}</option>)}
                 </select>
-                <p className="mt-3 text-xs leading-6 text-[var(--ink-3)]">The selected hexagram supplies stable yin/yang values. A checked position becomes 6 or 9 according to that base line.</p>
+                <p className="mt-3 text-xs leading-6 text-[var(--ink-3)]">{t("The selected hexagram supplies stable yin/yang values. A checked position becomes 6 or 9 according to that base line.", "所选本卦先提供稳定的阴阳爻结构；勾选某个位置后，该爻会按原本阴阳转换成 6 或 9 的动爻。")}</p>
                 <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {Array.from({ length: 6 }, (_, index) => {
                     const position = index + 1;
-                    return <label key={position} className="flex min-h-12 items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 text-sm"><input type="checkbox" checked={changingLines.includes(position)} onChange={() => toggleChangingLine(position)} className="h-4 w-4 accent-[var(--gold)]" />Line {position}</label>;
+                    return <label key={position} className="flex min-h-12 items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 text-sm"><input type="checkbox" checked={changingLines.includes(position)} onChange={() => toggleChangingLine(position)} className="h-4 w-4 accent-[var(--gold)]" />{zh ? `第 ${position} 爻` : `Line ${position}`}</label>;
                   })}
                 </div>
               </div>
-              <div className="mystic-card-soft p-5"><p className="mystic-kicker">Mapped values · bottom to top</p><HexagramLines lines={[...modeBValues]} size="lg" showLabels className="mt-6" /><p className="mt-4 text-center font-mono text-sm text-[var(--gold-2)]">{modeBValues.join(" · ")}</p></div>
+              <div className="mystic-card-soft p-5"><p className="mystic-kicker">{t("Mapped values · bottom to top", "映射后的爻值 · 自下而上")}</p><HexagramLines lines={[...modeBValues]} size="lg" showLabels locale={dictionary.locale} className="mt-6" /><p className="mt-4 text-center font-mono text-sm text-[var(--gold-2)]">{modeBValues.join(" · ")}</p></div>
             </div>
           )}
 
-          <div className="mt-7 flex flex-wrap gap-3"><button type="button" onClick={cast} className="mystic-button">Build reading</button><span className="self-center text-xs text-[var(--ink-3)]">Lines are always read bottom → top.</span></div>
+          <div className="mt-7 flex flex-wrap gap-3"><button type="button" onClick={cast} className="mystic-button">{t("Build reading", "生成卦象")}</button><span className="self-center text-xs text-[var(--ink-3)]">{t("Lines are always read bottom → top.", "六爻始终按自下而上的顺序读取。")}</span></div>
         </>
       ) : null}
 
-      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} /> : null}
+      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} dictionary={dictionary} localizedContent={localizedContent} /> : null}
     </section>
   );
 }

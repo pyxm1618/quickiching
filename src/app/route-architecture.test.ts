@@ -69,6 +69,24 @@ describe("App Router multilingual architecture", () => {
     expect(existsSync(legacyActionSource)).toBe(true);
   });
 
+
+  it("publishes the complete Chinese functional surface without adding backend routes", () => {
+    for (const route of [
+      "signin",
+      "signup",
+      "account",
+      "history",
+      "pricing",
+      "privacy",
+      "terms",
+      "acceptable-use",
+      "help",
+    ]) {
+      expect(existsSync(`${appRoot}(localized)/zh/${route}/page.tsx`), route).toBe(true);
+    }
+    expect(existsSync(`${appRoot}(localized)/zh/readings/three-coin/result/page.tsx`)).toBe(true);
+  });
+
   it("permanently redirects English-prefixed paths to unprefixed paths", async () => {
     const config = typeof nextConfig === "function" ? await nextConfig("phase-production-build", { defaultConfig: {} }) : nextConfig;
     if (!config.redirects) throw new Error("Next redirect configuration is missing");

@@ -106,13 +106,14 @@ async function verifySeoAssets(page) {
   assert.equal(sitemapResponse.status, 200, "Sitemap must be reachable");
   const sitemap = await sitemapResponse.text();
   const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-  assert.equal(locs.length, 140, `Sitemap must contain 140 URLs, received ${locs.length}`);
+  assert.equal(locs.length, 146, `Sitemap must contain 146 URLs, received ${locs.length}`);
   assert(sitemap.includes("https://www.quickiching.com/zh"), "Sitemap must include the Chinese homepage");
+  assert(sitemap.includes("https://www.quickiching.com/zh/methods/three-coin"), "Sitemap must include the Chinese Three Coin page");
   assert(sitemap.includes("https://www.quickiching.com/zh/methods/mei-hua-yi-shu"), "Sitemap must include the Chinese Mei Hua page");
   for (const path of HEXAGRAM_PATHS) assert(sitemap.includes(`https://www.quickiching.com${path}`), `Sitemap missing ${path}`);
   assert(sitemap.includes("https://www.quickiching.com/zh/hexagrams"), "Sitemap must include the Chinese Hexagram hub");
   for (const path of CHINESE_HEXAGRAM_PATHS) assert(sitemap.includes(`https://www.quickiching.com${path}`), `Sitemap missing ${path}`);
-  for (const forbidden of ["/history", "/readings/", "/api/", "/zh/methods/three-coin", "/trigrams/", "/en/"]) assert(!sitemap.includes(forbidden), `Sitemap contains forbidden path ${forbidden}`);
+  for (const forbidden of ["/history", "/readings/", "/api/", "/trigrams/", "/en/"]) assert(!sitemap.includes(forbidden), `Sitemap contains forbidden path ${forbidden}`);
 
   const hubResponse = await page.goto(`${BASE}/hexagrams`, { waitUntil: "networkidle0", timeout: 30_000 });
   assert.equal(hubResponse?.status(), 200, "Hexagram hub must be reachable");

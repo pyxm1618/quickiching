@@ -160,7 +160,13 @@ const CLOSED_COMMERCIAL_FLAGS = {
 };
 
 const server = spawn("bun", ["run", "start"], {
-  env: { ...process.env, ...CLOSED_COMMERCIAL_FLAGS, PORT: "3000", HOSTNAME: "127.0.0.1" },
+  env: {
+    ...process.env,
+    ...CLOSED_COMMERCIAL_FLAGS,
+    CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW: "1",
+    PORT: "3000",
+    HOSTNAME: "127.0.0.1",
+  },
   stdio: ["ignore", "inherit", "inherit"],
 });
 
@@ -178,6 +184,8 @@ try {
     env: { ...browserEnv, HEXAGRAM_SEO_AUDIT_BASE_URL: BASE, HEXAGRAM_SEO_AUDIT_OUTPUT_DIR: "/tmp/quickiching-hexagram-seo-quality" },
   });
   run("bun", ["run", "seo:browser"], { env: { ...browserEnv, HEXAGRAM_SEO_BROWSER_BASE_URL: BASE } });
+  run("bun", ["run", "seo:zh"], { env: { ...browserEnv, CHINESE_SEO_AUDIT_BASE_URL: BASE, CHINESE_SEO_AUDIT_OUTPUT_DIR: "/tmp/quickiching-chinese-seo-quality" } });
+  run("bun", ["run", "gate:interactive:zh"], { env: { ...browserEnv, CHINESE_INTERACTIVE_GATE_BASE_URL: BASE } });
   run("bun", ["scripts/browser-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/on-page-seo-browser-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/three-coin-v2-browser-gate.mjs"], { env: browserEnv });

@@ -305,17 +305,17 @@ async function verifyResizeClosesDrawer(page, label) {
 async function verifyFallbackLabel(page) {
   await page.setViewport({ width: 1440, height: 900 });
   const response = await page.goto(`${BASE}/guides/how-to-ask-the-i-ching`, { waitUntil: "networkidle0", timeout: 30000 });
-  assert.equal(response?.status(), 200, "Fallback label page did not return HTTP 200");
+  assert.equal(response?.status(), 200, "Aligned guide page did not return HTTP 200");
   await page.click('header [data-language-switcher] button[aria-haspopup="menu"]');
   const target = await page.$eval("header [data-language-switch]", (node) => ({
     text: node.textContent?.trim(),
     href: node.getAttribute("href"),
     equivalent: node.getAttribute("data-equivalent"),
   }));
-  assert.deepEqual(target, { text: "中文首页", href: "/zh", equivalent: "false" }, "English-only route must disclose Chinese-home fallback");
+  assert.deepEqual(target, { text: "简体中文", href: "/zh/guides/how-to-ask-the-i-ching", equivalent: "true" }, "Aligned guide route must link equivalent Chinese guide");
   await page.focus("header [data-language-switch]");
   await page.keyboard.press("Enter");
-  await page.waitForFunction(() => location.pathname === "/zh", { timeout: 5000 });
+  await page.waitForFunction(() => location.pathname === "/zh/guides/how-to-ask-the-i-ching", { timeout: 5000 });
 }
 
 async function runAudit() {

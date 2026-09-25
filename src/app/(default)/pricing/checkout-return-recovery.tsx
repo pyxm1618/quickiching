@@ -10,7 +10,9 @@ import {
 const AUTO_REFRESH_WINDOW_MS = 30_000;
 const AUTO_REFRESH_INTERVAL_MS = 1_500;
 
-export function CheckoutReturnRecovery({ credits }: { credits: number }) {
+export function CheckoutReturnRecovery({ credits, locale = "en" }: { credits: number; locale?: "en" | "zh-Hans" }) {
+  const zh = locale === "zh-Hans";
+  const t = (en: string, cn: string) => zh ? cn : en;
   const router = useRouter();
   const startedAtRef = useRef(Date.now());
   const [waiting, setWaiting] = useState(false);
@@ -54,7 +56,7 @@ export function CheckoutReturnRecovery({ credits }: { credits: number }) {
   if (timedOut) {
     return (
       <p className="mt-6 text-center text-sm leading-6 text-[var(--ink-2)]" role="status">
-        Credit confirmation is taking longer than expected.{" "}
+        {t("Credit confirmation is taking longer than expected.", "支付确认比预期更久。")}{" "}
         <button
           type="button"
           className="underline"
@@ -62,15 +64,15 @@ export function CheckoutReturnRecovery({ credits }: { credits: number }) {
         >
           Check again
         </button>
-        , or return to your reading from{" "}
-        <a href="/account" className="underline">account history</a>.
+        {t(", or return to your reading from", "，或者从")}{" "}
+        <a href={zh ? "/zh/account" : "/account"} className="underline">{t("account history", "账户记录")}</a>{t(".", "返回你的解读。")}
       </p>
     );
   }
 
   return (
     <p className="mt-6 text-center text-sm leading-6 text-[var(--ink-2)]" role="status">
-      Payment confirmation is being checked from your account. This page will return to your reading after the credit is posted.
+      {t("Payment confirmation is being checked from your account. This page will return to your reading after the credit is posted.", "正在从你的账户检查支付确认。解读次数到账后，本页面会自动返回之前的解读。")}
     </p>
   );
 }

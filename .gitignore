@@ -16,3 +16,6 @@ next-env.d.ts
 .vercel
 .env*
 /.swc
+outputs/
+.system_generated_screenshots/
+scratch/

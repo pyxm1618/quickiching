@@ -66,6 +66,7 @@ export function MeiHuaTool({
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
   const onNewReading = onNewReadingProp ?? questionContext?.restartQuestion;
+  const zh = dictionary.locale === "zh-Hans";
   const [timeZone, setTimeZone] = useState("UTC");
   const [cast, setCast] = useState<StoredCast | null>(null);
   const [readingMeta, setReadingMeta] = useState<{ id: string; createdAt: string } | null>(null);
@@ -179,7 +180,7 @@ export function MeiHuaTool({
           <dl className="mt-5 grid min-w-0 gap-x-6 gap-y-3 text-sm text-[var(--ink-2)] sm:grid-cols-2">
             <div className="flex min-w-0 justify-between gap-4 border-b border-white/[0.06] pb-2"><dt className="shrink-0">{dictionary.meiHua.timezone}</dt><dd className="min-w-0 break-all text-right font-mono text-[var(--gold-2)]">{String(calculation.ianaTimeZone)}</dd></div>
             <div className="flex min-w-0 justify-between gap-4 border-b border-white/[0.06] pb-2"><dt className="shrink-0">{dictionary.meiHua.formulaDate}</dt><dd className="text-right font-mono text-[var(--gold-2)]">{String(calculation.year)}-{String(calculation.month).padStart(2, "0")}-{String(calculation.day).padStart(2, "0")}</dd></div>
-            <div className="flex min-w-0 justify-between gap-4 border-b border-white/[0.06] pb-2"><dt className="shrink-0">{dictionary.meiHua.localHour}</dt><dd className="text-right font-mono text-[var(--gold-2)]">{String(calculation.hour).padStart(2, "0")}:xx</dd></div>
+            <div className="flex min-w-0 justify-between gap-4 border-b border-white/[0.06] pb-2"><dt className="shrink-0">{dictionary.meiHua.localHour}</dt><dd className="text-right font-mono text-[var(--gold-2)]">{String(calculation.hour).padStart(2, "0")}{zh ? " 时" : ":xx"}</dd></div>
             <div className="flex min-w-0 justify-between gap-4 border-b border-white/[0.06] pb-2"><dt className="shrink-0">{dictionary.meiHua.branch}</dt><dd className="text-right font-mono text-[var(--gold-2)]">{String(calculation.yearBranchNumber)} / {String(calculation.hourBranch)}</dd></div>
             <div className="flex min-w-0 justify-between gap-4 border-b border-white/[0.06] pb-2"><dt className="shrink-0">{dictionary.meiHua.trigram}</dt><dd className="text-right font-mono text-[var(--gold-2)]">{String(calculation.upperTrigramNumber)} / {String(calculation.lowerTrigramNumber)}</dd></div>
             <div className="flex min-w-0 justify-between gap-4 border-b border-white/[0.06] pb-2"><dt className="shrink-0">{dictionary.meiHua.changingLine}</dt><dd className="text-right font-mono text-[var(--gold-2)]">{String(calculation.movingLinePosition)}</dd></div>

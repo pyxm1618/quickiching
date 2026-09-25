@@ -92,31 +92,23 @@ export const ENGLISH_INDEXABLE_PATHS = [
 ] as const;
 
 const EQUIVALENT_ROUTES: readonly LocalizedRouteDefinition[] = [
-  {
-    id: "homepage",
-    paths: { en: "/", "zh-Hans": "/zh" },
-    renderable: { en: true, "zh-Hans": true },
-    indexable: { en: true, "zh-Hans": true },
-    hreflangGroup: true,
-    switchable: true,
-  },
-  {
-    id: "mei-hua-yi-shu",
-    paths: { en: "/methods/mei-hua-yi-shu", "zh-Hans": "/zh/methods/mei-hua-yi-shu" },
-    renderable: { en: true, "zh-Hans": true },
-    indexable: { en: true, "zh-Hans": true },
-    hreflangGroup: true,
-    switchable: true,
-  },
-  {
-    id: "hexagrams-hub",
-    paths: { en: "/hexagrams", "zh-Hans": "/zh/hexagrams" },
-    renderable: { en: true, "zh-Hans": true },
-    indexable: { en: true, "zh-Hans": true },
-    hreflangGroup: true,
-    switchable: true,
-  },
-];
+  ["homepage", "/", "/zh"],
+  ["three-coin-method", "/methods/three-coin", "/zh/methods/three-coin"],
+  ["yarrow-stalks-method", "/methods/yarrow-stalks", "/zh/methods/yarrow-stalks"],
+  ["mei-hua-yi-shu", "/methods/mei-hua-yi-shu", "/zh/methods/mei-hua-yi-shu"],
+  ["manual-cast-method", "/methods/manual-cast", "/zh/methods/manual-cast"],
+  ["guides-how-to-ask", "/guides/how-to-ask-the-i-ching", "/zh/guides/how-to-ask-the-i-ching"],
+  ["guides-changing-lines", "/guides/changing-lines", "/zh/guides/changing-lines"],
+  ["guides-primary-relating", "/guides/primary-relating-hexagrams", "/zh/guides/primary-relating-hexagrams"],
+  ["hexagrams-hub", "/hexagrams", "/zh/hexagrams"],
+].map(([id, en, zh]) => ({
+  id,
+  paths: { en, "zh-Hans": zh },
+  renderable: { en: true, "zh-Hans": true },
+  indexable: { en: true, "zh-Hans": true },
+  hreflangGroup: true,
+  switchable: true,
+}));
 
 const NAMED_ENGLISH_ROUTES: Record<string, string> = {
   "three-coin-method": "/methods/three-coin",
@@ -126,17 +118,6 @@ const NAMED_ENGLISH_ROUTES: Record<string, string> = {
   "guides-changing-lines": "/guides/changing-lines",
   "guides-primary-relating": "/guides/primary-relating-hexagrams",
 };
-
-function englishOnlyRoute(id: string, path: string): LocalizedRouteDefinition {
-  return {
-    id,
-    paths: { en: path },
-    renderable: { en: true },
-    indexable: { en: true },
-    hreflangGroup: false,
-    switchable: false,
-  };
-}
 
 function pairedHexagramRoute(path: string): LocalizedRouteDefinition {
   const slug = path.slice("/hexagrams/".length);
@@ -150,13 +131,11 @@ function pairedHexagramRoute(path: string): LocalizedRouteDefinition {
   };
 }
 
-const NAMED_ROUTES = Object.entries(NAMED_ENGLISH_ROUTES).map(([id, path]) => englishOnlyRoute(id, path));
 const NAMED_PATHS = new Set(Object.values(NAMED_ENGLISH_ROUTES));
 const HEXAGRAM_ROUTES = HEXAGRAM_INDEXABLE_PATHS.map(pairedHexagramRoute);
 
 export const ROUTE_REGISTRY: readonly LocalizedRouteDefinition[] = [
   ...EQUIVALENT_ROUTES,
-  ...NAMED_ROUTES,
   ...HEXAGRAM_ROUTES,
 ];
 
@@ -178,7 +157,6 @@ export function routeForPath(path: string): LocalizedRouteDefinition | undefined
 
 export function routeIdForEnglishPath(path: string): string | undefined {
   if (path === "/") return "homepage";
-  if (path === "/methods/mei-hua-yi-shu") return "mei-hua-yi-shu";
   if (path === "/hexagrams") return "hexagrams-hub";
   const named = Object.entries(NAMED_ENGLISH_ROUTES).find(([, routePath]) => routePath === path);
   if (named) return named[0];

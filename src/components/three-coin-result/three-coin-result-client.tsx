@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildFreeReading } from "@/domain/interpretation/v2/build-free-reading";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
@@ -17,10 +17,18 @@ import { ReadingResultView } from "./reading-result-view";
 import { CommercialReadingReportView } from "./commercial-reading-report-view";
 import styles from "./result-page.module.css";
 
+export type ResultState =
+  | { kind: "loading" }
+  | { kind: "empty" }
+  | { kind: "ready"; reading: FreeReading; lineValues: number[]; question?: string }
+  | { kind: "error"; code: string };
+
 export type ThreeCoinResultClientProps = {
   initialSessionId?: string;
   initialUser?: { id: string; email: string } | null;
   initialCredits?: number;
+  locale?: "en" | "zh-Hans";
+  initialState?: ResultState;
   initialCastingView?: {
     castingId: string;
     context: string;
@@ -29,12 +37,6 @@ export type ThreeCoinResultClientProps = {
     owns: boolean;
   } | null;
 };
-
-type ResultState =
-  | { kind: "loading" }
-  | { kind: "empty" }
-  | { kind: "ready"; reading: FreeReading; lineValues: number[]; question?: string }
-  | { kind: "error"; code: string };
 
 type DeepStatus = "idle" | "generating" | "completed" | "failed";
 
@@ -66,8 +68,18 @@ export function ThreeCoinResultClient({
   initialUser = null,
   initialCredits = 0,
   initialCastingView = null,
+  initialState,
+  locale = "en",
 }: ThreeCoinResultClientProps) {
-  const [state, setState] = useState<ResultState>({ kind: "loading" });
+  const zh = locale === "zh-Hans";
+  const t = (en: string, cn: string) => zh ? cn : en;
+  const resultSigninHref = () => zh
+    ? "/zh/signin?callbackURL=" + encodeURIComponent(currentBrowserReturnPath())
+    : buildResultSigninHref(currentBrowserReturnPath());
+  const pricingHref = (returnPath: string) => zh
+    ? "/zh/pricing?returnUrl=" + encodeURIComponent(returnPath)
+    : buildPricingHref(returnPath);
+  const [state, setState] = useState<ResultState>(() => initialState ?? { kind: "loading" });
   const [clearError, setClearError] = useState<string | null>(null);
   const [clientCastingId, setClientCastingId] = useState<string | null>(null);
 
@@ -93,6 +105,7 @@ export function ThreeCoinResultClient({
 
   // 1. 初始化起卦数据（服务端优先 -> 本地 sessionStorage 降级）
   useEffect(() => {
+    if (initialState) return;
     let active = true;
 
     async function init() {
@@ -142,7 +155,7 @@ export function ThreeCoinResultClient({
     return () => {
       active = false;
     };
-  }, [initialCastingView]);
+  }, [initialCastingView, initialState]);
 
   async function persistCurrentReading(showError: boolean): Promise<string | null> {
     if (castingId) return castingId;
@@ -163,7 +176,7 @@ export function ThreeCoinResultClient({
       });
 
       if (res.status === 401) {
-        window.location.assign(buildResultSigninHref(currentBrowserReturnPath()));
+        window.location.assign(resultSigninHref());
         return null;
       }
       if (!res.ok) {
@@ -280,7 +293,7 @@ export function ThreeCoinResultClient({
 
       if (res.status === 401) {
         setDeepStatus("idle");
-        window.location.assign(buildResultSigninHref(currentBrowserReturnPath()));
+        window.location.assign(resultSigninHref());
         return;
       }
 
@@ -316,14 +329,14 @@ export function ThreeCoinResultClient({
     const currentUrl = new URL(window.location.href);
     currentUrl.searchParams.set("session", activeCastingId);
     const returnPath = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
-    window.location.assign(buildPricingHref(returnPath));
+    window.location.assign(pricingHref(returnPath));
   }
 
   function startNewReading() {
     try {
       clearThreeCoinReading();
       setClearError(null);
-      window.location.assign("/#three-coin-reading");
+      window.location.assign(zh ? "/zh/methods/three-coin" : "/#three-coin-reading");
     } catch (error: unknown) {
       setClearError(errorCode(error));
     }
@@ -332,11 +345,11 @@ export function ThreeCoinResultClient({
   if (state.kind === "loading") {
     return (
       <div className={`${styles.page} mx-auto min-h-[100svh] w-full max-w-[1180px] px-4 sm:px-6`}>
-        <div className={styles.loadingState} role="status" aria-label="Loading your completed reading">
-          <p className="mystic-kicker">Three-Coin Method</p>
-          <p className="mt-3 font-display text-3xl font-normal text-white">Restoring your sealed reading…</p>
+        <div className={styles.loadingState} role="status" aria-label={t("Loading your completed reading", "正在恢复已完成的起卦结果")}>
+          <p className="mystic-kicker">{t("Three-Coin Method", "三枚铜钱法")}</p>
+          <p className="mt-3 font-display text-3xl font-normal text-white">{t("Restoring your sealed reading…", "正在恢复已经落定的起卦结果…")}</p>
           <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">
-            The result is rebuilt from the six completed lines.
+            {t("The result is rebuilt from the six completed lines.", "结果会根据已经完成的六爻重新构建。")}
           </p>
         </div>
       </div>
@@ -347,15 +360,15 @@ export function ThreeCoinResultClient({
     return (
       <div className={`${styles.page} mx-auto w-full max-w-[1180px] px-4 sm:px-6`}>
         <section className={styles.emptyState} aria-labelledby="empty-reading-title">
-          <p className="mystic-kicker">Three-Coin Result</p>
+          <p className="mystic-kicker">{t("Three-Coin Result", "三枚铜钱起卦结果")}</p>
           <h1 id="empty-reading-title" className="mt-3 font-display text-4xl font-normal tracking-[-0.04em] text-white sm:text-5xl">
-            No completed reading found
+            {t("No completed reading found", "没有找到已完成的起卦")}
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[var(--ink-2)] sm:text-base">
-            Complete a six-line Three-Coin reading before opening a result.
+            {t("Complete a six-line Three-Coin reading before opening a result.", "请先完成六爻三枚铜钱起卦，再打开结果页。")}
           </p>
-          <Link href="/#three-coin-reading" className={`${styles.newReadingButton} mt-7`}>
-            Start a Three-Coin Reading
+          <Link href={zh ? "/zh/methods/three-coin" : "/#three-coin-reading"} className={`${styles.newReadingButton} mt-7`}>
+            {t("Start a Three-Coin Reading", "开始三枚铜钱起卦")}
           </Link>
         </section>
       </div>
@@ -366,26 +379,26 @@ export function ThreeCoinResultClient({
     return (
       <div className={`${styles.page} mx-auto w-full max-w-[1180px] px-4 sm:px-6`}>
         <section className={styles.emptyState} aria-labelledby="reading-error-title">
-          <p className="mystic-kicker">Reading unavailable</p>
+          <p className="mystic-kicker">{t("Reading unavailable", "起卦结果暂时不可用")}</p>
           <h1 id="reading-error-title" className="mt-3 font-display text-4xl font-normal tracking-[-0.04em] text-white sm:text-5xl">
-            The sealed reading could not be interpreted
+            {t("The sealed reading could not be interpreted", "无法恢复这次已落定的起卦结果")}
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
-            Error: <code className="font-mono text-[var(--cyan)]">{state.code}</code>
+            {zh ? "请返回三枚铜钱页面重新检查本次起卦。" : <>Error: <code className="font-mono text-[var(--cyan)]">{state.code}</code></>}
           </p>
-          <Link href="/#three-coin-reading" className={`${styles.newReadingButton} mt-7`}>
-            Return to Three-Coin Reading
+          <Link href={zh ? "/zh/methods/three-coin" : "/#three-coin-reading"} className={`${styles.newReadingButton} mt-7`}>
+            {t("Return to Three-Coin Reading", "返回三枚铜钱起卦")}
           </Link>
         </section>
       </div>
     );
   }
 
-  const signinHref = buildResultSigninHref(currentBrowserReturnPath());
+  const signinHref = resultSigninHref();
 
   return (
     <>
-      <ReadingResultView reading={state.reading} onStartNewReading={startNewReading}>
+      <ReadingResultView reading={state.reading} onStartNewReading={startNewReading} locale={locale}>
         {/* AI 深度解读商业版板块 */}
         <section className="mt-12" aria-labelledby="commercial-deep-section">
           {deepStatus === "completed" && deepReport ? (
@@ -395,11 +408,11 @@ export function ThreeCoinResultClient({
                   <span className="h-2 w-2 rounded-full bg-[var(--jade)]" />
                   本报告已安全永久保存至您的账户
                 </span>
-                <Link href="/account" className="font-semibold text-[var(--gold-2)] hover:underline">
+                <Link href={zh ? "/zh/account" : "/account"} className="font-semibold text-[var(--gold-2)] hover:underline">
                   查看账户与历史记录 →
                 </Link>
               </div>
-              <CommercialReadingReportView report={deepReport} />
+              <CommercialReadingReportView report={deepReport} locale={locale} />
             </>
           ) : deepStatus === "generating" ? (
             <div className="rounded-3xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] p-8 text-center sm:p-12">
@@ -408,12 +421,12 @@ export function ThreeCoinResultClient({
               </div>
               <h3 className="mt-4 font-display text-2xl font-normal text-white sm:text-3xl">正在生成十模块深度解读报告…</h3>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
-                AI 正在结合您的卦象格局、动爻演变与现实决策维度进行深层义理推演。大约需要 15~30 秒，请稍候。
+                {zh ? "系统正在结合你的卦象格局、动爻演变与现实决策维度生成深度解读，请稍候。" : "AI 正在结合您的卦象格局、动爻演变与现实决策维度进行深层义理推演。大约需要 15~30 秒，请稍候。"}
               </p>
             </div>
           ) : !user ? (
             <div className="rounded-3xl border border-white/[0.12] bg-white/[0.03] p-8 sm:p-10 text-center">
-              <p className="mystic-kicker">AI 深度解读 · 商业专业版</p>
+              <p className="mystic-kicker">{zh ? "智能深度解读 · 商业专业版" : "AI 深度解读 · 商业专业版"}</p>
               <h3 className="mt-2 font-display text-2xl font-normal text-white sm:text-3xl">登录以保存本次起卦并解锁深度解读</h3>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
                 当前浏览器内的起卦已妥善保留。登录后可永久保存至您的账户历史，并开启十模块全面义理与决策深度剖析。
@@ -426,7 +439,7 @@ export function ThreeCoinResultClient({
             </div>
           ) : credits <= 0 ? (
             <div className="rounded-3xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.05)] p-8 sm:p-10 text-center">
-              <p className="mystic-kicker">AI 深度解读 · 商业专业版</p>
+              <p className="mystic-kicker">智能深度解读 · 商业专业版</p>
               <h3 className="mt-2 font-display text-2xl font-normal text-white sm:text-3xl">获取深度解读次数包</h3>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
                 深度解读涵盖核心摘要、卦象格局、动爻机理、走向推演、盲区防范及行动方向等十模块。单次消耗 1 次额度。
@@ -443,7 +456,7 @@ export function ThreeCoinResultClient({
           ) : (
             <div className="rounded-3xl border border-[var(--gold)]/40 bg-gradient-to-b from-[rgba(235,178,85,0.09)] to-transparent p-8 sm:p-10 text-center shadow-xl">
               <p className="mystic-kicker">已拥有解读权益</p>
-              <h3 className="mt-2 font-display text-2xl font-normal text-white sm:text-3xl">解锁本次起卦的 AI 深度解读</h3>
+              <h3 className="mt-2 font-display text-2xl font-normal text-white sm:text-3xl">解锁本次起卦的智能深度解读</h3>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
                 您当前拥有 <strong className="text-[var(--gold-2)]">{credits}</strong> 次可用解读次数。生成将消耗 1 次额度，生成失败全额保留。
               </p>
@@ -471,12 +484,12 @@ export function ThreeCoinResultClient({
           className="fixed bottom-5 left-1/2 z-50 w-[min(92vw,620px)] -translate-x-1/2 rounded-2xl border border-[rgba(239,129,112,0.42)] bg-[rgba(23,14,25,0.96)] px-5 py-4 shadow-2xl"
         >
           <p className="text-sm font-semibold text-[var(--danger)]">
-            The sealed reading could not be cleared, so Quick I Ching kept this result open.
+            {t("The sealed reading could not be cleared, so Quick I Ching kept this result open.", "无法清除已经落定的起卦，因此 Quick I Ching 保留了当前结果。")}
           </p>
           <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">
-            No new reading has started. You can retry the button after browser session storage becomes available.
+            {t("No new reading has started. You can retry the button after browser session storage becomes available.", "新的起卦尚未开始。浏览器会话存储恢复后，可以再次尝试重新起卦。")}
           </p>
-          <p className="mt-2 font-mono text-xs text-[var(--ink-3)]">{clearError}</p>
+          {!zh ? <p className="mt-2 font-mono text-xs text-[var(--ink-3)]">{clearError}</p> : null}
         </div>
       ) : null}
     </>

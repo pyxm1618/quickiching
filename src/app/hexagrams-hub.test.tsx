@@ -73,9 +73,9 @@ describe("hexagram hub inbound anchors", () => {
     expect((chineseHub.match(/data-seo-inbound-anchor=/gu) ?? [])).toHaveLength(64);
   });
 
-  it("preserves the Chinese Hub pending-research TDH contract", () => {
+  it("removes all pending-research TDH contracts from the Chinese Hub", () => {
     const chineseHub = renderToStaticMarkup(<ChineseHexagramsHubPage />);
-    expect(chineseHub).toContain('data-tdh-status="PENDING_RESEARCH"');
+    expect(chineseHub).not.toContain("PENDING_RESEARCH");
   });
 
   it("keeps each hexagram hub in its own visible language", () => {

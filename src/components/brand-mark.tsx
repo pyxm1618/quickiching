@@ -13,14 +13,15 @@ export type BrandMarkProps = {
   size?: Size;
   priority?: boolean;
   className?: string;
+  locale?: "en" | "zh-Hans";
 };
 
-export function BrandMark({ size = "md", priority = false, className }: BrandMarkProps) {
+export function BrandMark({ size = "md", priority = false, className, locale = "en" }: BrandMarkProps) {
   const pixels = PIXELS[size];
 
   return (
     <Image
-      alt="Quick I Ching logo"
+      alt={locale === "zh-Hans" ? "Quick I Ching 标志" : "Quick I Ching logo"}
       src="/quick-i-ching-logo-mark.png"
       width={pixels}
       height={pixels}

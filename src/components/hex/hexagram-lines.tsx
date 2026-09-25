@@ -1,3 +1,4 @@
+import React from "react";
 import { cn } from "@/lib/utils";
 
 type Size = "sm" | "md" | "lg";
@@ -58,6 +59,7 @@ export type HexagramLinesProps = {
   sealedCount?: number;
   animateLast?: boolean;
   className?: string;
+  locale?: "en" | "zh-Hans";
 };
 
 export function HexagramLines({
@@ -67,6 +69,7 @@ export function HexagramLines({
   sealedCount,
   animateLast = false,
   className,
+  locale = "en",
 }: HexagramLinesProps) {
   const total = 6;
   const ritual = sealedCount !== undefined;
@@ -80,12 +83,16 @@ export function HexagramLines({
         const mark = sealed && value !== undefined ? movingMark(value) : null;
         const isLastSealed = ritual && animateLast && pos === sealedCount;
         const label = sealed && value !== undefined ? lineLabel(pos, value) : ritual ? ORDINALS[pos - 1] : "";
-        const english = sealed && value !== undefined
-          ? `Line ${pos}: ${value === 7 || value === 9 ? "yang" : "yin"}${mark ? ", moving" : ""}`
-          : `Line ${pos}: not yet cast`;
+        const accessibleLabel = locale === "zh-Hans"
+          ? sealed && value !== undefined
+            ? `第 ${pos} 爻：${value === 7 || value === 9 ? "阳爻" : "阴爻"}${mark ? "，动爻" : ""}`
+            : `第 ${pos} 爻：尚未起出`
+          : sealed && value !== undefined
+            ? `Line ${pos}: ${value === 7 || value === 9 ? "yang" : "yin"}${mark ? ", moving" : ""}`
+            : `Line ${pos}: not yet cast`;
 
         return (
-          <div key={pos} className={cn("flex items-center gap-3", sealed ? "opacity-100" : "opacity-35")} role="img" aria-label={english}>
+          <div key={pos} className={cn("flex items-center gap-3", sealed ? "opacity-100" : "opacity-35")} role="img" aria-label={accessibleLabel}>
             {showLabels && (
               <span
                 className={cn(

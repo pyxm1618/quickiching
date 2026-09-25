@@ -51,6 +51,38 @@ export type UiDictionary = {
     legalNotice: string;
     supportEmail: string;
   };
+  userNav: {
+    signIn: string;
+    signUp: string;
+    activeAccount: string;
+    accountAndHistory: string;
+    signOut: string;
+    signedInAs: string;
+    account: string;
+    history: string;
+    menuAria: string;
+  };
+  auth: {
+    invalidLink: string;
+    cancelled: string;
+    emailUnverified: string;
+    accountLinkFailed: string;
+    invalidRequest: string;
+    genericError: string;
+    sendEmailError: string;
+    googleStartError: string;
+    checkEmail: string;
+    sentTo: string;
+    expires: string;
+    differentEmail: string;
+    connectingGoogle: string;
+    continueGoogle: string;
+    separator: string;
+    emailLabel: string;
+    sending: string;
+    sendNewLink: string;
+    continueEmail: string;
+  };
   questionFirst: {
     kicker: string;
     heading: string;

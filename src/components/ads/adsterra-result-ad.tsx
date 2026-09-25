@@ -13,7 +13,11 @@ const BUILD_ENABLED = resolveAdsterraEnabled({
   nodeEnv: process.env.NODE_ENV,
 });
 
-export function AdsterraResultAd() {
+export function AdsterraResultAd({
+  locale = "en",
+}: {
+  locale?: "en" | "zh-Hans";
+} = {}) {
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
@@ -23,14 +27,17 @@ export function AdsterraResultAd() {
 
   if (!enabled) return null;
 
+  const isChinese = locale === "zh-Hans";
+  const label = isChinese ? "广告" : "Advertisement";
+
   return (
     <aside
-      aria-label="Advertisement"
+      aria-label={label}
       data-adsterra-result-slot="true"
       className="mt-8 min-w-0 overflow-hidden rounded-2xl border border-white/[0.07] bg-black/10 px-3 py-4 sm:px-5"
     >
       <p className="mb-3 text-center font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[var(--ink-3)]">
-        Advertisement
+        {label}
       </p>
       <Script
         id={ADSTERRA_RESULT_UNIT.scriptElementId}

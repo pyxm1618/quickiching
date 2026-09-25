@@ -20,8 +20,7 @@ export const dynamic = "force-dynamic";
 
 function validatedReturnUrl(candidate: string | undefined): string | undefined {
   if (!candidate) return undefined;
-  const baseUrl = process.env.APP_BASE_URL ?? process.env.BETTER_AUTH_URL;
-  if (!baseUrl) return undefined;
+  const baseUrl = process.env.APP_BASE_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
   try {
     return validateAuthCallbackURL(candidate, baseUrl);
   } catch {

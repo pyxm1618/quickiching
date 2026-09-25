@@ -5,19 +5,21 @@ import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
 import { zhHansHexagramContent } from "@/content/hexagrams/zh-Hans";
 import { hexagramSeoFor } from "@/content/hexagrams/seo";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
+import { zhSeoFor } from "@/content/seo/zh-pages";
 
-const CANONICAL = canonicalUrl("/zh/hexagrams");
+const SEO = zhSeoFor("hexagrams-hub");
+const CANONICAL = canonicalUrl(SEO.canonicalUrl);
 
 export const metadata: Metadata = {
-  title: { absolute: "简体中文易经卦库｜Quick I Ching" },
-  description: "简体中文 64 卦详情导航，查看每一卦的经典文本、结构说明与现实反思入口。本 Hub 的独立关键词研究状态为 PENDING_RESEARCH。",
+  title: { absolute: SEO.finalTitle },
+  description: SEO.finalDescription,
   alternates: {
     canonical: CANONICAL,
     languages: alternateLanguages("hexagrams-hub"),
   },
   openGraph: {
-    title: "简体中文易经卦库｜Quick I Ching",
-    description: "简体中文 64 卦详情导航与经典文本入口。",
+    title: SEO.finalTitle,
+    description: SEO.finalDescription,
     url: CANONICAL,
     type: "website",
     locale: "zh_CN",
@@ -27,21 +29,26 @@ export const metadata: Metadata = {
 
 export default function ChineseHexagramsHubPage() {
   return (
-    <article className="mx-auto max-w-6xl px-4 py-12 sm:py-16" data-tdh-status="PENDING_RESEARCH">
+    <article className="mx-auto max-w-6xl px-4 py-12 sm:py-16" data-seo-primary={SEO.primaryKeyword}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         "@context": "https://schema.org",
         "@type": "WebPage",
-        name: "简体中文易经卦库｜Quick I Ching",
-        description: "简体中文 64 卦详情导航与经典文本入口。",
+        name: SEO.finalH1,
+        description: SEO.finalDescription,
         url: CANONICAL,
         inLanguage: "zh-Hans",
       }) }} />
       <nav className="text-sm text-[var(--ink-3)]" aria-label="面包屑"><Link href="/zh" className="hover:text-[var(--jade)]">中文首页</Link><span className="mx-2">/</span><span>中文卦库</span></nav>
       <header className="mt-6">
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">周易 · 简体中文导航</p>
-        <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">简体中文易经卦库</h1>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">这里按通行卦序列出六十四个中文卦详情入口。每个详情页保留有来源的卦辞、大象和六条爻辞，并提供独立的结构说明、无动爻阅读与现实反思问题。</p>
+        <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{SEO.finalH1}</h1>
+        <p data-seo-early-copy className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">易经六十四卦按通行的文王卦序排列，从乾卦、坤卦一直到未济卦。这里集中提供 64 个中文卦象详情入口；每页保留有来源的卦辞、大象和六条爻辞，并补充结构说明、无动爻阅读与现实反思。</p>
       </header>
+
+      <section className="mt-10 max-w-4xl">
+        <h2 className="font-display text-2xl font-medium">如何使用易经六十四卦目录</h2>
+        <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">可以按文王卦序浏览易经六十四卦，也可以从起卦结果直接进入对应本卦或之卦。每个详情页使用独立中文关键词和固定卦序，并连接前后卦与相关中文指南。</p>
+      </section>
 
       <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CLASSICAL_HEXAGRAMS.map((hexagram) => {
@@ -53,7 +60,7 @@ export default function ChineseHexagramsHubPage() {
               <p className="font-mono text-xs text-[var(--bronze)]">第 {hexagram.number} 卦 · {hexagram.symbol}</p>
               <h2 className="mt-2 font-display text-lg font-medium"><Link href={"/zh/hexagrams/" + hexagram.slug} data-seo-inbound-anchor={seo.primaryKeyword} className="hover:text-[var(--jade)]">{seo.primaryKeyword}：{fullName}（{hexagram.chineseName}）</Link></h2>
               <p className="mt-2 text-sm font-semibold text-[var(--ink)]">{content.theme}</p>
-              <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">{content.coreMeaning.replace(/QuickIChing/gu, "本站")}</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">{content.coreMeaning.replace(/Quick ?I ?Ching|QuickIChing/giu, "本站")}</p>
               <Link href={"/zh/hexagrams/" + hexagram.slug} className="mt-4 inline-flex text-sm font-semibold text-[var(--jade)] hover:underline">查看第 {hexagram.number} 卦详情 →</Link>
             </li>
           );

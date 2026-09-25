@@ -63,4 +63,44 @@ describe("UserNavControl Component Render", () => {
     expect(html).toContain('href="/signin?callbackURL=%2Faccount"');
     expect(html).toContain('href="/signup?callbackURL=%2Faccount"');
   });
+
+  it("renders Chinese desktop menu with /zh/account when open", () => {
+    const html = renderToStaticMarkup(
+      <UserNavControl
+        initialUser={{ id: "usr_zh", email: "test@example.com" }}
+        locale="zh-Hans"
+        initialOpen={true}
+      />,
+    );
+    expect(html).toContain('href="/zh/account"');
+    expect(html).toContain('href="/zh/history"');
+    expect(html).toContain("我的账户");
+    expect(html).toContain("起卦记录");
+    expect(html).toContain("退出登录");
+    expect(html).not.toMatch(/href="\/account"/);
+  });
+
+  it("renders Chinese unauthenticated desktop links to /zh/signin and /zh/signup", () => {
+    const html = renderToStaticMarkup(
+      <UserNavControl initialUser={null} locale="zh-Hans" />,
+    );
+    expect(html).toContain("登录");
+    expect(html).toContain("注册");
+    expect(html).toContain('href="/zh/signin?callbackURL=%2Faccount"');
+    expect(html).toContain('href="/zh/signup?callbackURL=%2Faccount"');
+  });
+
+  it("renders Chinese mobile drawer authenticated links with /zh/account", () => {
+    const html = renderToStaticMarkup(
+      <UserNavControl
+        initialUser={{ id: "usr_zh", email: "test@example.com" }}
+        locale="zh-Hans"
+        isMobileDrawer={true}
+      />,
+    );
+    expect(html).toContain("账户已登录");
+    expect(html).toContain("账户与起卦记录");
+    expect(html).toContain('href="/zh/account"');
+    expect(html).toContain("退出登录");
+  });
 });

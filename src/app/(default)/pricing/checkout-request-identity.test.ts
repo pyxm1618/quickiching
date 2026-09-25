@@ -43,4 +43,21 @@ describe("checkout request identity", () => {
     expect(checkoutFailurePresentation(429).kind).toBe("rate_limited");
     expect(checkoutFailurePresentation(503).kind).toBe("unavailable");
   });
+
+  it("presents localized Chinese messages for 409, 429, and 503 without English leakage", () => {
+    const conflict = checkoutFailurePresentation(409, "zh-Hans");
+    expect(conflict.kind).toBe("conflict");
+    expect(conflict.message).toBe("当前支付正在处理中。本次交易已保留，请复核或继续当前支付，无需重复发起新购买。");
+    expect(conflict.message).not.toMatch(/[a-zA-Z]/);
+
+    const rateLimited = checkoutFailurePresentation(429, "zh-Hans");
+    expect(rateLimited.kind).toBe("rate_limited");
+    expect(rateLimited.message).toBe("尝试支付过于频繁，请稍候再试。");
+    expect(rateLimited.message).not.toMatch(/[a-zA-Z]/);
+
+    const unavailable = checkoutFailurePresentation(503, "zh-Hans");
+    expect(unavailable.kind).toBe("unavailable");
+    expect(unavailable.message).toBe("暂时无法发起支付，请重试。");
+    expect(unavailable.message).not.toMatch(/[a-zA-Z]/);
+  });
 });

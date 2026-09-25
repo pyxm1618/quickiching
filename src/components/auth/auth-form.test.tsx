@@ -36,8 +36,12 @@ describe("shared passwordless AuthForm", () => {
   });
 
   it("renders Google first, then email, with no password UI", () => {
-    const googleIndex = source.indexOf("Continue with Google");
-    const emailIndex = source.indexOf("Continue with email");
+    const googleIndex = source.indexOf("copy.continueGoogle") !== -1
+      ? source.indexOf("copy.continueGoogle")
+      : source.indexOf("Continue with Google");
+    const emailIndex = source.indexOf("copy.continueEmail") !== -1
+      ? source.indexOf("copy.continueEmail")
+      : source.indexOf("Continue with email");
 
     expect(googleIndex).toBeGreaterThanOrEqual(0);
     expect(emailIndex).toBeGreaterThan(googleIndex);
@@ -46,13 +50,13 @@ describe("shared passwordless AuthForm", () => {
   });
 
   it("contains explicit loading, sent, accessibility, and recovery states", () => {
-    expect(source).toContain("Connecting to Google…");
-    expect(source).toContain("Sending…");
-    expect(source).toContain("Check your email");
-    expect(source).toContain("The link expires in 10 minutes.");
+    expect(source.includes("Connecting to Google…") || source.includes("copy.connectingGoogle")).toBe(true);
+    expect(source.includes("Sending…") || source.includes("copy.sending")).toBe(true);
+    expect(source.includes("Check your email") || source.includes("copy.checkEmail")).toBe(true);
+    expect(source.includes("The link expires in 10 minutes.") || source.includes("copy.expires")).toBe(true);
     expect(source).toContain('role="alert"');
     expect(source).toContain('aria-live="polite"');
-    expect(source).toContain("Send a new link");
+    expect(source.includes("Send a new link") || source.includes("copy.sendNewLink")).toBe(true);
   });
 
   it("maps internal Magic Link errors without exposing internal codes", () => {

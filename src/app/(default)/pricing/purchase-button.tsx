@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import type { ProductId } from "@/domain/entitlements/pricing";
 import { buildPricingSigninHref } from "@/lib/commercial-navigation";
 import {
@@ -13,11 +13,15 @@ export function PurchaseButton({
   productKey,
   returnUrl,
   creditsBeforeCheckout,
+  locale = "en",
 }: {
   productKey: ProductId;
   returnUrl?: string;
   creditsBeforeCheckout: number;
+  locale?: "en" | "zh-Hans";
 }) {
+  const zh = locale === "zh-Hans";
+  const t = (en: string, cn: string) => zh ? cn : en;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,8 +47,8 @@ export function PurchaseButton({
         // No provider/local checkout was created before the authentication gate.
         requestIdentity.complete(productKey);
         window.location.assign(returnUrl
-          ? buildPricingSigninHref(returnUrl)
-          : "/signin?callbackURL=%2Fpricing");
+          ? buildPricingSigninHref(returnUrl, locale)
+          : zh ? "/zh/signin?callbackURL=%2Fzh%2Fpricing" : "/signin?callbackURL=%2Fpricing");
         return;
       }
 
@@ -58,14 +62,14 @@ export function PurchaseButton({
         // 409, transport uncertainty and retryable failures must keep the same
         // requestId. The server remains the authority for the existing order.
         requestIdentity.retain(productKey);
-        setError(checkoutFailurePresentation(response.status).message);
+        setError(checkoutFailurePresentation(response.status, locale).message);
         return;
       }
 
       const checkoutUrl = new URL(body.checkoutUrl);
       if (checkoutUrl.protocol !== "https:") {
         requestIdentity.retain(productKey);
-        setError(checkoutFailurePresentation(503).message);
+        setError(checkoutFailurePresentation(503, locale).message);
         return;
       }
 
@@ -85,7 +89,7 @@ export function PurchaseButton({
       window.location.assign(checkoutUrl.toString());
     } catch {
       requestIdentity.retain(productKey);
-      setError(checkoutFailurePresentation(503).message);
+      setError(checkoutFailurePresentation(503, locale).message);
     } finally {
       setPending(false);
     }
@@ -95,13 +99,16 @@ export function PurchaseButton({
     <div className="mt-5">
       <button
         type="button"
+        data-checkout-button="true"
+        data-product-key={productKey}
+        data-purchase-product={productKey}
         onClick={beginCheckout}
         disabled={pending}
         className="w-full rounded-lg bg-[var(--jade)] px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
       >
-        {pending ? "Opening secure checkout…" : "Buy reading credits"}
+        {pending ? t("Opening secure checkout…", "正在打开安全支付页面…") : t("Buy reading credits", "购买深度解读次数")}
       </button>
-      {error ? <p className="mt-2 text-xs leading-5 text-red-700" role="alert">{error}</p> : null}
+      {error ? <p data-checkout-error="true" className="mt-2 text-xs leading-5 text-red-700" role="alert">{error}</p> : null}
     </div>
   );
 }

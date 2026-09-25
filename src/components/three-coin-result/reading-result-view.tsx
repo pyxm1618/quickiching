@@ -1,7 +1,9 @@
+import React from "react";
 import { AdsterraResultAd } from "@/components/ads/adsterra-result-ad";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import type { Trigram } from "@/domain/casting/hexagrams/king-wen";
 import type { FreeReading } from "@/domain/interpretation/v2/types";
+import { ChineseReadingResultView } from "./chinese-reading-result-view";
 import styles from "./result-page.module.css";
 
 const TRIGRAM_LABELS: Record<Trigram, string> = {
@@ -51,11 +53,16 @@ export function ReadingResultView({
   reading,
   onStartNewReading,
   children,
+  locale = "en",
 }: {
   reading: FreeReading;
   onStartNewReading: () => void;
   children?: React.ReactNode;
+  locale?: "en" | "zh-Hans";
 }) {
+  if (locale === "zh-Hans") {
+    return <ChineseReadingResultView reading={reading} onStartNewReading={onStartNewReading}>{children}</ChineseReadingResultView>;
+  }
   const moving = movingLabel(reading);
   const relatingValues = relatingLines(reading.result.lineValuesBottomUp);
   const relatingIdentity = reading.relating
