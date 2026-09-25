@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
+import dynamic from "next/dynamic";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
-import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import { useQuestionFirstContext } from "@/components/public-reading/question-first";
 import { generateThreeCoinLine, type CoinFace, type ThreeCoinStep } from "@/domain/casting/three-coin/algorithm";
 import { buildPublicReading } from "@/domain/public-reading/reading";
@@ -17,6 +17,11 @@ import {
   restartThreeCoinReading,
   writeThreeCoinSteps,
 } from "@/lib/three-coin-session";
+
+const PublicReadingResult = dynamic(
+  () => import("@/components/public-reading/public-reading-result").then((module) => module.PublicReadingResult),
+  { ssr: false },
+);
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI"] as const;
 
