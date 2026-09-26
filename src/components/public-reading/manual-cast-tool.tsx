@@ -73,7 +73,7 @@ export function ManualCastTool({
 }) {
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
-  const onNewReading = onNewReadingProp ?? questionContext?.restartQuestion;
+  const onNewReading = onNewReadingProp ?? (() => questionContext?.restartQuestion(true));
   const zh = dictionary.locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
   const [mode, setMode] = useState<ManualMode>("line-values");

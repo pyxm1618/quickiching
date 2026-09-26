@@ -12,7 +12,7 @@ export type QuestionContext = {
   coreQuestionFrozenAtCast: boolean;
   setQuestion: (value: string | undefined) => void;
   freezeCoreQuestion: () => string | undefined | false;
-  restartQuestion: () => void;
+  restartQuestion: (force?: boolean) => void;
 };
 
 type QuestionFirstProps = {
@@ -129,9 +129,9 @@ export function QuestionFirst({
     setStarted(true);
   }
 
-  function restartQuestion() {
-    if (coreQuestionFrozenAtCast) return;
-    if (!persist(false, undefined)) {
+  function restartQuestion(force = false) {
+    if (coreQuestionFrozenAtCast && !force) return;
+    if (!persist(false, undefined, undefined, false)) {
       setError(dictionary.questionFirst.saveError);
       return;
     }
@@ -218,7 +218,7 @@ export function QuestionFirst({
               {error ? <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{error}</p> : null}
             </div>
             {!coreQuestionFrozenAtCast ? (
-              <button type="button" onClick={restartQuestion} className="mystic-button-secondary">{dictionary.questionFirst.newQuestion}</button>
+              <button type="button" onClick={() => restartQuestion()} className="mystic-button-secondary">{dictionary.questionFirst.newQuestion}</button>
             ) : null}
           </div>
         </section>

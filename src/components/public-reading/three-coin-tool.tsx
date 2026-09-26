@@ -70,7 +70,7 @@ export function ThreeCoinTool({
 }) {
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
-  const onNewReading = onNewReadingProp ?? questionContext?.restartQuestion;
+  const onNewReading = onNewReadingProp ?? (() => questionContext?.restartQuestion(true));
   const zh = dictionary.locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
   const lineMarkers = zh ? ["一", "二", "三", "四", "五", "六"] as const : ROMAN;

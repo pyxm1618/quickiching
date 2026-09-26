@@ -65,7 +65,7 @@ export function MeiHuaTool({
 }) {
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
-  const onNewReading = onNewReadingProp ?? questionContext?.restartQuestion;
+  const onNewReading = onNewReadingProp ?? (() => questionContext?.restartQuestion(true));
   const zh = dictionary.locale === "zh-Hans";
   const [timeZone, setTimeZone] = useState("UTC");
   const [cast, setCast] = useState<StoredCast | null>(null);
