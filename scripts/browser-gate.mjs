@@ -379,7 +379,14 @@ async function finishThreeCoin(page) {
   await waitForText(page, "1 / 6 lines");
   for (let line = 2; line <= 6; line += 1) {
     await clickButton(page, "Toss three coins");
-    await waitForText(page, `${line} / 6 lines`);
+    if (line === 6) {
+      await page.waitForFunction(
+        () => location.pathname === "/readings/three-coin/result" || Boolean(document.body?.innerText?.includes("6 / 6 lines")),
+        { timeout: 15_000 }
+      );
+    } else {
+      await waitForText(page, `${line} / 6 lines`);
+    }
   }
 
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
