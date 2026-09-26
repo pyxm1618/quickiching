@@ -42,7 +42,10 @@ describe("QuestionFirst component question freeze regressions", () => {
     });
 
     const html = renderToStaticMarkup(
-      <QuestionFirst storageKey="test-reading">
+      <QuestionFirst
+        storageKey="test-reading"
+        initialSession={{ started: true, question: "Is this job offer right for me?", coreQuestionFrozenAtCast: false }}
+      >
         <div>Casting UI</div>
       </QuestionFirst>,
     );
@@ -66,7 +69,15 @@ describe("QuestionFirst component question freeze regressions", () => {
     });
 
     const html = renderToStaticMarkup(
-      <QuestionFirst storageKey="test-reading">
+      <QuestionFirst
+        storageKey="test-reading"
+        initialSession={{
+          started: true,
+          question: "Is this job offer right for me?",
+          coreQuestionAtCast: "Is this job offer right for me?",
+          coreQuestionFrozenAtCast: true,
+        }}
+      >
         <div>Casting UI</div>
       </QuestionFirst>,
     );

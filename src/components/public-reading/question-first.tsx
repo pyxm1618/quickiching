@@ -19,6 +19,12 @@ type QuestionFirstProps = {
   storageKey: string;
   legacyStorageKeys?: readonly string[];
   dictionary?: UiDictionary;
+  initialSession?: {
+    started?: boolean;
+    question?: string;
+    coreQuestionAtCast?: string;
+    coreQuestionFrozenAtCast?: boolean;
+  };
   children: ReactNode;
 };
 
@@ -28,27 +34,18 @@ export function useQuestionFirstContext(): QuestionContext | undefined {
   return useContext(QuestionFirstContext) ?? undefined;
 }
 
-export function QuestionFirst({ storageKey, legacyStorageKeys = [], dictionary = EN_UI_DICTIONARY, children }: QuestionFirstProps) {
-  const [started, setStarted] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return readPublicReadingSessionState(storageKey, legacyStorageKeys).started;
-  });
-  const [question, setQuestionState] = useState<string | undefined>(() => {
-    if (typeof window === "undefined") return undefined;
-    return readPublicReadingSessionState(storageKey, legacyStorageKeys).question;
-  });
-  const [coreQuestionAtCast, setCoreQuestionAtCast] = useState<string | undefined>(() => {
-    if (typeof window === "undefined") return undefined;
-    return readPublicReadingSessionState(storageKey, legacyStorageKeys).coreQuestionAtCast;
-  });
-  const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return readPublicReadingSessionState(storageKey, legacyStorageKeys).coreQuestionFrozenAtCast;
-  });
-  const [draft, setDraft] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return readPublicReadingSessionState(storageKey, legacyStorageKeys).question ?? "";
-  });
+export function QuestionFirst({
+  storageKey,
+  legacyStorageKeys = [],
+  dictionary = EN_UI_DICTIONARY,
+  initialSession,
+  children,
+}: QuestionFirstProps) {
+  const [started, setStarted] = useState(() => initialSession?.started ?? false);
+  const [question, setQuestionState] = useState<string | undefined>(() => initialSession?.question ?? undefined);
+  const [coreQuestionAtCast, setCoreQuestionAtCast] = useState<string | undefined>(() => initialSession?.coreQuestionAtCast ?? undefined);
+  const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(() => initialSession?.coreQuestionFrozenAtCast ?? false);
+  const [draft, setDraft] = useState(() => initialSession?.question ?? "");
   const [error, setError] = useState("");
 
   useEffect(() => {
