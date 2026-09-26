@@ -728,7 +728,7 @@ export function ThreeCoinResultClient({
                           {t("Sign in to continue · $2.99", "登录并继续 · $2.99")}
                         </Link>
                         <span className="text-xs text-[var(--ink-3)]">
-                          {t("Personalized Deep Reading is $2.99 per cast (packages from $2.00/reading). Your free cast interpretation is always free.", "深度解读单次 $2.99（次数包单次低至 $2.00）。免费卦象解读随时可看。")}
+                          {t("Personalized Deep Reading is $2.99 per cast. Saved to your account so you can revisit it later. Your free cast interpretation is always free to review.", "深度解读单次 $2.99。解读会保存到账户历史中，方便以后再次查看。免费卦象解读随时可看。")}
                         </span>
                       </>
                     ) : credits <= 0 ? (

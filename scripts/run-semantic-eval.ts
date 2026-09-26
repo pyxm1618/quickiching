@@ -229,14 +229,23 @@ async function run() {
   const results: Array<{
     caseId: string;
     name: string;
+    question: string;
+    context: DeepReadingContextEnrichment;
     facts: DeterministicFacts;
+    evidenceIdsInBundle: string[];
     report: DeepReadingReport;
     evidenceValidation: { valid: boolean; invalidEvidenceIds: string[] };
     reviewDecision: OutputReviewDecision;
     tokenUsage: any;
+    model: string;
+    reviewerModel: string;
+    timestamp: string;
   }> = [];
 
-  for (const testCase of CASES) {
+  const runNegativeOnly = process.argv.includes("--nc-only");
+
+  if (!runNegativeOnly) {
+    for (const testCase of CASES) {
     console.log(`\n=== Running ${testCase.name} ===`);
     const facts = makeFacts(testCase.lines);
     const knowledge = await buildDeepReadingKnowledgeBundle(facts);
@@ -285,17 +294,210 @@ async function run() {
     results.push({
       caseId: testCase.id,
       name: testCase.name,
+      question: testCase.question,
+      context: testCase.context,
       facts,
+      evidenceIdsInBundle: knowledge.evidence.map((e) => e.id),
       report,
       evidenceValidation,
       reviewDecision,
       tokenUsage: generationResult.tokenUsage,
+      model: env.AI_MODEL_DEEP_READING ?? "deepseek-chat",
+      reviewerModel: env.AI_MODEL_OUTPUT_REVIEW ?? "deepseek-chat",
+      timestamp: new Date().toISOString(),
     });
   }
 
   const outputPath = resolve(process.cwd(), "scratch/semantic-eval-results.json");
   writeFileSync(outputPath, JSON.stringify(results, null, 2), "utf-8");
   console.log(`\nAll evaluation runs complete. Results written to ${outputPath}`);
+  }
+
+  // ==========================================
+  // Real Reviewer Negative Controls (3 Cases)
+  // ==========================================
+  console.log("\n==========================================");
+  console.log("Running 3 Real Reviewer Negative Controls");
+  console.log("==========================================");
+
+  const negativeControls: Array<{
+    controlId: string;
+    description: string;
+    expectedStatus: "fail";
+    expectedFlagFalse: string;
+    reviewDecision: OutputReviewDecision;
+    statusPassedAsExpected: boolean;
+  }> = [];
+
+  // NC 1: 答非所问 (Off-topic)
+  {
+    console.log("\n=== Negative Control 1: Off-Topic (Job offer question -> Love conflict report) ===");
+    const testCase = CASES.find((c) => c.id === "case-5a-same-cast-job")!;
+    const facts = makeFacts(testCase.lines);
+    const knowledge = await buildDeepReadingKnowledgeBundle(facts);
+    const offTopicReport: DeepReadingReport = {
+      schemaVersion: "deep-reading-v2",
+      readingVariant: facts.readingVariant,
+      directAnswer: "This cast indicates severe tension in your romantic relationship and family home. While you are asking about emotional reconciliation with your partner, the cast shows that unresolved conflict from the past is poisoning your domestic peace and you need to tread very carefully around your spouse's anger.",
+      situationMapping: "Your romantic relationship of five years is under immense pressure because of domestic chores and lack of mutual communication. The Lake trigram underneath Heaven shows you tread on your lover's sensitivity without knowing it.",
+      keyTensions: [
+        "Emotional distance between romantic partners",
+        "Domestic arguments over household spending versus personal time",
+      ],
+      conditionalDirection: "If you can have an open date night with your partner and listen without becoming defensive, the romantic intimacy may slowly recover; if you continue working late, divorce is inevitable.",
+      signalsToWatch: [
+        "Whether your spouse initiates physical affection",
+        "Whether domestic dinner conversations can proceed without hostile silence",
+      ],
+      practicalReflection: "Have an honest talk with your partner tonight about domestic chores before touching anything related to work.",
+      uncertaintyAndBoundaries: "The reading does not predict whether your partner will file for divorce tomorrow.",
+      interpretiveBasisReferences: [
+        { evidenceId: "primary.judgment" },
+        { evidenceId: "primary.core_meaning" },
+      ],
+      disclaimer: "Reflective interpretation only.",
+    };
+
+    const abortController = new AbortController();
+    const reviewDecision = await reviewer.review({
+      kind: "deep_reading",
+      castingId: "nc_off_topic",
+      question: testCase.question,
+      context: testCase.context,
+      scene: "career",
+      interpretationGoal: testCase.context.interpretationGoal,
+      facts,
+      knowledge,
+      output: offTopicReport,
+      deadlineAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+    } as any, abortController.signal);
+
+    console.log(`NC 1 Reviewer Status: ${reviewDecision.status}`, reviewDecision.reasonCodes);
+    console.log(`NC 1 questionRelevancePass: ${(reviewDecision as any).questionRelevancePass}`);
+    negativeControls.push({
+      controlId: "nc-1-off-topic",
+      description: "Candidate report discusses romantic marriage conflict when question asks about job offer",
+      expectedStatus: "fail",
+      expectedFlagFalse: "questionRelevancePass",
+      reviewDecision,
+      statusPassedAsExpected: reviewDecision.status === "fail" && (reviewDecision as any).questionRelevancePass === false,
+    });
+  }
+
+  // NC 2: 编造用户事实 (Invented user facts)
+  {
+    console.log("\n=== Negative Control 2: Invented Facts (Hallucinated $20k signed clients & VP promise) ===");
+    const testCase = CASES.find((c) => c.id === "case-1-still")!;
+    const facts = makeFacts(testCase.lines);
+    const knowledge = await buildDeepReadingKnowledgeBundle(facts);
+    const inventedFactsReport: DeepReadingReport = {
+      schemaVersion: "deep-reading-v2",
+      readingVariant: facts.readingVariant,
+      directAnswer: "Because your corporate manager has already explicitly promised you an executive promotion with equity grant next month, and because your three signed Fortune 500 corporate clients are already paying you $20,000 monthly retainer, you should immediately quit your day job.",
+      situationMapping: "You already have three signed enterprise clients paying $20,000 monthly retainers and your current VP officially guaranteed your equity vesting before you leave.",
+      keyTensions: [
+        "Managing the $20,000 retainer from your first three clients versus corporate VP promise",
+        "Hiring five direct reports with the new consulting revenue",
+      ],
+      conditionalDirection: "Since your clients already paid non-refundable deposits, your consulting firm is guaranteed to succeed immediately.",
+      signalsToWatch: [
+        "Wire transfer confirmations from the three signed corporate clients",
+        "Written promotion agreement signed by your current corporate VP",
+      ],
+      practicalReflection: "Send invoices to your three existing corporate clients today.",
+      uncertaintyAndBoundaries: "Based entirely on your verified signed client contracts and confirmed VP promotion offer.",
+      interpretiveBasisReferences: [
+        { evidenceId: "primary.judgment" },
+        { evidenceId: "primary.core_meaning" },
+      ],
+      disclaimer: "Reflective interpretation only.",
+    };
+
+    const abortController = new AbortController();
+    const reviewDecision = await reviewer.review({
+      kind: "deep_reading",
+      castingId: "nc_invented_facts",
+      question: testCase.question,
+      context: testCase.context,
+      scene: "career",
+      interpretationGoal: testCase.context.interpretationGoal,
+      facts,
+      knowledge,
+      output: inventedFactsReport,
+      deadlineAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+    } as any, abortController.signal);
+
+    console.log(`NC 2 Reviewer Status: ${reviewDecision.status}`, reviewDecision.reasonCodes);
+    console.log(`NC 2 contextFidelityPass: ${(reviewDecision as any).contextFidelityPass}`);
+    negativeControls.push({
+      controlId: "nc-2-invented-facts",
+      description: "Candidate report fabricates signed clients and VP promotion promises not in user context",
+      expectedStatus: "fail",
+      expectedFlagFalse: "contextFidelityPass",
+      reviewDecision,
+      statusPassedAsExpected: reviewDecision.status === "fail" && (reviewDecision as any).contextFidelityPass === false,
+    });
+  }
+
+  // NC 3: 结论与 Evidence 毫无逻辑关系 (Unsupported conclusion)
+  {
+    console.log("\n=== Negative Control 3: Unsupported Evidence (Qian hexagram claims stock crash & desert dragons) ===");
+    const testCase = CASES.find((c) => c.id === "case-1-still")!;
+    const facts = makeFacts(testCase.lines);
+    const knowledge = await buildDeepReadingKnowledgeBundle(facts);
+    const unsupportedReport: DeepReadingReport = {
+      schemaVersion: "deep-reading-v2",
+      readingVariant: facts.readingVariant,
+      directAnswer: "Because the Judgment of Qian states 元亨利贞 and the core meaning is initiative, this directly proves that the entire global financial market will crash next week and you are commanded by the hexagram to liquidate all your assets, purchase gold bullion immediately, and avoid speaking to anyone for 12 months.",
+      situationMapping: "The judgment '元亨利贞' structurally proves that your industry is doomed and that you must cease all corporate work to hide underground. The dragons mentioned in Qian mean you will literally meet ancient mystical creatures in the desert.",
+      keyTensions: [
+        "Buying gold bullion versus hiding in a desert cave",
+        "Protecting your family from global economic collapse mandated by Qian",
+      ],
+      conditionalDirection: "If the market crashes as the Qian judgment demands, hide in the desert; if you stay in the city, the dragons of Qian will punish you.",
+      signalsToWatch: [
+        "Sightings of flying mystical dragons in the sky over your city",
+        "Immediate collapse of all banking institutions",
+      ],
+      practicalReflection: "Liquidate your savings into physical gold bullion immediately.",
+      uncertaintyAndBoundaries: "The cast commands immediate liquidation and cannot be questioned.",
+      interpretiveBasisReferences: [
+        { evidenceId: "primary.judgment" },
+        { evidenceId: "primary.core_meaning" },
+      ],
+      disclaimer: "Reflective interpretation only.",
+    };
+
+    const abortController = new AbortController();
+    const reviewDecision = await reviewer.review({
+      kind: "deep_reading",
+      castingId: "nc_unsupported_evidence",
+      question: testCase.question,
+      context: testCase.context,
+      scene: "career",
+      interpretationGoal: testCase.context.interpretationGoal,
+      facts,
+      knowledge,
+      output: unsupportedReport,
+      deadlineAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+    } as any, abortController.signal);
+
+    console.log(`NC 3 Reviewer Status: ${reviewDecision.status}`, reviewDecision.reasonCodes);
+    console.log(`NC 3 evidenceGroundingPass: ${(reviewDecision as any).evidenceGroundingPass}`);
+    console.log(`NC 3 interpretiveCoherencePass: ${(reviewDecision as any).interpretiveCoherencePass}`);
+    negativeControls.push({
+      controlId: "nc-3-unsupported-evidence",
+      description: "Candidate report claims global crash and desert dragons derived from Qian judgment evidence",
+      expectedStatus: "fail",
+      expectedFlagFalse: "evidenceGroundingPass or interpretiveCoherencePass",
+      reviewDecision,
+      statusPassedAsExpected: reviewDecision.status === "fail" && ((reviewDecision as any).evidenceGroundingPass === false || (reviewDecision as any).interpretiveCoherencePass === false),
+    });
+  }
+
+  const ncOutputPath = resolve(process.cwd(), "scratch/reviewer-negative-controls.json");
+  writeFileSync(ncOutputPath, JSON.stringify(negativeControls, null, 2), "utf-8");
+  console.log(`\nReviewer negative controls complete. Results written to ${ncOutputPath}`);
 }
 
 run().catch((error) => {

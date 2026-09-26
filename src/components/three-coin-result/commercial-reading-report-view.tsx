@@ -37,32 +37,33 @@ function ReportSection({ title, children }: { title: string; children: React.Rea
   );
 }
 
-function buildBasisSummary(snapshot: DeepReadingContextSnapshot | null | undefined, zh: boolean): string | null {
-  if (!snapshot) return null;
+function buildBasisSummary(snapshot: DeepReadingContextSnapshot | null | undefined, zh: boolean): string {
+  if (!snapshot) {
+    return zh
+      ? "本报告结合你起卦时保存的问题与现实背景、本次实际卦象、Quick I Ching 收录的经典文本，以及 Quick I Ching 的结构化解释材料生成。"
+      : "This reading is grounded in your saved question and context, the exact cast, classical I Ching text included in Quick I Ching, and Quick I Ching's structured interpretation material.";
+  }
   const p = snapshot.knowledge.primary;
   const pName = zh ? `第 ${p.number} 卦「${p.chineseName}」` : `Hexagram ${p.number} (${p.name})`;
   const lines = snapshot.facts.movingLinePositions;
   const r = snapshot.knowledge.relating;
 
+  let castDetails = pName;
   if (lines.length === 0) {
-    return zh
-      ? `本次解读主要基于 ${pName} 的稳定卦象结构（无动爻）。`
-      : `Primarily based on the stable structure of ${pName} with no changing lines.`;
-  }
-  const lineStr = zh
-    ? `第 ${lines.join("、")} 爻动爻`
-    : `changing line${lines.length > 1 ? "s" : ""} ${lines.join(", ")}`;
-
-  if (r) {
-    const rName = zh ? `第 ${r.number} 卦「${r.chineseName}」` : `Hexagram ${r.number} (${r.name})`;
-    return zh
-      ? `本次解读主要基于 ${pName}，${lineStr}，以及向 ${rName}的结构变化。`
-      : `Primarily based on ${pName}, ${lineStr}, and the movement toward ${rName}.`;
+    castDetails += zh ? "（无动爻静卦）" : " with no changing lines";
+  } else {
+    const lineStr = zh ? `第 ${lines.join("、")} 爻动` : `changing line${lines.length > 1 ? "s" : ""} ${lines.join(", ")}`;
+    if (r) {
+      const rName = zh ? `第 ${r.number} 卦「${r.chineseName}」` : `Hexagram ${r.number} (${r.name})`;
+      castDetails += zh ? `，${lineStr}，向 ${rName}变化` : `, ${lineStr}, moving to ${rName}`;
+    } else {
+      castDetails += zh ? `，${lineStr}` : `, ${lineStr}`;
+    }
   }
 
   return zh
-    ? `本次解读主要基于 ${pName} 与 ${lineStr}。`
-    : `Primarily based on ${pName} and ${lineStr}.`;
+    ? `本报告结合你起卦时保存的问题与现实背景、本次实际卦象（${castDetails}）、Quick I Ching 收录的经典文本，以及 Quick I Ching 的结构化解释材料生成。`
+    : `This reading is grounded in your saved question and context, the exact cast (${castDetails}), classical I Ching text included in Quick I Ching, and Quick I Ching's structured interpretation material.`;
 }
 
 export function CommercialReadingReportView({
@@ -101,14 +102,12 @@ export function CommercialReadingReportView({
             ) : null}
           </div>
         ) : null}
-        {whySummary ? (
-          <div className="mt-6 rounded-2xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] px-5 py-4 text-sm leading-7 text-white" data-why-this-interpretation>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--gold-2)]">
-              {t("Why this interpretation", "解读依据概述")}
-            </p>
-            <p className="mt-1 text-sm text-[var(--ink-2)]">{whySummary}</p>
-          </div>
-        ) : null}
+        <div className="mt-6 rounded-2xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] px-5 py-4 text-sm leading-7 text-white" data-why-this-interpretation>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--gold-2)]">
+            {t("Why this interpretation", "为什么这样解读")}
+          </p>
+          <p className="mt-1 text-sm text-[var(--ink-2)]">{whySummary}</p>
+        </div>
         <p className="mt-6 text-xs leading-6 text-[var(--ink-3)]">
           {t("This is a conditional interpretation for reflection. It does not predict a certain outcome or replace qualified professional advice.", "这是一种用于反思的条件性解读，不是确定预测，也不能替代合格专业人士的建议。")}
         </p>

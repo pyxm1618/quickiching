@@ -364,13 +364,13 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     );
     expect(htmlEn).toContain('data-why-this-interpretation');
     expect(htmlEn).toContain("Why this interpretation");
-    expect(htmlEn).toContain("Primarily based on Hexagram 47 (Oppression), changing line 2, and the movement toward Hexagram 45 (Gathering Together).");
+    expect(htmlEn).toContain("This reading is grounded in your saved question and context, the exact cast (Hexagram 47 (Oppression), changing line 2, moving to Hexagram 45 (Gathering Together)), classical I Ching text included in Quick I Ching, and Quick I Ching&#x27;s structured interpretation material.");
 
     const htmlZh = renderToStaticMarkup(
       <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="zh-Hans" />,
     );
     expect(htmlZh).toContain('data-why-this-interpretation');
-    expect(htmlZh).toContain("解读依据概述");
-    expect(htmlZh).toContain("本次解读主要基于 第 47 卦「困」，第 2 爻动爻，以及向 第 45 卦「萃」的结构变化。");
+    expect(htmlZh).toContain("为什么这样解读");
+    expect(htmlZh).toContain("本报告结合你起卦时保存的问题与现实背景、本次实际卦象（第 47 卦「困」，第 2 爻动，向 第 45 卦「萃」变化）、Quick I Ching 收录的经典文本，以及 Quick I Ching 的结构化解释材料生成。");
   });
 });
