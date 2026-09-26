@@ -13,22 +13,25 @@ function parseQuestionKeys(raw: string | undefined): VersionedKey[] {
   });
 }
 
+export function getActiveQuestionFingerprintKey(
+  env: Record<string, string | undefined> = process.env,
+): VersionedKey {
+  const key = parseQuestionKeys(env.QUESTION_FINGERPRINT_KEYS)[0];
+  if (!key) throw new Error("QUESTION_FINGERPRINT_KEY_UNAVAILABLE");
+  return key;
+}
+
 function nonEmptyString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed ? value : null;
 }
 
-function noQuestionFallback(row: Row): string {
-  const scene = nonEmptyString(row.scene);
-  return scene ? `Reading for scene: ${scene}` : "General I Ching Reading";
-}
-
 export function decryptQuestionForGeneration(
   row: Row,
   env: Record<string, string | undefined> = process.env,
 ): string {
-  if (row.question_version_id == null) return noQuestionFallback(row);
+  if (row.question_version_id == null) throw new Error("CORE_QUESTION_REQUIRED");
 
   const castingId = nonEmptyString(row.id);
   const questionVersionId = nonEmptyString(row.question_version_id);

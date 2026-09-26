@@ -193,12 +193,20 @@ export const generationOutputReviews = pgTable(
     schemaValid: text("schema_valid").notNull(),
     safetyPass: text("safety_pass").notNull(),
     factConsistencyPass: text("fact_consistency_pass").notNull(),
+    questionRelevancePass: text("question_relevance_pass"),
+    contextFidelityPass: text("context_fidelity_pass"),
+    evidenceGroundingPass: text("evidence_grounding_pass"),
+    interpretiveCoherencePass: text("interpretive_coherence_pass"),
+    actionabilityPass: text("actionability_pass"),
+    uncertaintyPass: text("uncertainty_pass"),
+    languageConsistencyPass: text("language_consistency_pass"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("generation_output_reviews_casting_idx").on(table.castingId),
     check("generation_reviews_boolean_fields_check", sql`${table.schemaValid} in ('true', 'false') and ${table.safetyPass} in ('true', 'false') and ${table.factConsistencyPass} in ('true', 'false')`),
     check("generation_reviews_pass_fields_check", sql`${table.status} <> 'pass' or (${table.schemaValid} = 'true' and ${table.safetyPass} = 'true' and ${table.factConsistencyPass} = 'true')`),
+    check("generation_reviews_deep_reading_pass_fields_check", sql`${table.status} <> 'pass' or ${table.reviewerModelVersion} = 'reviewer-v1' or (${table.questionRelevancePass} = 'true' and ${table.contextFidelityPass} = 'true' and ${table.evidenceGroundingPass} = 'true' and ${table.interpretiveCoherencePass} = 'true' and ${table.actionabilityPass} = 'true' and ${table.uncertaintyPass} = 'true' and ${table.languageConsistencyPass} = 'true')`),
   ],
 );
 

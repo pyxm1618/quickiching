@@ -11,6 +11,7 @@ vi.mock("next/link", () => ({
 }));
 
 import { ThreeCoinResultClient } from "./three-coin-result-client";
+import { CommercialReadingReportView } from "./commercial-reading-report-view";
 
 describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => {
   it("renders empty state pointing to /zh/methods/three-coin in Chinese mode", () => {
@@ -65,25 +66,29 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       primaryInterpretation: { coreTheme: "创造与开始", orientation: "积极向前" },
     };
     const mockReport: any = {
-      executiveSummary: "测试摘要",
-      coreHexagramStructure: "测试结构",
-      changingDynamics: "测试动态",
-      futureTrajectory: "测试走向",
-      blindSpotAnalysis: "测试盲区",
-      strategicActions: ["行动一", "行动二"],
-      riskFactors: ["风险一"],
-      timingConsiderations: "时机考量",
-      philosophicalReflection: "哲学反思",
-      closingGuidance: "结语指导",
+      schemaVersion: "commercial-reading-v1",
+      readingVariant: "standard",
+      coreSummary: "测试摘要",
+      currentStage: "当前阶段",
+      primaryHexagramPattern: "测试结构",
+      changeMechanism: "测试动态",
+      possibleDirection: "测试走向",
+      obstaclesAndBlindSpots: "测试盲区",
+      turningConditions: "转机条件",
+      conditionalActionDirection: "行动方向",
+      uncertaintyAndBoundaries: "不确定性",
+      interpretiveBasisReferences: [],
+      disclaimer: "仅供反思。",
     };
 
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
         locale="zh-Hans"
         initialUser={{ id: "usr_1", email: "test@example.com" }}
-        initialState={{ kind: "ready", reading: mockReading, lineValues: [7, 7, 7, 9, 7, 7] }}
+        initialState={{ kind: "ready", reading: mockReading, lineValues: [7, 7, 7, 9, 7, 7], createdAt: "2026-09-25T10:00:00.000Z" }}
         initialCastingView={{
           castingId: "cast_1",
+          createdAt: "2026-09-25T10:00:00.000Z",
           context: "事业测试",
           lineValuesBottomUp: [7, 7, 7, 9, 7, 7],
           readingReport: mockReport,
@@ -94,6 +99,9 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).toContain('href="/zh/account"');
     expect(html).not.toContain('href="/account"');
     expect(html).toContain("查看账户与历史记录 →");
+    expect(html).toContain("旧版报告格式");
+    expect(html).toContain("测试摘要");
+    expect(html).toContain('data-save-reading');
   });
 
   it("renders completed report banner pointing to /account in English mode", () => {
@@ -121,16 +129,17 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       },
     };
     const mockReport: any = {
-      executiveSummary: "Test summary",
-      coreHexagramStructure: "Test structure",
-      changingDynamics: "Test dynamics",
-      futureTrajectory: "Test trajectory",
-      blindSpotAnalysis: "Test blindspot",
-      strategicActions: ["Action 1"],
-      riskFactors: ["Risk 1"],
-      timingConsiderations: "Timing",
-      philosophicalReflection: "Reflection",
-      closingGuidance: "Closing",
+      schemaVersion: "deep-reading-v2",
+      readingVariant: "standard",
+      directAnswer: "A clear next step depends on what is confirmed in the current situation and which option remains reversible.",
+      situationMapping: "The cast describes an active transition, while the supplied context determines which part of that pattern applies now.",
+      keyTensions: ["Move with purpose while keeping the decision open to new evidence."],
+      conditionalDirection: "If the relevant support is present, a measured next step can test the direction without committing to the full outcome.",
+      signalsToWatch: ["Watch whether the other party follows through on the specific commitment."],
+      practicalReflection: "Write down what would count as reliable evidence, then choose one action that can be reviewed soon.",
+      uncertaintyAndBoundaries: "The cast cannot establish what another person will decide; that remains unknown until observable actions occur.",
+      interpretiveBasisReferences: [{ evidenceId: "primary:judgment" }],
+      disclaimer: "This is conditional reflection and not a certain prediction.",
     };
 
     const html = renderToStaticMarkup(
@@ -149,5 +158,219 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     );
     expect(html).toContain('href="/account"');
     expect(html).not.toContain('href="/zh/account"');
+    expect(html).toContain("Restoring the saved evidence bundle");
+    expect(html).not.toContain("Unresolved evidence reference");
+  });
+
+  it("keeps the paid request disabled until an authenticated user has a credit", () => {
+    const freeReading: any = {
+      primary: { number: 1, englishName: "The Creative", chineseName: "乾", upper: "qian", lower: "qian" },
+      relating: null,
+      result: { lineValuesBottomUp: [7, 7, 7, 7, 7, 7], movingLinePositions: [] },
+      primaryInterpretation: {
+        coreTheme: "Creation",
+        orientation: "Forward",
+        coreMeaning: "Initiating force and perseverance",
+        strength: "Strong purpose",
+        challenge: "Impatience",
+        structureInterpretation: "Heaven above heaven represents potential",
+        reflectionQuestions: ["Where should initiative be focused?"],
+        watchFor: ["Overextension"],
+      },
+      activeLines: [],
+      synthesis: { situation: "A beginning", whereChangeIsHappening: "No moving lines", directionOfChange: "Stable", bottomLine: "Proceed steadily" },
+    };
+    const html = renderToStaticMarkup(
+      <ThreeCoinResultClient
+        locale="en"
+        initialUser={{ id: "usr_1", email: "test@example.com" }}
+        initialCredits={0}
+        initialState={{ kind: "ready", reading: freeReading, lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on now?" }}
+        initialCastingView={{ castingId: "cast_1", context: "Career test", lineValuesBottomUp: [7, 7, 7, 7, 7, 7], readingReport: null, owns: true }}
+      />,
+    );
+
+    expect(html).toContain("Choose a Deep Reading pack");
+    expect(html).toContain("No generation starts until a credit is available");
+    expect(html).toContain("data-context-enrichment-form");
+    expect(html).not.toContain("data-start-deep-reading");
+  });
+
+  it("keeps the complete free interpretation and early Deep Reading entry in one localized result", () => {
+    const html = renderToStaticMarkup(
+      <ThreeCoinResultClient
+        locale="zh-Hans"
+        initialState={{
+          kind: "ready",
+          reading: {} as any,
+          lineValues: [7, 7, 7, 7, 7, 7],
+          question: "这次变化中我应该先看清什么？",
+          createdAt: "2026-09-25T10:00:00.000Z",
+        }}
+        initialCastingView={{
+          castingId: "cast_public_result",
+          context: "这次变化中我应该先看清什么？",
+          lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+          readingReport: null,
+          owns: false,
+        }}
+      />,
+    );
+
+    const boundaryPosition = html.indexOf("data-free-cast-boundary");
+    const deepPosition = html.indexOf("data-deep-reading-entry");
+    const freeDetailsPosition = html.indexOf("data-primary-card");
+    expect(html).toContain('data-public-reading-result');
+    expect(html).toContain("本次三枚铜钱起卦结果");
+    expect(html).toContain("免费：理解卦象 · 付费：解读卦象与你处境的关系");
+    expect(html).toContain('href="/zh/hexagrams/1-the-creative"');
+    expect(boundaryPosition).toBeGreaterThanOrEqual(0);
+    expect(deepPosition).toBeGreaterThan(boundaryPosition);
+    expect(freeDetailsPosition).toBeGreaterThan(deepPosition);
+  });
+
+  it("renders streamlined context form with $2.99 pricing disclosure and expandable details", () => {
+    const htmlZh = renderToStaticMarkup(
+      <ThreeCoinResultClient
+        locale="zh-Hans"
+        initialState={{
+          kind: "ready",
+          reading: {} as any,
+          lineValues: [7, 7, 7, 7, 7, 7],
+          question: "我的核心问题是否能够解决？",
+          createdAt: "2026-09-25T10:00:00.000Z",
+        }}
+        initialCastingView={{
+          castingId: "cast_pricing_test",
+          context: "我的核心问题是否能够解决？",
+          lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+          readingReport: null,
+          owns: false,
+        }}
+      />,
+    );
+
+    expect(htmlZh).toContain("个性化深度解读 · $2.99 起");
+    expect(htmlZh).toContain("说明你的具体处境与关键事实");
+    expect(htmlZh).toContain("你最想看清什么？");
+    expect(htmlZh).toContain("+ 补充选项、限制与顾虑（可选）");
+    expect(htmlZh).toContain("登录并继续 · $2.99");
+
+    const htmlEn = renderToStaticMarkup(
+      <ThreeCoinResultClient
+        locale="en"
+        initialState={{
+          kind: "ready",
+          reading: {} as any,
+          lineValues: [7, 7, 7, 7, 7, 7],
+          question: "How should I approach this transition?",
+          createdAt: "2026-09-25T10:00:00.000Z",
+        }}
+        initialCastingView={{
+          castingId: "cast_pricing_test_en",
+          context: "How should I approach this transition?",
+          lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+          readingReport: null,
+          owns: false,
+        }}
+      />,
+    );
+
+    expect(htmlEn).toContain("Personalized Deep Reading · from $2.99");
+    expect(htmlEn).toContain("Tell us what matters in your situation");
+    expect(htmlEn).toContain("What would you like clarity on?");
+    expect(htmlEn).toContain("+ Add more details (options, constraints, concerns)");
+    expect(htmlEn).toContain("Sign in to continue · $2.99");
+  });
+
+  it("renders Why this interpretation summary in completed Deep Reading report", () => {
+    const mockReport = {
+      schemaVersion: "deep-reading-v2" as const,
+      readingVariant: "standard" as const,
+      directAnswer: "Direct answer text explaining the specific context in relation to the hexagram.",
+      situationMapping: "Situation mapping text with clear ties to the cast facts and user situation.",
+      keyTensions: ["Tension between current stagnation and coming movement"],
+      conditionalDirection: "If external conditions stabilize, advance cautiously.",
+      signalsToWatch: ["Clear written agreement from the counterpart"],
+      practicalReflection: "Observe before making irreversible financial or career decisions.",
+      uncertaintyAndBoundaries: "Separate what the cast indicates from unknown organizational dynamics.",
+      interpretiveBasisReferences: [{ evidenceId: "primary.judgment" }],
+      disclaimer: "Reflective interpretation only.",
+    };
+
+    const mockSnapshot = {
+      schemaVersion: "deep-reading-context-v1" as const,
+      coreQuestionAtCast: "How should I approach this transition?",
+      context: {
+        contextNotes: "I have been in this position for two years and received an offer.",
+        options: ["Accept offer", "Stay"],
+        constraints: ["Must decide in 3 days"],
+        concerns: ["Work culture"],
+        interpretationGoal: "what_do_i_need_to_see_clearly" as const,
+        locale: "en" as const,
+      },
+      scene: "general" as const,
+      castMethod: "three_coin" as const,
+      methodVersion: "three-coin-v1",
+      facts: {
+        method: "three_coin" as const,
+        algorithmVersion: "three-coin-v1",
+        classicMappingVersion: "king-wen",
+        lineValuesBottomUp: [7, 9, 7, 7, 7, 7] as any,
+        primaryHexagramNumber: 47,
+        movingLinePositions: [2],
+        relatingHexagramNumber: 45,
+        readingVariant: "standard" as const,
+      },
+      snapshotAt: new Date().toISOString(),
+      knowledgeVersion: "quickiching-knowledge-v1",
+      risk: { status: "allowed" as const, ruleVersion: "v1", reasonCode: "SAFE" },
+      knowledge: {
+        version: "quickiching-knowledge-v1",
+        primary: {
+          number: 47,
+          name: "Oppression",
+          chineseName: "困",
+          judgment: "困：亨，贞，大人吉，无咎。",
+          image: "泽无水，困。君子以致命遂志。",
+          interpretation: {
+            coreTheme: "Constraints",
+            coreMeaning: "A situation under pressure",
+            strength: "Persistence",
+            challenge: "Limited resources",
+            orientation: "Work within real limits",
+            structureInterpretation: "Water below the lake",
+            transitionTheme: "Pressure changing the structure",
+            stabilityTheme: "Recognize what remains available",
+          },
+        },
+        changingLines: [],
+        relating: {
+          number: 45,
+          name: "Gathering Together",
+          chineseName: "萃",
+          judgment: "萃：亨。王假有庙。",
+          image: "泽上于地，萃。",
+          coreMeaning: "Gathering of forces",
+          orientation: "Unity in common purpose",
+        },
+        structuralChange: "Line 2 changes",
+        evidence: [{ id: "primary.judgment", source: "king_wen_judgment" as const, hexagramNumber: 47, content: "困：亨" }],
+      },
+    };
+
+    const htmlEn = renderToStaticMarkup(
+      <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="en" />,
+    );
+    expect(htmlEn).toContain('data-why-this-interpretation');
+    expect(htmlEn).toContain("Why this interpretation");
+    expect(htmlEn).toContain("This reading is grounded in your saved question and context, the exact cast (Hexagram 47 (Oppression), changing line 2, moving to Hexagram 45 (Gathering Together)), classical I Ching text included in Quick I Ching, and Quick I Ching&#x27;s structured interpretation material.");
+
+    const htmlZh = renderToStaticMarkup(
+      <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="zh-Hans" />,
+    );
+    expect(htmlZh).toContain('data-why-this-interpretation');
+    expect(htmlZh).toContain("为什么这样解读");
+    expect(htmlZh).toContain("本报告结合你起卦时保存的问题与现实背景、本次实际卦象（第 47 卦「困」，第 2 爻动，向 第 45 卦「萃」变化）、Quick I Ching 收录的经典文本，以及 Quick I Ching 的结构化解释材料生成。");
   });
 });

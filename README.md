@@ -1,6 +1,6 @@
 # Quick I Ching
 
-Quick I Ching is an online I Ching platform with multiple casting methods. The repository contains both the **credential-free Public SEO V1** and preserved code/design work for a later **Commercial V2**.
+Quick I Ching is an online I Ching platform with multiple casting methods. The repository contains the **credential-free Public SEO V1** and a separate, deployment-gated **paid Deep Reading** product.
 
 ## Current launch stage: Public SEO V1
 
@@ -29,9 +29,9 @@ All four free flows end with:
 - original free basic interpretation;
 - reflection / non-deterministic / non-professional-advice boundary.
 
-Completed readings can be saved explicitly to browser-only `/history/`; no account or cloud sync is involved. A question-first flow and a fail-closed optional question interpreter are present, but static readings do not depend on provider activation.
+Completed readings can be saved explicitly to browser-only `/history/`; no account or cloud sync is involved in the free flow. Free interpretation explains the cast itself and never calls AI. Paid Deep Reading is a separate, server-gated Three-Coin product that relates a frozen core question and user-supplied context to the exact cast and cited I Ching material.
 
-No sign-in, payment, credit, database, or production AI call is required for the free flow.
+No sign-in, payment, credit, database, or production AI call is required for the free flow. Production Deep Reading, checkout, and account availability remain deployment-controlled and require live acceptance evidence.
 
 ### Public knowledge pages
 
@@ -61,24 +61,16 @@ No sign-in, payment, credit, database, or production AI call is required for the
 bun run indexnow
 ```
 
-## Commercial V2 — preserved future scope
+## Deep Reading product boundary
 
-The existing repository also contains earlier commercial architecture and domain work. It is not deleted, but it is not a dependency of the Public SEO V1 indexing launch.
+Public SEO V1 remains independent of commercial credentials and does not require a paid account to cast, read, or save a reading locally. The separate Three-Coin Deep Reading product is server-gated by the current deployment capabilities and account entitlement.
 
-Commercial V2 may later activate:
+- **Free:** complete general interpretation of the cast. Free flows never call AI or send the question to an AI provider.
+- **Paid Deep Reading:** connects the frozen question, user-supplied situation, exact Three-Coin cast, and cited I Ching source material. It requires sufficient context, a passing risk check, sign-in, and an available credit.
 
-- personalized AI deep readings based on user context and goals;
-- production authentication;
-- persistent database/history;
-- payment and credits;
-- commercial quality/review/refund workflows.
+After all six lines are safely saved, the browser opens the unified result page directly. That page shows the free cast interpretation and places the situation-based Deep Reading experience before the longer free details. Yarrow, Mei Hua, and Manual Cast remain fully available as free methods; Deep Reading currently supports Three-Coin only.
 
-The product boundary is deliberate:
-
-- **Free Public V1:** explains the cast and hexagram structure itself.
-- **Future paid deep reading:** may personalize interpretation using the user's specific situation and goal.
-
-Do not infer from the older PRD that Google/Bing indexing must wait for Commercial V2.
+Whether paid generation, checkout, and production account flows are enabled still depends on deployment configuration and live provider acceptance. Repository implementation and a green readiness endpoint do not prove production availability.
 
 ## Domain architecture
 
@@ -117,4 +109,4 @@ bun run verify:classical-sources  # fixed Wikisource oldid check; requires netwo
 bun run indexnow        # dry-run only
 ```
 
-The older Commercial V2 design remains in `docs/PRD.md` and `docs/技术设计文档.md`; both documents must be read together with their Public SEO V1 stage override at the top.
+The paid Deep Reading implementation remains deployment-gated. See `docs/PRD.md` and `docs/技术设计文档.md` for its product and service contracts.

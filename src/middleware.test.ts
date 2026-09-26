@@ -20,6 +20,9 @@ const completeAuthEnv = {
   RESEND_API_KEY: "resend-api-key",
   EMAIL_FROM: "Quick I Ching <noreply@example.com>",
   ANONYMOUS_OWNER_KEYS: "v1:anonymous-owner-secret",
+  QUESTION_FINGERPRINT_KEYS: "v1:fingerprint-secret",
+  QUESTION_ENCRYPTION_KEYS: "v1:encryption-secret",
+  RESULT_INTEGRITY_KEYS: "v1:integrity-secret",
 };
 
 const completeReconcileEnv = {
@@ -37,7 +40,6 @@ const completeDeepReadingEnv = {
   AI_GATEWAY_BASE_URL: "https://gateway.example.com",
   AI_SDK_GATEWAY_BASE_URL: "https://sdk-gateway.example.com",
   APP_SECRET: "app-secret-with-at-least-32-characters",
-  AI_MODEL_PREVIEW: "preview-model",
   AI_MODEL_DEEP_READING: "deep-reading-model",
   AI_MODEL_OUTPUT_REVIEW: "review-model",
   AI_MAX_OUTPUT_TOKENS: "800",
@@ -68,7 +70,6 @@ const completeCheckoutEnv = {
 
 const commercialCapabilityFlags = [
   "COMMERCIAL_V2_AUTH_ENABLED",
-  "COMMERCIAL_V2_AI_PREVIEW_ENABLED",
   "COMMERCIAL_V2_CHECKOUT_ENABLED",
   "COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED",
   "COMMERCIAL_V2_PAID_DEEP_READING_ENABLED",
@@ -102,8 +103,12 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/methods/three-coin")).status).toBe(200);
   });
 
-  it("leaves the personalized interpretation API available to its route", () => {
-    expect(middleware(makeRequest("/api/personalized-interpretation", { method: "POST" })).status).toBe(200);
+  it("keeps retired free AI endpoints behind the default private API boundary", () => {
+    for (const path of ["/api/personalized-interpretation", "/api/readings/00000000-0000-4000-8000-000000000001/preview"]) {
+      const response = middleware(makeRequest(path, { method: "POST" }));
+      expect(response.status).toBe(404);
+      expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+    }
   });
 
   it("leaves the user session probe API available to its route", () => {

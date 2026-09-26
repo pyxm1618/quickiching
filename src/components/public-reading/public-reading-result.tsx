@@ -12,7 +12,6 @@ import { buildStaticReading } from "@/domain/public-reading/static-reading";
 import { saveHistoryRecord } from "@/domain/public-reading/history";
 import { readingFingerprint } from "@/domain/public-reading/reading";
 import type { PublicReading } from "@/domain/public-reading/types";
-import { PersonalizedInterpretation } from "./personalized-interpretation";
 
 function relatingLines(reading: PublicReading): number[] {
   return reading.lineValuesBottomUp.map((value) => value === 6 ? 7 : value === 9 ? 8 : value);
@@ -45,11 +44,19 @@ export function PublicReadingResult({
   onNewReading,
   dictionary = EN_UI_DICTIONARY,
   localizedContent,
+  children,
+  title = dictionary.reading.title,
+  headingLevel = "h3",
+  newReadingLabel = dictionary.reading.newReading,
 }: {
   reading: PublicReading;
   onNewReading?: () => void;
   dictionary?: UiDictionary;
   localizedContent?: LocalizedReadingContent;
+  children?: React.ReactNode;
+  title?: string;
+  headingLevel?: "h1" | "h3";
+  newReadingLabel?: string;
 }) {
   const [bundles, setBundles] = useState<{ primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null }>({});
   const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
@@ -79,6 +86,7 @@ export function PublicReadingResult({
 
   const model = useMemo(() => buildStaticReading(reading, bundles, localizedContent), [reading, bundles, localizedContent]);
   const isChinese = dictionary.locale === "zh-Hans";
+  const ResultHeading = headingLevel;
   const movingLabel = reading.changingLines.length > 0 ? reading.changingLines.join(isChinese ? "、" : ", ") : isChinese ? "无" : "None";
   const localizedHref = (href: string) => isChinese && href.startsWith("/hexagrams/") ? `/zh${href}` : href;
 
@@ -95,7 +103,7 @@ export function PublicReadingResult({
     <section className="reading-reveal" aria-live="polite" aria-labelledby="public-reading-result-title" data-public-reading-result data-reading-fingerprint={readingFingerprint(reading)}>
       <div className="text-center">
         <p className="mystic-kicker">{resolveReadingKicker(reading, dictionary)}</p>
-        <h3 id="public-reading-result-title" className="mt-2 font-display text-3xl font-normal tracking-[-0.03em] sm:text-4xl">{dictionary.reading.title}</h3>
+        <ResultHeading id="public-reading-result-title" className="mt-2 font-display text-3xl font-normal tracking-[-0.03em] sm:text-4xl">{title}</ResultHeading>
         {reading.question ? (
           <p className="mx-auto mt-4 max-w-2xl rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 py-3 text-left text-sm leading-7 text-[var(--ink-2)]" data-clarity-mask="true" data-private-question="true">
             <span className="font-semibold text-[var(--gold-2)]">{dictionary.reading.questionLabel} </span>{reading.question}
@@ -103,8 +111,15 @@ export function PublicReadingResult({
         ) : null}
       </div>
 
+      <p className="mx-auto mt-5 max-w-3xl rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 py-3 text-sm leading-7 text-[var(--ink-2)]" data-free-cast-boundary>
+        {isChinese
+          ? "这一层免费解读说明卦象本身，不会把它套用到你的具体处境。"
+          : "This free layer explains the cast itself. It has not been interpreted against your specific situation."}
+      </p>
+      {children}
+
       <div className="reading-path">
-        <article className="reading-card-a" data-primary-card>
+        <article id="general-cast-interpretation" className="reading-card-a" data-primary-card>
           <p className="mystic-kicker">{dictionary.reading.primary}</p>
           <div className="reading-number mt-5">{model.primary.number}</div>
           <h4 className="reading-title">{model.primary.englishName}</h4>
@@ -205,13 +220,11 @@ export function PublicReadingResult({
         <ol className="mt-4 grid gap-3 text-sm leading-7 text-[var(--ink-2)] sm:grid-cols-3">{model.reflections.map((item, index) => <li key={item} className="rounded-2xl border border-white/[0.08] p-4"><span className="font-mono text-xs text-[var(--gold-2)]">0{index + 1}</span><p className="mt-2">{item}</p></li>)}</ol>
       </section>
 
-      {dictionary.locale === "en" ? <PersonalizedInterpretation reading={reading} /> : null}
 
       <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-white/[0.08] pt-6">
         <button type="button" onClick={save} className="mystic-button" data-save-reading>{saveState === "saved" ? dictionary.reading.saved : dictionary.reading.save}</button>
-        {onNewReading ? <button type="button" onClick={onNewReading} className="mystic-button-secondary">{dictionary.reading.newReading}</button> : null}
+        {onNewReading ? <button type="button" onClick={onNewReading} className="mystic-button-secondary">{newReadingLabel}</button> : null}
         <Link href={isChinese ? "/zh/history" : "/history"} className="mystic-button-secondary">{dictionary.reading.history}</Link>
-        {reading.method === "three-coin" ? <Link href={isChinese ? "/zh/readings/three-coin/result" : "/readings/three-coin/result"} className="mystic-button-secondary">{isChinese ? "查看本次结果" : "Reveal Your Reading"}</Link> : null}
         {saveState === "error" ? <span role="status" className="text-sm text-[var(--danger)]">{dictionary.reading.saveError}</span> : null}
       </div>
 

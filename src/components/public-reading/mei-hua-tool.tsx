@@ -65,7 +65,7 @@ export function MeiHuaTool({
 }) {
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
-  const onNewReading = onNewReadingProp ?? questionContext?.restartQuestion;
+  const onNewReading = onNewReadingProp ?? (() => questionContext?.restartQuestion(true));
   const zh = dictionary.locale === "zh-Hans";
   const [timeZone, setTimeZone] = useState("UTC");
   const [cast, setCast] = useState<StoredCast | null>(null);
@@ -113,6 +113,7 @@ export function MeiHuaTool({
       setError(dictionary.meiHua.invalidTimezone);
       return;
     }
+    if (questionContext?.freezeCoreQuestion() === false) return;
     const next = { utcMillis: Date.now(), ianaTimeZone: zone };
     const session = writePublicReadingSession(STORAGE_KEY, { cast: next });
     setReadingMeta({ id: session.id, createdAt: session.createdAt });

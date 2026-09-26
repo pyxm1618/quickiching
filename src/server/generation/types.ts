@@ -4,6 +4,11 @@ import type {
   CommercialReadingReport,
   DeterministicFacts,
 } from "@/domain/generation/schemas";
+import type {
+  DeepReadingContextEnrichment,
+  DeepReadingKnowledgeBundle,
+  DeepReadingReport,
+} from "@/domain/generation/deep-reading-contract";
 
 export type GenerationJobStatus = "queued" | "running" | "completed" | "failed" | "timed_out" | "dead_letter";
 
@@ -61,6 +66,9 @@ export type ProviderInput = {
   scene: Scene;
   interpretationGoal: InterpretationGoal;
   facts: DeterministicFacts;
+  context?: DeepReadingContextEnrichment;
+  knowledge?: DeepReadingKnowledgeBundle;
+  deadlineAt?: string;
 };
 
 export type ProviderGenerationResult = {
@@ -82,6 +90,12 @@ export type OutputReviewInput = {
   kind: "preview" | "deep_reading";
   output: unknown;
   facts: DeterministicFacts;
+  question?: string;
+  scene?: Scene;
+  interpretationGoal?: InterpretationGoal;
+  context?: DeepReadingContextEnrichment;
+  knowledge?: DeepReadingKnowledgeBundle;
+  deadlineAt?: string;
 };
 
 export type OutputReviewDecision = {
@@ -90,7 +104,34 @@ export type OutputReviewDecision = {
   schemaValid: boolean;
   safetyPass: boolean;
   factConsistencyPass: boolean;
+  questionRelevancePass?: boolean;
+  contextFidelityPass?: boolean;
+  evidenceGroundingPass?: boolean;
+  interpretiveCoherencePass?: boolean;
+  actionabilityPass?: boolean;
+  uncertaintyPass?: boolean;
+  languageConsistencyPass?: boolean;
 };
+
+export function reviewDecisionPassed(decision: OutputReviewDecision): boolean {
+  return decision.status === "pass"
+    && decision.schemaValid === true
+    && decision.safetyPass === true
+    && decision.factConsistencyPass === true
+    && decision.questionRelevancePass === true
+    && decision.contextFidelityPass === true
+    && decision.evidenceGroundingPass === true
+    && decision.interpretiveCoherencePass === true
+    && decision.actionabilityPass === true
+    && decision.uncertaintyPass === true
+    && decision.languageConsistencyPass === true;
+}
+
+export interface DeepReadingProvider {
+  readonly provider: string;
+  readonly model: string;
+  generateReading(input: ProviderInput, signal: AbortSignal): Promise<ProviderGenerationResult>;
+}
 
 export interface OutputReviewer {
   readonly reviewerModel: string;
@@ -149,6 +190,6 @@ export type PreviewGenerationResult = {
 };
 
 export type DeepReadingContract = {
-  output: CommercialReadingReport;
+  output: DeepReadingReport;
   facts: DeterministicFacts;
 };

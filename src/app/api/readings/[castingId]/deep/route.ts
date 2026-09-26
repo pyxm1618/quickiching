@@ -2,6 +2,7 @@ import { isPaidDeepReadingCapabilityEnabled } from "@/server/generation/deep-rea
 import { createProductionDeepReadingService } from "@/server/generation/deep-reading-composition";
 import { resolveSession } from "@/lib/auth/session";
 import { isStrictSameOriginRequest } from "@/server/http/origin-guard";
+import { deepReadingContextEnrichmentSchema } from "@/domain/generation/deep-reading-contract";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,11 +52,21 @@ export async function POST(
 
   const { castingId } = await context.params;
 
+  let submittedContext: unknown;
+  try {
+    submittedContext = await request.json();
+  } catch {
+    return json({ error: "CONTEXT_INSUFFICIENT", retryable: false }, 422);
+  }
+  const parsedContext = deepReadingContextEnrichmentSchema.safeParse(submittedContext);
+  if (!parsedContext.success) return json({ error: "CONTEXT_INSUFFICIENT", retryable: false }, 422);
+
   try {
     const service = await createProductionDeepReadingService();
     const result = await service.requestDeepReading({
       userId: session.user.id,
       castingId,
+      enrichment: parsedContext.data,
     });
 
     return json({
@@ -73,15 +84,17 @@ export async function POST(
     if (message === "CASTING_NOT_READY") {
       return json({ error: "CASTING_NOT_READY", message: "Casting must be revealed before requesting deep reading", retryable: false }, 422);
     }
-    if (message === "RISK_PROHIBITED") {
+    if (message === "UNSUPPORTED_CAST_METHOD") return json({ error: message, retryable: false }, 422);
+    if (message.startsWith("RISK_")) {
       return json({ error: "RISK_PROHIBITED", message: "This reading is restricted by risk assessment", retryable: false }, 403);
     }
     if (message === "INSUFFICIENT_CREDITS") {
       return json({ error: "INSUFFICIENT_CREDITS", retryable: false }, 402);
     }
-    if (message === "QUESTION_DECRYPT_FAILED" || message === "QUESTION_KEY_UNAVAILABLE") {
+    if (["QUESTION_DECRYPT_FAILED", "QUESTION_KEY_UNAVAILABLE", "CORE_QUESTION_REQUIRED"].includes(message)) {
       return json({ error: message, retryable: false }, 422);
     }
+    if (message === "CONTEXT_INSUFFICIENT") return json({ error: message, retryable: false }, 422);
     return json({ error: "DEEP_READING_FAILED", retryable: true }, 500);
   }
 }

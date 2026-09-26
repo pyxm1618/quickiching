@@ -1,3 +1,5 @@
+> Historical design note, superseded by the current product contract in [`docs/PRD.md`](../../PRD.md). The free personalized interpreter proposed here has been retired; Public V1 never calls AI, and Deep Reading is a separate paid, server-gated product.
+
 # Quick I Ching Public Reading P0 Design
 
 **Date:** 2026-08-19

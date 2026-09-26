@@ -40,6 +40,7 @@ export default async function ThreeCoinResultPage(props: {
         initialCredits={balance.available}
         initialCastingView={castingView ? {
           castingId: castingView.session.id,
+          createdAt: castingView.session.createdAt.toISOString(),
           context: castingView.context,
           lineValuesBottomUp: castingView.result?.lineValues ?? null,
           readingReport: (castingView.reading?.report as any) ?? null,

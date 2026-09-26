@@ -112,18 +112,20 @@ async function seedCompletedReading(page) {
     steps: FIXTURE_STEPS,
   });
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await clickButton(page, "Skip for now");
-  await waitForText(page, "Ask · editable before the result");
-  await waitForText(page, "6 / 6 lines");
+  await clickButton(page, "Continue to casting");
+  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await waitForText(page, "Your Three-Coin Reading");
 
   const completedState = await page.evaluate(() => ({
-    anchorCount: document.querySelectorAll("#three-coin-reading").length,
-    sidebarResetCount: [...document.querySelectorAll(".ritual-sidebar button")].filter((node) => node.textContent?.trim() === "New reading").length,
+    pathname: location.pathname,
+    resultHeading: [...document.querySelectorAll("h1")].some((node) => node.textContent?.trim() === "Your Three-Coin Reading"),
+    deepReadingEntry: document.querySelector("[data-deep-reading-entry]") !== null,
     hasReveal: [...document.querySelectorAll("a")].some((node) => node.textContent?.trim() === "Reveal Your Reading"),
   }));
-  assert.equal(completedState.anchorCount, 1, "Homepage must contain exactly one #three-coin-reading anchor");
-  assert.equal(completedState.sidebarResetCount, 0, "Completed Three-Coin chamber must not expose the sidebar destructive New reading control");
-  assert(completedState.hasReveal, "Completed Three-Coin chamber must expose Reveal Your Reading");
+  assert.equal(completedState.pathname, "/readings/three-coin/result", "A completed cast must open the unified result experience directly");
+  assert(completedState.resultHeading, "Unified result experience must show the completed Three-Coin reading");
+  assert(completedState.deepReadingEntry, "Unified result experience must expose its situation-based Deep Reading state");
+  assert.equal(completedState.hasReveal, false, "Completed reading must not require a redundant reveal action");
 }
 
 async function assertNoHorizontalOverflow(page) {
@@ -169,17 +171,16 @@ async function verifyStorageReadFailure(browser) {
   try {
     await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
     await clickButton(page, "Skip for now");
-  await waitForText(page, "Ask · editable before the result");
-    await waitForText(page, "THREE_COIN_SESSION_READ_FAILED");
+    await waitForText(page, "This question could not be saved.");
     const state = await page.evaluate(() => ({
-      anchorCount: document.querySelectorAll("#three-coin-reading").length,
-      castDisabled: [...document.querySelectorAll("button")].some((node) => node.textContent?.trim() === "Toss three coins" && node.disabled),
-      revealCount: [...document.querySelectorAll("a")].filter((node) => node.textContent?.trim() === "Reveal Your Reading").length,
+      questionPromptVisible: document.querySelector("[data-question-first] textarea") !== null,
+      castControlsVisible: document.querySelector('[data-realm="chamber"]') !== null,
+      savedQuestionError: document.body?.innerText.includes("This question could not be saved."),
     }));
-    assert.equal(state.anchorCount, 1, "Storage failure state must retain one Three-Coin anchor");
-    assert(state.castDisabled, "Three-Coin cast control must be disabled when browser storage cannot be read");
-    assert.equal(state.revealCount, 0, "Storage read failure must never expose Reveal Your Reading");
-    log("sessionStorage getItem fail-fast PASS");
+    assert(state.questionPromptVisible, "Question prompt must remain visible when its storage read fails");
+    assert.equal(state.castControlsVisible, false, "Casting must remain unavailable until the question state can be persisted");
+    assert(state.savedQuestionError, "Storage read failure must explain why the question cannot be saved");
+    log("sessionStorage read failure blocks casting before the question is persisted PASS");
   } finally {
     await context.close();
   }
@@ -195,14 +196,23 @@ async function verifyStorageWriteFailureRetry(browser) {
       value: () => { Storage.prototype.setItem = originalSetItem; },
     });
     Storage.prototype.setItem = function setItem(itemKey, value) {
-      if (itemKey === key) throw new DOMException("Storage blocked", "QuotaExceededError");
+      if (itemKey === key) {
+        let parsed;
+        try {
+          parsed = JSON.parse(value);
+        } catch {
+          parsed = null;
+        }
+        if (parsed && typeof parsed === "object" && "data" in parsed) {
+          throw new DOMException("Storage blocked", "QuotaExceededError");
+        }
+      }
       return originalSetItem.call(this, itemKey, value);
     };
   }, STORAGE_KEY);
   try {
     await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
     await clickButton(page, "Skip for now");
-  await waitForText(page, "Ask · editable before the result");
     await waitForText(page, "0 / 6 lines");
     await clickButton(page, "Toss three coins");
     await waitForText(page, "THREE_COIN_SESSION_WRITE_FAILED");
@@ -251,19 +261,18 @@ async function verifySeededResult(browser, viewport) {
     await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
     await waitForText(page, "Your Three-Coin Reading");
     await waitForText(page, "Fellowship");
-    await waitForText(page, "Changing Line 1");
-    await waitForText(page, "Changing Line 2");
-    await waitForText(page, "Changing Line 4");
+    await waitForText(page, "Active line interpretation");
+    await page.waitForFunction(() => [1, 2, 4].every((position) => document.querySelector(`[data-active-line="${position}"]`)));
     await waitForText(page, "Gentle penetration");
     for (const heading of [
-      "The Primary Hexagram",
-      "Understanding the Structure",
+      "Primary Hexagram",
+      "Classical line text",
+      "Core meaning",
       "Changing Lines",
-      "The Relating Hexagram",
-      "Bringing the Reading Together",
-      "Bottom Line",
-      "Questions to Sit With",
-      "What to Watch",
+      "Relating Hexagram",
+      "Synthesis",
+      "Bottom line",
+      "Three questions to carry forward",
     ]) await waitForText(page, heading);
 
     const beforeRefresh = await resultText(page);

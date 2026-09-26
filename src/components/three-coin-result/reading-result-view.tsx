@@ -104,6 +104,11 @@ export function ReadingResultView({
         </div>
       </section>
 
+      <p className="mt-4 rounded-2xl border border-white/[0.08] bg-black/10 px-5 py-4 text-sm leading-7 text-[var(--ink-2)]" data-free-cast-boundary>
+        This free layer explains the cast itself. It has not been interpreted against your specific situation.
+      </p>
+      {children}
+
       <div className={`${styles.revealDelay} mt-5 ${styles.path}`} aria-label="Primary to relating transformation path">
         <div className={styles.pathNode}>
           <p className="mystic-kicker">Primary Hexagram</p>
@@ -133,7 +138,7 @@ export function ReadingResultView({
         </div>
       </div>
 
-      <section className={`${styles.surface} mt-10 p-5 sm:p-8 lg:p-10`} aria-labelledby="primary-heading">
+      <section id="general-cast-interpretation" className={`${styles.surface} mt-10 p-5 sm:p-8 lg:p-10`} aria-labelledby="primary-heading">
         <p className="mystic-kicker">Section 2</p>
         <h2 id="primary-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] sm:text-4xl">The Primary Hexagram</h2>
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.45fr)_minmax(250px,0.75fr)] lg:gap-10">
@@ -222,17 +227,17 @@ export function ReadingResultView({
 
       <section className={`${styles.surface} mt-12 p-5 sm:p-8 lg:p-10`} aria-labelledby="synthesis-heading">
         <p className="mystic-kicker">Section 6</p>
-        <h2 id="synthesis-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] sm:text-4xl">Bringing the Reading Together</h2>
+        <h2 id="synthesis-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] sm:text-4xl">General Cast Synthesis</h2>
         <div className="mt-8 grid gap-8 lg:grid-cols-3">
-          <CopyBlock title="The Situation"><p>{reading.synthesis.situation}</p></CopyBlock>
-          <CopyBlock title="Where Change Is Happening"><p>{reading.synthesis.whereChangeIsHappening}</p></CopyBlock>
-          <CopyBlock title="Direction of Change"><p>{reading.synthesis.directionOfChange}</p></CopyBlock>
+          <CopyBlock title="General Pattern"><p>{reading.synthesis.situation}</p></CopyBlock>
+          <CopyBlock title="Structural Change"><p>{reading.synthesis.whereChangeIsHappening}</p></CopyBlock>
+          <CopyBlock title="General Direction of Change"><p>{reading.synthesis.directionOfChange}</p></CopyBlock>
         </div>
       </section>
 
       <section className={`${styles.bottomLine} mt-6 p-6 sm:p-8 lg:p-10`} aria-labelledby="bottom-line-heading">
         <p className="mystic-kicker">Synthesis</p>
-        <h2 id="bottom-line-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] text-[var(--gold-2)] sm:text-4xl">Bottom Line</h2>
+        <h2 id="bottom-line-heading" className="mt-2 font-display text-3xl font-normal tracking-[-0.035em] text-[var(--gold-2)] sm:text-4xl">Cast Takeaway</h2>
         <p className="mt-5 max-w-4xl text-base leading-8 text-[var(--ink-2)] sm:text-lg sm:leading-9">{reading.synthesis.bottomLine}</p>
       </section>
 
@@ -265,8 +270,6 @@ export function ReadingResultView({
           </ul>
         </section>
       </div>
-
-      {children}
 
       <div className={`${styles.divider} mt-12`} />
       <footer className="mx-auto mt-8 max-w-4xl text-center">

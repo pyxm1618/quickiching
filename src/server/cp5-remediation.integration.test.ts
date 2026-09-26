@@ -6,8 +6,9 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { databaseSchema } from "@/server/db/schema";
 import { closeCommercialDatabaseConnection } from "@/server/db/client";
 import { createDeepReadingService } from "@/server/generation/deep-reading-service";
-import { calculateDeepReadingInputSnapshotHash } from "@/server/generation/integrity";
-import { claimJobLeaseStep, finalizeDeepReadingStep } from "@/server/workflows/deep-reading-steps";
+import { calculateResultIntegrityHmac } from "@/server/generation/integrity";
+import { encryptQuestionForStorage } from "@/server/generation/question-crypto";
+import { claimJobLeaseStep, finalizeDeepReadingStep, handleUnclaimedWorkflowFailureStep } from "@/server/workflows/deep-reading-steps";
 import { createPostgresAccountRepository } from "@/server/account/postgres-repository";
 import { PostgresPaymentRepository } from "@/server/payments/postgres-repository";
 import { canonicalWaffoPayloadHash, type NormalizedWaffoWebhook } from "@/server/payments/waffo-webhook";
@@ -17,6 +18,10 @@ const databaseURL = process.env.TEST_DATABASE_URL;
 if (!databaseURL) throw new Error("TEST_DATABASE_URL is required for PostgreSQL integration tests");
 
 const previousDatabaseURL = process.env.DATABASE_URL;
+const previousIntegrityKeys = process.env.RESULT_INTEGRITY_KEYS;
+const previousQuestionEncryptionKeys = process.env.QUESTION_ENCRYPTION_KEYS;
+const integrityKeys = "v1:cp5-result-integrity-key-material-000000000001";
+const questionEncryptionKeys = "v1:cp5-question-encryption-key-material-000000000001";
 const sql = postgres(databaseURL, { max: 8, prepare: false });
 const db = drizzle(sql, { schema: databaseSchema });
 
@@ -48,6 +53,7 @@ async function insertCastingWithResult(input: {
   const scene = input.scene ?? "career";
   const goal = input.goal ?? "guidance";
   const epoch = input.epoch ?? 0;
+  const integrity = calculateResultIntegrityHmac(facts, { RESULT_INTEGRITY_KEYS: integrityKeys });
   await sql`
     insert into casting_sessions (
       id, user_id, method, lifecycle, risk_status, scene, interpretation_goal,
@@ -65,9 +71,36 @@ async function insertCastingWithResult(input: {
     ) values (
       ${input.castingId}, ARRAY[7,8,7,8,7,8]::integer[], 11, ARRAY[]::integer[], null,
       '{"kind":"cp5-remediation"}'::jsonb, 'three-coin-v1', 'king-wen-v1',
-      'fixture-hmac', 'v1', clock_timestamp()
+      ${integrity.hmac}, ${integrity.version}, clock_timestamp()
     )
   `;
+  const questionVersionId = randomUUID();
+  const encryptedQuestion = encryptQuestionForStorage({
+    castingId: input.castingId,
+    questionVersionId,
+    question: "What should I focus on in this transition?",
+  }, { QUESTION_ENCRYPTION_KEYS: questionEncryptionKeys });
+  await sql`
+    insert into question_versions (
+      id, casting_id, version_number, ciphertext, iv, auth_tag, encryption_key_version,
+      fingerprint_key_version, fingerprint, created_reason, created_at
+    ) values (
+      ${questionVersionId}, ${input.castingId}, 1, ${encryptedQuestion.ciphertext}, ${encryptedQuestion.iv},
+      ${encryptedQuestion.authTag}, ${encryptedQuestion.encryptionKeyVersion}, 'v1', ${`fingerprint-${questionVersionId}`},
+      'initial_cast', clock_timestamp()
+    )
+  `;
+}
+
+function validEnrichment() {
+  return {
+    contextNotes: "The timeline changed and I need to decide what information matters next.",
+    options: [],
+    constraints: [],
+    concerns: [],
+    interpretationGoal: "what_do_i_need_to_see_clearly" as const,
+    locale: "en" as const,
+  };
 }
 
 async function insertPaidCredit(input: { userId: string; available?: number; reserved?: number }): Promise<{
@@ -134,6 +167,8 @@ function makePaymentEvent(orderId: string, userId: string): NormalizedWaffoWebho
 describe("CP5 audit remediation regressions", () => {
   beforeAll(async () => {
     process.env.DATABASE_URL = databaseURL;
+    process.env.RESULT_INTEGRITY_KEYS = integrityKeys;
+    process.env.QUESTION_ENCRYPTION_KEYS = questionEncryptionKeys;
     await migrate(db, { migrationsFolder: "drizzle" });
   });
 
@@ -141,6 +176,10 @@ describe("CP5 audit remediation regressions", () => {
     await closeCommercialDatabaseConnection();
     if (previousDatabaseURL === undefined) delete process.env.DATABASE_URL;
     else process.env.DATABASE_URL = previousDatabaseURL;
+    if (previousIntegrityKeys === undefined) delete process.env.RESULT_INTEGRITY_KEYS;
+    else process.env.RESULT_INTEGRITY_KEYS = previousIntegrityKeys;
+    if (previousQuestionEncryptionKeys === undefined) delete process.env.QUESTION_ENCRYPTION_KEYS;
+    else process.env.QUESTION_ENCRYPTION_KEYS = previousQuestionEncryptionKeys;
     await sql.end({ timeout: 5 });
   });
 
@@ -161,7 +200,7 @@ describe("CP5 audit remediation regressions", () => {
       },
     });
 
-    await expect(service.requestDeepReading({ userId, castingId }))
+    await expect(service.requestDeepReading({ userId, castingId, enrichment: validEnrichment() }))
       .rejects.toThrow("WORKFLOW_START_FAILED");
 
     const jobs = await sql<{ id: string; status: string; structured_error_code: string | null }[]>`
@@ -195,51 +234,39 @@ describe("CP5 audit remediation regressions", () => {
     await insertUser(userId, `${suffix}@example.com`);
 
     const activeCastingId = randomUUID();
-    const activeJobId = randomUUID();
-    const activeIdempotencyKey = `deep:${activeCastingId}:0:${activeJobId}`;
+    await insertPaidCredit({ userId });
     await insertCastingWithResult({ userId, castingId: activeCastingId });
-    const activeSnapshot = calculateDeepReadingInputSnapshotHash({
-      castingId: activeCastingId,
-      userId,
-      epoch: 0,
-      question: "Reading for scene: career",
-      scene: "career",
-      interpretationGoal: "guidance",
-      facts,
-    });
-    await sql`
-      insert into generation_jobs (
-        id, casting_id, kind, status, generation_epoch, idempotency_key,
-        input_snapshot_hash, attempt_count, lease_owner, lease_token, lease_expires_at,
-        timeout_at, created_at, updated_at
-      ) values (
-        ${activeJobId}, ${activeCastingId}, 'deep_reading', 'running', 0, ${activeIdempotencyKey},
-        ${activeSnapshot}, 1, 'worker-a', 'live-token', clock_timestamp() + interval '5 minutes',
-        clock_timestamp() + interval '10 minutes', clock_timestamp(), clock_timestamp()
-      )
+    const activeRequest = await createDeepReadingService({
+      sql,
+      workflowStarter: {
+        startDeepReadingWorkflow: async () => ({ runId: `run-${randomUUID()}`, started: true }),
+      },
+    }).requestDeepReading({ userId, castingId: activeCastingId, enrichment: validEnrichment() });
+    const activeJobs = await sql<{ idempotency_key: string; generation_epoch: number }[]>`
+      select idempotency_key, generation_epoch from generation_jobs where id = ${activeRequest.jobId}
     `;
+    const activeIdempotencyKey = String(activeJobs[0]!.idempotency_key);
     await sql`
-      insert into workflow_runs (
-        id, workflow_name, idempotency_key, entity_type, entity_id, status, created_at, updated_at
-      ) values (
-        ${randomUUID()}, 'deep_reading', ${activeIdempotencyKey}, 'casting', ${activeCastingId},
-        'running', clock_timestamp(), clock_timestamp()
-      )
+      update generation_jobs
+      set status = 'running', lease_owner = 'worker-a', lease_token = 'live-token',
+          lease_expires_at = clock_timestamp() + interval '5 minutes', attempt_count = 1,
+          updated_at = clock_timestamp()
+      where id = ${activeRequest.jobId}
     `;
 
     await expect(claimJobLeaseStep({
       castingId: activeCastingId,
-      jobId: activeJobId,
+      jobId: activeRequest.jobId,
       idempotencyKey: activeIdempotencyKey,
-      generationEpoch: 0,
+      generationEpoch: Number(activeJobs[0]!.generation_epoch),
     })).rejects.toThrow("GENERATION_JOB_LEASE_ACTIVE");
 
     await expect(finalizeDeepReadingStep({
       castingId: activeCastingId,
-      jobId: activeJobId,
-      reservationId: randomUUID(),
+      jobId: activeRequest.jobId,
+      reservationId: activeRequest.reservationId,
       idempotencyKey: activeIdempotencyKey,
-      generationEpoch: 0,
+      generationEpoch: Number(activeJobs[0]!.generation_epoch),
       inputSnapshotHash: "not-the-request-snapshot",
       leaseToken: "live-token",
       generationResult: { output: {}, deterministicFacts: {} },
@@ -249,38 +276,27 @@ describe("CP5 audit remediation regressions", () => {
         schemaValid: true,
         safetyPass: true,
         factConsistencyPass: true,
+        questionRelevancePass: true,
+        contextFidelityPass: true,
+        evidenceGroundingPass: true,
+        interpretiveCoherencePass: true,
+        actionabilityPass: true,
+        uncertaintyPass: true,
+        languageConsistencyPass: true,
       },
     })).rejects.toThrow("INPUT_SNAPSHOT_MISMATCH");
 
     const changedCastingId = randomUUID();
-    const changedJobId = randomUUID();
-    const changedIdempotencyKey = `deep:${changedCastingId}:0:${changedJobId}`;
+    const { batchId: changedBatchId } = await insertPaidCredit({ userId });
     await insertCastingWithResult({ userId, castingId: changedCastingId });
-    const originalSnapshot = calculateDeepReadingInputSnapshotHash({
-      castingId: changedCastingId,
-      userId,
-      epoch: 0,
-      question: "Reading for scene: career",
-      scene: "career",
-      interpretationGoal: "guidance",
-      facts,
-    });
-    await sql`
-      insert into generation_jobs (
-        id, casting_id, kind, status, generation_epoch, idempotency_key,
-        input_snapshot_hash, timeout_at, created_at, updated_at
-      ) values (
-        ${changedJobId}, ${changedCastingId}, 'deep_reading', 'queued', 0, ${changedIdempotencyKey},
-        ${originalSnapshot}, clock_timestamp() + interval '10 minutes', clock_timestamp(), clock_timestamp()
-      )
-    `;
-    await sql`
-      insert into workflow_runs (
-        id, workflow_name, idempotency_key, entity_type, entity_id, status, created_at, updated_at
-      ) values (
-        ${randomUUID()}, 'deep_reading', ${changedIdempotencyKey}, 'casting', ${changedCastingId},
-        'pending', clock_timestamp(), clock_timestamp()
-      )
+    const changedRequest = await createDeepReadingService({
+      sql,
+      workflowStarter: {
+        startDeepReadingWorkflow: async () => ({ runId: `run-${randomUUID()}`, started: true }),
+      },
+    }).requestDeepReading({ userId, castingId: changedCastingId, enrichment: validEnrichment() });
+    const changedJobs = await sql<{ idempotency_key: string; generation_epoch: number }[]>`
+      select idempotency_key, generation_epoch from generation_jobs where id = ${changedRequest.jobId}
     `;
     await sql`
       update casting_sessions set scene = 'relationships', updated_at = clock_timestamp()
@@ -289,10 +305,31 @@ describe("CP5 audit remediation regressions", () => {
 
     await expect(claimJobLeaseStep({
       castingId: changedCastingId,
-      jobId: changedJobId,
-      idempotencyKey: changedIdempotencyKey,
-      generationEpoch: 0,
-    })).rejects.toThrow("INPUT_SNAPSHOT_MISMATCH");
+      jobId: changedRequest.jobId,
+      idempotencyKey: String(changedJobs[0]!.idempotency_key),
+      generationEpoch: Number(changedJobs[0]!.generation_epoch),
+    })).rejects.toThrow("CAST_SCENE_SNAPSHOT_MISMATCH");
+
+    await handleUnclaimedWorkflowFailureStep({
+      castingId: changedCastingId,
+      jobId: changedRequest.jobId,
+      idempotencyKey: String(changedJobs[0]!.idempotency_key),
+      generationEpoch: Number(changedJobs[0]!.generation_epoch),
+      reservationId: changedRequest.reservationId,
+      errorCode: "CAST_SCENE_SNAPSHOT_MISMATCH",
+    });
+    const failedJob = await sql<{ status: string; structured_error_code: string }[]>`
+      select status, structured_error_code from generation_jobs where id = ${changedRequest.jobId}
+    `;
+    expect(failedJob).toEqual([{ status: "failed", structured_error_code: "CAST_SCENE_SNAPSHOT_MISMATCH" }]);
+    const releasedReservation = await sql<{ status: string }[]>`
+      select status from entitlement_reservations where id = ${changedRequest.reservationId}
+    `;
+    expect(releasedReservation).toEqual([{ status: "released" }]);
+    const releasedBatch = await sql<{ quantity_available: number; quantity_reserved: number }[]>`
+      select quantity_available, quantity_reserved from entitlement_batches where id = ${changedBatchId}
+    `;
+    expect(releasedBatch).toEqual([{ quantity_available: 1, quantity_reserved: 0 }]);
   });
 
   it("erases encrypted questions and generated deep-reading content on account deletion", async () => {
@@ -305,15 +342,10 @@ describe("CP5 audit remediation regressions", () => {
     const { batchId } = await insertPaidCredit({ userId, available: 0, reserved: 1 });
     await insertCastingWithResult({ userId, castingId });
 
-    await sql`
-      insert into question_versions (
-        id, casting_id, version_number, ciphertext, iv, auth_tag,
-        encryption_key_version, fingerprint_key_version, fingerprint, created_reason, created_at
-      ) values (
-        ${randomUUID()}, ${castingId}, 1, 'sensitive-ciphertext', 'sensitive-iv', 'sensitive-tag',
-        'v1', 'v1', 'sensitive-fingerprint', 'initial', clock_timestamp()
-      )
+    const questionCountsBefore = await sql<{ questions: number }[]>`
+      select count(*)::int as questions from question_versions where casting_id = ${castingId}
     `;
+    expect(questionCountsBefore).toEqual([{ questions: 1 }]);
     await sql`
       insert into generation_jobs (
         id, casting_id, kind, status, generation_epoch, idempotency_key,
