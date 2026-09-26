@@ -176,7 +176,14 @@ async function verifyQuestionReading(page) {
   for (let line = 1; line <= 6; line += 1) {
     await page.waitForSelector(castButtonSelector, { timeout: 15_000 });
     await page.click(castButtonSelector);
-    await waitForText(page, `${line} / 6 lines`);
+    if (line === 6) {
+      await page.waitForFunction(
+        () => location.pathname === "/readings/three-coin/result" || Boolean(document.body?.innerText?.includes("6 / 6 lines")),
+        { timeout: 15_000 }
+      );
+    } else {
+      await waitForText(page, `${line} / 6 lines`);
+    }
   }
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
   await waitForText(page, "Your Three-Coin Reading");
