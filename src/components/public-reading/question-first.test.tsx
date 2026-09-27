@@ -169,4 +169,17 @@ describe("QuestionFirst component question freeze regressions", () => {
     expect(html).not.toContain("Skip for now");
     expect(html).toContain("disabled");
   });
+
+  it("does not imply a skipped free-only question can be added later", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const html = renderToStaticMarkup(
+      <QuestionFirst storageKey="test-free-only-question-choice">
+        <div>Casting UI</div>
+      </QuestionFirst>,
+    );
+
+    expect(html).toContain("Question · optional for a free cast");
+    expect(html).toContain("Skip — free reading only");
+    expect(html).not.toContain("Skip for now");
+  });
 });

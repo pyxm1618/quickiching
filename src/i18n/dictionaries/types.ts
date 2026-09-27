@@ -95,7 +95,6 @@ export type UiDictionary = {
     activePlaceholder: string;
     help: string;
     continueButton: string;
-    skipButton: string;
     continueWithQuestion: string;
     continueFreeReading: string;
     skipFreeOnly: string;

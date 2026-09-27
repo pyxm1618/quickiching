@@ -208,7 +208,7 @@ export function QuestionFirst({
             </button>
             {!coreQuestionFrozenAtCast ? (
               <button type="button" onClick={skip} className="mystic-button-secondary">
-                {deepReadingEligible ? dictionary.questionFirst.skipFreeOnly : dictionary.questionFirst.skipButton}
+                {dictionary.questionFirst.skipFreeOnly}
               </button>
             ) : null}
           </div>
