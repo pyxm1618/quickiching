@@ -30,6 +30,7 @@ jobs:
     timeout-minutes: 20
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -42,6 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${VERCEL_TOKEN:-}" || { echo "::error::VERCEL_TOKEN is not configured"; exit 1; }
+          test -n "${PRODUCTION_DATABASE_URL:-}" || { echo "::error::PRODUCTION_DATABASE_URL is not configured in GitHub Actions secrets"; exit 1; }
           test "$VERCEL_PROJECT_ID" = "prj_pCpeoAys2GOqKZvkbLugYjpJWZBS"
           test "$VERCEL_TEAM_ID" = "team_z1b9TTQtbNkr43dzs5JVJPnQ"
       - name: Install locked dependencies

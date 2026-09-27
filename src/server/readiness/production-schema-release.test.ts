@@ -3,10 +3,17 @@ import {
   classifyAppliedMigrationHistory,
   classifyMigration0012Schema,
   MIGRATION_0012_REQUIRED_OBJECTS,
+  requireProductionDatabaseUrl,
   resolveProductionDatabaseUrl,
 } from "./production-schema-release";
 
 describe("Production Drizzle schema release preflight", () => {
+  it("accepts only PostgreSQL URLs from the dedicated Production release secret", () => {
+    expect(requireProductionDatabaseUrl(" postgres://production/db ")).toBe("postgres://production/db");
+    expect(() => requireProductionDatabaseUrl("https://example.com/db")).toThrow("PRODUCTION_DATABASE_URL_INVALID");
+    expect(() => requireProductionDatabaseUrl("")).toThrow("PRODUCTION_DATABASE_URL_INVALID");
+  });
+
   it("uses a readable Production DATABASE_URL without decrypting any other environment", async () => {
     const readDecryptedValue = vi.fn();
     await expect(resolveProductionDatabaseUrl([

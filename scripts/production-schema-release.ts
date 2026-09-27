@@ -5,6 +5,7 @@ import {
   classifyAppliedMigrationHistory,
   classifyMigration0012Schema,
   MIGRATION_0012_REQUIRED_OBJECTS,
+  requireProductionDatabaseUrl,
   resolveProductionDatabaseUrl,
   type ProductionEnvironmentEntry,
 } from "../src/server/readiness/production-schema-release";
@@ -18,6 +19,9 @@ const EXISTING_COMMERCIAL_TABLES = REQUIRED_COMMERCIAL_TABLES.filter(
 );
 
 async function fetchProductionDatabaseUrl(): Promise<string> {
+  const releaseSecret = process.env.PRODUCTION_DATABASE_URL;
+  if (releaseSecret) return requireProductionDatabaseUrl(releaseSecret);
+
   const token = process.env.VERCEL_TOKEN?.trim();
   if (!token) throw new Error("VERCEL_TOKEN_UNAVAILABLE");
   if (process.env.VERCEL_PROJECT_ID?.trim() !== PRODUCTION_PROJECT_ID) {

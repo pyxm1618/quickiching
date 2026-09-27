@@ -41,6 +41,11 @@ function postgresUrl(value: unknown): value is string {
   return typeof value === "string" && /^postgres(?:ql)?:\/\//i.test(value.trim());
 }
 
+export function requireProductionDatabaseUrl(value: unknown): string {
+  if (!postgresUrl(value)) throw new Error("PRODUCTION_DATABASE_URL_INVALID");
+  return value.trim();
+}
+
 export async function resolveProductionDatabaseUrl(
   entries: readonly ProductionEnvironmentEntry[],
   readDecryptedValue: (environmentId: string) => Promise<DecryptedEnvironmentValue>,
