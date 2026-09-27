@@ -60,11 +60,10 @@ async function clickText(page, text) {
 async function skipQuestion(page) {
   const skipLabel = await page.$eval("body", () => [...document.querySelectorAll("button")]
     .map((node) => node.textContent?.trim())
-    .find((text) => text === "Skip for now" || text === "Skip — free reading only"));
-  if (skipLabel) {
-    await clickText(page, skipLabel);
-    await waitForText(page, "Question · set before the first line");
-  }
+    .find((text) => text === "Skip — free reading only"));
+  assert.equal(skipLabel, "Skip — free reading only", "Question skip must clearly leave this cast free-only");
+  await clickText(page, skipLabel);
+  await waitForText(page, "Question · set before the first line");
 }
 
 async function assertNoOverflow(page, label) {
@@ -382,7 +381,7 @@ async function buildManual(page, values) {
 async function newManual(page) {
   await clickText(page, "New reading");
   await waitForText(page, "What would you like to reflect on?");
-  await clickText(page, "Skip for now");
+  await clickText(page, "Skip — free reading only");
   await page.waitForSelector("select:not(#manual-primary-hexagram)", { timeout: 15_000 });
 }
 

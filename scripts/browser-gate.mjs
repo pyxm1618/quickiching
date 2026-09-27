@@ -309,12 +309,13 @@ async function assertBasicResult(page) {
 
 async function skipOptionalQuestion(page) {
   const skipped = await page.evaluate(() => {
-    const button = [...document.querySelectorAll("button")].find((node) => ["Skip for now", "Skip — free reading only"].includes(node.textContent?.trim() ?? ""));
+    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Skip — free reading only");
     if (!(button instanceof HTMLButtonElement)) return false;
     button.click();
     return true;
   });
-  if (skipped) await waitForText(page, "Question · set before the first line");
+  assert(skipped, "Question skip must clearly leave this cast free-only");
+  await waitForText(page, "Question · set before the first line");
 }
 
 async function verifyThreeCoinTransactionSemantics(page) {
