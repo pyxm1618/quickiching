@@ -15,7 +15,6 @@ const EXPECTED_MIGRATIONS: MigrationRow[] = migrationIntegrity.migrations.map((m
 function validCommercialEnv(): Record<string, string> {
   return {
     COMMERCIAL_V2_AUTH_ENABLED: "true",
-    COMMERCIAL_V2_AI_PREVIEW_ENABLED: "true",
     COMMERCIAL_V2_CHECKOUT_ENABLED: "true",
     COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "true",
     COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "true",
@@ -39,7 +38,6 @@ function validCommercialEnv(): Record<string, string> {
     QUESTION_FINGERPRINT_KEYS: "v1:question-fingerprint-material-00000001",
     QUESTION_ENCRYPTION_KEYS: "v1:question-encryption-material-00000002",
     RESULT_INTEGRITY_KEYS: "v1:result-integrity-material-00000003",
-    AI_MODEL_PREVIEW: "preview-model",
     AI_MODEL_DEEP_READING: "deep-model",
     AI_MAX_OUTPUT_TOKENS: "1024",
     AI_MAX_REVIEW_OUTPUT_TOKENS: "512",
@@ -71,7 +69,6 @@ describe("System Readiness Service", () => {
   it("reports blocked when all commercial capabilities are disabled or unconfigured", async () => {
     const env: Record<string, string> = {
       COMMERCIAL_V2_AUTH_ENABLED: "false",
-      COMMERCIAL_V2_AI_PREVIEW_ENABLED: "false",
       COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
       COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "false",
       COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "false",
@@ -87,7 +84,6 @@ describe("System Readiness Service", () => {
 
   it("reports blocked when only a subset of required commercial capabilities is enabled", async () => {
     const env = validCommercialEnv();
-    env.COMMERCIAL_V2_AI_PREVIEW_ENABLED = "false";
     env.COMMERCIAL_V2_CHECKOUT_ENABLED = "false";
     env.COMMERCIAL_V2_PAID_DEEP_READING_ENABLED = "false";
 
@@ -96,7 +92,7 @@ describe("System Readiness Service", () => {
     expect(report.status).toBe("not_ready");
     expect(report.overall).toBe("blocked");
     expect(report.capabilities.auth.enabled).toBe(true);
-    expect(report.capabilities.aiPreview.enabled).toBe(false);
+    expect(report.capabilities.paidDeepReading.enabled).toBe(false);
   });
 
   it("reports blocked when commercial database is unavailable", async () => {

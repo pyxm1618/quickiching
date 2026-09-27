@@ -1,7 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
-import { isAiPreviewCapabilityEnabled } from "@/server/generation/capability";
 import { isPaidDeepReadingCapabilityEnabled } from "@/server/generation/deep-reading-capability";
 import {
   isCheckoutCapabilityEnabled,
@@ -11,7 +10,6 @@ import { isReconcileCapabilityEnabled } from "@/server/reconcile/capability";
 
 const GONE_PREFIXES = ["/checkout"] as const;
 const NOT_FOUND_PREFIXES = ["/result", "/cast"] as const;
-const PERSONALIZED_API_PATH = "/api/personalized-interpretation";
 const HEALTH_API_PATH = "/api/health";
 const READY_API_PATH = "/api/ready";
 const USER_ME_API_PATH = "/api/user/me";
@@ -24,24 +22,14 @@ const RECONCILE_API_PATH = "/api/internal/reconcile";
 const CP6_STAGING_DIAGNOSTICS_PATH = "/api/internal/cp6-staging-diagnostics";
 const STAGING_VERCEL_PROJECT_ID = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE";
 const STAGING_PRODUCTION_HOST = "staging.quickiching.com";
-const COMMERCIAL_PREVIEW_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/preview\/?$/;
 const COMMERCIAL_DEEP_READING_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/deep\/?$/;
-const COMMERCIAL_READING_STATUS_PATH = /^\/api\/readings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/?$/;
 
 function matchesPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-function isCommercialPreviewPath(pathname: string): boolean {
-  return COMMERCIAL_PREVIEW_PATH.test(pathname);
-}
-
 function isCommercialDeepReadingPath(pathname: string): boolean {
   return COMMERCIAL_DEEP_READING_PATH.test(pathname);
-}
-
-function isCommercialReadingStatusPath(pathname: string): boolean {
-  return COMMERCIAL_READING_STATUS_PATH.test(pathname);
 }
 
 function cp6StagingDiagnosticsEnabled(): boolean {
@@ -104,14 +92,6 @@ export function middleware(request: NextRequest) {
   }
 
   if (NOT_FOUND_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))) {
-    return new NextResponse("Not Found", {
-      status: 404,
-      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
-    });
-  }
-
-  if (isCommercialPreviewPath(pathname) || isCommercialReadingStatusPath(pathname)) {
-    if (isAiPreviewCapabilityEnabled()) return NextResponse.next();
     return new NextResponse("Not Found", {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
@@ -197,7 +177,7 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  if (matchesPrefix(pathname, "/api") && pathname !== PERSONALIZED_API_PATH && pathname !== `${PERSONALIZED_API_PATH}/`) {
+  if (matchesPrefix(pathname, "/api")) {
     return new NextResponse("Not Found", {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },

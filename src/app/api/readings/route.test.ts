@@ -31,6 +31,7 @@ describe("Save Reading Route (POST /api/readings)", () => {
     vi.stubEnv("APP_BASE_URL", "https://www.quickiching.com");
     vi.stubEnv("BETTER_AUTH_URL", "https://www.quickiching.com");
     vi.stubEnv("DATABASE_ADAPTER_MODE", "memory");
+    vi.stubEnv("QUESTION_FINGERPRINT_KEYS", "v1:reading-route-test-fingerprint-key");
     mocks.sessionUser = { id: "user-test-1", email: "user@example.com" };
   });
 

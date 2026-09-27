@@ -7,7 +7,6 @@ vi.mock("@/server/auth/capability", () => ({
 
 const authEnvironment = {
   COMMERCIAL_V2_AUTH_ENABLED: "true",
-  COMMERCIAL_V2_AI_PREVIEW_ENABLED: "false",
   COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
   COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "false",
   COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "false",

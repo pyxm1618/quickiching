@@ -1,3 +1,5 @@
+> Historical implementation plan, superseded on 2026-09-25. `Reveal Your Reading` is no longer a required action; completed casts enter the unified result page directly.
+
 # Three-Coin Free Reading V2 Implementation Plan
 
 **Goal:** Deliver a complete deterministic, no-login, no-AI Three-Coin result page with 64 hexagram interpretations, 384 moving-line interpretations, synthesis, browser-session recovery, Concept A/Motion F UI, strict SEO boundaries, and the isolated 404 metadata fix.

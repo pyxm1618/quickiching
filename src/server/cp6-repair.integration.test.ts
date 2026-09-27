@@ -7,6 +7,7 @@ import { databaseSchema } from "@/server/db/schema";
 import { closeCommercialDatabaseConnection } from "@/server/db/client";
 import { createDeepReadingService } from "@/server/generation/deep-reading-service";
 import { calculateResultIntegrityHmac } from "@/server/generation/integrity";
+import { encryptQuestionForStorage } from "@/server/generation/question-crypto";
 import { claimJobLeaseStep, finalizeDeepReadingStep } from "@/server/workflows/deep-reading-steps";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
 
@@ -17,7 +18,9 @@ const sql = postgres(databaseURL, { max: 8, prepare: false });
 const db = drizzle(sql, { schema: databaseSchema });
 const previousDatabaseURL = process.env.DATABASE_URL;
 const previousIntegrityKeys = process.env.RESULT_INTEGRITY_KEYS;
+const previousQuestionEncryptionKeys = process.env.QUESTION_ENCRYPTION_KEYS;
 const integrityKeys = "v1:cp6-result-integrity-key-material-000000000001";
+const questionEncryptionKeys = "v1:cp6-question-encryption-key-material-000000000001";
 
 const facts: DeterministicFacts = {
   method: "three_coin",
@@ -64,6 +67,21 @@ async function insertCasting(
       ${resultHmac}, ${integrity.version}, clock_timestamp()
     )
   `;
+  const questionVersionId = randomUUID();
+  const encryptedQuestion = encryptQuestionForStorage({
+    castingId,
+    questionVersionId,
+    question: "What should I focus on in this transition?",
+  }, { QUESTION_ENCRYPTION_KEYS: questionEncryptionKeys });
+  await sql`
+    insert into question_versions (
+      id, casting_id, version_number, ciphertext, iv, auth_tag, encryption_key_version,
+      fingerprint_key_version, fingerprint, created_reason, created_at
+    ) values (
+      ${questionVersionId}, ${castingId}, 1, ${encryptedQuestion.ciphertext}, ${encryptedQuestion.iv},
+      ${encryptedQuestion.authTag}, ${encryptedQuestion.encryptionKeyVersion}, 'v1', 'cp6-fixture', 'initial_cast', clock_timestamp()
+    )
+  `;
 }
 
 async function insertCredit(userId: string, expiresIn: string = "12 months"): Promise<{ batchId: string }> {
@@ -101,13 +119,24 @@ function service() {
   });
 }
 
-async function prepareClaimedReading(options: { invalidResultHmac?: boolean } = {}) {
+function validEnrichment() {
+  return {
+    contextNotes: "The timeline changed and I need to decide what information matters next.",
+    options: [],
+    constraints: [],
+    concerns: [],
+    interpretationGoal: "what_do_i_need_to_see_clearly" as const,
+    locale: "en" as const,
+  };
+}
+
+async function prepareClaimedReading() {
   const userId = `cp6-final-${randomUUID()}`;
   const castingId = randomUUID();
   await insertUser(userId);
   const { batchId } = await insertCredit(userId);
-  await insertCasting(userId, castingId, options);
-  const requested = await service().requestDeepReading({ userId, castingId });
+  await insertCasting(userId, castingId);
+  const requested = await service().requestDeepReading({ userId, castingId, enrichment: validEnrichment() });
   const jobRows = await sql<{ idempotency_key: string; generation_epoch: number }[]>`
     select idempotency_key, generation_epoch from generation_jobs where id = ${requested.jobId}
   `;
@@ -149,6 +178,13 @@ async function expectFinalizationFence(
       schemaValid: true,
       safetyPass: true,
       factConsistencyPass: true,
+      questionRelevancePass: true,
+      contextFidelityPass: true,
+      evidenceGroundingPass: true,
+      interpretiveCoherencePass: true,
+      actionabilityPass: true,
+      uncertaintyPass: true,
+      languageConsistencyPass: true,
     },
   })).rejects.toThrow(expectedError);
 
@@ -172,6 +208,7 @@ describe("CP6 repair regressions", () => {
   beforeAll(async () => {
     process.env.DATABASE_URL = databaseURL;
     process.env.RESULT_INTEGRITY_KEYS = integrityKeys;
+    process.env.QUESTION_ENCRYPTION_KEYS = questionEncryptionKeys;
     await migrate(db, { migrationsFolder: "drizzle" });
   });
 
@@ -181,6 +218,8 @@ describe("CP6 repair regressions", () => {
     else process.env.DATABASE_URL = previousDatabaseURL;
     if (previousIntegrityKeys === undefined) delete process.env.RESULT_INTEGRITY_KEYS;
     else process.env.RESULT_INTEGRITY_KEYS = previousIntegrityKeys;
+    if (previousQuestionEncryptionKeys === undefined) delete process.env.QUESTION_ENCRYPTION_KEYS;
+    else process.env.QUESTION_ENCRYPTION_KEYS = previousQuestionEncryptionKeys;
     await sql.end({ timeout: 5 });
   });
 
@@ -191,7 +230,7 @@ describe("CP6 repair regressions", () => {
     const { batchId } = await insertCredit(userId, "2 minutes");
     await insertCasting(userId, castingId);
 
-    const requested = await service().requestDeepReading({ userId, castingId });
+    const requested = await service().requestDeepReading({ userId, castingId, enrichment: validEnrichment() });
     const rows = await sql<{
       reservation_expires_at: Date | string;
       lease_expires_at: Date | string | null;
@@ -225,8 +264,27 @@ describe("CP6 repair regressions", () => {
     await expectFinalizationFence(prepared, "RISK_PROHIBITED");
   });
 
-  it("cryptographically verifies the stored cast-result HMAC immediately before persisting and consuming", async () => {
-    const prepared = await prepareClaimedReading({ invalidResultHmac: true });
-    await expectFinalizationFence(prepared, "CAST_RESULT_INTEGRITY_INVALID");
+  it("rejects a forged cast-result HMAC before starting generation or consuming credit", async () => {
+    const userId = `cp6-invalid-hmac-${randomUUID()}`;
+    const castingId = randomUUID();
+    await insertUser(userId);
+    const { batchId } = await insertCredit(userId);
+    await insertCasting(userId, castingId, { invalidResultHmac: true });
+
+    await expect(service().requestDeepReading({ userId, castingId, enrichment: validEnrichment() }))
+      .rejects.toThrow("CAST_RESULT_INTEGRITY_INVALID");
+
+    const reservations = await sql<{ count: number }[]>`
+      select count(*)::int as count from entitlement_reservations where casting_id = ${castingId}
+    `;
+    expect(reservations).toEqual([{ count: 0 }]);
+    const jobs = await sql<{ count: number }[]>`
+      select count(*)::int as count from generation_jobs where casting_id = ${castingId}
+    `;
+    expect(jobs).toEqual([{ count: 0 }]);
+    const batches = await sql<{ quantity_available: number; quantity_reserved: number }[]>`
+      select quantity_available, quantity_reserved from entitlement_batches where id = ${batchId}
+    `;
+    expect(batches).toEqual([{ quantity_available: 1, quantity_reserved: 0 }]);
   });
 });

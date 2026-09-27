@@ -5,10 +5,12 @@ import { isStrictSameOriginRequest } from "@/server/http/origin-guard";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
 import { getActiveResultIntegrityKey, resultIntegrityHmac } from "@/server/generation/integrity";
-import { encryptQuestionForStorage } from "@/server/generation/question-crypto";
+import { encryptQuestionForStorage, getActiveQuestionFingerprintKey } from "@/server/generation/question-crypto";
 import { normalizeComposite, fingerprintQuestion } from "@/domain/questions/normalize";
 import { getPostgresClient } from "@/server/db/client";
 import { repo } from "@/server/repository";
+import { evaluateRisk, RISK_RULE_VERSION } from "@/domain/risk/engine";
+import type { Scene } from "@/domain/casting/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -99,13 +101,22 @@ export async function POST(request: Request): Promise<Response> {
 
   const { clientCastingId, lineValuesBottomUp, question, scene, interpretationGoal } = parsed.data;
   const questionText = question && question.trim().length > 0 ? question.trim() : null;
-  const fingerprintKeyVersion = "v1";
+  let fingerprintKey: ReturnType<typeof getActiveQuestionFingerprintKey> | null = null;
+  try {
+    fingerprintKey = questionText ? getActiveQuestionFingerprintKey() : null;
+  } catch {
+    return json({ error: "QUESTION_FINGERPRINT_KEY_UNAVAILABLE" }, 503);
+  }
+  const fingerprintKeyVersion = fingerprintKey?.version ?? "v1";
   let fingerprint: string | null = null;
   if (questionText) {
     const composite = normalizeComposite(scene as any, interpretationGoal as any, questionText);
-    const secret = process.env.APP_SECRET ?? "fallback-question-secret";
-    fingerprint = fingerprintQuestion(composite, secret, fingerprintKeyVersion);
+    if (!fingerprintKey) return json({ error: "QUESTION_FINGERPRINT_KEY_UNAVAILABLE" }, 503);
+    fingerprint = fingerprintQuestion(composite, fingerprintKey.material, fingerprintKeyVersion);
   }
+  const risk = questionText
+    ? evaluateRisk(questionText, scene as Scene)
+    : { status: "not_checked" as const, ruleVersion: RISK_RULE_VERSION, matchedRuleCodes: [], reasonCode: "core_question_missing" };
 
   const hexResult = buildHexagramResult({ lineValuesBottomUp, method: "three_coin" });
   const movingLinePositions = hexResult.movingLinePositions;
@@ -186,11 +197,11 @@ export async function POST(request: Request): Promise<Response> {
       const created = await sql.begin(async (tx) => {
         const inserted = await tx`
           insert into casting_sessions (
-            id, user_id, method, lifecycle, risk_status, scene,
+            id, user_id, method, lifecycle, risk_status, risk_rule_version, scene,
             interpretation_goal, question_fingerprint, fingerprint_key_version,
             generation_epoch, created_at, updated_at
           ) values (
-            ${castingId}, ${userId}, 'three_coin', 'revealed', 'allowed', ${scene},
+            ${castingId}, ${userId}, 'three_coin', 'revealed', ${risk.status}, ${risk.ruleVersion}, ${scene},
             ${interpretationGoal}, ${fingerprint}, ${fingerprint ? fingerprintKeyVersion : null},
             0, clock_timestamp(), clock_timestamp()
           )
@@ -226,6 +237,32 @@ export async function POST(request: Request): Promise<Response> {
           `;
         }
 
+        if (fingerprint) {
+          const lockRows = await tx`
+            insert into question_locks (
+              user_id, fingerprint, key_version, winning_casting_id, locked_until, created_at, updated_at
+            ) values (
+              ${userId}, ${fingerprint}, ${fingerprintKeyVersion}, ${castingId},
+              clock_timestamp() + interval '72 hours', clock_timestamp(), clock_timestamp()
+            )
+            on conflict (user_id, fingerprint) do update
+            set key_version = excluded.key_version,
+                winning_casting_id = excluded.winning_casting_id,
+                locked_until = excluded.locked_until,
+                updated_at = clock_timestamp()
+            where question_locks.winning_casting_id = excluded.winning_casting_id
+               or question_locks.locked_until <= clock_timestamp()
+            returning winning_casting_id
+          ` as Array<{ winning_casting_id: string }>;
+          if (!lockRows[0]) {
+            const existingLock = await tx`
+              select winning_casting_id from question_locks
+              where user_id = ${userId} and fingerprint = ${fingerprint} limit 1
+            ` as Array<{ winning_casting_id: string }>;
+            throw new Error(`QUESTION_LOCKED:${String(existingLock[0]?.winning_casting_id ?? "unknown")}`);
+          }
+        }
+
         return true;
       });
 
@@ -239,6 +276,10 @@ export async function POST(request: Request): Promise<Response> {
 
       return json({ castingId, idempotent: false }, 201);
     } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message.startsWith("QUESTION_LOCKED:")) {
+        return json({ error: "QUESTION_LOCKED", previousCastingId: message.slice("QUESTION_LOCKED:".length) }, 409);
+      }
       console.error("[SAVE_READING_ROUTE_ERROR]", error);
       return json({ error: "SAVE_READING_FAILED" }, 500);
     }
@@ -262,5 +303,12 @@ export async function POST(request: Request): Promise<Response> {
   repo.transitionCasting(memorySession.id, "casting");
   repo.transitionCasting(memorySession.id, "awaiting_reveal");
   repo.transitionCasting(memorySession.id, "revealed");
+  repo.recordRiskCheck({
+    castingSessionId: memorySession.id,
+    ruleVersion: risk.ruleVersion,
+    matchedRuleCodes: risk.matchedRuleCodes,
+    reasonCode: risk.reasonCode,
+    status: risk.status,
+  });
   return json({ castingId: memorySession.id, idempotent: false }, 201);
 }

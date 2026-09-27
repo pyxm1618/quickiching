@@ -85,6 +85,13 @@
       "when": 1788738000000,
       "tag": "0011_payment_closeout",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790334713145,
+      "tag": "0012_deep_reading_context_contract",
+      "breakpoints": true
     }
   ]
 }

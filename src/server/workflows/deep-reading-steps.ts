@@ -1,16 +1,19 @@
 import { randomUUID } from "node:crypto";
 import type { TransactionSql } from "postgres";
 import { getPostgresClient } from "@/server/db/client";
-import type { DeterministicFacts, CommercialReadingReport } from "@/domain/generation/schemas";
-import { createAiSdkGenerationProvider, createAiSdkOutputReviewer } from "@/server/generation/ai-sdk-provider";
+import type { DeterministicFacts } from "@/domain/generation/schemas";
+import { readingReportSchema, validateDeepReadingEvidence, type DeepReadingContextSnapshot } from "@/domain/generation/deep-reading-contract";
+import { createAiSdkDeepReadingProvider, createAiSdkOutputReviewer, reviewDecisionPassed } from "@/server/generation/ai-sdk-provider";
 import { getServerConfig } from "@/server/config";
 import type { OutputReviewDecision, ProviderGenerationResult, ProviderInput } from "@/server/generation/types";
 import {
-  calculateDeepReadingInputSnapshotHash,
   calculateDeepReadingResultIntegrity,
+  calculateDeepReadingContextSnapshotHash,
   verifyResultIntegrity,
 } from "@/server/generation/integrity";
-import { decryptQuestionForGeneration } from "@/server/generation/question-crypto";
+import { decryptDeepReadingContextSnapshot } from "@/server/generation/deep-reading-snapshot";
+import { evaluateRisk } from "@/domain/risk/engine";
+import type { Scene } from "@/domain/casting/types";
 
 type Row = Record<string, any>;
 const LEASE_DURATION_MS = 5 * 60 * 1000;
@@ -40,22 +43,30 @@ function factsFromSession(session: Row): DeterministicFacts {
   };
 }
 
-function snapshotForSession(input: {
-  session: Row;
-  castingId: string;
-  generationEpoch: number;
-  questionText: string;
-  facts: DeterministicFacts;
-}): string {
-  return calculateDeepReadingInputSnapshotHash({
-    castingId: input.castingId,
-    userId: String(input.session.user_id),
-    epoch: input.generationEpoch,
-    question: input.questionText,
-    scene: String(input.session.scene),
-    interpretationGoal: String(input.session.interpretation_goal),
-    facts: input.facts,
+function contextRiskText(snapshot: DeepReadingContextSnapshot): string {
+  return [snapshot.coreQuestionAtCast, snapshot.context.contextNotes, ...snapshot.context.options,
+    ...snapshot.context.constraints, ...snapshot.context.concerns].filter(Boolean).join("\n");
+}
+
+async function loadDeepReadingSnapshot(
+  transaction: TransactionSql,
+  castingId: string,
+): Promise<{ snapshot: DeepReadingContextSnapshot; snapshotHash: string }> {
+  const rows = await transaction`
+    select ciphertext, iv, auth_tag, encryption_key_version, snapshot_hash
+    from deep_reading_context_snapshots where casting_id = ${castingId} limit 1
+  ` as Row[];
+  const row = rows[0];
+  if (!row) throw new Error("DEEP_READING_CONTEXT_SNAPSHOT_REQUIRED");
+  const snapshot = decryptDeepReadingContextSnapshot(castingId, {
+    ciphertext: String(row.ciphertext),
+    iv: String(row.iv),
+    authTag: String(row.auth_tag),
+    encryptionKeyVersion: String(row.encryption_key_version),
   });
+  const snapshotHash = calculateDeepReadingContextSnapshotHash(snapshot);
+  if (snapshotHash !== String(row.snapshot_hash)) throw new Error("DEEP_READING_SNAPSHOT_INTEGRITY_INVALID");
+  return { snapshot, snapshotHash };
 }
 
 async function loadLockedSession(transaction: TransactionSql, castingId: string): Promise<Row> {
@@ -100,7 +111,7 @@ export async function claimJobLeaseStep(input: {
       throw new Error("CASTING_SESSION_INVALID_OR_DELETED");
     }
     if (session.lifecycle !== "revealed") throw new Error("CASTING_NOT_READY");
-    if (session.risk_status !== "allowed") throw new Error("RISK_PROHIBITED");
+    if (session.method !== "three_coin") throw new Error("UNSUPPORTED_CAST_METHOD");
     if (!session.result_hmac) throw new Error("CAST_RESULT_UNAVAILABLE");
 
     const jobRows = await transaction`
@@ -117,19 +128,26 @@ export async function claimJobLeaseStep(input: {
       throw new Error("GENERATION_JOB_NOT_ACTIVE");
     }
 
-    const questionText = decryptQuestionForGeneration(session);
     const facts = factsFromSession(session);
-    const calculatedSnapshotHash = snapshotForSession({
-      session,
-      castingId: input.castingId,
-      generationEpoch: input.generationEpoch,
-      questionText,
-      facts,
-    });
+    const { snapshot, snapshotHash } = await loadDeepReadingSnapshot(transaction, input.castingId);
     const storedSnapshotHash = String(job.input_snapshot_hash);
-    if (!storedSnapshotHash || calculatedSnapshotHash !== storedSnapshotHash) {
+    if (!storedSnapshotHash || snapshotHash !== storedSnapshotHash) {
       throw new Error("INPUT_SNAPSHOT_MISMATCH");
     }
+    if (JSON.stringify(snapshot.facts) !== JSON.stringify(facts)) throw new Error("CAST_FACT_SNAPSHOT_MISMATCH");
+    if (snapshot.castMethod !== session.method || snapshot.methodVersion !== facts.algorithmVersion) {
+      throw new Error("CAST_METHOD_SNAPSHOT_MISMATCH");
+    }
+    if (snapshot.scene !== session.scene) throw new Error("CAST_SCENE_SNAPSHOT_MISMATCH");
+    if (snapshot.knowledgeVersion !== snapshot.knowledge.version) throw new Error("KNOWLEDGE_SNAPSHOT_VERSION_MISMATCH");
+    if (!verifyResultIntegrity({
+      facts,
+      resultHmac: String(session.result_hmac),
+      resultHmacKeyVersion: String(session.result_hmac_key_version),
+    })) throw new Error("CAST_RESULT_INTEGRITY_INVALID");
+    const risk = evaluateRisk(contextRiskText(snapshot), String(snapshot.scene) as Scene);
+    if (risk.status !== "allowed") throw new Error(`RISK_${risk.status.toUpperCase()}`);
+    if (Date.parse(String(job.timeout_at)) <= Date.now()) throw new Error("DEEP_READING_DEADLINE_EXCEEDED");
 
     const leaseToken = randomUUID();
     const claimedRows = await transaction`
@@ -159,10 +177,13 @@ export async function claimJobLeaseStep(input: {
       leaseToken,
       providerInput: {
         castingId: input.castingId,
-        question: questionText,
-        scene: session.scene,
-        interpretationGoal: session.interpretation_goal,
+        question: snapshot.coreQuestionAtCast,
+        scene: snapshot.scene as Scene,
+        interpretationGoal: snapshot.context.interpretationGoal as ProviderInput["interpretationGoal"],
         facts,
+        context: snapshot.context,
+        knowledge: snapshot.knowledge,
+        deadlineAt: new Date(job.timeout_at).toISOString(),
       },
       inputSnapshotHash: storedSnapshotHash,
     };
@@ -177,15 +198,29 @@ export async function generateDeepReadingStep(input: {
   "use step";
   const sql = getPostgresClient();
   const leaseRows = await sql`
-    select lease_expires_at > clock_timestamp() as active
+    select lease_expires_at > clock_timestamp() and timeout_at > clock_timestamp() as active
     from generation_jobs
     where id = ${input.jobId} and lease_token = ${input.leaseToken} and status = 'running'
   ` as Row[];
   if (!leaseRows[0]?.active) throw new Error("GENERATION_LEASE_EXPIRED");
 
   try {
-    const provider = await createAiSdkGenerationProvider();
-    return await provider.generateReading(input.providerInput, new AbortController().signal);
+    const provider = await createAiSdkDeepReadingProvider();
+    const generated = await provider.generateReading(input.providerInput, new AbortController().signal);
+    const report = readingReportSchema.parse(generated.output);
+    const knowledge = input.providerInput.knowledge;
+    if (!knowledge) throw new Error("DEEP_READING_CONTEXT_UNAVAILABLE");
+    const evidence = validateDeepReadingEvidence(report, knowledge, {
+      primaryHexagramNumber: input.providerInput.facts.primaryHexagramNumber,
+      relatingHexagramNumber: input.providerInput.facts.relatingHexagramNumber,
+      movingLinePositions: input.providerInput.facts.movingLinePositions,
+      readingVariant: input.providerInput.facts.readingVariant,
+    });
+    if (!evidence.valid) throw new Error("DEEP_READING_EVIDENCE_INVALID");
+    if (JSON.stringify(generated.deterministicFacts) !== JSON.stringify(input.providerInput.facts)) {
+      throw new Error("DETERMINISTIC_FACTS_MISMATCH");
+    }
+    return { ...generated, output: report };
   } catch (error) {
     console.error("[DEEP_READING_STEP_GENERATE_ERROR]", error);
     throw error;
@@ -194,14 +229,14 @@ export async function generateDeepReadingStep(input: {
 
 export async function reviewDeepReadingStep(input: {
   output: unknown;
-  facts: DeterministicFacts;
+  providerInput: ProviderInput;
   jobId: string;
   leaseToken: string;
 }): Promise<OutputReviewDecision> {
   "use step";
   const sql = getPostgresClient();
   const leaseRows = await sql`
-    select lease_expires_at > clock_timestamp() as active
+    select lease_expires_at > clock_timestamp() and timeout_at > clock_timestamp() as active
     from generation_jobs
     where id = ${input.jobId} and lease_token = ${input.leaseToken} and status = 'running'
   ` as Row[];
@@ -210,7 +245,17 @@ export async function reviewDeepReadingStep(input: {
   try {
     const reviewer = await createAiSdkOutputReviewer();
     return await reviewer.review(
-      { kind: "deep_reading", output: input.output, facts: input.facts },
+      {
+        kind: "deep_reading",
+        output: input.output,
+        facts: input.providerInput.facts,
+        question: input.providerInput.question,
+        scene: input.providerInput.scene,
+        interpretationGoal: input.providerInput.interpretationGoal,
+        context: input.providerInput.context,
+        knowledge: input.providerInput.knowledge,
+        deadlineAt: input.providerInput.deadlineAt,
+      },
       new AbortController().signal,
     );
   } catch (error) {
@@ -232,7 +277,7 @@ export async function finalizeDeepReadingStep(input: {
 }): Promise<{ success: boolean }> {
   "use step";
   const sql = getPostgresClient();
-  if (input.reviewDecision.status !== "pass") throw new Error("OUTPUT_REVIEW_FAILED");
+  if (!reviewDecisionPassed(input.reviewDecision)) throw new Error("OUTPUT_REVIEW_FAILED");
 
   return sql.begin(async (transaction: TransactionSql) => {
     const session = await loadLockedSession(transaction, input.castingId);
@@ -241,22 +286,27 @@ export async function finalizeDeepReadingStep(input: {
     }
     if (session.lifecycle !== "revealed") throw new Error("CASTING_NOT_READY");
     if (session.risk_status !== "allowed") throw new Error("RISK_PROHIBITED");
-
-    const questionText = decryptQuestionForGeneration(session);
     const facts = factsFromSession(session);
-    const recomputedSnapshotHash = snapshotForSession({
-      session,
-      castingId: input.castingId,
-      generationEpoch: input.generationEpoch,
-      questionText,
-      facts,
-    });
+    const { snapshot, snapshotHash } = await loadDeepReadingSnapshot(transaction, input.castingId);
+    if (
+      JSON.stringify(snapshot.facts) !== JSON.stringify(facts)
+      || snapshot.castMethod !== session.method
+      || snapshot.methodVersion !== facts.algorithmVersion
+    ) {
+      throw new Error("CAST_FACT_SNAPSHOT_MISMATCH");
+    }
+    if (snapshot.scene !== session.scene) throw new Error("CAST_SCENE_SNAPSHOT_MISMATCH");
+    if (snapshot.knowledgeVersion !== snapshot.knowledge.version) throw new Error("KNOWLEDGE_SNAPSHOT_VERSION_MISMATCH");
+    if (evaluateRisk(contextRiskText(snapshot), String(snapshot.scene) as Scene).status !== "allowed") {
+      throw new Error("RISK_PROHIBITED");
+    }
 
     const jobRows = await transaction`
       select * from generation_jobs
       where id = ${input.jobId} and casting_id = ${input.castingId}
         and status = 'running' and lease_token = ${input.leaseToken}
         and lease_expires_at > clock_timestamp()
+        and timeout_at > clock_timestamp()
       limit 1
       for update
     ` as Row[];
@@ -268,7 +318,7 @@ export async function finalizeDeepReadingStep(input: {
     if (
       !storedSnapshotHash
       || input.inputSnapshotHash !== storedSnapshotHash
-      || recomputedSnapshotHash !== storedSnapshotHash
+      || snapshotHash !== storedSnapshotHash
     ) {
       throw new Error("INPUT_SNAPSHOT_MISMATCH");
     }
@@ -296,12 +346,22 @@ export async function finalizeDeepReadingStep(input: {
       throw new Error("ENTITLEMENT_RESERVATION_INVALID");
     }
 
-    const output = input.generationResult.output as CommercialReadingReport;
+    if (JSON.stringify(input.generationResult.deterministicFacts) !== JSON.stringify(facts)) {
+      throw new Error("DETERMINISTIC_FACTS_MISMATCH");
+    }
+    const output = readingReportSchema.parse(input.generationResult.output);
+    const evidence = validateDeepReadingEvidence(output, snapshot.knowledge, {
+      primaryHexagramNumber: facts.primaryHexagramNumber,
+      relatingHexagramNumber: facts.relatingHexagramNumber,
+      movingLinePositions: facts.movingLinePositions,
+      readingVariant: facts.readingVariant,
+    });
+    if (!evidence.valid) throw new Error("DEEP_READING_EVIDENCE_INVALID");
     const config = getServerConfig();
     const model = config.aiModelDeepReading ?? "gemini-2.5-pro";
-    const schemaVersion = "commercial-reading-v1";
-    const promptVersion = "v1";
-    const provider = "google";
+    const schemaVersion = "deep-reading-v2";
+    const promptVersion = "deep-reading-v2";
+    const provider = "vercel-ai-gateway";
     const integrity = calculateDeepReadingResultIntegrity({
       castingId: input.castingId,
       jobId: input.jobId,
@@ -317,12 +377,19 @@ export async function finalizeDeepReadingStep(input: {
     await transaction`
       insert into generation_output_reviews (
         id, job_id, casting_id, kind, status, reason_codes,
-        reviewer_model_version, schema_valid, safety_pass, fact_consistency_pass, created_at
+        reviewer_model_version, schema_valid, safety_pass, fact_consistency_pass,
+        question_relevance_pass, context_fidelity_pass, evidence_grounding_pass,
+        interpretive_coherence_pass, actionability_pass, uncertainty_pass,
+        language_consistency_pass, created_at
       ) values (
         ${randomUUID()}, ${input.jobId}, ${input.castingId}, 'deep_reading',
         ${input.reviewDecision.status}, ${JSON.stringify(input.reviewDecision.reasonCodes)}::jsonb,
-        'reviewer-v1', ${String(input.reviewDecision.schemaValid)},
+        'reviewer-v2', ${String(input.reviewDecision.schemaValid)},
         ${String(input.reviewDecision.safetyPass)}, ${String(input.reviewDecision.factConsistencyPass)},
+        ${String(input.reviewDecision.questionRelevancePass)}, ${String(input.reviewDecision.contextFidelityPass)},
+        ${String(input.reviewDecision.evidenceGroundingPass)}, ${String(input.reviewDecision.interpretiveCoherencePass)},
+        ${String(input.reviewDecision.actionabilityPass)}, ${String(input.reviewDecision.uncertaintyPass)},
+        ${String(input.reviewDecision.languageConsistencyPass)},
         clock_timestamp()
       ) on conflict (job_id) do nothing
     `;
@@ -455,6 +522,75 @@ export async function handleWorkflowFailureStep(input: {
         ${randomUUID()}, 'generation', 'deep_reading_failed', 'job', ${input.jobId},
         ${reservation ? String(reservation.user_id) : null},
         ${JSON.stringify({ reservationId: input.reservationId, errorCode: input.errorCode })}::jsonb,
+        clock_timestamp()
+      )
+    `;
+  });
+}
+
+export async function handleUnclaimedWorkflowFailureStep(input: {
+  jobId: string;
+  generationEpoch: number;
+  reservationId: string;
+  idempotencyKey: string;
+  castingId: string;
+  errorCode: string;
+}): Promise<void> {
+  "use step";
+  const sql = getPostgresClient();
+
+  await sql.begin(async (transaction: TransactionSql) => {
+    const failedJobs = await transaction`
+      update generation_jobs
+      set status = 'failed', structured_error_code = ${input.errorCode},
+          lease_owner = null, lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
+      where id = ${input.jobId} and casting_id = ${input.castingId}
+        and generation_epoch = ${input.generationEpoch} and idempotency_key = ${input.idempotencyKey}
+        and (
+          (status = 'queued' and lease_token is null)
+          or (status = 'running' and lease_expires_at is not null and lease_expires_at <= clock_timestamp())
+        )
+      returning id
+    ` as Row[];
+    if (!failedJobs[0]) return;
+
+    const reservationRows = await transaction`
+      select id, batch_id from entitlement_reservations
+      where id = ${input.reservationId} and job_id = ${input.jobId} and status = 'reserved'
+      limit 1 for update
+    ` as Row[];
+    const reservation = reservationRows[0];
+    if (reservation) {
+      await transaction`
+        update entitlement_reservations
+        set status = 'released', lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
+        where id = ${input.reservationId} and status = 'reserved'
+      `;
+      await transaction`
+        update entitlement_batches
+        set quantity_reserved = greatest(0, quantity_reserved - 1),
+            quantity_available = quantity_available + 1, updated_at = clock_timestamp()
+        where id = ${String(reservation.batch_id)}
+      `;
+      await transaction`
+        insert into entitlement_ledger (id, batch_id, order_id, action, quantity, business_key, created_at)
+        select ${randomUUID()}, ${String(reservation.batch_id)}, b.order_id, 'release', 1,
+               ${`release:${input.reservationId}`}, clock_timestamp()
+        from entitlement_batches b where b.id = ${String(reservation.batch_id)}
+        on conflict (business_key) do nothing
+      `;
+    }
+
+    await transaction`
+      update workflow_runs
+      set status = 'failed', error_code = ${input.errorCode}, updated_at = clock_timestamp()
+      where idempotency_key = ${input.idempotencyKey}
+    `;
+    await transaction`
+      insert into audit_events (id, category, action, entity_type, entity_id, user_id, payload, created_at)
+      values (
+        ${randomUUID()}, 'generation', 'deep_reading_claim_failed', 'job', ${input.jobId}, null,
+        ${JSON.stringify({ castingId: input.castingId, reservationId: input.reservationId, errorCode: input.errorCode })}::jsonb,
         clock_timestamp()
       )
     `;

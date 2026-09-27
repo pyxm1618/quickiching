@@ -44,18 +44,18 @@
 - 之卦简洁基础解释（如存在）
 - reflection / interpretive framework / not deterministic prediction / not professional advice 边界
 
-免费层解释**卦象本身**，不依赖 AI。用户明确点击后，才允许进入独立的 personalized interpretation seam；它必须经过风险检查、Turnstile 和 AI Gateway 配置，生产未激活或失败时 fail-closed 并保留完整静态结果。
+产品边界固定为：**Free = cast interpretation；Paid = personalized situation interpretation。Free never calls AI.** 免费层完整解释卦象本身，不结合私人处境生成个性化判断，也不得暗示通用文本已回答具体问题。付费生成只可经 Deep Reading entitlement、风险评估和不可变输入快照进入服务端工作流。
 
-### 1.2 Commercial V2 — 保留的未来商业产品
+### 1.2 Commercial V2 — 独立商业能力面
 
-Commercial V2 继续保留下列原商业需求，但不再阻断 Public SEO V1 的搜索引擎上线：
+Commercial V2 的能力由独立服务端开关控制，不阻断 Public SEO V1 的公开闭环：
 
-- 用户输入：场景、解释目标、具体情境；一次只处理一个主要问题。
+- 用户输入：起卦前冻结的一个核心问题，以及生成前补充的现实背景、选项、限制、顾虑和解释目标。
 - 高风险边界：医疗、法律、投资、紧急安全等不得由占卜替代专业决策。
 - 同一问题重复占问控制；原方案以 72 小时为产品方向。
 - anonymous → production auth → account binding。
 - production database 与持久化 reading history。
-- personalized AI Deep Reading：结合用户具体情境、目标和描述进行深度解释。
+- personalized AI Deep Reading：当前只支持已完成的 Three-Coin 路径，结合用户问题、背景、目标、确定性卦象事实和 Quick I Ching 知识材料。
 - Production AI Gateway / model provider 与生成质量验证。
 - Payment / credits；原商业方案保留 1 / 3 / 5 次包方向。
 - 后台生成任务、失败释放 entitlement、成功后固定保存。
@@ -64,6 +64,20 @@ Commercial V2 继续保留下列原商业需求，但不再阻断 Public SEO V1 
 - 商业安全、rate limit、anti-abuse、支持、监控和事故处置。
 
 Commercial V2 上线前必须重新完成法律、支付、隐私、AI、账户安全和数据持久化专项验收。
+
+### 1.3 P0 Deep Reading 商品合同
+
+- 免费内容可以完整、有用且不故意删减；必须说明它解释的是卦象本身，并未针对用户的具体处境进行解释。免费起卦不得调用模型。
+- 付费价值是“这次卦象与你的具体问题和处境之间是什么关系”，不是报告长度或固定模块数。
+- `coreQuestionAtCast` 在第一次不可逆随机结果前收集并在该结果产生时冻结。不同问题必须新起一卦；生成前允许补充 Context Enrichment，但不可覆盖核心问题。
+- 生成需要核心问题和至少 24 个字符的现实背景。输入不足或风险阻断时，不创建生成任务、不预留额度。
+- Deep Reading 在单一事务中创建加密、不可变 `deepReadingContextSnapshot`，包含核心问题、补充背景、目标、场景、cast method/version、六爻事实、知识版本、时间戳和风险分类。重试沿用原快照；页面后续编辑不能改变报告输入。
+- 当前付费生成只接受 Three-Coin cast。其他三种方法继续完整免费可用，不展示付费入口。
+- 模型接收六十四卦知识 bundle、实际动爻材料、确定性卦象事实和用户快照。每项实质性卦象解读必须引用快照中的 evidence ID；无效、跨卦或非实际动爻引用必须失败，不补造 citation。
+- 输出覆盖直接回应、处境映射、关键张力、条件性方向、可观察信号、低风险反思、不确定性边界和可追溯依据。Reviewer 验证问题相关性、背景忠实度、依据、连贯性、可行动性、不确定性及语言。
+- 成功交付后才消费预留额度；生成、审核或投递失败则释放额度。5 分钟 deadline、幂等 job、单个 active job、失败重试和历史快照恢复均由服务端执行。
+- 六爻成功写入浏览器会话并完成展示后，Three-Coin 流程直接进入统一结果页。该页在完整免费卦象详情之前展示 Deep Reading 的输入、生成、完成或失败状态；已完成报告优先显示，底层卦象可作为依据继续查看。
+- 生产付费、支付、账号或 provider 是否开放仍由当前部署能力决定；仓库实现和 readiness 不能替代生产 provider / account 验收。
 
 ---
 
@@ -191,7 +205,7 @@ Public V1 不公开复制未经许可的现代英文 I Ching 译文。
 - 不制造焦虑依赖
 - 不鼓励为了追求喜欢的答案不断重复占问
 
-Public V1 Legal / Help 页面必须描述当前真实状态：browser-only History 可以显式保存，但 production auth/payment/cloud history 未开放；personalized AI 只有在全部 provider/safety activation 条件满足时才可使用。
+Public V1 Legal / Help 页面必须描述当前真实状态：browser-only History 可以显式保存；production auth/payment/cloud history 与 Deep Reading 是否开放需按当前 capability / provider 状态描述。免费阅读绝不发送 AI 请求；付费问题、快照和 provider 处理规则须完整披露。
 
 ---
 
@@ -229,7 +243,7 @@ Public SEO V1 不为了“完整”而默认启用：
 
 ## 8. Public SEO V1 完成定义
 
-只有四种方法都完成真实免费闭环、75 个 indexable URL（73 个英文 + 2 个简体中文）技术 SEO 干净、desktop/mobile 核心路径通过、构建和自动化测试通过，才能标记 `READY FOR FINAL SEO AUDIT`。Question-first、Manual A/B、local History、隐私边界和 personalized fail-closed 也必须有对应门禁证据。
+只有四种方法都完成真实免费闭环、75 个 indexable URL（73 个英文 + 2 个简体中文）技术 SEO 干净、desktop/mobile 核心路径通过、构建和自动化测试通过，才能标记 `READY FOR FINAL SEO AUDIT`。Question-first 核心问题冻结、免费 AI 零请求、付费快照不可变、风险阻断不预留、失败释放、证据验证和语言一致性均须有需求级门禁证据。
 
 独立最终审核通过前：
 

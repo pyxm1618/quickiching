@@ -16,7 +16,6 @@ export async function GET() {
       apiKeyPrefix: process.env.AI_GATEWAY_API_KEY ? process.env.AI_GATEWAY_API_KEY.slice(0, 4) : "empty",
       apiKeyLength: process.env.AI_GATEWAY_API_KEY?.length ?? 0,
       modelDeepReading: process.env.AI_MODEL_DEEP_READING ?? "empty",
-      modelPreview: process.env.AI_MODEL_PREVIEW ?? "empty",
       modelReview: process.env.AI_MODEL_OUTPUT_REVIEW ?? "empty",
       aiSdkGatewayBaseUrl: process.env.AI_SDK_GATEWAY_BASE_URL ?? "empty",
       aiGatewayBaseUrl: process.env.AI_GATEWAY_BASE_URL ?? "empty",

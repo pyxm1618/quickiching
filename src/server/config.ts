@@ -88,13 +88,13 @@ function loadProductionConfig(env: RuntimeEnv): ProductionRuntimeConfig {
   const capabilities = resolveCommercialCapabilities(env, { production: true });
   const auth = capabilities.capabilities.auth.enabled ? "better-auth" : "disabled";
   const database = Object.values(capabilities.capabilities).some((capability) =>
-    capability.enabled && ["auth", "aiPreview", "checkout", "webhookIngestion", "paidDeepReading", "reconcile"]
+    capability.enabled && ["auth", "checkout", "webhookIngestion", "paidDeepReading", "reconcile"]
       .includes(capability.capability)
   ) ? "postgres" : "disabled";
 
   return {
     mode: "production",
-    ai: capabilities.capabilities.aiPreview.enabled ? "ai-sdk" : "disabled",
+    ai: capabilities.capabilities.paidDeepReading.enabled ? "ai-sdk" : "disabled",
     auth,
     payment,
     database,
@@ -144,7 +144,6 @@ export type ServerConfig = {
   cronSecret?: string;
   appSecret?: string;
   aiModelDeepReading?: string;
-  aiModelPreview?: string;
 };
 
 export function getServerConfig(env: RuntimeEnv = process.env): ServerConfig {
@@ -152,6 +151,5 @@ export function getServerConfig(env: RuntimeEnv = process.env): ServerConfig {
     cronSecret: env.CRON_SECRET?.trim(),
     appSecret: env.APP_SECRET?.trim(),
     aiModelDeepReading: env.AI_MODEL_DEEP_READING?.trim() ?? "gemini-2.5-pro",
-    aiModelPreview: env.AI_MODEL_PREVIEW?.trim() ?? "gemini-2.5-pro",
   };
 }

@@ -188,7 +188,6 @@ describe("runtime configuration", () => {
     expect(loadRuntimeConfig({
       NODE_ENV: "production",
       COMMERCIAL_V2_AUTH_ENABLED: "true",
-      COMMERCIAL_V2_AI_PREVIEW_ENABLED: "false",
       COMMERCIAL_V2_CHECKOUT_ENABLED: "false",
       COMMERCIAL_V2_WEBHOOK_INGESTION_ENABLED: "false",
       COMMERCIAL_V2_PAID_DEEP_READING_ENABLED: "false",
@@ -205,6 +204,9 @@ describe("runtime configuration", () => {
       RESEND_API_KEY: "resend-api-key",
       EMAIL_FROM: "Quick I Ching <noreply@example.com>",
       ANONYMOUS_OWNER_KEYS: "v1:anonymous-owner-secret",
+      QUESTION_FINGERPRINT_KEYS: "v1:fingerprint-secret",
+      QUESTION_ENCRYPTION_KEYS: "v1:encryption-secret",
+      RESULT_INTEGRITY_KEYS: "v1:integrity-secret",
       PAYMENT_ADAPTER_MODE: "waffo",
     })).toMatchObject({
       auth: "better-auth",

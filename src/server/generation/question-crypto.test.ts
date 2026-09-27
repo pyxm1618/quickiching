@@ -30,8 +30,8 @@ describe("decryptQuestionForGeneration", () => {
     })).toBe("Should I accept the new role?");
   });
 
-  it("keeps the legitimate no-question path separate from encrypted-question failure", () => {
-    expect(decryptQuestionForGeneration({
+  it("rejects a missing core question instead of inventing a scene-based question", () => {
+    expect(() => decryptQuestionForGeneration({
       id: "casting-1",
       question_version_id: null,
       question_ciphertext: null,
@@ -39,7 +39,7 @@ describe("decryptQuestionForGeneration", () => {
       question_auth_tag: null,
       question_encryption_key_version: null,
       scene: "career",
-    }, {})).toBe("Reading for scene: career");
+    }, {})).toThrowError("CORE_QUESTION_REQUIRED");
   });
 
   it("fails closed when an encrypted question is missing ciphertext", () => {

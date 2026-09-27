@@ -4,7 +4,6 @@ import * as z from "zod";
 
 export const COMMERCIAL_CAPABILITIES = Object.freeze([
   "auth",
-  "aiPreview",
   "checkout",
   "webhookIngestion",
   "paidDeepReading",
@@ -51,6 +50,9 @@ const databaseRequirements: readonly CapabilityRequirement[] = [
 const authRequirements: readonly CapabilityRequirement[] = [
   { name: "AUTH_ADAPTER_MODE", expected: "better-auth" },
   ...databaseRequirements,
+  { name: "QUESTION_FINGERPRINT_KEYS", format: "versionedKey" },
+  { name: "QUESTION_ENCRYPTION_KEYS", format: "versionedKey" },
+  { name: "RESULT_INTEGRITY_KEYS", format: "versionedKey" },
   { name: "BETTER_AUTH_SECRET", format: "secret" },
   { name: "ANONYMOUS_OWNER_KEYS", format: "versionedKey" },
   { name: "BETTER_AUTH_URL", format: "httpUrl" },
@@ -90,14 +92,6 @@ const generationKeyRequirements: readonly CapabilityRequirement[] = [
   { name: "RESULT_INTEGRITY_KEYS", format: "versionedKey" },
 ];
 
-const aiPreviewRequirements: readonly CapabilityRequirement[] = [
-  ...sharedAiRequirements,
-  ...generationKeyRequirements,
-  { name: "AI_MODEL_PREVIEW", format: "nonBlank" },
-  { name: "AI_MAX_OUTPUT_TOKENS", format: "positiveInteger" },
-  { name: "AI_MAX_REVIEW_OUTPUT_TOKENS", format: "positiveInteger" },
-];
-
 const waffoWebhookRequirements: readonly CapabilityRequirement[] = [
   { name: "PAYMENT_ADAPTER_MODE", expected: "waffo" },
   { name: "WAFFO_ENVIRONMENT", allowed: ["test", "prod"], format: "nonBlank" },
@@ -131,12 +125,6 @@ export const COMMERCIAL_CAPABILITY_DEPENDENCY_MATRIX: CommercialCapabilityDefini
     implementationAvailable: true,
     capabilityDependencies: [],
     requirements: authRequirements,
-  },
-  aiPreview: {
-    flag: "COMMERCIAL_V2_AI_PREVIEW_ENABLED",
-    implementationAvailable: true,
-    capabilityDependencies: ["auth"],
-    requirements: aiPreviewRequirements,
   },
   checkout: {
     flag: "COMMERCIAL_V2_CHECKOUT_ENABLED",
@@ -528,7 +516,7 @@ export function resolveCommercialCapabilities(
     const requested = booleanFlag(env, definition.flag, options.production === true);
     const requirements = capability === "auth" && options.production === true
       ? productionAuthRequirementsFor(definition.requirements)
-      : (options.production === true && (capability === "aiPreview" || capability === "paidDeepReading")
+      : (options.production === true && capability === "paidDeepReading"
         ? productionAiRequirementsFor(definition.requirements)
         : (options.production === true && capability === "checkout"
           ? productionCheckoutRequirementsFor(definition.requirements)

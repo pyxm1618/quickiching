@@ -1,26 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
+import { buildPublicReading } from "@/domain/public-reading/reading";
 import { buildFreeReading } from "@/domain/interpretation/v2/build-free-reading";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 import type { FreeReading } from "@/domain/interpretation/v2/types";
-import type { CommercialReadingReport } from "@/domain/generation/schemas";
+import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
+import { ZH_HANS_READING_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
+import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
+import { ZH_HANS_UI_DICTIONARY } from "@/i18n/dictionaries/zh-Hans";
+import {
+  deepReadingContextEnrichmentSchema,
+  deepReadingContextSnapshotSchema,
+  readingReportSchema,
+  type DeepReadingContextEnrichment,
+  type DeepReadingContextSnapshot,
+  type DeepReadingReport,
+} from "@/domain/generation/deep-reading-contract";
+import {
+  readingReportSchema as legacyReadingReportSchema,
+  type CommercialReadingReport,
+} from "@/domain/generation/schemas";
 import {
   clearThreeCoinReading,
   completedThreeCoinSteps,
   readThreeCoinSession,
 } from "@/lib/three-coin-session";
 import { buildPricingHref, buildResultSigninHref } from "@/lib/commercial-navigation";
-import { ReadingResultView } from "./reading-result-view";
-import { CommercialReadingReportView } from "./commercial-reading-report-view";
+import { CommercialReadingReportView, LegacyCommercialReadingReportView } from "./commercial-reading-report-view";
 import styles from "./result-page.module.css";
 
 export type ResultState =
   | { kind: "loading" }
   | { kind: "empty" }
-  | { kind: "ready"; reading: FreeReading; lineValues: number[]; question?: string }
+  | { kind: "ready"; reading: FreeReading; lineValues: number[]; question?: string; createdAt?: string }
   | { kind: "error"; code: string };
 
 export type ThreeCoinResultClientProps = {
@@ -31,14 +46,34 @@ export type ThreeCoinResultClientProps = {
   initialState?: ResultState;
   initialCastingView?: {
     castingId: string;
+    createdAt?: string;
     context: string;
     lineValuesBottomUp: number[] | null;
-    readingReport: CommercialReadingReport | null;
+    readingReport: unknown;
     owns: boolean;
   } | null;
 };
 
 type DeepStatus = "idle" | "generating" | "completed" | "failed";
+type ContextDraft = {
+  contextNotes: string;
+  optionsText: string;
+  constraintsText: string;
+  concernsText: string;
+  interpretationGoal: DeepReadingContextEnrichment["interpretationGoal"];
+};
+
+const EMPTY_CONTEXT_DRAFT: ContextDraft = {
+  contextNotes: "",
+  optionsText: "",
+  constraintsText: "",
+  concernsText: "",
+  interpretationGoal: "what_do_i_need_to_see_clearly",
+};
+
+function listField(value: string): string[] {
+  return value.split(/[\n,]/u).map((item) => item.trim()).filter(Boolean);
+}
 
 function errorCode(error: unknown): string {
   return error instanceof Error ? error.message : "THREE_COIN_READING_UNAVAILABLE";
@@ -88,20 +123,109 @@ export function ThreeCoinResultClient({
   );
   const [user] = useState<{ id: string; email: string } | null>(initialUser);
   const [credits, setCredits] = useState<number>(initialCredits);
-  const [deepStatus, setDeepStatus] = useState<DeepStatus>(
-    initialCastingView?.readingReport ? "completed" : "idle",
-  );
-  const [deepReport, setDeepReport] = useState<CommercialReadingReport | null>(
-    initialCastingView?.readingReport ?? null,
-  );
+  const initialReport = readingReportSchema.safeParse(initialCastingView?.readingReport);
+  const initialLegacyReport = legacyReadingReportSchema.safeParse(initialCastingView?.readingReport);
+  const [deepStatus, setDeepStatus] = useState<DeepStatus>(initialReport.success || initialLegacyReport.success ? "completed" : "idle");
+  const [deepReport, setDeepReport] = useState<DeepReadingReport | null>(initialReport.success ? initialReport.data : null);
+  const [legacyReport, setLegacyReport] = useState<CommercialReadingReport | null>(initialLegacyReport.success ? initialLegacyReport.data : null);
+  const [deepSnapshot, setDeepSnapshot] = useState<DeepReadingContextSnapshot | null>(null);
+  const [contextDraft, setContextDraft] = useState<ContextDraft>(EMPTY_CONTEXT_DRAFT);
+  const [showDetailedContext, setShowDetailedContext] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const resultReading = useMemo(() => {
+    if (state.kind !== "ready") return null;
+    const id = clientCastingId ?? castingId;
+    return buildPublicReading({
+      ...(id ? { id } : {}),
+      ...(state.createdAt ? { createdAt: state.createdAt } : {}),
+      method: "three-coin",
+      methodVersion: "three-coin-v1",
+      question: state.question,
+      lineValuesBottomUp: state.lineValues,
+      evidence: { kind: "history", originalMethod: "three-coin" },
+    });
+  }, [castingId, clientCastingId, state]);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startPolling = useCallback((targetCastingId: string) => {
+    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    pollTimerRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/readings/${targetCastingId}/deep`);
+        if (!res.ok) return;
+        const data = await res.json() as {
+          status: "not_started" | "queued" | "running" | "completed" | "failed" | "timed_out";
+          output?: unknown;
+          snapshot?: unknown;
+        };
+        const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
+        if (parsedSnapshot.success) setDeepSnapshot(parsedSnapshot.data);
+        const parsedReport = readingReportSchema.safeParse(data.output);
+        if (data.status === "completed" && parsedReport.success) {
+          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+          setDeepReport(parsedReport.data);
+          setLegacyReport(null);
+          setDeepStatus("completed");
+          setCredits((prev) => Math.max(0, prev - 1));
+        } else if (data.status === "completed") {
+          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+          const parsedLegacyReport = legacyReadingReportSchema.safeParse(data.output);
+          if (parsedLegacyReport.success) {
+            setLegacyReport(parsedLegacyReport.data);
+            setDeepStatus("completed");
+          }
+        } else if (data.status === "failed" || data.status === "timed_out") {
+          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+          setDeepStatus("failed");
+          setActionError(zh
+            ? "解读未能完成，已释放本次预留次数；重试会沿用保存的问题与背景。"
+            : "The reading did not finish. Your reserved credit has been released; retrying uses the same saved question and context.");
+        }
+      } catch {
+        // 轮询重试
+      }
+    }, 2000);
+  }, [zh]);
 
   useEffect(() => {
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    const ids = [clientCastingId, castingId].filter((id): id is string => Boolean(id));
+    for (const id of ids) {
+      try {
+        const saved = window.sessionStorage.getItem(`quickiching:deep-reading-context:${id}`);
+        if (!saved) continue;
+        const parsed = JSON.parse(saved) as Partial<ContextDraft>;
+        if (typeof parsed.contextNotes === "string") {
+          setContextDraft({
+            contextNotes: parsed.contextNotes,
+            optionsText: typeof parsed.optionsText === "string" ? parsed.optionsText : "",
+            constraintsText: typeof parsed.constraintsText === "string" ? parsed.constraintsText : "",
+            concernsText: typeof parsed.concernsText === "string" ? parsed.concernsText : "",
+            interpretationGoal: parsed.interpretationGoal ?? EMPTY_CONTEXT_DRAFT.interpretationGoal,
+          });
+          return;
+        }
+      } catch {
+        // The draft is optional; a storage error must not affect the free reading.
+        return;
+      }
+    }
+  }, [clientCastingId, castingId]);
+
+  useEffect(() => {
+    const ids = [clientCastingId, castingId].filter((id): id is string => Boolean(id));
+    try {
+      for (const id of ids) {
+        window.sessionStorage.setItem(`quickiching:deep-reading-context:${id}`, JSON.stringify(contextDraft));
+      }
+    } catch {
+      // The draft remains available in the current page even when storage is blocked.
+    }
+  }, [clientCastingId, castingId, contextDraft]);
 
   // 1. 初始化起卦数据（服务端优先 -> 本地 sessionStorage 降级）
   useEffect(() => {
@@ -121,6 +245,7 @@ export function ThreeCoinResultClient({
             reading,
             lineValues: initialCastingView.lineValuesBottomUp,
             question: initialCastingView.context || undefined,
+            createdAt: initialCastingView.createdAt,
           });
         }
         return;
@@ -144,6 +269,7 @@ export function ThreeCoinResultClient({
           reading,
           lineValues,
           question: localSession?.question,
+          createdAt: localSession?.createdAt,
         });
       }
     }
@@ -180,7 +306,15 @@ export function ThreeCoinResultClient({
         return null;
       }
       if (!res.ok) {
-        if (showError) setActionError("保存本次起卦失败，请稍后重试");
+        const errorBody = await res.json().catch(() => ({})) as { error?: string; previousCastingId?: string };
+        if (errorBody.error === "QUESTION_LOCKED" && errorBody.previousCastingId) {
+          setActionError(t("You already have a saved cast for this question in the 72-hour window. Opening that reading.", "这个问题在 72 小时内已有起卦记录，正在打开原解读。"));
+          const previousUrl = new URL(window.location.href);
+          previousUrl.searchParams.set("session", errorBody.previousCastingId);
+          window.location.assign(`${previousUrl.pathname}${previousUrl.search}${previousUrl.hash}`);
+          return null;
+        }
+        if (showError) setActionError(t("Could not save this reading. Please try again.", "保存本次起卦失败，请稍后重试。"));
         return null;
       }
 
@@ -209,10 +343,10 @@ export function ThreeCoinResultClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, castingId, state, clientCastingId]);
 
-  // 3. 检查是否有后台运行中或已完成的 deep reading
+  // Restore the paid result and the exact encrypted input snapshot for this account.
   useEffect(() => {
     const activeId = castingId;
-    if (!activeId || deepStatus === "completed" || !user) return;
+    if (!activeId || !user) return;
 
     let active = true;
 
@@ -221,16 +355,39 @@ export function ThreeCoinResultClient({
         const res = await fetch(`/api/readings/${activeId}/deep`);
         if (!res.ok) return;
         const data = await res.json() as {
-          status: "not_started" | "queued" | "running" | "completed" | "failed";
-          output?: CommercialReadingReport;
+          status: "not_started" | "queued" | "running" | "completed" | "failed" | "timed_out";
+          output?: unknown;
+          snapshot?: unknown;
         };
         if (!active) return;
-        if (data.status === "completed" && data.output) {
-          setDeepReport(data.output);
+        const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
+        if (parsedSnapshot.success) {
+          const snapshot = parsedSnapshot.data;
+          setDeepSnapshot(snapshot);
+          setContextDraft({
+            contextNotes: snapshot.context.contextNotes,
+            optionsText: snapshot.context.options.join("\n"),
+            constraintsText: snapshot.context.constraints.join("\n"),
+            concernsText: snapshot.context.concerns.join("\n"),
+            interpretationGoal: snapshot.context.interpretationGoal,
+          });
+        }
+        const parsedReport = readingReportSchema.safeParse(data.output);
+        if (data.status === "completed" && parsedReport.success) {
+          setDeepReport(parsedReport.data);
+          setLegacyReport(null);
           setDeepStatus("completed");
+        } else if (data.status === "completed") {
+          const parsedLegacyReport = legacyReadingReportSchema.safeParse(data.output);
+          if (parsedLegacyReport.success) {
+            setLegacyReport(parsedLegacyReport.data);
+            setDeepStatus("completed");
+          }
         } else if (data.status === "queued" || data.status === "running") {
           setDeepStatus("generating");
           if (activeId) startPolling(activeId);
+        } else if (data.status === "failed" || data.status === "timed_out") {
+          setDeepStatus("failed");
         }
       } catch {
         // 忽略探测异常
@@ -242,37 +399,30 @@ export function ThreeCoinResultClient({
     return () => {
       active = false;
     };
-  }, [castingId, deepStatus, user]);
-
-  function startPolling(targetCastingId: string) {
-    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    pollTimerRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/readings/${targetCastingId}/deep`);
-        if (!res.ok) return;
-        const data = await res.json() as {
-          status: "not_started" | "queued" | "running" | "completed" | "failed";
-          output?: CommercialReadingReport;
-        };
-        if (data.status === "completed" && data.output) {
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-          setDeepReport(data.output);
-          setDeepStatus("completed");
-          setCredits((prev) => Math.max(0, prev - 1));
-        } else if (data.status === "failed") {
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-          setDeepStatus("failed");
-          setActionError("深度解读生成未完成，已为您全额保留解读次数。请随时重试。");
-        }
-      } catch {
-        // 轮询重试
-      }
-    }, 2000);
-  }
+  }, [castingId, startPolling, user]);
 
   async function handleUnlockDeepReading() {
     if (state.kind !== "ready") return;
     setActionError(null);
+
+    if (!state.question?.trim()) {
+      setActionError(t("This cast has no core question. Start a new reading and enter one before the first cast.", "这次起卦没有绑定核心问题。请重新起卦，并在第一次起爻前填写问题。"));
+      return;
+    }
+
+    const submittedContext = deepSnapshot?.context ?? {
+      contextNotes: contextDraft.contextNotes,
+      options: listField(contextDraft.optionsText),
+      constraints: listField(contextDraft.constraintsText),
+      concerns: listField(contextDraft.concernsText),
+      interpretationGoal: contextDraft.interpretationGoal,
+      locale,
+    };
+    const parsedContext = deepReadingContextEnrichmentSchema.safeParse(submittedContext);
+    if (!parsedContext.success) {
+      setActionError(t("Add at least 24 characters describing the relevant situation, options, constraints, or concerns.", "请补充至少 24 个字符的相关背景、选项、限制或顾虑。"));
+      return;
+    }
 
     const activeCastingId = await persistCurrentReading(true);
     if (!activeCastingId) return;
@@ -283,11 +433,12 @@ export function ThreeCoinResultClient({
       const res = await fetch(`/api/readings/${activeCastingId}/deep`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsedContext.data),
       });
 
       if (res.status === 402) {
         setDeepStatus("idle");
-        setActionError("您的解读次数不足，请先获取次数包");
+        setActionError(t("You have no available reading credits. Choose a pack to continue.", "当前没有可用解读次数，请先选择次数包。"));
         return;
       }
 
@@ -298,26 +449,43 @@ export function ThreeCoinResultClient({
       }
 
       if (!res.ok) {
-        setDeepStatus("failed");
-        setActionError("发起生成失败，请重试");
+        const error = await res.json().catch(() => ({})) as { error?: string };
+        setDeepStatus(error.error === "RISK_PROHIBITED" ? "idle" : "failed");
+        const message = error.error === "RISK_PROHIBITED"
+          ? t("This question needs qualified professional support, so generation was blocked and no credit was reserved.", "这个问题需要合格专业人士支持，因此系统已阻止生成，未预留次数。")
+          : error.error === "CONTEXT_INSUFFICIENT"
+            ? t("Add enough situation context before generating the reading.", "请先补充足够的现实背景，再生成解读。")
+            : t("The request could not start. Check the saved status before retrying.", "暂时无法发起请求；重试前请先检查已保存状态。");
+        setActionError(message);
         return;
       }
 
       const data = await res.json() as {
         status: "queued" | "running" | "completed";
-        output?: CommercialReadingReport;
+        output?: unknown;
+        snapshot?: unknown;
       };
 
-      if (data.status === "completed" && data.output) {
-        setDeepReport(data.output);
+      const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
+      if (parsedSnapshot.success) setDeepSnapshot(parsedSnapshot.data);
+      const parsedReport = readingReportSchema.safeParse(data.output);
+      if (data.status === "completed" && parsedReport.success) {
+        setDeepReport(parsedReport.data);
+        setLegacyReport(null);
         setDeepStatus("completed");
         setCredits((prev) => Math.max(0, prev - 1));
+      } else if (data.status === "completed") {
+        const parsedLegacyReport = legacyReadingReportSchema.safeParse(data.output);
+        if (parsedLegacyReport.success) {
+          setLegacyReport(parsedLegacyReport.data);
+          setDeepStatus("completed");
+        }
       } else {
         startPolling(activeCastingId);
       }
     } catch {
-      setDeepStatus("failed");
-      setActionError("网络请求中断，已为您保留解读次数，请点击重试");
+      setDeepStatus("idle");
+      setActionError(t("The network request was interrupted. Check the saved status before retrying to avoid duplicate work.", "网络请求中断。请先检查已保存状态，再重试以避免重复任务。"));
     }
   }
 
@@ -395,87 +563,200 @@ export function ThreeCoinResultClient({
   }
 
   const signinHref = resultSigninHref();
+  const resultDictionary = zh ? ZH_HANS_UI_DICTIONARY : EN_UI_DICTIONARY;
 
   return (
     <>
-      <ReadingResultView reading={state.reading} onStartNewReading={startNewReading} locale={locale}>
-        {/* AI 深度解读商业版板块 */}
-        <section className="mt-12" aria-labelledby="commercial-deep-section">
-          {deepStatus === "completed" && deepReport ? (
+      <PublicReadingResult
+        reading={resultReading!}
+        onNewReading={startNewReading}
+        dictionary={resultDictionary}
+        localizedContent={zh ? ZH_HANS_READING_CONTENT : undefined}
+        title={zh ? "本次三枚铜钱起卦结果" : "Your Three-Coin Reading"}
+        headingLevel="h1"
+        newReadingLabel={zh ? "重新起一卦" : "Start a New Reading"}
+      >
+        <section className="mt-6 rounded-3xl border border-[var(--gold)]/25 bg-gradient-to-b from-[rgba(235,178,85,0.07)] to-transparent p-5 sm:p-8" aria-labelledby="commercial-deep-section" data-deep-reading-entry>
+          {deepStatus === "completed" && (deepReport || legacyReport) ? (
             <>
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] px-5 py-3 text-xs text-[var(--ink-2)]">
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] px-5 py-3 text-xs text-[var(--ink-2)]">
                 <span className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-[var(--jade)]" />
-                  本报告已安全永久保存至您的账户
+                  {t("Saved to your account history", "已保存到账户历史记录")}
                 </span>
                 <Link href={zh ? "/zh/account" : "/account"} className="font-semibold text-[var(--gold-2)] hover:underline">
-                  查看账户与历史记录 →
+                  {t("Open account history →", "查看账户与历史记录 →")}
                 </Link>
               </div>
-              <CommercialReadingReportView report={deepReport} locale={locale} />
+              {deepReport ? <CommercialReadingReportView report={deepReport} snapshot={deepSnapshot} locale={locale} /> : null}
+              {legacyReport ? <LegacyCommercialReadingReportView report={legacyReport} locale={locale} /> : null}
+              <a href="#general-cast-interpretation" className="mt-6 inline-flex text-sm font-semibold text-[var(--cyan)] hover:underline">
+                {t("Read the full general cast interpretation", "查看完整的通用卦象解读")}
+              </a>
             </>
           ) : deepStatus === "generating" ? (
-            <div className="rounded-3xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] p-8 text-center sm:p-12">
+            <div className="p-4 text-center sm:p-8" aria-live="polite" role="status" data-deep-reading-state="generating">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/15">
                 <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-[var(--gold)] border-t-transparent" />
               </div>
-              <h3 className="mt-4 font-display text-2xl font-normal text-white sm:text-3xl">正在生成十模块深度解读报告…</h3>
+              <h3 className="mt-4 font-display text-2xl font-normal text-white sm:text-3xl">{t("Your situation-based reading is in progress…", "正在结合你的处境生成个性化解读…")}</h3>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
-                {zh ? "系统正在结合你的卦象格局、动爻演变与现实决策维度生成深度解读，请稍候。" : "AI 正在结合您的卦象格局、动爻演变与现实决策维度进行深层义理推演。大约需要 15~30 秒，请稍候。"}
+                {t("The saved question, situation, exact cast, and source material are being reviewed together.", "系统正在结合已保存的问题、现实背景、本次卦象和解释依据进行校验。")}
               </p>
-            </div>
-          ) : !user ? (
-            <div className="rounded-3xl border border-white/[0.12] bg-white/[0.03] p-8 sm:p-10 text-center">
-              <p className="mystic-kicker">{zh ? "智能深度解读 · 商业专业版" : "AI 深度解读 · 商业专业版"}</p>
-              <h3 className="mt-2 font-display text-2xl font-normal text-white sm:text-3xl">登录以保存本次起卦并解锁深度解读</h3>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
-                当前浏览器内的起卦已妥善保留。登录后可永久保存至您的账户历史，并开启十模块全面义理与决策深度剖析。
-              </p>
-              <div className="mt-6 flex justify-center">
-                <Link href={signinHref} className="mystic-button">
-                  登录并保存起卦
-                </Link>
-              </div>
-            </div>
-          ) : credits <= 0 ? (
-            <div className="rounded-3xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.05)] p-8 sm:p-10 text-center">
-              <p className="mystic-kicker">智能深度解读 · 商业专业版</p>
-              <h3 className="mt-2 font-display text-2xl font-normal text-white sm:text-3xl">获取深度解读次数包</h3>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
-                深度解读涵盖核心摘要、卦象格局、动爻机理、走向推演、盲区防范及行动方向等十模块。单次消耗 1 次额度。
-              </p>
-              {actionError ? (
-                <p className="mt-3 text-sm font-semibold text-[var(--danger)]">{actionError}</p>
-              ) : null}
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-                <button type="button" onClick={handleOpenPricing} className="mystic-button">
-                  获取解读次数
-                </button>
-              </div>
             </div>
           ) : (
-            <div className="rounded-3xl border border-[var(--gold)]/40 bg-gradient-to-b from-[rgba(235,178,85,0.09)] to-transparent p-8 sm:p-10 text-center shadow-xl">
-              <p className="mystic-kicker">已拥有解读权益</p>
-              <h3 className="mt-2 font-display text-2xl font-normal text-white sm:text-3xl">解锁本次起卦的智能深度解读</h3>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
-                您当前拥有 <strong className="text-[var(--gold-2)]">{credits}</strong> 次可用解读次数。生成将消耗 1 次额度，生成失败全额保留。
-              </p>
-              {actionError ? (
-                <p className="mt-3 text-sm font-semibold text-[var(--danger)]">{actionError}</p>
-              ) : null}
-              <div className="mt-6 flex justify-center">
-                <button
-                  type="button"
-                  onClick={handleUnlockDeepReading}
-                  className="mystic-button"
-                >
-                  立即解锁深度解读报告（消耗 1 次）
-                </button>
+            <>
+              <p className="mystic-kicker">{t("Free: understand the cast · Paid: relate it to your situation", "免费：理解卦象 · 付费：解读卦象与你处境的关系")}</p>
+              <h2 id="commercial-deep-section" className="mt-2 max-w-3xl font-display text-2xl font-normal text-white sm:text-3xl">
+                {t("What does this reading mean for your specific situation?", "这次卦象对你的具体处境意味着什么？")}
+              </h2>
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.08)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--gold-2)]">
+                {t("Personalized Deep Reading · from $2.99", "个性化深度解读 · $2.99 起")}
               </div>
-            </div>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">
+                {t("Free explains the cast itself. Deep Reading connects this exact cast to the question you asked, using the situation context you supply here and cited Quick I Ching source material. Free reading never calls AI.", "免费解读说明卦象本身；深度解读结合你起卦前锁定的核心问题、在此补充的现实背景和确切卦象，给出有依据的针对性解释。免费解读绝不调用 AI。")}
+              </p>
+
+              {!state.question || Array.from(state.question.trim()).length < 8 ? (
+                <div className="mt-6 rounded-2xl border border-[var(--gold)]/25 bg-black/15 p-5" data-deep-reading-blocked="missing-question">
+                  <p className="text-sm leading-7 text-[var(--ink-2)]">{t("This cast was not bound to a clear question before the first line was cast. It stays available as a free reading; start a new cast with one core question to use Deep Reading.", "这次起卦在第一爻落定前没有绑定清晰的核心问题，因此仍可作为免费解读查看；如需深度解读，请带着一个核心问题重新起卦。")}</p>
+                  <button type="button" onClick={startNewReading} className="mystic-button mt-5">{t("Start a new reading with a question", "带着问题重新起卦")}</button>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-6 rounded-2xl border border-white/[0.09] bg-black/15 p-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--cyan)]">{t("Core question frozen at cast", "起卦时已锁定的核心问题")}</p>
+                    <p className="mt-2 text-sm leading-7 text-white" data-core-question-at-cast>{state.question}</p>
+                  </div>
+
+                  {deepSnapshot ? (
+                    <p className="mt-5 rounded-xl border border-[var(--gold)]/20 bg-[var(--gold)]/[0.04] p-4 text-sm leading-7 text-[var(--ink-2)]" data-context-snapshot-frozen>
+                      {t("This generation already has a saved input snapshot. A retry will reuse the same question and context.", "本次生成已保存输入快照；重试会继续使用相同的问题与背景。")}
+                    </p>
+                  ) : (
+                    <div className="mt-6 space-y-4" data-context-enrichment-form>
+                      <div>
+                        <label htmlFor="deep-context-situation" className="block text-sm font-semibold text-white">
+                          {t("Tell us what matters in your situation", "说明你的具体处境与关键事实")}
+                        </label>
+                        <textarea
+                          id="deep-context-situation"
+                          value={contextDraft.contextNotes}
+                          onChange={(event) => setContextDraft((draft) => ({ ...draft, contextNotes: event.target.value }))}
+                          maxLength={2000}
+                          rows={3}
+                          className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm leading-6 text-white placeholder:text-[var(--ink-3)] focus:border-[var(--gold)] focus:outline-none"
+                          placeholder={t("What has happened? What options are you considering? What constraints or concerns matter?", "目前发生了什么？你在考虑哪些选项？有哪些现实限制或主要顾虑？")}
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="deep-interpretation-goal" className="block text-sm font-semibold text-white">
+                          {t("What would you like clarity on?", "你最想看清什么？")}
+                        </label>
+                        <select
+                          id="deep-interpretation-goal"
+                          value={contextDraft.interpretationGoal}
+                          onChange={(event) => setContextDraft((draft) => ({ ...draft, interpretationGoal: event.target.value as ContextDraft["interpretationGoal"] }))}
+                          className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm leading-6 text-white focus:border-[var(--gold)] focus:outline-none"
+                        >
+                          <option value="what_do_i_need_to_see_clearly">{t("Understand the situation", "理解当前局势")}</option>
+                          <option value="what_should_i_pay_attention_to_next">{t("See what matters next", "看清接下来应关注什么")}</option>
+                          <option value="how_should_i_act">{t("Reflect on a next step", "思考下一步")}</option>
+                          <option value="what_is_the_likely_direction">{t("Explore the possible direction", "理解可能的条件性走向")}</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setShowDetailedContext((prev) => !prev)}
+                          className="inline-flex items-center gap-1.5 py-1 text-xs font-semibold text-[var(--gold-2)] hover:underline"
+                        >
+                          {showDetailedContext
+                            ? t("− Hide optional structured details", "− 收起附加结构项")
+                            : t("+ Add more details (options, constraints, concerns)", "+ 补充选项、限制与顾虑（可选）")}
+                        </button>
+                      </div>
+
+                      {showDetailedContext ? (
+                        <div className="grid gap-4 rounded-2xl border border-white/[0.08] bg-black/15 p-4 sm:grid-cols-3">
+                          <label>
+                            <span className="text-xs font-semibold text-[var(--ink-2)]">{t("Options", "正在考虑的选项")}</span>
+                            <textarea
+                              value={contextDraft.optionsText}
+                              onChange={(event) => setContextDraft((draft) => ({ ...draft, optionsText: event.target.value }))}
+                              rows={2}
+                              className="mt-1 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-xs leading-5 text-white placeholder:text-[var(--ink-3)]"
+                              placeholder={t("One option per line", "每行一个选项")}
+                            />
+                          </label>
+                          <label>
+                            <span className="text-xs font-semibold text-[var(--ink-2)]">{t("Constraints", "现实限制")}</span>
+                            <textarea
+                              value={contextDraft.constraintsText}
+                              onChange={(event) => setContextDraft((draft) => ({ ...draft, constraintsText: event.target.value }))}
+                              rows={2}
+                              className="mt-1 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-xs leading-5 text-white placeholder:text-[var(--ink-3)]"
+                              placeholder={t("One constraint per line", "每行一条限制")}
+                            />
+                          </label>
+                          <label>
+                            <span className="text-xs font-semibold text-[var(--ink-2)]">{t("Concerns", "主要顾虑")}</span>
+                            <textarea
+                              value={contextDraft.concernsText}
+                              onChange={(event) => setContextDraft((draft) => ({ ...draft, concernsText: event.target.value }))}
+                              rows={2}
+                              className="mt-1 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-xs leading-5 text-white placeholder:text-[var(--ink-3)]"
+                              placeholder={t("What are you worried about?", "你最担心什么？")}
+                            />
+                          </label>
+                        </div>
+                      ) : null}
+
+                      <p className="text-xs leading-6 text-[var(--ink-3)]">
+                        {t("Add at least 24 characters across your situation details. This context is encrypted with the saved reading and is not used to change its core question.", "请在处境说明中合计补充至少 24 个字符。背景会与起卦结果一并加密保存，不会改变原核心问题。")}
+                      </p>
+                    </div>
+                  )}
+
+                  {actionError ? <p className="mt-4 text-sm font-semibold text-[var(--danger)]" role="alert">{actionError}</p> : null}
+                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                    {!user ? (
+                      <>
+                        <Link href={signinHref} className="mystic-button">
+                          {t("Sign in to continue · $2.99", "登录并继续 · $2.99")}
+                        </Link>
+                        <span className="text-xs text-[var(--ink-3)]">
+                          {t("Personalized Deep Reading is $2.99 per cast. Saved to your account so you can revisit it later. Your free cast interpretation is always free to review.", "深度解读单次 $2.99。解读会保存到账户历史中，方便以后再次查看。免费卦象解读随时可看。")}
+                        </span>
+                      </>
+                    ) : credits <= 0 ? (
+                      <>
+                        <button type="button" onClick={handleOpenPricing} className="mystic-button">
+                          {t("Choose a Deep Reading pack · from $2.99", "选择深度解读次数包 · $2.99 起")}
+                        </button>
+                        <span className="text-xs text-[var(--ink-3)]">
+                          {t("Your cast remains free to review. No generation starts until a credit is available.", "你的免费卦象解读仍可查看；获得次数前不会启动生成。")}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <button type="button" onClick={handleUnlockDeepReading} className="mystic-button" data-start-deep-reading>
+                          {deepStatus === "failed" ? t("Retry this reading", "重试本次解读") : t("Read my situation with this cast", "结合本次卦象解读我的处境")}
+                        </button>
+                        <span className="text-xs text-[var(--ink-3)]">
+                          {t(`${credits} credit${credits === 1 ? "" : "s"} available · one reserved per generation · released if generation fails`, `可用 ${credits} 次 · 每次生成预留 1 次 · 失败则释放`)}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
           )}
         </section>
-      </ReadingResultView>
+      </PublicReadingResult>
 
       {clearError ? (
         <div

@@ -1,3 +1,5 @@
+> Historical review plan, superseded on 2026-09-25. The `Reveal Your Reading` continuation described here is retired; completed casts now enter the unified result page directly.
+
 # Three-Coin Free Reading V2 — Independent Review Fixes
 
 ## Status

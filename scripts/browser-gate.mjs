@@ -379,29 +379,56 @@ async function finishThreeCoin(page) {
   await waitForText(page, "1 / 6 lines");
   for (let line = 2; line <= 6; line += 1) {
     await clickButton(page, "Toss three coins");
-    await waitForText(page, `${line} / 6 lines`);
+    if (line === 6) {
+      await page.waitForFunction(
+        () => location.pathname === "/readings/three-coin/result" || Boolean(document.body?.innerText?.includes("6 / 6 lines")),
+        { timeout: 15_000 }
+      );
+    } else {
+      await waitForText(page, `${line} / 6 lines`);
+    }
   }
 
-  await waitForText(page, "Your hexagram is formed");
-  await waitForText(page, "Reveal Your Reading");
-  const sealedBeforeReveal = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
-  assert(sealedBeforeReveal, "Completed Three-Coin reading must remain sealed before reveal navigation");
-
-  await clickLink(page, "Reveal Your Reading");
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  const sealedBeforeReveal = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
+  assert(sealedBeforeReveal, "Completed Three-Coin reading must remain sealed after direct result navigation");
+  const castLineValues = await page.evaluate((key) => {
+    const parsed = JSON.parse(sessionStorage.getItem(key) || "null");
+    const steps = Array.isArray(parsed) ? parsed : parsed?.data?.steps;
+    return Array.isArray(steps) ? steps.map((step) => step?.lineValue) : null;
+  }, storageKey);
+  assert.equal(castLineValues?.length, 6, "Completed Three-Coin reading must preserve all six cast lines");
+  assert(castLineValues.every((value) => [6, 7, 8, 9].includes(value)), "Completed Three-Coin reading must preserve valid line values");
+  const expectedActiveLinePositions = castLineValues.flatMap((value, index) => value === 6 || value === 9 ? [index + 1] : []);
   const locationAfterReveal = await page.evaluate(() => ({ pathname: location.pathname, search: location.search }));
   assert.equal(locationAfterReveal.pathname, "/readings/three-coin/result");
   assert.equal(locationAfterReveal.search, "", "Three-Coin result URL must carry no cast state in query parameters");
   await waitForText(page, "Your Three-Coin Reading");
   for (const expected of [
-    "The Primary Hexagram",
-    "Understanding the Structure",
+    "Primary Hexagram",
+    "Core meaning",
     "Changing Lines",
-    "Bringing the Reading Together",
-    "Bottom Line",
-    "Questions to Sit With",
-    "What to Watch",
+    "A way to return to the question",
+    "Bottom line",
+    "Three questions to carry forward",
   ]) await waitForText(page, expected);
+  if (expectedActiveLinePositions.length > 0) await waitForText(page, "Classical line text");
+  const actualActiveLinePositions = await page.$$eval("[data-active-line]", (nodes) => nodes.map((node) => Number(node.getAttribute("data-active-line"))));
+  assert.deepEqual(actualActiveLinePositions, expectedActiveLinePositions, "Result active-line detail must match the sealed cast");
+
+  const resultSections = await page.evaluate(() => {
+    const result = document.querySelector("[data-public-reading-result]");
+    const deepReading = result?.querySelector("[data-deep-reading-entry]");
+    const freeDetails = result?.querySelector("[data-primary-card]");
+    return {
+      hasFreeBoundary: result?.querySelector("[data-free-cast-boundary]") !== null,
+      hasHexagramDetailsLink: freeDetails?.querySelector('a[href^="/hexagrams/"]') !== null,
+      deepReadingBeforeDetails: Boolean(deepReading && freeDetails && deepReading.compareDocumentPosition(freeDetails) & Node.DOCUMENT_POSITION_FOLLOWING),
+    };
+  });
+  assert(resultSections.hasFreeBoundary, "Result must label the free cast interpretation boundary");
+  assert(resultSections.hasHexagramDetailsLink, "Free cast interpretation must link to the primary hexagram details");
+  assert(resultSections.deepReadingBeforeDetails, "Deep Reading value must appear before the detailed free interpretation");
 
   const readingBeforeRefresh = await page.$eval("main", (node) => node.textContent ?? "");
   await page.reload({ waitUntil: "networkidle0" });

@@ -15,6 +15,15 @@ describe("Deep Reading Workflow Orchestration", () => {
         question: "How will my project go?",
         scene: "career",
         interpretationGoal: "what_do_i_need_to_see_clearly",
+        context: {
+          contextNotes: "The timeline changed and I need a clear next step.",
+          options: [],
+          constraints: [],
+          concerns: [],
+          interpretationGoal: "what_do_i_need_to_see_clearly",
+          locale: "en",
+        },
+        knowledge: { evidence: [{ id: "primary.judgment" }] } as any,
         facts: {
           method: "three_coin",
           algorithmVersion: "three-coin-v1",
@@ -40,6 +49,13 @@ describe("Deep Reading Workflow Orchestration", () => {
       schemaValid: true,
       safetyPass: true,
       factConsistencyPass: true,
+      questionRelevancePass: true,
+      contextFidelityPass: true,
+      evidenceGroundingPass: true,
+      interpretiveCoherencePass: true,
+      actionabilityPass: true,
+      uncertaintyPass: true,
+      languageConsistencyPass: true,
     });
 
     const finalizeSpy = vi.spyOn(steps, "finalizeDeepReadingStep").mockResolvedValue({
@@ -107,6 +123,49 @@ describe("Deep Reading Workflow Orchestration", () => {
     });
   });
 
+  it("fails and releases the reserved credit when review says the answer misses the question", async () => {
+    vi.spyOn(steps, "claimJobLeaseStep").mockResolvedValue({
+      leaseToken: "lease-token-question-fail",
+      providerInput: {} as any,
+      inputSnapshotHash: "hash-question-fail",
+    });
+    vi.spyOn(steps, "generateDeepReadingStep").mockResolvedValue({
+      output: {} as any,
+      deterministicFacts: {} as any,
+    });
+    vi.spyOn(steps, "reviewDeepReadingStep").mockResolvedValue({
+      status: "pass",
+      reasonCodes: [],
+      schemaValid: true,
+      safetyPass: true,
+      factConsistencyPass: true,
+      questionRelevancePass: false,
+      contextFidelityPass: true,
+      evidenceGroundingPass: true,
+      interpretiveCoherencePass: true,
+      actionabilityPass: true,
+      uncertaintyPass: true,
+      languageConsistencyPass: true,
+    });
+
+    const finalizeSpy = vi.spyOn(steps, "finalizeDeepReadingStep").mockResolvedValue({ success: true });
+    const failureSpy = vi.spyOn(steps, "handleWorkflowFailureStep").mockResolvedValue();
+    const result = await deepReadingWorkflow({
+      castingId: "cast-question-fail",
+      jobId: "job-question-fail",
+      reservationId: "res-question-fail",
+      idempotencyKey: "deep:cast-question-fail:0:job-question-fail",
+      generationEpoch: 0,
+    });
+
+    expect(result).toEqual({ status: "failed", reason: "OUTPUT_REVIEW_FAILED" });
+    expect(finalizeSpy).not.toHaveBeenCalled();
+    expect(failureSpy).toHaveBeenCalledWith(expect.objectContaining({
+      reservationId: "res-question-fail",
+      errorCode: "OUTPUT_REVIEW_FAILED",
+    }));
+  });
+
   it("handles runtime exception in generation and calls failure step with leaseToken", async () => {
     vi.spyOn(steps, "claimJobLeaseStep").mockResolvedValue({
       leaseToken: "lease-token-789",
@@ -133,5 +192,29 @@ describe("Deep Reading Workflow Orchestration", () => {
       idempotencyKey: "deep:cast-3:0:job-3",
       errorCode: "AI_GATEWAY_TIMEOUT",
     });
+  });
+
+  it("releases a reserved credit when the claim fails before acquiring a lease", async () => {
+    vi.spyOn(steps, "claimJobLeaseStep").mockRejectedValue(new Error("CAST_SCENE_SNAPSHOT_MISMATCH"));
+    const unclaimedFailureSpy = vi.spyOn(steps, "handleUnclaimedWorkflowFailureStep").mockResolvedValue();
+    const leasedFailureSpy = vi.spyOn(steps, "handleWorkflowFailureStep").mockResolvedValue();
+
+    await expect(deepReadingWorkflow({
+      castingId: "cast-unclaimed-failure",
+      jobId: "job-unclaimed-failure",
+      reservationId: "res-unclaimed-failure",
+      idempotencyKey: "deep:cast-unclaimed-failure:0:job-unclaimed-failure",
+      generationEpoch: 0,
+    })).rejects.toThrow("CAST_SCENE_SNAPSHOT_MISMATCH");
+
+    expect(unclaimedFailureSpy).toHaveBeenCalledWith({
+      jobId: "job-unclaimed-failure",
+      castingId: "cast-unclaimed-failure",
+      generationEpoch: 0,
+      reservationId: "res-unclaimed-failure",
+      idempotencyKey: "deep:cast-unclaimed-failure:0:job-unclaimed-failure",
+      errorCode: "CAST_SCENE_SNAPSHOT_MISMATCH",
+    });
+    expect(leasedFailureSpy).not.toHaveBeenCalled();
   });
 });

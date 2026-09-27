@@ -60,7 +60,10 @@ async function verifyResult(page) {
     steps: FIXTURE_STEPS,
   });
   await page.goto(`${BASE}/readings/three-coin/result`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => document.body?.innerText.includes("Bottom Line"), { timeout: 15_000 });
+  await page.waitForFunction((sentinels) => {
+    const text = document.body?.innerText ?? "";
+    return sentinels.every((sentinel) => text.includes(sentinel));
+  }, { timeout: 15_000 }, [H13_CATALOG_SENTINEL, H57_CATALOG_SENTINEL]);
   const scripts = await loadedJavascript(page);
   assert(scripts.combined.includes(H13_CATALOG_SENTINEL), "Result did not load the primary H13 interpretation chunk");
   assert(scripts.combined.includes(H57_CATALOG_SENTINEL), "Result did not load the relating H57 interpretation chunk");

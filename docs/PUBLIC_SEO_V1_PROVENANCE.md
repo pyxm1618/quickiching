@@ -1,6 +1,6 @@
 # Public SEO V1 provenance
 
-Updated: 2026-08-19
+Updated: 2026-09-25
 
 This file records the rules and content provenance used by the credential-free Public SEO V1. It is intentionally narrower than the future Commercial V2 design.
 
@@ -101,7 +101,7 @@ Public V1 free output includes:
 - a structural explanation of change;
 - a reflection / non-deterministic / non-professional-advice boundary.
 
-The optional personalized interpreter is a separate, explicit-click boundary. It receives only verified reading facts plus the normalized question, is schema-validated and risk-checked, and is production fail-closed until the feature flag, AI Gateway credentials/model, Turnstile configuration, Upstash distributed rate limit, and provider controls are all present. Request cancellation propagates to provider work. Static interpretation remains complete without it.
+Free interpretation explains the cast itself and never calls AI. The former free personalized interpreter, its public API, feature flags, Turnstile dependency, and Upstash rate limit have been retired. No unauthenticated public AI interpretation endpoint remains. Paid Deep Reading is a separate server-gated product: it requires the frozen question, sufficient user context, a passing risk check, an account entitlement, an immutable encrypted snapshot, and the cited knowledge bundle before generation can start. Production availability remains deployment-controlled and requires live account and provider acceptance.
 
 ## Classical hexagram source records
 

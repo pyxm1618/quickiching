@@ -1,8 +1,16 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
+
+const authState = vi.hoisted(() => ({ userId: "" }));
+vi.mock("@/lib/auth/session", () => ({
+  resolveSession: async () => authState.userId ? { user: { id: authState.userId } } : null,
+}));
+
+import { POST as saveReading } from "@/app/api/readings/route";
+import { closeCommercialDatabaseConnection } from "./client";
 
 /**
  * Integration: POST /api/readings Postgres idempotency
@@ -17,6 +25,40 @@ if (!databaseURL) throw new Error("TEST_DATABASE_URL is required");
 
 const sql = postgres(databaseURL, { max: 4, prepare: false });
 const db = drizzle(sql);
+
+function saveRequest(body: unknown) {
+  return new Request("https://www.quickiching.com/api/readings", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      origin: "https://www.quickiching.com",
+      referer: "https://www.quickiching.com/readings/three-coin/result",
+      "sec-fetch-site": "same-origin",
+      host: "www.quickiching.com",
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+function saveInput(clientCastingId: string, question: string) {
+  return {
+    clientCastingId,
+    lineValuesBottomUp: [7, 8, 9, 6, 7, 8],
+    question,
+    scene: "career",
+    interpretationGoal: "what_do_i_need_to_see_clearly",
+  };
+}
+
+async function createUser() {
+  const userId = `question-lock-user-${randomUUID()}`;
+  await sql`
+    insert into users (id, name, email, email_verified, created_at, updated_at)
+    values (${userId}, 'Question Lock Test', ${`${userId}@test.example`}, true, now(), now())
+  `;
+  authState.userId = userId;
+  return userId;
+}
 
 // Minimal fixture helpers that mirror what the route does
 async function insertCasting(
@@ -55,10 +97,19 @@ async function insertCasting(
 describe("POST /api/readings Postgres idempotency (integration)", () => {
   beforeAll(async () => {
     await migrate(db, { migrationsFolder: "drizzle" });
-    // Ensure a test user exists
+    vi.stubEnv("DATABASE_ADAPTER_MODE", "postgres");
+    vi.stubEnv("DATABASE_URL", databaseURL!);
+    vi.stubEnv("APP_BASE_URL", "https://www.quickiching.com");
+    vi.stubEnv("BETTER_AUTH_URL", "https://www.quickiching.com");
+    vi.stubEnv("QUESTION_FINGERPRINT_KEYS", "v1:question-lock-fingerprint-fixture-key");
+    vi.stubEnv("QUESTION_ENCRYPTION_KEYS", "v1:question-lock-encryption-fixture-key");
+    vi.stubEnv("RESULT_INTEGRITY_KEYS", "v1:question-lock-result-fixture-key");
   });
 
   afterAll(async () => {
+    authState.userId = "";
+    vi.unstubAllEnvs();
+    await closeCommercialDatabaseConnection();
     await sql.end({ timeout: 5 });
   });
 
@@ -118,5 +169,54 @@ describe("POST /api/readings Postgres idempotency (integration)", () => {
     expect(rows[0]!.question_fingerprint).toBe("fp-question-A");
     expect(rows[1]!.question_fingerprint).toBe("fp-question-B");
     // Same line values, different question → independent rows ✓
+  });
+
+  it("binds the first cast to its question for 72 hours and keeps retries idempotent", async () => {
+    const userId = await createUser();
+    const firstCastingId = randomUUID();
+    const blockedCastingId = randomUUID();
+    const distinctQuestionCastingId = randomUUID();
+    const question = "How should I approach the next step?";
+
+    const firstResponse = await saveReading(saveRequest(saveInput(firstCastingId, question)));
+    expect(firstResponse.status).toBe(201);
+    await expect(firstResponse.json()).resolves.toMatchObject({ castingId: firstCastingId, idempotent: false });
+
+    const retryResponse = await saveReading(saveRequest(saveInput(firstCastingId, `  ${question.toUpperCase()}  `)));
+    expect(retryResponse.status).toBe(200);
+    await expect(retryResponse.json()).resolves.toMatchObject({ castingId: firstCastingId, idempotent: true });
+
+    const blockedResponse = await saveReading(saveRequest(saveInput(blockedCastingId, `  ${question.toUpperCase()}! `)));
+    expect(blockedResponse.status).toBe(409);
+    await expect(blockedResponse.json()).resolves.toMatchObject({
+      error: "QUESTION_LOCKED",
+      previousCastingId: firstCastingId,
+    });
+
+    const otherQuestionResponse = await saveReading(saveRequest(saveInput(distinctQuestionCastingId, "What should I prioritize this week?")));
+    expect(otherQuestionResponse.status).toBe(201);
+    await expect(otherQuestionResponse.json()).resolves.toMatchObject({ castingId: distinctQuestionCastingId });
+
+    const rows = await sql`
+      select count(*)::integer as count from casting_sessions
+      where user_id = ${userId} and deleted_at is null
+    ` as Array<{ count: number }>;
+    expect(rows[0]?.count).toBe(2);
+  });
+
+  it("serializes concurrent casts for the same core question", async () => {
+    await createUser();
+    const castingIds = [randomUUID(), randomUUID()];
+    const question = "What deserves my attention over the next month?";
+    const responses = await Promise.all(castingIds.map((clientCastingId) =>
+      saveReading(saveRequest(saveInput(clientCastingId, question))),
+    ));
+
+    expect(responses.map((response) => response.status).sort()).toEqual([201, 409]);
+    const bodies = await Promise.all(responses.map((response) => response.json()));
+    const winner = bodies.find((body) => body.idempotent === false);
+    const blocked = bodies.find((body) => body.error === "QUESTION_LOCKED");
+    expect(winner?.castingId).toBeDefined();
+    expect(blocked?.previousCastingId).toBe(winner?.castingId);
   });
 });

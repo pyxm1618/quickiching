@@ -4,6 +4,9 @@ import { randomUUID } from "node:crypto";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { databaseSchema } from "@/server/db/schema";
+import { encryptQuestionForStorage } from "./question-crypto";
+import { resultIntegrityHmac } from "./integrity";
+import type { DeterministicFacts } from "@/domain/generation/schemas";
 import { createDeepReadingService, DeepReadingService } from "./deep-reading-service";
 
 const databaseURL = process.env.TEST_DATABASE_URL;
@@ -11,6 +14,60 @@ if (!databaseURL) throw new Error("TEST_DATABASE_URL is required for PostgreSQL 
 
 const sql = postgres(databaseURL, { max: 8, prepare: false });
 const db = drizzle(sql, { schema: databaseSchema });
+const integrationEnv = {
+  NODE_ENV: "test",
+  QUESTION_ENCRYPTION_KEYS: "v1:deep-reading-question-fixture-key",
+  RESULT_INTEGRITY_KEYS: "v1:deep-reading-result-fixture-key",
+};
+const castFacts: DeterministicFacts = {
+  method: "three_coin",
+  algorithmVersion: "three-coin-v1",
+  classicMappingVersion: "king-wen-v1",
+  lineValuesBottomUp: [7, 8, 7, 8, 7, 8],
+  primaryHexagramNumber: 11,
+  movingLinePositions: [],
+  relatingHexagramNumber: null,
+  readingVariant: "still_hexagram",
+};
+
+function validEnrichment() {
+  return {
+    contextNotes: "The team changed its timeline and I need to choose a clear next step.",
+    options: [],
+    constraints: [],
+    concerns: [],
+    interpretationGoal: "what_do_i_need_to_see_clearly" as const,
+    locale: "en" as const,
+  };
+}
+
+async function seedCastFacts(castingId: string, now: string) {
+  const key = { version: "v1", material: "deep-reading-result-fixture-key" };
+  const resultHmac = resultIntegrityHmac(castFacts, key);
+  await sql`
+    insert into cast_results (
+      casting_id, line_values, primary_hexagram_number, moving_line_positions, relating_hexagram_number,
+      method_calculation, algorithm_version, classic_mapping_version, result_hmac, result_hmac_key_version, created_at
+    ) values (
+      ${castingId}, ${castFacts.lineValuesBottomUp}, ${castFacts.primaryHexagramNumber}, ${castFacts.movingLinePositions}, null,
+      '{"coins":[2,2,3]}'::jsonb, ${castFacts.algorithmVersion}, ${castFacts.classicMappingVersion}, ${resultHmac}, 'v1', ${now}
+    )
+  `;
+}
+
+async function seedQuestionVersion(castingId: string, question: string, now: string) {
+  const questionVersionId = randomUUID();
+  const encrypted = encryptQuestionForStorage({ castingId, questionVersionId, question }, integrationEnv);
+  await sql`
+    insert into question_versions (
+      id, casting_id, version_number, ciphertext, iv, auth_tag, encryption_key_version,
+      fingerprint_key_version, fingerprint, created_reason, created_at
+    ) values (
+      ${questionVersionId}, ${castingId}, 1, ${encrypted.ciphertext}, ${encrypted.iv}, ${encrypted.authTag},
+      ${encrypted.encryptionKeyVersion}, 'v1', 'fixture-fingerprint', 'initial_cast', ${now}
+    )
+  `;
+}
 
 describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () => {
   let deepReadingService: DeepReadingService;
@@ -22,6 +79,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await migrate(db, { migrationsFolder: "drizzle" });
     deepReadingService = createDeepReadingService({
       sql,
+      env: integrationEnv,
       workflowStarter: {
         startDeepReadingWorkflow: async () => ({ runId: "mock-run-1", started: true }),
       },
@@ -67,25 +125,38 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
       insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
       values (${castingId}, ${userOneId}, 'three_coin', 'revealed', 'allowed', 'career', 'guidance', ${now}, ${now})
     `;
-    await sql`
-      insert into cast_results (
-        casting_id, line_values, primary_hexagram_number, moving_line_positions, relating_hexagram_number,
-        method_calculation, algorithm_version, classic_mapping_version, result_hmac, result_hmac_key_version, created_at
-      ) values (
-        ${castingId}, ARRAY[7,8,7,8,7,8]::integer[], 11, ARRAY[]::integer[], null,
-        '{"coins":[2,2,3]}'::jsonb, 'three-coin-v1', 'king-wen-v1', 'hmac-1', 'v1', ${now}
-      )
-    `;
+    await seedCastFacts(castingId, now);
+    await seedQuestionVersion(castingId, "What should I focus on in this transition?", now);
 
     // 3. Request deep reading
     const result = await deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
+      enrichment: validEnrichment(),
     });
 
     expect(result.status).toBe("queued");
     expect(result.jobId).toBeDefined();
     expect(result.reservationId).toBeDefined();
+
+    const retry = await deepReadingService.requestDeepReading({
+      userId: userOneId,
+      castingId,
+      enrichment: validEnrichment(),
+    });
+    expect(retry.status).toBe("queued");
+    expect(retry.jobId).toBe(result.jobId);
+    expect(retry.reservationId).toBe(result.reservationId);
+
+    const restored = await deepReadingService.getDeepReadingStatus({ userId: userOneId, castingId });
+    expect(restored).toMatchObject({
+      status: "queued",
+      snapshot: {
+        coreQuestionAtCast: "What should I focus on in this transition?",
+        context: validEnrichment(),
+        facts: castFacts,
+      },
+    });
 
     // Verify batch reserved
     const batchRows = await sql<{ quantity_available: number; quantity_reserved: number }[]>`
@@ -129,7 +200,32 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
+      enrichment: validEnrichment(),
     })).rejects.toThrow("CASTING_NOT_READY");
+  });
+
+  it("rejects missing context before snapshot creation or credit reservation", async () => {
+    const castingId = randomUUID();
+    const now = new Date().toISOString();
+
+    await sql`
+      insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
+      values (${castingId}, ${userZeroId}, 'three_coin', 'revealed', 'allowed', 'career', 'guidance', ${now}, ${now})
+    `;
+    await seedCastFacts(castingId, now);
+    await seedQuestionVersion(castingId, "What should I focus on in this transition?", now);
+
+    await expect(deepReadingService.requestDeepReading({
+      userId: userZeroId,
+      castingId,
+    })).rejects.toThrow("CONTEXT_INSUFFICIENT");
+
+    const [snapshots, reservations] = await Promise.all([
+      sql`select count(*)::integer as count from deep_reading_context_snapshots where casting_id = ${castingId}` as Promise<Array<{ count: number }>>,
+      sql`select count(*)::integer as count from entitlement_reservations where casting_id = ${castingId}` as Promise<Array<{ count: number }>>,
+    ]);
+    expect(snapshots[0]?.count).toBe(0);
+    expect(reservations[0]?.count).toBe(0);
   });
 
   it("rejects casting that has non-allowed risk status", async () => {
@@ -140,11 +236,14 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
       insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
       values (${castingId}, ${userOneId}, 'three_coin', 'revealed', 'emergency_blocked', 'career', 'guidance', ${now}, ${now})
     `;
+    await seedCastFacts(castingId, now);
+    await seedQuestionVersion(castingId, "I want to harm myself", now);
 
     await expect(deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
-    })).rejects.toThrow("RISK_PROHIBITED");
+      enrichment: validEnrichment(),
+    })).rejects.toThrow("RISK_EMERGENCY_BLOCKED");
   });
 
   it("fails closed with 404 when user tries to access another user's casting (NEG-10)", async () => {
@@ -161,6 +260,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
+      enrichment: validEnrichment(),
     })).rejects.toThrow("CASTING_NOT_FOUND");
   });
 
@@ -172,20 +272,14 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
       insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
       values (${castingId}, ${userZeroId}, 'three_coin', 'revealed', 'allowed', 'career', 'guidance', ${now}, ${now})
     `;
-    await sql`
-      insert into cast_results (
-        casting_id, line_values, primary_hexagram_number, moving_line_positions, relating_hexagram_number,
-        method_calculation, algorithm_version, classic_mapping_version, result_hmac, result_hmac_key_version, created_at
-      ) values (
-        ${castingId}, ARRAY[7,8,7,8,7,8]::integer[], 11, ARRAY[]::integer[], null,
-        '{"coins":[2,2,3]}'::jsonb, 'three-coin-v1', 'king-wen-v1', 'hmac-1', 'v1', ${now}
-      )
-    `;
+    await seedCastFacts(castingId, now);
+    await seedQuestionVersion(castingId, "What should I focus on in this transition?", now);
 
     // userZeroId has 0 entitlement batches/credits
     await expect(deepReadingService.requestDeepReading({
       userId: userZeroId,
       castingId,
+      enrichment: validEnrichment(),
     })).rejects.toThrow("INSUFFICIENT_CREDITS");
   });
 
@@ -218,6 +312,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
+      enrichment: validEnrichment(),
     })).rejects.toThrow("CASTING_NOT_FOUND");
   });
 });

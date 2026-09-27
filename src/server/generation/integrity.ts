@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { hmacWithKeyMaterial, verifyHmacWithKeyMaterial } from "@/lib/crypto";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
+import type { DeepReadingContextSnapshot } from "@/domain/generation/deep-reading-contract";
 import type { PreviewGenerationContext } from "./types";
 
 type VersionedKey = { version: string; material: string };
@@ -110,6 +111,20 @@ export function calculateDeepReadingInputSnapshotHash(input: {
       facts: input.facts,
     }))
     .digest("hex");
+}
+
+export function calculateDeepReadingContextSnapshotHash(
+  snapshot: DeepReadingContextSnapshot,
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const key = parseKeys(env.RESULT_INTEGRITY_KEYS)[0];
+  if (!key) throw new Error("RESULT_INTEGRITY_KEYS_INVALID");
+  return hmacWithKeyMaterial(
+    canonicalJson(snapshot),
+    "deep-reading-context-snapshot-integrity",
+    key.version,
+    key.material,
+  );
 }
 
 export type DeepReadingResultIntegrityInput = {

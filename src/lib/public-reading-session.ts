@@ -6,6 +6,8 @@ export type PublicReadingSession<T = unknown> = {
   createdAt: string;
   started: boolean;
   question?: string;
+  coreQuestionAtCast?: string;
+  coreQuestionFrozenAtCast?: boolean;
   data?: T;
 };
 
@@ -58,6 +60,8 @@ function asEnvelope(value: unknown): RawSession | null {
     createdAt: value.createdAt,
     started: value.started === true,
     ...(typeof value.question === "string" && value.question ? { question: value.question } : {}),
+    ...(typeof value.coreQuestionAtCast === "string" && value.coreQuestionAtCast ? { coreQuestionAtCast: value.coreQuestionAtCast } : {}),
+    ...(value.coreQuestionFrozenAtCast === true ? { coreQuestionFrozenAtCast: true } : {}),
     ...("data" in value ? { data: value.data } : {}),
   };
 }
@@ -102,7 +106,7 @@ export function readPublicReadingSession<T>(
 export function readPublicReadingSessionState(
   key: string,
   legacyKeys: readonly string[] = [],
-): { started: boolean; question?: string } {
+): { started: boolean; question?: string; coreQuestionAtCast?: string; coreQuestionFrozenAtCast: boolean } {
   try {
     const current = readRawSession(key).envelope;
     let legacyStarted = false;
@@ -113,12 +117,24 @@ export function readPublicReadingSessionState(
       legacyStarted ||= started;
       legacyQuestion ||= question;
     }
-    if (current) return { started: current.started || legacyStarted, ...(current.question ?? legacyQuestion ? { question: current.question ?? legacyQuestion } : {}) };
-    if (legacyStarted || legacyQuestion) return { started: legacyStarted, ...(legacyQuestion ? { question: legacyQuestion } : {}) };
+    if (current) {
+      const coreQuestionFrozenAtCast = current.coreQuestionFrozenAtCast === true || Boolean(current.data);
+      const coreQuestionAtCast = coreQuestionFrozenAtCast
+        ? current.coreQuestionAtCast ?? current.question ?? legacyQuestion
+        : undefined;
+      const question = coreQuestionAtCast ?? current.question ?? legacyQuestion;
+      return {
+        started: current.started || legacyStarted,
+        ...(question ? { question } : {}),
+        ...(coreQuestionAtCast ? { coreQuestionAtCast } : {}),
+        coreQuestionFrozenAtCast,
+      };
+    }
+    if (legacyStarted || legacyQuestion) return { started: legacyStarted, ...(legacyQuestion ? { question: legacyQuestion } : {}), coreQuestionFrozenAtCast: false };
   } catch {
     // Question-first remains usable in memory when session recovery is unavailable.
   }
-  return { started: false };
+  return { started: false, coreQuestionFrozenAtCast: false };
 }
 
 export function writePublicReadingSession<T>(key: string, data: T): PublicReadingSession<T> {
@@ -130,6 +146,8 @@ export function writePublicReadingSession<T>(key: string, data: T): PublicReadin
       createdAt: current?.createdAt ?? new Date().toISOString(),
       started: true,
       ...(current?.question ? { question: current.question } : {}),
+      ...(current?.coreQuestionAtCast ?? current?.question ? { coreQuestionAtCast: current.coreQuestionAtCast ?? current.question } : {}),
+      coreQuestionFrozenAtCast: true,
       data,
     };
     browserStorage().setItem(key, JSON.stringify(next));
@@ -142,9 +160,9 @@ export function writePublicReadingSession<T>(key: string, data: T): PublicReadin
 
 export function patchPublicReadingSession(
   key: string,
-  patch: { started: boolean; question?: string },
+  patch: { started: boolean; question?: string; coreQuestionAtCast?: string | null; coreQuestionFrozenAtCast?: boolean },
   legacyKeys: readonly string[] = [],
-): void {
+): boolean {
   try {
     const current = readRawSession(key).envelope;
     if (!patch.started) {
@@ -153,7 +171,7 @@ export function patchPublicReadingSession(
         browserStorage().removeItem(`${legacyKey}:started`);
         browserStorage().removeItem(`${legacyKey}:question`);
       }
-      return;
+      return true;
     }
 
     let legacyQuestion: string | undefined;
@@ -166,12 +184,22 @@ export function patchPublicReadingSession(
         }
       }
     }
+    const questionFrozen = current?.coreQuestionFrozenAtCast === true || Boolean(current && "data" in current);
+    const frozenQuestion = current?.coreQuestionAtCast ?? current?.question;
+    const nextQuestion = questionFrozen ? frozenQuestion : patch.question ?? legacyQuestion;
+    const nextCoreQuestion = questionFrozen
+      ? current?.coreQuestionAtCast
+      : patch.coreQuestionAtCast !== undefined
+        ? patch.coreQuestionAtCast || undefined
+        : current?.coreQuestionAtCast;
     const next: RawSession = {
       schemaVersion: PUBLIC_READING_SESSION_SCHEMA_VERSION,
       id: current?.id ?? makeReadingId(),
       createdAt: current?.createdAt ?? new Date().toISOString(),
       started: true,
-      ...(patch.question ?? legacyQuestion ? { question: patch.question ?? legacyQuestion } : {}),
+      ...(nextQuestion ? { question: nextQuestion } : {}),
+      ...(nextCoreQuestion ? { coreQuestionAtCast: nextCoreQuestion } : {}),
+      ...(patch.coreQuestionFrozenAtCast === true || questionFrozen ? { coreQuestionFrozenAtCast: true } : {}),
       ...(current && "data" in current ? { data: current.data } : {}),
     };
     browserStorage().setItem(key, JSON.stringify(next));
@@ -179,8 +207,10 @@ export function patchPublicReadingSession(
       browserStorage().removeItem(`${legacyKey}:started`);
       browserStorage().removeItem(`${legacyKey}:question`);
     }
+    return true;
   } catch {
     // The public flow remains usable in memory when session recovery is unavailable.
+    return false;
   }
 }
 
