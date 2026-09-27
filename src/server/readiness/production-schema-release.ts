@@ -20,6 +20,46 @@ export const MIGRATION_0012_REQUIRED_OBJECTS = Object.freeze([
   "function:prevent_deep_reading_context_snapshot_update",
 ] as const);
 
+export type ProductionEnvironmentEntry = {
+  key?: unknown;
+  target?: unknown;
+  value?: unknown;
+  id?: unknown;
+};
+
+type DecryptedEnvironmentValue = {
+  key?: unknown;
+  value?: unknown;
+  decrypted?: unknown;
+};
+
+function targetsProduction(target: unknown): boolean {
+  return target === "production" || (Array.isArray(target) && target.includes("production"));
+}
+
+function postgresUrl(value: unknown): value is string {
+  return typeof value === "string" && /^postgres(?:ql)?:\/\//i.test(value.trim());
+}
+
+export async function resolveProductionDatabaseUrl(
+  entries: readonly ProductionEnvironmentEntry[],
+  readDecryptedValue: (environmentId: string) => Promise<DecryptedEnvironmentValue>,
+): Promise<string> {
+  const databaseEntries = entries.filter((entry) => entry.key === "DATABASE_URL" && targetsProduction(entry.target));
+  if (databaseEntries.length !== 1) throw new Error(`PRODUCTION_DATABASE_URL_COUNT_INVALID:${databaseEntries.length}`);
+
+  const entry = databaseEntries[0]!;
+  if (postgresUrl(entry.value)) return entry.value.trim();
+  if (typeof entry.id !== "string" || !entry.id.trim()) throw new Error("PRODUCTION_DATABASE_URL_UNREADABLE");
+
+  const decrypted = await readDecryptedValue(entry.id.trim());
+  if (decrypted.key !== "DATABASE_URL" || decrypted.decrypted !== true) {
+    throw new Error("PRODUCTION_DATABASE_URL_NOT_DECRYPTED");
+  }
+  if (!postgresUrl(decrypted.value)) throw new Error("PRODUCTION_DATABASE_URL_UNREADABLE");
+  return decrypted.value.trim();
+}
+
 export type Migration0012SchemaState = "pending" | "complete" | "partial";
 
 export function classifyMigration0012Schema(existingObjects: readonly string[]): {

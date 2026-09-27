@@ -5,6 +5,8 @@ import {
   classifyAppliedMigrationHistory,
   classifyMigration0012Schema,
   MIGRATION_0012_REQUIRED_OBJECTS,
+  resolveProductionDatabaseUrl,
+  type ProductionEnvironmentEntry,
 } from "../src/server/readiness/production-schema-release";
 import { REQUIRED_COMMERCIAL_TABLES } from "../src/server/readiness/readiness-service";
 
@@ -14,16 +16,6 @@ const EXPECTED_MIGRATIONS = migrationIntegrity.migrations.map(({ createdAt, hash
 const EXISTING_COMMERCIAL_TABLES = REQUIRED_COMMERCIAL_TABLES.filter(
   (table) => table !== "question_locks" && table !== "deep_reading_context_snapshots",
 );
-
-type VercelEnvironmentEntry = {
-  key?: unknown;
-  target?: unknown;
-  value?: unknown;
-};
-
-function targetsProduction(target: unknown): boolean {
-  return target === "production" || (Array.isArray(target) && target.includes("production"));
-}
 
 async function fetchProductionDatabaseUrl(): Promise<string> {
   const token = process.env.VERCEL_TOKEN?.trim();
@@ -44,14 +36,19 @@ async function fetchProductionDatabaseUrl(): Promise<string> {
     signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) throw new Error(`VERCEL_PRODUCTION_ENV_FETCH_FAILED:${response.status}`);
-  const payload = await response.json() as { envs?: VercelEnvironmentEntry[] };
+  const payload = await response.json() as { envs?: ProductionEnvironmentEntry[] };
   if (!Array.isArray(payload.envs)) throw new Error("VERCEL_PRODUCTION_ENV_RESPONSE_INVALID");
 
-  const matches = payload.envs.filter((entry) => entry.key === "DATABASE_URL" && targetsProduction(entry.target));
-  if (matches.length !== 1) throw new Error(`PRODUCTION_DATABASE_URL_COUNT_INVALID:${matches.length}`);
-  const databaseUrl = typeof matches[0]?.value === "string" ? matches[0].value.trim() : "";
-  if (!/^postgres(?:ql)?:\/\//i.test(databaseUrl)) throw new Error("PRODUCTION_DATABASE_URL_UNREADABLE");
-  return databaseUrl;
+  return resolveProductionDatabaseUrl(payload.envs, async (environmentId) => {
+    const envUrl = new URL(`https://api.vercel.com/v1/projects/${PRODUCTION_PROJECT_ID}/env/${encodeURIComponent(environmentId)}`);
+    envUrl.searchParams.set("teamId", PRODUCTION_TEAM_ID);
+    const envResponse = await fetch(envUrl, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!envResponse.ok) throw new Error(`VERCEL_PRODUCTION_ENV_DECRYPT_FAILED:${envResponse.status}`);
+    return await envResponse.json() as { key?: unknown; value?: unknown; decrypted?: unknown };
+  });
 }
 
 async function readSchemaObjects(sql: ReturnType<typeof postgres>): Promise<string[]> {
