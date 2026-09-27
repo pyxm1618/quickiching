@@ -102,7 +102,7 @@ export function HistoryClient({
         <div className="mb-7 rounded-2xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] p-5 text-sm leading-7 text-[var(--ink-2)] sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <strong className="text-[var(--gold-2)] text-base">{t("Looking for your cloud readings, purchases, or AI reports?", "在找账户中的云端起卦、购买记录或深度解读？")}</strong>
+              <strong className="text-[var(--gold-2)] text-base">{t("Looking for your account readings, purchases, or Deep Reading reports?", "在找账户中的起卦、购买记录或深度解读报告？")}</strong>
               <p className="mt-1 text-xs text-[var(--ink-3)]">{t("Readings and reports saved with your account are securely stored in the cloud.", "通过账户保存的起卦和解读报告会保存在云端账户记录中。")}</p>
             </div>
             <Link href={zh ? "/zh/account" : "/account"} prefetch={false} className="mystic-button !py-2.5 !px-5 text-xs shrink-0 font-medium">

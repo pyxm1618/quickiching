@@ -21,6 +21,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  production-schema:
+    name: Production schema readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Require live production schema readiness
+        run: node scripts/check-production-schema-readiness.mjs
+
   application:
     name: Lint, typecheck, unit, build, drizzle
     runs-on: ubuntu-latest

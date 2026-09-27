@@ -33,7 +33,7 @@ export default function ChineseThreeCoinMethodPage() {
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
-        <QuestionFirst storageKey="quickiching:public-v1:three-coin" legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]} dictionary={dictionary}>
+        <QuestionFirst storageKey="quickiching:public-v1:three-coin" legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]} dictionary={dictionary} deepReadingEligible>
           <ThreeCoinTool dictionary={dictionary} localizedContent={ZH_HANS_READING_CONTENT} />
         </QuestionFirst>
       </section>

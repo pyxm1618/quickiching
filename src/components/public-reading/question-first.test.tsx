@@ -118,4 +118,55 @@ describe("QuestionFirst component question freeze regressions", () => {
     expect(state.coreQuestionFrozenAtCast).toBe(true);
     expect(state.coreQuestionAtCast).toBe("My Frozen Question");
   });
+
+  it("makes a pre-cast skip explicitly free-only and does not offer a late question field", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const html = renderToStaticMarkup(
+      <QuestionFirst
+        storageKey="test-reading-skipped"
+        deepReadingEligible
+        initialSession={{ started: true }}
+      >
+        <div>Casting UI</div>
+      </QuestionFirst>,
+    );
+
+    expect(html).toContain("This cast will remain free-only");
+    expect(html).toContain("Start over with a question");
+    expect(html).not.toContain('id="test-reading-skipped-active-question"');
+    expect(html).toContain("Casting UI");
+  });
+
+  it("does not allow a skipped question to be added after the first line is cast", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const html = renderToStaticMarkup(
+      <QuestionFirst
+        storageKey="test-reading-skipped-frozen"
+        deepReadingEligible
+        initialSession={{ started: true, coreQuestionFrozenAtCast: true }}
+      >
+        <div>Casting UI</div>
+      </QuestionFirst>,
+    );
+
+    expect(html).toContain("A question was not set before the first line was cast");
+    expect(html).toContain("This cast is free-only");
+    expect(html).not.toContain('id="test-reading-skipped-frozen-active-question"');
+    expect(html).not.toContain("Start over with a question");
+  });
+
+  it("uses a clear optional question choice before a Deep Reading eligible cast", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const html = renderToStaticMarkup(
+      <QuestionFirst storageKey="test-reading-choice" deepReadingEligible>
+        <div>Casting UI</div>
+      </QuestionFirst>,
+    );
+
+    expect(html).toContain("Optional for a free cast");
+    expect(html).toContain("Continue with question");
+    expect(html).toContain("Skip — free reading only");
+    expect(html).not.toContain("Skip for now");
+    expect(html).toContain("disabled");
+  });
 });

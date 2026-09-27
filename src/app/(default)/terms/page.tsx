@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Terms for using Quick I Ching casting methods, accounts, reading credits, and optional AI deep readings.",
+  description: "Terms for using Quick I Ching casting methods, accounts, reading credits, and Deep Reading.",
   alternates: { canonical: "/terms" },
   robots: { index: false, follow: true },
 };
@@ -13,13 +13,13 @@ export default function TermsPage() {
     <article className="mx-auto max-w-3xl px-4 py-12 sm:py-16">
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Legal</p>
       <h1 className="mt-3 font-display text-4xl font-medium tracking-tight">Terms of Service</h1>
-      <p className="mt-4 text-sm text-[var(--ink-3)]">Last updated: September 13, 2026</p>
+      <p className="mt-4 text-sm text-[var(--ink-3)]">Last updated: September 27, 2026</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">What the service provides</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching provides four browser-accessible I Ching casting methods—Three Coin, Yarrow Stalk, one documented Mei Hua Yi Shu current-time convention, and Manual Cast—with complete free general interpretations and local history. Free readings never call AI. Paid Deep Reading and purchase availability are controlled by the current Pricing page and deployment capabilities; when offered, Deep Reading supports Three-Coin casts only and interprets the relation between a cast and a question frozen before casting, user-supplied context, and cited I Ching material.</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching provides four browser-accessible I Ching casting methods—Three Coin, Yarrow Stalk, one documented Mei Hua Yi Shu current-time convention, and Manual Cast—with complete free interpretations of the cast itself. Free readings never call AI. Deep Reading is available only when shown on Pricing, requires sign-in, supports Three-Coin casts only, and relates the exact cast and its actual changing lines and relating hexagram when present to a clear core question fixed before the first toss, context supplied by the user, and cited Quick I Ching source material.</p>
 
-      <h2 className="mt-10 font-display text-2xl font-medium">Reading credits, AI generation, and refunds</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">If Deep Reading credit packs are offered, validity, payment, and refund terms will be displayed before checkout. Starting a reading reserves one credit; successful delivery consumes it, and a generation or review failure releases it. Free readings do not send questions or cast information to an AI provider.</p>
+      <h2 className="mt-10 font-display text-2xl font-medium">Deep Reading credits and refunds</h2>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">The Pricing page displays current pack prices and credit validity; payment runs through Waffo checkout. Review the provider’s checkout terms before paying and contact support@quickiching.com with payment or refund questions. A valid Deep Reading request needs enough user context and must pass the high-risk review; blocked requests do not start generation or reserve a credit. One credit is reserved when generation starts and is consumed only after successful delivery. If generation, review, or delivery fails after reservation, the reservation is released. Free readings do not send questions or cast information to an AI provider.</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">Reflection, not deterministic prediction or professional advice</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">The site is for cultural exploration and personal reflection. A reading does not establish facts, guarantee future outcomes, diagnose a condition, determine legal rights, or provide medical, legal, financial, investment, tax, emergency, or safety advice. You remain responsible for decisions and should use qualified professionals and real-world evidence where appropriate.</p>

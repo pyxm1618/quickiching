@@ -23,7 +23,9 @@ const WEBSITE_STRUCTURED_DATA = {
 const FAQ = [
   ["What is an I Ching online reading?", "An I Ching online reading uses a six-line hexagram from the Book of Changes as a structured framework for reflection. The primary hexagram describes the main pattern; moving lines, when present, create a relating hexagram."],
   ["How does an I Ching online reading work?", "An I Ching online reading on Quick I Ching follows the casting rules for the method you choose. Complete its steps, then read the primary hexagram, changing lines, relating hexagram when present, and the free basic interpretation."],
-  ["Is the I Ching online reading free?", "Yes. The full general cast interpretation is free across all four public casting methods, with no sign-in or payment required. Free readings never call AI or claim to interpret your specific situation."],
+  ["Is the I Ching online reading free?", "Yes. The complete interpretation of the cast itself is free across all four public casting methods, with no sign-in or payment required. Free readings never call AI or apply the cast to your private situation."],
+  ["Do I have to enter a question before casting?", "No. A question is optional for a free reading. If you may want a Deep Reading about your specific situation, enter one clear core question before your first Three-Coin toss; after that line is cast, the question is fixed. Skipping keeps this cast free-only."],
+  ["What does Deep Reading add?", "Deep Reading relates this exact Three-Coin cast—including its changing lines and relating hexagram when one exists—to the question you set before casting, the real-world context you add, and cited Quick I Ching source material. It requires sign-in, enough context, and one credit; high-risk requests are blocked. See Pricing for current availability and terms."],
   ["How does the three-coin method work in I Ching online?", "For an I Ching online reading with three coins, each coin contributes 2 for yin or 3 for yang. The total is 6, 7, 8, or 9. Repeat six times from the bottom line upward; 6 and 9 are changing lines."],
   ["What are changing lines in an I Ching online reading?", "In an I Ching online reading, changing lines are values 6 or 9. They mark positions that reverse from yin to yang or yang to yin when the relating hexagram is calculated."],
   ["What is a relating hexagram in an I Ching online reading?", "When one or more lines change, those reversals form a second hexagram. It helps you consider how the primary pattern is changing, not a guaranteed future outcome."],
@@ -69,7 +71,7 @@ export default function HomePage() {
       </section>
 
       <section id="three-coin-reading" className="mystic-shell scroll-mt-24 py-16 sm:py-20">
-        <QuestionFirst storageKey="quickiching:public-v1:three-coin" legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]}><ThreeCoinTool compactIntro /></QuestionFirst>
+        <QuestionFirst storageKey="quickiching:public-v1:three-coin" legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]} deepReadingEligible><ThreeCoinTool compactIntro /></QuestionFirst>
       </section>
 
       <section id="other-casting-methods" className="mystic-shell scroll-mt-24 py-16 sm:py-20">
@@ -136,7 +138,7 @@ export default function HomePage() {
           <article className="method-card-a"><h3>Free basic result</h3><p className="mt-4">See the primary hexagram, changing lines when present, the relating hexagram, and a grounded basic interpretation without payment.</p></article>
           <article className="method-card-a"><h3>Visible casting facts</h3><p className="mt-4">The six line values stay visible so you can trace how the cast became the final hexagram structure.</p></article>
           <article className="method-card-a"><h3>Traditional line values</h3><p className="mt-4">Coin, yarrow, and manual methods preserve the familiar 6, 7, 8, and 9 values instead of hiding the transformation.</p></article>
-          <article className="method-card-a"><h3>Private browser flow</h3><p className="mt-4">Your optional question stays in the browser flow and is kept out of URLs, metadata, and analytics.</p></article>
+          <article className="method-card-a"><h3>Optional question</h3><p className="mt-4">A question is optional for a free cast. If you may want Deep Reading, set it before the first toss; a signed-in paid request stores it encrypted with its situation context.</p></article>
         </div>
       </section>
 

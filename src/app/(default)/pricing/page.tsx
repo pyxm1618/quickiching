@@ -10,7 +10,7 @@ import { CheckoutReturnRecovery } from "./checkout-return-recovery";
 
 export const metadata: Metadata = {
   title: "Deep Reading Credits | Quick I Ching",
-  description: "Pricing and availability for optional personalized I Ching deep-reading credits.",
+  description: "Pricing and availability for Deep Reading credits that connect an I Ching cast to your specific question and situation.",
   alternates: { canonical: "/pricing" },
   robots: { index: false, follow: true },
 };
@@ -40,10 +40,10 @@ export default async function PricingPage(props: {
   if (!pricing.enabled) {
     return (
       <section className="mx-auto max-w-3xl px-4 py-12 sm:py-16">
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Commercial V2 · Not active</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Deep Reading · Not on sale</p>
         <h1 className="mt-3 font-display text-4xl font-medium tracking-tight">Personalized deep readings are not on sale</h1>
-        <p className="mt-5 text-lg leading-8 text-[var(--ink-2)]">All four methods include a complete free general interpretation, and free readings never call AI. There is currently no production checkout, credit purchase, account requirement, or paid AI Deep Reading service.</p>
-        <div className="mt-8 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-6 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--ink)]">Product boundary:</strong> if Deep Reading becomes available, it will use your frozen core question, situation, interpretation goal, exact cast, changing lines, relating hexagram, and cited I Ching material to explain what the cast means for your specific situation. It will support Three-Coin readings only. Purchase terms will appear here only when checkout is active.</div>
+        <p className="mt-5 text-lg leading-8 text-[var(--ink-2)]">All four methods include a complete free interpretation of the cast itself, and free readings never call AI. Deep Reading credits are not available for purchase while checkout is disabled.</p>
+        <div className="mt-8 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-6 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--ink)]">Deep Reading scope:</strong> when available, it connects a Three-Coin cast and its actual changing lines and relating hexagram, when present, to the core question frozen before the first toss, the situation context you add, and cited Quick I Ching source material. It requires sign-in, enough context, a passing risk review, and a credit. Purchase terms appear here when checkout is enabled.</div>
         <p className="mt-8 text-sm leading-7 text-[var(--ink-2)]"><Link href="/" className="font-semibold text-[var(--jade)] hover:underline">Return to the free I Ching online reading</Link>.</p>
       </section>
     );

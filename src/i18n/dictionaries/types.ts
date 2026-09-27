@@ -85,8 +85,10 @@ export type UiDictionary = {
   };
   questionFirst: {
     kicker: string;
+    deepReadingKicker: string;
     heading: string;
     description: string;
+    deepReadingDescription: string;
     label: string;
     optional: string;
     placeholder: string;
@@ -94,6 +96,12 @@ export type UiDictionary = {
     help: string;
     continueButton: string;
     skipButton: string;
+    continueWithQuestion: string;
+    continueFreeReading: string;
+    skipFreeOnly: string;
+    freeOnlyBeforeCast: string;
+    freeOnlyAfterCast: string;
+    startOverWithQuestion: string;
     activeKicker: string;
     activeLabel: string;
     newQuestion: string;
@@ -128,7 +136,10 @@ export type UiDictionary = {
     primary: string;
     relating: string;
     noRelating: string;
+    noRelatingExplanation: string;
     changingLines: string;
+    noChangingLines: string;
+    noChangingLinesExplanation: string;
     classicalLine: string;
     originalExplanation: string;
     positionHint: string;

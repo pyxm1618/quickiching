@@ -43,7 +43,8 @@ export function ChineseReadingResultView({
   const primary = ZH_HANS_READING_CONTENT.hexagrams[reading.primary.number];
   const relating = reading.relating ? ZH_HANS_READING_CONTENT.hexagrams[reading.relating.number] : null;
   const movingPositions = reading.result.movingLinePositions;
-  const movingText = movingPositions.length > 0 ? movingPositions.join("、") : "无";
+  const hasChangingLines = movingPositions.length > 0;
+  const movingText = hasChangingLines ? movingPositions.join("、") : "无动爻";
   const lineValues = reading.result.lineValuesBottomUp;
   const movingRows = movingPositions.map((position) => {
     const value = lineValues[position - 1];
@@ -70,12 +71,12 @@ export function ChineseReadingResultView({
             <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Fact label="本卦" value={"第 " + reading.primary.number + " 卦 · " + (primary?.displayName ?? reading.primary.chineseName)} />
               <Fact label="动爻位置" value={movingText} />
-              <Fact label="之卦" value={relating ? "第 " + reading.relating!.number + " 卦 · " + relating.displayName : "无"} />
+              <Fact label="变卦（之卦）" value={relating ? "第 " + reading.relating!.number + " 卦 · " + relating.displayName : "本次没有变卦（之卦）"} />
               <Fact label="起卦方法" value="三枚铜钱法" />
               <div className="sm:col-span-2"><Fact label="本卦主题" value={primary?.theme ?? "查看本卦结构与现实处境的对应。"} /></div>
             </div>
           </div>
-          <div className={styles.figureAura + " mx-auto w-full max-w-[390px]"}>
+          <div className={styles.figureAura + " mx-auto w-full min-w-0 max-w-[390px]"}>
             <HexagramLines lines={[...lineValues]} size="lg" showLabels locale="zh-Hans" className="w-full" />
             <p className="mt-5 text-center text-xs leading-6 text-[var(--ink-3)]">图中圆点或叉号标记动爻；六爻按自下而上的顺序读取。</p>
           </div>
@@ -87,13 +88,13 @@ export function ChineseReadingResultView({
       </p>
       {children}
 
-      <div className={styles.revealDelay + " mt-5 " + styles.path} aria-label="本卦到之卦的变化路径">
+      <div className={styles.revealDelay + " mt-5 " + styles.path} aria-label={hasChangingLines ? "本卦到变卦（之卦）的变化路径" : "本卦结果：无动爻，因此本次没有变卦（之卦）"}>
         <div className={styles.pathNode}>
           <p className="mystic-kicker">本卦</p>
           <p className="mt-3 font-display text-2xl text-white">第 {reading.primary.number} 卦 · {primary?.displayName ?? reading.primary.chineseName}</p>
           <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">{primary?.coreMeaning ?? "这是本次起卦首先形成的六爻结构。"}</p>
         </div>
-        <div className={styles.pathBridge}><div className={styles.changeOrb}>{movingPositions.length > 0 ? "变" : "定"}</div><p className="mt-3 text-center text-xs text-[var(--ink-3)]">{movingPositions.length > 0 ? "动爻：" + movingText : "无动爻"}</p></div>
+        <div className={styles.pathBridge}><div className={styles.changeOrb} aria-hidden="true">{hasChangingLines ? "变" : "—"}</div><p className="mt-3 text-center text-xs text-[var(--ink-3)]">{hasChangingLines ? "动爻：" + movingText : "无动爻"}</p></div>
         <div className={styles.pathNode}>
           <p className="mystic-kicker">之卦（变卦）</p>
           {relating ? <><p className="mt-3 font-display text-2xl text-white">第 {reading.relating!.number} 卦 · {relating.displayName}</p><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">{relating.coreMeaning}</p></> : <><p className="mt-3 font-display text-2xl text-white">本次没有之卦</p><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">没有动爻，因此六爻结构不发生翻转，阅读重点停留在本卦。</p></>}

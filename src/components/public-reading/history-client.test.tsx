@@ -44,7 +44,7 @@ describe("HistoryClient Component Render", () => {
     const html = renderToStaticMarkup(
       <HistoryClient locale="zh-Hans" showCloudBanner={true} />,
     );
-    expect(html).toContain("在找账户中的云端起卦、购买记录或深度解读？");
+    expect(html).toContain("在找账户中的起卦、购买记录或深度解读报告？");
     expect(html).toContain("打开我的账户 →");
     expect(html).toContain('href="/zh/account"');
     expect(html).not.toContain('href="/account"');
@@ -54,7 +54,7 @@ describe("HistoryClient Component Render", () => {
     const html = renderToStaticMarkup(
       <HistoryClient locale="en" showCloudBanner={true} />,
     );
-    expect(html).toContain("Looking for your cloud readings, purchases, or AI reports?");
+    expect(html).toContain("Looking for your account readings, purchases, or Deep Reading reports?");
     expect(html).toContain("Open My Account →");
     expect(html).toContain('href="/account"');
   });
