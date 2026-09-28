@@ -58,3 +58,12 @@ jobs:
         env:
           PRODUCTION_SCHEMA_ACTION: ${{ inputs.schema_action }}
         run: bun scripts/production-schema-release.ts
+      - name: Collect existing production acceptance evidence without database writes
+        if: inputs.schema_action == 'inspect'
+        run: bun scripts/production-closeout-evidence.ts
+      - uses: actions/upload-artifact@v4
+        if: inputs.schema_action == 'inspect' && success()
+        with:
+          name: production-closeout-evidence
+          path: production-closeout-evidence.json
+          retention-days: 7
