@@ -10,7 +10,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:vercel": "bun scripts/vercel-production-build.ts",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

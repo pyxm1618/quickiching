@@ -24,11 +24,23 @@ jobs:
   production-schema:
     name: Production schema readiness
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
+    env:
+      PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v6
-      - name: Require live production schema readiness
-        run: node scripts/check-production-schema-readiness.mjs
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify Drizzle journal and migration integrity manifest
+        run: node scripts/check-migration-integrity.mjs
+      - name: Require candidate schema on Production database
+        run: bun scripts/check-production-database-schema.ts
 
   application:
     name: Lint, typecheck, unit, build, drizzle
