@@ -28,7 +28,7 @@ function relatingLines(lines: FreeReading["result"]["lineValuesBottomUp"]): numb
 function movingLabel(reading: FreeReading): string {
   return reading.result.movingLinePositions.length > 0
     ? reading.result.movingLinePositions.join(" · ")
-    : "None";
+    : "No changing lines";
 }
 
 function Fact({ label, value }: { label: string; value: string }) {
@@ -64,10 +64,11 @@ export function ReadingResultView({
     return <ChineseReadingResultView reading={reading} onStartNewReading={onStartNewReading}>{children}</ChineseReadingResultView>;
   }
   const moving = movingLabel(reading);
+  const hasChangingLines = reading.result.movingLinePositions.length > 0;
   const relatingValues = relatingLines(reading.result.lineValuesBottomUp);
   const relatingIdentity = reading.relating
     ? `${reading.relating.number} · ${reading.relating.englishName} · ${reading.relating.chineseName}`
-    : "None";
+    : "No relating hexagram";
 
   return (
     <article className={`${styles.page} mx-auto w-full max-w-[1180px] px-4 pb-20 pt-8 sm:px-6 sm:pb-28 sm:pt-12`}>
@@ -92,7 +93,7 @@ export function ReadingResultView({
             </div>
           </div>
 
-          <div className={`${styles.figureAura} mx-auto w-full max-w-[390px]`}>
+          <div className={`${styles.figureAura} mx-auto w-full min-w-0 max-w-[390px]`}>
             <HexagramLines
               lines={[...reading.result.lineValuesBottomUp]}
               size="lg"
@@ -109,7 +110,7 @@ export function ReadingResultView({
       </p>
       {children}
 
-      <div className={`${styles.revealDelay} mt-5 ${styles.path}`} aria-label="Primary to relating transformation path">
+      <div className={`${styles.revealDelay} mt-5 ${styles.path}`} aria-label={hasChangingLines ? "Primary to relating transformation path" : "Unchanged cast: primary hexagram, no changing lines, and no relating hexagram"}>
         <div className={styles.pathNode}>
           <p className="mystic-kicker">Primary Hexagram</p>
           <p className="mt-3 font-display text-2xl text-white">{reading.primary.number} · {reading.primary.englishName}</p>
@@ -117,9 +118,9 @@ export function ReadingResultView({
           <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Current structural pattern · {reading.primaryInterpretation.coreTheme}</p>
         </div>
         <div className={styles.pathBridge}>
-          <div className={styles.changeOrb}>{moving}</div>
-          <p className="mt-3 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[var(--ink-3)]">Changing lines</p>
-          <span className="sr-only">Primary Hexagram changes through positions {moving} toward the relating structure when changing lines exist.</span>
+          <div className={styles.changeOrb} aria-hidden="true">{hasChangingLines ? moving : "—"}</div>
+          <p className="mt-3 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[var(--ink-3)]">{hasChangingLines ? "Changing lines" : "No changing lines"}</p>
+          <span className="sr-only">{hasChangingLines ? `Primary Hexagram changes through positions ${moving} toward the relating structure.` : "No lines changed, so this cast has no relating hexagram and remains centered on the primary hexagram."}</span>
         </div>
         <div className={styles.pathNode}>
           <p className="mystic-kicker">Relating Hexagram</p>

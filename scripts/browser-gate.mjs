@@ -301,19 +301,21 @@ async function assertNoOverflow(page) {
 async function assertBasicResult(page) {
   await waitForText(page, "Your I Ching reading");
   const resultText = await page.$eval("[data-public-reading-result]", (node) => node.textContent || "");
-  for (const expected of ["Primary Hexagram", "Changing Lines", "Core meaning", "Reflect", "Save reading"]) {
+  for (const expected of ["Primary Hexagram", "Core meaning", "Reflect", "Save reading"]) {
     assert(resultText.includes(expected), `Reading result missing: ${expected}`);
   }
+  assert(resultText.toLocaleLowerCase().includes("changing line"), "Reading result must identify changing lines or state that no lines changed");
 }
 
 async function skipOptionalQuestion(page) {
   const skipped = await page.evaluate(() => {
-    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Skip for now");
+    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Skip — free reading only");
     if (!(button instanceof HTMLButtonElement)) return false;
     button.click();
     return true;
   });
-  if (skipped) await waitForText(page, "Ask · editable before the result");
+  assert(skipped, "Question skip must clearly leave this cast free-only");
+  await waitForText(page, "Question · set before the first line");
 }
 
 async function verifyThreeCoinTransactionSemantics(page) {

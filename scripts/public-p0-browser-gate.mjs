@@ -13,6 +13,12 @@ const FIXTURE_STEPS = [
   { lineIndex: 4, coinFaces: ["yang", "yin", "yin"], lineValue: 7, algorithmVersion: "three-coin-v1" },
   { lineIndex: 5, coinFaces: ["yang", "yin", "yin"], lineValue: 7, algorithmVersion: "three-coin-v1" },
 ];
+const NO_CHANGE_STEPS = Array.from({ length: 6 }, (_, lineIndex) => ({
+  lineIndex,
+  coinFaces: lineIndex % 2 === 0 ? ["yang", "yin", "yin"] : ["yang", "yin", "yang"],
+  lineValue: lineIndex % 2 === 0 ? 7 : 8,
+  algorithmVersion: "three-coin-v1",
+}));
 const HEXAGRAM_PATHS = [
   "/hexagrams/1-the-creative", "/hexagrams/2-the-receptive", "/hexagrams/3-difficulty-at-the-beginning", "/hexagrams/4-youthful-folly",
   "/hexagrams/5-waiting", "/hexagrams/6-conflict", "/hexagrams/7-the-army", "/hexagrams/8-holding-together",
@@ -52,11 +58,12 @@ async function clickText(page, text) {
 }
 
 async function skipQuestion(page) {
-  const present = await page.$eval("body", () => [...document.querySelectorAll("button")].some((node) => node.textContent?.trim() === "Skip for now"));
-  if (present) {
-    await clickText(page, "Skip for now");
-    await waitForText(page, "Ask · editable before the result");
-  }
+  const skipLabel = await page.$eval("body", () => [...document.querySelectorAll("button")]
+    .map((node) => node.textContent?.trim())
+    .find((text) => text === "Skip — free reading only"));
+  assert.equal(skipLabel, "Skip — free reading only", "Question skip must clearly leave this cast free-only");
+  await clickText(page, skipLabel);
+  await waitForText(page, "Question · set before the first line");
 }
 
 async function assertNoOverflow(page, label) {
@@ -75,6 +82,30 @@ async function resetThreeCoin(page) {
 
 async function seedThreeCoin(page, question) {
   await seedThreeCoinSession(page, `fixture-${Date.now()}`, new Date().toISOString(), FIXTURE_STEPS, question);
+}
+
+async function verifyChineseNoChangingLines(page) {
+  await seedThreeCoinSession(page, `fixture-no-change-${Date.now()}`, new Date().toISOString(), NO_CHANGE_STEPS, "这次起卦没有动爻吗？");
+  await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForFunction(() => location.pathname === "/zh/readings/three-coin/result", { timeout: 15_000 });
+  const result = await page.$eval("[data-public-reading-result]", (node) => ({
+    text: node.textContent ?? "",
+    overviewLabel: node.querySelector("[data-primary-overview]")?.getAttribute("aria-label") ?? "",
+    overviewDescription: node.querySelector("[data-primary-overview]")?.textContent ?? "",
+    bridgeLabel: node.querySelector(".change-bridge")?.getAttribute("aria-label") ?? "",
+    relatingCards: node.querySelectorAll("[data-relating-card]").length,
+    noRelatingCards: node.querySelectorAll("[data-no-relating-card]").length,
+  }));
+  assert(result.text.includes("无动爻"), "Chinese result must identify that no lines changed");
+  assert(result.text.includes("本次没有变卦（之卦）"), "Chinese result must say no relating hexagram was produced");
+  assert(result.text.includes("六爻均未发生变化，因此本次阅读以本卦为核心。"), "Chinese no-change result must explain why there is no relating hexagram");
+  assert(result.overviewLabel.includes("本卦"), "Chinese overview aria label must identify the primary hexagram");
+  assert(result.overviewDescription.includes("无动爻"), "Chinese overview must expose no changing lines to assistive technology");
+  assert(result.bridgeLabel.includes("无动爻") && result.bridgeLabel.includes("本次没有变卦"), "Chinese bridge aria label must describe the unchanged cast");
+  assert.equal(result.relatingCards, 0, "A no-change cast must not render a fabricated relating hexagram");
+  assert.equal(result.noRelatingCards, 1, "A no-change cast must explain the missing relating hexagram");
+  assert(!/None\b/.test(result.text), "Chinese no-change result must not expose an English None label");
+  log("Chinese Three-Coin no-changing-lines labels, explanation, and screen-reader text PASS");
 }
 
 async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, question = "") {
@@ -171,7 +202,7 @@ async function verifyQuestionReading(page) {
   await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector("textarea[data-private-question]");
   await page.type("textarea[data-private-question]", question);
-  await clickText(page, "Continue to casting");
+  await clickText(page, "Continue with question");
   const castButtonSelector = 'button[aria-label^="Toss three coins"]';
   for (let line = 1; line <= 6; line += 1) {
     await page.waitForSelector(castButtonSelector, { timeout: 15_000 });
@@ -221,6 +252,41 @@ async function verifyQuestionReading(page) {
   log("Question-before-cast, immutable first-line binding, refresh recovery, free endpoint closure, and sign-in gated Deep Reading PASS");
 }
 
+async function verifyQuestionSkipFreeOnly(page) {
+  await resetThreeCoin(page);
+  await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await clickText(page, "Skip — free reading only");
+  await waitForText(page, "This cast will remain free-only");
+  assert.equal(await page.$('input[data-private-question]'), null, "Skipping must not leave a question field that suggests later binding");
+  await clickText(page, "Start over with a question");
+  await page.waitForSelector("textarea[data-private-question]");
+  await clickText(page, "Skip — free reading only");
+
+  const castButtonSelector = 'button[aria-label^="Toss three coins"]';
+  await page.waitForSelector(castButtonSelector, { timeout: 15_000 });
+  await page.click(castButtonSelector);
+  await waitForText(page, "A question was not set before the first line was cast");
+  await waitForText(page, "1 / 6 lines");
+  assert.equal(await page.$('input[data-private-question]'), null, "A skipped question cannot be added after the first line is cast");
+  assert.equal(await page.$("button[data-question-restart]"), null, "A frozen free-only cast must not offer late question restart");
+
+  for (let line = 2; line <= 6; line += 1) {
+    await page.waitForFunction((selector) => {
+      const button = document.querySelector(selector);
+      return button instanceof HTMLButtonElement && !button.disabled;
+    }, { timeout: 15_000 }, castButtonSelector);
+    await page.click(castButtonSelector);
+    if (line < 6) await waitForText(page, `${line} / 6 lines`);
+  }
+  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await waitForText(page, "This cast was not bound to a clear question before the first line was cast");
+  assert(await page.$("[data-primary-card]"), "A questionless cast must still provide its complete free interpretation");
+  assert.equal(await page.$("[data-context-enrichment-form]"), null, "A questionless cast must not open Deep Reading context input");
+  const paidCalls = await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/api/readings/")).length);
+  assert.equal(paidCalls, 0, "A questionless free cast must not start paid generation");
+  log("Optional question skip, free-only cast, first-line freeze, and no late Deep Reading question PASS");
+}
+
 async function verifyChineseQuestionAndDeepEntry(page) {
   const question = "面对职业选择，我现在最需要看清什么？";
   await seedThreeCoin(page, question);
@@ -234,8 +300,46 @@ async function verifyChineseQuestionAndDeepEntry(page) {
 
   await waitForText(page, "这次卦象对你的具体处境意味着什么？");
   await waitForText(page, "登录并继续");
-  assert(await page.$("[data-deep-reading-entry]"), "Chinese Deep Reading entry is missing");
+  const placement = await page.evaluate(() => {
+    const result = document.querySelector("[data-public-reading-result]");
+    const overview = result?.querySelector("[data-primary-overview]");
+    const entry = result?.querySelector("[data-deep-reading-entry]");
+    const freeInterpretation = result?.querySelector("#general-cast-interpretation");
+    const login = [...(entry?.querySelectorAll("a") ?? [])].find((node) => node.textContent?.includes("登录并继续"));
+    const detailsButton = [...(entry?.querySelectorAll("button") ?? [])].find((node) => node.textContent?.includes("补充选项、限制与顾虑"));
+    return {
+      overviewBeforeEntry: Boolean(overview && entry && (overview.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      entryBeforeFreeInterpretation: Boolean(entry && freeInterpretation && (entry.compareDocumentPosition(freeInterpretation) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      entryTop: entry ? Math.round(entry.getBoundingClientRect().top + window.scrollY) : null,
+      loginTop: login ? Math.round(login.getBoundingClientRect().top + window.scrollY) : null,
+      loginLabel: login?.textContent?.trim() ?? "",
+      hasSituationForm: entry?.querySelector("[data-context-enrichment-form]") !== null,
+      optionalDetailsButton: detailsButton instanceof HTMLButtonElement,
+      optionalFieldsHidden: entry?.querySelector('textarea[placeholder*="每行"]') === null,
+    };
+  });
+  assert(placement.overviewBeforeEntry, "The cast summary must appear before the Deep Reading entry");
+  assert(placement.entryBeforeFreeInterpretation, "Deep Reading must appear before the long free interpretation");
+  assert(placement.hasSituationForm, "An eligible anonymous cast must allow the user to enter situation context");
+  assert(placement.optionalDetailsButton && placement.optionalFieldsHidden, "Additional context fields must start collapsed");
+  assert(placement.loginLabel.includes("$2.99"), "Anonymous Deep Reading CTA must show its current price");
   assert(await page.$("#general-cast-interpretation"), "Chinese complete free cast interpretation must remain available");
+
+  const viewport = page.viewport();
+  assert(viewport, "Browser gate must have an explicit mobile viewport");
+  assert(placement.loginTop - placement.entryTop < viewport.height * 2, "Mobile Deep Reading CTA must not be pushed more than two screens down the entry card");
+  await page.setViewport({ width: 1440, height: 1000 });
+  await page.waitForFunction(() => window.innerWidth === 1440);
+  const desktopPlacement = await page.$eval("[data-deep-reading-entry]", (entry) => {
+    const login = [...entry.querySelectorAll("a")].find((node) => node.textContent?.includes("登录并继续"));
+    return {
+      entryTop: Math.round(entry.getBoundingClientRect().top + window.scrollY),
+      loginTop: login ? Math.round(login.getBoundingClientRect().top + window.scrollY) : null,
+    };
+  });
+  assert(desktopPlacement.loginTop !== null && desktopPlacement.loginTop - desktopPlacement.entryTop < 1000, "Desktop Deep Reading CTA must remain close to the cast summary");
+  await page.setViewport(viewport);
+  await assertNoOverflow(page, "Chinese Three-Coin result 390px");
   const apiCalls = await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/api/readings/")).length);
   assert.equal(apiCalls, 0, "Anonymous Chinese visit must not start paid generation");
   log("Chinese question binding, mobile layout, localized Deep Reading entry, and anonymous generation boundary PASS");
@@ -277,20 +381,25 @@ async function buildManual(page, values) {
 async function newManual(page) {
   await clickText(page, "New reading");
   await waitForText(page, "What would you like to reflect on?");
-  await clickText(page, "Skip for now");
+  await clickText(page, "Skip — free reading only");
   await page.waitForSelector("select:not(#manual-primary-hexagram)", { timeout: 15_000 });
 }
 
 async function verifyManualAndMovement(page) {
   await startManual(page);
   await buildManual(page, [7, 8, 7, 8, 7, 8]);
-  assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 0, "No-moving reading must not render a relating card");
+  assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 0, "No-moving reading must not render a fabricated relating hexagram");
+  assert.equal(await page.$$eval("[data-no-relating-card]", (nodes) => nodes.length), 1, "No-moving reading must explain that there is no relating hexagram");
+  await waitForText(page, "No changing lines");
+  await waitForText(page, "No line changed, so this reading remains centered on the primary hexagram.");
+  const noChangeText = await page.$eval("[data-public-reading-result]", (node) => node.textContent ?? "");
+  assert(!/Changing line\(s\):\s*None/.test(noChangeText), "No-moving reading must not display a bare None");
   await newManual(page);
   await buildManual(page, [6, 7, 8, 7, 8, 7]);
   assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 1, "Single-moving reading must render one relating card");
   await newManual(page);
   await buildManual(page, [6, 9, 8, 7, 8, 7]);
-  await waitForText(page, "Changing Lines: 1, 2");
+  await waitForText(page, "Changing line(s): 1, 2");
   assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 1, "Multiple-moving reading must render one relating card");
   await newManual(page);
   await page.focus('[role="tab"][aria-selected="true"]');
@@ -420,7 +529,9 @@ try {
   const page = await context.newPage();
   await verifySeoAssets(page);
   await verifyQuestionReading(page);
+  await verifyQuestionSkipFreeOnly(page);
   await page.setViewport({ width: 390, height: 844 });
+  await verifyChineseNoChangingLines(page);
   await verifyChineseQuestionAndDeepEntry(page);
   await verifyPartialRestart(page);
   await verifyYarrowPartialRestart(page);

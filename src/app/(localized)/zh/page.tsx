@@ -44,11 +44,19 @@ const methods = [
 const faqs = [
   {
     q: "易经在线起卦需要登录吗？",
-    a: "基础起卦与基础结果不要求登录。已完成的起卦可以保存在当前浏览器记录中；涉及账户或其他商业能力时再按页面提示处理。",
+    a: "免费易经在线起卦和完整卦象解读不要求登录。若要申请付费深度解读，需要登录账户并使用一次可用次数。",
   },
   {
-    q: "三枚铜钱、蓍草、梅花易数的结果可以直接比较吗？",
-    a: "它们都生成六爻结构，但形成六爻的方法不同。不要为了挑选喜欢的答案，对同一问题连续换方法重起；先明确问题和方法，再完成一次完整流程。",
+    q: "起卦前一定要写问题吗？",
+    a: "不需要，问题对免费起卦是可选项。如果之后可能需要针对具体处境的深度解读，请在第一次掷币前写下一个清晰的核心问题；第一爻落定后不能再补写。跳过问题后，本次结果仍可完整免费查看，但只能重新带着问题起卦才能申请深度解读。",
+  },
+  {
+    q: "深度解读会结合哪些内容？",
+    a: "深度解读把本次三枚铜钱卦象、实际动爻及存在时的变卦（之卦），与起卦前锁定的问题、你补充的现实背景和 Quick I Ching 提供的易经材料联系起来。需要登录、足够的背景说明和一次可用次数；涉及医疗、法律、投资或紧急安全等高风险请求时会阻断生成。",
+  },
+  {
+    q: "三枚铜钱、蓍草、梅花易数和手动起卦可以比较吗？",
+    a: "四种方法形成六爻的步骤不同，但都可以结合本卦、动爻和变卦理解。三枚铜钱起卦、蓍草起卦、梅花易数起卦与手动起卦均可免费查看卦象本身的完整解读。不要为了挑选喜欢的答案，对同一问题连续换方法重起；先明确问题和方法，再完成一次完整流程。",
   },
   {
     q: "没有动爻为什么看不到之卦？",
@@ -87,7 +95,7 @@ export default function ChineseHomePage() {
         <p className="mystic-kicker">周易 · 四种起卦方法 · 中文六十四卦</p>
         <h1 className="mt-4 max-w-4xl font-display text-4xl font-medium tracking-[-0.035em] sm:text-6xl">{SEO.finalH1}</h1>
         <p data-seo-early-copy className="mt-6 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">
-          Quick I Ching 的中文站现在提供完整易经在线起卦流程：先把问题写清楚，再选择三枚铜钱、蓍草、梅花易数或手动起卦。结果会展示本卦、动爻、存在时的之卦，并连接到中文六十四卦和阅读指南。
+          Quick I Ching 的中文站提供完整易经在线起卦流程：问题对免费起卦是可选的，再选择三枚铜钱、蓍草、梅花易数或手动起卦。结果会展示本卦、动爻、存在时的变卦（之卦），并连接到中文六十四卦和阅读指南。
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a href="#three-coin-cast" className="mystic-button">直接三枚铜钱起卦</a>
@@ -100,9 +108,9 @@ export default function ChineseHomePage() {
         <div className="mb-7 max-w-3xl">
           <p className="mystic-kicker">默认入口 · 三枚铜钱法</p>
           <h2 id="home-cast-title" className="mt-2 font-display text-3xl font-normal sm:text-4xl">用易经在线起卦直接完成六次掷币</h2>
-          <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">首页默认提供三枚铜钱起卦。问题可以不填，但如果你希望之后回看这次结果，建议先写下一个明确的问题和现实处境。</p>
+          <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">首页默认提供三枚铜钱起卦。问题可以不填；如果之后可能需要针对处境的深度解读，请在第一次掷币前写下核心问题。现实背景可以在结果页补充。</p>
         </div>
-        <QuestionFirst storageKey="quickiching:public-v1:three-coin" legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]} dictionary={dictionary}>
+        <QuestionFirst storageKey="quickiching:public-v1:three-coin" legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]} dictionary={dictionary} deepReadingEligible>
           <ThreeCoinTool compactIntro dictionary={dictionary} localizedContent={ZH_HANS_READING_CONTENT} />
         </QuestionFirst>
       </section>

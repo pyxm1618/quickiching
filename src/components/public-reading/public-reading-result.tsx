@@ -87,7 +87,11 @@ export function PublicReadingResult({
   const model = useMemo(() => buildStaticReading(reading, bundles, localizedContent), [reading, bundles, localizedContent]);
   const isChinese = dictionary.locale === "zh-Hans";
   const ResultHeading = headingLevel;
-  const movingLabel = reading.changingLines.length > 0 ? reading.changingLines.join(isChinese ? "、" : ", ") : isChinese ? "无" : "None";
+  const movingPositions = reading.changingLines.join(isChinese ? "、" : ", ");
+  const hasChangingLines = reading.changingLines.length > 0;
+  const bridgeLabel = hasChangingLines
+    ? `${dictionary.reading.changingLines}: ${movingPositions}`
+    : `${dictionary.reading.noChangingLines}. ${dictionary.reading.noRelating}`;
   const localizedHref = (href: string) => isChinese && href.startsWith("/hexagrams/") ? `/zh${href}` : href;
 
   function save() {
@@ -116,6 +120,30 @@ export function PublicReadingResult({
           ? "这一层免费解读说明卦象本身，不会把它套用到你的具体处境。"
           : "This free layer explains the cast itself. It has not been interpreted against your specific situation."}
       </p>
+      {children ? (
+        <section className="mystic-card-soft mx-auto mt-5 grid grid-cols-1 max-w-5xl gap-5 p-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:p-6" aria-label={dictionary.reading.primary} data-primary-overview>
+          <div className="flex items-center gap-5">
+            <div className="reading-number shrink-0">{model.primary.number}</div>
+            <div className="min-w-0 flex-1">
+              <p className="mystic-kicker">{dictionary.reading.primary}</p>
+              <h2 className="mt-1 font-display text-2xl font-normal text-white">{model.primary.englishName}</h2>
+              <p className="mt-1 text-sm text-[var(--ink-2)]">{model.primary.chineseName}{!isChinese ? ` · ${model.primary.pinyin}` : ""}</p>
+            </div>
+            <HexagramLines lines={[...reading.lineValuesBottomUp]} size="sm" locale={dictionary.locale} className="w-24 shrink-0" />
+          </div>
+          <div className="flex flex-col justify-center gap-3 border-t border-white/[0.08] pt-4 text-sm leading-6 text-[var(--ink-2)] sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+            <p><strong className="text-[var(--gold-2)]">{hasChangingLines ? dictionary.reading.changingLines : dictionary.reading.noChangingLines}{hasChangingLines ? ": " : ""}</strong>{hasChangingLines ? movingPositions : null}</p>
+            {model.relating ? (
+              <p><strong className="text-[var(--gold-2)]">{dictionary.reading.relating}: </strong>{model.relating.number} · {model.relating.englishName}{isChinese ? ` · ${model.relating.chineseName}` : ""}</p>
+            ) : (
+              <div>
+                <p className="font-semibold text-[var(--gold-2)]">{dictionary.reading.noRelating}</p>
+                <p className="mt-1">{dictionary.reading.noRelatingExplanation}</p>
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
       {children}
 
       <div className="reading-path">
@@ -134,9 +162,9 @@ export function PublicReadingResult({
           <a href={model.primary.sourceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-[var(--cyan)] hover:underline">{isChinese ? dictionary.reading.source : `${dictionary.reading.source} · oldid ${model.primary.sourceRevision}`}</a>
         </article>
 
-        <div className="change-bridge" aria-label={`${dictionary.reading.changingLines}: ${movingLabel}`}>
-          <div className="change-orb">{movingLabel}</div>
-          <small>{dictionary.reading.changingLines}</small>
+        <div className="change-bridge" aria-label={bridgeLabel}>
+          <div className="change-orb" aria-hidden="true">{hasChangingLines ? movingPositions : "—"}</div>
+          <small>{hasChangingLines ? `${dictionary.reading.changingLines}: ${movingPositions}` : dictionary.reading.noChangingLines}</small>
         </div>
 
         {model.relating ? (
@@ -151,13 +179,18 @@ export function PublicReadingResult({
             <p className="reading-copy">{model.relating.coreMeaning}</p>
             <Link href={localizedHref(model.relating.href)} className="mt-5 inline-flex text-sm font-semibold text-[var(--cyan)] hover:underline">{dictionary.reading.linkRelating}</Link>
           </article>
-        ) : null}
+        ) : (
+          <article className="reading-card-a" data-no-relating-card aria-label={dictionary.reading.noRelating}>
+            <p className="mystic-kicker">{dictionary.reading.noRelating}</p>
+            <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">{dictionary.reading.noRelatingExplanation}</p>
+          </article>
+        )}
       </div>
 
       <div className="change-detail">
-        <strong className="text-white">{dictionary.reading.changingLines}: {movingLabel}</strong>
+        <strong className="text-white">{hasChangingLines ? `${dictionary.reading.changingLines}: ${movingPositions}` : dictionary.reading.noChangingLines}</strong>
         <span className="mx-2 text-[var(--gold)]">◇</span>
-        {model.changing}
+        {hasChangingLines ? model.changing : dictionary.reading.noChangingLinesExplanation}
       </div>
 
       {model.activeLines.length > 0 ? (

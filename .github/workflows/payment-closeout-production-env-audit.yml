@@ -1,14 +1,23 @@
-name: Payment Closeout Production Env Audit
+name: Production Schema Readiness & Drizzle Release
 
 on:
   workflow_dispatch:
+    inputs:
+      schema_action:
+        description: Inspect production schema, or apply the exact next Drizzle migration after a complete preflight
+        required: true
+        type: choice
+        default: inspect
+        options:
+          - inspect
+          - migrate
 
 permissions:
   contents: read
 
 concurrency:
   group: payment-closeout-production-env-audit
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   VERCEL_PROJECT_ID: prj_pCpeoAys2GOqKZvkbLugYjpJWZBS
@@ -16,11 +25,12 @@ env:
 
 jobs:
   audit:
-    name: Read-only production payment environment audit
+    name: Production schema readiness and Drizzle release
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -33,6 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${VERCEL_TOKEN:-}" || { echo "::error::VERCEL_TOKEN is not configured"; exit 1; }
+          test -n "${PRODUCTION_DATABASE_URL:-}" || { echo "::error::PRODUCTION_DATABASE_URL is not configured in GitHub Actions secrets"; exit 1; }
           test "$VERCEL_PROJECT_ID" = "prj_pCpeoAys2GOqKZvkbLugYjpJWZBS"
           test "$VERCEL_TEAM_ID" = "team_z1b9TTQtbNkr43dzs5JVJPnQ"
       - name: Install locked dependencies
@@ -41,3 +52,9 @@ jobs:
         run: bunx vitest run src/server/readiness/payment-closeout-env-audit.test.ts src/server/payments/environment-contract.test.ts
       - name: Audit production payment env metadata without exposing values
         run: bun scripts/payment-closeout-production-env-audit.ts
+      - name: Verify Drizzle journal and migration integrity manifest
+        run: node scripts/check-migration-integrity.mjs
+      - name: Inspect or apply migration 0012 through Drizzle
+        env:
+          PRODUCTION_SCHEMA_ACTION: ${{ inputs.schema_action }}
+        run: bun scripts/production-schema-release.ts

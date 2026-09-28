@@ -103,16 +103,22 @@ async function clickButton(page, label) {
 }
 
 async function seedCompletedReading(page) {
-  // Seed on a same-origin non-app document first so the homepage's initial mount reads the
-  // completed session. Seeding after the homepage mounts would leave its React state at 0/6,
-  // and Back/Forward cache restoration would test an artificial state that users cannot create.
+  // Seed a sealed, question-free session using the current envelope format. The completed cast
+  // is already frozen as free-only, so this exercises the current post-cast state without asking
+  // the user to skip a question a second time.
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.evaluate(({ key, steps }) => sessionStorage.setItem(key, JSON.stringify(steps)), {
+  await page.evaluate(({ key, steps }) => sessionStorage.setItem(key, JSON.stringify({
+    schemaVersion: 1,
+    id: "browser-gate-question-free-only",
+    createdAt: "2026-09-27T00:00:00.000Z",
+    started: true,
+    coreQuestionFrozenAtCast: true,
+    data: { steps },
+  })), {
     key: STORAGE_KEY,
     steps: FIXTURE_STEPS,
   });
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await clickButton(page, "Continue to casting");
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
   await waitForText(page, "Your Three-Coin Reading");
 
@@ -170,7 +176,7 @@ async function verifyStorageReadFailure(browser) {
   }, STORAGE_KEY);
   try {
     await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-    await clickButton(page, "Skip for now");
+    await clickButton(page, "Skip — free reading only");
     await waitForText(page, "This question could not be saved.");
     const state = await page.evaluate(() => ({
       questionPromptVisible: document.querySelector("[data-question-first] textarea") !== null,
@@ -212,7 +218,7 @@ async function verifyStorageWriteFailureRetry(browser) {
   }, STORAGE_KEY);
   try {
     await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-    await clickButton(page, "Skip for now");
+    await clickButton(page, "Skip — free reading only");
     await waitForText(page, "0 / 6 lines");
     await clickButton(page, "Toss three coins");
     await waitForText(page, "THREE_COIN_SESSION_WRITE_FAILED");
@@ -339,7 +345,7 @@ async function verifyExplicitReset(browser) {
     await waitForText(page, "Start a New Reading");
     await clickButton(page, "Start a New Reading");
     await page.waitForFunction(() => location.pathname === "/" && location.hash === "#three-coin-reading", { timeout: 15_000 });
-    await clickButton(page, "Skip for now");
+    await clickButton(page, "Skip — free reading only");
     await waitForText(page, "0 / 6 lines");
     const storedSteps = await page.evaluate((key) => {
       const raw = sessionStorage.getItem(key);

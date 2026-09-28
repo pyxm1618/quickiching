@@ -12,10 +12,10 @@ export default function ChinesePrivacyPage() {
     <article className="mx-auto max-w-3xl px-4 py-12 sm:py-16">
       <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--bronze)]">法律与隐私</p>
       <h1 className="mt-3 font-display text-4xl font-medium tracking-tight">隐私政策</h1>
-      <p className="mt-4 text-sm text-[var(--ink-3)]">最后更新：2026 年 9 月 23 日</p>
+      <p className="mt-4 text-sm text-[var(--ink-3)]">最后更新：2026 年 9 月 27 日</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">公开起卦数据</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">公开的三枚铜钱、蓍草、梅花易数和手动起卦工具不要求账户或付款。起卦进度与固定的方法事实可能保存在浏览器会话存储（<code>sessionStorage</code>）中，使当前起卦在页面刷新后仍可恢复。只有当你明确选择保存时，浏览器才会把记录写入仅限本机的本地存储（<code>localStorage</code>）历史；它不属于账户历史或云同步。</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">公开的三枚铜钱、蓍草、梅花易数和手动起卦工具不要求账户或付款。起卦进度、可选问题与固定的方法事实可能保存在浏览器会话存储（<code>sessionStorage</code>）中，使当前起卦在页面刷新后仍可恢复。只有当你明确选择保存时，浏览器才会把记录（包括问题）写入仅限本机的本地存储（<code>localStorage</code>）历史；它不属于账户历史或云同步。</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">账户与付费解读数据</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">当商业账户功能已启用且你登录后，Quick I Ching 会保存提供这些功能所需的账户、起卦状态、权益和支付状态。支付由第三方支付合作方 Waffo 安全处理，Quick I Ching 不存储原始银行卡信息。如果问题与账户起卦记录关联，问题文本会以带版本的加密密钥在服务器端加密保存。付费深度解读输出、订单记录与退款处理状态会保存在服务器端，用于交付解读、维护可用次数、处理符合条件的退款并防止重复扣费。</p>
@@ -30,7 +30,7 @@ export default function ChinesePrivacyPage() {
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">三枚铜钱结果页可能展示由 Adsterra 提供的原生横幅广告。加载广告会使你的浏览器连接到 Adsterra 的投放基础设施，包括 effectivecpmnetwork.com。广告提供方可能接收常规网络和设备信息，例如 IP 地址、浏览器或设备特征、请求页面、时间戳和广告互动数据，并可能依照其自身隐私条款使用 Cookie 或类似技术。广告与 Quick I Ching 的解读内容、账户凭据和银行卡支付处理相互独立。</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">问题隐私与深度解读</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">免费起卦的问题输入是可选的，并受长度限制；会话回放中会被遮蔽，也不会写入网址、页面元数据、结构化数据、分析事件或应用日志。免费解读绝不向 AI 提供方发送问题或卦象。如果付费深度解读已开放，且你使用可用次数主动请求，起卦时锁定的核心问题和补充背景会加密保存为不可变快照；快照、本次卦象事实和有依据的易经材料会通过 Vercel AI Gateway 发送给已配置的模型和复核提供方。提供方可能依据各自适用的控制和隐私条款处理或保留请求。请勿输入不必要的敏感个人、健康、法律或财务信息。付费深度解读未开放时，不会发生上述处理。</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">免费起卦的问题输入是可选的，并受长度限制；会话回放中会被遮蔽，也不会写入网址、页面元数据、结构化数据、分析事件或应用日志。免费解读绝不向 AI 提供方发送问题或卦象。深度解读需要登录账户、在第一掷前锁定一个清晰问题、补充足够背景、持有可用次数并通过高风险内容检查。符合条件后，锁定的问题和你提交的背景会加密保存在不可变的账户快照中。生成报告时，系统会解密这些字段，并将它们与本次确切卦象事实及 Quick I Ching 提供的易经材料发送给已配置的生成与复核服务。成功交付的报告会保存到账户历史。生成开始时预留一次，交付成功后才扣除；预留后的失败会释放次数。服务提供方可能依据各自适用的控制和隐私条款处理或保留请求。请勿输入不必要的敏感个人、健康、法律或财务信息。只有在深度解读已开放且你提交符合条件的请求时，才会发生上述付费处理。</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">删除与保留记录</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">已登录用户可以在“我的账户”申请永久删除账户。删除事务会取消正在进行的生成、释放已冻结的解读次数、删除已保存的加密问题文本和生成内容、移除登录会话及已连接的登录账户，并匿名化个人资料。因会计、反欺诈、争议处理或法律义务所需，支付、权益、安全和审计记录可能继续保留；在数据模型允许时，保留记录会与已删除的个人资料分离。</p>

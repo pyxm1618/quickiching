@@ -12,9 +12,10 @@ function relatingLines(lines: readonly LineValue[]): number[] {
 
 export function ReadingResult({ result }: { result: HexagramResult }) {
   const reading = buildBasicReading(result);
-  const movingLabel = result.movingLinePositions.length
+  const hasChangingLines = result.movingLinePositions.length > 0;
+  const movingLabel = hasChangingLines
     ? result.movingLinePositions.join(", ")
-    : "None";
+    : "No changing lines";
 
   return (
     <section className="reading-reveal" aria-live="polite" aria-labelledby="reading-result-title">
@@ -34,9 +35,9 @@ export function ReadingResult({ result }: { result: HexagramResult }) {
           <p className="reading-copy">{reading.primaryInterpretation.summary}</p>
         </article>
 
-        <div className="change-bridge" aria-label={`Changing lines: ${movingLabel}`}>
-          <div className="change-orb">{movingLabel}</div>
-          <small>Changing lines</small>
+        <div className="change-bridge" aria-label={hasChangingLines ? `Changing line(s): ${movingLabel}` : "No changing lines. No relating hexagram."}>
+          <div className="change-orb" aria-hidden="true">{hasChangingLines ? movingLabel : "—"}</div>
+          <small>{hasChangingLines ? "Changing lines" : movingLabel}</small>
         </div>
 
         {reading.relating && reading.relatingInterpretation ? (
@@ -59,7 +60,7 @@ export function ReadingResult({ result }: { result: HexagramResult }) {
       </div>
 
       <div className="change-detail">
-        <strong className="text-white">Changing Lines: {movingLabel}</strong>
+        <strong className="text-white">{hasChangingLines ? `Changing Lines: ${movingLabel}` : movingLabel}</strong>
         <span className="mx-2 text-[var(--gold)]">◇</span>
         {reading.changeExplanation}
       </div>

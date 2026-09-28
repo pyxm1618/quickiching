@@ -3,6 +3,7 @@ import migrationIntegrity from "../../../drizzle/migration-integrity.json";
 import {
   checkSystemReadiness,
   REQUIRED_COMMERCIAL_TABLES,
+  REQUIRED_COMMERCIAL_SCHEMA_OBJECTS,
 } from "./readiness-service";
 
 type MigrationRow = { createdAt: number; hash: string };
@@ -57,10 +58,14 @@ function validCommercialEnv(): Record<string, string> {
   };
 }
 
-function readyDbOverride(migrations: MigrationRow[] = EXPECTED_MIGRATIONS) {
+function readyDbOverride(
+  migrations: MigrationRow[] = EXPECTED_MIGRATIONS,
+  schemaObjects: string[] = [...REQUIRED_COMMERCIAL_SCHEMA_OBJECTS],
+) {
   return {
     ping: async () => {},
     queryTables: async () => [...REQUIRED_COMMERCIAL_TABLES],
+    querySchemaObjects: async () => schemaObjects,
     queryMigrations: async () => migrations,
   } as any;
 }
@@ -109,8 +114,8 @@ describe("System Readiness Service", () => {
     expect(report.database.connected).toBe(false);
   });
 
-  it("requires the complete 24-table commercial persistence surface", () => {
-    expect(REQUIRED_COMMERCIAL_TABLES).toHaveLength(24);
+  it("requires the complete 26-table commercial persistence surface", () => {
+    expect(REQUIRED_COMMERCIAL_TABLES).toHaveLength(26);
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("payment_outbox");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("entitlement_batches");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("entitlement_reservations");
@@ -118,6 +123,11 @@ describe("System Readiness Service", () => {
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("generation_output_reviews");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("cast_results");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("payment_financial_reviews");
+    expect(REQUIRED_COMMERCIAL_TABLES).toContain("question_locks");
+    expect(REQUIRED_COMMERCIAL_TABLES).toContain("deep_reading_context_snapshots");
+    expect(REQUIRED_COMMERCIAL_SCHEMA_OBJECTS).toContain("column:generation_output_reviews.language_consistency_pass");
+    expect(REQUIRED_COMMERCIAL_SCHEMA_OBJECTS).toContain("constraint:generation_output_reviews.generation_reviews_deep_reading_pass_fields_check");
+    expect(REQUIRED_COMMERCIAL_SCHEMA_OBJECTS).toContain("foreign_key:question_locks.user_id->users.id:cascade");
   });
 
   it("reports blocked when required commercial tables are missing from database", async () => {
@@ -134,6 +144,40 @@ describe("System Readiness Service", () => {
     expect(report.database.missingTables).toContain("payment_orders");
     expect(report.database.missingTables).toContain("payment_outbox");
     expect(report.database.missingTables).toContain("entitlement_reservations");
+  });
+
+  it("never considers the commercial path ready when either migration 0012 table is missing", async () => {
+    const env = validCommercialEnv();
+    for (const missingTable of ["question_locks", "deep_reading_context_snapshots"]) {
+      const tables = REQUIRED_COMMERCIAL_TABLES.filter((table) => table !== missingTable);
+      const report = await checkSystemReadiness(env, {
+        ping: async () => {},
+        queryTables: async () => [...tables],
+        queryMigrations: async () => EXPECTED_MIGRATIONS,
+      } as any);
+
+      expect(report.status, missingTable).toBe("not_ready");
+      expect(report.overall, missingTable).toBe("blocked");
+      expect(report.database.status, missingTable).toBe("tables_missing");
+      expect(report.database.missingTables, missingTable).toContain(missingTable);
+    }
+  });
+
+  it("blocks commercial readiness when a migration 0012 review field or integrity object is missing", async () => {
+    const env = validCommercialEnv();
+    for (const missingObject of [
+      "column:generation_output_reviews.question_relevance_pass",
+      "index:question_locks.question_locks_winning_casting_idx",
+      "trigger:deep_reading_context_snapshots.deep_reading_context_snapshot_immutable_trigger",
+    ]) {
+      const schemaObjects = REQUIRED_COMMERCIAL_SCHEMA_OBJECTS.filter((object) => object !== missingObject);
+      const report = await checkSystemReadiness(env, readyDbOverride(EXPECTED_MIGRATIONS, [...schemaObjects]));
+
+      expect(report.status, missingObject).toBe("not_ready");
+      expect(report.overall, missingObject).toBe("blocked");
+      expect(report.database.status, missingObject).toBe("schema_objects_missing");
+      expect(report.database.missingSchemaObjects, missingObject).toContain(missingObject);
+    }
   });
 
   it("reports blocked when the Drizzle migration log is missing", async () => {

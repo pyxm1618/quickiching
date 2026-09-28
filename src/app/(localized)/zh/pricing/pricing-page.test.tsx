@@ -63,10 +63,9 @@ describe("ChinesePricingPage (Server Component) preview isolation and security g
     });
     const html = renderToStaticMarkup(vnode);
 
-    expect(html).toContain("商业功能 · 当前未启用");
-    expect(html).toContain("个性化深度解读当前未开放购买");
+    expect(html).toContain("深度解读 · 当前未开放购买");
+    expect(html).toContain("深度解读次数当前不可购买");
     expect(html).not.toContain("data-checkout-button");
-    expect(html).not.toContain("购买深度解读次数");
   });
 
   it("without test env: default /zh/pricing remains closed", async () => {
@@ -75,8 +74,8 @@ describe("ChinesePricingPage (Server Component) preview isolation and security g
     const vnode = await ChinesePricingPage({});
     const html = renderToStaticMarkup(vnode);
 
-    expect(html).toContain("商业功能 · 当前未启用");
-    expect(html).toContain("个性化深度解读当前未开放购买");
+    expect(html).toContain("深度解读 · 当前未开放购买");
+    expect(html).toContain("深度解读次数当前不可购买");
     expect(html).not.toContain("data-checkout-button");
   });
 
@@ -86,8 +85,8 @@ describe("ChinesePricingPage (Server Component) preview isolation and security g
     const vnode = await ChinesePricingPage({});
     const html = renderToStaticMarkup(vnode);
 
-    expect(html).toContain("商业功能 · 当前未启用");
-    expect(html).toContain("个性化深度解读当前未开放购买");
+    expect(html).toContain("深度解读 · 当前未开放购买");
+    expect(html).toContain("深度解读次数当前不可购买");
     expect(html).not.toContain("data-checkout-button");
   });
 
