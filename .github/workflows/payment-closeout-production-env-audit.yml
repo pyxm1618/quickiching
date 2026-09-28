@@ -61,6 +61,12 @@ jobs:
       - name: Collect existing production acceptance evidence without database writes
         if: inputs.schema_action == 'inspect'
         run: bun scripts/production-closeout-evidence.ts
+      - name: Inspect production request status and runtime errors
+        if: inputs.schema_action == 'inspect'
+        run: |
+          bunx vercel logs --project "$VERCEL_PROJECT_ID" --scope "$VERCEL_TEAM_ID" --token "$VERCEL_TOKEN" --environment production --no-branch --no-follow --since 2026-09-28T14:00:00Z --query /api/readings --limit 50 --json > production-request-logs.jsonl
+          bunx vercel logs --project "$VERCEL_PROJECT_ID" --scope "$VERCEL_TEAM_ID" --token "$VERCEL_TOKEN" --environment production --no-branch --no-follow --since 2026-09-28T14:00:00Z --level error --level fatal --limit 50 --json > production-error-logs.jsonl
+          bun -e 'for (const path of ["production-request-logs.jsonl", "production-error-logs.jsonl"]) { const lines = (await Bun.file(path).text()).trim().split("\n").filter(Boolean); console.log(JSON.stringify({file:path,entries:lines.length,logs:lines.map(line => { const row=JSON.parse(line); return {timestamp:row.timestamp,level:row.level,statusCode:row.statusCode,requestPath:row.requestPath,path:row.path,method:row.method,deploymentId:row.deploymentId}; })})); }'
       - uses: actions/upload-artifact@v4
         if: inputs.schema_action == 'inspect' && success()
         with:
