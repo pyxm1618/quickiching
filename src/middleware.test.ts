@@ -125,6 +125,16 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/api/account/delete", { method: "POST" })).status).toBe(404);
   });
 
+  it("uses neutral copy for routes unavailable while commercial capabilities are disabled", async () => {
+    for (const path of ["/signin", "/signup", "/account", "/checkout"]) {
+      const response = middleware(makeRequest(path));
+
+      expect(response.status).toBe(410);
+      expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+      expect(await response.text()).toBe("This feature is unavailable.");
+    }
+  });
+
   it("opens only the explicit Auth surface after the server capability is enabled", () => {
     for (const [name, value] of Object.entries(completeAuthEnv)) vi.stubEnv(name, value);
 

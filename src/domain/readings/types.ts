@@ -1,6 +1,5 @@
-// §12.5 Deep Reading schema (READ-002). All ten modules are always present, even when the
-// reading variant changes module 4/5 titles (READ-004). Personalization is a minimum quality
-// bar for every module, not a separate field.
+// Compatibility types for the retired local report generator used by the disabled legacy
+// commercial action path. Current Deep Reading output is defined in deep-reading-contract.ts.
 
 export type ReadingVariant =
   | "standard"

@@ -366,8 +366,7 @@ export function CastingWizard({ method }: { method: CastingMethod }) {
             <div className="rounded-lg bg-[#221c12] p-6 text-[#f0e7d2]">
               <h3 className="font-display text-lg font-medium">Unlock the deep reading</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-[#c9bb9c]">
-                Ten modules written for this exact situation — current stage, mechanism of change,
-                turning conditions. A fixed, re-openable report.
+                Relate this cast to your specific question and situation with a Deep Reading.
               </p>
               {!readingReport && (
                 <div className="mt-4 flex items-center gap-4">

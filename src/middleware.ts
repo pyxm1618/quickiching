@@ -54,7 +54,7 @@ export function middleware(request: NextRequest) {
 
   if (matchesPrefix(pathname, "/signin") || matchesPrefix(pathname, "/signup")) {
     if (isAuthCapabilityEnabled()) return NextResponse.next();
-    return new NextResponse("This Commercial V2 route is not available in Public V1.", {
+    return new NextResponse("This feature is unavailable.", {
       status: 410,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
     });
@@ -62,7 +62,7 @@ export function middleware(request: NextRequest) {
 
   if (matchesPrefix(pathname, "/account")) {
     if (isAuthCapabilityEnabled()) return NextResponse.next();
-    return new NextResponse("This Commercial V2 route is not available in Public V1.", {
+    return new NextResponse("This feature is unavailable.", {
       status: 410,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
     });
@@ -85,7 +85,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (GONE_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))) {
-    return new NextResponse("This Commercial V2 route is not available in Public V1.", {
+    return new NextResponse("This feature is unavailable.", {
       status: 410,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
     });
