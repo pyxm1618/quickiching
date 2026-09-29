@@ -14,6 +14,43 @@ import { ThreeCoinResultClient } from "./three-coin-result-client";
 import { CommercialReadingReportView } from "./commercial-reading-report-view";
 
 describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => {
+  describe.each([
+    { audience: "anonymous", user: null, credits: 0 },
+    { audience: "signed in without credits", user: { id: "usr_1", email: "test@example.com" }, credits: 0 },
+    { audience: "signed in with a credit", user: { id: "usr_1", email: "test@example.com" }, credits: 1 },
+  ])("risk boundary for $audience", ({ user, credits }) => {
+    it.each([
+      "Should I stop taking my prescribed medication?",
+      "Should I file a lawsuit against my landlord?",
+      "Should I buy bitcoin with my savings?",
+      "I want to hurt myself tonight.",
+    ])("keeps the free result but offers no purchase or generation for %s", (question) => {
+      const html = renderToStaticMarkup(
+        <ThreeCoinResultClient initialUser={user} initialCredits={credits}
+          initialState={{ kind: "ready", reading: {} as any, lineValues: [7, 7, 7, 7, 7, 7], question }} />,
+      );
+      expect(html).toContain('data-deep-reading-blocked="risk"');
+      expect(html).toContain("data-primary-card");
+      expect(html).toContain("Your free cast interpretation remains available");
+      expect(html).not.toContain("Choose a Deep Reading pack");
+      expect(html).not.toContain("Sign in to continue");
+      expect(html).not.toContain("data-start-deep-reading");
+      expect(html).toContain(question.includes("hurt myself") ? "local emergency services" : "qualified professional");
+    });
+  });
+
+  it("explains the high-risk block in Chinese while retaining the free cast", () => {
+    const html = renderToStaticMarkup(
+      <ThreeCoinResultClient locale="zh-Hans"
+        initialState={{ kind: "ready", reading: {} as any, lineValues: [7, 7, 7, 7, 7, 7], question: "我是否应该停止服用处方药？" }} />,
+    );
+    expect(html).toContain('data-deep-reading-blocked="risk"');
+    expect(html).toContain("合格专业人士");
+    expect(html).toContain("免费卦象解读仍可完整查看");
+    expect(html).not.toContain("登录并继续");
+    expect(html).toContain("data-primary-card");
+  });
+
   it("renders empty state pointing to /zh/methods/three-coin in Chinese mode", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient locale="zh-Hans" initialState={{ kind: "empty" }} />,

@@ -29,6 +29,7 @@ import {
   readThreeCoinSession,
 } from "@/lib/three-coin-session";
 import { buildPricingHref, buildResultSigninHref } from "@/lib/commercial-navigation";
+import { evaluateRisk } from "@/domain/risk/engine";
 import { CommercialReadingReportView, LegacyCommercialReadingReportView } from "./commercial-reading-report-view";
 import styles from "./result-page.module.css";
 
@@ -132,6 +133,20 @@ export function ThreeCoinResultClient({
   const [contextDraft, setContextDraft] = useState<ContextDraft>(EMPTY_CONTEXT_DRAFT);
   const [showDetailedContext, setShowDetailedContext] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const deepRisk = useMemo(() => {
+    const context = deepSnapshot?.context;
+    return evaluateRisk([
+      state.kind === "ready" ? state.question : "",
+      context?.contextNotes ?? contextDraft.contextNotes,
+      ...(context?.options ?? listField(contextDraft.optionsText)),
+      ...(context?.constraints ?? listField(contextDraft.constraintsText)),
+      ...(context?.concerns ?? listField(contextDraft.concernsText)),
+    ].filter(Boolean).join("\n"), "other");
+  }, [state, deepSnapshot, contextDraft]);
+  const deepRiskBlocked = deepRisk.status !== "allowed";
+  const deepRiskMessage = deepRisk.status === "emergency_blocked"
+    ? t("Deep Reading cannot help with an immediate safety crisis. If anyone may be in immediate danger, contact local emergency services or a crisis support service now.", "深度解读无法处理紧急安全危机。如果有人可能面临即时危险，请立即联系当地紧急服务或危机支持机构。")
+    : t("This question or context needs qualified professional support. Deep Reading is unavailable for this request; consult a qualified professional for medical, legal, or investment decisions.", "这个问题或背景需要合格专业人士支持，本次无法提供深度解读。涉及医疗、法律或投资决策，请咨询相应的合格专业人士。");
   const resultReading = useMemo(() => {
     if (state.kind !== "ready") return null;
     const id = clientCastingId ?? castingId;
@@ -404,6 +419,7 @@ export function ThreeCoinResultClient({
   async function handleUnlockDeepReading() {
     if (state.kind !== "ready") return;
     setActionError(null);
+    if (deepRiskBlocked) return;
 
     if (!state.question?.trim()) {
       setActionError(t("This cast has no core question. Start a new reading and enter one before the first cast.", "这次起卦没有绑定核心问题。请重新起卦，并在第一次起爻前填写问题。"));
@@ -491,6 +507,7 @@ export function ThreeCoinResultClient({
 
   async function handleOpenPricing() {
     setActionError(null);
+    if (deepRiskBlocked) return;
     const activeCastingId = await persistCurrentReading(true);
     if (!activeCastingId) return;
 
@@ -722,7 +739,12 @@ export function ThreeCoinResultClient({
 
                   {actionError ? <p className="mt-4 text-sm font-semibold text-[var(--danger)]" role="alert">{actionError}</p> : null}
                   <div className="mt-6 flex flex-wrap items-center gap-3">
-                    {!user ? (
+                    {deepRiskBlocked ? (
+                      <div className="rounded-xl border border-[var(--gold)]/25 bg-black/15 p-4 text-sm leading-7 text-[var(--ink-2)]" role="status" data-deep-reading-blocked="risk">
+                        <p>{deepRiskMessage}</p>
+                        <p className="mt-2">{t("Your free cast interpretation remains available. No generation starts and no credit is reserved.", "免费卦象解读仍可完整查看；不会启动生成，也不会预留次数。")}</p>
+                      </div>
+                    ) : !user ? (
                       <>
                         <Link href={signinHref} className="mystic-button">
                           {t("Sign in to continue · $2.99", "登录并继续 · $2.99")}
