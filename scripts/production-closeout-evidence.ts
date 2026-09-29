@@ -57,7 +57,7 @@ try {
       from casting_sessions c join cast_results r on r.casting_id=c.id
       left join question_versions q on q.casting_id=c.id
       left join question_locks l on l.winning_casting_id=c.id
-      where c.id = 'b149df4c-9801-4654-8e41-a3094a632e19'::uuid`;
+      where c.id in ('b149df4c-9801-4654-8e41-a3094a632e19'::uuid, 'fd2a477f-fd4a-4172-90d5-18755edadedd'::uuid)`;
     report.invariants = await tx`select
       (select count(*) from entitlement_batches where quantity_available + quantity_reserved + quantity_consumed + quantity_revoked <> quantity_total) as inconsistent_batches,
       (select count(*) from entitlement_reservations r join generation_jobs j on j.id=r.job_id where r.status='reserved' and j.status in ('failed','timed_out','dead_letter')) as failed_jobs_with_reserved_credit,
@@ -70,6 +70,30 @@ try {
   const project = await projectResponse.json();
   const deployment = project.targets?.production;
   report.production = { project: project.name, deploymentId: deployment?.id, sha: deployment?.meta?.githubCommitSha, state: deployment?.readyState, aliases: deployment?.alias };
+  for (const [label, filter] of [
+    ["readingRequests", { search: "/api/readings" }],
+    ["runtimeErrors", { level: "error,fatal" }],
+  ] as const) {
+    const params = new URLSearchParams({
+      projectId: "prj_pCpeoAys2GOqKZvkbLugYjpJWZBS", ownerId: "team_z1b9TTQtbNkr43dzs5JVJPnQ",
+      page: "0", startDate: String(Date.parse("2026-09-28T14:00:00Z")), endDate: String(Date.now()),
+      environment: "production", deploymentId: String(deployment?.id), ...filter,
+    });
+    const response = await fetch(`https://vercel.com/api/logs/request-logs?${params}`, {
+      headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) {
+      report[label] = { verified: false, httpStatus: response.status };
+      continue;
+    }
+    const payload = await response.json();
+    if (!Array.isArray(payload.rows)) throw new Error("RUNTIME_LOG_SHAPE_INVALID");
+    report[label] = { verified: true, hasMore: payload.hasMoreRows, rows: payload.rows.map((row: any) => ({
+      timestamp: row.timestamp, requestPath: row.requestPath, requestMethod: row.requestMethod,
+      statusCode: row.statusCode, deploymentId: row.deploymentId,
+      levels: (row.logs ?? []).map((log: any) => log.level),
+    })) };
+  }
   await writeFile("production-closeout-evidence.json", JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } catch (error) {
