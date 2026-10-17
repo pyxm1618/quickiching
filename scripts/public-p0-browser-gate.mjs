@@ -345,7 +345,10 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   assert.equal(await page.$('[data-deep-reading-entry] a[href*="signin"]'), null, "Risky context must not send an anonymous user toward a paid request");
   assert(await page.$("#general-cast-interpretation"), "Risk blocking must preserve the complete free interpretation");
   await page.click("#deep-context-situation");
-  await page.keyboard.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
+  const selectAllModifier = process.platform === "darwin" ? "Meta" : "Control";
+  await page.keyboard.down(selectAllModifier);
+  await page.keyboard.press("A");
+  await page.keyboard.up(selectAllModifier);
   await page.keyboard.press("Backspace");
   await page.type("#deep-context-situation", "I am considering a new role and want to understand what responsibilities to clarify.");
   await page.waitForSelector('[data-deep-reading-blocked="risk"]', { hidden: true });
