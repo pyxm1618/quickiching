@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { readStoredAnalyticsConsent } from "@/lib/analytics";
 
 declare global {
   interface Window {
@@ -17,6 +18,13 @@ export function GoogleAnalyticsPageView({
   const pathname = usePathname();
 
   useEffect(() => {
+    const consent = readStoredAnalyticsConsent();
+    if (consent === "granted") {
+      window.gtag?.("consent", "update", {
+        analytics_storage: "granted",
+      });
+    }
+
     window.gtag?.("event", "page_view", {
       send_to: measurementId,
       page_location: window.location.href,

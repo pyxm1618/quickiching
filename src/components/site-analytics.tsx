@@ -1,5 +1,6 @@
 import Script from "next/script";
 import { GoogleAnalyticsPageView } from "@/components/google-analytics-page-view";
+import { AnalyticsConsent } from "@/components/analytics-consent";
 import { getAnalyticsConfig } from "@/lib/analytics";
 
 function GoogleAnalytics({ measurementId }: { measurementId: string }) {
@@ -17,6 +18,7 @@ function GoogleAnalytics({ measurementId }: { measurementId: string }) {
         strategy="lazyOnload"
       />
       <GoogleAnalyticsPageView measurementId={measurementId} />
+      <AnalyticsConsent />
     </>
   );
 }

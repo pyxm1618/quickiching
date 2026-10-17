@@ -14,6 +14,22 @@ const CLARITY_PROJECT_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 const PRODUCTION_GA_MEASUREMENT_ID = "G-NLFCDYQSJQ";
 const PRODUCTION_CLARITY_PROJECT_ID = "xvz3gv8ics";
 
+export const ANALYTICS_CONSENT_STORAGE_KEY = "quickiching:analytics-consent:v1";
+export type AnalyticsConsentState = "granted" | "denied";
+
+export function readStoredAnalyticsConsent(): AnalyticsConsentState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const value = window.localStorage.getItem(ANALYTICS_CONSENT_STORAGE_KEY);
+    if (value === "granted" || value === "denied") {
+      return value;
+    }
+  } catch {
+    // Ignore localStorage access failures in private browsing modes
+  }
+  return null;
+}
+
 function readOptionalAnalyticsId(
   name: string,
   rawValue: string | undefined,
