@@ -634,7 +634,7 @@ export function ThreeCoinResultClient({
                 {t("Free explains the cast itself. Deep Reading connects this exact cast to the question you asked, using the situation context you supply here and cited Quick I Ching source material. Free reading never calls AI.", "免费解读说明卦象本身；深度解读结合你起卦前锁定的核心问题、在此补充的现实背景和确切卦象，给出有依据的针对性解释。免费解读绝不调用 AI。")}
               </p>
 
-              {deepRiskBlocked && Boolean(state.question?.trim()) && Array.from(state.question.trim()).length < 8 ? (
+              {deepRiskBlocked && Boolean(state.question?.trim()) && Array.from(state.question?.trim() ?? "").length < 8 ? (
                 <div className="mt-6 rounded-xl border border-[var(--gold)]/25 bg-black/15 p-4 text-sm leading-7 text-[var(--ink-2)]" role="status" data-deep-reading-blocked="risk">
                   <p>{deepRiskMessage}</p>
                   <p className="mt-2">{t("Your free cast interpretation remains available. No generation starts and no credit is reserved.", "免费卦象解读仍可完整查看；不会启动生成，也不会预留次数。")}</p>
