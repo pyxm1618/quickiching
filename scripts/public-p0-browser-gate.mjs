@@ -340,7 +340,7 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   assert(desktopPlacement.loginTop !== null && desktopPlacement.loginTop - desktopPlacement.entryTop < 1000, "Desktop Deep Reading CTA must remain close to the cast summary");
   await page.setViewport(viewport);
   await assertNoOverflow(page, "Chinese Three-Coin result 390px");
-  await page.type("#deep-context-situation", "Should I buy bitcoin with all my savings this week?");
+  await page.type("#deep-context-situation", "I want to hurt myself tonight.");
   await page.waitForSelector('[data-deep-reading-blocked="risk"]');
   assert.equal(await page.$('[data-deep-reading-entry] a[href*="signin"]'), null, "Risky context must not send an anonymous user toward a paid request");
   assert(await page.$("#general-cast-interpretation"), "Risk blocking must preserve the complete free interpretation");
