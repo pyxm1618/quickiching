@@ -340,6 +340,16 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   assert(desktopPlacement.loginTop !== null && desktopPlacement.loginTop - desktopPlacement.entryTop < 1000, "Desktop Deep Reading CTA must remain close to the cast summary");
   await page.setViewport(viewport);
   await assertNoOverflow(page, "Chinese Three-Coin result 390px");
+  await page.type("#deep-context-situation", "Should I buy bitcoin with all my savings this week?");
+  await page.waitForSelector('[data-deep-reading-blocked="risk"]');
+  assert.equal(await page.$('[data-deep-reading-entry] a[href*="signin"]'), null, "Risky context must not send an anonymous user toward a paid request");
+  assert(await page.$("#general-cast-interpretation"), "Risk blocking must preserve the complete free interpretation");
+  await page.click("#deep-context-situation", { clickCount: 3 });
+  await page.keyboard.press("Backspace");
+  await page.type("#deep-context-situation", "I am considering a new role and want to understand what responsibilities to clarify.");
+  await page.waitForSelector('[data-deep-reading-blocked="risk"]', { hidden: true });
+  assert(await page.$('[data-deep-reading-entry] a[href*="signin"]'), "Correcting optional context must restore the eligible CTA without changing the core question");
+  assert.equal(await page.$eval("[data-core-question-at-cast]", (node) => node.textContent?.trim()), question);
   const apiCalls = await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/api/readings/")).length);
   assert.equal(apiCalls, 0, "Anonymous Chinese visit must not start paid generation");
   log("Chinese question binding, mobile layout, localized Deep Reading entry, and anonymous generation boundary PASS");
