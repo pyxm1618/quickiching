@@ -149,6 +149,15 @@ export default function HomePage() {
           {FAQ.map(([question, answer]) => <details key={question}><summary>{question}</summary><p className="mt-3">{answer}</p></details>)}
         </div>
       </section>
+
+      <section className="mystic-shell border-t border-[var(--line)] py-8" aria-labelledby="friendly-links-title">
+        <p id="friendly-links-title" className="font-mono text-xs tracking-[0.14em] text-[var(--ink-3)]">Friendly Links</p>
+        <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+          <a href="https://www.wyrplay.com/" className="text-[var(--ink-3)] transition-colors hover:text-[var(--jade)]">WYR Play</a>
+          <span aria-hidden="true" className="text-[var(--ink-3)]">·</span>
+          <a href="https://www.tierlistbase.com/" className="text-[var(--ink-3)] transition-colors hover:text-[var(--jade)]">Tier List Base</a>
+        </p>
+      </section>
     </article>
   );
 }
