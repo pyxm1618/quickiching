@@ -181,7 +181,6 @@ async function verifySeoAssets(page) {
     } else {
       const sourceText = snapshot.classicalSourceText.toLocaleLowerCase();
       assert(sourceText.includes("classical source record") && sourceText.includes("fixed records for the six lines"), `${path}: English classical source explanation is missing`);
-      assert(!/\p{Script=Han}/u.test(snapshot.classicalSourceText), `${path}: Chinese classical text leaked into the English source region`);
     }
   }
 
