@@ -369,18 +369,27 @@ async function main() {
     // =========================================================================
     // Test 3: Unauthenticated /zh/account Redirect Route Guard
     // =========================================================================
-    log("Test 3: Unauthenticated /zh/account redirect guard -> must redirect to /zh/signin");
-    await page.goto(`${BASE}/zh/account`, { waitUntil: "networkidle0" });
+    log("Test 3: /zh/account auth guard -> redirect when Auth is open, 410 when capability is closed");
+    const accountResponse = await page.goto(`${BASE}/zh/account`, { waitUntil: "networkidle0" });
     const finalUrl = page.url();
-    assert(
-      finalUrl.includes("/zh/signin"),
-      `Unauthenticated /zh/account must redirect to /zh/signin, got: ${finalUrl}`,
-    );
-    assert(
-      finalUrl.includes("callbackURL=%2Fzh%2Faccount"),
-      `Callback URL must preserve /zh/account, got: ${finalUrl}`,
-    );
-    log("Test 3 PASS: Unauthenticated account access correctly redirects to /zh/signin.");
+    if (finalUrl.includes("/zh/signin")) {
+      assert(
+        finalUrl.includes("callbackURL=%2Fzh%2Faccount"),
+        `Callback URL must preserve /zh/account, got: ${finalUrl}`,
+      );
+      log("Test 3 PASS: Unauthenticated account access correctly redirects to /zh/signin.");
+    } else {
+      assert.equal(
+        accountResponse?.status(),
+        410,
+        `Closed Auth capability must return 410 for /zh/account, got status ${accountResponse?.status()} at ${finalUrl}`,
+      );
+      assert(
+        finalUrl.includes("/zh/account"),
+        `Closed Auth capability must keep the localized account URL, got: ${finalUrl}`,
+      );
+      log("Test 3 PASS: Closed Auth capability blocks /zh/account with the same 410 boundary as /account.");
+    }
 
     // =========================================================================
     // Test 4: Pricing Failure Presentation & Real API Interception

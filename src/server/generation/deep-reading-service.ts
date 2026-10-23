@@ -163,7 +163,7 @@ async function reconcileExpiredDeepReading(
     update workflow_runs
     set status = 'failed', error_code = 'GENERATION_TIMEOUT', updated_at = clock_timestamp()
     where idempotency_key = ${String(expired.idempotency_key)}
-      and status not in ('succeeded', 'completed', 'cancelled')
+      and status in ('start_pending', 'pending', 'running')
   `;
   await transaction`
     insert into audit_events (id, category, action, entity_type, entity_id, user_id, payload, created_at)
@@ -582,7 +582,26 @@ export function createDeepReadingService(dependencies: {
       if (!job) return { status: "not_started" };
 
       const status = String(job.status) as DeepReadingStatusResult["status"];
-      if (status === "queued" || status === "running") return { status };
+      if (status === "queued" || status === "running") {
+        const snapshotRows = await sql`
+          select ciphertext, iv, auth_tag, encryption_key_version, snapshot_hash
+          from deep_reading_context_snapshots where casting_id = ${castingId} limit 1
+        ` as Row[];
+        let snapshot: DeepReadingContextSnapshot | undefined;
+        if (snapshotRows[0]) {
+          const row = snapshotRows[0];
+          snapshot = decryptDeepReadingContextSnapshot(castingId, {
+            ciphertext: String(row.ciphertext),
+            iv: String(row.iv),
+            authTag: String(row.auth_tag),
+            encryptionKeyVersion: String(row.encryption_key_version),
+          }, env);
+          if (calculateDeepReadingContextSnapshotHash(snapshot, env) !== String(row.snapshot_hash)) {
+            throw new Error("DEEP_READING_SNAPSHOT_INTEGRITY_INVALID");
+          }
+        }
+        return { status, snapshot };
+      }
       return {
         status,
         errorCode: job.structured_error_code ? String(job.structured_error_code) : undefined,

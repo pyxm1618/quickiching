@@ -250,12 +250,30 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     const requested = await deepReadingService.requestDeepReading({ userId, castingId, enrichment: validEnrichment() });
     await sql`
       update generation_jobs
-      set status = 'completed', timeout_at = clock_timestamp() - interval '1 minute', updated_at = clock_timestamp()
+      set status = 'running', updated_at = clock_timestamp()
       where id = ${requested.jobId}
     `;
     await sql`
+      insert into generation_output_reviews (
+        id, job_id, casting_id, kind, status, reason_codes,
+        reviewer_model_version, schema_valid, safety_pass, fact_consistency_pass, created_at
+      ) values (
+        ${randomUUID()}, ${requested.jobId}, ${castingId}, 'deep_reading', 'pass', '[]'::jsonb,
+        'reviewer-v1', 'true', 'true', 'true', clock_timestamp()
+      )
+    `;
+    await sql`
+      insert into deep_reading_results (
+        casting_id, job_id, reservation_id, output, schema_version, prompt_version,
+        provider, model, integrity_hash, integrity_key_version, persisted_at
+      ) values (
+        ${castingId}, ${requested.jobId}, ${requested.reservationId}, '{"summary":"done"}'::jsonb,
+        'test-v1', 'test-prompt', 'test', 'test-model', 'test-hash', 'v1', clock_timestamp()
+      )
+    `;
+    await sql`
       update entitlement_reservations
-      set status = 'consumed', updated_at = clock_timestamp()
+      set status = 'consumed', lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
       where id = ${requested.reservationId}
     `;
     await sql`
@@ -264,9 +282,10 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
       where id = ${batchId}
     `;
     await sql`
-      insert into deep_reading_results (
-        casting_id, job_id, reservation_id, output, schema_version, prompt_version, provider, model, integrity_hash, persisted_at
-      ) values (${castingId}, ${requested.jobId}, ${requested.reservationId}, '{"summary":"done"}'::jsonb, 'test-v1', 'test-prompt', 'test', 'test-model', 'test-hash', clock_timestamp())
+      update generation_jobs
+      set status = 'completed', completed_at = clock_timestamp(),
+          timeout_at = clock_timestamp() - interval '1 minute', updated_at = clock_timestamp()
+      where id = ${requested.jobId}
     `;
 
     const status = await deepReadingService.getDeepReadingStatus({ userId, castingId });
