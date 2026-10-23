@@ -254,10 +254,12 @@ describe("localized capability path normalization", () => {
     vi.unstubAllEnvs();
   });
 
-  it("treats /zh/account like /account when auth is disabled", () => {
+  it("treats /zh/account like /account when auth is disabled", async () => {
     vi.stubEnv("COMMERCIAL_V2_AUTH_ENABLED", "false");
     expect(middleware(makeRequest("/account")).status).toBe(410);
-    expect(middleware(makeRequest("/zh/account")).status).toBe(410);
+    const localized = middleware(makeRequest("/zh/account"));
+    expect(localized.status).toBe(410);
+    expect(await localized.text()).toBe("此功能暂不可用。");
   });
 
   it("treats /zh/signup like /signup when auth is disabled", () => {

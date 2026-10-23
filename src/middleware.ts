@@ -46,6 +46,9 @@ function cp6StagingDiagnosticsEnabled(): boolean {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const capabilityPathname = normalizeLocalizedPathname(pathname);
+  const unavailableMessage = pathname === "/zh" || pathname.startsWith("/zh/")
+    ? "此功能暂不可用。"
+    : "This feature is unavailable.";
 
   if (request.headers.has("next-action")) {
     return new NextResponse("Not Found", {
@@ -56,7 +59,7 @@ export function middleware(request: NextRequest) {
 
   if (matchesPrefix(capabilityPathname, "/signin") || matchesPrefix(capabilityPathname, "/signup")) {
     if (isAuthCapabilityEnabled()) return NextResponse.next();
-    return new NextResponse("This feature is unavailable.", {
+    return new NextResponse(unavailableMessage, {
       status: 410,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
     });
@@ -64,7 +67,7 @@ export function middleware(request: NextRequest) {
 
   if (matchesPrefix(capabilityPathname, "/account")) {
     if (isAuthCapabilityEnabled()) return NextResponse.next();
-    return new NextResponse("This feature is unavailable.", {
+    return new NextResponse(unavailableMessage, {
       status: 410,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
     });
@@ -87,7 +90,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (GONE_PREFIXES.some((prefix) => matchesPrefix(capabilityPathname, prefix))) {
-    return new NextResponse("This feature is unavailable.", {
+    return new NextResponse(unavailableMessage, {
       status: 410,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
     });
