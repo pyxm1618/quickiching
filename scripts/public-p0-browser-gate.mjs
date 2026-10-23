@@ -339,10 +339,27 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   assert(desktopPlacement.loginTop !== null && desktopPlacement.loginTop - desktopPlacement.entryTop < 1000, "Desktop Deep Reading CTA must remain close to the cast summary");
   await page.setViewport(viewport);
   await assertNoOverflow(page, "Chinese Three-Coin result 390px");
-  await page.type("#deep-context-situation", "I want to hurt myself tonight.");
+  // Emergency risk replaces the editable Deep Reading form with immediate crisis guidance.
+  // Type the trigger on the final keystroke so the controlled field can safely unmount afterward.
+  await page.type("#deep-context-situation", "I want to hurt mysel");
+  await page.type("#deep-context-situation", "f");
   await page.waitForSelector('[data-deep-reading-blocked="risk"]');
-  assert.equal(await page.$('[data-deep-reading-entry] a[href*="signin"]'), null, "Risky context must not send an anonymous user toward a paid request");
+  const emergencyText = await page.$eval('[data-deep-reading-blocked="risk"]', (node) => node.textContent ?? "");
+  assert(emergencyText.includes("988") && emergencyText.includes("911"), "Emergency guidance must surface 988 and 911");
+  assert.equal(await page.$("[data-context-enrichment-form]"), null, "Emergency risk must replace the Deep Reading context form");
+  assert.equal(await page.$('[data-deep-reading-entry] a[href*="signin"]'), null, "Emergency context must not send an anonymous user toward a paid request");
   assert(await page.$("#general-cast-interpretation"), "Risk blocking must preserve the complete free interpretation");
+
+  // Start a fresh anonymous fixture to verify a non-emergency professional-risk context remains editable,
+  // then can be corrected back to an eligible state.
+  await seedThreeCoin(page, question);
+  await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForFunction(() => location.pathname === "/zh/readings/three-coin/result", { timeout: 15_000 });
+  await page.waitForSelector("#deep-context-situation", { timeout: 15_000 });
+  await page.type("#deep-context-situation", "Should I stop taking my prescribed medication because of this role?");
+  await page.waitForSelector('[data-deep-reading-blocked="risk"]');
+  assert(await page.$("#deep-context-situation"), "Professional-risk context must remain editable");
+  assert.equal(await page.$('[data-deep-reading-entry] a[href*="signin"]'), null, "Professional-risk context must not send an anonymous user toward a paid request");
   await page.click("#deep-context-situation");
   const selectAllModifier = process.platform === "darwin" ? "Meta" : "Control";
   await page.keyboard.down(selectAllModifier);
