@@ -60,6 +60,40 @@ async function audit(browser, { origin, path, label, desktop = false, seed = fal
       config: desktop ? desktopConfig : undefined,
       flags: { logLevel: "error", onlyCategories: ["performance", "accessibility", "seo"], disableStorageReset: true },
     });
+    if (label === "AFTER_CHINESE_HEXAGRAM_DETAIL") {
+      const report = result?.lhr;
+      const lcpBreakdown = report?.audits?.["lcp-breakdown-insight"]?.details ?? null;
+      const networkItems = report?.audits?.["network-requests"]?.details?.items;
+      const fontRequests = Array.isArray(networkItems)
+        ? networkItems
+            .filter((item) => item.resourceType === "Font")
+            .map((item) => ({
+              url: item.url,
+              transferSize: item.transferSize,
+              resourceSize: item.resourceSize,
+              priority: item.priority ?? null,
+            }))
+        : [];
+      const pageFonts = await page.evaluate(() => ({
+        resources: performance.getEntriesByType("resource")
+          .filter((entry) => /\\.woff2(?:\\?|$)/.test(entry.name))
+          .map((entry) => ({
+            url: entry.name,
+            transferSize: entry.transferSize,
+            decodedBodySize: entry.decodedBodySize,
+            duration: entry.duration,
+          })),
+        loadedFonts: Array.from(document.fonts).map((font) => ({
+          family: font.family,
+          weight: font.weight,
+          style: font.style,
+          status: font.status,
+        })),
+      }));
+      log(`AFTER_CHINESE_HEXAGRAM_DETAIL_LCP_BREAKDOWN ${JSON.stringify(lcpBreakdown)}`);
+      log(`AFTER_CHINESE_HEXAGRAM_DETAIL_FONT_REQUESTS ${JSON.stringify(fontRequests)}`);
+      log(`AFTER_CHINESE_HEXAGRAM_DETAIL_PAGE_FONTS ${JSON.stringify(pageFonts)}`);
+    }
     const metrics = summarize(label, result);
     assertQuality(label, metrics, indexable, enforcePerformance);
     if (path === "/methods/manual-cast") await page.waitForFunction(() => document.body?.innerText.toLocaleLowerCase().includes("your i ching reading"), { timeout: 15_000 });
