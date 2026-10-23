@@ -69,8 +69,8 @@ export default function ChineseHexagramsHubPage() {
 
       <div className="mt-12 rounded-2xl border border-[var(--line)] bg-[var(--paper-raised)] p-6">
         <h2 className="font-display text-2xl font-medium">从问题开始起卦</h2>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">卦详情页用于理解经典实体和反思结构，不会保存或公开你的问题。要开始一条中文起卦流程，可以前往梅花易数公历时间起卦入口。</p>
-        <nav className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm" aria-label="中文卦库相关入口"><Link href="/zh/methods/mei-hua-yi-shu" className="font-semibold text-[var(--jade)] hover:underline">开始中文起卦 →</Link><Link href="/zh" data-seo-home-link="/zh" className="font-semibold text-[var(--jade)] hover:underline">返回中文首页</Link></nav>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">卦详情页用于理解经典实体和反思结构，不会保存或公开你的问题。要开始中文起卦，可以选择三枚铜钱或梅花易数等现有方法。</p>
+        <nav className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm" aria-label="中文卦库相关入口"><Link href="/zh/methods/three-coin" className="font-semibold text-[var(--jade)] hover:underline">三枚铜钱起卦 →</Link><Link href="/zh/methods/mei-hua-yi-shu" className="font-semibold text-[var(--jade)] hover:underline">梅花易数起卦</Link><Link href="/zh" data-seo-home-link="/zh" className="font-semibold text-[var(--jade)] hover:underline">返回中文首页</Link></nav>
       </div>
     </article>
   );

@@ -6,7 +6,7 @@ import type { RiskStatus, Scene } from "../casting/types";
 // These rules are fail-closed: on any ambiguity we must not silently pass to the LLM in
 // a way that violates the boundary; the product path is allowed only when clearly safe.
 
-export const RISK_RULE_VERSION = "risk-v2";
+export const RISK_RULE_VERSION = "risk-v3";
 
 export type RiskDecision = {
   status: RiskStatus;
@@ -25,7 +25,7 @@ const MEDICAL_OBJECT: RegExp =
   /\b(chemotherap\w*|chemo|medication|medicines?|meds|insulin|antidepressant\w*|dosage|dose|prescription|prescribed|drug(s|s treatment)?|surgery|surgical|diagnos\w*|treatment|vaccine|vaccination|doctor|physician|hospital|emergency room|medical care|mental health (treatment|care))\b|(?:胰岛素|化疗|药物|用药|剂量|处方药|手术|诊断|治疗|疫苗|心理治疗|医生|医院|急诊)/i;
 
 const INVESTMENT_OBJECT: RegExp =
-  /\b(bitcoin|crypto(currency)?|stock(s)?|etf|forex|option(s)?|share(s)?|bond(s)?|mutual fund|investment fund|nvidia)\b|(?:比特币|加密货币|虚拟货币|股票|英伟达|基金|外汇|期权|债券|投资)/i;
+  /\b(bitcoin|crypto(?:currency)?|stocks?|etf|forex|mutual fund|investment fund|stock options?|call options?|put options?|options trading|corporate bonds?|government bonds?)\b|(?:比特币|加密货币|虚拟货币|股票|英伟达(?:股票)?|基金|外汇|期权|债券|投资)/i;
 
 const LEGAL_OBJECT: RegExp =
   /\b(lawsuit|sue|suing|divorce|court case|litigation|custody battle|legal action|plead guilty|guilty plea|criminal charge|lawyer|attorney)\b|(?:诉讼|起诉|离婚|法庭|官司|认罪|刑事指控|抚养权|律师)/i;
@@ -39,8 +39,14 @@ const EMPLOYMENT_OR_PROJECT: RegExp =
 const AMBIGUOUS_HIGH_RISK_REQUEST: RegExp =
   /\b(need guidance|need help|what should i do|what do i do|please help)\b|(?:需要指导|需要帮助|我该怎么办|请帮帮我)/i;
 
+const DIRECT_MEDICAL_ACTION: RegExp =
+  /\b(stop|start|take|change|adjust|increase|decrease)\b.{0,40}\b(medication|medicines?|meds|insulin|antidepressant\w*|dosage|dose|prescription|prescribed drugs?)\b|\b(have|undergo)\b.{0,20}\bsurgery\b|(?:停用|停止服用|开始服用|服用|调整|改变|增加|减少).{0,20}(?:胰岛素|药物|用药|剂量|处方药)|(?:做|接受).{0,10}手术/i;
+
+const DIRECT_LEGAL_ACTION: RegExp =
+  /\b(plead guilty|sue|file (?:a )?lawsuit|settle (?:the )?(?:case|lawsuit|dispute))\b|(?:认罪|起诉|提起诉讼|和解(?:案件|诉讼|纠纷)?)/i;
+
 const DIRECT_INVESTMENT_ACTION: RegExp =
-  /\b(buy|sell|invest in|hold|trade)\b.{0,40}\b(bitcoin|crypto(currency)?|stock(s)?|etf|forex|option(s)?|share(s)?|bond(s)?|mutual fund|investment fund|nvidia)\b|(?:买入|购买|卖出|投资|持有|交易).{0,40}(?:比特币|加密货币|虚拟货币|股票|英伟达|基金|外汇|期权|债券)/i;
+  /\b(buy|sell|invest in|hold|trade)\b.{0,40}\b(bitcoin|crypto(?:currency)?|stocks?|etf|forex|shares?|bonds?|stock options?|call options?|put options?|options|mutual fund|investment fund|nvidia)\b|(?:买入|购买|卖出|投资|持有|交易).{0,40}(?:比特币|加密货币|虚拟货币|股票|英伟达|基金|外汇|期权|债券)/i;
 
 function normalize(text: string): string {
   // NFKC + lowercase for stable matching (Unicode variant cases are covered by tests).
@@ -72,11 +78,13 @@ export function evaluateRisk(rawQuestion: string, scene: Scene): RiskDecision {
   }
 
   const hasMedical = MEDICAL_OBJECT.test(t);
-  const hasInvestment = INVESTMENT_OBJECT.test(t);
+  const hasDirectMedicalAction = DIRECT_MEDICAL_ACTION.test(t);
+  const hasDirectLegalAction = DIRECT_LEGAL_ACTION.test(t);
+  const hasDirectInvestmentAction = DIRECT_INVESTMENT_ACTION.test(t);
+  const hasInvestment = INVESTMENT_OBJECT.test(t) || hasDirectInvestmentAction;
   const hasLegal = LEGAL_OBJECT.test(t);
   const hasAction = DECISION_ACTION.test(t);
   const hasExclusion = EMPLOYMENT_OR_PROJECT.test(t);
-  const hasDirectInvestmentAction = DIRECT_INVESTMENT_ACTION.test(t);
 
   if (hasMedical) codes.push("medical_object");
   if (hasInvestment) codes.push("investment_object");
@@ -87,7 +95,8 @@ export function evaluateRisk(rawQuestion: string, scene: Scene): RiskDecision {
   // Employment/project context is an exclusion only for an employment decision about an
   // industry, never for an explicit instruction to buy or sell an investment.
   const professionalBlock =
-    (hasMedical || hasLegal) && hasAction && !hasExclusion ||
+    hasMedical && hasAction && (!hasExclusion || hasDirectMedicalAction) ||
+    hasLegal && hasAction && (!hasExclusion || hasDirectLegalAction) ||
     hasInvestment && hasAction && (!hasExclusion || hasDirectInvestmentAction);
 
   if (professionalBlock) {

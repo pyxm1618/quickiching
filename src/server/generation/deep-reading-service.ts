@@ -23,11 +23,16 @@ import { decryptQuestionForGeneration } from "./question-crypto";
 
 type Row = Record<string, any>;
 
+const DEEP_READING_WRITE_WINDOW_SECONDS = 60;
+const DEEP_READING_WRITES_PER_WINDOW = 8;
+
 export type DeepReadingRequestResult = {
   jobId: string;
   reservationId: string;
-  status: "queued" | "running" | "completed";
+  status: "queued" | "running" | "completed" | "timed_out";
   output?: unknown;
+  snapshot?: DeepReadingContextSnapshot;
+  creditReservationCreated: boolean;
 };
 
 export type DeepReadingStatusResult = {
@@ -80,6 +85,96 @@ function riskText(question: string, context: DeepReadingContextEnrichment): stri
     ...context.constraints,
     ...context.concerns,
   ].filter(Boolean).join("\n");
+}
+
+async function reconcileExpiredDeepReading(
+  transaction: TransactionSql,
+  input: { castingId: string; userId: string },
+): Promise<{ jobId: string; reservationId: string } | null> {
+  const expiredRows = await transaction`
+    select j.id as job_id, j.idempotency_key, r.id as reservation_id
+    from generation_jobs j
+    left join entitlement_reservations r on r.job_id = j.id
+    where j.casting_id = ${input.castingId}
+      and j.kind = 'deep_reading'
+      and j.status in ('queued', 'running')
+      and j.timeout_at <= clock_timestamp()
+    order by j.created_at desc
+    limit 1
+    for update of j
+  ` as Row[];
+  const expired = expiredRows[0];
+  if (!expired) return null;
+
+  const timedOutRows = await transaction`
+    update generation_jobs
+    set status = 'timed_out',
+        lease_owner = null,
+        lease_token = null,
+        lease_expires_at = null,
+        structured_error_code = 'GENERATION_TIMEOUT',
+        updated_at = clock_timestamp()
+    where id = ${String(expired.job_id)}
+      and status in ('queued', 'running')
+      and timeout_at <= clock_timestamp()
+    returning id
+  ` as Row[];
+  if (!timedOutRows[0]) return null;
+
+  let reservationId = expired.reservation_id ? String(expired.reservation_id) : "";
+  if (reservationId) {
+    const reservationRows = await transaction`
+      select id, batch_id
+      from entitlement_reservations
+      where id = ${reservationId}
+        and job_id = ${String(expired.job_id)}
+        and status = 'reserved'
+      limit 1
+      for update
+    ` as Row[];
+    const reservation = reservationRows[0];
+    if (reservation) {
+      const releasedRows = await transaction`
+        update entitlement_reservations
+        set status = 'released', lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
+        where id = ${reservationId} and status = 'reserved'
+        returning id
+      ` as Row[];
+      if (releasedRows[0]) {
+        await transaction`
+          update entitlement_batches
+          set quantity_reserved = greatest(0, quantity_reserved - 1),
+              quantity_available = quantity_available + 1,
+              updated_at = clock_timestamp()
+          where id = ${String(reservation.batch_id)}
+        `;
+        await transaction`
+          insert into entitlement_ledger (id, batch_id, order_id, action, quantity, business_key, created_at)
+          select ${randomUUID()}, ${String(reservation.batch_id)}, b.order_id, 'release', 1,
+                 ${`release:${reservationId}`}, clock_timestamp()
+          from entitlement_batches b where b.id = ${String(reservation.batch_id)}
+          on conflict (business_key) do nothing
+        `;
+      }
+    }
+  }
+
+  await transaction`
+    update workflow_runs
+    set status = 'failed', error_code = 'GENERATION_TIMEOUT', updated_at = clock_timestamp()
+    where idempotency_key = ${String(expired.idempotency_key)}
+      and status not in ('succeeded', 'completed', 'cancelled')
+  `;
+  await transaction`
+    insert into audit_events (id, category, action, entity_type, entity_id, user_id, payload, created_at)
+    values (
+      ${randomUUID()}, 'generation', 'deep_reading_timed_out', 'job', ${String(expired.job_id)}, ${input.userId},
+      ${JSON.stringify({ castingId: input.castingId, reservationId, errorCode: "GENERATION_TIMEOUT" })}::jsonb,
+      clock_timestamp()
+    )
+  `;
+
+  return { jobId: String(expired.job_id), reservationId };
 }
 
 async function compensateWorkflowStartFailure(
@@ -199,11 +294,40 @@ export function createDeepReadingService(dependencies: {
           select job_id, reservation_id, output from deep_reading_results where casting_id = ${castingId} limit 1
         ` as Row[];
         if (resultRows[0]) {
+          const snapshotRows = await transaction`
+            select ciphertext, iv, auth_tag, encryption_key_version, snapshot_hash
+            from deep_reading_context_snapshots where casting_id = ${castingId} limit 1
+          ` as Row[];
+          let completedSnapshot: DeepReadingContextSnapshot | undefined;
+          if (snapshotRows[0]) {
+            const row = snapshotRows[0];
+            completedSnapshot = decryptDeepReadingContextSnapshot(castingId, {
+              ciphertext: String(row.ciphertext),
+              iv: String(row.iv),
+              authTag: String(row.auth_tag),
+              encryptionKeyVersion: String(row.encryption_key_version),
+            }, env);
+            if (calculateDeepReadingContextSnapshotHash(completedSnapshot, env) !== String(row.snapshot_hash)) {
+              throw new Error("DEEP_READING_SNAPSHOT_INTEGRITY_INVALID");
+            }
+          }
           return {
             alreadyCompleted: true as const,
             jobId: String(resultRows[0].job_id),
             reservationId: String(resultRows[0].reservation_id),
             output: resultRows[0].output,
+            snapshot: completedSnapshot,
+          };
+        }
+
+        const timedOut = await reconcileExpiredDeepReading(transaction, { castingId, userId });
+        if (timedOut) {
+          return {
+            alreadyCompleted: false as const,
+            alreadyActive: false as const,
+            timedOut: true as const,
+            jobId: timedOut.jobId,
+            reservationId: timedOut.reservationId,
           };
         }
 
@@ -293,6 +417,18 @@ export function createDeepReadingService(dependencies: {
           return { blockedRisk: refreshedRisk.status as string, reasonCode: refreshedRisk.reasonCode };
         }
 
+        const recentWriteRows = await transaction<{ count: number }[]>`
+          select count(*)::integer as count
+          from generation_jobs j
+          join casting_sessions c on c.id = j.casting_id
+          where c.user_id = ${userId}
+            and j.kind = 'deep_reading'
+            and j.created_at >= clock_timestamp() - (${DEEP_READING_WRITE_WINDOW_SECONDS} * interval '1 second')
+        `;
+        if (Number(recentWriteRows[0]?.count ?? 0) >= DEEP_READING_WRITES_PER_WINDOW) {
+          throw new Error("DEEP_READING_RATE_LIMITED");
+        }
+
         const batchRows = await transaction`
           select id, expires_at from entitlement_batches
           where user_id = ${userId} and quantity_available > 0 and expires_at > clock_timestamp()
@@ -358,10 +494,20 @@ export function createDeepReadingService(dependencies: {
         throw new Error(`RISK_${blockedRisk.toUpperCase()}`);
       }
       if (prepared.alreadyCompleted) {
-        return { jobId: prepared.jobId, reservationId: prepared.reservationId, status: "completed", output: prepared.output };
+        return {
+          jobId: prepared.jobId,
+          reservationId: prepared.reservationId,
+          status: "completed",
+          output: prepared.output,
+          snapshot: prepared.snapshot,
+          creditReservationCreated: false,
+        };
+      }
+      if ("timedOut" in prepared && prepared.timedOut) {
+        return { jobId: prepared.jobId, reservationId: prepared.reservationId, status: "timed_out", creditReservationCreated: false };
       }
       if (prepared.alreadyActive) {
-        return { jobId: prepared.jobId, reservationId: prepared.reservationId, status: prepared.status };
+        return { jobId: prepared.jobId, reservationId: prepared.reservationId, status: prepared.status, creditReservationCreated: false };
       }
 
       try {
@@ -385,7 +531,7 @@ export function createDeepReadingService(dependencies: {
         }));
         throw new Error("WORKFLOW_START_FAILED");
       }
-      return { jobId: prepared.jobId, reservationId: prepared.reservationId, status: "queued" };
+      return { jobId: prepared.jobId, reservationId: prepared.reservationId, status: "queued", creditReservationCreated: true };
     },
 
     async getDeepReadingStatus(options): Promise<DeepReadingStatusResult> {
@@ -400,36 +546,46 @@ export function createDeepReadingService(dependencies: {
         throw new Error("CASTING_NOT_FOUND");
       }
 
-      const snapshotRows = await sql`
-        select ciphertext, iv, auth_tag, encryption_key_version, snapshot_hash
-        from deep_reading_context_snapshots where casting_id = ${castingId} limit 1
-      ` as Row[];
-      let snapshot: DeepReadingContextSnapshot | undefined;
-      if (snapshotRows[0]) {
-        const row = snapshotRows[0];
-        snapshot = decryptDeepReadingContextSnapshot(castingId, {
-          ciphertext: String(row.ciphertext),
-          iv: String(row.iv),
-          authTag: String(row.auth_tag),
-          encryptionKeyVersion: String(row.encryption_key_version),
-        }, env);
-        if (calculateDeepReadingContextSnapshotHash(snapshot, env) !== String(row.snapshot_hash)) {
-          throw new Error("DEEP_READING_SNAPSHOT_INTEGRITY_INVALID");
+      const resultRows = await sql`select output from deep_reading_results where casting_id = ${castingId} limit 1` as Row[];
+      if (resultRows[0]) {
+        const snapshotRows = await sql`
+          select ciphertext, iv, auth_tag, encryption_key_version, snapshot_hash
+          from deep_reading_context_snapshots where casting_id = ${castingId} limit 1
+        ` as Row[];
+        let snapshot: DeepReadingContextSnapshot | undefined;
+        if (snapshotRows[0]) {
+          const row = snapshotRows[0];
+          snapshot = decryptDeepReadingContextSnapshot(castingId, {
+            ciphertext: String(row.ciphertext),
+            iv: String(row.iv),
+            authTag: String(row.auth_tag),
+            encryptionKeyVersion: String(row.encryption_key_version),
+          }, env);
+          if (calculateDeepReadingContextSnapshotHash(snapshot, env) !== String(row.snapshot_hash)) {
+            throw new Error("DEEP_READING_SNAPSHOT_INTEGRITY_INVALID");
+          }
         }
+        return { status: "completed", output: resultRows[0].output, snapshot };
       }
 
-      const resultRows = await sql`select output from deep_reading_results where casting_id = ${castingId} limit 1` as Row[];
-      if (resultRows[0]) return { status: "completed", output: resultRows[0].output, snapshot };
+      const timedOut = await sql.begin((transaction) =>
+        reconcileExpiredDeepReading(transaction, { castingId, userId }),
+      );
+      if (timedOut) return { status: "timed_out", errorCode: "GENERATION_TIMEOUT" };
 
       const jobRows = await sql`
         select status, structured_error_code from generation_jobs
-        where casting_id = ${castingId} and kind = 'deep_reading' order by created_at desc limit 1
+        where casting_id = ${castingId} and kind = 'deep_reading'
+        order by created_at desc limit 1
       ` as Row[];
-      if (!jobRows[0]) return { status: "not_started", snapshot };
+      const job = jobRows[0];
+      if (!job) return { status: "not_started" };
+
+      const status = String(job.status) as DeepReadingStatusResult["status"];
+      if (status === "queued" || status === "running") return { status };
       return {
-        status: jobRows[0].status as DeepReadingStatusResult["status"],
-        snapshot,
-        errorCode: jobRows[0].structured_error_code ? String(jobRows[0].structured_error_code) : undefined,
+        status,
+        errorCode: job.structured_error_code ? String(job.structured_error_code) : undefined,
       };
     },
   };

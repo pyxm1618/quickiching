@@ -14,7 +14,7 @@ const variants: Record<Variant, string> = {
   primary:
     "bg-[var(--cinnabar)] text-[var(--primary-foreground)] hover:bg-[var(--cinnabar-deep)] hover:-translate-y-px",
   secondary:
-    "bg-[var(--jade)] text-[#f2f7f3] hover:opacity-90 hover:-translate-y-px",
+    "bg-[var(--jade)] text-[#071414] hover:opacity-90 hover:-translate-y-px",
   outline:
     "border border-[var(--line-strong)] bg-transparent text-[var(--ink)] hover:bg-[var(--ink)]/5",
   ghost: "bg-transparent text-[var(--ink-2)] hover:bg-[var(--ink)]/5",

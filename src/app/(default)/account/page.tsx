@@ -14,9 +14,9 @@ export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/signin");
   const [history, balance, purchases] = await Promise.all([
-    loadHistory(),
-    loadEntitlementBalance(),
-    loadAccountPurchases(),
+    loadHistory(user),
+    loadEntitlementBalance(user),
+    loadAccountPurchases(user),
   ]);
 
   return (

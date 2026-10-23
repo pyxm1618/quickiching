@@ -1,7 +1,32 @@
 "use client";
 
 import React, { useState } from "react";
+import { createAuthClient } from "better-auth/client";
 import { Button } from "@/components/ui/button";
+import { HISTORY_STORAGE_KEY } from "@/domain/public-reading/history";
+import { THREE_COIN_BACKUP_STORAGE_KEY, THREE_COIN_SESSION_STORAGE_KEY } from "@/lib/three-coin-session";
+
+const authClient = createAuthClient({ basePath: "/api/auth" });
+
+function clearQuickIChingAccountStorage(): void {
+  try {
+    window.localStorage.removeItem(HISTORY_STORAGE_KEY);
+    window.localStorage.removeItem(THREE_COIN_BACKUP_STORAGE_KEY);
+  } catch {
+    // Storage cleanup is best-effort after server-side deletion succeeds.
+  }
+  try {
+    window.sessionStorage.removeItem(THREE_COIN_SESSION_STORAGE_KEY);
+    for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.sessionStorage.key(index);
+      if (key?.startsWith("quickiching:deep-reading-context:")) {
+        window.sessionStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // Storage cleanup is best-effort after server-side deletion succeeds.
+  }
+}
 
 export function DeleteAccountControl({ locale = "en" }: { locale?: "en" | "zh-Hans" }) {
   const zh = locale === "zh-Hans";
@@ -19,6 +44,8 @@ export function DeleteAccountControl({ locale = "en" }: { locale?: "en" | "zh-Ha
     try {
       const response = await fetch("/api/account/delete", { method: "POST", credentials: "same-origin" });
       if (!response.ok) throw new Error("ACCOUNT_DELETE_FAILED");
+      clearQuickIChingAccountStorage();
+      await authClient.signOut().catch(() => undefined);
       window.location.assign(zh ? "/zh" : "/");
     } catch {
       setError(t("Account deletion could not be completed. No deletion is assumed; please try again.", "账户删除未完成；页面不会假设已经删除，请重试。"));
@@ -45,7 +72,7 @@ export function DeleteAccountControl({ locale = "en" }: { locale?: "en" | "zh-Ha
       <Button className="mt-3" variant="outline" disabled={!confirmed || submitting} onClick={deleteAccount}>
         {submitting ? t("Deleting…", "正在删除…") : t("Permanently delete account", "永久删除账户")}
       </Button>
-      {error && <p role="alert" className="mt-2 text-sm text-[var(--cinnabar)]">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
     </div>
   );
 }

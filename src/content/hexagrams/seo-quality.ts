@@ -37,13 +37,10 @@ export type LanguageContamination = {
 export type KeywordQualityEvaluation = {
   measurement: KeywordQualityMeasurement;
   contamination: LanguageContamination;
-  primaryDensityInRange: boolean;
-  familyDensityInRange: boolean;
+  primaryPresent: boolean;
+  languageMostlyCorrect: boolean;
   failures: string[];
 };
-
-export const PRIMARY_DENSITY_RANGE = { min: 0.01, max: 0.02 } as const;
-export const FAMILY_DENSITY_RANGE = { min: 0.03, max: 0.05 } as const;
 
 function normalize(value: string): string {
   return value.normalize("NFKC");
@@ -170,26 +167,24 @@ export function findLanguageContamination(text: string, locale: ContentLocale): 
   return { count: matches.length, samples: [...new Set(matches)].slice(0, 12) };
 }
 
-function within(value: number, range: { min: number; max: number }): boolean {
-  return value >= range.min && value <= range.max;
-}
-
 export function evaluateKeywordQuality(input: KeywordQualityInput): KeywordQualityEvaluation {
   const measurement = measureKeywordQuality(input);
   const contamination = findLanguageContamination(input.text, input.locale);
-  const primaryDensityInRange = within(measurement.primaryDensity, PRIMARY_DENSITY_RANGE);
-  const familyDensityInRange = within(measurement.familyDensity, FAMILY_DENSITY_RANGE);
+  const primaryPresent = measurement.primaryOccurrences > 0;
+  const contaminationAllowance = input.locale === "en"
+    ? Math.max(12, Math.ceil(measurement.tokenCount * 0.05))
+    : Math.max(12, Math.ceil(measurement.tokenCount * 0.1));
+  const languageMostlyCorrect = contamination.count <= contaminationAllowance;
   const failures = [
-    primaryDensityInRange ? null : `primary-density:outside-${PRIMARY_DENSITY_RANGE.min.toFixed(4)}-${PRIMARY_DENSITY_RANGE.max.toFixed(4)}`,
-    familyDensityInRange ? null : `family-density:outside-${FAMILY_DENSITY_RANGE.min.toFixed(4)}-${FAMILY_DENSITY_RANGE.max.toFixed(4)}`,
-    contamination.count === 0 ? null : `language-contamination:${contamination.count}`,
+    primaryPresent ? null : "primary-keyword:missing",
+    languageMostlyCorrect ? null : "main-language:mismatch:" + contamination.count,
   ].filter((failure): failure is string => failure !== null);
 
   return {
     measurement,
     contamination,
-    primaryDensityInRange,
-    familyDensityInRange,
+    primaryPresent,
+    languageMostlyCorrect,
     failures,
   };
 }

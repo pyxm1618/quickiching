@@ -1,5 +1,4 @@
 import React from "react";
-import { AdsterraResultAd } from "@/components/ads/adsterra-result-ad";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import type { FreeReading } from "@/domain/interpretation/v2/types";
 import { ZH_HANS_READING_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
@@ -140,7 +139,6 @@ export function ChineseReadingResultView({
         </div>
       </section>
 
-      <AdsterraResultAd locale="zh-Hans" />
 
       <section className={styles.section + " " + styles.revealDelay} aria-labelledby="reflection-heading">
         <p className="mystic-kicker">第五部分 · 卦象反思</p>

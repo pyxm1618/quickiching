@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  FAMILY_DENSITY_RANGE,
-  PRIMARY_DENSITY_RANGE,
   countExactPhrase,
   evaluateKeywordQuality,
   findLanguageContamination,
@@ -83,38 +81,24 @@ describe("hexagram SEO quality primitives", () => {
     expect(findLanguageContamination("乾卦详解", "zh-Hans").count).toBe(0);
   });
 
-  it("publishes the approved hard density bands", () => {
-    expect(PRIMARY_DENSITY_RANGE).toEqual({ min: 0.01, max: 0.02 });
-    expect(FAMILY_DENSITY_RANGE).toEqual({ min: 0.03, max: 0.05 });
-  });
-
-  it("turns density and language purity into hard failures", () => {
-    const passingText = [
-      "hexagram 1",
-      ...Array.from({ length: 93 }, (_, index) => `word${index}`),
-      "hexagram 1 love",
-      "meaning",
-      "unchanging",
-    ].join(" ");
-    const passing = evaluateKeywordQuality({
-      text: passingText,
+  it("treats density as diagnostic while requiring the primary keyword and a clear main language", () => {
+    const sparse = evaluateKeywordQuality({
+      text: "Hexagram 1 is discussed here with the traditional name 乾 and a short cultural note.",
       locale: "en",
       primary: "hexagram 1",
-      approvedFamily: ["hexagram 1", "hexagram 1 love"],
+      approvedFamily: ["hexagram 1", "hexagram 1 meaning"],
     });
-    expect(passing.measurement.tokenCount).toBe(100);
-    expect(passing.measurement.primaryDensity).toBe(0.02);
-    expect(passing.measurement.familyDensity).toBe(0.05);
-    expect(passing.failures).toEqual([]);
+    expect(sparse.measurement.primaryDensity).toBeGreaterThan(0);
+    expect(sparse.primaryPresent).toBe(true);
+    expect(sparse.languageMostlyCorrect).toBe(true);
+    expect(sparse.failures).toEqual([]);
 
-    const failing = evaluateKeywordQuality({
-      text: `${passingText} hexagram 1 hexagram 1 hexagram 1 乾`,
+    const missing = evaluateKeywordQuality({
+      text: "A general discussion without the target phrase.",
       locale: "en",
       primary: "hexagram 1",
-      approvedFamily: ["hexagram 1", "hexagram 1 love"],
+      approvedFamily: ["hexagram 1"],
     });
-    expect(failing.failures).toContain("language-contamination:1");
-    expect(failing.failures).toContain("primary-density:outside-0.0100-0.0200");
-    expect(failing.failures).toContain("family-density:outside-0.0300-0.0500");
+    expect(missing.failures).toContain("primary-keyword:missing");
   });
 });

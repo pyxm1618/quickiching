@@ -2,6 +2,7 @@ import { z } from "zod";
 import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
 import { isStrictSameOriginRequest } from "@/server/http/origin-guard";
 import { createProductionRefundRepository } from "@/server/refunds/composition";
+import { isCheckoutCapabilityEnabled } from "@/server/payments/capability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,13 @@ function json(body: unknown, status = 200): Response {
   return Response.json(body, { status, headers: headers() });
 }
 
+function notFound(): Response {
+  return new Response("Not Found", {
+    status: 404,
+    headers: headers({ "Content-Type": "text/plain; charset=utf-8" }),
+  });
+}
+
 async function authenticatedUser(request: Request): Promise<{ id: string } | null> {
   const { getAuth } = await import("@/server/auth/server");
   const session = await getAuth().api.getSession({ headers: request.headers });
@@ -41,6 +49,7 @@ function failure(error: unknown): Response {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  if (!isCheckoutCapabilityEnabled()) return notFound();
   if (!isStrictSameOriginRequest(request)) return json({ error: "CSRF_REJECTED" }, 403);
   if (request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase() !== "application/json") {
     return json({ error: "INVALID_REQUEST" }, 400);

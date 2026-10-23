@@ -242,3 +242,27 @@ describe("Public V1 middleware boundaries", () => {
     expect(middleware(makeRequest("/api/ready/")).status).toBe(200);
   });
 });
+
+
+describe("localized capability path normalization", () => {
+  beforeEach(() => {
+    vi.unstubAllEnvs();
+    for (const [key, value] of Object.entries(completeAuthEnv)) vi.stubEnv(key, value);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("treats /zh/account like /account when auth is disabled", () => {
+    vi.stubEnv("COMMERCIAL_V2_AUTH_ENABLED", "false");
+    expect(middleware(makeRequest("/account")).status).toBe(410);
+    expect(middleware(makeRequest("/zh/account")).status).toBe(410);
+  });
+
+  it("treats /zh/signup like /signup when auth is disabled", () => {
+    vi.stubEnv("COMMERCIAL_V2_AUTH_ENABLED", "false");
+    expect(middleware(makeRequest("/signup")).status).toBe(410);
+    expect(middleware(makeRequest("/zh/signup")).status).toBe(410);
+  });
+});

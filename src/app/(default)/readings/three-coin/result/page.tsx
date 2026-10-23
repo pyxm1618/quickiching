@@ -44,6 +44,7 @@ export default async function ThreeCoinResultPage(props: {
           context: castingView.context,
           lineValuesBottomUp: castingView.result?.lineValues ?? null,
           readingReport: (castingView.reading?.report as any) ?? null,
+          deepSnapshot: castingView.reading?.snapshot ?? null,
           owns: castingView.owns,
         } : null}
       />
