@@ -129,7 +129,7 @@ describe("static hexagram detail page", () => {
     }
   });
 
-  it("keeps all 128 eligible detail bodies in their own language", async () => {
+  it("keeps all 128 eligible detail bodies in the intended main language while allowing cultural proper nouns", async () => {
     for (const seo of hexagramSeoRows()) {
       const knowledge = await loadPublicHexagramKnowledge(seo.number);
       const classicalIndex = CLASSICAL_HEXAGRAMS.findIndex((entry) => entry.number === seo.number);
@@ -145,16 +145,18 @@ describe("static hexagram detail page", () => {
       );
       expect(html, seo.canonicalUrl).toContain("data-seo-copy");
       const copy = eligibleText(html);
-      if (seo.locale === "en") {
-        expect(copy, seo.canonicalUrl).not.toMatch(/\p{Script=Han}/u);
-      } else {
-        expect(copy, seo.canonicalUrl).not.toMatch(/\b\p{Script=Latin}{2,}\b/u);
-      }
+      const quality = evaluateKeywordQuality({
+        text: copy,
+        locale: seo.locale,
+        primary: seo.primaryKeyword,
+        approvedFamily: approvedFamily(seo),
+      });
+      expect(quality.languageMostlyCorrect, seo.canonicalUrl).toBe(true);
       expect(copy, seo.canonicalUrl).not.toMatch(/Quick ?I ?Ching/iu);
     }
   });
 
-  it("keeps all 128 server-rendered detail bodies inside the hard density bands", async () => {
+  it("keeps the primary keyword present on all 128 server-rendered detail bodies without fixed density bands", async () => {
     const failures: string[] = [];
     for (const seo of hexagramSeoRows()) {
       const knowledge = await loadPublicHexagramKnowledge(seo.number);

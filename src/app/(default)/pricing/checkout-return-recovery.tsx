@@ -62,7 +62,7 @@ export function CheckoutReturnRecovery({ credits, locale = "en" }: { credits: nu
           className="underline"
           onClick={() => { setTimedOut(false); startedAtRef.current = Date.now(); setTick((t) => t + 1); router.refresh(); }}
         >
-          Check again
+          {t("Check again", "再次检查")}
         </button>
         {t(", or return to your reading from", "，或者从")}{" "}
         <a href={zh ? "/zh/account" : "/account"} className="underline">{t("account history", "账户记录")}</a>{t(".", "返回你的解读。")}

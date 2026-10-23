@@ -69,6 +69,37 @@ async function seedQuestionVersion(castingId: string, question: string, now: str
   `;
 }
 
+async function seedDeepReadingCandidateWithCredit(userId: string) {
+  const orderId = randomUUID();
+  const batchId = randomUUID();
+  const castingId = randomUUID();
+  const now = new Date().toISOString();
+  await sql`
+    insert into users (id, name, email, email_verified, created_at, updated_at)
+    values (${userId}, 'Timeout User', ${`${userId}@example.com`}, true, ${now}, ${now})
+    on conflict (id) do nothing
+  `;
+  await sql`
+    insert into payment_orders (
+      id, user_id, product_key, quantity, amount_minor, currency, request_id,
+      provider, provider_environment, provider_product_id, provider_order_id, provider_payment_id,
+      status, paid_at, created_at, updated_at
+    ) values (${orderId}, ${userId}, 'one', 1, 299, 'USD', ${`req-${orderId}`}, 'waffo', 'test', 'prod-1', ${`ord-${orderId}`}, ${`pay-${orderId}`}, 'paid', ${now}, ${now}, ${now})
+  `;
+  await sql`
+    insert into entitlement_batches (
+      id, user_id, order_id, quantity_total, quantity_available, quantity_reserved, quantity_consumed, quantity_revoked, expires_at, created_at, updated_at
+    ) values (${batchId}, ${userId}, ${orderId}, 1, 1, 0, 0, 0, now() + interval '12 months', ${now}, ${now})
+  `;
+  await sql`
+    insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
+    values (${castingId}, ${userId}, 'three_coin', 'revealed', 'allowed', 'career', 'guidance', ${now}, ${now})
+  `;
+  await seedCastFacts(castingId, now);
+  await seedQuestionVersion(castingId, "What should I focus on in this transition?", now);
+  return { orderId, batchId, castingId };
+}
+
 describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () => {
   let deepReadingService: DeepReadingService;
   const userOneId = "cp5-deep-user-1";
@@ -171,6 +202,102 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     `;
     expect(resRows[0]?.status).toBe("reserved");
     expect(resRows[0]?.user_id).toBe(userOneId);
+  });
+
+  it("lazily times out expired jobs, releases the reservation once, and remains idempotent", async () => {
+    const userId = `cp5-timeout-${randomUUID()}`;
+    const { batchId, castingId } = await seedDeepReadingCandidateWithCredit(userId);
+    const requested = await deepReadingService.requestDeepReading({
+      userId,
+      castingId,
+      enrichment: validEnrichment(),
+    });
+    expect(requested.status).toBe("queued");
+
+    await sql`update generation_jobs set timeout_at = clock_timestamp() - interval '1 minute' where id = ${requested.jobId}`;
+
+    const first = await deepReadingService.getDeepReadingStatus({ userId, castingId });
+    expect(first).toEqual({ status: "timed_out", errorCode: "GENERATION_TIMEOUT" });
+
+    const jobRows = await sql<{ status: string }[]>`select status from generation_jobs where id = ${requested.jobId}`;
+    expect(jobRows[0]?.status).toBe("timed_out");
+    const reservationRows = await sql<{ status: string }[]>`select status from entitlement_reservations where id = ${requested.reservationId}`;
+    expect(reservationRows[0]?.status).toBe("released");
+    const batchRows = await sql<{ quantity_available: number; quantity_reserved: number }[]>`
+      select quantity_available, quantity_reserved from entitlement_batches where id = ${batchId}
+    `;
+    expect(batchRows[0]).toMatchObject({ quantity_available: 1, quantity_reserved: 0 });
+    const releaseRows = await sql<{ count: number }[]>`
+      select count(*)::int as count from entitlement_ledger where business_key = ${`release:${requested.reservationId}`}
+    `;
+    expect(releaseRows[0]?.count).toBe(1);
+
+    const second = await deepReadingService.getDeepReadingStatus({ userId, castingId });
+    expect(second).toEqual({ status: "timed_out", errorCode: "GENERATION_TIMEOUT" });
+    const releaseRowsAfterRetry = await sql<{ count: number }[]>`
+      select count(*)::int as count from entitlement_ledger where business_key = ${`release:${requested.reservationId}`}
+    `;
+    expect(releaseRowsAfterRetry[0]?.count).toBe(1);
+    const batchRowsAfterRetry = await sql<{ quantity_available: number; quantity_reserved: number }[]>`
+      select quantity_available, quantity_reserved from entitlement_batches where id = ${batchId}
+    `;
+    expect(batchRowsAfterRetry[0]).toMatchObject({ quantity_available: 1, quantity_reserved: 0 });
+  });
+
+  it("does not time out a completed Deep Reading and returns its stored snapshot", async () => {
+    const userId = `cp5-completed-${randomUUID()}`;
+    const { batchId, castingId } = await seedDeepReadingCandidateWithCredit(userId);
+    const requested = await deepReadingService.requestDeepReading({ userId, castingId, enrichment: validEnrichment() });
+    await sql`
+      update generation_jobs
+      set status = 'running', updated_at = clock_timestamp()
+      where id = ${requested.jobId}
+    `;
+    await sql`
+      insert into generation_output_reviews (
+        id, job_id, casting_id, kind, status, reason_codes,
+        reviewer_model_version, schema_valid, safety_pass, fact_consistency_pass, created_at
+      ) values (
+        ${randomUUID()}, ${requested.jobId}, ${castingId}, 'deep_reading', 'pass', '[]'::jsonb,
+        'reviewer-v1', 'true', 'true', 'true', clock_timestamp()
+      )
+    `;
+    await sql`
+      insert into deep_reading_results (
+        casting_id, job_id, reservation_id, output, schema_version, prompt_version,
+        provider, model, integrity_hash, integrity_key_version, persisted_at
+      ) values (
+        ${castingId}, ${requested.jobId}, ${requested.reservationId}, '{"summary":"done"}'::jsonb,
+        'test-v1', 'test-prompt', 'test', 'test-model', 'test-hash', 'v1', clock_timestamp()
+      )
+    `;
+    await sql`
+      update entitlement_reservations
+      set status = 'consumed', lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
+      where id = ${requested.reservationId}
+    `;
+    await sql`
+      update entitlement_batches
+      set quantity_reserved = 0, quantity_consumed = 1, updated_at = clock_timestamp()
+      where id = ${batchId}
+    `;
+    await sql`
+      update generation_jobs
+      set status = 'completed', completed_at = clock_timestamp(),
+          timeout_at = clock_timestamp() - interval '1 minute', updated_at = clock_timestamp()
+      where id = ${requested.jobId}
+    `;
+
+    const status = await deepReadingService.getDeepReadingStatus({ userId, castingId });
+    expect(status.status).toBe("completed");
+    expect(status.output).toEqual({ summary: "done" });
+    expect(status.snapshot?.coreQuestionAtCast).toBe("What should I focus on in this transition?");
+    const reservationRows = await sql<{ status: string }[]>`select status from entitlement_reservations where id = ${requested.reservationId}`;
+    expect(reservationRows[0]?.status).toBe("consumed");
+    const releaseRows = await sql<{ count: number }[]>`
+      select count(*)::int as count from entitlement_ledger where business_key = ${`release:${requested.reservationId}`}
+    `;
+    expect(releaseRows[0]?.count).toBe(0);
   });
 
   it("rejects casting that is not in revealed lifecycle", async () => {

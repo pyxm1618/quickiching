@@ -749,7 +749,7 @@ export function SiteHeader({
                 {/* Reference & History Group */}
                 <div className="space-y-1">
                   <p className="px-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">
-                    Reference
+                    参考
                   </p>
                   <Link
                     href="/zh/hexagrams"

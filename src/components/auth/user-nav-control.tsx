@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User, LogOut, FileText, ChevronDown } from "lucide-react";
@@ -33,32 +34,20 @@ export function UserNavControl({
   const copy = dictionary.userNav;
   const isChinese = locale === "zh-Hans";
   const pathname = usePathname() ?? "/";
-  const [user, setUser] = useState<UserState>(initialUser !== undefined ? initialUser : null);
-  const [loading, setLoading] = useState(initialUser === undefined);
+  const shouldFetchUser = initialUser === undefined;
+  const { data: userResponse, isLoading: userLoading } = useSWR<{ user: UserState }>(
+    shouldFetchUser ? "/api/user/me" : null,
+    async (url: string) => {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("USER_SESSION_UNAVAILABLE");
+      return res.json() as Promise<{ user: UserState }>;
+    },
+    { revalidateOnFocus: false },
+  );
+  const user = initialUser !== undefined ? initialUser : userResponse?.user ?? null;
+  const loading = shouldFetchUser && userLoading;
   const [isOpen, setIsOpen] = useState(initialOpen);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (initialUser !== undefined) return;
-    let active = true;
-    async function fetchUser() {
-      try {
-        const res = await fetch("/api/user/me", { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json() as { user: UserState };
-          if (active) setUser(data.user);
-        }
-      } catch {
-        // 忽略探测异常
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    void fetchUser();
-    return () => {
-      active = false;
-    };
-  }, [pathname, initialUser]);
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -94,9 +83,17 @@ export function UserNavControl({
   const historyHref = `${authPrefix}/history`;
 
   if (loading) {
+    if (hideUnauthenticated && !isMobileDrawer) {
+      return <div className="h-11 w-11 shrink-0" aria-hidden="true" />;
+    }
     return (
-      <div className={isMobileDrawer ? "py-2" : "inline-flex items-center"}>
-        <div className="h-8 w-8 animate-pulse rounded-full bg-white/[0.08]" />
+      <div
+        className={isMobileDrawer
+          ? "mt-2 h-[4.25rem] border-t border-white/[0.08] pt-3"
+          : "inline-flex min-h-11 w-[9.75rem] items-center rounded-lg"}
+        aria-hidden="true"
+      >
+        <div className={isMobileDrawer ? "h-11 w-full animate-pulse rounded-xl bg-white/[0.06]" : "h-8 w-full animate-pulse rounded-lg bg-white/[0.06]"} />
       </div>
     );
   }

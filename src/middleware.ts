@@ -7,6 +7,7 @@ import {
   isWebhookIngestionCapabilityEnabled,
 } from "@/server/payments/capability";
 import { isReconcileCapabilityEnabled } from "@/server/reconcile/capability";
+import { normalizeLocalizedPathname } from "@/lib/seo";
 
 const GONE_PREFIXES = ["/checkout"] as const;
 const NOT_FOUND_PREFIXES = ["/result", "/cast"] as const;
@@ -44,6 +45,10 @@ function cp6StagingDiagnosticsEnabled(): boolean {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const capabilityPathname = normalizeLocalizedPathname(pathname);
+  const unavailableMessage = pathname === "/zh" || pathname.startsWith("/zh/")
+    ? "此功能暂不可用。"
+    : "This feature is unavailable.";
 
   if (request.headers.has("next-action")) {
     return new NextResponse("Not Found", {
@@ -52,17 +57,17 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  if (matchesPrefix(pathname, "/signin") || matchesPrefix(pathname, "/signup")) {
+  if (matchesPrefix(capabilityPathname, "/signin") || matchesPrefix(capabilityPathname, "/signup")) {
     if (isAuthCapabilityEnabled()) return NextResponse.next();
-    return new NextResponse("This feature is unavailable.", {
+    return new NextResponse(unavailableMessage, {
       status: 410,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
     });
   }
 
-  if (matchesPrefix(pathname, "/account")) {
+  if (matchesPrefix(capabilityPathname, "/account")) {
     if (isAuthCapabilityEnabled()) return NextResponse.next();
-    return new NextResponse("This feature is unavailable.", {
+    return new NextResponse(unavailableMessage, {
       status: 410,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
     });
@@ -84,14 +89,14 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  if (GONE_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))) {
-    return new NextResponse("This feature is unavailable.", {
+  if (GONE_PREFIXES.some((prefix) => matchesPrefix(capabilityPathname, prefix))) {
+    return new NextResponse(unavailableMessage, {
       status: 410,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
     });
   }
 
-  if (NOT_FOUND_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))) {
+  if (NOT_FOUND_PREFIXES.some((prefix) => matchesPrefix(capabilityPathname, prefix))) {
     return new NextResponse("Not Found", {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },

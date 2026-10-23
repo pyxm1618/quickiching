@@ -11,9 +11,14 @@ import { getPostgresClient } from "@/server/db/client";
 import { repo } from "@/server/repository";
 import { evaluateRisk, RISK_RULE_VERSION } from "@/domain/risk/engine";
 import type { Scene } from "@/domain/casting/types";
+import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const MAX_REQUEST_BYTES = 16 * 1024;
+const READING_WRITE_WINDOW_SECONDS = 60;
+const READING_WRITES_PER_WINDOW = 12;
 
 function headers(extra: Record<string, string> = {}): Headers {
   return new Headers({
@@ -89,14 +94,16 @@ export async function POST(request: Request): Promise<Response> {
 
   let body: unknown;
   try {
-    body = await request.json();
-  } catch {
+    body = JSON.parse(await readRequestBody(request, MAX_REQUEST_BYTES)) as unknown;
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) return json({ error: "REQUEST_BODY_TOO_LARGE" }, 413);
     return json({ error: "INVALID_JSON" }, 400);
   }
 
   const parsed = saveReadingSchema.safeParse(body);
   if (!parsed.success) {
-    return json({ error: "INVALID_READING_INPUT", details: parsed.error.issues }, 422);
+    console.warn("[READING_INPUT_INVALID]", parsed.error.issues);
+    return json({ error: "INVALID_READING_INPUT" }, 422);
   }
 
   const { clientCastingId, lineValuesBottomUp, question, scene, interpretationGoal } = parsed.data;
@@ -177,6 +184,16 @@ export async function POST(request: Request): Promise<Response> {
           return json({ error: "READING_IDEMPOTENCY_CONFLICT" }, 409);
         }
         return json({ castingId: existing.id, idempotent: true }, 200);
+      }
+
+      const recentWriteRows = await sql<{ count: number }[]>`
+        select count(*)::integer as count
+        from casting_sessions
+        where user_id = ${userId}
+          and created_at >= clock_timestamp() - (${READING_WRITE_WINDOW_SECONDS} * interval '1 second')
+      `;
+      if (Number(recentWriteRows[0]?.count ?? 0) >= READING_WRITES_PER_WINDOW) {
+        return json({ error: "READING_RATE_LIMITED" }, 429);
       }
 
       const key = getActiveResultIntegrityKey();

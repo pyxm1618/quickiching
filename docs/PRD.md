@@ -2,7 +2,7 @@
 
 **版本：** V3.0 Stage Split  
 **日期：** 2026-08-20
-**首发语言：** English + 简体中文（受限 Public V1）
+**首发语言：** English + 简体中文
 **产品形态：** 多玩法 I Ching 在线起卦、文化解释与自我反思平台  
 **当前发布阶段：** Public SEO V1  
 
@@ -20,7 +20,7 @@
 
 首页 `/` 是全站核心 SEO Landing Page，默认直接提供 Three-Coin Method；Quick I Ching 的长期定位仍是多种起卦方式的在线 I Ching 平台，不是单纯的 coin-only 网站。
 
-当前同时发布两个可索引的简体中文入口：`/zh` 中文首页和 `/zh/methods/mei-hua-yi-shu` 梅花易数公历适配版。中文范围是受限的 Public V1，不代表所有英文方法、卦库详情和账号功能已经本地化。
+当前公开 SEO 路由提供完整的英中对应索引范围：73 个英文可索引 URL 与 73 个简体中文可索引 URL，共 146 个。中文范围包含首页、四种公开起卦方法、三篇指南、六十四卦目录与 64 个卦象详情页；账号、支付、历史和结果等私有/商业路径仍不进入索引。
 
 首发必须真实可用：
 
@@ -95,11 +95,14 @@ Commercial V2 上线前必须重新完成法律、支付、隐私、AI、账户�
 - `/guides/primary-relating-hexagrams`
 - `/hexagrams` — 64 Hexagrams Hub
 - `/hexagrams/[fixed-slug]` — 64 fixed entity pages with six line anchors
-- `/zh` — 简体中文入口
-- `/zh/methods/mei-hua-yi-shu` — 简体中文梅花易数公历适配版
+- `/zh` — 简体中文首页
+- `/zh/methods/*` — 对应 4 个公开方法页
+- `/zh/guides/*` — 对应 3 个公开指南页
+- `/zh/hexagrams` — 简体中文六十四卦目录
+- `/zh/hexagrams/[fixed-slug]` — 64 个简体中文卦象详情页
 - `/history` — browser-only saved readings; private, noindex, excluded from sitemap
 
-等价的英文/中文页面使用 self-canonical、双向 `hreflang` 和 `x-default`；没有中文等价页的英文页面不伪造中文 URL，语言切换会回到中文首页。
+等价的英文/中文页面使用 self-canonical、双向 `hreflang` 和 `x-default`；英中公开 SEO 页面按路由注册表提供一一对应的 canonical 与双向 `hreflang`。
 
 原则：**One primary intent = one canonical URL**，不是 one keyword = one URL。
 

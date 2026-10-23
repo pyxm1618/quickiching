@@ -96,10 +96,11 @@ export function HexagramLines({
             {showLabels && (
               <span
                 className={cn(
-                  "shrink-0 font-cjk text-right tracking-wide",
+                  "shrink-0 text-right tracking-wide",
                   size === "lg" ? "w-9 text-sm" : "w-7 text-xs",
                   sealed ? "text-[var(--ink-3)]" : "text-[var(--ink-3)]",
                 )}
+                style={{ fontFamily: '"Songti SC", "STSong", serif' }}
               >
                 {label}
               </span>

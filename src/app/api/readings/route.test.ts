@@ -51,6 +51,27 @@ describe("Save Reading Route (POST /api/readings)", () => {
     expect(res.status).toBe(401);
   });
 
+  it("returns 413 for an oversized request body", async () => {
+    const res = await POST(createReq({
+      clientCastingId: CLIENT_CASTING_ID,
+      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+      question: "x".repeat(17 * 1024),
+    }));
+    expect(res.status).toBe(413);
+    await expect(res.json()).resolves.toEqual({ error: "REQUEST_BODY_TOO_LARGE" });
+  });
+
+  it("does not expose Zod issue details to the client", async () => {
+    const res = await POST(createReq({
+      clientCastingId: CLIENT_CASTING_ID,
+      lineValuesBottomUp: [5, 7, 7, 7, 7, 7],
+    }));
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(body).toEqual({ error: "INVALID_READING_INPUT" });
+    expect(body).not.toHaveProperty("details");
+  });
+
   it("returns 422 for invalid line values", async () => {
     const res = await POST(createReq({ clientCastingId: CLIENT_CASTING_ID, lineValuesBottomUp: [7, 7, 7, 7, 7, 10] }));
     expect(res.status).toBe(422);

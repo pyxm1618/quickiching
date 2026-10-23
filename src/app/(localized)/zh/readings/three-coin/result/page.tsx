@@ -37,6 +37,7 @@ export default async function ChineseThreeCoinResultPage(props: { searchParams?:
           context: castingView.context,
           lineValuesBottomUp: castingView.result?.lineValues ?? null,
           readingReport: (castingView.reading?.report as any) ?? null,
+          deepSnapshot: castingView.reading?.snapshot ?? null,
           owns: castingView.owns,
         } : null}
       />

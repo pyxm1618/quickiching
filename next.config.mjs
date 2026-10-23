@@ -1,28 +1,11 @@
 import { withWorkflow } from "workflow/next";
 
-const ADSTERRA_CSP_ORIGIN = "https://*.effectivecpmnetwork.com";
-
-function isAdsterraEnabled(environment = process.env) {
-  const override = environment.NEXT_PUBLIC_ADSTERRA_ENABLED;
-  if (override !== undefined && override.trim() !== "") {
-    return override.trim().toLowerCase() === "true";
-  }
-  return environment.NODE_ENV === "production";
-}
-
 export function buildContentSecurityPolicy(environment = process.env) {
-  const adsterra = isAdsterraEnabled(environment);
   const scriptSources = ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://challenges.cloudflare.com"];
   const imageSources = ["'self'", "data:", "https://*.google-analytics.com", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://c.bing.com"];
   const connectSources = ["'self'", "https://*.google-analytics.com", "https://*.analytics.google.com", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://c.bing.com", "https://challenges.cloudflare.com"];
   const frameSources = ["https://challenges.cloudflare.com"];
 
-  if (adsterra) {
-    scriptSources.push(ADSTERRA_CSP_ORIGIN);
-    imageSources.push(ADSTERRA_CSP_ORIGIN);
-    connectSources.push(ADSTERRA_CSP_ORIGIN);
-    frameSources.push(ADSTERRA_CSP_ORIGIN);
-  }
 
   return [
     "default-src 'self'",

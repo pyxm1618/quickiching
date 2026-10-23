@@ -1,5 +1,7 @@
 import React from "react";
 import Link from "next/link";
+import { HexagramLines } from "@/components/hex/hexagram-lines";
+import { TRIGRAM_BITS } from "@/domain/casting/hexagrams/king-wen";
 import type { ContentLocale } from "@/i18n/config";
 import type { ClassicalHexagram } from "@/domain/public-reading/classical";
 import type { PublicHexagramKnowledge } from "@/domain/public-reading/knowledge";
@@ -37,14 +39,6 @@ const CHINESE_TRIGRAM_NAMES: Record<string, string> = {
   gen: "艮",
   dui: "兑",
 };
-const ENGLISH_FAMILY_BOOST = new Set([2, 4, 7, 10, 11, 12, 13, 20, 21, 22, 25, 29, 40, 47, 59]);
-const ENGLISH_PRIMARY_EXTRA = new Set([1, 2, 3, 5, 24]);
-const CHINESE_FAMILY_BOOST = new Map<number, number>([
-  [1, 4], [2, 1], [9, 4], [14, 2], [17, 1], [21, 4], [26, 1], [28, 1],
-  [34, 2], [37, 3], [46, 1], [52, 1], [58, 1], [61, 3], [64, 5],
-]);
-const CHINESE_FINAL_FAMILY_NUDGE = new Set([2, 9, 14, 17, 26, 28, 29, 34, 36, 37, 46, 54, 58, 61, 63]);
-
 function detailPath(locale: ContentLocale, slug: string): string {
   return locale === "zh-Hans" ? "/zh/hexagrams/" + slug : "/hexagrams/" + slug;
 }
@@ -144,26 +138,6 @@ function ChineseSceneModule({ content }: { content: ZhHansHexagramDetailContent 
   );
 }
 
-function ChineseFamilyContext({ seo }: { seo: HexagramSeoEntry }) {
-  const boost = CHINESE_FAMILY_BOOST.get(seo.number) ?? 0;
-  const needsNudge = CHINESE_FINAL_FAMILY_NUDGE.has(seo.number);
-  if (boost === 0 && !needsNudge) return null;
-  const secondary = preferredSecondary(seo);
-  const clauses = [
-    <>用{seo.meaningKeyword}回看整体主题</>,
-    <>用{seo.unchangingKeyword}检查稳定状态</>,
-    <>把{secondary}作为结构入口</>,
-    <>对照易经第{seo.number}卦的现实条件</>,
-    <>重新核对第{seo.number}卦与当前事实是否一致</>,
-  ].slice(0, boost);
-  return (
-    <>
-      {boost > 0 ? <p className="mt-5 text-sm leading-7 text-[var(--ink-2)]">若要重新梳理本页，可以{clauses.map((clause, index) => <React.Fragment key={index}>{index > 0 ? "，再" : ""}{clause}</React.Fragment>)}。这些步骤用于复核理解，不用于制造确定结论。</p> : null}
-      {needsNudge ? <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">复查{secondary}，以现实事实为准。</p> : null}
-    </>
-  );
-}
-
 function ChineseRealityCheckModule({ seo }: { seo: HexagramSeoEntry }) {
   const secondary = preferredSecondary(seo);
   return (
@@ -182,7 +156,6 @@ function ChineseRealityCheckModule({ seo }: { seo: HexagramSeoEntry }) {
         <li>确认行动会影响谁，以及对方是否有选择空间。</li>
         <li>预先说明何种证据会让你暂停或改变方向。</li>
       </ul>
-      <ChineseFamilyContext seo={seo} />
       {seo.number === 57 ? <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">面对持续渗透的主题，还应记录时间、资源与他人反馈怎样改变判断，避免只凭第一印象推进。</p> : null}
     </section>
   );
@@ -235,6 +208,8 @@ export function HexagramDetailPageView({
     ? seo.primaryKeyword + "（" + secondary + "）是易经第" + knowledge.number + "卦。本页结合卦象、卦辞、大象和六条经典爻辞，提供简体中文的结构说明与现实反思；它不是确定性预言。"
     : secondary + ", " + knowledge.englishName + ", is the entity this page examines. The primary structure, classical text, changing lines, and modern interpretation are kept together so you can reflect without treating the result as a fixed prediction.";
   const structuredData = buildStructuredData({ locale, knowledge, seo, hubPath });
+  const staticBits = (TRIGRAM_BITS[knowledge.trigrams.upper as keyof typeof TRIGRAM_BITS] << 3) | TRIGRAM_BITS[knowledge.trigrams.lower as keyof typeof TRIGRAM_BITS];
+  const staticLines = Array.from({ length: 6 }, (_, index) => (staticBits & (1 << index)) !== 0 ? 7 : 8);
   return (
     <article className="mx-auto max-w-6xl px-4 py-12 sm:py-16" data-hexagram-detail data-seo-copy data-locale={locale} data-seo-primary={seo.primaryKeyword}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
@@ -252,6 +227,7 @@ export function HexagramDetailPageView({
           <p className="mt-6 max-w-3xl text-lg leading-8 text-[var(--ink-2)]" data-seo-early-copy>{intro}</p>
         </div>
         <div className="mystic-card-soft p-5" data-seo-exclude>
+          <HexagramLines lines={staticLines} size="lg" showLabels locale={locale} className="mb-6" />
           {isChinese ? (
             <>
               <p className="mystic-kicker">经典文本</p>
@@ -279,8 +255,8 @@ export function HexagramDetailPageView({
           </div>
         ) : (
           <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <section className="mystic-card p-6"><h3 className="font-display text-2xl font-normal">{ENGLISH_FAMILY_BOOST.has(seo.number) ? displayEnglishKeyword(seo.otherCoreVariant ?? seo.secondaryCore) + " in context" : "What this structure emphasizes"}</h3><dl className="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-2)]"><div><dt className="font-semibold text-[var(--gold-2)]">Strength</dt><dd>{withoutBrand(knowledge.interpretation.strength)}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Challenge</dt><dd>{withoutBrand(knowledge.interpretation.challenge)}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Practical meaning</dt><dd>{withoutBrand(knowledge.practicalMeaning)}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Structure</dt><dd>{withoutBrand(knowledge.interpretation.structureInterpretation)}</dd></div></dl></section>
-            <section className="mystic-card p-6"><p className="mystic-kicker">Practical reflection</p><h3 className="mt-2 font-display text-2xl font-normal">{seo.number === 10 || seo.number === 12 ? "Questions for " + displayEnglishKeyword(seo.secondaryCore) : ENGLISH_PRIMARY_EXTRA.has(seo.number) ? "Questions for " + titleCaseKeyword(seo.primaryKeyword) : "Questions to carry"}</h3><ul className="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-2)]">{knowledge.interpretation.reflectionQuestions.map((question) => <li key={question} className="border-l border-[var(--gold)]/40 pl-4">{withoutBrand(question)}</li>)}</ul><div className="mt-6 border-t border-white/[0.08] pt-5"><p className="mystic-kicker">Watch for</p><ul className="mt-3 space-y-2 text-sm leading-7 text-[var(--ink-2)]">{knowledge.interpretation.watchFor.map((item) => <li key={item}>· {withoutBrand(item)}</li>)}</ul></div></section>
+            <section className="mystic-card p-6"><h3 className="font-display text-2xl font-normal">What this structure emphasizes</h3><dl className="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-2)]"><div><dt className="font-semibold text-[var(--gold-2)]">Strength</dt><dd>{withoutBrand(knowledge.interpretation.strength)}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Challenge</dt><dd>{withoutBrand(knowledge.interpretation.challenge)}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Practical meaning</dt><dd>{withoutBrand(knowledge.practicalMeaning)}</dd></div><div><dt className="font-semibold text-[var(--gold-2)]">Structure</dt><dd>{withoutBrand(knowledge.interpretation.structureInterpretation)}</dd></div></dl></section>
+            <section className="mystic-card p-6"><p className="mystic-kicker">Practical reflection</p><h3 className="mt-2 font-display text-2xl font-normal">Questions to carry</h3><ul className="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-2)]">{knowledge.interpretation.reflectionQuestions.map((question) => <li key={question} className="border-l border-[var(--gold)]/40 pl-4">{withoutBrand(question)}</li>)}</ul><div className="mt-6 border-t border-white/[0.08] pt-5"><p className="mystic-kicker">Watch for</p><ul className="mt-3 space-y-2 text-sm leading-7 text-[var(--ink-2)]">{knowledge.interpretation.watchFor.map((item) => <li key={item}>· {withoutBrand(item)}</li>)}</ul></div></section>
           </div>
         )}
       </section>
@@ -303,13 +279,15 @@ export function HexagramDetailPageView({
           <div><p className="mystic-kicker">{isChinese ? "六条经典爻辞" : "Six classical source links"}</p><h2 id="hexagram-classical-lines-title" className="mt-2 font-display text-3xl font-normal">{isChinese ? "来自固定来源的经典文本" : "Fixed records for the six lines"}</h2></div>
           <p className="max-w-xl text-sm leading-7 text-[var(--ink-2)]">{isChinese ? "经典文本与下面的现代结构说明分开呈现。每条原文仍链接到固定来源记录，但不重复展示修订号，以免来源标签压过正文主题。" : "Each link opens the fixed classical record for that line. Source labels stay separate from the editorial interpretation below."}</p>
         </div>
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <div className="mt-6 divide-y divide-white/[0.08] rounded-2xl border border-[var(--gold)]/25 bg-[var(--gold)]/[0.04] px-5 sm:px-6">
           {knowledge.classicalLines.map((line) => (
-            <article key={line.position} className="rounded-2xl border border-[var(--gold)]/25 bg-[var(--gold)]/[0.04] p-5 sm:p-6">
-              <h3 className="font-display text-xl font-medium">{isChinese ? line.label + " · 第" + line.position + "爻" : "Classical line " + line.position}</h3>
-              {isChinese ? <p className="mt-3 text-base leading-7 text-[var(--ink)]">{line.text}</p> : <p className="mt-3 text-base leading-7 text-[var(--ink)]">Open the preserved classical source for this line.</p>}
-              <a href={line.source.textSourceUrl} rel="noreferrer" aria-label={isChinese ? "第" + line.position + "爻经典原文来源" : "Source for classical line " + line.position} title={isChinese ? "查看经典原文来源" : "View classical source"} className="mt-3 inline-flex min-h-11 items-center text-xs font-semibold text-[var(--jade)] hover:underline">{isChinese ? "查看原文" : "Open source"}</a>
-            </article>
+            <div key={line.position} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div>
+                <h3 className="font-display text-lg font-medium">{isChinese ? line.label + " · 第" + line.position + "爻" : "Classical line " + line.position}</h3>
+                {isChinese ? <p className="mt-2 text-sm leading-7 text-[var(--ink)]">{line.text}</p> : null}
+              </div>
+              <a href={line.source.textSourceUrl} rel="noreferrer" aria-label={isChinese ? "第" + line.position + "爻经典原文来源" : "Source for classical line " + line.position} title={isChinese ? "查看经典原文来源" : "View classical source"} className="inline-flex min-h-11 shrink-0 items-center text-xs font-semibold text-[var(--jade)] hover:underline">{isChinese ? "查看原文" : "Open source"}</a>
+            </div>
           ))}
         </div>
       </section>

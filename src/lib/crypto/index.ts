@@ -1,6 +1,7 @@
 import {
   createCipheriv,
   createDecipheriv,
+  createHash,
   createHmac,
   randomBytes,
   scryptSync,
@@ -11,9 +12,38 @@ import {
 // Purpose isolation per technical-design §17.2: different keys for fingerprint, HMAC result,
 // anonymous session, and question/context encryption.
 
+const DERIVED_KEY_CACHE_MAX = 64;
+const derivedKeyCache = new Map<string, Buffer>();
+
+function derivedKeyCacheId(purpose: string, version: string, keyMaterial: string, length: number): string {
+  return createHash("sha256")
+    .update(purpose)
+    .update("\0")
+    .update(version)
+    .update("\0")
+    .update(String(length))
+    .update("\0")
+    .update(keyMaterial)
+    .digest("base64url");
+}
+
+function deriveKeyFromMaterial(purpose: string, version: string, keyMaterial: string, length = 32): Buffer {
+  const cacheId = derivedKeyCacheId(purpose, version, keyMaterial, length);
+  const cached = derivedKeyCache.get(cacheId);
+  if (cached) return cached;
+  const key = scryptSync(`${purpose}:${version}:${keyMaterial}`, "iching-coin-salt", length);
+  if (derivedKeyCache.size >= DERIVED_KEY_CACHE_MAX) {
+    const oldest = derivedKeyCache.keys().next().value;
+    if (oldest) derivedKeyCache.delete(oldest);
+  }
+  derivedKeyCache.set(cacheId, key);
+  return key;
+}
+
 function deriveKey(purpose: string, version: string, length = 32): Buffer {
-  const secret = process.env.APP_SECRET ?? "dev-only-not-secret-change-me";
-  return scryptSync(`${purpose}:${version}:${secret}`, "iching-coin-salt", length);
+  const configured = process.env.APP_SECRET?.trim();
+  if (!configured && process.env.NODE_ENV === "production") throw new Error("APP_SECRET_REQUIRED");
+  return deriveKeyFromMaterial(purpose, version, configured || "dev-only-not-secret-change-me", length);
 }
 
 function b64(buf: Buffer): string {
@@ -49,7 +79,7 @@ export function encryptJsonWithKeyMaterial(
   keyMaterial: string,
   aad?: string,
 ): EncryptedBlob {
-  const key = scryptSync(`${purpose}:${version}:${keyMaterial}`, "iching-coin-salt", 32);
+  const key = deriveKeyFromMaterial(purpose, version, keyMaterial, 32);
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
   if (aad) cipher.setAAD(Buffer.from(aad, "utf8"));
@@ -73,7 +103,7 @@ export function decryptJsonWithKeyMaterial<T = unknown>(
   keyMaterial: string,
   aad?: string,
 ): T {
-  const key = scryptSync(`${purpose}:${blob.v}:${keyMaterial}`, "iching-coin-salt", 32);
+  const key = deriveKeyFromMaterial(purpose, blob.v, keyMaterial, 32);
   const decipher = createDecipheriv("aes-256-gcm", key, fromB64(blob.iv));
   if (aad) decipher.setAAD(Buffer.from(aad, "utf8"));
   decipher.setAuthTag(fromB64(blob.tag));
@@ -93,7 +123,7 @@ export function hmacWithKeyMaterial(
   version: string,
   keyMaterial: string,
 ): string {
-  const key = scryptSync(`${purpose}:${version}:${keyMaterial}`, "iching-coin-salt", 32);
+  const key = deriveKeyFromMaterial(purpose, version, keyMaterial, 32);
   return b64(createHmac("sha256", key).update(value).digest());
 }
 

@@ -237,3 +237,12 @@
   .newReadingButton { transition: none; }
   .newReadingButton:hover { transform: none; }
 }
+
+.deepSelect {
+  color-scheme: dark;
+}
+
+.deepSelect option {
+  background: #121719;
+  color: #f2f7f3;
+}

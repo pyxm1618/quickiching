@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkSystemReadiness } from "@/server/readiness/readiness-service";
+import { checkSystemReadiness, type SystemReadinessReport } from "@/server/readiness/readiness-service";
 
 export const dynamic = "force-dynamic";
 
@@ -7,14 +7,27 @@ const noStoreHeaders = {
   "Cache-Control": "no-store, max-age=0",
 };
 
+const READINESS_CACHE_TTL_MS = 20_000;
+let readinessCache: { expiresAt: number; report: SystemReadinessReport } | undefined;
+
+async function getReadinessReport(): Promise<SystemReadinessReport> {
+  const now = Date.now();
+  if (process.env.NODE_ENV !== "test" && readinessCache && readinessCache.expiresAt > now) {
+    return readinessCache.report;
+  }
+  const report = await checkSystemReadiness(process.env);
+  if (process.env.NODE_ENV !== "test") {
+    readinessCache = { expiresAt: now + READINESS_CACHE_TTL_MS, report };
+  }
+  return report;
+}
+
 export async function GET() {
   try {
-    const report = await checkSystemReadiness(process.env);
+    const report = await getReadinessReport();
     const statusCode = report.overall === "ready" ? 200 : 503;
 
     console.info("[PROD_AI_CONFIG_AUDIT]", JSON.stringify({
-      apiKeyPrefix: process.env.AI_GATEWAY_API_KEY ? process.env.AI_GATEWAY_API_KEY.slice(0, 4) : "empty",
-      apiKeyLength: process.env.AI_GATEWAY_API_KEY?.length ?? 0,
       modelDeepReading: process.env.AI_MODEL_DEEP_READING ?? "empty",
       modelReview: process.env.AI_MODEL_OUTPUT_REVIEW ?? "empty",
       aiSdkGatewayBaseUrl: process.env.AI_SDK_GATEWAY_BASE_URL ?? "empty",

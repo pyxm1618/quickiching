@@ -50,6 +50,30 @@ describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
     mocks.getDeepReadingStatus.mockReset().mockResolvedValue({ status: "queued" });
   });
 
+  it("returns 413 for an oversized Deep Reading POST body", async () => {
+    const request = new Request(`https://www.quickiching.com/api/readings/${castingId}/deep`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://www.quickiching.com",
+        referer: "https://www.quickiching.com/account",
+        "sec-fetch-site": "same-origin",
+      },
+      body: JSON.stringify({
+        contextNotes: "x".repeat(17 * 1024),
+        options: [],
+        constraints: [],
+        concerns: [],
+        interpretationGoal: "what_do_i_need_to_see_clearly",
+        locale: "en",
+      }),
+    });
+    const response = await POST(request, { params: Promise.resolve({ castingId }) });
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({ error: "REQUEST_BODY_TOO_LARGE" });
+    expect(mocks.requestDeepReading).not.toHaveBeenCalled();
+  });
+
   it("returns 404 when capability is disabled", async () => {
     mocks.capabilityEnabled = false;
     expect((await POST(postRequest(castingId), { params: Promise.resolve({ castingId }) })).status).toBe(404);
@@ -122,6 +146,51 @@ describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
     const res = await POST(postRequest(castingId), { params: Promise.resolve({ castingId }) });
     expect(res.status).toBe(422);
     await expect(res.json()).resolves.toEqual({ error: "QUESTION_KEY_UNAVAILABLE", retryable: false });
+  });
+
+  it("returns the trusted snapshot when a completed request is replayed", async () => {
+    const snapshot = {
+      schemaVersion: "deep-reading-context-v1",
+      coreQuestionAtCast: "What should I focus on?",
+      context: {
+        contextNotes: "The team changed its timeline and I need a clear next step.",
+        options: [],
+        constraints: [],
+        concerns: [],
+        interpretationGoal: "what_do_i_need_to_see_clearly",
+        locale: "en",
+      },
+      scene: "career",
+      castMethod: "three_coin",
+      methodVersion: "three-coin-v1",
+      facts: {
+        method: "three_coin",
+        algorithmVersion: "three-coin-v1",
+        classicMappingVersion: "king-wen-v1",
+        lineValuesBottomUp: [7, 8, 7, 8, 7, 8],
+        primaryHexagramNumber: 11,
+        movingLinePositions: [],
+        relatingHexagramNumber: null,
+        readingVariant: "still_hexagram",
+      },
+      snapshotAt: "2026-10-23T00:00:00.000Z",
+      knowledgeVersion: "test",
+      risk: { status: "allowed", ruleVersion: "risk-v3", reasonCode: "allowed" },
+      knowledge: { version: "test" },
+    };
+    mocks.requestDeepReading.mockResolvedValue({
+      status: "completed",
+      jobId: "job-completed",
+      reservationId: "reservation-completed",
+      output: { summary: "done" },
+      snapshot,
+    });
+    const response = await POST(postRequest(castingId), { params: Promise.resolve({ castingId }) });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      status: "completed",
+      snapshot,
+    });
   });
 
   it("successfully initiates deep reading request with no-store headers", async () => {

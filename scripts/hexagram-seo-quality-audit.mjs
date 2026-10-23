@@ -6,8 +6,6 @@ import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import { HEXAGRAM_SEO_REGISTRY } from "../src/content/hexagrams/seo.ts";
 import {
-  FAMILY_DENSITY_RANGE,
-  PRIMARY_DENSITY_RANGE,
   countExactPhrase,
   evaluateKeywordQuality,
 } from "../src/content/hexagrams/seo-quality.ts";
@@ -319,8 +317,9 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     familyMatches: measurement.familyMatches,
     primaryDensity: repetition.primaryDensity,
     familyDensity: repetition.familyDensity,
-    densityPolicy: `hard acceptance: Primary ${(PRIMARY_DENSITY_RANGE.min * 100).toFixed(2)}%-${(PRIMARY_DENSITY_RANGE.max * 100).toFixed(2)}%; approved family ${(FAMILY_DENSITY_RANGE.min * 100).toFixed(2)}%-${(FAMILY_DENSITY_RANGE.max * 100).toFixed(2)}%`,
-    densityPass: quality.primaryDensityInRange && quality.familyDensityInRange,
+    densityPolicy: "diagnostic only; no fixed percentage acceptance band",
+    keywordPresencePass: quality.primaryPresent,
+    languageMostlyCorrect: quality.languageMostlyCorrect,
     languageContamination: quality.contamination,
     placements: placement,
     linkGraph,
@@ -354,7 +353,7 @@ async function writeReport(rows) {
   const summary = {
     base: BASE,
     staticBuildDir: STATIC_BUILD_DIR || null,
-    algorithm: `Eligible rendered article copy is measured with innerText after removing navigation, source attribution, legal copy, hidden content, scripts, styles, and explicit data-seo-exclude regions. Exact Primary density must be ${(PRIMARY_DENSITY_RANGE.min * 100).toFixed(2)}%-${(PRIMARY_DENSITY_RANGE.max * 100).toFixed(2)}%; longest non-overlapping approved workbook-family coverage must be ${(FAMILY_DENSITY_RANGE.min * 100).toFixed(2)}%-${(FAMILY_DENSITY_RANGE.max * 100).toFixed(2)}%. Both bands, language purity, TDH, modules, and locale link graph are hard gates with no waivers.`,
+    algorithm: "Eligible rendered article copy is measured after excluding navigation, source attribution, legal copy, hidden content, scripts, styles, and explicit data-seo-exclude regions. Fixed keyword-density percentage bands are diagnostic only. Hard gates retain primary-keyword presence and placement, title/description/H1, canonical/hreflang, internal links, main-language validity, required modules, and mechanical stuffing detection.",
     total: rows.length,
     records: rows.length === 128,
     english: rows.filter((row) => row.locale === "en").length,
@@ -363,9 +362,8 @@ async function writeReport(rows) {
     fail: rows.filter((row) => row.status === "FAIL").length,
     primaryPlacementComplete: rows.filter((row) => Object.entries(row.placements).filter(([key]) => key.startsWith("primary")).every(([, passed]) => passed)).length,
     secondaryEarlyCoverageComplete: rows.filter((row) => row.placements.secondaryInEarlyCopy).length,
-    primaryDensityComplete: rows.filter((row) => row.primaryDensity >= PRIMARY_DENSITY_RANGE.min && row.primaryDensity <= PRIMARY_DENSITY_RANGE.max).length,
-    familyDensityComplete: rows.filter((row) => row.familyDensity >= FAMILY_DENSITY_RANGE.min && row.familyDensity <= FAMILY_DENSITY_RANGE.max).length,
-    languagePurityComplete: rows.filter((row) => row.languageContamination.count === 0).length,
+    primaryKeywordPresent: rows.filter((row) => row.keywordPresencePass).length,
+    mainLanguageValid: rows.filter((row) => row.languageMostlyCorrect).length,
     linkGraphComplete: rows.filter((row) => Object.values(row.linkGraph).every(Boolean)).length,
     sourceNoiseClean: rows.filter((row) => Object.values(row.sourceNoise).every((count) => count === 0)).length,
     mechanicalStuffingFlags: rows.filter((row) => row.repetition.mechanicalPrimaryRepetition).map((row) => row.url),

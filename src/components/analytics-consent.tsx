@@ -7,6 +7,12 @@ import {
   readStoredAnalyticsConsent,
 } from "@/lib/analytics";
 
+declare global {
+  interface Window {
+    clarity?: ((...args: unknown[]) => void) & { q?: unknown[][] };
+  }
+}
+
 export function AnalyticsConsent() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -26,12 +32,25 @@ export function AnalyticsConsent() {
 
   const isChinese = pathname?.startsWith("/zh");
   const message = isChinese
-    ? "我们使用 Google Analytics 了解网站使用情况。"
-    : "We use Google Analytics to understand site usage.";
+    ? "我们使用 Google Analytics 和 Microsoft Clarity 了解网站使用情况；只有在你允许后才会启用分析存储。"
+    : "We use Google Analytics and Microsoft Clarity to understand site usage. Analytics storage is enabled only if you allow it.";
   const declineLabel = isChinese ? "拒绝" : "Decline";
   const allowLabel = isChinese ? "允许分析" : "Allow analytics";
 
+  const updateClarityConsent = (analyticsStorage: "granted" | "denied") => {
+    if (!window.clarity) {
+      const queued = ((...args: unknown[]) => {
+        queued.q = [...queued.q, args];
+      }) as ((...args: unknown[]) => void) & { q: unknown[][] };
+      queued.q = [];
+      window.clarity = queued;
+    }
+    window.clarity("consentv2", { ad_Storage: "denied", analytics_Storage: analyticsStorage });
+  };
+
   const handleDecline = () => {
+    window.gtag?.("consent", "update", { analytics_storage: "denied" });
+    updateClarityConsent("denied");
     try {
       window.localStorage.setItem(ANALYTICS_CONSENT_STORAGE_KEY, "denied");
     } catch {
@@ -44,6 +63,7 @@ export function AnalyticsConsent() {
     window.gtag?.("consent", "update", {
       analytics_storage: "granted",
     });
+    updateClarityConsent("granted");
     try {
       window.localStorage.setItem(ANALYTICS_CONSENT_STORAGE_KEY, "granted");
     } catch {
@@ -55,7 +75,7 @@ export function AnalyticsConsent() {
   return (
     <div
       role="region"
-      aria-label="Analytics Consent"
+      aria-label={isChinese ? "分析工具同意设置" : "Analytics Consent"}
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--line)] bg-[var(--paper-raised)] px-4 py-3 backdrop-blur-md shadow-lg"
     >
       <div className="mx-auto flex max-w-[1240px] flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">

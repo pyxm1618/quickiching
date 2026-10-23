@@ -1,4 +1,5 @@
 import React from "react";
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   ANALYTICS_CONSENT_STORAGE_KEY,
@@ -30,6 +31,15 @@ describe("AnalyticsConsent component", () => {
         gtagCalls.push(args);
       },
     });
+  });
+
+  it("keeps Microsoft Clarity in the same consent contract as Google Analytics", () => {
+    const source = readFileSync(new URL("./analytics-consent.tsx", import.meta.url), "utf8");
+    expect(source).toContain("Microsoft Clarity");
+    expect(source).toContain('window.clarity("consentv2"');
+    expect(source).toContain('analytics_Storage: analyticsStorage');
+    expect(source).toContain('updateClarityConsent("denied")');
+    expect(source).toContain('updateClarityConsent("granted")');
   });
 
   it("exports a React component that runs on client", () => {
