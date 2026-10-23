@@ -19,7 +19,6 @@ const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
-  preload: false,
 });
 
 const notoSerifSC = Noto_Serif_SC({
