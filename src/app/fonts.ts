@@ -32,5 +32,9 @@ export const fontVariableClassNames = [
   fraunces.variable,
   instrumentSans.variable,
   ibmPlexMono.variable,
+].join(" ");
+
+export const localizedFontVariableClassNames = [
+  fontVariableClassNames,
   notoSerifSC.variable,
 ].join(" ");

@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { SITE_ORIGIN } from "@/lib/seo";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
-import { fontVariableClassNames } from "../../fonts";
+import { localizedFontVariableClassNames } from "../../fonts";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
@@ -28,7 +28,7 @@ export default function LocalizedRootLayout({
 }) {
   const authEnabled = isAuthCapabilityEnabled();
   return (
-    <html lang="zh-Hans" className={fontVariableClassNames}>
+    <html lang="zh-Hans" className={localizedFontVariableClassNames}>
       <body className="flex min-h-screen flex-col">
         <SiteHeader locale="zh-Hans" authEnabled={authEnabled} />
         <main className="flex-1">{children}</main>

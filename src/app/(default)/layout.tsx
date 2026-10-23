@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import "../globals.css";
 import { SiteHeader } from "@/components/site-header";
@@ -24,7 +25,11 @@ export const metadata: Metadata = {
 export default function DefaultRootLayout({ children }: { children: React.ReactNode }) {
   const authEnabled = isAuthCapabilityEnabled();
   return (
-    <html lang="en" className={fontVariableClassNames}>
+    <html
+      lang="en"
+      className={fontVariableClassNames}
+      style={{ "--font-noto-sc": '"Songti SC", "STSong", serif' } as CSSProperties}
+    >
       <body className="flex min-h-screen flex-col">
         <SiteHeader locale="en" authEnabled={authEnabled} />
         <main className="flex-1">{children}</main>
