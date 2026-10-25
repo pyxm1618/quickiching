@@ -6,7 +6,11 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 
 const authState = vi.hoisted(() => ({ userId: "" }));
 vi.mock("@/lib/auth/session", () => ({
-  resolveSession: async () => authState.userId ? { user: { id: authState.userId } } : null,
+  resolveSession: async (headers: Headers) => {
+    const requestUserId = headers.get("x-test-user-id");
+    const userId = requestUserId ?? authState.userId;
+    return userId ? { user: { id: userId } } : null;
+  },
 }));
 
 import { POST as saveReading } from "@/app/api/readings/route";
@@ -26,7 +30,7 @@ if (!databaseURL) throw new Error("TEST_DATABASE_URL is required");
 const sql = postgres(databaseURL, { max: 4, prepare: false });
 const db = drizzle(sql);
 
-function saveRequest(body: unknown) {
+function saveRequest(body: unknown, userId?: string) {
   return new Request("https://www.quickiching.com/api/readings", {
     method: "POST",
     headers: {
@@ -35,6 +39,7 @@ function saveRequest(body: unknown) {
       referer: "https://www.quickiching.com/readings/three-coin/result",
       "sec-fetch-site": "same-origin",
       host: "www.quickiching.com",
+      ...(userId ? { "x-test-user-id": userId } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -218,5 +223,82 @@ describe("POST /api/readings Postgres idempotency (integration)", () => {
     const blocked = bodies.find((body) => body.error === "QUESTION_LOCKED");
     expect(winner?.castingId).toBeDefined();
     expect(blocked?.previousCastingId).toBe(winner?.castingId);
+  });
+
+  it("serializes same-user concurrent new writes at the configured rate limit", async () => {
+    const userId = await createUser();
+    const attempts = Array.from({ length: 13 }, (_, index) =>
+      saveReading(saveRequest(saveInput(randomUUID(), `What should I prioritize in concurrent option ${index}-${randomUUID()}?`), userId)),
+    );
+
+    const responses = await Promise.all(attempts);
+    const statuses = responses.map((response) => response.status);
+    expect(statuses.filter((status) => status === 201)).toHaveLength(12);
+    expect(statuses.filter((status) => status === 429)).toHaveLength(1);
+
+    const bodies = await Promise.all(responses.map((response) => response.json()));
+    expect(bodies.filter((body) => body.error === "READING_RATE_LIMITED")).toHaveLength(1);
+
+    const rows = await sql<{ count: number }[]>`
+      select count(*)::integer as count
+      from casting_sessions
+      where user_id = ${userId}
+        and created_at >= clock_timestamp() - interval '60 seconds'
+    `;
+    expect(rows[0]?.count).toBe(12);
+  });
+
+  it("keeps concurrent identical clientCastingId replay idempotent inside the user lock", async () => {
+    const userId = await createUser();
+    const castingId = randomUUID();
+    const input = saveInput(castingId, "What should I keep steady during this change?");
+
+    const responses = await Promise.all([
+      saveReading(saveRequest(input, userId)),
+      saveReading(saveRequest(input, userId)),
+    ]);
+
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 201]);
+    const bodies = await Promise.all(responses.map((response) => response.json()));
+    expect(bodies.map((body) => body.idempotent).sort()).toEqual([false, true]);
+    const rows = await sql<{ count: number }[]>`
+      select count(*)::integer as count from casting_sessions where id = ${castingId}
+    `;
+    expect(rows[0]?.count).toBe(1);
+  });
+
+  it("preserves idempotency conflict for concurrent mismatched stable identity", async () => {
+    const userId = await createUser();
+    const castingId = randomUUID();
+    const responses = await Promise.all([
+      saveReading(saveRequest(saveInput(castingId, "What should I focus on first?"), userId)),
+      saveReading(saveRequest(saveInput(castingId, "What should I explicitly avoid?"), userId)),
+    ]);
+
+    expect(responses.map((response) => response.status).sort()).toEqual([201, 409]);
+    const bodies = await Promise.all(responses.map((response) => response.json()));
+    expect(bodies.some((body) => body.error === "READING_IDEMPOTENCY_CONFLICT")).toBe(true);
+    const rows = await sql<{ count: number }[]>`
+      select count(*)::integer as count from casting_sessions where id = ${castingId}
+    `;
+    expect(rows[0]?.count).toBe(1);
+  });
+
+  it("keeps the reading write limit independent across users", async () => {
+    const userA = await createUser();
+    const userB = await createUser();
+    for (let index = 0; index < 12; index += 1) {
+      await insertCasting(randomUUID(), userA, null, [7, 8, 9, 6, 7, 8]);
+    }
+
+    const [responseA, responseB] = await Promise.all([
+      saveReading(saveRequest(saveInput(randomUUID(), "What should user A do next?"), userA)),
+      saveReading(saveRequest(saveInput(randomUUID(), "What should user B do next?"), userB)),
+    ]);
+
+    expect(responseA.status).toBe(429);
+    await expect(responseA.json()).resolves.toEqual({ error: "READING_RATE_LIMITED" });
+    expect(responseB.status).toBe(201);
+    await expect(responseB.json()).resolves.toMatchObject({ idempotent: false });
   });
 });
