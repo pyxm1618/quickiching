@@ -4,7 +4,6 @@ import { QuestionFirst } from "@/components/public-reading/question-first";
 import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
 import { getDictionary } from "@/i18n/dictionaries";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
-import { ZH_HANS_READING_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { zhSeoFor } from "@/content/seo/zh-pages";
 
 const SEO = zhSeoFor("homepage");
@@ -111,7 +110,7 @@ export default function ChineseHomePage() {
           <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">首页默认提供三枚铜钱起卦。问题可以不填；如果之后可能需要针对处境的深度解读，请在第一次掷币前写下核心问题。现实背景可以在结果页补充。</p>
         </div>
         <QuestionFirst storageKey="quickiching:public-v1:three-coin" legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]} dictionary={dictionary} deepReadingEligible>
-          <ThreeCoinTool compactIntro dictionary={dictionary} localizedContent={ZH_HANS_READING_CONTENT} />
+          <ThreeCoinTool compactIntro dictionary={dictionary} />
         </QuestionFirst>
       </section>
 
