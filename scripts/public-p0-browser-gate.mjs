@@ -300,8 +300,7 @@ async function verifyQuestionSkipFreeOnly(page) {
 async function verifyChineseQuestionAndDeepEntry(page) {
   const question = "面对职业选择，我现在最需要看清什么？";
   await seedThreeCoin(page, question);
-  await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => location.pathname === "/zh/readings/three-coin/result", { timeout: 15_000 });
+  await openSeededThreeCoinResult(page, "zh-Hans");
   await waitForText(page, "本次三枚铜钱起卦结果");
   await assertQuestionPrivacy(page, question);
   assert.equal(await page.$eval("[data-core-question-at-cast]", (node) => node.textContent?.trim()), question, "Chinese unified result must restore the frozen question");
@@ -364,8 +363,7 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   // Start a fresh anonymous fixture to verify a non-emergency professional-risk context remains editable,
   // then can be corrected back to an eligible state.
   await seedThreeCoin(page, question);
-  await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => location.pathname === "/zh/readings/three-coin/result", { timeout: 15_000 });
+  await openSeededThreeCoinResult(page, "zh-Hans");
   await page.waitForSelector("#deep-context-situation", { timeout: 15_000 });
   await page.type("#deep-context-situation", "Should I stop taking my prescribed medication because of this role?");
   await page.waitForSelector('[data-deep-reading-blocked="risk"]');
@@ -505,8 +503,7 @@ async function verifyHistory(page) {
   await waitForText(page, "Saved in this browser");
 
   await seedThreeCoinSession(page, "history-three-coin-second", "2026-08-19T12:00:00.000Z", FIXTURE_STEPS, "Same facts · second question");
-  await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await openSeededThreeCoinResult(page);
   await waitForText(page, "Your Three-Coin Reading");
   await clickText(page, "Save reading");
   await waitForText(page, "Saved in this browser");
