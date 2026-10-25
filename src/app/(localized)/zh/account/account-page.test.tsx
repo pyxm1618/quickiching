@@ -120,6 +120,15 @@ describe("ChineseAccountPage Server Component", () => {
         hasPreview: true,
         hasReading: true,
       },
+      {
+        id: "hist_2",
+        method: "three-coin",
+        scene: "unknown_legacy_scene",
+        createdAt: new Date("2026-09-21T09:00:00Z"),
+        primaryName: "坤为地",
+        hasPreview: false,
+        hasReading: false,
+      },
     ]);
 
     const component = await ChineseAccountPage();
@@ -130,6 +139,7 @@ describe("ChineseAccountPage Server Component", () => {
     expect(html).toContain("已付款");
     expect(html).toContain("乾为天");
     expect(html).toContain("三枚铜钱 · 事业");
+    expect(html).toContain("三枚铜钱 · 未分类");
     expect(html).toContain("预览");
     expect(html).toContain("解读");
     expect(html).toContain('href="/zh/readings/three-coin/result?session=hist_1"');
