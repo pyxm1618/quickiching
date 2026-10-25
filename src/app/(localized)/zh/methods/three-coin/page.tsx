@@ -4,7 +4,6 @@ import { QuestionFirst } from "@/components/public-reading/question-first";
 import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
 import { getDictionary } from "@/i18n/dictionaries";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
-import { ZH_HANS_READING_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { zhSeoFor } from "@/content/seo/zh-pages";
 
 const SEO = zhSeoFor("three-coin-method");
@@ -34,7 +33,7 @@ export default function ChineseThreeCoinMethodPage() {
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
         <QuestionFirst storageKey="quickiching:public-v1:three-coin" legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]} dictionary={dictionary} deepReadingEligible>
-          <ThreeCoinTool dictionary={dictionary} localizedContent={ZH_HANS_READING_CONTENT} />
+          <ThreeCoinTool dictionary={dictionary} />
         </QuestionFirst>
       </section>
 
