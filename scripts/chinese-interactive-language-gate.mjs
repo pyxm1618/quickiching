@@ -581,7 +581,7 @@ async function main() {
     // 5.d: Manual Cast (/zh/methods/manual-cast)
     await page.goto(`${BASE}/zh/methods/manual-cast`, { waitUntil: "networkidle0" });
     await page.evaluate(() => {
-      sessionStorage.setItem("quickiching:public-v1:manual-v2", JSON.stringify({
+      sessionStorage.setItem("quickiching:public-v1:manual-cast", JSON.stringify({
         schemaVersion: 1,
         started: true,
         id: "gate_manual_reading",
