@@ -118,6 +118,8 @@ export function ThreeCoinResultClient({
   initialSessionId,
   initialUser = null,
   initialCredits = 0,
+  initialInterpretationBundles,
+  initialLocalizedContent,
   initialCastingView = null,
   initialState,
   locale = "en",
