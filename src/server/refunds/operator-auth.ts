@@ -11,7 +11,6 @@ export function resolveRefundOperatorSecret(
 export function verifyRefundOperatorAuthorization(
   request: Request,
   expectedSecret: string,
-  env: Record<string, string | undefined> = process.env,
 ): boolean {
   const authHeader = request.headers.get("authorization")?.trim();
   if (!authHeader?.startsWith("Bearer ")) return false;
