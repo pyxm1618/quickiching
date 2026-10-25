@@ -50,19 +50,7 @@ describe("Next.js security headers", () => {
     expect(csp).toContain("https://c.bing.com");
     expect(csp).toContain("https://challenges.cloudflare.com");
   });
-
-  it("adds Adsterra only for deployed environments and retains an emergency off switch", () => {
-    const production = buildContentSecurityPolicy({ NODE_ENV: "production" });
-    expect(production).toContain("https://*.effectivecpmnetwork.com");
-    expect(production).toContain("https://challenges.cloudflare.com");
-
-    const local = buildContentSecurityPolicy({ NODE_ENV: "development" });
-    expect(local).not.toContain("effectivecpmnetwork.com");
-
-    const disabled = buildContentSecurityPolicy({
-      NODE_ENV: "production",
-      NEXT_PUBLIC_ADSTERRA_ENABLED: "false",
-    });
-    expect(disabled).not.toContain("effectivecpmnetwork.com");
+  it("does not allow the retired Adsterra origin in CSP", () => {
+    expect(buildContentSecurityPolicy({ NODE_ENV: "production" })).not.toContain("effectivecpmnetwork.com");
   });
 });

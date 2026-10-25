@@ -10,8 +10,38 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-import { ThreeCoinResultClient } from "./three-coin-result-client";
+import { ThreeCoinResultClient, getTerminalCreditReconciliation } from "./three-coin-result-client";
 import { CommercialReadingReportView } from "./commercial-reading-report-view";
+
+describe("ThreeCoinResultClient Deep Reading credit reconciliation", () => {
+  it.each(["failed", "timed_out"] as const)("uses authoritative credits for a current-page %s terminal result", (status) => {
+    expect(getTerminalCreditReconciliation(status, 1, "cast-1", "cast-1")).toEqual({
+      authoritativeCredits: 1,
+      clearReservationRef: true,
+    });
+  });
+
+  it.each(["failed", "timed_out"] as const)("uses authoritative credits for a restored %s result after reload", (status) => {
+    expect(getTerminalCreditReconciliation(status, 1, null, "cast-1")).toEqual({
+      authoritativeCredits: 1,
+      clearReservationRef: false,
+    });
+  });
+
+  it.each(["queued", "running", "completed"] as const)("does not refresh credits for %s polling state", (status) => {
+    expect(getTerminalCreditReconciliation(status, 99, null, "cast-1")).toEqual({
+      authoritativeCredits: null,
+      clearReservationRef: false,
+    });
+  });
+
+  it("ignores an invalid terminal balance instead of guessing a +1 refund", () => {
+    expect(getTerminalCreditReconciliation("failed", undefined, "cast-1", "cast-1")).toEqual({
+      authoritativeCredits: null,
+      clearReservationRef: true,
+    });
+  });
+});
 
 describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => {
   describe.each([
@@ -27,7 +57,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     ])("keeps the free result but offers no purchase or generation for %s", (question) => {
       const html = renderToStaticMarkup(
         <ThreeCoinResultClient initialUser={user} initialCredits={credits}
-          initialState={{ kind: "ready", reading: {} as any, lineValues: [7, 7, 7, 7, 7, 7], question }} />,
+          initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question }} />,
       );
       expect(html).toContain('data-deep-reading-blocked="risk"');
       expect(html).toContain("data-primary-card");
@@ -48,7 +78,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         locale="zh-Hans"
         initialUser={{ id: "usr_1", email: "test@example.com" }}
         initialCredits={0}
-        initialState={{ kind: "ready", reading: {} as any, lineValues: [7, 7, 7, 7, 7, 7], question }}
+        initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question }}
       />,
     );
     expect(html).toContain('data-deep-reading-blocked="risk"');
@@ -62,7 +92,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
   it("explains the high-risk block in Chinese while retaining the free cast", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient locale="zh-Hans"
-        initialState={{ kind: "ready", reading: {} as any, lineValues: [7, 7, 7, 7, 7, 7], question: "我是否应该停止服用处方药？" }} />,
+        initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "我是否应该停止服用处方药？" }} />,
     );
     expect(html).toContain('data-deep-reading-blocked="risk"');
     expect(html).toContain("合格专业人士");
@@ -142,7 +172,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       <ThreeCoinResultClient
         locale="zh-Hans"
         initialUser={{ id: "usr_1", email: "test@example.com" }}
-        initialState={{ kind: "ready", reading: mockReading, lineValues: [7, 7, 7, 9, 7, 7], createdAt: "2026-09-25T10:00:00.000Z" }}
+        initialState={{ kind: "ready", lineValues: [7, 7, 7, 9, 7, 7], createdAt: "2026-09-25T10:00:00.000Z" }}
         initialCastingView={{
           castingId: "cast_1",
           createdAt: "2026-09-25T10:00:00.000Z",
@@ -203,7 +233,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       <ThreeCoinResultClient
         locale="en"
         initialUser={{ id: "usr_1", email: "test@example.com" }}
-        initialState={{ kind: "ready", reading: mockReading, lineValues: [7, 7, 7, 9, 7, 7] }}
+        initialState={{ kind: "ready", lineValues: [7, 7, 7, 9, 7, 7] }}
         initialCastingView={{
           castingId: "cast_1",
           context: "Career test",
@@ -242,7 +272,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         locale="en"
         initialUser={{ id: "usr_1", email: "test@example.com" }}
         initialCredits={0}
-        initialState={{ kind: "ready", reading: freeReading, lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on now?" }}
+        initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on now?" }}
         initialCastingView={{ castingId: "cast_1", context: "Career test", lineValuesBottomUp: [7, 7, 7, 7, 7, 7], readingReport: null, owns: true }}
       />,
     );
@@ -258,9 +288,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       <ThreeCoinResultClient
         locale="zh-Hans"
         initialState={{
-          kind: "ready",
-          reading: {} as any,
-          lineValues: [7, 7, 7, 7, 7, 7],
+          kind: "ready", lineValues: [7, 7, 7, 7, 7, 7],
           question: "这次变化中我应该先看清什么？",
           createdAt: "2026-09-25T10:00:00.000Z",
         }}
@@ -291,9 +319,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       <ThreeCoinResultClient
         locale="zh-Hans"
         initialState={{
-          kind: "ready",
-          reading: {} as any,
-          lineValues: [7, 7, 7, 7, 7, 7],
+          kind: "ready", lineValues: [7, 7, 7, 7, 7, 7],
           question: "我的核心问题是否能够解决？",
           createdAt: "2026-09-25T10:00:00.000Z",
         }}
@@ -317,9 +343,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       <ThreeCoinResultClient
         locale="en"
         initialState={{
-          kind: "ready",
-          reading: {} as any,
-          lineValues: [7, 7, 7, 7, 7, 7],
+          kind: "ready", lineValues: [7, 7, 7, 7, 7, 7],
           question: "How should I approach this transition?",
           createdAt: "2026-09-25T10:00:00.000Z",
         }}

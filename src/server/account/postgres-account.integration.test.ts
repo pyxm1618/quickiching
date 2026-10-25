@@ -87,6 +87,7 @@ describe("CP5D PostgreSQL Account & Privacy Boundaries (Integration)", () => {
     const deleteUserId = "cp5-acc-delete-user";
     const castingId = randomUUID();
     const sessionId = randomUUID();
+    const paymentOrderId = randomUUID();
     const now = new Date().toISOString();
 
     await sql`
@@ -100,6 +101,27 @@ describe("CP5D PostgreSQL Account & Privacy Boundaries (Integration)", () => {
     await sql`
       insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
       values (${castingId}, ${deleteUserId}, 'three_coin', 'revealed', 'allowed', 'career', 'guidance', ${now}, ${now})
+    `;
+
+    await sql`
+      insert into deep_reading_context_snapshots (
+        casting_id, ciphertext, iv, auth_tag, encryption_key_version, snapshot_hash, created_at
+      ) values (${castingId}, 'private-ciphertext', 'private-iv', 'private-tag', 'v1', 'private-hash', ${now})
+    `;
+    await sql`
+      insert into question_locks (user_id, fingerprint, key_version, winning_casting_id, locked_until, created_at, updated_at)
+      values (${deleteUserId}, 'private-fingerprint', 'v1', ${castingId}, now() + interval '72 hours', ${now}, ${now})
+    `;
+    await sql`
+      insert into payment_orders (
+        id, user_id, product_key, quantity, amount_minor, currency, request_id,
+        provider, provider_environment, provider_product_id, provider_order_id, provider_payment_id,
+        status, paid_at, created_at, updated_at
+      ) values (
+        ${paymentOrderId}, ${deleteUserId}, 'one', 1, 299, 'USD', ${`req-${paymentOrderId}`},
+        'waffo', 'test', 'prod-1', ${`ord-${paymentOrderId}`}, ${`pay-${paymentOrderId}`},
+        'paid', ${now}, ${now}, ${now}
+      )
     `;
 
     // Perform account deletion
@@ -117,6 +139,22 @@ describe("CP5D PostgreSQL Account & Privacy Boundaries (Integration)", () => {
       select id from sessions where user_id = ${deleteUserId}
     `;
     expect(sessionRows.length).toBe(0);
+
+    // Verify private Deep Reading snapshot and question lock are removed.
+    const snapshotRows = await sql<{ casting_id: string }[]>`
+      select casting_id from deep_reading_context_snapshots where casting_id = ${castingId}
+    `;
+    expect(snapshotRows).toHaveLength(0);
+    const lockRows = await sql<{ user_id: string }[]>`
+      select user_id from question_locks where user_id = ${deleteUserId}
+    `;
+    expect(lockRows).toHaveLength(0);
+
+    // Financial records remain for audit/legal integrity.
+    const paymentRows = await sql<{ id: string; user_id: string }[]>`
+      select id, user_id from payment_orders where id = ${paymentOrderId}
+    `;
+    expect(paymentRows).toEqual([{ id: paymentOrderId, user_id: deleteUserId }]);
 
     // Verify audit event recorded
     const auditRows = await sql<{ action: string; category: string }[]>`

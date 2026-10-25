@@ -17,8 +17,10 @@ export type AccountPurchase = {
   } | null;
 };
 
-export async function loadAccountPurchases(): Promise<AccountPurchase[]> {
-  const user = await getCurrentUser();
+export async function loadAccountPurchases(
+  resolvedUser?: { id: string; email: string } | null,
+): Promise<AccountPurchase[]> {
+  const user = resolvedUser === undefined ? await getCurrentUser() : resolvedUser;
   if (!user) return [];
   if (process.env.DATABASE_ADAPTER_MODE !== "postgres" || !process.env.DATABASE_URL) return [];
 

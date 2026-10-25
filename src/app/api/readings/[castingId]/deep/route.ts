@@ -3,9 +3,12 @@ import { createProductionDeepReadingService } from "@/server/generation/deep-rea
 import { resolveSession } from "@/lib/auth/session";
 import { isStrictSameOriginRequest } from "@/server/http/origin-guard";
 import { deepReadingContextEnrichmentSchema } from "@/domain/generation/deep-reading-contract";
+import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const MAX_REQUEST_BYTES = 16 * 1024;
 
 function headers(extra: Record<string, string> = {}): Headers {
   return new Headers({
@@ -54,12 +57,16 @@ export async function POST(
 
   let submittedContext: unknown;
   try {
-    submittedContext = await request.json();
-  } catch {
+    submittedContext = JSON.parse(await readRequestBody(request, MAX_REQUEST_BYTES)) as unknown;
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) return json({ error: "REQUEST_BODY_TOO_LARGE" }, 413);
     return json({ error: "CONTEXT_INSUFFICIENT", retryable: false }, 422);
   }
   const parsedContext = deepReadingContextEnrichmentSchema.safeParse(submittedContext);
-  if (!parsedContext.success) return json({ error: "CONTEXT_INSUFFICIENT", retryable: false }, 422);
+  if (!parsedContext.success) {
+    console.warn("[DEEP_READING_INPUT_INVALID]", parsedContext.error.issues);
+    return json({ error: "CONTEXT_INSUFFICIENT", retryable: false }, 422);
+  }
 
   try {
     const service = await createProductionDeepReadingService();
@@ -73,7 +80,9 @@ export async function POST(
       status: result.status,
       jobId: result.jobId,
       reservationId: result.reservationId,
-      ...(result.output ? { output: result.output } : {}),
+      ...(result.output !== undefined ? { output: result.output } : {}),
+      ...(result.snapshot !== undefined ? { snapshot: result.snapshot } : {}),
+      creditReservationCreated: result.creditReservationCreated,
     }, result.status === "completed" ? 200 : 202);
   } catch (error) {
     console.error("[DEEP_READING_ROUTE_ERROR]", error);
@@ -95,6 +104,7 @@ export async function POST(
       return json({ error: message, retryable: false }, 422);
     }
     if (message === "CONTEXT_INSUFFICIENT") return json({ error: message, retryable: false }, 422);
+    if (message === "DEEP_READING_RATE_LIMITED") return json({ error: message, retryable: true }, 429);
     return json({ error: "DEEP_READING_FAILED", retryable: true }, 500);
   }
 }

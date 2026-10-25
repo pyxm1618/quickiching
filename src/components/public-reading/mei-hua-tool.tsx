@@ -29,6 +29,18 @@ function detectedTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 }
 
+function supportedTimeZones(): string[] {
+  try {
+    const supportedValuesOf = (Intl as typeof Intl & {
+      supportedValuesOf?: (key: "timeZone") => string[];
+    }).supportedValuesOf;
+    if (supportedValuesOf) return supportedValuesOf("timeZone");
+  } catch {
+    // Keep manual IANA input available when runtime enumeration is unavailable.
+  }
+  return ["UTC", "America/Los_Angeles", "America/New_York", "Europe/London", "Asia/Shanghai", "Asia/Tokyo"];
+}
+
 function parseStoredCast(value: unknown): StoredCast | null {
   const candidate = value && typeof value === "object" && "cast" in value
     ? (value as { cast?: unknown }).cast
@@ -68,6 +80,7 @@ export function MeiHuaTool({
   const onNewReading = onNewReadingProp ?? (() => questionContext?.restartQuestion(true));
   const zh = dictionary.locale === "zh-Hans";
   const [timeZone, setTimeZone] = useState("UTC");
+  const timeZoneOptions = useMemo(supportedTimeZones, []);
   const [cast, setCast] = useState<StoredCast | null>(null);
   const [readingMeta, setReadingMeta] = useState<{ id: string; createdAt: string } | null>(null);
   const [error, setError] = useState("");
@@ -153,7 +166,8 @@ export function MeiHuaTool({
       <div className="mt-7 max-w-2xl">
         <label htmlFor="mei-hua-timezone" className="block text-sm font-semibold text-[var(--ink)]">{dictionary.meiHua.timezoneLabel}</label>
         <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-          <input id="mei-hua-timezone" value={timeZone} onChange={(event) => setTimeZone(event.target.value)} disabled={Boolean(cast)} spellCheck={false} className="min-h-12 min-w-0 flex-1 rounded-2xl border border-white/[0.12] bg-white/[0.035] px-4 py-2 font-mono text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-[var(--ink-3)] focus:border-[var(--gold)] disabled:opacity-70" aria-describedby="mei-hua-timezone-help mei-hua-error" />
+          <input id="mei-hua-timezone" list="mei-hua-timezone-options" value={timeZone} onChange={(event) => setTimeZone(event.target.value)} disabled={Boolean(cast)} spellCheck={false} className="min-h-12 min-w-0 flex-1 rounded-2xl border border-white/[0.12] bg-white/[0.035] px-4 py-2 font-mono text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-[var(--ink-3)] focus:border-[var(--gold)] disabled:opacity-70" aria-describedby="mei-hua-timezone-help mei-hua-error" />
+          <datalist id="mei-hua-timezone-options">{timeZoneOptions.map((zone) => <option key={zone} value={zone} />)}</datalist>
           <button type="button" onClick={castCurrentTime} disabled={Boolean(cast)} className="mystic-button">{dictionary.meiHua.castButton}</button>
         </div>
         <p id="mei-hua-timezone-help" className="mt-2 text-xs leading-6 text-[var(--ink-3)]">{dictionary.meiHua.timezoneHelp}</p>

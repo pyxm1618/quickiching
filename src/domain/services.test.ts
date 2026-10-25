@@ -43,6 +43,27 @@ describe("Risk engine (§11.1 regression contract)", () => {
       evaluateRisk("I work at a crypto company. Should I buy Bitcoin?", "career").status,
     ).toBe("professional_decision_blocked");
   });
+  it("does not let workplace context cancel direct medical decisions", () => {
+    expect(evaluateRisk("工作压力太大，我应该停用胰岛素吗？", "career").status).toBe("professional_decision_blocked");
+    expect(
+      evaluateRisk("I have problems at work. Should I stop taking my antidepressants?", "career").status,
+    ).toBe("professional_decision_blocked");
+  });
+  it("does not let company context cancel direct legal decisions", () => {
+    expect(
+      evaluateRisk("My company is involved in a dispute. Should I plead guilty?", "career").status,
+    ).toBe("professional_decision_blocked");
+  });
+  it("blocks explicit financial options and stock decisions", () => {
+    expect(evaluateRisk("Should I buy Nvidia stock?", "wealth").status).toBe("professional_decision_blocked");
+    expect(evaluateRisk("Should I trade call options?", "wealth").status).toBe("professional_decision_blocked");
+  });
+  it("does not treat ordinary options, shares, or bonds as financial objects", () => {
+    expect(evaluateRisk("I am considering two options and whether I should accept the new job.", "career").status).toBe("allowed");
+    expect(evaluateRisk("What options are you considering?", "other").status).toBe("allowed");
+    expect(evaluateRisk("We need to share responsibilities at work.", "career").status).toBe("allowed");
+    expect(evaluateRisk("Our relationship bond feels weak.", "relationships").status).toBe("allowed");
+  });
   it("asks for clarification when a high-risk object is paired with an ambiguous action", () => {
     expect(evaluateRisk("I need guidance about my chemotherapy", "other").status).toBe("needs_clarification");
   });

@@ -12,7 +12,13 @@ export type CommercialDatabase = PostgresJsDatabase<typeof databaseSchema>;
 export type CommercialDatabaseConnection = { db: CommercialDatabase; client: Sql };
 
 let runtimeConnection: AuthDatabaseConnection | undefined;
+let runtimeConnectionUrl: string | undefined;
 let runtimeCommercialConnection: CommercialDatabaseConnection | undefined;
+let runtimeCommercialConnectionUrl: string | undefined;
+
+function createRuntimeClient(url: string): Sql {
+  return postgres(url, { max: DEFAULT_RUNTIME_POOL_MAX, prepare: false });
+}
 
 export function createAuthDatabaseConnection(
   url: string,
@@ -30,7 +36,13 @@ export function createAuthDatabaseConnection(
 export function getAuthDatabaseConnection(url = process.env.DATABASE_URL): AuthDatabaseConnection {
   const candidate = url?.trim();
   if (!candidate) throw new Error("AUTH_DATABASE_UNAVAILABLE");
-  if (!runtimeConnection) runtimeConnection = createAuthDatabaseConnection(candidate);
+  if (!runtimeConnection) {
+    const client = runtimeCommercialConnection && runtimeCommercialConnectionUrl === candidate
+      ? runtimeCommercialConnection.client
+      : createRuntimeClient(candidate);
+    runtimeConnection = { client, db: drizzle(client, { schema: authTables }) };
+    runtimeConnectionUrl = candidate;
+  }
   return runtimeConnection;
 }
 
@@ -48,7 +60,13 @@ export function createCommercialDatabaseConnection(
 export function getCommercialDatabaseConnection(url = process.env.DATABASE_URL): CommercialDatabaseConnection {
   const candidate = url?.trim();
   if (!candidate) throw new Error("COMMERCIAL_DATABASE_UNAVAILABLE");
-  if (!runtimeCommercialConnection) runtimeCommercialConnection = createCommercialDatabaseConnection(candidate);
+  if (!runtimeCommercialConnection) {
+    const client = runtimeConnection && runtimeConnectionUrl === candidate
+      ? runtimeConnection.client
+      : createRuntimeClient(candidate);
+    runtimeCommercialConnection = { client, db: drizzle(client, { schema: databaseSchema }) };
+    runtimeCommercialConnectionUrl = candidate;
+  }
   return runtimeCommercialConnection;
 }
 
@@ -60,14 +78,20 @@ export async function closeAuthDatabaseConnection(): Promise<void> {
   if (!runtimeConnection) return;
   const connection = runtimeConnection;
   runtimeConnection = undefined;
-  await connection.client.end({ timeout: 5 });
+  runtimeConnectionUrl = undefined;
+  if (runtimeCommercialConnection?.client !== connection.client) {
+    await connection.client.end({ timeout: 5 });
+  }
 }
 
 export async function closeCommercialDatabaseConnection(): Promise<void> {
   if (!runtimeCommercialConnection) return;
   const connection = runtimeCommercialConnection;
   runtimeCommercialConnection = undefined;
-  await connection.client.end({ timeout: 5 });
+  runtimeCommercialConnectionUrl = undefined;
+  if (runtimeConnection?.client !== connection.client) {
+    await connection.client.end({ timeout: 5 });
+  }
 }
 
 export function migrationDatabaseURL(env: Record<string, string | undefined> = process.env): string {

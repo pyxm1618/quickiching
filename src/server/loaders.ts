@@ -3,6 +3,9 @@ import { getCurrentUser, getAnonymousHash } from "@/lib/auth/session";
 import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
 import { evaluateRisk } from "@/domain/risk/engine";
 import type { CastingSession } from "@/server/repository";
+import type { DeepReadingContextSnapshot } from "@/domain/generation/deep-reading-contract";
+import { decryptDeepReadingContextSnapshot } from "@/server/generation/deep-reading-snapshot";
+import { calculateDeepReadingContextSnapshotHash } from "@/server/generation/integrity";
 
 export type CastingView = {
   session: CastingSession;
@@ -20,7 +23,7 @@ export type CastingView = {
     classicMappingVersion: string;
   } | null;
   preview: { status: string; relevanceStatement: string | null } | null;
-  reading: { status: string; report: Record<string, unknown> | null; id: string | null } | null;
+  reading: { status: string; report: Record<string, unknown> | null; id: string | null; snapshot: DeepReadingContextSnapshot | null } | null;
   steps: { stepKind: string; lineIndex: number; changeIndex: number | null; lineValue: number | null }[];
   clocks: { castingExpired: boolean; revealExpired: boolean };
 };
@@ -41,7 +44,9 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
         q.encryption_key_version as question_encryption_key_version,
         r.line_values, r.primary_hexagram_number, r.moving_line_positions,
         r.relating_hexagram_number, r.algorithm_version, r.classic_mapping_version,
-        d.job_id as reading_job_id, d.output as reading_output
+        d.job_id as reading_job_id, d.output as reading_output,
+        ds.ciphertext as snapshot_ciphertext, ds.iv as snapshot_iv, ds.auth_tag as snapshot_auth_tag,
+        ds.encryption_key_version as snapshot_encryption_key_version, ds.snapshot_hash
       from casting_sessions c
       left join lateral (
         select * from question_versions
@@ -51,6 +56,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
       ) q on true
       left join cast_results r on r.casting_id = c.id
       left join deep_reading_results d on d.casting_id = c.id
+      left join deep_reading_context_snapshots ds on ds.casting_id = c.id
       where c.id = ${castingId} and c.deleted_at is null
       limit 1
     ` as Array<Record<string, any>>;
@@ -89,8 +95,21 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
         }
       : null;
 
+    let completedSnapshot: DeepReadingContextSnapshot | null = null;
+    if (row.reading_output != null && row.snapshot_ciphertext != null) {
+      const snapshot = decryptDeepReadingContextSnapshot(castingId, {
+        ciphertext: String(row.snapshot_ciphertext),
+        iv: String(row.snapshot_iv),
+        authTag: String(row.snapshot_auth_tag),
+        encryptionKeyVersion: String(row.snapshot_encryption_key_version),
+      });
+      if (calculateDeepReadingContextSnapshotHash(snapshot) !== String(row.snapshot_hash)) {
+        throw new Error("DEEP_READING_SNAPSHOT_INTEGRITY_INVALID");
+      }
+      completedSnapshot = snapshot;
+    }
     const reading = row.reading_output != null
-      ? { status: "completed", report: row.reading_output, id: String(row.reading_job_id ?? "") }
+      ? { status: "completed", report: row.reading_output, id: String(row.reading_job_id ?? ""), snapshot: completedSnapshot }
       : null;
 
     const session: CastingSession = {
@@ -172,14 +191,14 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
     result,
     preview: preview ? { status: preview.status, relevanceStatement: preview.relevanceStatement } : null,
     reading: reading
-      ? { status: reading.status, report: reading.report, id: reading.id }
+      ? { status: reading.status, report: reading.report, id: reading.id, snapshot: null }
       : null,
     steps,
     clocks,
   };
 }
 
-export async function loadHistory(): Promise<
+export async function loadHistory(resolvedUser?: { id: string; email: string } | null): Promise<
   Array<{
     id: string;
     method: string;
@@ -192,7 +211,7 @@ export async function loadHistory(): Promise<
     hasReading: boolean;
   }>
 > {
-  const user = await getCurrentUser();
+  const user = resolvedUser === undefined ? await getCurrentUser() : resolvedUser;
   if (!user) return [];
 
   if (process.env.DATABASE_ADAPTER_MODE === "postgres" && process.env.DATABASE_URL) {
@@ -247,8 +266,10 @@ export async function loadHistory(): Promise<
   });
 }
 
-export async function loadEntitlementBalance(): Promise<{ available: number; expiringSoon: number }> {
-  const user = await getCurrentUser();
+export async function loadEntitlementBalance(
+  resolvedUser?: { id: string; email: string } | null,
+): Promise<{ available: number; expiringSoon: number }> {
+  const user = resolvedUser === undefined ? await getCurrentUser() : resolvedUser;
   if (!user) return { available: 0, expiringSoon: 0 };
 
   if (process.env.DATABASE_ADAPTER_MODE === "postgres" && process.env.DATABASE_URL) {

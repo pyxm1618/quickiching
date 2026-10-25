@@ -4,9 +4,6 @@ import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
-import { buildFreeReading } from "@/domain/interpretation/v2/build-free-reading";
-import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
-import type { FreeReading } from "@/domain/interpretation/v2/types";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import { ZH_HANS_READING_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
@@ -36,7 +33,7 @@ import styles from "./result-page.module.css";
 export type ResultState =
   | { kind: "loading" }
   | { kind: "empty" }
-  | { kind: "ready"; reading: FreeReading; lineValues: number[]; question?: string; createdAt?: string }
+  | { kind: "ready"; lineValues: number[]; question?: string; createdAt?: string }
   | { kind: "error"; code: string };
 
 export type ThreeCoinResultClientProps = {
@@ -51,6 +48,7 @@ export type ThreeCoinResultClientProps = {
     context: string;
     lineValuesBottomUp: number[] | null;
     readingReport: unknown;
+    deepSnapshot?: unknown;
     owns: boolean;
   } | null;
 };
@@ -63,6 +61,33 @@ type ContextDraft = {
   concernsText: string;
   interpretationGoal: DeepReadingContextEnrichment["interpretationGoal"];
 };
+
+type DeepReadingStatusPayload = {
+  status: "not_started" | "queued" | "running" | "completed" | "failed" | "timed_out";
+  output?: unknown;
+  snapshot?: unknown;
+  availableCredits?: unknown;
+};
+
+export function getTerminalCreditReconciliation(
+  status: DeepReadingStatusPayload["status"],
+  availableCredits: unknown,
+  reservedCreditCastingId: string | null,
+  targetCastingId: string,
+): { authoritativeCredits: number | null; clearReservationRef: boolean } {
+  if (status !== "failed" && status !== "timed_out") {
+    return { authoritativeCredits: null, clearReservationRef: false };
+  }
+  const authoritativeCredits = typeof availableCredits === "number"
+    && Number.isSafeInteger(availableCredits)
+    && availableCredits >= 0
+    ? availableCredits
+    : null;
+  return {
+    authoritativeCredits,
+    clearReservationRef: reservedCreditCastingId === targetCastingId,
+  };
+}
 
 const EMPTY_CONTEXT_DRAFT: ContextDraft = {
   contextNotes: "",
@@ -85,19 +110,6 @@ function currentBrowserReturnPath(): string {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }
 
-async function buildFreeReadingFromLines(lineValues: number[]): Promise<FreeReading> {
-  const result = buildHexagramResult({
-    lineValuesBottomUp: lineValues as any,
-    method: "three_coin",
-  });
-  const [primaryBundle, relatingBundle] = await Promise.all([
-    loadHexagramInterpretation(result.primaryHexagramNumber),
-    result.relatingHexagramNumber === null
-      ? Promise.resolve(null)
-      : loadHexagramInterpretation(result.relatingHexagramNumber),
-  ]);
-  return buildFreeReading(result, primaryBundle, relatingBundle);
-}
 
 export function ThreeCoinResultClient({
   initialSessionId,
@@ -126,11 +138,20 @@ export function ThreeCoinResultClient({
   const [credits, setCredits] = useState<number>(initialCredits);
   const initialReport = readingReportSchema.safeParse(initialCastingView?.readingReport);
   const initialLegacyReport = legacyReadingReportSchema.safeParse(initialCastingView?.readingReport);
+  const initialSnapshot = deepReadingContextSnapshotSchema.safeParse(initialCastingView?.deepSnapshot);
   const [deepStatus, setDeepStatus] = useState<DeepStatus>(initialReport.success || initialLegacyReport.success ? "completed" : "idle");
   const [deepReport, setDeepReport] = useState<DeepReadingReport | null>(initialReport.success ? initialReport.data : null);
   const [legacyReport, setLegacyReport] = useState<CommercialReadingReport | null>(initialLegacyReport.success ? initialLegacyReport.data : null);
-  const [deepSnapshot, setDeepSnapshot] = useState<DeepReadingContextSnapshot | null>(null);
-  const [contextDraft, setContextDraft] = useState<ContextDraft>(EMPTY_CONTEXT_DRAFT);
+  const [deepSnapshot, setDeepSnapshot] = useState<DeepReadingContextSnapshot | null>(initialSnapshot.success ? initialSnapshot.data : null);
+  const [contextDraft, setContextDraft] = useState<ContextDraft>(() => initialSnapshot.success ? {
+    contextNotes: initialSnapshot.data.context.contextNotes,
+    optionsText: initialSnapshot.data.context.options.join("\n"),
+    constraintsText: initialSnapshot.data.context.constraints.join("\n"),
+    concernsText: initialSnapshot.data.context.concerns.join("\n"),
+    interpretationGoal: initialSnapshot.data.context.interpretationGoal,
+  } : EMPTY_CONTEXT_DRAFT);
+  const skipDraftWriteRef = useRef(true);
+  const reservedCreditCastingRef = useRef<string | null>(null);
   const [showDetailedContext, setShowDetailedContext] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const deepRisk = useMemo(() => {
@@ -145,7 +166,7 @@ export function ThreeCoinResultClient({
   }, [state, deepSnapshot, contextDraft]);
   const deepRiskBlocked = deepRisk.status !== "allowed";
   const deepRiskMessage = deepRisk.status === "emergency_blocked"
-    ? t("Deep Reading cannot help with an immediate safety crisis. If anyone may be in immediate danger, contact local emergency services or a crisis support service now.", "深度解读无法处理紧急安全危机。如果有人可能面临即时危险，请立即联系当地紧急服务或危机支持机构。")
+    ? t("Deep Reading cannot handle an immediate safety crisis. If there is immediate danger, contact local emergency services now. In the U.S., call or text 988 for crisis support, or call 911 for immediate emergency help.", "深度解读无法处理紧急安全危机。如果存在即时危险，请立即联系当地紧急服务。在美国，可拨打或短信联系 988 获取危机支持；如需紧急救援请拨打 911。")
     : t("This question or context needs qualified professional support. Deep Reading is unavailable for this request; consult a qualified professional for medical, legal, or investment decisions.", "这个问题或背景需要合格专业人士支持，本次无法提供深度解读。涉及医疗、法律或投资决策，请咨询相应的合格专业人士。");
   const resultReading = useMemo(() => {
     if (state.kind !== "ready") return null;
@@ -167,11 +188,7 @@ export function ThreeCoinResultClient({
       try {
         const res = await fetch(`/api/readings/${targetCastingId}/deep`);
         if (!res.ok) return;
-        const data = await res.json() as {
-          status: "not_started" | "queued" | "running" | "completed" | "failed" | "timed_out";
-          output?: unknown;
-          snapshot?: unknown;
-        };
+        const data = await res.json() as DeepReadingStatusPayload;
         const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
         if (parsedSnapshot.success) setDeepSnapshot(parsedSnapshot.data);
         const parsedReport = readingReportSchema.safeParse(data.output);
@@ -180,7 +197,9 @@ export function ThreeCoinResultClient({
           setDeepReport(parsedReport.data);
           setLegacyReport(null);
           setDeepStatus("completed");
-          setCredits((prev) => Math.max(0, prev - 1));
+          if (reservedCreditCastingRef.current === targetCastingId) {
+            reservedCreditCastingRef.current = null;
+          }
         } else if (data.status === "completed") {
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
           const parsedLegacyReport = legacyReadingReportSchema.safeParse(data.output);
@@ -190,6 +209,18 @@ export function ThreeCoinResultClient({
           }
         } else if (data.status === "failed" || data.status === "timed_out") {
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+          const creditReconciliation = getTerminalCreditReconciliation(
+            data.status,
+            data.availableCredits,
+            reservedCreditCastingRef.current,
+            targetCastingId,
+          );
+          if (creditReconciliation.authoritativeCredits !== null) {
+            setCredits(creditReconciliation.authoritativeCredits);
+          }
+          if (creditReconciliation.clearReservationRef) {
+            reservedCreditCastingRef.current = null;
+          }
           setDeepStatus("failed");
           setActionError(zh
             ? "解读未能完成，已释放本次预留次数；重试会沿用保存的问题与背景。"
@@ -208,6 +239,7 @@ export function ThreeCoinResultClient({
   }, []);
 
   useEffect(() => {
+    skipDraftWriteRef.current = true;
     const ids = [clientCastingId, castingId].filter((id): id is string => Boolean(id));
     for (const id of ids) {
       try {
@@ -232,6 +264,10 @@ export function ThreeCoinResultClient({
   }, [clientCastingId, castingId]);
 
   useEffect(() => {
+    if (skipDraftWriteRef.current) {
+      skipDraftWriteRef.current = false;
+      return;
+    }
     const ids = [clientCastingId, castingId].filter((id): id is string => Boolean(id));
     try {
       for (const id of ids) {
@@ -253,11 +289,9 @@ export function ThreeCoinResultClient({
         initialCastingView?.lineValuesBottomUp &&
         initialCastingView.lineValuesBottomUp.length === 6
       ) {
-        const reading = await buildFreeReadingFromLines(initialCastingView.lineValuesBottomUp);
         if (active) {
           setState({
             kind: "ready",
-            reading,
             lineValues: initialCastingView.lineValuesBottomUp,
             question: initialCastingView.context || undefined,
             createdAt: initialCastingView.createdAt,
@@ -275,13 +309,11 @@ export function ThreeCoinResultClient({
       }
 
       const lineValues = completedSteps.map((s) => s.lineValue);
-      const reading = await buildFreeReadingFromLines(lineValues);
 
       if (active) {
         setClientCastingId(localSession?.id ?? null);
         setState({
           kind: "ready",
-          reading,
           lineValues,
           question: localSession?.question,
           createdAt: localSession?.createdAt,
@@ -301,7 +333,7 @@ export function ThreeCoinResultClient({
   async function persistCurrentReading(showError: boolean): Promise<string | null> {
     if (castingId) return castingId;
     if (state.kind !== "ready" || !clientCastingId) {
-      if (showError) setActionError("保存本次起卦失败，请重新起卦后再试");
+      if (showError) setActionError(t("Could not save this reading. Start a new cast and try again.", "保存本次起卦失败，请重新起卦后再试。"));
       return null;
     }
 
@@ -335,7 +367,7 @@ export function ThreeCoinResultClient({
 
       const data = await res.json() as { castingId?: string };
       if (!data.castingId) {
-        if (showError) setActionError("保存本次起卦失败，请稍后重试");
+        if (showError) setActionError(t("Could not save this reading. Please try again later.", "保存本次起卦失败，请稍后重试。"));
         return null;
       }
 
@@ -345,7 +377,7 @@ export function ThreeCoinResultClient({
       window.history.replaceState(null, "", currentUrl.toString());
       return data.castingId;
     } catch {
-      if (showError) setActionError("网络连接失败，请重试");
+      if (showError) setActionError(t("Network connection failed. Please try again.", "网络连接失败，请重试。"));
       return null;
     }
   }
@@ -362,6 +394,7 @@ export function ThreeCoinResultClient({
   useEffect(() => {
     const activeId = castingId;
     if (!activeId || !user) return;
+    if (deepStatus === "completed" && deepSnapshot && (deepReport || legacyReport)) return;
 
     let active = true;
 
@@ -369,11 +402,7 @@ export function ThreeCoinResultClient({
       try {
         const res = await fetch(`/api/readings/${activeId}/deep`);
         if (!res.ok) return;
-        const data = await res.json() as {
-          status: "not_started" | "queued" | "running" | "completed" | "failed" | "timed_out";
-          output?: unknown;
-          snapshot?: unknown;
-        };
+        const data = await res.json() as DeepReadingStatusPayload;
         if (!active) return;
         const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
         if (parsedSnapshot.success) {
@@ -402,6 +431,18 @@ export function ThreeCoinResultClient({
           setDeepStatus("generating");
           if (activeId) startPolling(activeId);
         } else if (data.status === "failed" || data.status === "timed_out") {
+          const creditReconciliation = getTerminalCreditReconciliation(
+            data.status,
+            data.availableCredits,
+            reservedCreditCastingRef.current,
+            activeId!,
+          );
+          if (creditReconciliation.authoritativeCredits !== null) {
+            setCredits(creditReconciliation.authoritativeCredits);
+          }
+          if (creditReconciliation.clearReservationRef) {
+            reservedCreditCastingRef.current = null;
+          }
           setDeepStatus("failed");
         }
       } catch {
@@ -414,7 +455,7 @@ export function ThreeCoinResultClient({
     return () => {
       active = false;
     };
-  }, [castingId, startPolling, user]);
+  }, [castingId, deepReport, deepSnapshot, deepStatus, legacyReport, startPolling, user]);
 
   async function handleUnlockDeepReading() {
     if (state.kind !== "ready") return;
@@ -477,25 +518,33 @@ export function ThreeCoinResultClient({
       }
 
       const data = await res.json() as {
-        status: "queued" | "running" | "completed";
+        status: "queued" | "running" | "completed" | "timed_out";
         output?: unknown;
         snapshot?: unknown;
+        creditReservationCreated?: boolean;
       };
 
       const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
       if (parsedSnapshot.success) setDeepSnapshot(parsedSnapshot.data);
+      if (data.creditReservationCreated) {
+        reservedCreditCastingRef.current = activeCastingId;
+        setCredits((prev) => Math.max(0, prev - 1));
+      }
       const parsedReport = readingReportSchema.safeParse(data.output);
       if (data.status === "completed" && parsedReport.success) {
         setDeepReport(parsedReport.data);
         setLegacyReport(null);
         setDeepStatus("completed");
-        setCredits((prev) => Math.max(0, prev - 1));
+        reservedCreditCastingRef.current = null;
       } else if (data.status === "completed") {
         const parsedLegacyReport = legacyReadingReportSchema.safeParse(data.output);
         if (parsedLegacyReport.success) {
           setLegacyReport(parsedLegacyReport.data);
           setDeepStatus("completed");
         }
+      } else if (data.status === "timed_out") {
+        setDeepStatus("failed");
+        setActionError(t("The previous generation timed out and its reserved credit was released. You may retry.", "上一次生成已超时，预留次数已释放；你可以重试。"));
       } else {
         startPolling(activeCastingId);
       }
@@ -593,7 +642,7 @@ export function ThreeCoinResultClient({
         headingLevel="h1"
         newReadingLabel={zh ? "重新起一卦" : "Start a New Reading"}
       >
-        <section className="mt-6 rounded-3xl border border-[var(--gold)]/25 bg-gradient-to-b from-[rgba(235,178,85,0.07)] to-transparent p-5 sm:p-8" aria-labelledby="commercial-deep-section" data-deep-reading-entry>
+        <section className="mt-6 rounded-3xl border border-[var(--gold)]/25 bg-gradient-to-b from-[rgba(235,178,85,0.07)] to-transparent p-5 sm:p-8" aria-labelledby="commercial-deep-section" data-deep-reading-entry data-clarity-mask="true">
           {deepStatus === "completed" && (deepReport || legacyReport) ? (
             <>
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] px-5 py-3 text-xs text-[var(--ink-2)]">
@@ -634,7 +683,7 @@ export function ThreeCoinResultClient({
                 {t("Free explains the cast itself. Deep Reading connects this exact cast to the question you asked, using the situation context you supply here and cited Quick I Ching source material. Free reading never calls AI.", "免费解读说明卦象本身；深度解读结合你起卦前锁定的核心问题、在此补充的现实背景和确切卦象，给出有依据的针对性解释。免费解读绝不调用 AI。")}
               </p>
 
-              {deepRiskBlocked && Boolean(state.question?.trim()) && Array.from(state.question?.trim() ?? "").length < 8 ? (
+              {(deepRisk.status === "emergency_blocked" || (deepRiskBlocked && Boolean(state.question?.trim()) && Array.from(state.question?.trim() ?? "").length < 8)) ? (
                 <div className="mt-6 rounded-xl border border-[var(--gold)]/25 bg-black/15 p-4 text-sm leading-7 text-[var(--ink-2)]" role="status" data-deep-reading-blocked="risk">
                   <p>{deepRiskMessage}</p>
                   <p className="mt-2">{t("Your free cast interpretation remains available. No generation starts and no credit is reserved.", "免费卦象解读仍可完整查看；不会启动生成，也不会预留次数。")}</p>
@@ -680,7 +729,7 @@ export function ThreeCoinResultClient({
                           id="deep-interpretation-goal"
                           value={contextDraft.interpretationGoal}
                           onChange={(event) => setContextDraft((draft) => ({ ...draft, interpretationGoal: event.target.value as ContextDraft["interpretationGoal"] }))}
-                          className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm leading-6 text-white focus:border-[var(--gold)] focus:outline-none"
+                          className={`${styles.deepSelect} mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm leading-6 text-white focus:border-[var(--gold)] focus:outline-none`}
                         >
                           <option value="what_do_i_need_to_see_clearly">{t("Understand the situation", "理解当前局势")}</option>
                           <option value="what_should_i_pay_attention_to_next">{t("See what matters next", "看清接下来应关注什么")}</option>

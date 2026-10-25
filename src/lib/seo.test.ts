@@ -2,11 +2,31 @@ import { describe, expect, it } from "vitest";
 import sitemap from "@/app/sitemap";
 import robots from "@/app/robots";
 import { sitemapUrlInventory } from "@/i18n/helpers";
-import { HOME_DESCRIPTION, HOME_H1, HOME_TITLE, INDEXABLE_PATHS, LEGACY_REDIRECTS, SITE_ORIGIN, absoluteUrl, isPrivateOrCommercialPath } from "./seo";
+import { HOME_DESCRIPTION, HOME_H1, HOME_TITLE, INDEXABLE_PATHS, LEGACY_REDIRECTS, SITE_ORIGIN, absoluteUrl, isPrivateOrCommercialPath, normalizeLocalizedPathname } from "./seo";
 
 const THREE_COIN_RESULT_PATH = "/readings/three-coin/result";
 
 describe("Public SEO V1 constants", () => {
+
+  it("normalizes localized private and commercial paths consistently", () => {
+    expect(normalizeLocalizedPathname("/zh")).toBe("/");
+    expect(normalizeLocalizedPathname("/zh/account")).toBe("/account");
+    expect(normalizeLocalizedPathname("/account")).toBe("/account");
+
+    for (const path of [
+      "/signin",
+      "/signup",
+      "/account",
+      "/pricing",
+      "/history",
+      "/checkout",
+      "/result",
+      "/readings/three-coin/result",
+    ]) {
+      expect(isPrivateOrCommercialPath(path)).toBe(true);
+      expect(isPrivateOrCommercialPath(`/zh${path}`)).toBe(true);
+    }
+  });
   it("locks the approved homepage title, description, H1 and canonical host", () => {
     expect(HOME_TITLE).toBe("I Ching Online — Free Hexagram Reading | Quick I Ching");
     expect(HOME_DESCRIPTION).toBe("Use the I Ching online with Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, or Manual Cast. See changing lines and get a free grounded interpretation.");

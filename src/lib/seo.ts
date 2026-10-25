@@ -33,14 +33,23 @@ export function isIndexablePath(path: string): path is IndexablePath {
   return INDEXABLE_INVENTORY.includes(path);
 }
 
+export function normalizeLocalizedPathname(path: string): string {
+  if (path === "/zh") return "/";
+  if (path.startsWith("/zh/")) return path.slice(3);
+  return path;
+}
+
 export function isPrivateOrCommercialPath(path: string): boolean {
+  const normalizedPath = normalizeLocalizedPathname(path);
   return [
     "/api",
     "/signin",
+    "/signup",
     "/account",
+    "/pricing",
     "/checkout",
     "/result",
     "/readings/three-coin/result",
     "/history",
-  ].some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+  ].some((prefix) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`));
 }

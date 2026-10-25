@@ -93,7 +93,7 @@ export function RefundRequestControl(props: {
       >
         {submitting ? t("Submitting…", "正在提交…") : t("Submit for manual review", "提交人工审核")}
       </Button>
-      {error && <p role="alert" className="mt-2 text-sm text-[var(--cinnabar)]">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
     </div>
   );
 }

@@ -24,7 +24,7 @@ const sceneZh = (scene: string) => ({ career: "事业", relationship: "感情", 
 export default async function ChineseAccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/zh/signin?callbackURL=%2Fzh%2Faccount");
-  const [history, balance, purchases] = await Promise.all([loadHistory(), loadEntitlementBalance(), loadAccountPurchases()]);
+  const [history, balance, purchases] = await Promise.all([loadHistory(user), loadEntitlementBalance(user), loadAccountPurchases()]);
   return (
     <div className="mx-auto max-w-4xl px-4 py-16">
       <div className="flex flex-wrap items-baseline justify-between gap-3"><h1 className="font-display text-[clamp(1.8rem,2.6vw,2.4rem)] font-medium tracking-[-0.015em]">我的账户</h1><span className="font-mono text-xs text-[var(--ink-3)]">{user.email}</span></div>

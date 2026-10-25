@@ -20,9 +20,149 @@ function log(message) {
   console.log(`[Result Lighthouse Gate] ${message}`);
 }
 
+function diagnosticNode(node) {
+  if (!node || typeof node !== "object") return null;
+  return {
+    selector: node.selector ?? null,
+    snippet: node.snippet ?? null,
+    nodeLabel: node.nodeLabel ?? null,
+    path: node.path ?? null,
+  };
+}
+
+function logMobileDiagnostics(report) {
+  const auditIds = Object.keys(report.audits).filter((id) =>
+    /(largest-contentful-paint|\blcp\b|render-blocking|font|network-requests|mainthread-work-breakdown|bootup-time|long-tasks|unused-javascript)/i.test(id),
+  );
+  log(`RESULT_MOBILE_DIAGNOSTIC_AUDITS ${JSON.stringify(auditIds)}`);
+
+  for (const id of auditIds) {
+    const audit = report.audits[id];
+    if (!audit) continue;
+
+    if (id === "lcp-breakdown-insight") {
+      log(`RESULT_MOBILE_LCP_BREAKDOWN_RAW ${JSON.stringify(audit.details)}`);
+    }
+
+    if (id === "network-requests") {
+      const items = Array.isArray(audit.details?.items) ? audit.details.items : [];
+      const relevant = items
+        .filter((item) => ["Font", "Script", "Stylesheet", "Document"].includes(item.resourceType))
+        .map((item) => ({
+          url: item.url,
+          resourceType: item.resourceType,
+          transferSize: item.transferSize,
+          resourceSize: item.resourceSize,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          duration: item.endTime != null && item.startTime != null ? item.endTime - item.startTime : null,
+          priority: item.priority ?? null,
+        }));
+      log(`RESULT_MOBILE_DIAGNOSTIC network-requests ${JSON.stringify(relevant)}`);
+      continue;
+    }
+
+    const items = Array.isArray(audit.details?.items) ? audit.details.items : [];
+    const compactItems = items.slice(0, 30).map((item) => {
+      const result = {};
+      for (const key of [
+        "phase", "timing", "duration", "wastedMs", "totalBytes", "wastedBytes",
+        "url", "resourceType", "transferSize", "resourceSize", "startTime", "endTime",
+        "mainThreadTime", "scriptParseCompile", "scriptEvaluation", "group", "groupLabel",
+      ]) {
+        if (item?.[key] !== undefined) result[key] = item[key];
+      }
+      if (item?.node) result.node = diagnosticNode(item.node);
+      if (item?.items && Array.isArray(item.items)) {
+        result.items = item.items.slice(0, 20).map((nested) => ({
+          ...Object.fromEntries(Object.entries(nested).filter(([key]) =>
+            ["phase", "timing", "duration", "url", "resourceType", "transferSize", "resourceSize", "startTime", "endTime"].includes(key),
+          )),
+          ...(nested?.node ? { node: diagnosticNode(nested.node) } : {}),
+        }));
+      }
+      return Object.keys(result).length ? result : item;
+    });
+
+    log(`RESULT_MOBILE_DIAGNOSTIC ${id} ${JSON.stringify({
+      title: audit.title,
+      score: audit.score,
+      numericValue: audit.numericValue,
+      numericUnit: audit.numericUnit,
+      displayValue: audit.displayValue,
+      detailsType: audit.details?.type ?? null,
+      items: compactItems,
+    })}`);
+  }
+}
+
+async function logPageFontDiagnostics(page) {
+  const diagnostics = await page.evaluate(() => {
+    const fontFaces = [];
+    for (const sheet of Array.from(document.styleSheets)) {
+      let rules;
+      try {
+        rules = sheet.cssRules;
+      } catch {
+        continue;
+      }
+      if (!rules) continue;
+      for (const rule of Array.from(rules)) {
+        if (!(rule instanceof CSSFontFaceRule)) continue;
+        fontFaces.push({
+          family: rule.style.getPropertyValue("font-family"),
+          src: rule.style.getPropertyValue("src"),
+          weight: rule.style.getPropertyValue("font-weight"),
+          style: rule.style.getPropertyValue("font-style"),
+          unicodeRange: rule.style.getPropertyValue("unicode-range"),
+        });
+      }
+    }
+
+    const fontResources = performance.getEntriesByType("resource")
+      .filter((entry) => entry.name.includes("/_next/static/media/") && /\.woff2(?:\?|$)/.test(entry.name))
+      .map((entry) => ({
+        url: entry.name,
+        transferSize: entry.transferSize,
+        decodedBodySize: entry.decodedBodySize,
+        duration: entry.duration,
+      }));
+
+    const lcpNode = document.querySelector("#commercial-deep-section");
+    const lcpStyle = lcpNode ? getComputedStyle(lcpNode) : null;
+
+    return {
+      lcpComputedStyle: lcpStyle ? {
+        fontFamily: lcpStyle.fontFamily,
+        fontSize: lcpStyle.fontSize,
+        fontWeight: lcpStyle.fontWeight,
+      } : null,
+      loadedFonts: Array.from(document.fonts).map((font) => ({
+        family: font.family,
+        weight: font.weight,
+        style: font.style,
+        status: font.status,
+      })),
+      fontResources,
+      fontFaces,
+    };
+  });
+
+  const mapped = diagnostics.fontResources.map((resource) => {
+    const filename = resource.url.split("/").pop()?.split("?")[0] ?? "";
+    const faces = diagnostics.fontFaces.filter((face) => face.src.includes(filename));
+    return { ...resource, faces };
+  });
+  log(`RESULT_MOBILE_FONT_MAP ${JSON.stringify({
+    lcpComputedStyle: diagnostics.lcpComputedStyle,
+    resources: mapped,
+  })}`);
+}
+
 function summarize(label, runnerResult) {
   assert(runnerResult?.lhr, `${label}: Lighthouse returned no result`);
   const report = runnerResult.lhr;
+  if (label === "RESULT_MOBILE") logMobileDiagnostics(report);
   assert(!report.runtimeError, `${label}: Lighthouse runtime error: ${report.runtimeError?.message ?? "unknown"}`);
   const performance = Math.round((report.categories.performance?.score ?? 0) * 100);
   const accessibility = Math.round((report.categories.accessibility?.score ?? 0) * 100);
@@ -66,6 +206,7 @@ async function auditResult(browser, desktop) {
     await page.waitForFunction(() => document.body?.innerText.toLocaleLowerCase().includes("bottom line"), { timeout: 15_000 });
     const visible = await page.evaluate(() => document.body?.innerText.includes("Fellowship") && document.body?.innerText.includes("Gentle penetration"));
     assert(visible, `${desktop ? "desktop" : "mobile"}: Lighthouse audited an empty/incorrect result state`);
+    if (!desktop) await logPageFontDiagnostics(page);
     return summarize(desktop ? "RESULT_DESKTOP" : "RESULT_MOBILE", runnerResult);
   } finally {
     await context.close();

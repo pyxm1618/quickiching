@@ -115,6 +115,15 @@ export function createPostgresAccountRepository(dependencies: { sql: Sql }): Pos
         // erasure exception. Ordinary UPDATE/DELETE remains blocked by DB trigger.
         await transaction`select set_config('quickiching.privacy_erasure', 'on', true)`;
         await transaction`
+          delete from deep_reading_context_snapshots
+          where casting_id in (select id from casting_sessions where user_id = ${userId})
+        `;
+        await transaction`
+          delete from question_locks
+          where user_id = ${userId}
+             or winning_casting_id in (select id from casting_sessions where user_id = ${userId})
+        `;
+        await transaction`
           delete from deep_reading_results
           where casting_id in (select id from casting_sessions where user_id = ${userId})
         `;
