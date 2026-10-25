@@ -62,6 +62,8 @@ export function PublicReadingResult({
 }) {
   const [bundles, setBundles] = useState<{ primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null }>(initialBundles ?? {});
   const [resolvedLocalizedContent, setResolvedLocalizedContent] = useState<LocalizedReadingContent | undefined>(localizedContent);
+  const interpretationKey = `${reading.primaryHexagram}:${reading.relatingHexagram ?? "none"}`;
+  const [failedInterpretationKey, setFailedInterpretationKey] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
   useEffect(() => {
     setSaveState("idle");
@@ -91,6 +93,7 @@ export function PublicReadingResult({
   useEffect(() => {
     if (resolvedLocalizedContent) {
       setBundles(initialBundles ?? {});
+      setFailedInterpretationKey(null);
       return;
     }
     const hasInitialPrimary = initialBundles?.primary?.hexagram.number === reading.primaryHexagram;
@@ -99,29 +102,40 @@ export function PublicReadingResult({
       : initialBundles?.relating?.hexagram.number === reading.relatingHexagram;
     if (hasInitialPrimary && hasInitialRelating) {
       setBundles(initialBundles ?? {});
+      setFailedInterpretationKey(null);
       return;
     }
+    setFailedInterpretationKey(null);
     let active = true;
     void Promise.all([
       loadHexagramInterpretation(reading.primaryHexagram),
       reading.relatingHexagram === null ? Promise.resolve(null) : loadHexagramInterpretation(reading.relatingHexagram),
     ])
       .then(([primary, relating]) => {
-        if (active) setBundles({ primary, relating });
+        if (active) {
+          setBundles({ primary, relating });
+          setFailedInterpretationKey(null);
+        }
       })
       .catch(() => {
-        // The basic static model remains complete if a code-split interpretation bundle cannot load.
+        if (active) setFailedInterpretationKey(interpretationKey);
       });
     return () => {
       active = false;
     };
-  }, [initialBundles, reading.primaryHexagram, reading.relatingHexagram, resolvedLocalizedContent]);
+  }, [initialBundles, interpretationKey, reading.primaryHexagram, reading.relatingHexagram, resolvedLocalizedContent]);
 
   const model = useMemo(
     () => buildStaticReading(reading, bundles, resolvedLocalizedContent),
     [reading, bundles, resolvedLocalizedContent],
   );
   const isChinese = dictionary.locale === "zh-Hans";
+  const hasPrimaryInterpretation = bundles.primary?.hexagram.number === reading.primaryHexagram;
+  const hasRelatingInterpretation = reading.relatingHexagram === null
+    ? bundles.relating === null
+    : bundles.relating?.hexagram.number === reading.relatingHexagram;
+  const interpretationReady = Boolean(hasPrimaryInterpretation && hasRelatingInterpretation);
+  const interpretationLoadFailed = failedInterpretationKey === interpretationKey;
   const ResultHeading = headingLevel;
   const movingPositions = reading.changingLines.join(isChinese ? "、" : ", ");
   const hasChangingLines = reading.changingLines.length > 0;
@@ -134,6 +148,14 @@ export function PublicReadingResult({
     return (
       <section className="reading-reveal" aria-live="polite" data-public-reading-result data-reading-localization-loading>
         <p className="mystic-kicker">正在加载中文卦象解读…</p>
+      </section>
+    );
+  }
+
+  if (!isChinese && !interpretationReady && !interpretationLoadFailed) {
+    return (
+      <section className="reading-reveal min-h-[24rem]" aria-live="polite" aria-busy="true" data-public-reading-result data-reading-interpretation-loading>
+        <p className="mystic-kicker">Loading the interpretation…</p>
       </section>
     );
   }
