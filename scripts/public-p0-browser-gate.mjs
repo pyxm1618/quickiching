@@ -133,7 +133,7 @@ async function openSeededThreeCoinResult(page, locale = "en") {
   await new Promise((resolve) => setTimeout(resolve, 500));
   assert.equal(new URL(page.url()).pathname, methodPath, "Restored completed cast must not auto-navigate to an old result");
   await page.goto(`${BASE}${resultPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])", { timeout: 15_000 });
+  await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading]):not([data-reading-interpretation-loading])", { timeout: 15_000 });
 }
 
 async function assertQuestionPrivacy(page, question) {
