@@ -1,7 +1,7 @@
-import type { RiskStatus, Scene } from "../casting/types";
+import type { RiskStatus } from "../casting/types";
 
 // §11 Deterministic server-side risk engine. Combines:
-//   high-risk object + decision action + scene context + exclusion context + emergency expressions.
+//   high-risk object + decision action + exclusion context + emergency expressions.
 // Never a single-keyword block. All LLM entrances are gated by this before generation.
 // These rules are fail-closed: on any ambiguity we must not silently pass to the LLM in
 // a way that violates the boundary; the product path is allowed only when clearly safe.
@@ -63,8 +63,8 @@ export function containsHighRiskTopic(text: string): boolean {
   return detectEmergency(t) || MEDICAL_OBJECT.test(t) || INVESTMENT_OBJECT.test(t) || LEGAL_OBJECT.test(t);
 }
 
-// Deterministic evaluation. `scene` is provided to support context-aware exclusion.
-export function evaluateRisk(rawQuestion: string, scene: Scene): RiskDecision {
+// Deterministic evaluation based only on the submitted question/context text.
+export function evaluateRisk(rawQuestion: string): RiskDecision {
   const t = normalize(rawQuestion);
   const codes: string[] = [];
 
