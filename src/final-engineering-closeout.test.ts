@@ -20,6 +20,13 @@ describe("final engineering closeout source contracts", () => {
     expect(georgiaLines[0]).toContain("--font-display");
   });
 
+  it("normalizes API scene values through the shared domain vocabulary instead of a cast", () => {
+    const route = source("./app/api/readings/route.ts");
+    expect(route).toContain("const scene = normalizeScene(sceneInput)");
+    expect(route).toContain("evaluateRisk(questionText, scene)");
+    expect(route).not.toContain("scene as Scene");
+  });
+
   it("distinguishes clarification risk copy from high-risk professional-support copy", () => {
     const client = source("./components/three-coin-result/three-coin-result-client.tsx");
     expect(client).toContain('deepRisk.status === "needs_clarification"');
