@@ -10,8 +10,38 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-import { ThreeCoinResultClient } from "./three-coin-result-client";
+import { ThreeCoinResultClient, getTerminalCreditReconciliation } from "./three-coin-result-client";
 import { CommercialReadingReportView } from "./commercial-reading-report-view";
+
+describe("ThreeCoinResultClient Deep Reading credit reconciliation", () => {
+  it.each(["failed", "timed_out"] as const)("uses authoritative credits for a current-page %s terminal result", (status) => {
+    expect(getTerminalCreditReconciliation(status, 1, "cast-1", "cast-1")).toEqual({
+      authoritativeCredits: 1,
+      clearReservationRef: true,
+    });
+  });
+
+  it.each(["failed", "timed_out"] as const)("uses authoritative credits for a restored %s result after reload", (status) => {
+    expect(getTerminalCreditReconciliation(status, 1, null, "cast-1")).toEqual({
+      authoritativeCredits: 1,
+      clearReservationRef: false,
+    });
+  });
+
+  it.each(["queued", "running", "completed"] as const)("does not refresh credits for %s polling state", (status) => {
+    expect(getTerminalCreditReconciliation(status, 99, null, "cast-1")).toEqual({
+      authoritativeCredits: null,
+      clearReservationRef: false,
+    });
+  });
+
+  it("ignores an invalid terminal balance instead of guessing a +1 refund", () => {
+    expect(getTerminalCreditReconciliation("failed", undefined, "cast-1", "cast-1")).toEqual({
+      authoritativeCredits: null,
+      clearReservationRef: true,
+    });
+  });
+});
 
 describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => {
   describe.each([
