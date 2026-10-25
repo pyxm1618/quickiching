@@ -111,13 +111,15 @@ export function createWaffoPaymentAdapter(
     userId: string;
     buyerEmail: string;
     productKey: ProductId;
+    locale?: "en" | "zh-Hans";
   }): Promise<{ sessionId: string; checkoutUrl: string; expiresAt: Date }>;
 } {
   return {
     async createCheckout(input) {
       const productId = config.productIds[input.productKey];
+      const pricingPath = input.locale === "zh-Hans" ? "/zh/pricing" : "/pricing";
       const successUrl = config.appBaseUrl
-        ? `${config.appBaseUrl.replace(/\/+$/, "")}/pricing?orderId=${encodeURIComponent(input.orderId)}`
+        ? `${config.appBaseUrl.replace(/\/+$/, "")}${pricingPath}?orderId=${encodeURIComponent(input.orderId)}`
         : undefined;
       const result = await client.checkout.authenticated.create({
         productId,
