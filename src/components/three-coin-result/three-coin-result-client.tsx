@@ -435,7 +435,7 @@ export function ThreeCoinResultClient({
             data.status,
             data.availableCredits,
             reservedCreditCastingRef.current,
-            activeId,
+            activeId!,
           );
           if (creditReconciliation.authoritativeCredits !== null) {
             setCredits(creditReconciliation.authoritativeCredits);
