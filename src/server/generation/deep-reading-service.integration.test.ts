@@ -188,6 +188,12 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
         facts: castFacts,
       },
     });
+    expect(restored).not.toHaveProperty("availableCredits");
+
+    await sql`update generation_jobs set status = 'running', updated_at = clock_timestamp() where id = ${result.jobId}`;
+    const running = await deepReadingService.getDeepReadingStatus({ userId: userOneId, castingId });
+    expect(running.status).toBe("running");
+    expect(running).not.toHaveProperty("availableCredits");
 
     // Verify batch reserved
     const batchRows = await sql<{ quantity_available: number; quantity_reserved: number }[]>`
@@ -217,7 +223,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await sql`update generation_jobs set timeout_at = clock_timestamp() - interval '1 minute' where id = ${requested.jobId}`;
 
     const first = await deepReadingService.getDeepReadingStatus({ userId, castingId });
-    expect(first).toEqual({ status: "timed_out", errorCode: "GENERATION_TIMEOUT" });
+    expect(first).toEqual({ status: "timed_out", errorCode: "GENERATION_TIMEOUT", availableCredits: 1 });
 
     const jobRows = await sql<{ status: string }[]>`select status from generation_jobs where id = ${requested.jobId}`;
     expect(jobRows[0]?.status).toBe("timed_out");
@@ -233,7 +239,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     expect(releaseRows[0]?.count).toBe(1);
 
     const second = await deepReadingService.getDeepReadingStatus({ userId, castingId });
-    expect(second).toEqual({ status: "timed_out", errorCode: "GENERATION_TIMEOUT" });
+    expect(second).toEqual({ status: "timed_out", errorCode: "GENERATION_TIMEOUT", availableCredits: 1 });
     const releaseRowsAfterRetry = await sql<{ count: number }[]>`
       select count(*)::int as count from entitlement_ledger where business_key = ${`release:${requested.reservationId}`}
     `;
@@ -244,6 +250,41 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     expect(batchRowsAfterRetry[0]).toMatchObject({ quantity_available: 1, quantity_reserved: 0 });
   });
 
+  it("returns authoritative credits after a failed workflow start releases the reservation", async () => {
+    const userId = `cp5-failed-${randomUUID()}`;
+    const { batchId, castingId } = await seedDeepReadingCandidateWithCredit(userId);
+    const failingService = createDeepReadingService({
+      sql,
+      env: integrationEnv,
+      workflowStarter: {
+        startDeepReadingWorkflow: async () => ({ runId: "mock-failed-run", started: false }),
+      },
+    });
+
+    await expect(failingService.requestDeepReading({
+      userId,
+      castingId,
+      enrichment: validEnrichment(),
+    })).rejects.toThrow("WORKFLOW_START_FAILED");
+
+    const status = await failingService.getDeepReadingStatus({ userId, castingId });
+    expect(status).toEqual({
+      status: "failed",
+      errorCode: "WORKFLOW_START_FAILED",
+      availableCredits: 1,
+    });
+
+    const reservationRows = await sql<{ status: string }[]>`
+      select status from entitlement_reservations
+      where casting_id = ${castingId}
+      order by created_at desc limit 1
+    `;
+    expect(reservationRows[0]?.status).toBe("released");
+    const batchRows = await sql<{ quantity_available: number; quantity_reserved: number }[]>`
+      select quantity_available, quantity_reserved from entitlement_batches where id = ${batchId}
+    `;
+    expect(batchRows[0]).toMatchObject({ quantity_available: 1, quantity_reserved: 0 });
+  });
   it("does not time out a completed Deep Reading and returns its stored snapshot", async () => {
     const userId = `cp5-completed-${randomUUID()}`;
     const { batchId, castingId } = await seedDeepReadingCandidateWithCredit(userId);
