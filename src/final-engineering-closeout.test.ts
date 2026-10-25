@@ -74,10 +74,12 @@ describe("final engineering closeout source contracts", () => {
 
   it("keeps anonymous browser-session Three-Coin results on the interpretation loading contract", () => {
     const client = source("./components/three-coin-result/three-coin-result-client.tsx");
-    const result = source("./components/public-reading/public-reading-result.tsx");
-    expect(client).toContain("deferFallbackInterpretation={!zh && initialState === undefined && initialCastingView === null && initialInterpretationBundles === undefined}");
-    expect(result).toContain("data-reading-interpretation-loading");
-    expect(result).toContain("deferFallbackInterpretation && !isChinese && !interpretationReady && !interpretationLoadFailed");
+    const genericResult = source("./components/public-reading/public-reading-result.tsx");
+    expect(client).toContain("shouldDeferBrowserInterpretation");
+    expect(client).toContain("waitingForBrowserInterpretation");
+    expect(client).toContain("data-reading-interpretation-loading");
+    expect(client).toContain("loadHexagramInterpretation(resultReading.primaryHexagram)");
+    expect(genericResult).not.toContain("data-reading-interpretation-loading");
   });
 
   it("preloads known result interpretations on server-owned result routes", () => {
