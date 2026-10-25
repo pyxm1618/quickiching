@@ -86,8 +86,7 @@ async function seedThreeCoin(page, question) {
 
 async function verifyChineseNoChangingLines(page) {
   await seedThreeCoinSession(page, `fixture-no-change-${Date.now()}`, new Date().toISOString(), NO_CHANGE_STEPS, "这次起卦没有动爻吗？");
-  await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => location.pathname === "/zh/readings/three-coin/result", { timeout: 15_000 });
+  await openSeededThreeCoinResult(page, "zh-Hans");
   const result = await page.$eval("[data-public-reading-result]", (node) => ({
     text: node.textContent ?? "",
     overviewLabel: node.querySelector("[data-primary-overview]")?.getAttribute("aria-label") ?? "",
@@ -120,6 +119,18 @@ async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, 
       data: { steps },
     }));
   }, { key: THREE_COIN_STORAGE_KEY, id, createdAt, steps, question });
+}
+
+async function openSeededThreeCoinResult(page, locale = "en") {
+  const prefix = locale === "zh-Hans" ? "/zh" : "";
+  const methodPath = `${prefix}/methods/three-coin`;
+  const resultPath = `${prefix}/readings/three-coin/result`;
+  await page.goto(`${BASE}${methodPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await waitForText(page, "6 / 6 lines");
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  assert.equal(new URL(page.url()).pathname, methodPath, "Restored completed cast must not auto-navigate to an old result");
+  await page.goto(`${BASE}${resultPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])", { timeout: 15_000 });
 }
 
 async function assertQuestionPrivacy(page, question) {
@@ -488,8 +499,7 @@ async function verifyHistory(page) {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(() => localStorage.removeItem("quickiching:public-history:v1"));
   await seedThreeCoin(page, "Same facts · first question");
-  await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await openSeededThreeCoinResult(page);
   await waitForText(page, "Your Three-Coin Reading");
   await clickText(page, "Save reading");
   await waitForText(page, "Saved in this browser");
