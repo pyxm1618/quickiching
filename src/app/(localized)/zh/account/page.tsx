@@ -19,12 +19,12 @@ export const dynamic = "force-dynamic";
 
 const statusZh = (status: string) => ({ paid: "已付款", pending: "处理中", failed: "失败", refunded: "已退款", partially_refunded: "部分退款" } as Record<string,string>)[status] ?? "状态待确认";
 const methodZh = (method: string) => ({ three_coin: "三枚铜钱", "three-coin": "三枚铜钱", yarrow: "蓍草", mei_hua: "梅花易数", "mei-hua": "梅花易数", manual: "手动起卦" } as Record<string,string>)[method] ?? "起卦";
-const sceneZh = (scene: string) => ({ career: "事业", relationship: "感情", wealth: "财富", timing: "时机", growth: "成长", general: "综合" } as Record<string,string>)[scene] ?? "综合";
+const sceneZh = (scene: string) => ({ career: "事业", relationships: "感情", wealth: "财富", timing: "时机", choices: "选择与决策", personal_growth: "个人成长", other: "其他", relationship: "感情", decision: "选择与决策", spiritual: "个人成长", growth: "个人成长", general: "其他" } as Record<string,string>)[scene] ?? "未分类";
 
 export default async function ChineseAccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/zh/signin?callbackURL=%2Fzh%2Faccount");
-  const [history, balance, purchases] = await Promise.all([loadHistory(user), loadEntitlementBalance(user), loadAccountPurchases()]);
+  const [history, balance, purchases] = await Promise.all([loadHistory(user, "zh-Hans"), loadEntitlementBalance(user), loadAccountPurchases(user)]);
   return (
     <div className="mx-auto max-w-4xl px-4 py-16">
       <div className="flex flex-wrap items-baseline justify-between gap-3"><h1 className="font-display text-[clamp(1.8rem,2.6vw,2.4rem)] font-medium tracking-[-0.015em]">我的账户</h1><span className="font-mono text-xs text-[var(--ink-3)]">{user.email}</span></div>

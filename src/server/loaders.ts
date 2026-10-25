@@ -198,7 +198,10 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
   };
 }
 
-export async function loadHistory(resolvedUser?: { id: string; email: string } | null): Promise<
+export async function loadHistory(
+  resolvedUser?: { id: string; email: string } | null,
+  locale: "en" | "zh-Hans" = "en",
+): Promise<
   Array<{
     id: string;
     method: string;
@@ -241,7 +244,7 @@ export async function loadHistory(resolvedUser?: { id: string; email: string } |
         lifecycle: String(r.lifecycle),
         riskStatus: String(r.risk_status),
         createdAt: new Date(r.created_at),
-        primaryName: hexNum ? hexagramByNumber(hexNum).englishName : null,
+        primaryName: hexNum ? (locale === "zh-Hans" ? hexagramByNumber(hexNum).chineseName : hexagramByNumber(hexNum).englishName) : null,
         hasPreview: r.preview_id != null,
         hasReading: r.reading_id != null,
       };
@@ -259,7 +262,7 @@ export async function loadHistory(resolvedUser?: { id: string; email: string } |
       lifecycle: s.lifecycle,
       riskStatus: s.riskStatus,
       createdAt: s.createdAt,
-      primaryName: cr ? hexagramByNumber(cr.primaryHexagramNumber).englishName : null,
+      primaryName: cr ? (locale === "zh-Hans" ? hexagramByNumber(cr.primaryHexagramNumber).chineseName : hexagramByNumber(cr.primaryHexagramNumber).englishName) : null,
       hasPreview: !!preview && preview.status === "completed",
       hasReading: !!reading && reading.status === "completed",
     };

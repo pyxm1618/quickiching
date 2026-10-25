@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
@@ -6,7 +7,7 @@ import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
 export const metadata: Metadata = {
   title: "Primary and Relating Hexagrams — I Ching Reading Guide",
   description: "Understand the difference between a primary hexagram, changing lines, and a relating hexagram in an I Ching reading.",
-  alternates: { canonical: "/guides/primary-relating-hexagrams" },
+  alternates: { canonical: "/guides/primary-relating-hexagrams", languages: alternateLanguages("guides-primary-relating") },
   openGraph: { title: "Primary and Relating Hexagrams — I Ching Reading Guide", description: "Learn how primary and relating hexagrams connect through changing lines.", url: "/guides/primary-relating-hexagrams", type: "article" },
 };
 
