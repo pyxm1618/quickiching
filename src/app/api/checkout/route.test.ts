@@ -99,7 +99,7 @@ describe("CP4 checkout route", () => {
     const response = await POST(request({ productKey: "three", requestId: "request-1234567890" }));
     expect(response.status).toBe(200);
     expect(mocks.createCheckout).toHaveBeenCalledWith({
-      userId: "user-1", buyerEmail: "buyer@example.com", productKey: "three", requestId: "request-1234567890",
+      userId: "user-1", buyerEmail: "buyer@example.com", productKey: "three", requestId: "request-1234567890", locale: "en",
     });
     await expect(response.json()).resolves.toEqual({
       orderId: "8b6d8846-cdce-4dde-9744-817b8329a5b6",
@@ -108,6 +108,12 @@ describe("CP4 checkout route", () => {
     });
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+  });
+
+  it("passes the Chinese checkout locale to the payment service", async () => {
+    const response = await POST(request({ productKey: "one", requestId: "request-zh-1234567890", locale: "zh-Hans" }));
+    expect(response.status).toBe(200);
+    expect(mocks.createCheckout).toHaveBeenCalledWith(expect.objectContaining({ locale: "zh-Hans" }));
   });
 
   it("maps service failures to bounded responses without provider or user details", async () => {
