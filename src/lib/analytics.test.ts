@@ -3,6 +3,7 @@ import {
   ANALYTICS_CONSENT_STORAGE_KEY,
   getAnalyticsConfig,
   readStoredAnalyticsConsent,
+  analyticsProvidersAllowed,
 } from "./analytics";
 
 describe("getAnalyticsConfig", () => {
@@ -100,5 +101,14 @@ describe("analytics consent storage contract", () => {
     expect(readStoredAnalyticsConsent()).toBeNull();
 
     vi.unstubAllGlobals();
+  });
+});
+
+
+describe("analytics provider consent gate", () => {
+  it("initializes providers only after explicit stored grant", () => {
+    expect(analyticsProvidersAllowed(null)).toBe(false);
+    expect(analyticsProvidersAllowed("denied")).toBe(false);
+    expect(analyticsProvidersAllowed("granted")).toBe(true);
   });
 });
