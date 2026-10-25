@@ -467,17 +467,6 @@ async function main() {
     // =========================================================================
     log("Test 5: Four Casting Methods -> Interactive reading generation, kicker, aria, links");
 
-    async function enterOptionalQuestionCasting(toolSelector) {
-      const deadline = Date.now() + 5_000;
-      while (Date.now() < deadline) {
-        const tool = await page.$(toolSelector);
-        if (tool) return tool;
-        const skipButton = await page.$("div[data-question-first] button.mystic-button-secondary");
-        if (skipButton) await skipButton.click();
-        await new Promise((resolve) => setTimeout(resolve, 250));
-      }
-      return page.waitForSelector(toolSelector, { timeout: 1_000 });
-    }
 
     // 5.a: Three-Coin Method (/zh/methods/three-coin)
     await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0" });
@@ -570,7 +559,17 @@ async function main() {
 
     // 5.c: Mei Hua Yi Shu (/zh/methods/mei-hua-yi-shu)
     await page.goto(`${BASE}/zh/methods/mei-hua-yi-shu`, { waitUntil: "networkidle0" });
-    const castTimeBtn = await enterOptionalQuestionCasting("section[aria-labelledby='mei-hua-tool-title'] button.mystic-button");
+    await page.evaluate(() => {
+      sessionStorage.setItem("quickiching:public-v1:mei-hua-v2", JSON.stringify({
+        schemaVersion: 1,
+        started: true,
+        id: "gate_mei_hua_reading",
+        createdAt: new Date().toISOString(),
+        data: {},
+      }));
+    });
+    await page.reload({ waitUntil: "networkidle0" });
+    const castTimeBtn = await page.waitForSelector("section[aria-labelledby='mei-hua-tool-title'] button.mystic-button", { timeout: 5000 });
     await castTimeBtn.click();
     await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])", { timeout: 5000 });
     const meiHuaKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
@@ -581,7 +580,17 @@ async function main() {
 
     // 5.d: Manual Cast (/zh/methods/manual-cast)
     await page.goto(`${BASE}/zh/methods/manual-cast`, { waitUntil: "networkidle0" });
-    const castManualBtn = await enterOptionalQuestionCasting("section[aria-labelledby='manual-cast-tool-title'] button:not([role='tab']).mystic-button");
+    await page.evaluate(() => {
+      sessionStorage.setItem("quickiching:public-v1:manual-v2", JSON.stringify({
+        schemaVersion: 1,
+        started: true,
+        id: "gate_manual_reading",
+        createdAt: new Date().toISOString(),
+        data: {},
+      }));
+    });
+    await page.reload({ waitUntil: "networkidle0" });
+    const castManualBtn = await page.waitForSelector("section[aria-labelledby='manual-cast-tool-title'] button:not([role='tab']).mystic-button", { timeout: 5000 });
     await castManualBtn.click();
     await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])", { timeout: 5000 });
     const manualKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
