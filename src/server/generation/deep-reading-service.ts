@@ -40,6 +40,7 @@ export type DeepReadingStatusResult = {
   output?: unknown;
   snapshot?: DeepReadingContextSnapshot;
   errorCode?: string;
+  availableCredits?: number;
 };
 
 export interface DeepReadingService {
@@ -247,6 +248,15 @@ export function createDeepReadingService(dependencies: {
 }): DeepReadingService {
   const { sql, workflowStarter } = dependencies;
   const env = dependencies.env ?? process.env;
+
+  async function loadAvailableCredits(userId: string): Promise<number> {
+    const rows = await sql`
+      select coalesce(sum(quantity_available), 0)::integer as available
+      from entitlement_batches
+      where user_id = ${userId} and expires_at > clock_timestamp()
+    ` as Array<{ available: number }>;
+    return Number(rows[0]?.available ?? 0);
+  }
 
   return {
     async requestDeepReading(options): Promise<DeepReadingRequestResult> {
@@ -571,7 +581,13 @@ export function createDeepReadingService(dependencies: {
       const timedOut = await sql.begin((transaction) =>
         reconcileExpiredDeepReading(transaction, { castingId, userId }),
       );
-      if (timedOut) return { status: "timed_out", errorCode: "GENERATION_TIMEOUT" };
+      if (timedOut) {
+        return {
+          status: "timed_out",
+          errorCode: "GENERATION_TIMEOUT",
+          availableCredits: await loadAvailableCredits(userId),
+        };
+      }
 
       const jobRows = await sql`
         select status, structured_error_code from generation_jobs
@@ -601,6 +617,13 @@ export function createDeepReadingService(dependencies: {
           }
         }
         return { status, snapshot };
+      }
+      if (status === "failed" || status === "timed_out") {
+        return {
+          status,
+          errorCode: job.structured_error_code ? String(job.structured_error_code) : undefined,
+          availableCredits: await loadAvailableCredits(userId),
+        };
       }
       return {
         status,
