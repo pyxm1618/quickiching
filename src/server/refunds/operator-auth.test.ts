@@ -28,6 +28,6 @@ describe("refund operator authorization", () => {
   it("fails closed on staging when the dedicated refund secret is absent", () => {
     const env = { QUICKICHING_DEPLOYMENT_TIER: "staging", APP_SECRET: "staging-app-secret" };
     const expected = resolveRefundOperatorSecret(env);
-    expect(verifyRefundOperatorAuthorization(request("Bearer staging-app-secret"), expected, env)).toBe(false);
+    expect(verifyRefundOperatorAuthorization(request("Bearer staging-app-secret"), expected)).toBe(false);
   });
 });
