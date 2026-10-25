@@ -1,4 +1,5 @@
 import React from "react";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -39,6 +40,14 @@ describe("UserNavControl Component Render", () => {
     expect(html).toContain("P"); // initial of pyxm1618
     expect(html).toContain("pyxm1618");
     expect(html).toContain('aria-label="User menu for pyxm1618@gmail.com"');
+  });
+
+  it("implements Escape and arrow-key behavior for desktop menu semantics", () => {
+    const source = readFileSync(new URL("./user-nav-control.tsx", import.meta.url), "utf8");
+    expect(source).toContain('event.key === "Escape"');
+    expect(source).toContain('event.key === "ArrowDown"');
+    expect(source).toContain('event.key === "ArrowUp"');
+    expect(source).toContain("menuTriggerRef.current?.focus()");
   });
 
   it("renders mobile drawer variant properly", () => {
