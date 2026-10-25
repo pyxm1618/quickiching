@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { decryptJson, decryptJsonWithKeyMaterial, encryptJson, encryptJsonWithKeyMaterial, hmacWithKeyMaterial, verifyHmacWithKeyMaterial } from "./index";
+import { decryptJson, decryptJsonWithKeyMaterial, encryptJson, encryptJsonWithKeyMaterial, hmacWithKeyMaterial, signCookie, verifyCookie, verifyHmacWithKeyMaterial } from "./index";
 
 describe("AES-GCM context binding", () => {
   it("rejects a question ciphertext when its casting or version binding changes", () => {
@@ -33,5 +33,16 @@ describe("production key safety and derived-key compatibility", () => {
     const signature = hmacWithKeyMaterial("payload", "result-hmac", "v7", "stable-key");
     expect(verifyHmacWithKeyMaterial("payload", signature, "result-hmac", "v7", "stable-key")).toBe(true);
     expect(hmacWithKeyMaterial("payload", "result-hmac", "v7", "stable-key")).toBe(signature);
+  });
+});
+
+
+describe("signed cookie verification", () => {
+  it("preserves valid cookies and rejects tampered or wrong-length signatures", () => {
+    const signed = signCookie("session-123");
+    expect(verifyCookie(signed)).toBe("session-123");
+    const [payload, signature] = signed.split(".");
+    expect(verifyCookie(`${payload}.${signature.slice(0, -1)}x`)).toBeNull();
+    expect(verifyCookie(`${payload}.${signature.slice(0, -1)}`)).toBeNull();
   });
 });

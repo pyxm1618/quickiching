@@ -158,6 +158,6 @@ export function verifyCookie(signed: string): string | null {
   // constant-time compare
   const a = Buffer.from(sig);
   const b = Buffer.from(expected);
-  if (a.length !== b.length || !a.equals(b)) return null;
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   return payload;
 }

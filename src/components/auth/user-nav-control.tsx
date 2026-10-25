@@ -48,6 +48,42 @@ export function UserNavControl({
   const loading = shouldFetchUser && userLoading;
   const [isOpen, setIsOpen] = useState(initialOpen);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const menuItemRefs = useRef<Array<HTMLElement | null>>([]);
+
+  function focusMenuItem(index: number) {
+    requestAnimationFrame(() => menuItemRefs.current[index]?.focus());
+  }
+
+  function handleMenuTriggerKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setIsOpen(false);
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      setIsOpen(true);
+      focusMenuItem(event.key === "ArrowDown" ? 0 : 2);
+    }
+  }
+
+  function handleMenuItemKeyDown(event: React.KeyboardEvent<HTMLElement>, index: number) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setIsOpen(false);
+      requestAnimationFrame(() => menuTriggerRef.current?.focus());
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      const next = (index + direction + menuItemRefs.current.length) % menuItemRefs.current.length;
+      menuItemRefs.current[next]?.focus();
+    } else if (event.key === "Tab") {
+      setIsOpen(false);
+    }
+  }
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -191,9 +227,11 @@ export function UserNavControl({
   return (
     <div className="relative inline-flex items-center" ref={menuRef}>
       <button
+        ref={menuTriggerRef}
         type="button"
         data-user-nav-menu-button
         onClick={() => setIsOpen((prev) => !prev)}
+        onKeyDown={handleMenuTriggerKeyDown}
         aria-expanded={isOpen}
         aria-haspopup="menu"
         aria-label={copy.menuAria.replace("{email}", user.email)}
@@ -222,9 +260,11 @@ export function UserNavControl({
           </div>
 
           <Link
+            ref={(node) => { menuItemRefs.current[0] = node; }}
             href={accountHref}
             prefetch={false}
             role="menuitem"
+            onKeyDown={(event) => handleMenuItemKeyDown(event, 0)}
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--gold-2)]"
           >
@@ -233,9 +273,11 @@ export function UserNavControl({
           </Link>
 
           <Link
+            ref={(node) => { menuItemRefs.current[1] = node; }}
             href={historyHref}
             prefetch={false}
             role="menuitem"
+            onKeyDown={(event) => handleMenuItemKeyDown(event, 1)}
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--ink)]"
           >
@@ -246,8 +288,10 @@ export function UserNavControl({
           <div className="my-1 border-t border-white/[0.08]" />
 
           <button
+            ref={(node) => { menuItemRefs.current[2] = node; }}
             type="button"
             role="menuitem"
+            onKeyDown={(event) => handleMenuItemKeyDown(event, 2)}
             onClick={handleSignOut}
             className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-[var(--danger)] transition-colors hover:bg-white/[0.08] cursor-pointer"
           >

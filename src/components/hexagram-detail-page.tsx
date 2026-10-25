@@ -83,7 +83,7 @@ function EnglishLoveModule({ seo, knowledge }: { seo: HexagramSeoEntry; knowledg
       <p className="mystic-kicker">Love and close relationships</p>
       <h2 id="love-module-title" className="mt-2 font-display text-2xl font-normal">{titleCaseKeyword(seo.loveKeyword + " meaning")}</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">
-        {seo.loveKeyword} asks how the pattern of {seo.hexagramName} appears in affection, trust, boundaries, and shared decisions. Its useful quality is {withoutBrand(knowledge.interpretation.strength).toLocaleLowerCase("en-US")}
+        {seo.loveKeyword} asks how the pattern of {seo.hexagramName} appears in affection, trust, boundaries, and shared decisions. Its useful quality: {withoutBrand(knowledge.interpretation.strength)}
       </p>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">
         Read {seo.otherCoreVariant} as a reflective structure, then compare it with honest communication and observable behavior. A symbolic reading cannot replace consent, reciprocity, or another person&apos;s stated choice.
@@ -121,8 +121,8 @@ function EnglishRelationshipModule({ seo, knowledge }: { seo: HexagramSeoEntry; 
     <section className="mystic-card mt-10 p-6" data-relationship-module aria-labelledby="relationship-module-title">
       <p className="mystic-kicker">Relationship-specific guidance</p>
       <h2 id="relationship-module-title" className="mt-2 font-display text-2xl font-normal">{titleCaseKeyword(seo.relationshipKeyword)} Guidance</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">In relationships, {seo.hexagramName} emphasizes {withoutBrand(knowledge.interpretation.strength).toLocaleLowerCase("en-US")}</p>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Its challenge is {withoutBrand(knowledge.interpretation.challenge).toLocaleLowerCase("en-US")} Use consent, reciprocity, and observed behavior to test the symbolic theme.</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">In relationships, {seo.hexagramName} emphasizes this quality: {withoutBrand(knowledge.interpretation.strength)}</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Its challenge: {withoutBrand(knowledge.interpretation.challenge)} Use consent, reciprocity, and observed behavior to test the symbolic theme.</p>
     </section>
   );
 }
