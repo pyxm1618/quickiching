@@ -62,6 +62,33 @@ type ContextDraft = {
   interpretationGoal: DeepReadingContextEnrichment["interpretationGoal"];
 };
 
+type DeepReadingStatusPayload = {
+  status: "not_started" | "queued" | "running" | "completed" | "failed" | "timed_out";
+  output?: unknown;
+  snapshot?: unknown;
+  availableCredits?: unknown;
+};
+
+export function getTerminalCreditReconciliation(
+  status: DeepReadingStatusPayload["status"],
+  availableCredits: unknown,
+  reservedCreditCastingId: string | null,
+  targetCastingId: string,
+): { authoritativeCredits: number | null; clearReservationRef: boolean } {
+  if (status !== "failed" && status !== "timed_out") {
+    return { authoritativeCredits: null, clearReservationRef: false };
+  }
+  const authoritativeCredits = typeof availableCredits === "number"
+    && Number.isSafeInteger(availableCredits)
+    && availableCredits >= 0
+    ? availableCredits
+    : null;
+  return {
+    authoritativeCredits,
+    clearReservationRef: reservedCreditCastingId === targetCastingId,
+  };
+}
+
 const EMPTY_CONTEXT_DRAFT: ContextDraft = {
   contextNotes: "",
   optionsText: "",
@@ -161,11 +188,7 @@ export function ThreeCoinResultClient({
       try {
         const res = await fetch(`/api/readings/${targetCastingId}/deep`);
         if (!res.ok) return;
-        const data = await res.json() as {
-          status: "not_started" | "queued" | "running" | "completed" | "failed" | "timed_out";
-          output?: unknown;
-          snapshot?: unknown;
-        };
+        const data = await res.json() as DeepReadingStatusPayload;
         const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
         if (parsedSnapshot.success) setDeepSnapshot(parsedSnapshot.data);
         const parsedReport = readingReportSchema.safeParse(data.output);
@@ -186,9 +209,17 @@ export function ThreeCoinResultClient({
           }
         } else if (data.status === "failed" || data.status === "timed_out") {
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-          if (reservedCreditCastingRef.current === targetCastingId) {
+          const creditReconciliation = getTerminalCreditReconciliation(
+            data.status,
+            data.availableCredits,
+            reservedCreditCastingRef.current,
+            targetCastingId,
+          );
+          if (creditReconciliation.authoritativeCredits !== null) {
+            setCredits(creditReconciliation.authoritativeCredits);
+          }
+          if (creditReconciliation.clearReservationRef) {
             reservedCreditCastingRef.current = null;
-            setCredits((prev) => prev + 1);
           }
           setDeepStatus("failed");
           setActionError(zh
@@ -371,11 +402,7 @@ export function ThreeCoinResultClient({
       try {
         const res = await fetch(`/api/readings/${activeId}/deep`);
         if (!res.ok) return;
-        const data = await res.json() as {
-          status: "not_started" | "queued" | "running" | "completed" | "failed" | "timed_out";
-          output?: unknown;
-          snapshot?: unknown;
-        };
+        const data = await res.json() as DeepReadingStatusPayload;
         if (!active) return;
         const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
         if (parsedSnapshot.success) {
@@ -404,6 +431,18 @@ export function ThreeCoinResultClient({
           setDeepStatus("generating");
           if (activeId) startPolling(activeId);
         } else if (data.status === "failed" || data.status === "timed_out") {
+          const creditReconciliation = getTerminalCreditReconciliation(
+            data.status,
+            data.availableCredits,
+            reservedCreditCastingRef.current,
+            activeId,
+          );
+          if (creditReconciliation.authoritativeCredits !== null) {
+            setCredits(creditReconciliation.authoritativeCredits);
+          }
+          if (creditReconciliation.clearReservationRef) {
+            reservedCreditCastingRef.current = null;
+          }
           setDeepStatus("failed");
         }
       } catch {
