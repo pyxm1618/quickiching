@@ -520,8 +520,14 @@ async function verifyHistory(page) {
   await clickText(page, "Rename");
   const titleInput = await page.$('input[id^="history-title-"]');
   assert(titleInput, "History rename input missing");
-  await titleInput.click({ clickCount: 3 });
-  await page.keyboard.type("Transition notes");
+  await titleInput.evaluate((node, nextValue) => {
+    if (!(node instanceof HTMLInputElement)) throw new Error("History title field is not an input");
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    if (!setter) throw new Error("Input value setter is unavailable");
+    setter.call(node, nextValue);
+    node.dispatchEvent(new Event("input", { bubbles: true }));
+  }, "Transition notes");
+  assert.equal(await titleInput.evaluate((node) => node.value), "Transition notes", "History rename input must hold the replacement title before save");
   await clickText(page, "Save name");
   await waitForText(page, "Transition notes");
   await clickText(page, "Save reading");
