@@ -372,13 +372,13 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   await page.waitForSelector('[data-deep-reading-blocked="risk"]');
   assert(await page.$("#deep-context-situation"), "Professional-risk context must remain editable");
   assert.equal(await page.$('[data-deep-reading-entry] a[href*="signin"]'), null, "Professional-risk context must not send an anonymous user toward a paid request");
-  await page.click("#deep-context-situation");
-  const selectAllModifier = process.platform === "darwin" ? "Meta" : "Control";
-  await page.keyboard.down(selectAllModifier);
-  await page.keyboard.press("A");
-  await page.keyboard.up(selectAllModifier);
-  await page.keyboard.press("Backspace");
-  await page.type("#deep-context-situation", "I am considering a new role and want to understand what responsibilities to clarify.");
+  await page.$eval("#deep-context-situation", (node, nextValue) => {
+    if (!(node instanceof HTMLTextAreaElement)) throw new Error("Deep Reading situation field is not a textarea");
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+    if (!setter) throw new Error("Textarea value setter is unavailable");
+    setter.call(node, nextValue);
+    node.dispatchEvent(new Event("input", { bubbles: true }));
+  }, "I am considering a new role and want to understand what responsibilities to clarify.");
   await page.waitForSelector('[data-deep-reading-blocked="risk"]', { hidden: true });
   assert(await page.$('[data-deep-reading-entry] a[href*="signin"]'), "Correcting optional context must restore the eligible CTA without changing the core question");
   assert.equal(await page.$eval("[data-core-question-at-cast]", (node) => node.textContent?.trim()), question);
