@@ -45,6 +45,7 @@ export function PublicReadingResult({
   dictionary = EN_UI_DICTIONARY,
   localizedContent,
   initialBundles,
+  deferFallbackInterpretation = false,
   children,
   title = dictionary.reading.title,
   headingLevel = "h3",
@@ -55,6 +56,7 @@ export function PublicReadingResult({
   dictionary?: UiDictionary;
   localizedContent?: LocalizedReadingContent;
   initialBundles?: { primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null };
+  deferFallbackInterpretation?: boolean;
   children?: React.ReactNode;
   title?: string;
   headingLevel?: "h1" | "h3";
@@ -152,7 +154,7 @@ export function PublicReadingResult({
     );
   }
 
-  if (!isChinese && !interpretationReady && !interpretationLoadFailed) {
+  if (deferFallbackInterpretation && !isChinese && !interpretationReady && !interpretationLoadFailed) {
     return (
       <section className="reading-reveal min-h-[24rem]" aria-live="polite" aria-busy="true" data-public-reading-result data-reading-interpretation-loading>
         <p className="mystic-kicker">Loading the interpretation…</p>
