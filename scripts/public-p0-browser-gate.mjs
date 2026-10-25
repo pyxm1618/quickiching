@@ -126,7 +126,10 @@ async function openSeededThreeCoinResult(page, locale = "en") {
   const methodPath = `${prefix}/methods/three-coin`;
   const resultPath = `${prefix}/readings/three-coin/result`;
   await page.goto(`${BASE}${methodPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await waitForText(page, "6 / 6 lines");
+  await page.waitForFunction(() => {
+    const badge = document.querySelector(".ritual-progress-badge");
+    return badge?.textContent?.trim().startsWith("6 / 6") === true;
+  }, { timeout: 15_000 });
   await new Promise((resolve) => setTimeout(resolve, 500));
   assert.equal(new URL(page.url()).pathname, methodPath, "Restored completed cast must not auto-navigate to an old result");
   await page.goto(`${BASE}${resultPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
