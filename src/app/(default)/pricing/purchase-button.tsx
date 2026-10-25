@@ -40,6 +40,7 @@ export function PurchaseButton({
         body: JSON.stringify({
           productKey,
           requestId,
+          locale,
         }),
       });
 
