@@ -1,4 +1,5 @@
 import React from "react";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -390,7 +391,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         interpretationGoal: "what_do_i_need_to_see_clearly" as const,
         locale: "en" as const,
       },
-      scene: "general" as const,
+      scene: "other" as const,
       castMethod: "three_coin" as const,
       methodVersion: "three-coin-v1",
       facts: {
