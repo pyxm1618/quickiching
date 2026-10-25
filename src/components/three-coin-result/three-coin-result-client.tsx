@@ -5,7 +5,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
-import { ZH_HANS_READING_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
+import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
+import type { HexagramInterpretationBundle } from "@/domain/interpretation/v2/types";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import { ZH_HANS_UI_DICTIONARY } from "@/i18n/dictionaries/zh-Hans";
 import {
@@ -42,6 +43,8 @@ export type ThreeCoinResultClientProps = {
   initialCredits?: number;
   locale?: "en" | "zh-Hans";
   initialState?: ResultState;
+  initialInterpretationBundles?: { primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null };
+  initialLocalizedContent?: LocalizedReadingContent;
   initialCastingView?: {
     castingId: string;
     createdAt?: string;
@@ -683,7 +686,8 @@ export function ThreeCoinResultClient({
         reading={resultReading!}
         onNewReading={startNewReading}
         dictionary={resultDictionary}
-        localizedContent={zh ? ZH_HANS_READING_CONTENT : undefined}
+        localizedContent={zh ? initialLocalizedContent : undefined}
+        initialBundles={initialInterpretationBundles}
         title={zh ? "本次三枚铜钱起卦结果" : "Your Three-Coin Reading"}
         headingLevel="h1"
         newReadingLabel={zh ? "重新起一卦" : "Start a New Reading"}
