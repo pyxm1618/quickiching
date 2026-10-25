@@ -69,6 +69,7 @@ type CheckoutProvider = {
     userId: string;
     buyerEmail: string;
     productKey: ProductId;
+    locale: "en" | "zh-Hans";
   }): Promise<{ sessionId: string; checkoutUrl: string; expiresAt: Date }>;
 };
 
@@ -86,6 +87,7 @@ const inputSchema = z.object({
   buyerEmail: z.string().trim().email().max(320),
   productKey: z.enum(["one", "three", "five"]),
   requestId: z.string().trim().min(16).max(128).regex(/^[A-Za-z0-9._:-]+$/),
+  locale: z.enum(["en", "zh-Hans"]).default("en"),
 }).strict();
 
 function productAmountMinor(productKey: ProductId): number {
@@ -111,7 +113,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 }
 
 export function createCheckoutService(dependencies: CheckoutServiceDependencies): {
-  create(input: { userId: string; buyerEmail: string; productKey: string; requestId: string }): Promise<{
+  create(input: { userId: string; buyerEmail: string; productKey: string; requestId: string; locale?: "en" | "zh-Hans" }): Promise<{
     orderId: string;
     checkoutUrl: string;
     expiresAt: Date;
@@ -208,6 +210,7 @@ export function createCheckoutService(dependencies: CheckoutServiceDependencies)
           userId: input.userId,
           buyerEmail: input.buyerEmail,
           productKey: input.productKey,
+          locale: input.locale,
         }), timeoutMs);
         const saved = await dependencies.repository.saveCheckout({
           orderId: existing.id,
