@@ -63,6 +63,21 @@ describe("multilingual metadata and sitemap integration", () => {
     expect(hub.metadata.title).toEqual({ absolute: zhSeoFor("hexagrams-hub").finalTitle });
   });
 
+  it("emits reciprocal zh-Hans hreflang on every paired English method and guide in scope", async () => {
+    const threeCoin = await import("@/app/(default)/methods/three-coin/page");
+    const yarrow = await import("@/app/(default)/methods/yarrow-stalks/page");
+    const manual = await import("@/app/(default)/methods/manual-cast/page");
+    const ask = await import("@/app/(default)/guides/how-to-ask-the-i-ching/page");
+    const changing = await import("@/app/(default)/guides/changing-lines/page");
+    const primaryRelating = await import("@/app/(default)/guides/primary-relating-hexagrams/page");
+    expect(threeCoin.metadata.alternates?.languages).toEqual(alternateLanguages("three-coin-method"));
+    expect(yarrow.metadata.alternates?.languages).toEqual(alternateLanguages("yarrow-stalks-method"));
+    expect(manual.metadata.alternates?.languages).toEqual(alternateLanguages("manual-cast-method"));
+    expect(ask.metadata.alternates?.languages).toEqual(alternateLanguages("guides-how-to-ask"));
+    expect(changing.metadata.alternates?.languages).toEqual(alternateLanguages("guides-changing-lines"));
+    expect(primaryRelating.metadata.alternates?.languages).toEqual(alternateLanguages("guides-primary-relating"));
+  });
+
   it("keeps English homepage and Mei Hua alternates unchanged while adding reciprocal Chinese equivalents", async () => {
     const englishHome = await import("@/app/(default)/page");
     const englishMeiHua = await import("@/app/(default)/methods/mei-hua-yi-shu/page");
