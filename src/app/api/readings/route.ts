@@ -186,15 +186,6 @@ export async function POST(request: Request): Promise<Response> {
         return json({ castingId: existing.id, idempotent: true }, 200);
       }
 
-      const recentWriteRows = await sql<{ count: number }[]>`
-        select count(*)::integer as count
-        from casting_sessions
-        where user_id = ${userId}
-          and created_at >= clock_timestamp() - (${READING_WRITE_WINDOW_SECONDS} * interval '1 second')
-      `;
-      if (Number(recentWriteRows[0]?.count ?? 0) >= READING_WRITES_PER_WINDOW) {
-        return json({ error: "READING_RATE_LIMITED" }, 429);
-      }
 
       const key = getActiveResultIntegrityKey();
       const resultHmac = resultIntegrityHmac(facts, key);
@@ -211,7 +202,38 @@ export async function POST(request: Request): Promise<Response> {
         });
       }
 
-      const created = await sql.begin(async (tx) => {
+      const rateLimitLockIdentity = `readings-write:${userId}`;
+      const writeResult = await sql.begin(async (tx) => {
+        await tx`
+          select pg_advisory_xact_lock(hashtextextended(${rateLimitLockIdentity}, 0))
+        `;
+
+        const lockedExistingRows = await tx`
+          select c.id, c.user_id, c.scene, c.interpretation_goal,
+                 c.question_fingerprint, c.deleted_at, r.line_values
+          from casting_sessions c
+          left join cast_results r on r.casting_id = c.id
+          where c.id = ${clientCastingId}
+          limit 1
+        ` as ExistingSavedReading[];
+        const lockedExisting = lockedExistingRows[0] ?? null;
+        if (lockedExisting) {
+          if (!matchesStableSave(lockedExisting, identityInput)) {
+            return { kind: "conflict" } as const;
+          }
+          return { kind: "idempotent", castingId: lockedExisting.id } as const;
+        }
+
+        const recentWriteRows = await tx`
+          select count(*)::integer as count
+          from casting_sessions
+          where user_id = ${userId}
+            and created_at >= clock_timestamp() - (${READING_WRITE_WINDOW_SECONDS} * interval '1 second')
+        ` as Array<{ count: number }>;
+        if (Number(recentWriteRows[0]?.count ?? 0) >= READING_WRITES_PER_WINDOW) {
+          return { kind: "rate_limited" } as const;
+        }
+
         const inserted = await tx`
           insert into casting_sessions (
             id, user_id, method, lifecycle, risk_status, risk_rule_version, scene,
@@ -226,7 +248,7 @@ export async function POST(request: Request): Promise<Response> {
           returning id
         ` as Array<{ id: string }>;
 
-        if (!inserted[0]?.id) return false;
+        if (!inserted[0]?.id) return { kind: "insert_conflict" } as const;
 
         await tx`
           insert into cast_results (
@@ -280,10 +302,19 @@ export async function POST(request: Request): Promise<Response> {
           }
         }
 
-        return true;
+        return { kind: "created" } as const;
       });
 
-      if (!created) {
+      if (writeResult.kind === "idempotent") {
+        return json({ castingId: writeResult.castingId, idempotent: true }, 200);
+      }
+      if (writeResult.kind === "conflict") {
+        return json({ error: "READING_IDEMPOTENCY_CONFLICT" }, 409);
+      }
+      if (writeResult.kind === "rate_limited") {
+        return json({ error: "READING_RATE_LIMITED" }, 429);
+      }
+      if (writeResult.kind === "insert_conflict") {
         const raced = await findExisting();
         if (!raced || !matchesStableSave(raced, identityInput)) {
           return json({ error: "READING_IDEMPOTENCY_CONFLICT" }, 409);
