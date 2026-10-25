@@ -167,7 +167,7 @@ export function ThreeCoinResultClient({
       ...(context?.options ?? listField(contextDraft.optionsText)),
       ...(context?.constraints ?? listField(contextDraft.constraintsText)),
       ...(context?.concerns ?? listField(contextDraft.concernsText)),
-    ].filter(Boolean).join("\n"), "other");
+    ].filter(Boolean).join("\n"));
   }, [state, deepSnapshot, contextDraft]);
   const deepRiskBlocked = deepRisk.status !== "allowed";
   const deepRiskMessage = deepRisk.status === "emergency_blocked"
