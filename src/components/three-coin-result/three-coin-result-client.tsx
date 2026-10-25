@@ -690,6 +690,7 @@ export function ThreeCoinResultClient({
         dictionary={resultDictionary}
         localizedContent={zh ? initialLocalizedContent : undefined}
         initialBundles={initialInterpretationBundles}
+        deferFallbackInterpretation={!zh && initialState === undefined && initialCastingView === null && initialInterpretationBundles === undefined}
         title={zh ? "本次三枚铜钱起卦结果" : "Your Three-Coin Reading"}
         headingLevel="h1"
         newReadingLabel={zh ? "重新起一卦" : "Start a New Reading"}
