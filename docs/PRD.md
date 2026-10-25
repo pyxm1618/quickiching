@@ -1,10 +1,10 @@
 # Quick I Ching 产品需求文档
 
-**版本：** Current SSOT  
+**版本：** Current SSOT
 **日期：** 2026-10-25
 **公开语言：** English + 简体中文
-**产品形态：** 多玩法 I Ching 在线起卦、文化解释与自我反思平台  
-**当前产品状态：** Public SEO V1 + deployment-gated Commercial V2  
+**产品形态：** 多玩法 I Ching 在线起卦、文化解释与自我反思平台
+**当前产品状态：** Public SEO V1 + deployment-gated Commercial V2
 
 ---
 
