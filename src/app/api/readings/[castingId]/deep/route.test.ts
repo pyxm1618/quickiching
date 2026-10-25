@@ -208,4 +208,15 @@ describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
     expect(res.headers.get("cache-control")).toBe("no-store");
     await expect(res.json()).resolves.toEqual({ status: "completed", output: { summary: "Deep guidance" } });
   });
+
+  it.each(["failed", "timed_out"] as const)("returns authoritative availableCredits for terminal %s status", async (status) => {
+    mocks.getDeepReadingStatus.mockResolvedValue({
+      status,
+      errorCode: status === "timed_out" ? "GENERATION_TIMEOUT" : "WORKFLOW_START_FAILED",
+      availableCredits: 2,
+    });
+    const res = await GET(getRequest(castingId), { params: Promise.resolve({ castingId }) });
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toMatchObject({ status, availableCredits: 2 });
+  });
 });
