@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth/session";
 import { loadCastingView, loadEntitlementBalance } from "@/server/loaders";
 import { ThreeCoinResultClient } from "@/components/three-coin-result/three-coin-result-client";
+import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 
 export const metadata: Metadata = {
   title: "Your Three-Coin Reading",
@@ -31,6 +32,14 @@ export default async function ThreeCoinResultPage(props: {
     user ? loadEntitlementBalance() : Promise.resolve({ available: 0, expiringSoon: 0 }),
     sessionId ? loadCastingView(sessionId) : Promise.resolve(null),
   ]);
+  const initialInterpretationBundles = castingView?.result
+    ? {
+        primary: await loadHexagramInterpretation(castingView.result.primaryHexagramNumber),
+        relating: castingView.result.relatingHexagramNumber === null
+          ? null
+          : await loadHexagramInterpretation(castingView.result.relatingHexagramNumber),
+      }
+    : undefined;
 
   return (
     <div data-realm="chamber">
@@ -38,6 +47,7 @@ export default async function ThreeCoinResultPage(props: {
         initialSessionId={sessionId}
         initialUser={user ? { id: user.id, email: user.email } : null}
         initialCredits={balance.available}
+        initialInterpretationBundles={initialInterpretationBundles}
         initialCastingView={castingView ? {
           castingId: castingView.session.id,
           createdAt: castingView.session.createdAt.toISOString(),
