@@ -455,3 +455,20 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(htmlZh).toContain("本报告结合你起卦时保存的问题与现实背景、本次实际卦象（第 47 卦「困」，第 2 爻动，向 第 45 卦「萃」变化）、Quick I Ching 收录的经典文本，以及 Quick I Ching 的结构化解释材料生成。");
   });
 });
+
+
+describe("Deep Reading polling contract", () => {
+  it("uses recursive timeout polling rather than an overlapping interval loop", () => {
+    const source = readFileSync(new URL("./three-coin-result-client.tsx", import.meta.url), "utf8");
+    expect(source).toContain("pollInFlightRef");
+    expect(source).toContain('document.visibilityState === "hidden"');
+    expect(source).toContain("setTimeout(() => { void poll(); }, delay)");
+    expect(source).not.toContain("setInterval(async () =>");
+  });
+
+  it("does not guess the post-reservation credit balance on the client", () => {
+    const source = readFileSync(new URL("./three-coin-result-client.tsx", import.meta.url), "utf8");
+    expect(source).not.toContain("setCredits((prev) => Math.max(0, prev - 1))");
+    expect(source).toContain("setCredits(data.availableCredits)");
+  });
+});

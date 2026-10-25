@@ -183,34 +183,74 @@ export function ThreeCoinResultClient({
       evidence: { kind: "history", originalMethod: "three-coin" },
     });
   }, [castingId, clientCastingId, state]);
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollRunRef = useRef(0);
+  const pollInFlightRef = useRef(false);
+
+  const stopPolling = useCallback(() => {
+    pollRunRef.current += 1;
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    pollTimerRef.current = null;
+  }, []);
+
   const startPolling = useCallback((targetCastingId: string) => {
-    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    pollTimerRef.current = setInterval(async () => {
+    stopPolling();
+    const runId = pollRunRef.current;
+    let transientFailures = 0;
+
+    const schedule = (delay: number) => {
+      if (runId !== pollRunRef.current) return;
+      pollTimerRef.current = setTimeout(() => { void poll(); }, delay);
+    };
+
+    const poll = async () => {
+      pollTimerRef.current = null;
+      if (runId !== pollRunRef.current) return;
+      if (document.visibilityState === "hidden") {
+        schedule(5000);
+        return;
+      }
+      if (pollInFlightRef.current) {
+        schedule(2000);
+        return;
+      }
+
+      pollInFlightRef.current = true;
+      let terminal = false;
       try {
         const res = await fetch(`/api/readings/${targetCastingId}/deep`);
-        if (!res.ok) return;
+        if (runId !== pollRunRef.current) return;
+        if (!res.ok) {
+          transientFailures += 1;
+          return;
+        }
+        transientFailures = 0;
         const data = await res.json() as DeepReadingStatusPayload;
+        if (runId !== pollRunRef.current) return;
         const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
         if (parsedSnapshot.success) setDeepSnapshot(parsedSnapshot.data);
         const parsedReport = readingReportSchema.safeParse(data.output);
-        if (data.status === "completed" && parsedReport.success) {
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-          setDeepReport(parsedReport.data);
-          setLegacyReport(null);
-          setDeepStatus("completed");
+        if (data.status === "completed") {
+          terminal = true;
+          if (typeof data.availableCredits === "number" && Number.isInteger(data.availableCredits) && data.availableCredits >= 0) {
+            setCredits(data.availableCredits);
+          }
+          if (parsedReport.success) {
+            setDeepReport(parsedReport.data);
+            setLegacyReport(null);
+            setDeepStatus("completed");
+          } else {
+            const parsedLegacyReport = legacyReadingReportSchema.safeParse(data.output);
+            if (parsedLegacyReport.success) {
+              setLegacyReport(parsedLegacyReport.data);
+              setDeepStatus("completed");
+            }
+          }
           if (reservedCreditCastingRef.current === targetCastingId) {
             reservedCreditCastingRef.current = null;
           }
-        } else if (data.status === "completed") {
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-          const parsedLegacyReport = legacyReadingReportSchema.safeParse(data.output);
-          if (parsedLegacyReport.success) {
-            setLegacyReport(parsedLegacyReport.data);
-            setDeepStatus("completed");
-          }
         } else if (data.status === "failed" || data.status === "timed_out") {
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+          terminal = true;
           const creditReconciliation = getTerminalCreditReconciliation(
             data.status,
             data.availableCredits,
@@ -229,16 +269,19 @@ export function ThreeCoinResultClient({
             : "The reading did not finish. Your reserved credit has been released; retrying uses the same saved question and context.");
         }
       } catch {
-        // 轮询重试
+        transientFailures += 1;
+      } finally {
+        pollInFlightRef.current = false;
+        if (!terminal && runId === pollRunRef.current) {
+          schedule(Math.min(2000 * (2 ** transientFailures), 8000));
+        }
       }
-    }, 2000);
-  }, [zh]);
-
-  useEffect(() => {
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, []);
+
+    schedule(2000);
+  }, [stopPolling, zh]);
+
+  useEffect(() => stopPolling, [stopPolling]);
 
   useEffect(() => {
     skipDraftWriteRef.current = true;
@@ -509,7 +552,7 @@ export function ThreeCoinResultClient({
 
       if (!res.ok) {
         const error = await res.json().catch(() => ({})) as { error?: string };
-        setDeepStatus(error.error === "RISK_PROHIBITED" ? "idle" : "failed");
+        setDeepStatus(error.error === "RISK_PROHIBITED" || error.error === "RISK_NEEDS_CLARIFICATION" ? "idle" : "failed");
         const message = error.error === "RISK_NEEDS_CLARIFICATION"
           ? t("Clarify the question or situation context before requesting Deep Reading. No credit was reserved.", "请先把问题或处境背景说明得更明确，再请求深度解读；本次未预留次数。")
           : error.error === "RISK_PROHIBITED"
@@ -532,7 +575,6 @@ export function ThreeCoinResultClient({
       if (parsedSnapshot.success) setDeepSnapshot(parsedSnapshot.data);
       if (data.creditReservationCreated) {
         reservedCreditCastingRef.current = activeCastingId;
-        setCredits((prev) => Math.max(0, prev - 1));
       }
       const parsedReport = readingReportSchema.safeParse(data.output);
       if (data.status === "completed" && parsedReport.success) {

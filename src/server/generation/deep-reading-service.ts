@@ -577,7 +577,7 @@ export function createDeepReadingService(dependencies: {
             throw new Error("DEEP_READING_SNAPSHOT_INTEGRITY_INVALID");
           }
         }
-        return { status: "completed", output: resultRows[0].output, snapshot };
+        return { status: "completed", output: resultRows[0].output, snapshot, availableCredits: await loadAvailableCredits(userId) };
       }
 
       const timedOut = await sql.begin((transaction) =>
