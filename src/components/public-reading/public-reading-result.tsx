@@ -44,6 +44,7 @@ export function PublicReadingResult({
   onNewReading,
   dictionary = EN_UI_DICTIONARY,
   localizedContent,
+  initialBundles,
   children,
   title = dictionary.reading.title,
   headingLevel = "h3",
@@ -53,19 +54,51 @@ export function PublicReadingResult({
   onNewReading?: () => void;
   dictionary?: UiDictionary;
   localizedContent?: LocalizedReadingContent;
+  initialBundles?: { primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null };
   children?: React.ReactNode;
   title?: string;
   headingLevel?: "h1" | "h3";
   newReadingLabel?: string;
 }) {
-  const [bundles, setBundles] = useState<{ primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null }>({});
+  const [bundles, setBundles] = useState<{ primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null }>(initialBundles ?? {});
+  const [resolvedLocalizedContent, setResolvedLocalizedContent] = useState<LocalizedReadingContent | undefined>(localizedContent);
   const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
   useEffect(() => {
     setSaveState("idle");
   }, [reading.id, reading.question]);
   useEffect(() => {
     if (localizedContent) {
-      setBundles({});
+      setResolvedLocalizedContent(localizedContent);
+      return;
+    }
+    if (dictionary.locale !== "zh-Hans") {
+      setResolvedLocalizedContent(undefined);
+      return;
+    }
+    let active = true;
+    void import("@/content/mei-hua-yi-shu/zh-Hans")
+      .then(({ ZH_HANS_READING_CONTENT }) => {
+        if (active) setResolvedLocalizedContent(ZH_HANS_READING_CONTENT);
+      })
+      .catch(() => {
+        // Keep the result shell stable if localized content cannot be loaded.
+      });
+    return () => {
+      active = false;
+    };
+  }, [dictionary.locale, localizedContent]);
+
+  useEffect(() => {
+    if (resolvedLocalizedContent) {
+      setBundles(initialBundles ?? {});
+      return;
+    }
+    const hasInitialPrimary = initialBundles?.primary?.hexagram.number === reading.primaryHexagram;
+    const hasInitialRelating = reading.relatingHexagram === null
+      ? initialBundles?.relating === null
+      : initialBundles?.relating?.hexagram.number === reading.relatingHexagram;
+    if (hasInitialPrimary && hasInitialRelating) {
+      setBundles(initialBundles ?? {});
       return;
     }
     let active = true;
@@ -82,9 +115,12 @@ export function PublicReadingResult({
     return () => {
       active = false;
     };
-  }, [localizedContent, reading.primaryHexagram, reading.relatingHexagram]);
+  }, [initialBundles, reading.primaryHexagram, reading.relatingHexagram, resolvedLocalizedContent]);
 
-  const model = useMemo(() => buildStaticReading(reading, bundles, localizedContent), [reading, bundles, localizedContent]);
+  const model = useMemo(
+    () => buildStaticReading(reading, bundles, resolvedLocalizedContent),
+    [reading, bundles, resolvedLocalizedContent],
+  );
   const isChinese = dictionary.locale === "zh-Hans";
   const ResultHeading = headingLevel;
   const movingPositions = reading.changingLines.join(isChinese ? "、" : ", ");
@@ -93,6 +129,14 @@ export function PublicReadingResult({
     ? `${dictionary.reading.changingLines}: ${movingPositions}`
     : `${dictionary.reading.noChangingLines}. ${dictionary.reading.noRelating}`;
   const localizedHref = (href: string) => isChinese && href.startsWith("/hexagrams/") ? `/zh${href}` : href;
+
+  if (isChinese && !resolvedLocalizedContent) {
+    return (
+      <section className="reading-reveal" aria-live="polite" data-public-reading-result data-reading-localization-loading>
+        <p className="mystic-kicker">正在加载中文卦象解读…</p>
+      </section>
+    );
+  }
 
   function save() {
     try {
