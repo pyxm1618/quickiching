@@ -6,6 +6,7 @@ import { ZH_HANS_UI_DICTIONARY } from "@/i18n/dictionaries/zh-Hans";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import type { PublicReadingMethod } from "@/domain/public-reading/types";
+import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: any) => React.createElement("a", { href, ...props }, children),
@@ -103,7 +104,7 @@ describe("PublicReadingResult changing-line meaning", () => {
     const html = renderToStaticMarkup(
       React.createElement(
         PublicReadingResult,
-        { reading, dictionary: ZH_HANS_UI_DICTIONARY },
+        { reading, dictionary: ZH_HANS_UI_DICTIONARY, localizedContent: zhHansReadingContentFor([1]) },
         React.createElement("aside", { "data-deep-reading-entry": true }, "深度解读"),
       ),
     );
