@@ -9,7 +9,7 @@ import {
   type DeepReadingContextSnapshot,
 } from "@/domain/generation/deep-reading-contract";
 import { evaluateRisk } from "@/domain/risk/engine";
-import type { Scene } from "@/domain/casting/types";
+import { normalizeScene } from "@/domain/casting/types";
 import { buildDeepReadingKnowledgeBundle } from "./deep-reading-knowledge";
 import {
   calculateDeepReadingContextSnapshotHash,
@@ -378,7 +378,9 @@ export function createDeepReadingService(dependencies: {
           const coreQuestionAtCast = decryptQuestionForGeneration(session, env);
           const facts = currentFacts;
           const context = submittedEnrichment.data;
-          const risk = evaluateRisk(riskText(coreQuestionAtCast, context), String(session.scene) as Scene);
+          const normalizedScene = normalizeScene(String(session.scene));
+          if (!normalizedScene) throw new Error("CASTING_SCENE_INVALID");
+          const risk = evaluateRisk(riskText(coreQuestionAtCast, context), normalizedScene);
           await transaction`
             update casting_sessions set risk_status = ${risk.status}, risk_rule_version = ${risk.ruleVersion}, updated_at = clock_timestamp()
             where id = ${castingId}
@@ -392,7 +394,7 @@ export function createDeepReadingService(dependencies: {
             schemaVersion: "deep-reading-context-v1",
             coreQuestionAtCast,
             context,
-            scene: String(session.scene),
+            scene: normalizedScene,
             castMethod: "three_coin",
             methodVersion: facts.algorithmVersion,
             facts,
@@ -416,7 +418,7 @@ export function createDeepReadingService(dependencies: {
         const refreshedRisk = evaluateRisk(
           [snapshot.coreQuestionAtCast, snapshot.context.contextNotes, ...snapshot.context.options,
             ...snapshot.context.constraints, ...snapshot.context.concerns].filter(Boolean).join("\n"),
-          snapshot.scene as Scene,
+          snapshot.scene,
         );
         await transaction`
           update casting_sessions set risk_status = ${refreshedRisk.status},

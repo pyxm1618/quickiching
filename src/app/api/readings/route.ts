@@ -6,11 +6,11 @@ import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
 import { getActiveResultIntegrityKey, resultIntegrityHmac } from "@/server/generation/integrity";
 import { encryptQuestionForStorage, getActiveQuestionFingerprintKey } from "@/server/generation/question-crypto";
-import { normalizeComposite, fingerprintQuestion } from "@/domain/questions/normalize";
+import { normalizeComposite, normalizeQuestion, fingerprintQuestion } from "@/domain/questions/normalize";
 import { getPostgresClient } from "@/server/db/client";
 import { repo } from "@/server/repository";
 import { evaluateRisk, RISK_RULE_VERSION } from "@/domain/risk/engine";
-import type { Scene } from "@/domain/casting/types";
+import { normalizeScene } from "@/domain/casting/types";
 import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
 
 export const runtime = "nodejs";
@@ -38,7 +38,7 @@ const saveReadingSchema = z.object({
   clientCastingId: z.string().uuid(),
   lineValuesBottomUp: z.array(lineValueSchema).length(6),
   question: z.string().trim().max(1000).optional(),
-  scene: z.enum(["general", "career", "relationships", "decision", "timing", "wealth", "spiritual"]).default("general"),
+  scene: z.enum(["career", "relationships", "wealth", "timing", "choices", "personal_growth", "other", "general", "decision", "spiritual", "relationship", "growth"]).default("general"),
   interpretationGoal: z.enum([
     "what_do_i_need_to_see_clearly",
     "what_should_i_pay_attention_to_next",
@@ -69,15 +69,15 @@ function matchesStableSave(
     userId: string;
     scene: string;
     interpretationGoal: string;
-    questionFingerprint: string | null;
+    questionFingerprints: readonly (string | null)[];
     lineValuesBottomUp: readonly number[];
   },
 ): boolean {
   return row.deleted_at == null
     && row.user_id === input.userId
-    && row.scene === input.scene
+    && normalizeScene(row.scene) === input.scene
     && row.interpretation_goal === input.interpretationGoal
-    && row.question_fingerprint === input.questionFingerprint
+    && input.questionFingerprints.includes(row.question_fingerprint)
     && sameNumberArray(row.line_values, input.lineValuesBottomUp);
 }
 
@@ -106,7 +106,9 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "INVALID_READING_INPUT" }, 422);
   }
 
-  const { clientCastingId, lineValuesBottomUp, question, scene, interpretationGoal } = parsed.data;
+  const { clientCastingId, lineValuesBottomUp, question, scene: sceneInput, interpretationGoal } = parsed.data;
+  const scene = normalizeScene(sceneInput);
+  if (!scene) return json({ error: "INVALID_READING_INPUT" }, 422);
   const questionText = question && question.trim().length > 0 ? question.trim() : null;
   let fingerprintKey: ReturnType<typeof getActiveQuestionFingerprintKey> | null = null;
   try {
@@ -117,12 +119,15 @@ export async function POST(request: Request): Promise<Response> {
   const fingerprintKeyVersion = fingerprintKey?.version ?? "v1";
   let fingerprint: string | null = null;
   if (questionText) {
-    const composite = normalizeComposite(scene as any, interpretationGoal as any, questionText);
+    const composite = normalizeComposite(scene, interpretationGoal as any, questionText);
     if (!fingerprintKey) return json({ error: "QUESTION_FINGERPRINT_KEY_UNAVAILABLE" }, 503);
     fingerprint = fingerprintQuestion(composite, fingerprintKey.material, fingerprintKeyVersion);
   }
+  const legacyFingerprint = questionText && sceneInput !== scene && fingerprintKey
+    ? fingerprintQuestion(`${sceneInput}|${interpretationGoal}|${normalizeQuestion(questionText)}`, fingerprintKey.material, fingerprintKeyVersion)
+    : null;
   const risk = questionText
-    ? evaluateRisk(questionText, scene as Scene)
+    ? evaluateRisk(questionText, scene)
     : { status: "not_checked" as const, ruleVersion: RISK_RULE_VERSION, matchedRuleCodes: [], reasonCode: "core_question_missing" };
 
   const hexResult = buildHexagramResult({ lineValuesBottomUp, method: "three_coin" });
@@ -162,7 +167,7 @@ export async function POST(request: Request): Promise<Response> {
         userId,
         scene,
         interpretationGoal,
-        questionFingerprint: fingerprint,
+        questionFingerprints: legacyFingerprint && legacyFingerprint !== fingerprint ? [fingerprint, legacyFingerprint] : [fingerprint],
         lineValuesBottomUp,
       };
 
@@ -339,7 +344,7 @@ export async function POST(request: Request): Promise<Response> {
     userId,
     anonHash: null,
     method: "three_coin",
-    scene: scene as any,
+    scene,
     interpretationGoal: interpretationGoal as any,
     algorithmVersion: "three-coin-v1",
   });

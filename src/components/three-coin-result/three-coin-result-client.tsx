@@ -167,7 +167,9 @@ export function ThreeCoinResultClient({
   const deepRiskBlocked = deepRisk.status !== "allowed";
   const deepRiskMessage = deepRisk.status === "emergency_blocked"
     ? t("Deep Reading cannot handle an immediate safety crisis. If there is immediate danger, contact local emergency services now. In the U.S., call or text 988 for crisis support, or call 911 for immediate emergency help.", "深度解读无法处理紧急安全危机。如果存在即时危险，请立即联系当地紧急服务。在美国，可拨打或短信联系 988 获取危机支持；如需紧急救援请拨打 911。")
-    : t("This question or context needs qualified professional support. Deep Reading is unavailable for this request; consult a qualified professional for medical, legal, or investment decisions.", "这个问题或背景需要合格专业人士支持，本次无法提供深度解读。涉及医疗、法律或投资决策，请咨询相应的合格专业人士。");
+    : deepRisk.status === "needs_clarification"
+      ? t("Deep Reading needs a clearer question or situation context before it can continue. Make the request more specific, then try again.", "深度解读需要更明确的问题或处境背景后才能继续。请把请求说明得更具体，再重试。")
+      : t("This question or context needs qualified professional support. Deep Reading is unavailable for this request; consult a qualified professional for medical, legal, or investment decisions.", "这个问题或背景需要合格专业人士支持，本次无法提供深度解读。涉及医疗、法律或投资决策，请咨询相应的合格专业人士。");
   const resultReading = useMemo(() => {
     if (state.kind !== "ready") return null;
     const id = clientCastingId ?? castingId;
@@ -508,8 +510,10 @@ export function ThreeCoinResultClient({
       if (!res.ok) {
         const error = await res.json().catch(() => ({})) as { error?: string };
         setDeepStatus(error.error === "RISK_PROHIBITED" ? "idle" : "failed");
-        const message = error.error === "RISK_PROHIBITED"
-          ? t("This question needs qualified professional support, so generation was blocked and no credit was reserved.", "这个问题需要合格专业人士支持，因此系统已阻止生成，未预留次数。")
+        const message = error.error === "RISK_NEEDS_CLARIFICATION"
+          ? t("Clarify the question or situation context before requesting Deep Reading. No credit was reserved.", "请先把问题或处境背景说明得更明确，再请求深度解读；本次未预留次数。")
+          : error.error === "RISK_PROHIBITED"
+            ? t("This question needs qualified professional support, so generation was blocked and no credit was reserved.", "这个问题需要合格专业人士支持，因此系统已阻止生成，未预留次数。")
           : error.error === "CONTEXT_INSUFFICIENT"
             ? t("Add enough situation context before generating the reading.", "请先补充足够的现实背景，再生成解读。")
             : t("The request could not start. Check the saved status before retrying.", "暂时无法发起请求；重试前请先检查已保存状态。");
