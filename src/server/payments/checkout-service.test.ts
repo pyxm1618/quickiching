@@ -92,6 +92,7 @@ describe("checkout service", () => {
       userId: "user-123",
       buyerEmail: "buyer@example.com",
       productKey: "three",
+      locale: "en",
     }]);
     expect(claimInputs).toEqual([expect.objectContaining({
       orderId: created.id,
