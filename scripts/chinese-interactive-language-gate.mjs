@@ -467,6 +467,18 @@ async function main() {
     // =========================================================================
     log("Test 5: Four Casting Methods -> Interactive reading generation, kicker, aria, links");
 
+    async function enterOptionalQuestionCasting(toolSelector) {
+      const deadline = Date.now() + 5_000;
+      while (Date.now() < deadline) {
+        const tool = await page.$(toolSelector);
+        if (tool) return tool;
+        const skipButton = await page.$("div[data-question-first] button.mystic-button-secondary");
+        if (skipButton) await skipButton.click();
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+      return page.waitForSelector(toolSelector, { timeout: 1_000 });
+    }
+
     // 5.a: Three-Coin Method (/zh/methods/three-coin)
     await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0" });
     await page.evaluate(() => {
@@ -558,13 +570,9 @@ async function main() {
 
     // 5.c: Mei Hua Yi Shu (/zh/methods/mei-hua-yi-shu)
     await page.goto(`${BASE}/zh/methods/mei-hua-yi-shu`, { waitUntil: "networkidle0" });
-    const meiHuaSkipBtn = await page.$("div[data-question-first] button.mystic-button-secondary");
-    if (meiHuaSkipBtn) {
-      await meiHuaSkipBtn.click();
-    }
-    const castTimeBtn = await page.waitForSelector("section[aria-labelledby='mei-hua-tool-title'] button.mystic-button", { timeout: 5000 });
+    const castTimeBtn = await enterOptionalQuestionCasting("section[aria-labelledby='mei-hua-tool-title'] button.mystic-button");
     await castTimeBtn.click();
-    await page.waitForSelector("[data-public-reading-result]", { timeout: 5000 });
+    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])", { timeout: 5000 });
     const meiHuaKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
     assert.equal(meiHuaKicker, "梅花易数 · 基础解读", `Mei Hua kicker mismatch: ${meiHuaKicker}`);
     assert(!meiHuaKicker.includes("-v1"), "Mei Hua kicker leaked -v1");
@@ -573,13 +581,9 @@ async function main() {
 
     // 5.d: Manual Cast (/zh/methods/manual-cast)
     await page.goto(`${BASE}/zh/methods/manual-cast`, { waitUntil: "networkidle0" });
-    const manualSkipBtn = await page.$("div[data-question-first] button.mystic-button-secondary");
-    if (manualSkipBtn) {
-      await manualSkipBtn.click();
-    }
-    const castManualBtn = await page.waitForSelector("section[aria-labelledby='manual-cast-tool-title'] button:not([role='tab']).mystic-button", { timeout: 5000 });
+    const castManualBtn = await enterOptionalQuestionCasting("section[aria-labelledby='manual-cast-tool-title'] button:not([role='tab']).mystic-button");
     await castManualBtn.click();
-    await page.waitForSelector("[data-public-reading-result]", { timeout: 5000 });
+    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])", { timeout: 5000 });
     const manualKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
     assert.equal(manualKicker, "手动起卦 · 基础解读", `Manual cast kicker mismatch: ${manualKicker}`);
     assert(!manualKicker.includes("-v1"), "Manual cast kicker leaked -v1");
