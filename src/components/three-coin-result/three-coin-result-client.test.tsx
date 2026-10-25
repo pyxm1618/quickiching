@@ -452,7 +452,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(htmlEn).toContain("This reading is grounded in your saved question and context, the exact cast (Hexagram 47 (Oppression), changing line 2, moving to Hexagram 45 (Gathering Together)), classical I Ching text included in Quick I Ching, and Quick I Ching&#x27;s structured interpretation material.");
 
     const htmlZh = renderToStaticMarkup(
-      <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT} />,
+      <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="zh-Hans" />,
     );
     expect(htmlZh).toContain('data-why-this-interpretation');
     expect(htmlZh).toContain("为什么这样解读");
