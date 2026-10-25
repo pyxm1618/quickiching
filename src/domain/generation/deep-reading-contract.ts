@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { deterministicFactsSchema } from "./schemas";
+import { SCENES, normalizeScene } from "@/domain/casting/types";
 
 const goalSchema = z.enum([
   "what_do_i_need_to_see_clearly",
@@ -8,7 +9,10 @@ const goalSchema = z.enum([
   "what_is_the_likely_direction",
 ]);
 
-const sceneSchema = z.enum(["general", "career", "relationships", "decision", "timing", "wealth", "spiritual"]);
+const sceneSchema = z.preprocess(
+  (value) => typeof value === "string" ? (normalizeScene(value) ?? value) : value,
+  z.enum(SCENES),
+);
 const boundedText = (maximum: number) => z.string().trim().max(maximum);
 const contextList = z.array(z.string().trim().min(1).max(240)).max(8);
 

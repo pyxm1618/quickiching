@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
 import { QuestionFirst } from "@/components/public-reading/question-first";
 import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
@@ -6,7 +7,7 @@ import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
 export const metadata: Metadata = {
   title: "I Ching Three-Coin Method — Free Coin Toss Reading",
   description: "Use the I Ching three-coin method online. Toss six lines from bottom to top, identify changing lines, and read the primary and relating hexagrams for free.",
-  alternates: { canonical: "/methods/three-coin" },
+  alternates: { canonical: "/methods/three-coin", languages: alternateLanguages("three-coin-method") },
   openGraph: { title: "I Ching Three-Coin Method — Free Coin Toss Reading", description: "Cast a complete free three-coin I Ching reading online.", url: "/methods/three-coin", type: "website" },
 };
 

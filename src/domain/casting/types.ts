@@ -87,6 +87,19 @@ export const SCENES = [
 ] as const;
 export type Scene = (typeof SCENES)[number];
 
+const LEGACY_SCENE_ALIASES: Readonly<Record<string, Scene>> = {
+  general: "other",
+  decision: "choices",
+  spiritual: "personal_growth",
+  relationship: "relationships",
+  growth: "personal_growth",
+};
+
+export function normalizeScene(value: string): Scene | null {
+  if ((SCENES as readonly string[]).includes(value)) return value as Scene;
+  return LEGACY_SCENE_ALIASES[value] ?? null;
+}
+
 export const INTERPRETATION_GOALS = [
   "what_do_i_need_to_see_clearly",
   "what_is_blocking_this_situation",

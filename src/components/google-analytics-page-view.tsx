@@ -19,11 +19,10 @@ export function GoogleAnalyticsPageView({
 
   useEffect(() => {
     const consent = readStoredAnalyticsConsent();
-    if (consent === "granted") {
-      window.gtag?.("consent", "update", {
-        analytics_storage: "granted",
-      });
-    }
+    if (consent !== "granted") return;
+    window.gtag?.("consent", "update", {
+      analytics_storage: "granted",
+    });
 
     window.gtag?.("event", "page_view", {
       send_to: measurementId,

@@ -5,15 +5,10 @@ import { usePathname } from "next/navigation";
 import {
   ANALYTICS_CONSENT_STORAGE_KEY,
   readStoredAnalyticsConsent,
+  type AnalyticsConsentState,
 } from "@/lib/analytics";
 
-declare global {
-  interface Window {
-    clarity?: ((...args: unknown[]) => void) & { q?: unknown[][] };
-  }
-}
-
-export function AnalyticsConsent() {
+export function AnalyticsConsent({ onConsentChange }: { onConsentChange?: (consent: AnalyticsConsentState) => void }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -37,39 +32,25 @@ export function AnalyticsConsent() {
   const declineLabel = isChinese ? "拒绝" : "Decline";
   const allowLabel = isChinese ? "允许分析" : "Allow analytics";
 
-  const updateClarityConsent = (analyticsStorage: "granted" | "denied") => {
-    if (!window.clarity) {
-      const queued = ((...args: unknown[]) => {
-        queued.q = [...queued.q, args];
-      }) as ((...args: unknown[]) => void) & { q: unknown[][] };
-      queued.q = [];
-      window.clarity = queued;
-    }
-    window.clarity("consentv2", { ad_Storage: "denied", analytics_Storage: analyticsStorage });
-  };
 
   const handleDecline = () => {
-    window.gtag?.("consent", "update", { analytics_storage: "denied" });
-    updateClarityConsent("denied");
     try {
       window.localStorage.setItem(ANALYTICS_CONSENT_STORAGE_KEY, "denied");
     } catch {
       // Ignore private browsing storage error
     }
     setVisible(false);
+    onConsentChange?.("denied");
   };
 
   const handleAllow = () => {
-    window.gtag?.("consent", "update", {
-      analytics_storage: "granted",
-    });
-    updateClarityConsent("granted");
     try {
       window.localStorage.setItem(ANALYTICS_CONSENT_STORAGE_KEY, "granted");
     } catch {
       // Ignore private browsing storage error
     }
     setVisible(false);
+    onConsentChange?.("granted");
   };
 
   return (

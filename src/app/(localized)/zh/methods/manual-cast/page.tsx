@@ -4,7 +4,6 @@ import { QuestionFirst } from "@/components/public-reading/question-first";
 import { ManualCastTool } from "@/components/public-reading/manual-cast-tool";
 import { getDictionary } from "@/i18n/dictionaries";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
-import { ZH_HANS_READING_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { zhSeoFor } from "@/content/seo/zh-pages";
 
 const SEO = zhSeoFor("manual-cast-method");
@@ -29,7 +28,7 @@ export default function ChineseManualCastPage() {
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
         <QuestionFirst storageKey="quickiching:public-v1:manual-cast" legacyStorageKeys={["quickiching:question:manual-cast"]} dictionary={dictionary}>
-          <ManualCastTool dictionary={dictionary} localizedContent={ZH_HANS_READING_CONTENT} />
+          <ManualCastTool dictionary={dictionary} />
         </QuestionFirst>
       </section>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   clearCheckoutReturnContext,
@@ -8,7 +8,7 @@ import {
 } from "./checkout-return-context";
 
 const AUTO_REFRESH_WINDOW_MS = 30_000;
-const AUTO_REFRESH_INTERVAL_MS = 1_500;
+const AUTO_REFRESH_INTERVAL_MS = 5_000;
 
 export function CheckoutReturnRecovery({ credits, locale = "en" }: { credits: number; locale?: "en" | "zh-Hans" }) {
   const zh = locale === "zh-Hans";
@@ -17,6 +17,7 @@ export function CheckoutReturnRecovery({ credits, locale = "en" }: { credits: nu
   const startedAtRef = useRef(Date.now());
   const [waiting, setWaiting] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
+  const [refreshPending, startRefreshTransition] = useTransition();
   // tick increments each time we want to re-poll, even when credits hasn't changed.
   // This forces useEffect to re-run after every router.refresh() cycle.
   const [tick, setTick] = useState(0);
@@ -36,20 +37,21 @@ export function CheckoutReturnRecovery({ credits, locale = "en" }: { credits: nu
 
     setWaiting(true);
 
+    if (refreshPending) return;
+
     if (Date.now() - startedAtRef.current >= AUTO_REFRESH_WINDOW_MS) {
       setTimedOut(true);
       return;
     }
 
     const timer = window.setTimeout(() => {
-      // Increment tick first so useEffect re-runs regardless of whether
-      // router.refresh() changes credits. This maintains polling every
-      // AUTO_REFRESH_INTERVAL_MS for the full AUTO_REFRESH_WINDOW_MS window.
-      setTick((t) => t + 1);
-      router.refresh();
+      startRefreshTransition(() => {
+        router.refresh();
+        setTick((value) => value + 1);
+      });
     }, AUTO_REFRESH_INTERVAL_MS);
     return () => window.clearTimeout(timer);
-  }, [credits, router, tick]);
+  }, [credits, refreshPending, router, tick]);
 
   if (!waiting) return null;
 
@@ -60,7 +62,15 @@ export function CheckoutReturnRecovery({ credits, locale = "en" }: { credits: nu
         <button
           type="button"
           className="underline"
-          onClick={() => { setTimedOut(false); startedAtRef.current = Date.now(); setTick((t) => t + 1); router.refresh(); }}
+          disabled={refreshPending}
+          onClick={() => {
+            setTimedOut(false);
+            startedAtRef.current = Date.now();
+            startRefreshTransition(() => {
+              router.refresh();
+              setTick((value) => value + 1);
+            });
+          }}
         >
           {t("Check again", "再次检查")}
         </button>

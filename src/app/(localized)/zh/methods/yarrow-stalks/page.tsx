@@ -4,7 +4,6 @@ import { QuestionFirst } from "@/components/public-reading/question-first";
 import { YarrowTool } from "@/components/public-reading/yarrow-tool";
 import { getDictionary } from "@/i18n/dictionaries";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
-import { ZH_HANS_READING_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { zhSeoFor } from "@/content/seo/zh-pages";
 
 const SEO = zhSeoFor("yarrow-stalks-method");
@@ -33,7 +32,7 @@ export default function ChineseYarrowStalksPage() {
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
         <QuestionFirst storageKey="quickiching:public-v1:yarrow-v2" legacyStorageKeys={["quickiching:question:yarrow-stalks"]} dictionary={dictionary}>
-          <YarrowTool dictionary={dictionary} localizedContent={ZH_HANS_READING_CONTENT} />
+          <YarrowTool dictionary={dictionary} />
         </QuestionFirst>
       </section>
 

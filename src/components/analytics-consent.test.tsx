@@ -33,13 +33,13 @@ describe("AnalyticsConsent component", () => {
     });
   });
 
-  it("keeps Microsoft Clarity in the same consent contract as Google Analytics", () => {
+  it("does not initialize analytics providers from the consent banner itself", () => {
     const source = readFileSync(new URL("./analytics-consent.tsx", import.meta.url), "utf8");
     expect(source).toContain("Microsoft Clarity");
-    expect(source).toContain('window.clarity("consentv2"');
-    expect(source).toContain('analytics_Storage: analyticsStorage');
-    expect(source).toContain('updateClarityConsent("denied")');
-    expect(source).toContain('updateClarityConsent("granted")');
+    expect(source).not.toContain("window.clarity");
+    expect(source).not.toContain("window.gtag");
+    expect(source).toContain('onConsentChange?.("denied")');
+    expect(source).toContain('onConsentChange?.("granted")');
   });
 
   it("exports a React component that runs on client", () => {
@@ -53,14 +53,9 @@ describe("AnalyticsConsent component", () => {
     expect(gtagCalls).toHaveLength(0);
   });
 
-  it("handles allow action by updating consent and saving granted", () => {
-    // Simulate Allow
-    window.gtag?.("consent", "update", { analytics_storage: "granted" });
+  it("does not emit provider calls before or while consent is only stored", () => {
     store[ANALYTICS_CONSENT_STORAGE_KEY] = "granted";
-
     expect(store[ANALYTICS_CONSENT_STORAGE_KEY]).toBe("granted");
-    expect(gtagCalls).toEqual([
-      ["consent", "update", { analytics_storage: "granted" }],
-    ]);
+    expect(gtagCalls).toHaveLength(0);
   });
 });

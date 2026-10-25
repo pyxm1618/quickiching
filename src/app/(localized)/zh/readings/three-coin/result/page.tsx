@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth/session";
 import { loadCastingView, loadEntitlementBalance } from "@/server/loaders";
 import { ThreeCoinResultClient } from "@/components/three-coin-result/three-coin-result-client";
+import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
+import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
 
 export const metadata: Metadata = {
   title: "三枚铜钱起卦结果 | Quick I Ching",
@@ -24,6 +26,20 @@ export default async function ChineseThreeCoinResultPage(props: { searchParams?:
     user ? loadEntitlementBalance() : Promise.resolve({ available: 0, expiringSoon: 0 }),
     sessionId ? loadCastingView(sessionId) : Promise.resolve(null),
   ]);
+  const initialInterpretationBundles = castingView?.result
+    ? {
+        primary: await loadHexagramInterpretation(castingView.result.primaryHexagramNumber),
+        relating: castingView.result.relatingHexagramNumber === null
+          ? null
+          : await loadHexagramInterpretation(castingView.result.relatingHexagramNumber),
+      }
+    : undefined;
+  const initialLocalizedContent = castingView?.result
+    ? zhHansReadingContentFor([
+        castingView.result.primaryHexagramNumber,
+        ...(castingView.result.relatingHexagramNumber === null ? [] : [castingView.result.relatingHexagramNumber]),
+      ])
+    : undefined;
   return (
     <div data-realm="chamber">
       <ThreeCoinResultClient
@@ -31,6 +47,8 @@ export default async function ChineseThreeCoinResultPage(props: { searchParams?:
         initialSessionId={sessionId}
         initialUser={user ? { id: user.id, email: user.email } : null}
         initialCredits={balance.available}
+        initialInterpretationBundles={initialInterpretationBundles}
+        initialLocalizedContent={initialLocalizedContent}
         initialCastingView={castingView ? {
           castingId: castingView.session.id,
           createdAt: castingView.session.createdAt.toISOString(),

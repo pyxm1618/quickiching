@@ -24,9 +24,7 @@ export default function ChinesePrivacyPage() {
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">与多数网站一样，托管和网络服务商可能处理常规请求信息，例如 IP 地址、浏览器信息、请求网址、时间戳以及安全或可靠性日志。这些记录可用于提供站点服务、防止滥用、诊断故障和履行法律义务。</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">分析与会话体验</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching 使用 Google Analytics 4 了解流量来源、页面浏览和汇总使用情况，并使用 Microsoft Clarity 了解点击、滚动、热力图和会话层面的体验。站点默认把分析和广告存储初始化为拒绝；在服务支持的情况下，如果没有有效同意信号允许额外存储，这些服务可能以受限的无 Cookie 模式运行。相关处理同时受 Google 与 Microsoft 各自适用的隐私条款约束。</p>
-
-      <h2 className="mt-10 font-display text-2xl font-medium">广告</h2>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching 使用 Google Analytics 4 了解流量来源、页面浏览和汇总使用情况，并使用 Microsoft Clarity 了解点击、滚动、热力图和会话层面的体验。只有在你明确选择“允许分析”后，这两项分析服务才会初始化。若你拒绝，这些分析脚本会保持禁用，Quick I Ching 也不会发送分析页面浏览事件。同意后的相关处理同时受 Google 与 Microsoft 各自适用的隐私条款约束。</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">问题隐私与深度解读</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">免费起卦的问题输入是可选的，并受长度限制；会话回放中会被遮蔽，也不会写入网址、页面元数据、结构化数据、分析事件或应用日志。免费解读绝不向 AI 提供方发送问题或卦象。深度解读需要登录账户、在第一掷前锁定一个清晰问题、补充足够背景、持有可用次数并通过高风险内容检查。符合条件后，锁定的问题和你提交的背景会加密保存在不可变的账户快照中。生成报告时，系统会解密这些字段，并将它们与本次确切卦象事实及 Quick I Ching 提供的易经材料发送给已配置的生成与复核服务。成功交付的报告会保存到账户历史。生成开始时预留一次，交付成功后才扣除；预留后的失败会释放次数。服务提供方可能依据各自适用的控制和隐私条款处理或保留请求。请勿输入不必要的敏感个人、健康、法律或财务信息。只有在深度解读已开放且你提交符合条件的请求时，才会发生上述付费处理。</p>

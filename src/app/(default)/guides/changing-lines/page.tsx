@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
@@ -7,7 +8,7 @@ import type { LineValue } from "@/domain/casting/types";
 export const metadata: Metadata = {
   title: "I Ching Changing Lines — How Moving Lines Work",
   description: "Learn what changing lines mean in an I Ching reading, why 6 and 9 move, and how moving lines produce a relating hexagram.",
-  alternates: { canonical: "/guides/changing-lines" },
+  alternates: { canonical: "/guides/changing-lines", languages: alternateLanguages("guides-changing-lines") },
   openGraph: { title: "I Ching Changing Lines — How Moving Lines Work", description: "Understand moving lines and the relating hexagram in an I Ching reading.", url: "/guides/changing-lines", type: "article" },
 };
 

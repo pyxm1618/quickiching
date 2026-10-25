@@ -119,19 +119,15 @@ async function seedCompletedReading(page) {
     steps: FIXTURE_STEPS,
   });
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
-  await waitForText(page, "Your Three-Coin Reading");
+  await waitForText(page, "6 / 6 lines");
+  await new Promise((resolve) => setTimeout(resolve, 750));
 
   const completedState = await page.evaluate(() => ({
     pathname: location.pathname,
-    resultHeading: [...document.querySelectorAll("h1")].some((node) => node.textContent?.trim() === "Your Three-Coin Reading"),
-    deepReadingEntry: document.querySelector("[data-deep-reading-entry]") !== null,
-    hasReveal: [...document.querySelectorAll("a")].some((node) => node.textContent?.trim() === "Reveal Your Reading"),
+    progressComplete: document.body?.innerText.includes("6 / 6 lines"),
   }));
-  assert.equal(completedState.pathname, "/readings/three-coin/result", "A completed cast must open the unified result experience directly");
-  assert(completedState.resultHeading, "Unified result experience must show the completed Three-Coin reading");
-  assert(completedState.deepReadingEntry, "Unified result experience must expose its situation-based Deep Reading state");
-  assert.equal(completedState.hasReveal, false, "Completed reading must not require a redundant reveal action");
+  assert.equal(completedState.pathname, "/", "Restoring a completed cast must not auto-navigate away from the current page");
+  assert(completedState.progressComplete, "Restored completed cast must remain available in the casting UI");
 }
 
 async function assertNoHorizontalOverflow(page) {

@@ -94,6 +94,9 @@ export async function POST(
       return json({ error: "CASTING_NOT_READY", message: "Casting must be revealed before requesting deep reading", retryable: false }, 422);
     }
     if (message === "UNSUPPORTED_CAST_METHOD") return json({ error: message, retryable: false }, 422);
+    if (message === "RISK_NEEDS_CLARIFICATION") {
+      return json({ error: "RISK_NEEDS_CLARIFICATION", message: "Clarify the question or context before requesting Deep Reading", retryable: false }, 403);
+    }
     if (message.startsWith("RISK_")) {
       return json({ error: "RISK_PROHIBITED", message: "This reading is restricted by risk assessment", retryable: false }, 403);
     }

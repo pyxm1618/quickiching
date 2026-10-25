@@ -1,4 +1,5 @@
 import React from "react";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -12,6 +13,9 @@ vi.mock("next/link", () => ({
 
 import { ThreeCoinResultClient, getTerminalCreditReconciliation } from "./three-coin-result-client";
 import { CommercialReadingReportView } from "./commercial-reading-report-view";
+import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
+
+const ZH_TEST_READING_CONTENT = zhHansReadingContentFor([1, 9]);
 
 describe("ThreeCoinResultClient Deep Reading credit reconciliation", () => {
   it.each(["failed", "timed_out"] as const)("uses authoritative credits for a current-page %s terminal result", (status) => {
@@ -75,7 +79,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
   ])("shows risk guidance before the short-question fallback for $question", ({ question, expected }) => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
-        locale="zh-Hans"
+        locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialUser={{ id: "usr_1", email: "test@example.com" }}
         initialCredits={0}
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question }}
@@ -91,7 +95,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
 
   it("explains the high-risk block in Chinese while retaining the free cast", () => {
     const html = renderToStaticMarkup(
-      <ThreeCoinResultClient locale="zh-Hans"
+      <ThreeCoinResultClient locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "我是否应该停止服用处方药？" }} />,
     );
     expect(html).toContain('data-deep-reading-blocked="risk"');
@@ -103,7 +107,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
 
   it("renders empty state pointing to /zh/methods/three-coin in Chinese mode", () => {
     const html = renderToStaticMarkup(
-      <ThreeCoinResultClient locale="zh-Hans" initialState={{ kind: "empty" }} />,
+      <ThreeCoinResultClient locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT} initialState={{ kind: "empty" }} />,
     );
     expect(html).toContain('href="/zh/methods/three-coin"');
     expect(html).not.toContain('href="/#three-coin-reading"');
@@ -123,7 +127,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
   it("renders error state pointing to /zh/methods/three-coin in Chinese mode", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
-        locale="zh-Hans"
+        locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialState={{ kind: "error", code: "TEST_ERROR" }}
       />,
     );
@@ -170,7 +174,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
 
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
-        locale="zh-Hans"
+        locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialUser={{ id: "usr_1", email: "test@example.com" }}
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 9, 7, 7], createdAt: "2026-09-25T10:00:00.000Z" }}
         initialCastingView={{
@@ -286,7 +290,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
   it("keeps the complete free interpretation and early Deep Reading entry in one localized result", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
-        locale="zh-Hans"
+        locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialState={{
           kind: "ready", lineValues: [7, 7, 7, 7, 7, 7],
           question: "这次变化中我应该先看清什么？",
@@ -317,7 +321,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
   it("renders streamlined context form with $2.99 pricing disclosure and expandable details", () => {
     const htmlZh = renderToStaticMarkup(
       <ThreeCoinResultClient
-        locale="zh-Hans"
+        locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialState={{
           kind: "ready", lineValues: [7, 7, 7, 7, 7, 7],
           question: "我的核心问题是否能够解决？",
@@ -390,7 +394,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         interpretationGoal: "what_do_i_need_to_see_clearly" as const,
         locale: "en" as const,
       },
-      scene: "general" as const,
+      scene: "other" as const,
       castMethod: "three_coin" as const,
       methodVersion: "three-coin-v1",
       facts: {
@@ -453,5 +457,22 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(htmlZh).toContain('data-why-this-interpretation');
     expect(htmlZh).toContain("为什么这样解读");
     expect(htmlZh).toContain("本报告结合你起卦时保存的问题与现实背景、本次实际卦象（第 47 卦「困」，第 2 爻动，向 第 45 卦「萃」变化）、Quick I Ching 收录的经典文本，以及 Quick I Ching 的结构化解释材料生成。");
+  });
+});
+
+
+describe("Deep Reading polling contract", () => {
+  it("uses recursive timeout polling rather than an overlapping interval loop", () => {
+    const source = readFileSync(new URL("./three-coin-result-client.tsx", import.meta.url), "utf8");
+    expect(source).toContain("pollInFlightRef");
+    expect(source).toContain('document.visibilityState === "hidden"');
+    expect(source).toContain("setTimeout(() => { void poll(); }, delay)");
+    expect(source).not.toContain("setInterval(async () =>");
+  });
+
+  it("does not guess the post-reservation credit balance on the client", () => {
+    const source = readFileSync(new URL("./three-coin-result-client.tsx", import.meta.url), "utf8");
+    expect(source).not.toContain("setCredits((prev) => Math.max(0, prev - 1))");
+    expect(source).toContain("setCredits(data.availableCredits)");
   });
 });

@@ -5,16 +5,12 @@ export function resolveRefundOperatorSecret(
 ): string {
   const explicit = env.REFUND_OPERATOR_SECRET?.trim() ?? "";
   if (explicit) return explicit;
-  if (env.QUICKICHING_DEPLOYMENT_TIER === "staging") {
-    return env.APP_SECRET?.trim() ?? "";
-  }
   return "";
 }
 
 export function verifyRefundOperatorAuthorization(
   request: Request,
   expectedSecret: string,
-  env: Record<string, string | undefined> = process.env,
 ): boolean {
   const authHeader = request.headers.get("authorization")?.trim();
   if (!authHeader?.startsWith("Bearer ")) return false;
@@ -22,9 +18,6 @@ export function verifyRefundOperatorAuthorization(
   if (!provided) return false;
 
   const validSecrets = [expectedSecret.trim()];
-  if (env.QUICKICHING_DEPLOYMENT_TIER === "staging" && env.APP_SECRET?.trim()) {
-    validSecrets.push(env.APP_SECRET.trim());
-  }
 
   const providedBuffer = Buffer.from(provided);
   for (const secret of validSecrets) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
+import { useRouter } from "next/navigation";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
@@ -28,6 +29,26 @@ function lineName(value: number, zh = false): string {
   if (value === 7) return zh ? "少阳" : "Young yang";
   if (value === 8) return zh ? "少阴" : "Young yin";
   return zh ? "老阳 · 动爻" : "Old yang · changing";
+}
+
+export function shouldNavigateCompletedThreeCoin(input: {
+  restored: boolean;
+  complete: boolean;
+  visuallyComplete: boolean;
+  hasReadingMeta: boolean;
+  storageBlocked: boolean;
+  hasUnpersistedCommit: boolean;
+  completionNavigationArmed: boolean;
+  resultNavigationStarted: boolean;
+}): boolean {
+  return input.restored
+    && input.complete
+    && input.visuallyComplete
+    && input.hasReadingMeta
+    && !input.storageBlocked
+    && !input.hasUnpersistedCommit
+    && input.completionNavigationArmed
+    && !input.resultNavigationStarted;
 }
 
 function storageErrorCode(error: unknown): string {
@@ -68,6 +89,7 @@ export function ThreeCoinTool({
   dictionary?: UiDictionary;
   localizedContent?: LocalizedReadingContent;
 }) {
+  const router = useRouter();
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
   const onNewReading = onNewReadingProp ?? (() => questionContext?.restartQuestion(true));
@@ -89,6 +111,7 @@ export function ThreeCoinTool({
   const shakeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resultNavigationStartedRef = useRef(false);
+  const completionNavigationArmedRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -140,19 +163,20 @@ export function ThreeCoinTool({
     : null, [complete, question, readingMeta, steps, lines]);
 
   useEffect(() => {
-    if (
-      !restored ||
-      !complete ||
-      !visuallyComplete ||
-      !readingMeta ||
-      storageBlocked ||
-      unpersistedCommit ||
-      resultNavigationStartedRef.current
-    ) return;
+    if (!shouldNavigateCompletedThreeCoin({
+      restored,
+      complete,
+      visuallyComplete,
+      hasReadingMeta: Boolean(readingMeta),
+      storageBlocked,
+      hasUnpersistedCommit: Boolean(unpersistedCommit),
+      completionNavigationArmed: completionNavigationArmedRef.current,
+      resultNavigationStarted: resultNavigationStartedRef.current,
+    })) return;
 
     resultNavigationStartedRef.current = true;
-    window.location.assign(zh ? "/zh/readings/three-coin/result" : "/readings/three-coin/result");
-  }, [complete, readingMeta, restored, storageBlocked, unpersistedCommit, visuallyComplete, zh]);
+    router.push(zh ? "/zh/readings/three-coin/result" : "/readings/three-coin/result");
+  }, [complete, readingMeta, restored, router, storageBlocked, unpersistedCommit, visuallyComplete, zh]);
 
   function audio(): AudioContext | null {
     if (!soundOn || typeof window === "undefined") return null;
@@ -247,6 +271,7 @@ export function ThreeCoinTool({
     try {
       const session = writeThreeCoinSteps(committedSteps);
       setReadingMeta({ id: session.id, createdAt: session.createdAt });
+      if (committedSteps.length === 6) completionNavigationArmedRef.current = true;
       beginVisualSettlement(committedSteps, next);
     } catch (error: unknown) {
       setPendingStep(null);
@@ -310,6 +335,8 @@ export function ThreeCoinTool({
     setRevealedCount(0);
     setReadingMeta(null);
     setSteps([]);
+    completionNavigationArmedRef.current = false;
+    resultNavigationStartedRef.current = false;
   }
 
   function startNewReading() {

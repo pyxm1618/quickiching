@@ -38,7 +38,7 @@ export default function ChineseMeiHuaPage() {
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
         <QuestionFirst storageKey="quickiching:public-v1:mei-hua-v2" legacyStorageKeys={["quickiching:question:mei-hua-yi-shu"]} dictionary={dictionary}>
-          <MeiHuaTool dictionary={dictionary} readingContent={content.reading} conventionContent={content.convention} />
+          <MeiHuaTool dictionary={dictionary} conventionContent={content.convention} />
         </QuestionFirst>
       </section>
 

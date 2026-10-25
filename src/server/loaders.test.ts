@@ -101,6 +101,12 @@ describe("commercial account loaders", () => {
     expect(mocks.getPostgresClient).not.toHaveBeenCalled();
   });
 
+  it("uses the existing Chinese hexagram name for zh-Hans account history", async () => {
+    mocks.getPostgresClient.mockReturnValue(vi.fn(async () => [privateRow]));
+    const history = await loadHistory({ id: "user-1", email: "user@example.com" }, "zh-Hans");
+    expect(history[0]?.primaryName).toBe("既济");
+  });
+
   it("does not return a persisted private casting to an unauthenticated reader", async () => {
     mocks.getCurrentUser.mockResolvedValue(null);
     mocks.getPostgresClient.mockReturnValue(vi.fn(async () => [privateRow]));

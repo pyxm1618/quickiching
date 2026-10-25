@@ -86,8 +86,7 @@ async function seedThreeCoin(page, question) {
 
 async function verifyChineseNoChangingLines(page) {
   await seedThreeCoinSession(page, `fixture-no-change-${Date.now()}`, new Date().toISOString(), NO_CHANGE_STEPS, "这次起卦没有动爻吗？");
-  await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => location.pathname === "/zh/readings/three-coin/result", { timeout: 15_000 });
+  await openSeededThreeCoinResult(page, "zh-Hans");
   const result = await page.$eval("[data-public-reading-result]", (node) => ({
     text: node.textContent ?? "",
     overviewLabel: node.querySelector("[data-primary-overview]")?.getAttribute("aria-label") ?? "",
@@ -120,6 +119,21 @@ async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, 
       data: { steps },
     }));
   }, { key: THREE_COIN_STORAGE_KEY, id, createdAt, steps, question });
+}
+
+async function openSeededThreeCoinResult(page, locale = "en") {
+  const prefix = locale === "zh-Hans" ? "/zh" : "";
+  const methodPath = `${prefix}/methods/three-coin`;
+  const resultPath = `${prefix}/readings/three-coin/result`;
+  await page.goto(`${BASE}${methodPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForFunction(() => {
+    const badge = document.querySelector(".ritual-progress-badge");
+    return badge?.textContent?.trim().startsWith("6 / 6") === true;
+  }, { timeout: 15_000 });
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  assert.equal(new URL(page.url()).pathname, methodPath, "Restored completed cast must not auto-navigate to an old result");
+  await page.goto(`${BASE}${resultPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])", { timeout: 15_000 });
 }
 
 async function assertQuestionPrivacy(page, question) {
@@ -289,8 +303,7 @@ async function verifyQuestionSkipFreeOnly(page) {
 async function verifyChineseQuestionAndDeepEntry(page) {
   const question = "面对职业选择，我现在最需要看清什么？";
   await seedThreeCoin(page, question);
-  await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => location.pathname === "/zh/readings/three-coin/result", { timeout: 15_000 });
+  await openSeededThreeCoinResult(page, "zh-Hans");
   await waitForText(page, "本次三枚铜钱起卦结果");
   await assertQuestionPrivacy(page, question);
   assert.equal(await page.$eval("[data-core-question-at-cast]", (node) => node.textContent?.trim()), question, "Chinese unified result must restore the frozen question");
@@ -353,20 +366,19 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   // Start a fresh anonymous fixture to verify a non-emergency professional-risk context remains editable,
   // then can be corrected back to an eligible state.
   await seedThreeCoin(page, question);
-  await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => location.pathname === "/zh/readings/three-coin/result", { timeout: 15_000 });
+  await openSeededThreeCoinResult(page, "zh-Hans");
   await page.waitForSelector("#deep-context-situation", { timeout: 15_000 });
   await page.type("#deep-context-situation", "Should I stop taking my prescribed medication because of this role?");
   await page.waitForSelector('[data-deep-reading-blocked="risk"]');
   assert(await page.$("#deep-context-situation"), "Professional-risk context must remain editable");
   assert.equal(await page.$('[data-deep-reading-entry] a[href*="signin"]'), null, "Professional-risk context must not send an anonymous user toward a paid request");
-  await page.click("#deep-context-situation");
-  const selectAllModifier = process.platform === "darwin" ? "Meta" : "Control";
-  await page.keyboard.down(selectAllModifier);
-  await page.keyboard.press("A");
-  await page.keyboard.up(selectAllModifier);
-  await page.keyboard.press("Backspace");
-  await page.type("#deep-context-situation", "I am considering a new role and want to understand what responsibilities to clarify.");
+  await page.$eval("#deep-context-situation", (node, nextValue) => {
+    if (!(node instanceof HTMLTextAreaElement)) throw new Error("Deep Reading situation field is not a textarea");
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+    if (!setter) throw new Error("Textarea value setter is unavailable");
+    setter.call(node, nextValue);
+    node.dispatchEvent(new Event("input", { bubbles: true }));
+  }, "I am considering a new role and want to understand what responsibilities to clarify.");
   await page.waitForSelector('[data-deep-reading-blocked="risk"]', { hidden: true });
   assert(await page.$('[data-deep-reading-entry] a[href*="signin"]'), "Correcting optional context must restore the eligible CTA without changing the core question");
   assert.equal(await page.$eval("[data-core-question-at-cast]", (node) => node.textContent?.trim()), question);
@@ -488,15 +500,13 @@ async function verifyHistory(page) {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(() => localStorage.removeItem("quickiching:public-history:v1"));
   await seedThreeCoin(page, "Same facts · first question");
-  await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await openSeededThreeCoinResult(page);
   await waitForText(page, "Your Three-Coin Reading");
   await clickText(page, "Save reading");
   await waitForText(page, "Saved in this browser");
 
   await seedThreeCoinSession(page, "history-three-coin-second", "2026-08-19T12:00:00.000Z", FIXTURE_STEPS, "Same facts · second question");
-  await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await openSeededThreeCoinResult(page);
   await waitForText(page, "Your Three-Coin Reading");
   await clickText(page, "Save reading");
   await waitForText(page, "Saved in this browser");
@@ -510,8 +520,14 @@ async function verifyHistory(page) {
   await clickText(page, "Rename");
   const titleInput = await page.$('input[id^="history-title-"]');
   assert(titleInput, "History rename input missing");
-  await titleInput.click({ clickCount: 3 });
-  await page.keyboard.type("Transition notes");
+  await titleInput.evaluate((node, nextValue) => {
+    if (!(node instanceof HTMLInputElement)) throw new Error("History title field is not an input");
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    if (!setter) throw new Error("Input value setter is unavailable");
+    setter.call(node, nextValue);
+    node.dispatchEvent(new Event("input", { bubbles: true }));
+  }, "Transition notes");
+  assert.equal(await titleInput.evaluate((node) => node.value), "Transition notes", "History rename input must hold the replacement title before save");
   await clickText(page, "Save name");
   await waitForText(page, "Transition notes");
   await clickText(page, "Save reading");

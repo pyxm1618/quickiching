@@ -5,7 +5,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
-import { ZH_HANS_READING_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
+import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
+import type { HexagramInterpretationBundle } from "@/domain/interpretation/v2/types";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import { ZH_HANS_UI_DICTIONARY } from "@/i18n/dictionaries/zh-Hans";
 import {
@@ -42,6 +43,8 @@ export type ThreeCoinResultClientProps = {
   initialCredits?: number;
   locale?: "en" | "zh-Hans";
   initialState?: ResultState;
+  initialInterpretationBundles?: { primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null };
+  initialLocalizedContent?: LocalizedReadingContent;
   initialCastingView?: {
     castingId: string;
     createdAt?: string;
@@ -115,6 +118,8 @@ export function ThreeCoinResultClient({
   initialSessionId,
   initialUser = null,
   initialCredits = 0,
+  initialInterpretationBundles,
+  initialLocalizedContent,
   initialCastingView = null,
   initialState,
   locale = "en",
@@ -167,7 +172,9 @@ export function ThreeCoinResultClient({
   const deepRiskBlocked = deepRisk.status !== "allowed";
   const deepRiskMessage = deepRisk.status === "emergency_blocked"
     ? t("Deep Reading cannot handle an immediate safety crisis. If there is immediate danger, contact local emergency services now. In the U.S., call or text 988 for crisis support, or call 911 for immediate emergency help.", "深度解读无法处理紧急安全危机。如果存在即时危险，请立即联系当地紧急服务。在美国，可拨打或短信联系 988 获取危机支持；如需紧急救援请拨打 911。")
-    : t("This question or context needs qualified professional support. Deep Reading is unavailable for this request; consult a qualified professional for medical, legal, or investment decisions.", "这个问题或背景需要合格专业人士支持，本次无法提供深度解读。涉及医疗、法律或投资决策，请咨询相应的合格专业人士。");
+    : deepRisk.status === "needs_clarification"
+      ? t("Deep Reading needs a clearer question or situation context before it can continue. Make the request more specific, then try again.", "深度解读需要更明确的问题或处境背景后才能继续。请把请求说明得更具体，再重试。")
+      : t("This question or context needs qualified professional support. Deep Reading is unavailable for this request; consult a qualified professional for medical, legal, or investment decisions.", "这个问题或背景需要合格专业人士支持，本次无法提供深度解读。涉及医疗、法律或投资决策，请咨询相应的合格专业人士。");
   const resultReading = useMemo(() => {
     if (state.kind !== "ready") return null;
     const id = clientCastingId ?? castingId;
@@ -181,34 +188,74 @@ export function ThreeCoinResultClient({
       evidence: { kind: "history", originalMethod: "three-coin" },
     });
   }, [castingId, clientCastingId, state]);
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollRunRef = useRef(0);
+  const pollInFlightRef = useRef(false);
+
+  const stopPolling = useCallback(() => {
+    pollRunRef.current += 1;
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    pollTimerRef.current = null;
+  }, []);
+
   const startPolling = useCallback((targetCastingId: string) => {
-    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    pollTimerRef.current = setInterval(async () => {
+    stopPolling();
+    const runId = pollRunRef.current;
+    let transientFailures = 0;
+
+    const schedule = (delay: number) => {
+      if (runId !== pollRunRef.current) return;
+      pollTimerRef.current = setTimeout(() => { void poll(); }, delay);
+    };
+
+    const poll = async () => {
+      pollTimerRef.current = null;
+      if (runId !== pollRunRef.current) return;
+      if (document.visibilityState === "hidden") {
+        schedule(5000);
+        return;
+      }
+      if (pollInFlightRef.current) {
+        schedule(2000);
+        return;
+      }
+
+      pollInFlightRef.current = true;
+      let terminal = false;
       try {
         const res = await fetch(`/api/readings/${targetCastingId}/deep`);
-        if (!res.ok) return;
+        if (runId !== pollRunRef.current) return;
+        if (!res.ok) {
+          transientFailures += 1;
+          return;
+        }
+        transientFailures = 0;
         const data = await res.json() as DeepReadingStatusPayload;
+        if (runId !== pollRunRef.current) return;
         const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
         if (parsedSnapshot.success) setDeepSnapshot(parsedSnapshot.data);
         const parsedReport = readingReportSchema.safeParse(data.output);
-        if (data.status === "completed" && parsedReport.success) {
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-          setDeepReport(parsedReport.data);
-          setLegacyReport(null);
-          setDeepStatus("completed");
+        if (data.status === "completed") {
+          terminal = true;
+          if (typeof data.availableCredits === "number" && Number.isInteger(data.availableCredits) && data.availableCredits >= 0) {
+            setCredits(data.availableCredits);
+          }
+          if (parsedReport.success) {
+            setDeepReport(parsedReport.data);
+            setLegacyReport(null);
+            setDeepStatus("completed");
+          } else {
+            const parsedLegacyReport = legacyReadingReportSchema.safeParse(data.output);
+            if (parsedLegacyReport.success) {
+              setLegacyReport(parsedLegacyReport.data);
+              setDeepStatus("completed");
+            }
+          }
           if (reservedCreditCastingRef.current === targetCastingId) {
             reservedCreditCastingRef.current = null;
           }
-        } else if (data.status === "completed") {
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-          const parsedLegacyReport = legacyReadingReportSchema.safeParse(data.output);
-          if (parsedLegacyReport.success) {
-            setLegacyReport(parsedLegacyReport.data);
-            setDeepStatus("completed");
-          }
         } else if (data.status === "failed" || data.status === "timed_out") {
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+          terminal = true;
           const creditReconciliation = getTerminalCreditReconciliation(
             data.status,
             data.availableCredits,
@@ -227,16 +274,19 @@ export function ThreeCoinResultClient({
             : "The reading did not finish. Your reserved credit has been released; retrying uses the same saved question and context.");
         }
       } catch {
-        // 轮询重试
+        transientFailures += 1;
+      } finally {
+        pollInFlightRef.current = false;
+        if (!terminal && runId === pollRunRef.current) {
+          schedule(Math.min(2000 * (2 ** transientFailures), 8000));
+        }
       }
-    }, 2000);
-  }, [zh]);
-
-  useEffect(() => {
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, []);
+
+    schedule(2000);
+  }, [stopPolling, zh]);
+
+  useEffect(() => stopPolling, [stopPolling]);
 
   useEffect(() => {
     skipDraftWriteRef.current = true;
@@ -507,9 +557,11 @@ export function ThreeCoinResultClient({
 
       if (!res.ok) {
         const error = await res.json().catch(() => ({})) as { error?: string };
-        setDeepStatus(error.error === "RISK_PROHIBITED" ? "idle" : "failed");
-        const message = error.error === "RISK_PROHIBITED"
-          ? t("This question needs qualified professional support, so generation was blocked and no credit was reserved.", "这个问题需要合格专业人士支持，因此系统已阻止生成，未预留次数。")
+        setDeepStatus(error.error === "RISK_PROHIBITED" || error.error === "RISK_NEEDS_CLARIFICATION" ? "idle" : "failed");
+        const message = error.error === "RISK_NEEDS_CLARIFICATION"
+          ? t("Clarify the question or situation context before requesting Deep Reading. No credit was reserved.", "请先把问题或处境背景说明得更明确，再请求深度解读；本次未预留次数。")
+          : error.error === "RISK_PROHIBITED"
+            ? t("This question needs qualified professional support, so generation was blocked and no credit was reserved.", "这个问题需要合格专业人士支持，因此系统已阻止生成，未预留次数。")
           : error.error === "CONTEXT_INSUFFICIENT"
             ? t("Add enough situation context before generating the reading.", "请先补充足够的现实背景，再生成解读。")
             : t("The request could not start. Check the saved status before retrying.", "暂时无法发起请求；重试前请先检查已保存状态。");
@@ -528,7 +580,6 @@ export function ThreeCoinResultClient({
       if (parsedSnapshot.success) setDeepSnapshot(parsedSnapshot.data);
       if (data.creditReservationCreated) {
         reservedCreditCastingRef.current = activeCastingId;
-        setCredits((prev) => Math.max(0, prev - 1));
       }
       const parsedReport = readingReportSchema.safeParse(data.output);
       if (data.status === "completed" && parsedReport.success) {
@@ -637,7 +688,8 @@ export function ThreeCoinResultClient({
         reading={resultReading!}
         onNewReading={startNewReading}
         dictionary={resultDictionary}
-        localizedContent={zh ? ZH_HANS_READING_CONTENT : undefined}
+        localizedContent={zh ? initialLocalizedContent : undefined}
+        initialBundles={initialInterpretationBundles}
         title={zh ? "本次三枚铜钱起卦结果" : "Your Three-Coin Reading"}
         headingLevel="h1"
         newReadingLabel={zh ? "重新起一卦" : "Start a New Reading"}

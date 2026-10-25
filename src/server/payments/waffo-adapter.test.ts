@@ -132,11 +132,12 @@ describe("Waffo 0.19.1 payment boundary", () => {
       userId: "user-123",
       buyerEmail: "buyer@example.com",
       productKey: "one",
+      locale: "zh-Hans",
     });
 
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
-        successUrl: "https://staging.quickiching.com/pricing?orderId=order-success-url-test",
+        successUrl: "https://staging.quickiching.com/zh/pricing?orderId=order-success-url-test",
       }),
     );
   });

@@ -30,12 +30,12 @@ vi.mock("@/lib/auth/session", () => ({
 }));
 
 vi.mock("@/server/loaders", () => ({
-  loadHistory: () => mockHistory(),
-  loadEntitlementBalance: () => mockBalance(),
+  loadHistory: (user: unknown, locale: unknown) => mockHistory(user, locale),
+  loadEntitlementBalance: (user: unknown) => mockBalance(user),
 }));
 
 vi.mock("@/server/account/purchase-loader", () => ({
-  loadAccountPurchases: () => mockPurchases(),
+  loadAccountPurchases: (user: unknown) => mockPurchases(user),
 }));
 
 import ChineseAccountPage from "./page";
@@ -120,6 +120,15 @@ describe("ChineseAccountPage Server Component", () => {
         hasPreview: true,
         hasReading: true,
       },
+      {
+        id: "hist_2",
+        method: "three-coin",
+        scene: "unknown_legacy_scene",
+        createdAt: new Date("2026-09-21T09:00:00Z"),
+        primaryName: "坤为地",
+        hasPreview: false,
+        hasReading: false,
+      },
     ]);
 
     const component = await ChineseAccountPage();
@@ -130,9 +139,12 @@ describe("ChineseAccountPage Server Component", () => {
     expect(html).toContain("已付款");
     expect(html).toContain("乾为天");
     expect(html).toContain("三枚铜钱 · 事业");
+    expect(html).toContain("三枚铜钱 · 未分类");
     expect(html).toContain("预览");
     expect(html).toContain("解读");
     expect(html).toContain('href="/zh/readings/three-coin/result?session=hist_1"');
+    expect(mockHistory).toHaveBeenCalledWith({ id: "usr_test_2", email: "vip@example.com" }, "zh-Hans");
+    expect(mockPurchases).toHaveBeenCalledWith({ id: "usr_test_2", email: "vip@example.com" });
 
     const contamination = findLatinContamination(html);
     expect(contamination).toEqual([]);

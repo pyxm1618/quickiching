@@ -128,6 +128,17 @@ export const ZH_HANS_READING_CONTENT: LocalizedReadingContent = {
   },
 };
 
+export function zhHansReadingContentFor(hexagramNumbers: readonly number[]): LocalizedReadingContent {
+  const selectedHexagrams = Object.fromEntries(
+    [...new Set(hexagramNumbers)].map((number) => {
+      const content = ZH_HANS_READING_CONTENT.hexagrams[number];
+      if (!content) throw new Error(`LOCALIZED_HEXAGRAM_CONTENT_MISSING: ${number}`);
+      return [number, content];
+    }),
+  );
+  return { ...ZH_HANS_READING_CONTENT, hexagrams: selectedHexagrams };
+}
+
 export const ZH_HANS_MEI_HUA_CONTENT: MeiHuaPageContent = {
   locale: "zh-Hans",
   metadata: {

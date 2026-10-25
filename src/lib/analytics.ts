@@ -66,3 +66,8 @@ export function getAnalyticsConfig(
     ),
   };
 }
+
+
+export function analyticsProvidersAllowed(consent: AnalyticsConsentState | null): boolean {
+  return consent === "granted";
+}
