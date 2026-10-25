@@ -12,6 +12,7 @@ const MAX_REQUEST_BYTES = 4 * 1024;
 const bodySchema = z.object({
   productKey: z.enum(["one", "three", "five"]),
   requestId: z.string().trim().min(16).max(128).regex(/^[A-Za-z0-9._:-]+$/),
+  locale: z.enum(["en", "zh-Hans"]).default("en"),
 }).strict();
 
 function headers(extra: Record<string, string> = {}): Headers {
