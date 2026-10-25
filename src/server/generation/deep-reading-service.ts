@@ -380,7 +380,7 @@ export function createDeepReadingService(dependencies: {
           const context = submittedEnrichment.data;
           const normalizedScene = normalizeScene(String(session.scene));
           if (!normalizedScene) throw new Error("CASTING_SCENE_INVALID");
-          const risk = evaluateRisk(riskText(coreQuestionAtCast, context), normalizedScene);
+          const risk = evaluateRisk(riskText(coreQuestionAtCast, context));
           await transaction`
             update casting_sessions set risk_status = ${risk.status}, risk_rule_version = ${risk.ruleVersion}, updated_at = clock_timestamp()
             where id = ${castingId}
@@ -418,7 +418,6 @@ export function createDeepReadingService(dependencies: {
         const refreshedRisk = evaluateRisk(
           [snapshot.coreQuestionAtCast, snapshot.context.contextNotes, ...snapshot.context.options,
             ...snapshot.context.constraints, ...snapshot.context.concerns].filter(Boolean).join("\n"),
-          snapshot.scene,
         );
         await transaction`
           update casting_sessions set risk_status = ${refreshedRisk.status},
