@@ -127,7 +127,7 @@ export async function POST(request: Request): Promise<Response> {
     ? fingerprintQuestion(`${sceneInput}|${interpretationGoal}|${normalizeQuestion(questionText)}`, fingerprintKey.material, fingerprintKeyVersion)
     : null;
   const risk = questionText
-    ? evaluateRisk(questionText, scene)
+    ? evaluateRisk(questionText)
     : { status: "not_checked" as const, ruleVersion: RISK_RULE_VERSION, matchedRuleCodes: [], reasonCode: "core_question_missing" };
 
   const hexResult = buildHexagramResult({ lineValuesBottomUp, method: "three_coin" });
