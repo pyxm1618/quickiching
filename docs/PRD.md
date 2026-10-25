@@ -1,18 +1,16 @@
 # Quick I Ching 产品需求文档
 
-**版本：** V3.0 Stage Split  
-**日期：** 2026-08-20
-**首发语言：** English + 简体中文
-**产品形态：** 多玩法 I Ching 在线起卦、文化解释与自我反思平台  
-**当前发布阶段：** Public SEO V1  
-
-> 本文档取代旧 V2.1 中“完整商业 MVP 完成后才能公开”的阶段假设。未来商业需求没有取消，而是明确后移到 Commercial V2。
+**版本：** Current SSOT
+**日期：** 2026-10-25
+**公开语言：** English + 简体中文
+**产品形态：** 多玩法 I Ching 在线起卦、文化解释与自我反思平台
+**当前产品状态：** Public SEO V1 + deployment-gated Commercial V2
 
 ---
 
-## 1. 产品阶段定义
+## 1. 产品能力边界
 
-### 1.1 Public SEO V1 — 当前 Google + Bing 首次收录版本
+### 1.1 Public SEO V1 — 公开免费产品面
 
 目标：让用户从搜索进入后，在没有账号、支付、数据库或生产 AI 凭据的情况下，真正完成一次有阅读价值的 I Ching reading。
 
@@ -22,7 +20,7 @@
 
 当前公开 SEO 路由提供完整的英中对应索引范围：73 个英文可索引 URL 与 73 个简体中文可索引 URL，共 146 个。中文范围包含首页、四种公开起卦方法、三篇指南、六十四卦目录与 64 个卦象详情页；账号、支付、历史和结果等私有/商业路径仍不进入索引。
 
-首发必须真实可用：
+当前公开能力：
 
 1. Three-Coin Method
 2. Yarrow Stalk Method
@@ -46,9 +44,9 @@
 
 产品边界固定为：**Free = cast interpretation；Paid = personalized situation interpretation。Free never calls AI.** 免费层完整解释卦象本身，不结合私人处境生成个性化判断，也不得暗示通用文本已回答具体问题。付费生成只可经 Deep Reading entitlement、风险评估和不可变输入快照进入服务端工作流。
 
-### 1.2 Commercial V2 — 独立商业能力面
+### 1.2 Commercial V2 — deployment-gated 商业能力面
 
-Commercial V2 的能力由独立服务端开关控制，不阻断 Public SEO V1 的公开闭环：
+Commercial V2 的能力由独立服务端开关控制，不阻断 Public SEO V1 的公开闭环。当前服务端 capability 为 `auth`、`checkout`、`webhookIngestion`、`paidDeepReading`、`reconcile`；每项只有在对应 server flag、依赖与配置门禁全部满足时才能启用，默认 fail closed：
 
 - 用户输入：起卦前冻结的一个核心问题，以及生成前补充的现实背景、选项、限制、顾虑和解释目标。
 - 高风险边界：医疗、法律、投资、紧急安全等不得由占卜替代专业决策。
@@ -63,7 +61,7 @@ Commercial V2 的能力由独立服务端开关控制，不阻断 Public SEO V1 
 - 隐私删除、账户删除、支付账本、退款/争议等商业运营能力。
 - 商业安全、rate limit、anti-abuse、支持、监控和事故处置。
 
-Commercial V2 上线前必须重新完成法律、支付、隐私、AI、账户安全和数据持久化专项验收。
+任何 Commercial V2 capability 在 production 开启前，都必须完成对应的法律、支付、隐私、AI、账户安全和数据持久化专项验收；仓库中存在实现不等于生产能力已启用。
 
 ### 1.3 P0 Deep Reading 商品合同
 
@@ -195,7 +193,7 @@ Public V1 不公开复制未经许可的现代英文 I Ching 译文。
 
 基础解读使用 Quick I Ching 原创简洁文本，只解释一般 hexagram theme 与结构变化，不读取用户私人上下文。
 
-未来 Commercial V2 的付费价值边界：在用户明确提交的具体情境与目标上做个性化深度解释。
+Commercial V2 的付费价值边界：在用户明确提交的具体情境与目标上做个性化深度解释。
 
 ---
 
@@ -230,7 +228,7 @@ Canonical production host：`https://www.quickiching.com`。
 
 ---
 
-## 7. 本阶段明确不扩展
+## 7. 当前明确不扩展
 
 Public SEO V1 不为了“完整”而默认启用：
 
@@ -244,12 +242,11 @@ Public SEO V1 不为了“完整”而默认启用：
 
 ---
 
-## 8. Public SEO V1 完成定义
+## 8. Public SEO V1 当前验收合同
 
-只有四种方法都完成真实免费闭环、75 个 indexable URL（73 个英文 + 2 个简体中文）技术 SEO 干净、desktop/mobile 核心路径通过、构建和自动化测试通过，才能标记 `READY FOR FINAL SEO AUDIT`。Question-first 核心问题冻结、免费 AI 零请求、付费快照不可变、风险阻断不预留、失败释放、证据验证和语言一致性均须有需求级门禁证据。
+只有四种方法都完成真实免费闭环、146 个 indexable URL（73 个英文 + 73 个简体中文）技术 SEO 干净、desktop/mobile 核心路径通过、构建和自动化测试通过，才能标记 `READY FOR FINAL SEO AUDIT`。Question-first 核心问题冻结、免费 AI 零请求、付费快照不可变、风险阻断不预留、失败释放、证据验证和语言一致性均须有需求级门禁证据。
 
 独立最终审核通过前：
 
 - 不提交 Google Search Console
 - 不向 Bing 发送 production IndexNow
-- 不自动 merge main
