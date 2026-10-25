@@ -41,11 +41,14 @@ No sign-in, payment, credit, database, or production AI call is required for the
 - `/hexagrams` — 64 Hexagrams hub
 - `/hexagrams/[fixed-slug]` — 64 fixed entity pages with six line anchors
 
-### Simplified Chinese entry points
+### Simplified Chinese public coverage
 
 - `/zh` — 中文首页
-- `/zh/methods/mei-hua-yi-shu` — 梅花易数公历适配版；结果区明确区分经典爻辞、QuickIChing 原创说明和爻位结构提示
-- 当前中文页面只覆盖上述入口和方法，不把英文页面伪装成中文本地化版本；没有等价中文页的语言切换会回到中文首页
+- `/zh/methods/*` — 4 个公开起卦方法页
+- `/zh/guides/*` — 3 个公开指南页
+- `/zh/hexagrams` — 中文六十四卦目录
+- `/zh/hexagrams/[fixed-slug]` — 64 个中文卦象详情页
+- `src/i18n/routes.ts` 是公开本地化路由的事实源；当前共有 73 个英文与 73 个简体中文可索引 URL，共 146 个，等价页面提供 canonical 与双向 `hreflang`。
 
 ### Technical SEO
 
@@ -54,7 +57,7 @@ No sign-in, payment, credit, database, or production AI call is required for the
 - Obsolete account/checkout routes do not soft-redirect to the homepage.
 - `/sitemap.xml` lists only canonical indexable Public V1 pages.
 - `/robots.txt` references the production sitemap.
-- The sitemap inventory contains 73 English URLs and the two published Chinese URLs; equivalent pages emit canonical and `hreflang` metadata.
+- The sitemap inventory contains 146 canonical indexable URLs: 73 English and 73 Simplified Chinese; equivalent pages emit canonical and bidirectional `hreflang` metadata.
 - IndexNow is implemented as a dry-run-first CLI; **do not use `--submit` before independent final audit approval**.
 
 ```bash
@@ -90,12 +93,21 @@ Algorithm/content provenance and the exact Yarrow + Mei Hua conventions are docu
 
 ## Stack
 
-- Next.js 15 App Router
-- React 19
+- Bun 1.3.14
+- Next.js 15.5.25 App Router
+- React 19.0.8
 - TypeScript
 - Tailwind CSS v4
 - Vitest
-- Bun workflow (`bun.lock` + frozen install on Vercel)
+- Better Auth 1.7.1 for deployment-gated production auth
+- Drizzle ORM 0.45.x + PostgreSQL for deployment-gated commercial persistence
+- Waffo Pancake TS 0.19.1 for deployment-gated one-time credit-pack payments
+
+## Deployment and commercial capability contract
+
+Vercel is the production deployment target. `vercel.json` enables Git deployments for `main` and `staging`, installs with Bun 1.3.14 using the frozen lockfile, builds with `bun run build`, and schedules `/api/internal/reconcile` daily.
+
+Commercial V2 is controlled only by server-side capability resolution. The current capability set is `auth`, `checkout`, `webhookIngestion`, `paidDeepReading`, and `reconcile`. Missing/false capability flags remain disabled, invalid configuration fails closed, and implementation presence alone does not prove that a production capability is live.
 
 ## Local quality commands
 

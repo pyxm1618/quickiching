@@ -1,6 +1,6 @@
 # Public SEO V1 provenance
 
-Updated: 2026-09-25
+Updated: 2026-10-25
 
 This file records the rules and content provenance used by the credential-free Public SEO V1. It is intentionally narrower than the future Commercial V2 design.
 
@@ -102,6 +102,20 @@ Public V1 free output includes:
 - a reflection / non-deterministic / non-professional-advice boundary.
 
 Free interpretation explains the cast itself and never calls AI. The former free personalized interpreter, its public API, feature flags, Turnstile dependency, and Upstash rate limit have been retired. No unauthenticated public AI interpretation endpoint remains. Paid Deep Reading is a separate server-gated product: it requires the frozen question, sufficient user context, a passing risk check, an account entitlement, an immutable encrypted snapshot, and the cited knowledge bundle before generation can start. Production availability remains deployment-controlled and requires live account and provider acceptance.
+
+## Interpretation catalog authorship and ownership boundaries
+
+The current expanded free-reading catalog lives under `src/domain/interpretation/v2/`. It is static, deterministic TypeScript content rather than runtime-generated prose.
+
+Each of the 64 hexagram interpretation records directly carries its authored `coreTheme`, `coreMeaning`, `strength`, `challenge`, `orientation`, `structureInterpretation`, three `reflectionQuestions`, three `watchFor` observations, `transitionTheme`, and `stabilityTheme`.
+
+The line catalog contains exactly 64 × 6 = 384 ordinary line interpretation records. Each line directly supplies `theme`, `meaning`, `changeDynamic`, `caution`, `reflection`, and `synthesisPhrase`. The shared `authoredLine()` helper in `src/domain/interpretation/v2/profile.ts` only assembles those supplied fields; catalog building adds objective hexagram number and line position and does not manufacture semantic meaning from a generic line-position paragraph or prose template.
+
+Quick I Ching renders every actual changing line in bottom-to-top order and synthesizes all of them. It does not apply an ancient line-selection hierarchy that suppresses some moving lines in favor of one selected line. That is a Quick I Ching presentation convention, not a claim that one universal classical selection rule exists.
+
+All user-facing English in this catalog is Quick I Ching original prose. Classical and historical materials are semantic cross-checks rather than production copy. Chinese Text Project's *Book of Changes* was used to cross-check received sequence, line order, and broad classical context; James Legge's 1899 *I Ching* was used only as a historical English bibliographic cross-check where useful. No Legge passage, modern commercial translation, or modern I Ching website prose is reproduced as catalog text.
+
+Ownership is explicit: casting code owns **what was cast**; the interpretation catalog owns **how that fixed structure is explained**; result UI owns **how that explanation is presented**. Given the same six line values, the casting facts, selected static records, and deterministic synthesis remain stable. There is no LLM/API call, CMS lookup, or random prose generation in the free interpretation catalog.
 
 ## Classical hexagram source records
 

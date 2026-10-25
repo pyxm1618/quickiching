@@ -1,6 +1,6 @@
-# Quick I Ching Payment Closeout Runbook
+# Quick I Ching Payment Operations Runbook
 
-Status: payment-closeout branch contract. This document describes the Commercial V2 one-time credit-pack system only. It does not introduce subscriptions.
+Status: current Commercial V2 payment operations contract. This document describes the deployment-gated one-time credit-pack system only. It does not introduce subscriptions.
 
 ## Product truth
 
@@ -74,7 +74,7 @@ User policy:
 
 A browser refund request only creates/returns a local `refund_intent`. It never calls Waffo refund creation.
 
-A request with partially consumed, reserved, or otherwise unavailable source credits is `manual_exception`. Quick I Ching does not invent prorated refunds or deduct unrelated credits. Operator approval of a manual exception is blocked until an explicit policy decision exists outside this closeout.
+A request with partially consumed, reserved, or otherwise unavailable source credits is `manual_exception`. Quick I Ching does not invent prorated refunds or deduct unrelated credits. Operator approval of a manual exception is blocked until an explicit policy decision exists outside this runbook.
 
 ## Provider refund write fence
 
@@ -125,7 +125,7 @@ Do not infer new refund-intent correlation from legacy external references. Do n
 
 ## Waffo Test guardrail
 
-For payment closeout, use at most one new clean Waffo Test payment/refund sample for the real refund E2E. If the first approved Test refund dispatch produces an ambiguous outcome and authenticated provider reads show zero refund tickets/refunds, stop. Keep the local intent `reconciliation_required`, verify that only one refund POST occurred, and do not create additional payments/refund samples to work around the provider Test behavior.
+For production-readiness validation, use at most one new clean Waffo Test payment/refund sample for the real refund E2E. If the first approved Test refund dispatch produces an ambiguous outcome and authenticated provider reads show zero refund tickets/refunds, stop. Keep the local intent `reconciliation_required`, verify that only one refund POST occurred, and do not create additional payments/refund samples to work around the provider Test behavior.
 
 ## Release validation
 
@@ -138,4 +138,4 @@ Before Commercial V2 payment activation:
 - prove successful generation consumes one credit and controlled failure releases one reservation;
 - execute the refund path application -> auto-screen -> manual approval, then obtain explicit confirmation immediately before the operation that would issue the Waffo Test refund;
 - keep production financial actions read-only unless separately authorized;
-- inspect the latest PR head and resolve applicable high-priority review findings before merge.
+- inspect the release-candidate head and resolve applicable high-priority review findings before production activation.
