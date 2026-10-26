@@ -113,7 +113,7 @@ export class PreviewGenerationService {
     if ((await this.verifyResultIntegrity(context)) !== true) {
       throw new PreviewGenerationError("RESULT_INTEGRITY_INVALID");
     }
-    const risk = evaluateRisk(context.question, context.scene);
+    const risk = evaluateRisk(context.question);
     if (risk.status !== "allowed") throw new PreviewGenerationError("RISK_BLOCKED");
 
     const input: ProviderInput = {

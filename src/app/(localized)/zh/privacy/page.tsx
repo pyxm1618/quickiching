@@ -12,7 +12,7 @@ export default function ChinesePrivacyPage() {
     <article className="mx-auto max-w-3xl px-4 py-12 sm:py-16">
       <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--bronze)]">法律与隐私</p>
       <h1 className="mt-3 font-display text-4xl font-medium tracking-tight">隐私政策</h1>
-      <p className="mt-4 text-sm text-[var(--ink-3)]">最后更新：2026 年 9 月 27 日</p>
+      <p className="mt-4 text-sm text-[var(--ink-3)]">最后更新：2026 年 10 月 25 日</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">公开起卦数据</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">公开的三枚铜钱、蓍草、梅花易数和手动起卦工具不要求账户或付款。起卦进度、可选问题与固定的方法事实可能保存在浏览器会话存储（<code>sessionStorage</code>）中，使当前起卦在页面刷新后仍可恢复。只有当你明确选择保存时，浏览器才会把记录（包括问题）写入仅限本机的本地存储（<code>localStorage</code>）历史；它不属于账户历史或云同步。</p>

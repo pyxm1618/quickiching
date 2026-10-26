@@ -11,9 +11,11 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-import { ThreeCoinResultClient, getTerminalCreditReconciliation } from "./three-coin-result-client";
+import { ThreeCoinResultClient, getTerminalCreditReconciliation, hasRequiredInterpretationBundles } from "./three-coin-result-client";
 import { CommercialReadingReportView } from "./commercial-reading-report-view";
 import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
+import { buildPublicReading } from "@/domain/public-reading/reading";
+import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 
 const ZH_TEST_READING_CONTENT = zhHansReadingContentFor([1, 9]);
 
@@ -44,6 +46,76 @@ describe("ThreeCoinResultClient Deep Reading credit reconciliation", () => {
       authoritativeCredits: null,
       clearReservationRef: true,
     });
+  });
+});
+
+describe("ThreeCoinResultClient interpretation bundle readiness", () => {
+  it("keeps the initial anonymous browser-session render on the existing stable loading shell", () => {
+    const html = renderToStaticMarkup(<ThreeCoinResultClient locale="en" />);
+    expect(html).toContain("Restoring your sealed reading…");
+    expect(html).not.toContain("data-primary-card");
+  });
+
+  it("requires the relating bundle only when a relating hexagram exists", async () => {
+    const still = buildPublicReading({
+      method: "three-coin",
+      methodVersion: "three-coin-v1",
+      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+      evidence: { kind: "history", originalMethod: "three-coin" },
+    });
+    expect(still.relatingHexagram).toBeNull();
+    const primary = await loadHexagramInterpretation(still.primaryHexagram);
+    expect(hasRequiredInterpretationBundles(
+      still.primaryHexagram,
+      still.relatingHexagram,
+      { primary, relating: null },
+    )).toBe(true);
+
+    const moving = buildPublicReading({
+      method: "three-coin",
+      methodVersion: "three-coin-v1",
+      lineValuesBottomUp: [9, 7, 7, 7, 7, 7],
+      evidence: { kind: "history", originalMethod: "three-coin" },
+    });
+    expect(moving.relatingHexagram).not.toBeNull();
+    const movingPrimary = await loadHexagramInterpretation(moving.primaryHexagram);
+    expect(hasRequiredInterpretationBundles(
+      moving.primaryHexagram,
+      moving.relatingHexagram,
+      { primary: movingPrimary },
+    )).toBe(false);
+    const movingRelating = await loadHexagramInterpretation(moving.relatingHexagram!);
+    expect(hasRequiredInterpretationBundles(
+      moving.primaryHexagram,
+      moving.relatingHexagram,
+      { primary: movingPrimary, relating: movingRelating },
+    )).toBe(true);
+  });
+
+  it("renders the final English primary and relating interpretation when both bundles are ready", async () => {
+    const lineValues = [9, 7, 7, 7, 7, 7];
+    const current = buildPublicReading({
+      method: "three-coin",
+      methodVersion: "three-coin-v1",
+      lineValuesBottomUp: lineValues,
+      evidence: { kind: "history", originalMethod: "three-coin" },
+    });
+    const primary = await loadHexagramInterpretation(current.primaryHexagram);
+    const relating = await loadHexagramInterpretation(current.relatingHexagram!);
+
+    const html = renderToStaticMarkup(
+      <ThreeCoinResultClient
+        locale="en"
+        initialState={{ kind: "ready", lineValues }}
+        initialInterpretationBundles={{ primary, relating }}
+      />,
+    );
+
+    expect(html).toContain("data-primary-card");
+    expect(html).toContain("data-relating-card");
+    expect(html).toContain(primary.hexagram.coreTheme);
+    expect(html).toContain(relating.hexagram.coreTheme);
+    expect(html).not.toContain("Restoring your sealed reading…");
   });
 });
 

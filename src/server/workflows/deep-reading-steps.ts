@@ -145,7 +145,7 @@ export async function claimJobLeaseStep(input: {
       resultHmac: String(session.result_hmac),
       resultHmacKeyVersion: String(session.result_hmac_key_version),
     })) throw new Error("CAST_RESULT_INTEGRITY_INVALID");
-    const risk = evaluateRisk(contextRiskText(snapshot), String(snapshot.scene) as Scene);
+    const risk = evaluateRisk(contextRiskText(snapshot));
     if (risk.status !== "allowed") throw new Error(`RISK_${risk.status.toUpperCase()}`);
     if (Date.parse(String(job.timeout_at)) <= Date.now()) throw new Error("DEEP_READING_DEADLINE_EXCEEDED");
 
@@ -297,7 +297,7 @@ export async function finalizeDeepReadingStep(input: {
     }
     if (snapshot.scene !== session.scene) throw new Error("CAST_SCENE_SNAPSHOT_MISMATCH");
     if (snapshot.knowledgeVersion !== snapshot.knowledge.version) throw new Error("KNOWLEDGE_SNAPSHOT_VERSION_MISMATCH");
-    if (evaluateRisk(contextRiskText(snapshot), String(snapshot.scene) as Scene).status !== "allowed") {
+    if (evaluateRisk(contextRiskText(snapshot)).status !== "allowed") {
       throw new Error("RISK_PROHIBITED");
     }
 

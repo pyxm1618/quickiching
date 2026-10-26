@@ -13,7 +13,7 @@ export default function PrivacyPage() {
     <article className="mx-auto max-w-3xl px-4 py-12 sm:py-16">
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Legal</p>
       <h1 className="mt-3 font-display text-4xl font-medium tracking-tight">Privacy Policy</h1>
-      <p className="mt-4 text-sm text-[var(--ink-3)]">Last updated: September 27, 2026</p>
+      <p className="mt-4 text-sm text-[var(--ink-3)]">Last updated: October 25, 2026</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">Public reading data</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">The public Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, and Manual Cast tools do not require an account or payment. Casting progress, an optional question, and fixed method facts may be stored in your browser’s <code>sessionStorage</code> so the current reading can survive a page refresh. If you choose Save reading, the browser-only History shelf copies that reading, including its question, to <code>localStorage</code>; it is not account history or cloud sync.</p>

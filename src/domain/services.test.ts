@@ -22,56 +22,56 @@ const now = new Date("2026-07-29T12:00:00Z");
 
 describe("Risk engine (§11.1 regression contract)", () => {
   it("chemotherapy alone is NOT blocked (mention, no decision action)", () => {
-    expect(evaluateRisk("chemotherapy", "other").status).toBe("allowed");
+    expect(evaluateRisk("chemotherapy").status).toBe("allowed");
   });
   it("'Should I stop chemotherapy?' is a professional-decision block", () => {
-    expect(evaluateRisk("Should I stop chemotherapy?", "other").status).toBe("professional_decision_blocked");
+    expect(evaluateRisk("Should I stop chemotherapy?").status).toBe("professional_decision_blocked");
   });
   it("'Should I buy Bitcoin?' is a professional-decision block", () => {
-    expect(evaluateRisk("Should I buy Bitcoin?", "wealth").status).toBe("professional_decision_blocked");
+    expect(evaluateRisk("Should I buy Bitcoin?").status).toBe("professional_decision_blocked");
   });
   it("career context at a crypto company is allowed", () => {
     expect(
-      evaluateRisk("I work at a crypto company. Should I accept a product manager role?", "career").status,
+      evaluateRisk("I work at a crypto company. Should I accept a product manager role?").status,
     ).toBe("allowed");
   });
   it("pharmaceutical marketing project is allowed (project, not treatment)", () => {
-    expect(evaluateRisk("Should our pharmaceutical marketing project continue?", "career").status).toBe("allowed");
+    expect(evaluateRisk("Should our pharmaceutical marketing project continue?").status).toBe("allowed");
   });
   it("does not let a work mention cancel a direct investment decision", () => {
     expect(
-      evaluateRisk("I work at a crypto company. Should I buy Bitcoin?", "career").status,
+      evaluateRisk("I work at a crypto company. Should I buy Bitcoin?").status,
     ).toBe("professional_decision_blocked");
   });
   it("does not let workplace context cancel direct medical decisions", () => {
-    expect(evaluateRisk("工作压力太大，我应该停用胰岛素吗？", "career").status).toBe("professional_decision_blocked");
+    expect(evaluateRisk("工作压力太大，我应该停用胰岛素吗？").status).toBe("professional_decision_blocked");
     expect(
-      evaluateRisk("I have problems at work. Should I stop taking my antidepressants?", "career").status,
+      evaluateRisk("I have problems at work. Should I stop taking my antidepressants?").status,
     ).toBe("professional_decision_blocked");
   });
   it("does not let company context cancel direct legal decisions", () => {
     expect(
-      evaluateRisk("My company is involved in a dispute. Should I plead guilty?", "career").status,
+      evaluateRisk("My company is involved in a dispute. Should I plead guilty?").status,
     ).toBe("professional_decision_blocked");
   });
   it("blocks explicit financial options and stock decisions", () => {
-    expect(evaluateRisk("Should I buy Nvidia stock?", "wealth").status).toBe("professional_decision_blocked");
-    expect(evaluateRisk("Should I trade call options?", "wealth").status).toBe("professional_decision_blocked");
+    expect(evaluateRisk("Should I buy Nvidia stock?").status).toBe("professional_decision_blocked");
+    expect(evaluateRisk("Should I trade call options?").status).toBe("professional_decision_blocked");
   });
   it("does not treat ordinary options, shares, or bonds as financial objects", () => {
-    expect(evaluateRisk("I am considering two options and whether I should accept the new job.", "career").status).toBe("allowed");
-    expect(evaluateRisk("What options are you considering?", "other").status).toBe("allowed");
-    expect(evaluateRisk("We need to share responsibilities at work.", "career").status).toBe("allowed");
-    expect(evaluateRisk("Our relationship bond feels weak.", "relationships").status).toBe("allowed");
+    expect(evaluateRisk("I am considering two options and whether I should accept the new job.").status).toBe("allowed");
+    expect(evaluateRisk("What options are you considering?").status).toBe("allowed");
+    expect(evaluateRisk("We need to share responsibilities at work.").status).toBe("allowed");
+    expect(evaluateRisk("Our relationship bond feels weak.").status).toBe("allowed");
   });
   it("asks for clarification when a high-risk object is paired with an ambiguous action", () => {
-    expect(evaluateRisk("I need guidance about my chemotherapy", "other").status).toBe("needs_clarification");
+    expect(evaluateRisk("I need guidance about my chemotherapy").status).toBe("needs_clarification");
   });
   it("handles Unicode normalization variants (Chemo⁠therapy)", () => {
-    expect(evaluateRisk("Should I stop Chemo⁠therapy?", "other").status).toBe("professional_decision_blocked");
+    expect(evaluateRisk("Should I stop Chemo⁠therapy?").status).toBe("professional_decision_blocked");
   });
   it("detects emergency self-harm and blocks before any decision logic", () => {
-    expect(evaluateRisk("I want to kill myself", "other").status).toBe("emergency_blocked");
+    expect(evaluateRisk("I want to kill myself").status).toBe("emergency_blocked");
   });
   it.each([
     ["我想自杀", "emergency_blocked"],
@@ -80,13 +80,13 @@ describe("Risk engine (§11.1 regression contract)", () => {
     ["Should I stop taking insulin?", "professional_decision_blocked"],
     ["Should I plead guilty?", "professional_decision_blocked"],
   ] as const)("blocks multilingual high-risk request: %s", (question, expected) => {
-    expect(evaluateRisk(question, "other").status).toBe(expected);
+    expect(evaluateRisk(question).status).toBe(expected);
   });
   it("does not block an ordinary Chinese career reflection", () => {
-    expect(evaluateRisk("我是否应该调整职业发展方向？", "career").status).toBe("allowed");
+    expect(evaluateRisk("我是否应该调整职业发展方向？").status).toBe("allowed");
   });
   it("ordinary question is allowed with no codes", () => {
-    const d = evaluateRisk("Should I change my career path?", "career");
+    const d = evaluateRisk("Should I change my career path?");
     expect(d.status).toBe("allowed");
     expect(d.matchedRuleCodes).toEqual([]);
   });

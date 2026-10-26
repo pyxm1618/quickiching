@@ -94,7 +94,7 @@ export function validatePreviewSafety(output: CommercialPreviewOutput): void {
   ].join(" ");
   const normalized = content.normalize("NFKC");
   const certainty = /\b(?:you will definitely|guaranteed|destined|fated|inevitable|should buy|should sell|must invest)\b|(?:一定|注定|绝对会|肯定会|必须买入|必须卖出|必须投资)/i;
-  if (certainty.test(normalized) || evaluateRisk(normalized, "other").status !== "allowed") {
+  if (certainty.test(normalized) || evaluateRisk(normalized).status !== "allowed") {
     throw new Error("OUTPUT_SAFETY_FAILURE");
   }
 }

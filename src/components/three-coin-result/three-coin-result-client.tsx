@@ -7,6 +7,7 @@ import { buildPublicReading } from "@/domain/public-reading/reading";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import type { HexagramInterpretationBundle } from "@/domain/interpretation/v2/types";
+import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import { ZH_HANS_UI_DICTIONARY } from "@/i18n/dictionaries/zh-Hans";
 import {
@@ -108,6 +109,18 @@ function errorCode(error: unknown): string {
   return error instanceof Error ? error.message : "THREE_COIN_READING_UNAVAILABLE";
 }
 
+export function hasRequiredInterpretationBundles(
+  primaryHexagram: number,
+  relatingHexagram: number | null,
+  bundles?: { primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null },
+): boolean {
+  const primaryReady = bundles?.primary?.hexagram.number === primaryHexagram;
+  const relatingReady = relatingHexagram === null
+    ? bundles?.relating === null
+    : bundles?.relating?.hexagram.number === relatingHexagram;
+  return Boolean(primaryReady && relatingReady);
+}
+
 function currentBrowserReturnPath(): string {
   if (typeof window === "undefined") return "/readings/three-coin/result";
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -135,6 +148,10 @@ export function ThreeCoinResultClient({
   const [state, setState] = useState<ResultState>(() => initialState ?? { kind: "loading" });
   const [clearError, setClearError] = useState<string | null>(null);
   const [clientCastingId, setClientCastingId] = useState<string | null>(null);
+  const [browserInterpretationBundles, setBrowserInterpretationBundles] = useState<
+    { primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null } | undefined
+  >(undefined);
+  const [failedBrowserInterpretationKey, setFailedBrowserInterpretationKey] = useState<string | null>(null);
 
   const [castingId, setCastingId] = useState<string | null>(
     initialCastingView?.castingId ?? initialSessionId ?? null,
@@ -167,7 +184,7 @@ export function ThreeCoinResultClient({
       ...(context?.options ?? listField(contextDraft.optionsText)),
       ...(context?.constraints ?? listField(contextDraft.constraintsText)),
       ...(context?.concerns ?? listField(contextDraft.concernsText)),
-    ].filter(Boolean).join("\n"), "other");
+    ].filter(Boolean).join("\n"));
   }, [state, deepSnapshot, contextDraft]);
   const deepRiskBlocked = deepRisk.status !== "allowed";
   const deepRiskMessage = deepRisk.status === "emergency_blocked"
@@ -188,6 +205,58 @@ export function ThreeCoinResultClient({
       evidence: { kind: "history", originalMethod: "three-coin" },
     });
   }, [castingId, clientCastingId, state]);
+  const shouldDeferBrowserInterpretation = !zh
+    && initialState === undefined
+    && initialCastingView === null
+    && initialInterpretationBundles === undefined;
+  const effectiveInterpretationBundles = initialInterpretationBundles ?? browserInterpretationBundles;
+  const resultInterpretationKey = resultReading
+    ? `${resultReading.id}:${resultReading.primaryHexagram}:${resultReading.relatingHexagram ?? "none"}`
+    : null;
+  const browserInterpretationReady = resultReading
+    ? hasRequiredInterpretationBundles(
+        resultReading.primaryHexagram,
+        resultReading.relatingHexagram,
+        effectiveInterpretationBundles,
+      )
+    : false;
+  const browserInterpretationLoadFailed = resultInterpretationKey !== null
+    && failedBrowserInterpretationKey === resultInterpretationKey;
+
+  useEffect(() => {
+    if (!shouldDeferBrowserInterpretation || !resultReading || browserInterpretationReady || !resultInterpretationKey) return;
+    let active = true;
+    void Promise.all([
+      loadHexagramInterpretation(resultReading.primaryHexagram),
+      resultReading.relatingHexagram === null
+        ? Promise.resolve(null)
+        : loadHexagramInterpretation(resultReading.relatingHexagram),
+    ])
+      .then(([primary, relating]) => {
+        if (active) {
+          setBrowserInterpretationBundles({ primary, relating });
+          setFailedBrowserInterpretationKey(null);
+        }
+      })
+      .catch(() => {
+        if (active) setFailedBrowserInterpretationKey(resultInterpretationKey);
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    browserInterpretationReady,
+    resultInterpretationKey,
+    resultReading,
+    shouldDeferBrowserInterpretation,
+  ]);
+
+  const waitingForBrowserInterpretation = shouldDeferBrowserInterpretation
+    && state.kind === "ready"
+    && resultReading !== null
+    && !browserInterpretationReady
+    && !browserInterpretationLoadFailed;
+
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollRunRef = useRef(0);
   const pollInFlightRef = useRef(false);
@@ -627,9 +696,12 @@ export function ThreeCoinResultClient({
     }
   }
 
-  if (state.kind === "loading") {
+  if (state.kind === "loading" || waitingForBrowserInterpretation) {
     return (
-      <div className={`${styles.page} mx-auto min-h-[100svh] w-full max-w-[1180px] px-4 sm:px-6`}>
+      <div
+        className={`${styles.page} mx-auto min-h-[100svh] w-full max-w-[1180px] px-4 sm:px-6`}
+        data-reading-interpretation-loading={waitingForBrowserInterpretation ? "true" : undefined}
+      >
         <div className={styles.loadingState} role="status" aria-label={t("Loading your completed reading", "正在恢复已完成的起卦结果")}>
           <p className="mystic-kicker">{t("Three-Coin Method", "三枚铜钱法")}</p>
           <p className="mt-3 font-display text-3xl font-normal text-white">{t("Restoring your sealed reading…", "正在恢复已经落定的起卦结果…")}</p>
@@ -689,7 +761,7 @@ export function ThreeCoinResultClient({
         onNewReading={startNewReading}
         dictionary={resultDictionary}
         localizedContent={zh ? initialLocalizedContent : undefined}
-        initialBundles={initialInterpretationBundles}
+        initialBundles={effectiveInterpretationBundles}
         title={zh ? "本次三枚铜钱起卦结果" : "Your Three-Coin Reading"}
         headingLevel="h1"
         newReadingLabel={zh ? "重新起一卦" : "Start a New Reading"}
