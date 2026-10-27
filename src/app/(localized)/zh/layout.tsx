@@ -19,6 +19,7 @@ export const metadata: Metadata = {
     locale: "zh_CN",
   },
   robots: { index: true, follow: true },
+  other: { "google-adsense-account": "ca-pub-2804737462866511" },
 };
 
 export default function LocalizedRootLayout({

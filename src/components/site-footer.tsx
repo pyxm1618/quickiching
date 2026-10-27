@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
+import { PrivacySettingsButton } from "@/components/privacy-settings-button";
 
 const LINK = "inline-flex min-h-11 items-center py-1 text-[var(--ink-3)] transition-colors hover:text-[var(--jade)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cinnabar)]";
 
@@ -52,6 +53,8 @@ export function SiteFooter({ locale = "en" }: { locale?: ContentLocale }) {
         </div>
         <div className="border-t border-[var(--line)] px-5 py-6 text-center font-mono text-[11px] tracking-[0.04em] text-[var(--ink-3)]">
           © {new Date().getFullYear()} Quick I Ching · {dictionary.footer.legalNotice} · {dictionary.footer.supportEmail}
+          {" · "}
+          <PrivacySettingsButton locale="zh-Hans" />
         </div>
       </footer>
     );
@@ -98,6 +101,8 @@ export function SiteFooter({ locale = "en" }: { locale?: ContentLocale }) {
       </div>
       <div className="border-t border-[var(--line)] px-5 py-6 text-center font-mono text-[11px] tracking-[0.04em] text-[var(--ink-3)]">
         © {new Date().getFullYear()} Quick I Ching · {dictionary.footer.legalNotice} · {dictionary.footer.supportEmail}
+        {" · "}
+        <PrivacySettingsButton locale="en" />
       </div>
     </footer>
   );

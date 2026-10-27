@@ -2,6 +2,7 @@ import React from "react";
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
+  ANALYTICS_CONSENT_OPEN_EVENT,
   ANALYTICS_CONSENT_STORAGE_KEY,
 } from "@/lib/analytics";
 
@@ -40,6 +41,8 @@ describe("AnalyticsConsent component", () => {
     expect(source).not.toContain("window.gtag");
     expect(source).toContain('onConsentChange?.("denied")');
     expect(source).toContain('onConsentChange?.("granted")');
+    expect(source).toContain("window.addEventListener(ANALYTICS_CONSENT_OPEN_EVENT");
+    expect(ANALYTICS_CONSENT_OPEN_EVENT).toBe("quickiching:open-analytics-consent");
   });
 
   it("exports a React component that runs on client", () => {

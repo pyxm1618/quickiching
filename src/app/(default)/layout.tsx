@@ -20,6 +20,7 @@ export const metadata: Metadata = {
     url: SITE_ORIGIN,
   },
   robots: { index: true, follow: true },
+  other: { "google-adsense-account": "ca-pub-2804737462866511" },
 };
 
 export default function DefaultRootLayout({ children }: { children: React.ReactNode }) {

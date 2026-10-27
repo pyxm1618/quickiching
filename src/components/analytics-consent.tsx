@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
+  ANALYTICS_CONSENT_OPEN_EVENT,
   ANALYTICS_CONSENT_STORAGE_KEY,
   readStoredAnalyticsConsent,
   type AnalyticsConsentState,
@@ -19,6 +20,10 @@ export function AnalyticsConsent({ onConsentChange }: { onConsentChange?: (conse
     if (stored === null) {
       setVisible(true);
     }
+
+    const reopen = () => setVisible(true);
+    window.addEventListener(ANALYTICS_CONSENT_OPEN_EVENT, reopen);
+    return () => window.removeEventListener(ANALYTICS_CONSENT_OPEN_EVENT, reopen);
   }, []);
 
   if (!mounted || !visible) {
