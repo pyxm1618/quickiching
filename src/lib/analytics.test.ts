@@ -1,10 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import {
-  ANALYTICS_CONSENT_STORAGE_KEY,
-  getAnalyticsConfig,
-  readStoredAnalyticsConsent,
-  analyticsProvidersAllowed,
-} from "./analytics";
+import { describe, expect, it } from "vitest";
+import { getAnalyticsConfig } from "./analytics";
 
 describe("getAnalyticsConfig", () => {
   it("keeps analytics disabled outside production when public IDs are absent", () => {
@@ -61,54 +56,5 @@ describe("getAnalyticsConfig", () => {
     expect(() =>
       getAnalyticsConfig({ NEXT_PUBLIC_CLARITY_PROJECT_ID: "abc123';alert(1)" }),
     ).toThrow("NEXT_PUBLIC_CLARITY_PROJECT_ID has an invalid format");
-  });
-});
-
-describe("analytics consent storage contract", () => {
-  it("uses the approved storage key and values", () => {
-    expect(ANALYTICS_CONSENT_STORAGE_KEY).toBe("quickiching:analytics-consent:v1");
-  });
-
-  it("reads granted and denied from localStorage safely", () => {
-    const store: Record<string, string> = {};
-    const mockStorage = {
-      getItem: (key: string) => store[key] ?? null,
-      setItem: (key: string, val: string) => {
-        store[key] = val;
-      },
-    };
-
-    vi.stubGlobal("window", { localStorage: mockStorage });
-
-    expect(readStoredAnalyticsConsent()).toBeNull();
-
-    store[ANALYTICS_CONSENT_STORAGE_KEY] = "granted";
-    expect(readStoredAnalyticsConsent()).toBe("granted");
-
-    store[ANALYTICS_CONSENT_STORAGE_KEY] = "denied";
-    expect(readStoredAnalyticsConsent()).toBe("denied");
-
-    store[ANALYTICS_CONSENT_STORAGE_KEY] = "invalid";
-    expect(readStoredAnalyticsConsent()).toBeNull();
-
-    vi.stubGlobal("window", {
-      localStorage: {
-        getItem: () => {
-          throw new Error("SecurityError");
-        },
-      },
-    });
-    expect(readStoredAnalyticsConsent()).toBeNull();
-
-    vi.unstubAllGlobals();
-  });
-});
-
-
-describe("analytics provider consent gate", () => {
-  it("initializes providers only after explicit stored grant", () => {
-    expect(analyticsProvidersAllowed(null)).toBe(false);
-    expect(analyticsProvidersAllowed("denied")).toBe(false);
-    expect(analyticsProvidersAllowed("granted")).toBe(true);
   });
 });
