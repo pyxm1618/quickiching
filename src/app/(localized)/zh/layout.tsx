@@ -3,9 +3,7 @@ import "../../globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteAnalytics } from "@/components/site-analytics";
-import { GooglePublisherBoundary } from "@/components/google-publisher-boundary";
 import { SITE_ORIGIN } from "@/lib/seo";
-import { GOOGLE_PUBLISHER_CLIENT } from "@/lib/privacy-route-policy";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
 import { localizedFontVariableClassNames } from "../../fonts";
 
@@ -21,7 +19,7 @@ export const metadata: Metadata = {
     locale: "zh_CN",
   },
   robots: { index: true, follow: true },
-  other: { "google-adsense-account": GOOGLE_PUBLISHER_CLIENT },
+  other: { "google-adsense-account": "ca-pub-2804737462866511" },
 };
 
 export default function LocalizedRootLayout({
@@ -36,7 +34,6 @@ export default function LocalizedRootLayout({
         <SiteHeader locale="zh-Hans" authEnabled={authEnabled} />
         <main className="flex-1">{children}</main>
         <SiteFooter locale="zh-Hans" />
-        <GooglePublisherBoundary />
         <SiteAnalytics />
       </body>
     </html>
