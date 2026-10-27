@@ -23,7 +23,7 @@ export function PrivacySettingsButton({
       onClick={handleClick}
       className="inline-flex min-h-11 items-center text-[var(--ink-3)] transition-colors hover:text-[var(--jade)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cinnabar)]"
     >
-      {isChinese ? "隐私与 Cookie 设置" : "Privacy & cookie settings"}
+      {isChinese ? "隐私与网站数据设置" : "Privacy & cookie settings"}
     </button>
   );
 }
