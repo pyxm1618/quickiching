@@ -53,7 +53,7 @@ export function SiteFooter({ locale = "en" }: { locale?: ContentLocale }) {
         </div>
         <div className="border-t border-[var(--line)] px-5 py-6 text-center font-mono text-[11px] tracking-[0.04em] text-[var(--ink-3)]">
           © {new Date().getFullYear()} Quick I Ching · {dictionary.footer.legalNotice} · {dictionary.footer.supportEmail}
-          <span className="mx-2" aria-hidden="true">·</span>
+          {" · "}
           <PrivacySettingsButton locale="zh-Hans" />
         </div>
       </footer>
@@ -101,7 +101,7 @@ export function SiteFooter({ locale = "en" }: { locale?: ContentLocale }) {
       </div>
       <div className="border-t border-[var(--line)] px-5 py-6 text-center font-mono text-[11px] tracking-[0.04em] text-[var(--ink-3)]">
         © {new Date().getFullYear()} Quick I Ching · {dictionary.footer.legalNotice} · {dictionary.footer.supportEmail}
-        <span className="mx-2" aria-hidden="true">·</span>
+        {" · "}
         <PrivacySettingsButton locale="en" />
       </div>
     </footer>
