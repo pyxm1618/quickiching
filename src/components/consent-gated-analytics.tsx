@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { AnalyticsConsent } from "@/components/analytics-consent";
 import {
-  getConsentSnapshot,
-  getServerConsentSnapshot,
-  subscribeConsent,
-} from "@/components/consent-adapter";
-import { isAnalyticsSurface } from "@/lib/privacy-route-policy";
+  analyticsProvidersAllowed,
+  readStoredAnalyticsConsent,
+  type AnalyticsConsentState,
+} from "@/lib/analytics";
 
 const SCRIPT_IDS = ["google-analytics-loader", "microsoft-clarity-loader"] as const;
 const ANALYTICS_COOKIE_PREFIXES = ["_ga", "_clck", "_clsk"] as const;
@@ -70,11 +70,21 @@ function startClarity(projectId: string): void {
   );
 }
 
+function expireCookie(name: string, domain?: string): void {
+  const domainPart = domain ? `; Domain=${domain}` : "";
+  document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax${domainPart}`;
+}
+
 function clearAnalyticsCookies(): void {
+  const hostname = window.location.hostname;
+  const registrableHost = hostname.replace(/^www\./u, "");
+
   for (const cookie of document.cookie.split(";")) {
     const name = cookie.split("=", 1)[0]?.trim();
     if (!name || !ANALYTICS_COOKIE_PREFIXES.some((prefix) => name.startsWith(prefix))) continue;
-    document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
+    expireCookie(name);
+    expireCookie(name, hostname);
+    if (registrableHost !== hostname) expireCookie(name, `.${registrableHost}`);
   }
 }
 
@@ -107,15 +117,16 @@ export function ConsentGatedAnalytics({
   clarityProjectId: string | null;
 }) {
   const pathname = usePathname() ?? "/";
-  const consent = useSyncExternalStore(
-    subscribeConsent,
-    getConsentSnapshot,
-    getServerConsentSnapshot,
-  );
-  const analyticsAllowed = consent.analytics && isAnalyticsSurface(pathname);
+  const [consent, setConsent] = useState<AnalyticsConsentState | null>(null);
 
   useEffect(() => {
-    if (!analyticsAllowed) {
+    setConsent(readStoredAnalyticsConsent());
+  }, []);
+
+  const enabled = analyticsProvidersAllowed(consent);
+
+  useEffect(() => {
+    if (!enabled) {
       stopAnalytics();
       return;
     }
@@ -124,7 +135,7 @@ export function ConsentGatedAnalytics({
       startGa4(gaMeasurementId);
       window.gtag?.("event", "page_view", {
         send_to: gaMeasurementId,
-        page_location: window.location.origin + pathname,
+        page_location: window.location.href,
         page_path: pathname,
         page_title: document.title,
       });
@@ -132,7 +143,7 @@ export function ConsentGatedAnalytics({
     if (clarityProjectId) startClarity(clarityProjectId);
 
     return stopAnalytics;
-  }, [analyticsAllowed, clarityProjectId, gaMeasurementId, pathname]);
+  }, [clarityProjectId, enabled, gaMeasurementId, pathname]);
 
-  return null;
+  return <AnalyticsConsent onConsentChange={setConsent} />;
 }
