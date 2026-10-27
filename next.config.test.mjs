@@ -38,19 +38,13 @@ describe("Next.js redirect policy", () => {
 });
 
 describe("Next.js security headers", () => {
-  it("allows only the external origins required by Google CMP, GA4, and Microsoft Clarity", async () => {
+  it("allows only the external origins required by GA4 and Microsoft Clarity", async () => {
     const config = await getConfig();
     const headerGroups = await config.headers();
     const globalHeaders = headerGroups.find((group) => group.source === "/:path*")?.headers ?? [];
     const csp = globalHeaders.find((header) => header.key === "Content-Security-Policy")?.value;
 
-    expect(csp).toContain("https://pagead2.googlesyndication.com");
-    expect(csp).toContain("https://fundingchoicesmessages.google.com");
-    expect(csp).toContain("https://*.adtrafficquality.google");
-    expect(csp).toContain("https://googleads.g.doubleclick.net");
-    expect(csp).toContain("https://*.google.com");
-    expect(csp).toContain("https://www.googletagmanager.com");
-    expect(csp).toContain("https://*.clarity.ms");
+    expect(csp).toContain("script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms");
     expect(csp).toContain("https://*.google-analytics.com");
     expect(csp).toContain("https://*.analytics.google.com");
     expect(csp).toContain("https://c.bing.com");
