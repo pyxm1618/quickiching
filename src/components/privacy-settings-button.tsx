@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { openPrivacySettings } from "@/components/consent-adapter";
+import { ANALYTICS_CONSENT_OPEN_EVENT } from "@/lib/analytics";
 import type { ContentLocale } from "@/i18n/config";
 
 export function PrivacySettingsButton({
@@ -9,18 +8,12 @@ export function PrivacySettingsButton({
 }: {
   locale?: ContentLocale;
 }) {
-  const router = useRouter();
   const isChinese = locale === "zh-Hans";
-
-  const handleClick = () => {
-    if (openPrivacySettings()) return;
-    router.push(isChinese ? "/zh/privacy?privacy-settings=1" : "/privacy?privacy-settings=1");
-  };
 
   return (
     <button
       type="button"
-      onClick={handleClick}
+      onClick={() => window.dispatchEvent(new CustomEvent(ANALYTICS_CONSENT_OPEN_EVENT))}
       className="inline-flex min-h-11 items-center text-[var(--ink-3)] transition-colors hover:text-[var(--jade)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cinnabar)]"
     >
       {isChinese ? "隐私与网站数据设置" : "Privacy & cookie settings"}
