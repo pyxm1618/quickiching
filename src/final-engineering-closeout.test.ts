@@ -100,11 +100,28 @@ describe("final engineering closeout source contracts", () => {
     expect(source("./app/api/ready/route.ts")).toContain("[READY_AUDIT]");
   });
 
-  it("keeps analytics providers behind Google CMP consent and public-route policy", () => {
+  it("keeps analytics providers behind explicit local consent with withdrawal cleanup", () => {
     const gate = source("./components/consent-gated-analytics.tsx");
-    expect(gate).toContain("useSyncExternalStore");
-    expect(gate).toContain("consent.analytics && isAnalyticsSurface(pathname)");
+    const consent = source("./components/analytics-consent.tsx");
+    expect(gate).toContain("analyticsProvidersAllowed(consent)");
+    expect(gate).toContain("readStoredAnalyticsConsent");
     expect(gate).toContain("stopAnalytics()");
-    expect(gate).not.toContain("readStoredAnalyticsConsent");
+    expect(consent).toContain("ANALYTICS_CONSENT_OPEN_EVENT");
+  });
+
+  it("keeps AdSense verification metadata without loading the advertising runtime", () => {
+    const defaultLayout = source("./app/(default)/layout.tsx");
+    const zhLayout = source("./app/(localized)/zh/layout.tsx");
+    const nextConfig = source("../next.config.mjs");
+    const englishPrivacy = source("./app/(default)/privacy/page.tsx");
+    const chinesePrivacy = source("./app/(localized)/zh/privacy/page.tsx");
+
+    expect(defaultLayout).toContain('"google-adsense-account": "ca-pub-2804737462866511"');
+    expect(zhLayout).toContain('"google-adsense-account": "ca-pub-2804737462866511"');
+    expect(defaultLayout).not.toContain("GooglePublisherBoundary");
+    expect(zhLayout).not.toContain("GooglePublisherBoundary");
+    expect(nextConfig).not.toContain("pagead2.googlesyndication.com");
+    expect(englishPrivacy).toContain("does not currently load AdSense ad code");
+    expect(chinesePrivacy).toContain("当前应用不会加载 Google 广告代码");
   });
 });
