@@ -12,8 +12,8 @@ describe("final engineering closeout source contracts", () => {
     const chinese = source("./app/(localized)/zh/privacy/page.tsx");
     expect(english).not.toMatch(/<h2[^>]*>Advertising<\/h2>/u);
     expect(chinese).not.toMatch(/<h2[^>]*>广告<\/h2>/u);
-    expect(english).toContain("Last updated: October 25, 2026");
-    expect(chinese).toContain("最后更新：2026 年 10 月 25 日");
+    expect(english).toContain("Last updated: October 27, 2026");
+    expect(chinese).toContain("最后更新：2026 年 10 月 27 日");
     expect(english).not.toContain("Last updated: September 27, 2026");
     expect(chinese).not.toContain("最后更新：2026 年 9 月 27 日");
   });
@@ -100,10 +100,11 @@ describe("final engineering closeout source contracts", () => {
     expect(source("./app/api/ready/route.ts")).toContain("[READY_AUDIT]");
   });
 
-  it("keeps analytics provider scripts behind explicit granted consent", () => {
+  it("keeps analytics providers behind Google CMP consent and public-route policy", () => {
     const gate = source("./components/consent-gated-analytics.tsx");
-    expect(gate).toContain("analyticsProvidersAllowed(consent)");
-    expect(gate).toContain("enabled && gaMeasurementId");
-    expect(gate).toContain("enabled && clarityProjectId");
+    expect(gate).toContain("useSyncExternalStore");
+    expect(gate).toContain("consent.analytics && isAnalyticsSurface(pathname)");
+    expect(gate).toContain("stopAnalytics()");
+    expect(gate).not.toContain("readStoredAnalyticsConsent");
   });
 });
