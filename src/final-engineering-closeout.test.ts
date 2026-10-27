@@ -12,8 +12,8 @@ describe("final engineering closeout source contracts", () => {
     const chinese = source("./app/(localized)/zh/privacy/page.tsx");
     expect(english).not.toMatch(/<h2[^>]*>Advertising<\/h2>/u);
     expect(chinese).not.toMatch(/<h2[^>]*>广告<\/h2>/u);
-    expect(english).toContain("Last updated: October 25, 2026");
-    expect(chinese).toContain("最后更新：2026 年 10 月 25 日");
+    expect(english).toContain("Last updated: October 27, 2026");
+    expect(chinese).toContain("最后更新：2026 年 10 月 27 日");
     expect(english).not.toContain("Last updated: September 27, 2026");
     expect(chinese).not.toContain("最后更新：2026 年 9 月 27 日");
   });
@@ -100,10 +100,28 @@ describe("final engineering closeout source contracts", () => {
     expect(source("./app/api/ready/route.ts")).toContain("[READY_AUDIT]");
   });
 
-  it("keeps analytics provider scripts behind explicit granted consent", () => {
+  it("keeps analytics providers behind explicit local consent with withdrawal cleanup", () => {
     const gate = source("./components/consent-gated-analytics.tsx");
+    const consent = source("./components/analytics-consent.tsx");
     expect(gate).toContain("analyticsProvidersAllowed(consent)");
-    expect(gate).toContain("enabled && gaMeasurementId");
-    expect(gate).toContain("enabled && clarityProjectId");
+    expect(gate).toContain("readStoredAnalyticsConsent");
+    expect(gate).toContain("stopAnalytics()");
+    expect(consent).toContain("ANALYTICS_CONSENT_OPEN_EVENT");
+  });
+
+  it("keeps AdSense verification metadata without loading the advertising runtime", () => {
+    const defaultLayout = source("./app/(default)/layout.tsx");
+    const zhLayout = source("./app/(localized)/zh/layout.tsx");
+    const nextConfig = source("../next.config.mjs");
+    const englishPrivacy = source("./app/(default)/privacy/page.tsx");
+    const chinesePrivacy = source("./app/(localized)/zh/privacy/page.tsx");
+
+    expect(defaultLayout).toContain('"google-adsense-account": "ca-pub-2804737462866511"');
+    expect(zhLayout).toContain('"google-adsense-account": "ca-pub-2804737462866511"');
+    expect(defaultLayout).not.toContain("GooglePublisherBoundary");
+    expect(zhLayout).not.toContain("GooglePublisherBoundary");
+    expect(nextConfig).not.toContain("pagead2.googlesyndication.com");
+    expect(englishPrivacy).toContain("does not currently load AdSense ad code");
+    expect(chinesePrivacy).toContain("当前应用不会加载 Google 广告代码");
   });
 });

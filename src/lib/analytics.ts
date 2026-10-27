@@ -15,6 +15,7 @@ const PRODUCTION_GA_MEASUREMENT_ID = "G-NLFCDYQSJQ";
 const PRODUCTION_CLARITY_PROJECT_ID = "xvz3gv8ics";
 
 export const ANALYTICS_CONSENT_STORAGE_KEY = "quickiching:analytics-consent:v1";
+export const ANALYTICS_CONSENT_OPEN_EVENT = "quickiching:open-analytics-consent";
 export type AnalyticsConsentState = "granted" | "denied";
 
 export function readStoredAnalyticsConsent(): AnalyticsConsentState | null {
