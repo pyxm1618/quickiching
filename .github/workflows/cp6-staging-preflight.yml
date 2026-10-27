@@ -23,8 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_STAGING_TOKEN }}
       VERCEL_PROJECT_ID: prj_iKtw9xKmIlEfe44gEocgLr2QDLfE
+      VERCEL_ORG_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
     steps:
       - uses: actions/checkout@v6
 
@@ -45,11 +46,15 @@ jobs:
       - name: Require authenticated staging-only Vercel access
         run: |
           if [ -z "${VERCEL_TOKEN:-}" ]; then
-            echo "::error::VERCEL_TOKEN GitHub secret is not configured; staging Production env cannot be inspected safely."
+            echo "::error::VERCEL_STAGING_TOKEN GitHub secret is not configured; staging environment cannot be inspected safely."
             exit 1
           fi
           if [ "$VERCEL_PROJECT_ID" != "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE" ]; then
             echo "::error::Unexpected Vercel project binding."
+            exit 1
+          fi
+          if [ "${VERCEL_ORG_ID:-}" != "team_z1b9TTQtbNkr43dzs5JVJPnQ" ]; then
+            echo "::error::Missing or unexpected Vercel staging team binding."
             exit 1
           fi
 

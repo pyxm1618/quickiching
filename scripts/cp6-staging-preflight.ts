@@ -17,6 +17,7 @@ import {
 
 const STAGING_ORIGIN = "https://staging.quickiching.com";
 const STAGING_VERCEL_PROJECT_ID = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE";
+const STAGING_VERCEL_ORG_ID = "team_z1b9TTQtbNkr43dzs5JVJPnQ";
 const STAGING_REPAIR_BRANCH = "codex/commercial-v2-cp6-repair";
 const CP5_CORE_TABLES = Object.freeze([
   "audit_events",
@@ -138,13 +139,15 @@ type VercelEnvValueResult =
 async function fetchVercelEnvValue(
   token: string,
   projectId: string,
+  orgId: string,
   entry: VercelEnvEntry,
 ): Promise<VercelEnvValueResult> {
   const key = typeof entry.key === "string" ? entry.key.trim() : "UNKNOWN";
   const id = typeof entry.id === "string" ? entry.id.trim() : "";
   if (!id) throw new Error(`VERCEL_ENV_ID_MISSING:${key}`);
 
-  const url = `https://api.vercel.com/v1/projects/${encodeURIComponent(projectId)}/env/${encodeURIComponent(id)}`;
+  const url = new URL(`https://api.vercel.com/v1/projects/${encodeURIComponent(projectId)}/env/${encodeURIComponent(id)}`);
+  url.searchParams.set("teamId", orgId);
   const response = await fetch(url, { headers: vercelHeaders(token) });
   if (!response.ok) {
     throw new Error(`VERCEL_ENV_VALUE_FETCH_FAILED:${key}:${response.status}`);
@@ -163,12 +166,19 @@ async function fetchVercelEnvValue(
   throw new Error(`VERCEL_ENV_VALUE_UNAVAILABLE:${key}:${type}:decrypted=${decrypted}`);
 }
 
-async function fetchVercelProductionEnv(token: string, projectId: string): Promise<VercelProductionEnvFetch> {
+export async function fetchVercelProductionEnv(
+  token: string,
+  projectId: string,
+  orgId: string | undefined,
+): Promise<VercelProductionEnvFetch> {
   if (projectId !== STAGING_VERCEL_PROJECT_ID) {
-    throw new Error(`STAGING_PROJECT_BINDING_MISMATCH:${projectId}`);
+    throw new Error("STAGING_PROJECT_BINDING_MISMATCH");
   }
+  if (!orgId?.trim()) throw new Error("VERCEL_ORG_ID_MISSING");
+  if (orgId !== STAGING_VERCEL_ORG_ID) throw new Error("STAGING_TEAM_BINDING_MISMATCH");
 
   const url = new URL(`https://api.vercel.com/v10/projects/${encodeURIComponent(projectId)}/env`);
+  url.searchParams.set("teamId", orgId);
   url.searchParams.set("decrypt", "true");
   url.searchParams.set("source", "vercel-cli:pull");
 
@@ -206,7 +216,7 @@ async function fetchVercelProductionEnv(token: string, projectId: string): Promi
       continue;
     }
 
-    const resolved = await fetchVercelEnvValue(token, projectId, entry);
+    const resolved = await fetchVercelEnvValue(token, projectId, orgId, entry);
     if (resolved.kind === "value") values[key] = resolved.value;
     else unreadableSensitiveKeys.push(resolved.key);
   }
@@ -426,9 +436,10 @@ async function main(): Promise<void> {
   if (fromVercelProductionEnv) {
     const token = process.env.VERCEL_TOKEN?.trim();
     const projectId = process.env.VERCEL_PROJECT_ID?.trim();
+    const orgId = process.env.VERCEL_ORG_ID?.trim();
     if (!token) throw new Error("VERCEL_TOKEN_MISSING");
     if (!projectId) throw new Error("VERCEL_PROJECT_ID_MISSING");
-    const productionEnv = await fetchVercelProductionEnv(token, projectId);
+    const productionEnv = await fetchVercelProductionEnv(token, projectId, orgId);
     runtimeEnv = { ...runtimeEnv, ...productionEnv.values };
     unreadableSensitiveKeys = productionEnv.unreadableSensitiveKeys;
   }
