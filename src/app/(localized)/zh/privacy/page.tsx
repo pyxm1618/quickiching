@@ -12,7 +12,7 @@ export default function ChinesePrivacyPage() {
     <article className="mx-auto max-w-3xl px-4 py-12 sm:py-16">
       <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--bronze)]">法律与隐私</p>
       <h1 className="mt-3 font-display text-4xl font-medium tracking-tight">隐私政策</h1>
-      <p className="mt-4 text-sm text-[var(--ink-3)]">最后更新：2026 年 10 月 25 日</p>
+      <p className="mt-4 text-sm text-[var(--ink-3)]">最后更新：2026 年 10 月 27 日</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">公开起卦数据</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">公开的三枚铜钱、蓍草、梅花易数和手动起卦工具不要求账户或付款。起卦进度、可选问题与固定的方法事实可能保存在浏览器会话存储（<code>sessionStorage</code>）中，使当前起卦在页面刷新后仍可恢复。只有当你明确选择保存时，浏览器才会把记录（包括问题）写入仅限本机的本地存储（<code>localStorage</code>）历史；它不属于账户历史或云同步。</p>
@@ -23,8 +23,14 @@ export default function ChinesePrivacyPage() {
       <h2 className="mt-10 font-display text-2xl font-medium">托管与技术日志</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">与多数网站一样，托管和网络服务商可能处理常规请求信息，例如 IP 地址、浏览器信息、请求网址、时间戳以及安全或可靠性日志。这些记录可用于提供站点服务、防止滥用、诊断故障和履行法律义务。</p>
 
-      <h2 className="mt-10 font-display text-2xl font-medium">分析与会话体验</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching 使用 Google Analytics 4 了解流量来源、页面浏览和汇总使用情况，并使用 Microsoft Clarity 了解点击、滚动、热力图和会话层面的体验。只有在你明确选择“允许分析”后，这两项分析服务才会初始化。若你拒绝，这些分析脚本会保持禁用，Quick I Ching 也不会发送分析页面浏览事件。同意后的相关处理同时受 Google 与 Microsoft 各自适用的隐私条款约束。</p>
+      <h2 className="mt-10 font-display text-2xl font-medium">隐私选择、分析与会话体验</h2>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">在符合条件的公开页面上，Quick I Ching 使用 Google Privacy &amp; Messaging 作为 Google Consent Mode 同意信号层。只有当分析存储的同意信号为允许时，才启用 Google Analytics 4 进行汇总流量分析，并启用 Microsoft Clarity 进行交互与会话体验分析。若你拒绝或之后撤回分析同意，Quick I Ching 会停止这些服务、移除站内加载的相关脚本，并尝试清除其常见分析 Cookie。账户、本机历史、登录、注册、结账和私人起卦结果页面不会启用分析。</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">你可以随时通过页脚中的<strong>“隐私与 Cookie 设置”</strong>重新打开同意控制。在已启用欧洲法规消息的情况下，适用于欧洲经济区、英国和瑞士的同意流程及相关 Consent Mode 信号由 Google Privacy &amp; Messaging 的同意管理平台处理。</p>
+
+      <h2 className="mt-10 font-display text-2xl font-medium">Google 发布商与广告技术</h2>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching 已配置 Google 发布商标识和 <code>ads.txt</code> 记录。在符合条件的公开页面上，Google 发布商标签可能会加载，用于发布商验证、隐私消息以及获准启用的广告功能。该标签不会在账户、本机历史、登录、注册、结账或私人起卦结果页面加载。出现发布商标签并不代表每一个符合条件的页面都会展示商业广告。</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">如果启用 Google 广告，包括 Google 在内的第三方服务商可能因广告投放而设置或读取 Cookie、使用网络信标、处理 IP 地址或使用其他标识符。这些技术可用于投放和衡量广告、限制重复广告、统计效果、防止欺诈与滥用，并在用户选择和适用法律允许时用于个性化广告。Google 及其合作伙伴可能依据用户对本站和其他网站的访问使用广告 Cookie。</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">关于 Google 如何处理合作伙伴网站上的数据，可查看<a href="https://policies.google.com/technologies/partner-sites" rel="noreferrer" className="mx-1 font-semibold text-[var(--jade)] hover:underline">Google 合作伙伴网站数据说明</a>；你也可以查看 Google 的<a href="https://adssettings.google.com/" rel="noreferrer" className="mx-1 font-semibold text-[var(--jade)] hover:underline">广告设置</a>。本站层面的同意选择可通过上述<strong>“隐私与 Cookie 设置”</strong>进行管理。</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">问题隐私与深度解读</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">免费起卦的问题输入是可选的，并受长度限制；会话回放中会被遮蔽，也不会写入网址、页面元数据、结构化数据、分析事件或应用日志。免费解读绝不向 AI 提供方发送问题或卦象。深度解读需要登录账户、在第一掷前锁定一个清晰问题、补充足够背景、持有可用次数并通过高风险内容检查。符合条件后，锁定的问题和你提交的背景会加密保存在不可变的账户快照中。生成报告时，系统会解密这些字段，并将它们与本次确切卦象事实及 Quick I Ching 提供的易经材料发送给已配置的生成与复核服务。成功交付的报告会保存到账户历史。生成开始时预留一次，交付成功后才扣除；预留后的失败会释放次数。服务提供方可能依据各自适用的控制和隐私条款处理或保留请求。请勿输入不必要的敏感个人、健康、法律或财务信息。只有在深度解读已开放且你提交符合条件的请求时，才会发生上述付费处理。</p>
@@ -36,7 +42,7 @@ export default function ChinesePrivacyPage() {
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">如果你向 support@quickiching.com 发送邮件，消息中的信息会在回复请求以及维护适当的支持、安全和法律记录所需范围内处理。请不要发送不必要的敏感信息。</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">你的控制方式</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">使用工具中的“重新起卦”可清除当前浏览器会话状态。你也可以在浏览器中清除站点数据；已登录用户可以从“我的账户”删除账户。隐私问题或权利请求可发送至 support@quickiching.com。</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">使用工具中的“重新起卦”可清除当前浏览器会话状态。使用页脚中的<strong>“隐私与 Cookie 设置”</strong>可查看或修改同意选择。你也可以在浏览器中清除站点数据；已登录用户可以从“我的账户”删除账户。隐私问题或权利请求可发送至 support@quickiching.com。</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">儿童与政策变更</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">Quick I Ching 并非面向儿童的服务。当产品、服务提供方或法律要求变化时，我们可能更新本政策；发生实质性文本变化时会更新上方日期。</p>
