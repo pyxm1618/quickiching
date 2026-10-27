@@ -1,12 +1,60 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   classifyStagingDatabase,
+  fetchVercelProductionEnv,
   inspectStagingCapabilityConfiguration,
   resolveStagingMigrationDatabaseUrl,
   selectProductionVercelEnv,
   validateStagingMigrationBuildContext,
   type StagingDatabaseSnapshot,
 } from "../../../scripts/cp6-staging-preflight";
+
+describe("staging Vercel API scope", () => {
+  const projectId = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE";
+  const orgId = "team_z1b9TTQtbNkr43dzs5JVJPnQ";
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("scopes both environment list and individual value reads to the staging team", async () => {
+    const requests: URL[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (input: URL | string) => {
+      const url = new URL(input);
+      requests.push(url);
+      return Response.json(url.pathname.endsWith("/env")
+        ? { envs: [{ id: "test-env", key: "TEST_ONLY", target: ["production"] }] }
+        : { value: "test-only-value" });
+    }));
+
+    await fetchVercelProductionEnv("test-token", projectId, orgId);
+
+    expect(requests.map((url) => url.pathname)).toEqual([
+      `/v10/projects/${projectId}/env`,
+      `/v1/projects/${projectId}/env/test-env`,
+    ]);
+    expect(requests.map((url) => url.searchParams.get("teamId"))).toEqual([orgId, orgId]);
+  });
+
+  it.each([undefined, "", " "])("rejects missing team scope %s before any request", async (org) => {
+    const fetch = vi.fn().mockResolvedValue(Response.json({ envs: [] }));
+    vi.stubGlobal("fetch", fetch);
+    await expect(fetchVercelProductionEnv("test-token", projectId, org)).rejects.toThrow("VERCEL_ORG_ID_MISSING");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects a different team without falling back to personal scope", async () => {
+    const fetch = vi.fn().mockResolvedValue(Response.json({ envs: [] }));
+    vi.stubGlobal("fetch", fetch);
+    await expect(fetchVercelProductionEnv("test-token", projectId, "team_other")).rejects.toThrow("STAGING_TEAM_BINDING_MISMATCH");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("preserves the staging project guard even with the correct team", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    await expect(fetchVercelProductionEnv("test-token", "prj_other", orgId)).rejects.toThrow("STAGING_PROJECT_BINDING_MISMATCH");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
 
 function snapshot(overrides: Partial<StagingDatabaseSnapshot> = {}): StagingDatabaseSnapshot {
   return {
