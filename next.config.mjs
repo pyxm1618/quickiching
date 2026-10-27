@@ -1,10 +1,37 @@
 import { withWorkflow } from "workflow/next";
 
 export function buildContentSecurityPolicy(environment = process.env) {
-  const scriptSources = ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://challenges.cloudflare.com"];
-  const imageSources = ["'self'", "data:", "https://*.google-analytics.com", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://c.bing.com"];
-  const connectSources = ["'self'", "https://*.google-analytics.com", "https://*.analytics.google.com", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://c.bing.com", "https://challenges.cloudflare.com"];
-  const frameSources = ["https://challenges.cloudflare.com"];
+  const cmpScriptSources = [
+    "https://pagead2.googlesyndication.com",
+    "https://fundingchoicesmessages.google.com",
+    "https://*.adtrafficquality.google",
+  ];
+  const cmpConnectSources = [
+    "https://pagead2.googlesyndication.com",
+    "https://fundingchoicesmessages.google.com",
+    "https://*.adtrafficquality.google",
+    "https://adtrafficquality.google",
+    "https://googleads.g.doubleclick.net",
+    "https://*.google.com",
+  ];
+  const cmpImageSources = [
+    "https://pagead2.googlesyndication.com",
+    "https://fundingchoicesmessages.google.com",
+    "https://*.adtrafficquality.google",
+    "https://adtrafficquality.google",
+    "https://*.google.com",
+    "https://googleads.g.doubleclick.net",
+  ];
+  const cmpFrameSources = [
+    "https://fundingchoicesmessages.google.com",
+    "https://googleads.g.doubleclick.net",
+    "https://*.adtrafficquality.google",
+    "https://*.google.com",
+  ];
+  const scriptSources = ["'self'", "'unsafe-inline'", ...cmpScriptSources, "https://www.googletagmanager.com", "https://*.clarity.ms", "https://challenges.cloudflare.com"];
+  const imageSources = ["'self'", "data:", ...cmpImageSources, "https://*.google-analytics.com", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://c.bing.com"];
+  const connectSources = ["'self'", ...cmpConnectSources, "https://*.google-analytics.com", "https://*.analytics.google.com", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://c.bing.com", "https://challenges.cloudflare.com"];
+  const frameSources = [...cmpFrameSources, "https://challenges.cloudflare.com"];
 
 
   return [
