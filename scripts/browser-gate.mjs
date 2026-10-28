@@ -305,6 +305,7 @@ async function assertBasicResult(page) {
 }
 
 async function skipOptionalQuestion(page) {
+  const homeRitual = await page.$("[data-three-coin-home-stage]") !== null;
   const skipped = await page.evaluate(() => {
     const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Skip — free reading only");
     if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
@@ -312,14 +313,17 @@ async function skipOptionalQuestion(page) {
     return true;
   });
   assert(skipped, "Question skip must clearly leave this cast free-only");
-  await waitForText(page, "Confirm your question");
-  await clickButton(page, "Start Casting");
-  await waitForText(page, "0 / 6 lines");
+  if (homeRitual) {
+    await waitForText(page, "Confirm your question");
+    await clickButton(page, "Start Casting");
+    await waitForText(page, "0 / 6 lines");
+    return;
+  }
+  await page.waitForFunction(() => document.querySelector("textarea[data-private-question]") === null, { timeout: 5000 });
 }
 
 async function verifyThreeCoinTransactionSemantics(page) {
   const storageKey = "quickiching:public-v1:three-coin";
-  await skipOptionalQuestion(page);
 
   await dispatchThreeCoinPointer(page, "pointerdown", 41);
   await dispatchThreeCoinPointer(page, "pointercancel", 41);
@@ -368,7 +372,6 @@ async function verifyThreeCoinTransactionSemantics(page) {
 
 async function finishThreeCoin(page) {
   const storageKey = "quickiching:public-v1:three-coin";
-  await skipOptionalQuestion(page);
 
   const focused = await page.evaluate(() => {
     const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Toss three coins");
@@ -451,14 +454,14 @@ async function finishMeiHua(page) {
   await waitForText(page, "Cast current time");
 }
 
-async function runPage(browser, { path, viewport, flow, label }) {
+async function runPage(browser, { path, viewport, flow, label, skipQuestion = true }) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
   await page.setViewport(viewport);
   const failures = attachFailureCollectors(page);
   try {
     await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
-    await skipOptionalQuestion(page);
+    if (skipQuestion) await skipOptionalQuestion(page);
     await flow(page);
     await assertNoOverflow(page);
     assert.deepEqual(failures.consoleErrors, [], `${label}: console errors: ${failures.consoleErrors.join(" | ")}`);
@@ -495,6 +498,7 @@ async function verifyBrowserFlows() {
         path: "/",
         viewport,
         label: `${viewport.width}px navigation/single-stage/footer`,
+        skipQuestion: false,
         flow: async (page) => {
           await waitForText(page, HOME_H1);
           assert(await page.$("[data-three-coin-home-stage][data-experience-stage='landing']"), "Single-stage homepage landing is missing");
