@@ -34,9 +34,13 @@ type QuestionFirstProps = {
 
 export type HomeExperienceStage = "landing" | "question-confirm" | "ritual";
 
-export function homeExperienceStageForSession(session?: { started?: boolean; question?: string }): HomeExperienceStage {
-  if (session?.started) return "ritual";
-  if (session?.question) return "question-confirm";
+export function homeExperienceStageForSession(session?: {
+  started?: boolean;
+  question?: string;
+  coreQuestionFrozenAtCast?: boolean;
+}): HomeExperienceStage {
+  if (session?.coreQuestionFrozenAtCast) return "ritual";
+  if (session?.started || session?.question) return "question-confirm";
   return "landing";
 }
 
@@ -116,7 +120,7 @@ export function QuestionFirst({
     if (!homeRitual || coreQuestionFrozenAtCast) return;
     try {
       const normalized = normalizePublicQuestion(draft);
-      if (!persist(false, normalized)) {
+      if (!persist(true, normalized)) {
         setError(dictionary.questionFirst.saveError);
         return;
       }
@@ -164,7 +168,7 @@ export function QuestionFirst({
 
   function skip() {
     if (coreQuestionFrozenAtCast) return;
-    const nextStarted = !homeRitual;
+    const nextStarted = true;
     if (!persist(nextStarted, undefined)) {
       setError(dictionary.questionFirst.saveError);
       return;
