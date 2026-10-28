@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
+import { HexagramLines } from "@/components/hex/hexagram-lines";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import type { HexagramInterpretationBundle } from "@/domain/interpretation/v2/types";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
@@ -58,6 +59,7 @@ export type ThreeCoinResultClientProps = {
 };
 
 type DeepStatus = "idle" | "generating" | "completed" | "failed";
+type PersistenceStatus = "idle" | "saving" | "saved" | "error";
 type ContextDraft = {
   contextNotes: string;
   optionsText: string;
@@ -154,7 +156,10 @@ export function ThreeCoinResultClient({
   const [failedBrowserInterpretationKey, setFailedBrowserInterpretationKey] = useState<string | null>(null);
 
   const [castingId, setCastingId] = useState<string | null>(
-    initialCastingView?.castingId ?? initialSessionId ?? null,
+    initialCastingView?.owns ? initialCastingView.castingId : null,
+  );
+  const [persistenceStatus, setPersistenceStatus] = useState<PersistenceStatus>(
+    initialCastingView?.owns ? "saved" : "idle",
   );
   const [user] = useState<{ id: string; email: string } | null>(initialUser);
   const [credits, setCredits] = useState<number>(initialCredits);
@@ -205,7 +210,9 @@ export function ThreeCoinResultClient({
       evidence: { kind: "history", originalMethod: "three-coin" },
     });
   }, [castingId, clientCastingId, state]);
-  const shouldDeferBrowserInterpretation = !zh
+  const revealAllowed = Boolean(user && castingId && persistenceStatus === "saved");
+  const shouldDeferBrowserInterpretation = revealAllowed
+    && !zh
     && initialState === undefined
     && initialCastingView === null
     && initialInterpretationBundles === undefined;
@@ -450,11 +457,18 @@ export function ThreeCoinResultClient({
   }, [initialCastingView, initialState]);
 
   async function persistCurrentReading(showError: boolean): Promise<string | null> {
-    if (castingId) return castingId;
+    if (castingId) {
+      setPersistenceStatus("saved");
+      return castingId;
+    }
     if (state.kind !== "ready" || !clientCastingId) {
-      if (showError) setActionError(t("Could not save this reading. Start a new cast and try again.", "保存本次起卦失败，请重新起卦后再试。"));
+      setPersistenceStatus("error");
+      if (showError) setActionError(t("Could not save this completed cast. The same six lines remain preserved for retry.", "无法保存这次已完成起卦；当前六爻会保持不变，可以重试。"));
       return null;
     }
+
+    setPersistenceStatus("saving");
+    if (showError) setActionError(null);
 
     try {
       const res = await fetch("/api/readings", {
@@ -468,46 +482,51 @@ export function ThreeCoinResultClient({
       });
 
       if (res.status === 401) {
+        setPersistenceStatus("idle");
         window.location.assign(resultSigninHref());
         return null;
       }
       if (!res.ok) {
-        const errorBody = await res.json().catch(() => ({})) as { error?: string; previousCastingId?: string };
-        if (errorBody.error === "QUESTION_LOCKED" && errorBody.previousCastingId) {
-          setActionError(t("You already have a saved cast for this question in the 72-hour window. Opening that reading.", "这个问题在 72 小时内已有起卦记录，正在打开原解读。"));
-          const previousUrl = new URL(window.location.href);
-          previousUrl.searchParams.set("session", errorBody.previousCastingId);
-          window.location.assign(`${previousUrl.pathname}${previousUrl.search}${previousUrl.hash}`);
-          return null;
+        const errorBody = await res.json().catch(() => ({})) as { error?: string };
+        setPersistenceStatus("error");
+        if (errorBody.error === "QUESTION_LOCKED") {
+          setActionError(t(
+            "This completed cast could not be saved because the existing 72-hour question lock rejected it. The current cast remains unchanged and is not revealed.",
+            "现有 72 小时问题锁拒绝了这次已完成起卦的保存。当前六爻会保持不变，也不会提前揭示结果。",
+          ));
+        } else if (showError) {
+          setActionError(t("Could not save this reading. Please try again.", "保存本次起卦失败，请稍后重试。"));
         }
-        if (showError) setActionError(t("Could not save this reading. Please try again.", "保存本次起卦失败，请稍后重试。"));
         return null;
       }
 
       const data = await res.json() as { castingId?: string };
       if (!data.castingId) {
+        setPersistenceStatus("error");
         if (showError) setActionError(t("Could not save this reading. Please try again later.", "保存本次起卦失败，请稍后重试。"));
         return null;
       }
 
       setCastingId(data.castingId);
+      setPersistenceStatus("saved");
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set("session", data.castingId);
       window.history.replaceState(null, "", currentUrl.toString());
       return data.castingId;
     } catch {
+      setPersistenceStatus("error");
       if (showError) setActionError(t("Network connection failed. Please try again.", "网络连接失败，请重试。"));
       return null;
     }
   }
 
-  // 2. 如果已登录但尚未持久化起卦，自动将本次起卦幂等保存到后端并替换 URL
+  // 2. 登录返回后或已登录完成第六爻后，先幂等保存同一 completed cast；保存成功前绝不 reveal。
   useEffect(() => {
-    if (!user || castingId || state.kind !== "ready" || !clientCastingId) return;
+    if (!user || castingId || state.kind !== "ready" || !clientCastingId || persistenceStatus !== "idle") return;
     void persistCurrentReading(false);
     // persistCurrentReading intentionally follows the current render state; these are its save prerequisites.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, castingId, state, clientCastingId]);
+  }, [user, castingId, state, clientCastingId, persistenceStatus]);
 
   // Restore the paid result and the exact encrypted input snapshot for this account.
   useEffect(() => {
@@ -696,7 +715,7 @@ export function ThreeCoinResultClient({
     }
   }
 
-  if (state.kind === "loading" || waitingForBrowserInterpretation) {
+  if (state.kind === "loading") {
     return (
       <div
         className={`${styles.page} mx-auto min-h-[100svh] w-full max-w-[1180px] px-4 sm:px-6`}
@@ -753,6 +772,78 @@ export function ThreeCoinResultClient({
 
   const signinHref = resultSigninHref();
   const resultDictionary = zh ? ZH_HANS_UI_DICTIONARY : EN_UI_DICTIONARY;
+
+  if (!revealAllowed) {
+    const gateState = !user
+      ? "auth-required"
+      : persistenceStatus === "error"
+        ? "save-error"
+        : "saving";
+    return (
+      <div
+        className={`${styles.page} mx-auto min-h-[100svh] w-full max-w-[1180px] px-4 py-10 sm:px-6`}
+        data-completed-cast-gate={gateState}
+        data-visual-status="internal-scaffold"
+      >
+        <section className="mx-auto max-w-3xl text-center" aria-labelledby="completed-cast-title">
+          <p className="mystic-kicker">{t("Six lines complete", "六爻已成")}</p>
+          <h1 id="completed-cast-title" className="mt-3 font-display text-3xl font-normal text-white sm:text-5xl">
+            {t("Your completed cast is preserved", "本次起卦已经完成")}
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
+            {t(
+              "These are the same six sealed lines from your browser session. No hexagram name or interpretation is revealed until this cast is saved to your account History.",
+              "这里保留的是浏览器会话中同一组六条已落定爻。保存到账户 History 成功之前，不会揭示本卦名称或免费解读。",
+            )}
+          </p>
+          <div className="mx-auto mt-8 w-full max-w-[440px]" data-completed-six-lines>
+            <HexagramLines lines={state.lineValues} sealedCount={6} size="lg" showLabels locale={locale} />
+          </div>
+
+          {!user ? (
+            <div className="mt-8" data-auth-required-before-reveal>
+              <Link href={signinHref} className="mystic-button">
+                {t("Sign in to save and reveal this reading", "登录、保存并查看本次卦象")}
+              </Link>
+            </div>
+          ) : persistenceStatus === "error" ? (
+            <div className="mt-8" data-history-save-error role="alert">
+              <p className="text-sm leading-7 text-[var(--danger)]">
+                {actionError ?? t(
+                  "Saving failed. The same completed cast is still preserved and has not been revealed.",
+                  "保存失败。同一份 completed cast 仍然保留，结果尚未揭示。",
+                )}
+              </p>
+              <button type="button" className="mystic-button mt-5" onClick={() => void persistCurrentReading(true)} data-retry-history-save>
+                {t("Retry saving this cast", "重试保存本次起卦")}
+              </button>
+            </div>
+          ) : (
+            <div className="mt-8" role="status" data-history-saving>
+              <p className="text-sm leading-7 text-[var(--ink-2)]">
+                {t("Saving this completed cast to your account History before reveal…", "正在先把这次 completed cast 保存到账户 History…")}
+              </p>
+            </div>
+          )}
+        </section>
+      </div>
+    );
+  }
+
+  if (waitingForBrowserInterpretation) {
+    return (
+      <div
+        className={`${styles.page} mx-auto min-h-[100svh] w-full max-w-[1180px] px-4 sm:px-6`}
+        data-reading-interpretation-loading="true"
+        data-result-reveal-pending="true"
+      >
+        <div className={styles.loadingState} role="status" aria-label={t("Preparing your saved reading", "正在准备已保存的起卦结果")}>
+          <p className="mystic-kicker">{t("Saved to History", "已保存到 History")}</p>
+          <p className="mt-3 font-display text-3xl font-normal text-white">{t("Preparing your reading…", "正在准备结果揭示…")}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
