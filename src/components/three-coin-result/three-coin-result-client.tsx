@@ -816,7 +816,7 @@ export function ThreeCoinResultClient({
 
           {!user ? (
             <div className="mt-8" data-auth-required-before-reveal>
-              <Link href={signinHref} className="mystic-button">
+              <Link href={signinHref} prefetch={false} className="mystic-button">
                 {t("Sign in to save and reveal this reading", "登录、保存并查看本次卦象")}
               </Link>
             </div>
