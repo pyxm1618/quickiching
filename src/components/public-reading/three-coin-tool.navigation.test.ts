@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shouldNavigateCompletedThreeCoin } from "./three-coin-tool";
+import { canRecordSettledThreeCoin, shouldNavigateCompletedThreeCoin } from "./three-coin-tool";
 
 const completeState = {
   restored: true,
@@ -36,5 +36,36 @@ describe("ThreeCoinTool completion navigation", () => {
       hasReadingMeta: false,
       completionNavigationArmed: false,
     })).toBe(false);
+  });
+});
+
+
+describe("ThreeCoinTool visual record boundary", () => {
+  it("allows Record This Cast only for a persisted settled line that is not yet in visual progress", () => {
+    expect(canRecordSettledThreeCoin({
+      homeRitual: true,
+      motion: "settled",
+      storageBlocked: false,
+      stepCount: 1,
+      revealedCount: 0,
+    })).toBe(true);
+  });
+
+  it("does not record while casting, after storage failure, or after the line is already recorded", () => {
+    expect(canRecordSettledThreeCoin({ homeRitual: true, motion: "casting", storageBlocked: false, stepCount: 1, revealedCount: 0 })).toBe(false);
+    expect(canRecordSettledThreeCoin({ homeRitual: true, motion: "settled", storageBlocked: true, stepCount: 1, revealedCount: 0 })).toBe(false);
+    expect(canRecordSettledThreeCoin({ homeRitual: true, motion: "settled", storageBlocked: false, stepCount: 1, revealedCount: 1 })).toBe(false);
+    expect(canRecordSettledThreeCoin({ homeRitual: false, motion: "settled", storageBlocked: false, stepCount: 1, revealedCount: 0 })).toBe(false);
+  });
+
+  it("does not navigate after the sixth business step until the sixth line is visually recorded", () => {
+    expect(shouldNavigateCompletedThreeCoin({
+      ...completeState,
+      visuallyComplete: false,
+    })).toBe(false);
+    expect(shouldNavigateCompletedThreeCoin({
+      ...completeState,
+      visuallyComplete: true,
+    })).toBe(true);
   });
 });
