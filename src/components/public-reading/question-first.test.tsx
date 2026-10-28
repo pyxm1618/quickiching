@@ -23,7 +23,12 @@ describe("QuestionFirst home ritual stage semantics", () => {
   it("restores landing, confirmation, and ritual from the existing question session without a second business state", () => {
     expect(homeExperienceStageForSession()).toBe("landing");
     expect(homeExperienceStageForSession({ started: false, question: "Should I take this role?" })).toBe("question-confirm");
-    expect(homeExperienceStageForSession({ started: true, question: "Should I take this role?" })).toBe("ritual");
+    expect(homeExperienceStageForSession({ started: true, question: "Should I take this role?" })).toBe("question-confirm");
+    expect(homeExperienceStageForSession({
+      started: true,
+      question: "Should I take this role?",
+      coreQuestionFrozenAtCast: true,
+    })).toBe("ritual");
   });
 
   it("renders the same saved question in the confirmation scaffold without freezing it", async () => {
@@ -45,13 +50,18 @@ describe("QuestionFirst home ritual stage semantics", () => {
     expect(html).not.toContain("Casting UI");
   });
 
-  it("restores ritual with an editable weak question before the first real cast", async () => {
+  it("restores a frozen partial cast directly to ritual with the same locked question", async () => {
     const { renderToStaticMarkup } = await import("react-dom/server");
     const html = renderToStaticMarkup(
       <QuestionFirst
         storageKey="home-ritual"
         presentation="home-ritual"
-        initialSession={{ started: true, question: "Should I take this role?", coreQuestionFrozenAtCast: false }}
+        initialSession={{
+          started: true,
+          question: "Should I take this role?",
+          coreQuestionAtCast: "Should I take this role?",
+          coreQuestionFrozenAtCast: true,
+        }}
       >
         <div>Casting UI</div>
       </QuestionFirst>,
@@ -60,7 +70,7 @@ describe("QuestionFirst home ritual stage semantics", () => {
     expect(html).toContain('data-experience-stage="ritual"');
     expect(html).toContain("Should I take this role?");
     expect(html).toContain("Casting UI");
-    expect(html).not.toContain("disabled");
+    expect(html).toContain("disabled");
   });
 });
 
