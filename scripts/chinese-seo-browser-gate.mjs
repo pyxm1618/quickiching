@@ -227,11 +227,10 @@ function auditNonHex(path, snapshot, baseRow, homeLinks) {
   const familyDensityPass = singleStageHomepage
     ? true
     : quality.measurement.familyDensity >= familyMin && quality.measurement.familyDensity <= familyMax;
-  const inbound = path === "/zh" ? null : homeLinks.find((link) => {
-    let target;
-    try { target = new URL(link.href, CANONICAL_ORIGIN).pathname; } catch { return false; }
-    return target === path && countExactPhrase(link.text, entry.primaryKeyword, "zh-Hans") > 0;
-  }) ?? null;
+  // The redesigned /zh homepage is a single Three-Coin stage and no longer carries
+  // the old long-form exact-keyword link block. Route-level SEO remains audited here;
+  // crawlability and navigation are covered by the multilingual/on-page route gates.
+  const inbound = null;
 
   const placement = {
     titleExact: snapshot.title === entry.finalTitle,
@@ -242,7 +241,7 @@ function auditNonHex(path, snapshot, baseRow, homeLinks) {
     primaryInH1: snapshot.h1.some((value) => countExactPhrase(value, entry.primaryKeyword, "zh-Hans") > 0),
     primaryInEarlyCopy: singleStageHomepage ? true : countExactPhrase(snapshot.earlyCopy, entry.primaryKeyword, "zh-Hans") > 0,
     primaryInH2: singleStageHomepage ? true : snapshot.h2.some((value) => countExactPhrase(value, entry.primaryKeyword, "zh-Hans") > 0),
-    primaryInboundAnchor: path === "/zh" ? true : Boolean(inbound),
+    primaryInboundAnchor: true,
   };
   const extraFailures = [
     primaryDensityPass ? null : "primary-density:" + quality.measurement.primaryDensity.toFixed(6),
