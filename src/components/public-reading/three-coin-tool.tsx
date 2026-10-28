@@ -31,6 +31,19 @@ function lineName(value: number, zh = false): string {
   return zh ? "老阳 · 动爻" : "Old yang · changing";
 }
 
+export function canRecordSettledThreeCoin(input: {
+  homeRitual: boolean;
+  motion: MotionState;
+  storageBlocked: boolean;
+  stepCount: number;
+  revealedCount: number;
+}): boolean {
+  return input.homeRitual
+    && input.motion === "settled"
+    && !input.storageBlocked
+    && input.stepCount > input.revealedCount;
+}
+
 export function shouldNavigateCompletedThreeCoin(input: {
   restored: boolean;
   complete: boolean;
@@ -303,7 +316,13 @@ export function ThreeCoinTool({
   }
 
   function recordSettledLine() {
-    if (!homeRitual || motion !== "settled" || storageBlocked || steps.length <= revealedCount) return;
+    if (!canRecordSettledThreeCoin({
+      homeRitual,
+      motion,
+      storageBlocked,
+      stepCount: steps.length,
+      revealedCount,
+    })) return;
     const nextRevealedCount = revealedCount + 1;
     setRevealedCount(nextRevealedCount);
     if (nextRevealedCount < 6) setMotion("idle");
@@ -456,7 +475,13 @@ export function ThreeCoinTool({
             </div>
           </div>
 
-          {homeRitual && motion === "settled" && steps.length > revealedCount ? (
+          {canRecordSettledThreeCoin({
+            homeRitual,
+            motion,
+            storageBlocked,
+            stepCount: steps.length,
+            revealedCount,
+          }) ? (
             <div className="hold-zone" data-settled-awaiting-record>
               <button
                 type="button"
