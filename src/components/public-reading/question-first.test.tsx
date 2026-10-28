@@ -1,6 +1,6 @@
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { QuestionFirst, useQuestionFirstContext } from "./question-first";
+import { QuestionFirst, homeExperienceStageForSession, useQuestionFirstContext } from "./question-first";
 import { patchPublicReadingSession, readPublicReadingSessionState } from "@/lib/public-reading-session";
 
 const originalWindow = globalThis.window;
@@ -18,6 +18,51 @@ function installSessionStorage(initialMap: Record<string, string> = {}) {
   (globalThis as any).window = { sessionStorage };
   return sessionStorage;
 }
+
+describe("QuestionFirst home ritual stage semantics", () => {
+  it("restores landing, confirmation, and ritual from the existing question session without a second business state", () => {
+    expect(homeExperienceStageForSession()).toBe("landing");
+    expect(homeExperienceStageForSession({ started: false, question: "Should I take this role?" })).toBe("question-confirm");
+    expect(homeExperienceStageForSession({ started: true, question: "Should I take this role?" })).toBe("ritual");
+  });
+
+  it("renders the same saved question in the confirmation scaffold without freezing it", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const html = renderToStaticMarkup(
+      <QuestionFirst
+        storageKey="home-confirm"
+        deepReadingEligible
+        presentation="home-ritual"
+        initialSession={{ started: false, question: "Should I take this role?", coreQuestionFrozenAtCast: false }}
+      >
+        <div>Casting UI</div>
+      </QuestionFirst>,
+    );
+
+    expect(html).toContain('data-experience-stage="question-confirm"');
+    expect(html).toContain("Should I take this role?");
+    expect(html).toContain("Start Casting");
+    expect(html).not.toContain("Casting UI");
+  });
+
+  it("restores ritual with an editable weak question before the first real cast", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const html = renderToStaticMarkup(
+      <QuestionFirst
+        storageKey="home-ritual"
+        presentation="home-ritual"
+        initialSession={{ started: true, question: "Should I take this role?", coreQuestionFrozenAtCast: false }}
+      >
+        <div>Casting UI</div>
+      </QuestionFirst>,
+    );
+
+    expect(html).toContain('data-experience-stage="ritual"');
+    expect(html).toContain("Should I take this role?");
+    expect(html).toContain("Casting UI");
+    expect(html).not.toContain("disabled");
+  });
+});
 
 describe("QuestionFirst component question freeze regressions", () => {
   beforeEach(() => {
