@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#120d08"/><stop offset="1" stop-color="#2a1709"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f0c46b"/><stop offset="1" stop-color="#fff0b0"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <style>
+    .t{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;fill:#f6ead7}
+    .s{fill:#c9b79f;font-size:20px}.h{font-size:26px;font-weight:700}.panel{fill:#18110c;stroke:#8b622d;stroke-width:2}
+    .gold{fill:url(#gold)}.line{stroke:#e9c170;stroke-width:7;stroke-linecap:round}.yin{stroke:#e9c170;stroke-width:7;stroke-linecap:round}
+  </style>
+  <text x="60" y="62" class="t" font-size="34" font-weight="700">Quick I Ching · 三枚铜钱起卦改版流程基准图</text>
+  <text x="60" y="96" class="t s">单屏舞台连续变化：提出问题 → 掷币 → 记录一爻 → 重复六次 → 生成卦象与解读</text>
+
+  <g transform="translate(45,130)">
+    <rect class="panel" rx="22" width="480" height="300"/><circle cx="32" cy="32" r="22" fill="#f4eadb"/><text x="25" y="41" font-size="24" fill="#2a190d">1</text>
+    <text x="70" y="42" class="t h">首页：点击“开始起卦”</text><text x="36" y="92" class="t" font-size="34" font-weight="700">一卦一念，看见更大的自己</text>
+    <text x="36" y="128" class="t s">首页收敛为一屏主舞台；导航继续保留。</text><rect x="36" y="160" width="270" height="62" rx="10" fill="#f3e5cf"/>
+    <text x="56" y="198" fill="#46321f" font-size="20">此刻，你想问什么？</text><rect x="36" y="240" width="210" height="46" rx="23" class="gold" filter="url(#glow)"/>
+    <text x="88" y="270" fill="#2b1b0c" font-size="21" font-weight="700">开始起卦 →</text>
+  </g>
+
+  <g transform="translate(560,130)">
+    <rect class="panel" rx="22" width="480" height="300"/><circle cx="32" cy="32" r="22" fill="#f4eadb"/><text x="25" y="41" font-size="24" fill="#2a190d">2</text>
+    <text x="70" y="42" class="t h">确认问题</text><text x="155" y="92" class="t" font-size="30" font-weight="700">你想问什么？</text>
+    <rect x="56" y="120" width="368" height="82" rx="10" fill="#f3e5cf"/><text x="76" y="154" fill="#46321f" font-size="19">输入或确认一个核心问题</text>
+    <rect x="120" y="228" width="240" height="50" rx="25" class="gold" filter="url(#glow)"/><text x="184" y="261" fill="#2b1b0c" font-size="21" font-weight="700">开始掷币 →</text>
+  </g>
+
+  <g transform="translate(1075,130)">
+    <rect class="panel" rx="22" width="480" height="300"/><circle cx="32" cy="32" r="22" fill="#f4eadb"/><text x="25" y="41" font-size="24" fill="#2a190d">3</text>
+    <text x="70" y="42" class="t h">掷币动效</text><text x="170" y="88" class="t" font-size="28" font-weight="700">正在掷币…</text>
+    <text x="122" y="116" class="t s">三枚铜钱 3D 翻滚、下落、发光</text>
+    <g transform="translate(92,142)" filter="url(#glow)"><circle cx="70" cy="55" r="42" fill="#a87325" stroke="#f1cc74" stroke-width="5"/><circle cx="190" cy="35" r="42" fill="#b27b29" stroke="#f1cc74" stroke-width="5"/><circle cx="300" cy="82" r="42" fill="#9b6720" stroke="#f1cc74" stroke-width="5"/></g>
+    <circle cx="240" cy="255" r="54" fill="none" stroke="#d39c42" stroke-width="4"/><path d="M240 205 C180 150 125 142 95 116 M240 205 C284 160 330 134 385 120" fill="none" stroke="#e8b75b" stroke-width="3" opacity=".6"/>
+  </g>
+
+  <g transform="translate(45,485)">
+    <rect class="panel" rx="22" width="480" height="300"/><circle cx="32" cy="32" r="22" fill="#f4eadb"/><text x="25" y="41" font-size="24" fill="#2a190d">4</text>
+    <text x="70" y="42" class="t h">显示本次三枚铜钱结果</text>
+    <g transform="translate(68,100)"><circle cx="60" cy="45" r="42" fill="#ad7424" stroke="#f1cc74" stroke-width="5"/><circle cx="180" cy="45" r="42" fill="#63401f" stroke="#b9853d" stroke-width="4"/><circle cx="300" cy="45" r="42" fill="#63401f" stroke="#b9853d" stroke-width="4"/><text x="37" y="112" class="t s">正面</text><text x="157" y="112" class="t s">反面</text><text x="277" y="112" class="t s">反面</text></g>
+    <rect x="120" y="228" width="240" height="50" rx="25" class="gold"/><text x="185" y="261" fill="#2b1b0c" font-size="21" font-weight="700">记录这一爻 →</text>
+  </g>
+
+  <g transform="translate(560,485)">
+    <rect class="panel" rx="22" width="480" height="300"/><circle cx="32" cy="32" r="22" fill="#f4eadb"/><text x="25" y="41" font-size="24" fill="#2a190d">5</text>
+    <text x="70" y="42" class="t h">重复六次，依次完成六爻</text>
+    <g transform="translate(48,92)"><text x="0" y="0" class="t s">第1爻</text><line x1="100" y1="-8" x2="170" y2="-8" class="line"/><text x="0" y="36" class="t s">第2爻</text><line x1="100" y1="28" x2="128" y2="28" class="yin"/><line x1="142" y1="28" x2="170" y2="28" class="yin"/><text x="0" y="72" class="t s">第3爻</text><line x1="100" y1="64" x2="170" y2="64" class="line"/><text x="0" y="108" class="t s">第4爻</text><line x1="100" y1="100" x2="128" y2="100" class="yin"/><line x1="142" y1="100" x2="170" y2="100" class="yin"/><text x="0" y="144" class="t s">第5爻</text><line x1="100" y1="136" x2="128" y2="136" class="yin"/><line x1="142" y1="136" x2="170" y2="136" class="yin"/><text x="0" y="180" class="t s">第6爻</text><line x1="100" y1="172" x2="170" y2="172" class="line"/></g>
+    <circle cx="365" cy="178" r="54" fill="#a87325" stroke="#f1cc74" stroke-width="5" filter="url(#glow)"/><text x="294" y="252" class="t s">每一爻落定后继续下一次</text>
+  </g>
+
+  <g transform="translate(1075,485)">
+    <rect class="panel" rx="22" width="480" height="300"/><circle cx="32" cy="32" r="22" fill="#f4eadb"/><text x="25" y="41" font-size="24" fill="#2a190d">6</text>
+    <text x="70" y="42" class="t h">生成卦象与解读</text><rect x="36" y="72" width="408" height="190" rx="14" fill="#efe1c6"/><text x="178" y="105" fill="#24180e" font-size="31" font-weight="700">山水蒙</text>
+    <g transform="translate(78,130)" stroke="#24180e" stroke-width="9" stroke-linecap="round"><line x1="0" y1="0" x2="72" y2="0"/><line x1="0" y1="24" x2="30" y2="24"/><line x1="42" y1="24" x2="72" y2="24"/><line x1="0" y1="48" x2="30" y2="48"/><line x1="42" y1="48" x2="72" y2="48"/><line x1="0" y1="72" x2="72" y2="72"/><line x1="0" y1="96" x2="30" y2="96"/><line x1="42" y1="96" x2="72" y2="96"/><line x1="0" y1="120" x2="72" y2="120"/></g>
+    <text x="195" y="148" fill="#3a2b1c" font-size="18" font-weight="700">卦辞 / 动爻 / 之卦 / 解读</text><text x="195" y="180" fill="#6a543b" font-size="17">沿用现有结果内容与 AI Deep Reading。</text><rect x="186" y="214" width="110" height="34" rx="17" fill="#f7ecd8" stroke="#8b622d"/><rect x="310" y="214" width="110" height="34" rx="17" fill="#6b4215"/>
+  </g>
+
+  <text x="60" y="850" class="t s">边界：只重做首页与三枚铜钱主路径的体验/演出层；六十四卦、其他起卦法、算法、结果内容、AI、账户/支付/数据层继续复用。</text>
+</svg>
