@@ -146,18 +146,8 @@ async function verifyHttpBoundaries() {
   }
 
   const zhHomeHtml = await (await expectStatus("/zh", 200)).text();
-  for (const required of [
-    "/zh/methods/three-coin",
-    "/zh/methods/yarrow-stalks",
-    "/zh/methods/mei-hua-yi-shu",
-    "/zh/methods/manual-cast",
-    "/zh/guides/how-to-ask-the-i-ching",
-    "/zh/guides/changing-lines",
-    "/zh/guides/primary-relating-hexagrams",
-    "/zh/hexagrams",
-  ]) {
-    assert(zhHomeHtml.includes(`href="${required}"`), `Chinese home must link localized route: ${required}`);
-  }
+  assert(zhHomeHtml.includes("data-three-coin-home-stage"), "Chinese home must expose the localized single-stage Three-Coin experience");
+  assert(!zhHomeHtml.includes('"@type":"FAQPage"'), "Chinese home must not retain FAQ structured data after the visible FAQ was removed");
 
   const chineseHomeHeaderLinks = [...zhHomeHtml.matchAll(/<header\b[\s\S]*?<\/header>/gi)][0]?.[0] ?? "";
   assert.equal((chineseHomeHeaderLinks.match(/href="\/"/g) ?? []).length, 1, "Chinese header must expose exactly one root English link");
