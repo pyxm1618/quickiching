@@ -203,9 +203,16 @@ async function auditResult(browser, desktop) {
         disableStorageReset: true,
       },
     });
-    await page.waitForFunction(() => document.body?.innerText.toLocaleLowerCase().includes("bottom line"), { timeout: 15_000 });
-    const visible = await page.evaluate(() => document.body?.innerText.includes("Fellowship") && document.body?.innerText.includes("Gentle penetration"));
-    assert(visible, `${desktop ? "desktop" : "mobile"}: Lighthouse audited an empty/incorrect result state`);
+    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+    const visible = await page.evaluate(() => ({
+      sixLines: document.querySelector("[data-completed-six-lines]") !== null,
+      authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
+      primaryCard: document.querySelector("[data-primary-card]") !== null,
+      text: document.body?.innerText ?? "",
+    }));
+    assert(visible.sixLines && visible.authGate, `${desktop ? "desktop" : "mobile"}: Lighthouse audited an empty/incorrect completed-cast gate`);
+    assert.equal(visible.primaryCard, false, `${desktop ? "desktop" : "mobile"}: primary result leaked before authentication and History save`);
+    assert(!visible.text.includes("Fellowship") && !visible.text.includes("Gentle penetration"), `${desktop ? "desktop" : "mobile"}: hexagram identity leaked through the auth gate`);
     if (!desktop) await logPageFontDiagnostics(page);
     return summarize(desktop ? "RESULT_DESKTOP" : "RESULT_MOBILE", runnerResult);
   } finally {
@@ -222,7 +229,7 @@ const browser = await puppeteer.launch({
 try {
   await auditResult(browser, false);
   await auditResult(browser, true);
-  log("POPULATED RESULT MOBILE + DESKTOP LIGHTHOUSE PASS");
+  log("COMPLETED-CAST AUTH GATE MOBILE + DESKTOP LIGHTHOUSE PASS");
 } finally {
   await browser.close();
 }
