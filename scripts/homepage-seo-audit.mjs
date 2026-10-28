@@ -90,9 +90,9 @@ try {
       label: node.getAttribute("data-visual-label") ?? "",
       generated: getComputedStyle(node, "::before").content,
     }));
-    const oracleNodes = [...document.querySelectorAll(".oracle-stage")].map((node) => ({
-      text: node.textContent ?? "",
-      hidden: node.getAttribute("aria-hidden") === "true",
+    const homeStages = [...document.querySelectorAll("[data-three-coin-home-stage]")].map((node) => ({
+      stage: node.getAttribute("data-experience-stage") ?? "",
+      visualStatus: node.getAttribute("data-visual-status") ?? "",
     }));
     const headings = [...document.querySelectorAll("h1,h2,h3,h4,h5,h6")].map((node) => node.textContent?.trim() ?? "");
     const schemas = [...document.querySelectorAll('script[type="application/ld+json"]')].flatMap((node) => {
@@ -108,9 +108,9 @@ try {
       description: document.querySelector('meta[name="description"]')?.getAttribute("content") ?? "",
       h1: [...document.querySelectorAll("h1")].map((node) => node.textContent?.trim() ?? ""),
       bodyText: document.body?.innerText ?? "",
-      heroText: document.querySelector(".home-oracle > section p.mt-7")?.textContent?.trim() ?? "",
+      heroText: document.querySelector("[data-three-coin-home-stage][data-experience-stage='landing'] p.mt-5")?.textContent?.trim() ?? "",
       decorativeNodes,
-      oracleNodes,
+      homeStages,
       headings,
       schemas,
     };
@@ -151,8 +151,9 @@ try {
         assert.equal(stripGeneratedContent(node.generated), node.label, `Decorative generated content mismatch for ${node.label}`);
       }
     } else {
-      assert(snapshot.oracleNodes.length > 0, "Homepage decorative hero is missing");
-      assert(snapshot.oracleNodes.every((node) => node.hidden && node.text.trim() === ""), "Decorative hero must remain aria-hidden and text-free");
+      assert.equal(snapshot.homeStages.length, 1, "Homepage must expose one Three-Coin single-stage experience");
+      assert.equal(snapshot.homeStages[0].stage, "landing", "Homepage initial experience stage must be landing");
+      assert.equal(snapshot.homeStages[0].visualStatus, "internal-scaffold", "Phase 1/2 homepage must remain explicitly marked as internal visual scaffold");
     }
     assert(!snapshot.headings.some((heading) => /^Line \d(?: sealed| awaiting cast)?$/i.test(heading)), "Three-Coin UI status leaked into the heading tree");
     assert(

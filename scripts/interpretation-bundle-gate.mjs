@@ -5,7 +5,6 @@ import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const BASE_ORIGIN = new URL(BASE).origin;
-const STORAGE_KEY = "quickiching:public-v1:three-coin";
 const FIXTURE_STEPS = [
   { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
   { lineIndex: 1, coinFaces: ["yin", "yin", "yin"], lineValue: 6, algorithmVersion: "three-coin-v1" },
@@ -55,11 +54,31 @@ async function verifyHomepage(page) {
 }
 
 async function verifyResult(page) {
-  await page.evaluate(({ key, steps }) => sessionStorage.setItem(key, JSON.stringify(steps)), {
-    key: STORAGE_KEY,
-    steps: FIXTURE_STEPS,
-  });
-  await page.goto(`${BASE}/readings/three-coin/result`, { waitUntil: "networkidle0", timeout: 30_000 });
+  // Three-Coin results are now correctly sealed behind auth + account History persistence.
+  // Use the existing Manual Cast path to exercise the same shared PublicReadingResult bundle loader
+  // without bypassing the Three-Coin reveal gate.
+  await page.goto(`${BASE}/methods/manual-cast`, { waitUntil: "networkidle0", timeout: 30_000 });
+  const clickButton = async (label) => {
+    const clicked = await page.evaluate((wanted) => {
+      const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === wanted);
+      if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
+      button.click();
+      return true;
+    }, label);
+    assert(clicked, `Could not click ${label}`);
+  };
+  await clickButton("Skip — free reading only");
+  await page.waitForSelector("select:not(#manual-primary-hexagram)", { timeout: 15_000 });
+  await page.evaluate((values) => {
+    const selects = [...document.querySelectorAll("select")].filter((node) => node.id !== "manual-primary-hexagram");
+    values.forEach((value, index) => {
+      const select = selects[index];
+      if (!(select instanceof HTMLSelectElement)) return;
+      select.value = String(value);
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, FIXTURE_STEPS.map((step) => step.lineValue));
+  await clickButton("Build reading");
   await page.waitForFunction((sentinels) => {
     const text = document.body?.innerText ?? "";
     return sentinels.every((sentinel) => text.includes(sentinel));
@@ -69,7 +88,7 @@ async function verifyResult(page) {
   assert(scripts.combined.includes(H57_CATALOG_SENTINEL), "Result did not load the relating H57 interpretation chunk");
   assert(!scripts.combined.includes(H1_CATALOG_SENTINEL), "Result eagerly loaded an unrelated H1 interpretation chunk");
   assert(!scripts.combined.includes(H61_CATALOG_SENTINEL), "Result eagerly loaded an unrelated H61 interpretation chunk");
-  log(`RESULT_JS resources=${scripts.urls.length} bytes=${scripts.bytes}; selected H13/H57 chunks present; unrelated H1/H61 chunks absent`);
+  log(`RESULT_JS resources=${scripts.urls.length} bytes=${scripts.bytes}; shared result loader selected H13/H57 chunks; unrelated H1/H61 chunks absent`);
 }
 
 const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);

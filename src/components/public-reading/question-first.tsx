@@ -20,6 +20,9 @@ type QuestionFirstProps = {
   legacyStorageKeys?: readonly string[];
   dictionary?: UiDictionary;
   deepReadingEligible?: boolean;
+  presentation?: "default" | "home-ritual";
+  homeHeading?: string;
+  homeDescription?: string;
   initialSession?: {
     started?: boolean;
     question?: string;
@@ -28,6 +31,18 @@ type QuestionFirstProps = {
   };
   children: ReactNode;
 };
+
+export type HomeExperienceStage = "landing" | "question-confirm" | "ritual";
+
+export function homeExperienceStageForSession(session?: {
+  started?: boolean;
+  question?: string;
+  coreQuestionFrozenAtCast?: boolean;
+}): HomeExperienceStage {
+  if (session?.coreQuestionFrozenAtCast) return "ritual";
+  if (session?.started || session?.question) return "question-confirm";
+  return "landing";
+}
 
 const QuestionFirstContext = createContext<QuestionContext | null>(null);
 
@@ -40,10 +55,18 @@ export function QuestionFirst({
   legacyStorageKeys = [],
   dictionary = EN_UI_DICTIONARY,
   deepReadingEligible = false,
+  presentation = "default",
+  homeHeading,
+  homeDescription,
   initialSession,
   children,
 }: QuestionFirstProps) {
+  const homeRitual = presentation === "home-ritual";
+  const zh = dictionary.locale === "zh-Hans";
   const [started, setStarted] = useState(() => initialSession?.started ?? false);
+  const [experienceStage, setExperienceStage] = useState<HomeExperienceStage>(
+    () => homeExperienceStageForSession(initialSession),
+  );
   const [question, setQuestionState] = useState<string | undefined>(() => initialSession?.question ?? undefined);
   const [coreQuestionAtCast, setCoreQuestionAtCast] = useState<string | undefined>(() => initialSession?.coreQuestionAtCast ?? undefined);
   const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(() => initialSession?.coreQuestionFrozenAtCast ?? false);
@@ -57,7 +80,10 @@ export function QuestionFirst({
     setDraft(restored.question ?? "");
     setCoreQuestionAtCast(restored.coreQuestionAtCast);
     setCoreQuestionFrozenAtCast(restored.coreQuestionFrozenAtCast);
-  }, [legacyStorageKeys, storageKey]);
+    if (homeRitual) {
+      setExperienceStage(homeExperienceStageForSession(restored));
+    }
+  }, [homeRitual, legacyStorageKeys, storageKey]);
 
   function persist(
     nextStarted: boolean,
@@ -90,6 +116,25 @@ export function QuestionFirst({
     }
   }
 
+  function prepareQuestionConfirmation() {
+    if (!homeRitual || coreQuestionFrozenAtCast) return;
+    try {
+      const normalized = normalizePublicQuestion(draft);
+      if (!persist(true, normalized)) {
+        setError(dictionary.questionFirst.saveError);
+        return;
+      }
+      setQuestionState(normalized);
+      setDraft(normalized ?? "");
+      setError("");
+      setExperienceStage("question-confirm");
+    } catch (nextError: unknown) {
+      setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
+        ? dictionary.questionFirst.tooLong.replace("{max}", String(PUBLIC_QUESTION_MAX_CODE_POINTS))
+        : dictionary.questionFirst.useError);
+    }
+  }
+
   function continueToCasting() {
     try {
       if (coreQuestionFrozenAtCast) {
@@ -101,6 +146,7 @@ export function QuestionFirst({
         setDraft(coreQuestionAtCast ?? "");
         setError("");
         setStarted(true);
+        if (homeRitual) setExperienceStage("ritual");
         return;
       }
       const normalized = normalizePublicQuestion(draft);
@@ -112,6 +158,7 @@ export function QuestionFirst({
       setDraft(normalized ?? "");
       setError("");
       setStarted(true);
+      if (homeRitual) setExperienceStage("ritual");
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? dictionary.questionFirst.tooLong.replace("{max}", String(PUBLIC_QUESTION_MAX_CODE_POINTS))
@@ -121,14 +168,16 @@ export function QuestionFirst({
 
   function skip() {
     if (coreQuestionFrozenAtCast) return;
-    if (!persist(true, undefined)) {
+    const nextStarted = true;
+    if (!persist(nextStarted, undefined)) {
       setError(dictionary.questionFirst.saveError);
       return;
     }
     setQuestionState(undefined);
     setDraft("");
     setError("");
-    setStarted(true);
+    setStarted(nextStarted);
+    if (homeRitual) setExperienceStage("question-confirm");
   }
 
   function restartQuestion(force = false) {
@@ -143,6 +192,7 @@ export function QuestionFirst({
     setCoreQuestionFrozenAtCast(false);
     setDraft("");
     setError("");
+    if (homeRitual) setExperienceStage("landing");
   }
 
   function freezeCoreQuestion(): string | undefined | false {
@@ -168,6 +218,113 @@ export function QuestionFirst({
     freezeCoreQuestion,
     restartQuestion,
   };
+
+  if (homeRitual) {
+    const landing = experienceStage === "landing";
+    const confirming = experienceStage === "question-confirm";
+    return (
+      <QuestionFirstContext.Provider value={context}>
+        <section
+          id="three-coin-reading"
+          data-question-first
+          data-three-coin-home-stage
+          data-experience-stage={experienceStage}
+          data-visual-status="internal-scaffold"
+          className="mystic-shell min-h-[calc(100svh-5rem)] py-10 sm:py-14"
+        >
+          {experienceStage !== "ritual" ? (
+            <div className="mx-auto grid min-h-[68svh] max-w-5xl content-center gap-7">
+              {landing ? (
+                <div>
+                  <p className="mystic-kicker">{zh ? "Quick I Ching · 三枚铜钱" : "Quick I Ching · Three-Coin Method"}</p>
+                  <h1 className="mt-4 max-w-4xl font-display text-4xl font-normal tracking-[-0.04em] sm:text-6xl">
+                    {homeHeading ?? (zh ? "易经在线起卦" : "I Ching Online Reading")}
+                  </h1>
+                  <p className="mt-5 max-w-2xl text-sm leading-7 text-[var(--ink-2)] sm:text-base">
+                    {homeDescription ?? (zh ? "写下此刻最想看清的问题，然后开始一次完整的六爻起卦。" : "Write the question you want to examine, then begin one complete six-line cast.")}
+                  </p>
+                </div>
+              ) : (
+                <div data-question-confirm>
+                  <p className="mystic-kicker">{zh ? "确认本次问题" : "Confirm this reading"}</p>
+                  <h1 className="mt-3 font-display text-3xl font-normal tracking-[-0.03em] sm:text-5xl">
+                    {zh ? "确认你要问的问题" : "Confirm your question"}
+                  </h1>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--ink-2)]">
+                    {zh ? "第一次真实起爻前仍可修改；第一爻生成时才会锁定。" : "You can still edit it before the first real cast. It is frozen only when line one is generated."}
+                  </p>
+                </div>
+              )}
+
+              <div className="mystic-card max-w-3xl p-5 sm:p-7">
+                <label htmlFor={`${storageKey}-home-question`} className="block text-sm font-semibold text-[var(--ink)]">
+                  {dictionary.questionFirst.label} <span className="font-normal text-[var(--ink-3)]">{dictionary.questionFirst.optional}</span>
+                </label>
+                <textarea
+                  id={`${storageKey}-home-question`}
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  rows={3}
+                  className="mt-2 min-h-28 w-full resize-y rounded-2xl border border-white/[0.12] bg-white/[0.035] px-4 py-3 text-sm leading-7 text-[var(--ink)] outline-none"
+                  placeholder={dictionary.questionFirst.placeholder}
+                  data-clarity-mask="true"
+                  data-private-question="true"
+                  disabled={coreQuestionFrozenAtCast}
+                />
+                {error ? <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{error}</p> : null}
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    className="mystic-button"
+                    onClick={landing ? prepareQuestionConfirmation : continueToCasting}
+                    disabled={landing && deepReadingEligible && !draft.trim()}
+                    data-home-primary-action
+                  >
+                    {landing
+                      ? (zh ? "开始起卦" : "Start Reading")
+                      : (zh ? "开始掷币" : "Start Casting")}
+                  </button>
+                  {landing && !coreQuestionFrozenAtCast ? (
+                    <button type="button" onClick={skip} className="mystic-button-secondary" data-home-skip-question>
+                      {dictionary.questionFirst.skipFreeOnly}
+                    </button>
+                  ) : null}
+                  {confirming && !coreQuestionFrozenAtCast ? (
+                    <button type="button" onClick={() => setExperienceStage("landing")} className="mystic-button-secondary">
+                      {zh ? "返回" : "Back"}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="min-h-40" data-home-coin-visual-placeholder aria-hidden="true" />
+            </div>
+          ) : (
+            <>
+              <div className="mb-4 flex justify-center" data-ritual-question-context>
+                {question ? (
+                  <input
+                    value={draft}
+                    onChange={(event) => setQuestion(event.target.value)}
+                    className="w-full max-w-2xl border-0 bg-transparent px-3 py-2 text-center text-sm text-[var(--ink-3)] outline-none"
+                    aria-label={zh ? "本次问题" : "Question for this reading"}
+                    data-clarity-mask="true"
+                    data-private-question="true"
+                    disabled={coreQuestionFrozenAtCast}
+                  />
+                ) : (
+                  <p className="text-center text-sm text-[var(--ink-3)]">
+                    {zh ? "本次为无问题的免费起卦" : "This is a free cast without a bound question"}
+                  </p>
+                )}
+              </div>
+              {children}
+            </>
+          )}
+        </section>
+      </QuestionFirstContext.Provider>
+    );
+  }
 
   return (
     <QuestionFirstContext.Provider value={context}>

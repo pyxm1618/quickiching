@@ -619,7 +619,7 @@ async function main() {
     await assertPurity(page, "Three-Coin Result Page Empty State");
     log("Three-coin result PASS: empty state");
 
-    // 6.b: Ready state
+    // 6.b: Completed cast / auth-before-reveal state
     await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0" });
     await page.evaluate(() => {
       sessionStorage.clear();
@@ -642,11 +642,21 @@ async function main() {
       sessionStorage.setItem("quickiching:public-v1:three-coin", JSON.stringify(session));
     });
     await page.goto(`${BASE}/zh/readings/three-coin/result`, { waitUntil: "networkidle0" });
-    await page.waitForSelector("h1", { timeout: 5000 });
-    const readyResultHeading = await page.$eval("h1", (el) => el.textContent?.trim() || "");
-    assert(readyResultHeading.includes("本次三枚铜钱起卦结果"), `Ready state heading mismatch: ${readyResultHeading}`);
-    await assertPurity(page, "Three-Coin Result Page Ready State");
-    log("Three-coin result PASS: ready state");
+    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 5000 });
+    const completedState = await page.evaluate(() => ({
+      heading: document.querySelector("h1")?.textContent?.trim() ?? "",
+      authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
+      sixLines: document.querySelector("[data-completed-six-lines]") !== null,
+      primaryCard: document.querySelector("[data-primary-card]") !== null,
+      deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
+    }));
+    assert(completedState.heading.includes("本次起卦已经完成"), `Completed-cast heading mismatch: ${completedState.heading}`);
+    assert(completedState.authGate, "Completed Chinese Three-Coin cast must require sign-in before reveal");
+    assert(completedState.sixLines, "Completed Chinese Three-Coin cast must preserve all six lines");
+    assert.equal(completedState.primaryCard, false, "Primary result must remain hidden before sign-in and History save");
+    assert.equal(completedState.deepEntry, false, "Deep Reading must remain hidden before result reveal");
+    await assertPurity(page, "Three-Coin Completed Cast Auth Gate");
+    log("Three-coin result PASS: completed cast auth-before-reveal state");
 
     // 6.c: Error state (in isolated test tab)
     const errPage = await browser.newPage();

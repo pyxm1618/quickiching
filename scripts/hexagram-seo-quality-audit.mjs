@@ -192,7 +192,10 @@ async function snapshotHome(page, locale) {
     timeout: 30_000,
   });
   if (!STATIC_BUILD_DIR) assert([200, 304].includes(response?.status()), `${sourcePath}: expected 200 or 304, received ${response?.status()}`);
-  return page.evaluate((hubPath) => [...document.querySelectorAll("main a[data-seo-hub-link]")].some((node) => node.getAttribute("href") === hubPath), expectedHub);
+  return page.evaluate((hubPath) => [...document.querySelectorAll("header a[href]")].some((node) => {
+    const href = node.getAttribute("href") ?? "";
+    return new URL(href, location.href).pathname === hubPath;
+  }), expectedHub);
 }
 
 function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
