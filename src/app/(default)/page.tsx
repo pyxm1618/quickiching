@@ -32,7 +32,7 @@ export default function HomePage() {
         deepReadingEligible
         presentation="home-ritual"
         homeHeading={HOME_H1}
-        homeDescription="Ask one question, confirm it, then cast six lines from bottom to top. Your question is frozen only when the first real cast is generated."
+        homeDescription="Use the I Ching online through one focused ritual: ask one question, confirm it, then cast six lines from bottom to top. Your question is frozen only when the first real cast is generated."
       >
         <ThreeCoinTool compactIntro presentation="home-ritual" />
       </QuestionFirst>
