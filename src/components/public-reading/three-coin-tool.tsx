@@ -82,14 +82,17 @@ export function ThreeCoinTool({
   onNewReading: onNewReadingProp,
   dictionary = EN_UI_DICTIONARY,
   localizedContent,
+  presentation = "default",
 }: {
   compactIntro?: boolean;
   question?: string;
   onNewReading?: () => void;
   dictionary?: UiDictionary;
   localizedContent?: LocalizedReadingContent;
+  presentation?: "default" | "home-ritual";
 }) {
   const router = useRouter();
+  const homeRitual = presentation === "home-ritual";
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
   const onNewReading = onNewReadingProp ?? (() => questionContext?.restartQuestion(true));
@@ -140,7 +143,10 @@ export function ThreeCoinTool({
   const revealedLines = useMemo(() => revealedSteps.map((step) => step.lineValue), [revealedSteps]);
   const complete = lines.length === 6;
   const visuallyComplete = revealedCount === 6;
-  const visibleStep = unpersistedCommit?.step ?? pendingStep ?? revealedSteps.at(-1) ?? null;
+  const settledUnrecordedStep = homeRitual && motion === "settled" && steps.length > revealedCount
+    ? steps[revealedCount] ?? null
+    : null;
+  const visibleStep = unpersistedCommit?.step ?? pendingStep ?? settledUnrecordedStep ?? revealedSteps.at(-1) ?? null;
   const visibleFaces: readonly [CoinFace, CoinFace, CoinFace] = visibleStep?.coinFaces ?? ["yang", "yang", "yang"];
   const storageBlocked = storageError !== null;
   const busy = motion === "holding" || motion === "casting" || storageBlocked || !restored;
@@ -151,7 +157,7 @@ export function ThreeCoinTool({
       : complete
         ? t("Reading complete", "起卦完成")
         : t("Press & hold to shake · release to cast", "按住摇动 · 松开起爻");
-  const publicReading = useMemo(() => complete && readingMeta
+  const publicReading = useMemo(() => !homeRitual && complete && readingMeta
     ? buildPublicReading({
         id: readingMeta.id,
         createdAt: readingMeta.createdAt,
@@ -160,7 +166,7 @@ export function ThreeCoinTool({
         lineValuesBottomUp: lines,
         evidence: { kind: "three-coin", steps },
       })
-    : null, [complete, question, readingMeta, steps, lines]);
+    : null, [complete, homeRitual, question, readingMeta, steps, lines]);
 
   useEffect(() => {
     if (!shouldNavigateCompletedThreeCoin({
@@ -228,6 +234,7 @@ export function ThreeCoinTool({
 
   function beginHold() {
     if (!restored || storageBlocked || complete || motion === "casting" || holdingRef.current) return;
+    if (homeRitual && steps.length > revealedCount) return;
     holdingRef.current = true;
     setPendingStep(null);
     setMotion("holding");
@@ -258,7 +265,7 @@ export function ThreeCoinTool({
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     settleTimerRef.current = setTimeout(() => {
-      setRevealedCount(committedSteps.length);
+      if (!homeRitual) setRevealedCount(committedSteps.length);
       setPendingStep(null);
       setMotion("settled");
       tone(360, 0.34, 0.023, 0, "sine");
@@ -293,6 +300,13 @@ export function ThreeCoinTool({
     // The cast becomes authoritative at release. It is not shown as sealed until the same
     // result is durably written to this browser session; a failed write is retried, not rerolled.
     persistCast(committedSteps, next);
+  }
+
+  function recordSettledLine() {
+    if (!homeRitual || motion !== "settled" || storageBlocked || steps.length <= revealedCount) return;
+    const nextRevealedCount = revealedCount + 1;
+    setRevealedCount(nextRevealedCount);
+    if (nextRevealedCount < 6) setMotion("idle");
   }
 
   function retryStorage() {
@@ -384,12 +398,13 @@ export function ThreeCoinTool({
       return;
     }
     if (!restored || storageBlocked || holdingRef.current || complete || motion === "casting") return;
+    if (homeRitual && steps.length > revealedCount) return;
     beginHold();
     releaseCast();
   }
 
   return (
-    <section data-realm="chamber" aria-labelledby="three-coin-tool-title">
+    <section data-realm="chamber" data-three-coin-presentation={presentation} aria-labelledby="three-coin-tool-title">
       <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="mystic-kicker">{t("Three-Coin Method", "三枚铜钱起卦")}</p>
@@ -441,8 +456,22 @@ export function ThreeCoinTool({
             </div>
           </div>
 
-          {visuallyComplete ? (
-            <div className="hold-zone">
+          {homeRitual && motion === "settled" && steps.length > revealedCount ? (
+            <div className="hold-zone" data-settled-awaiting-record>
+              <button
+                type="button"
+                className="mystic-button"
+                onClick={recordSettledLine}
+                data-record-this-cast
+              >
+                {t("Record This Cast", "记录这一爻")}
+              </button>
+              <p className="hold-hint">
+                {t("This only confirms the settled line visually. The authoritative cast was already saved before settlement.", "这里只确认已经落定的这一爻；权威结果已在落定前安全写入，不会再次随机。")}
+              </p>
+            </div>
+          ) : visuallyComplete ? (
+            <div className="hold-zone" data-completed-cast>
               <div className="mx-auto max-w-xl rounded-[1.4rem] border border-[rgba(232,198,122,0.24)] bg-[rgba(232,198,122,0.055)] px-5 py-6 text-center">
                 <p className="mystic-kicker">{t("Six lines complete", "六爻已完成")}</p>
                 <h3 className="mt-2 font-display text-2xl font-normal text-[var(--gold-2)] sm:text-3xl">{t("Your hexagram is formed", "卦象已经形成")}</h3>
