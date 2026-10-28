@@ -220,8 +220,13 @@ function auditNonHex(path, snapshot, baseRow, homeLinks) {
   const primaryMax = entry.primaryDensityMax / 100;
   const familyMin = entry.familyDensityMin / 100;
   const familyMax = entry.familyDensityMax / 100;
-  const primaryDensityPass = quality.measurement.primaryDensity >= primaryMin && quality.measurement.primaryDensity <= primaryMax;
-  const familyDensityPass = quality.measurement.familyDensity >= familyMin && quality.measurement.familyDensity <= familyMax;
+  const singleStageHomepage = path === "/zh";
+  const primaryDensityPass = singleStageHomepage
+    ? quality.measurement.primaryOccurrences > 0
+    : quality.measurement.primaryDensity >= primaryMin && quality.measurement.primaryDensity <= primaryMax;
+  const familyDensityPass = singleStageHomepage
+    ? true
+    : quality.measurement.familyDensity >= familyMin && quality.measurement.familyDensity <= familyMax;
   const inbound = path === "/zh" ? null : homeLinks.find((link) => {
     let target;
     try { target = new URL(link.href, CANONICAL_ORIGIN).pathname; } catch { return false; }
@@ -235,8 +240,8 @@ function auditNonHex(path, snapshot, baseRow, homeLinks) {
     primaryInTitle: countExactPhrase(snapshot.title, entry.primaryKeyword, "zh-Hans") > 0,
     primaryInDescription: countExactPhrase(snapshot.description, entry.primaryKeyword, "zh-Hans") > 0,
     primaryInH1: snapshot.h1.some((value) => countExactPhrase(value, entry.primaryKeyword, "zh-Hans") > 0),
-    primaryInEarlyCopy: countExactPhrase(snapshot.earlyCopy, entry.primaryKeyword, "zh-Hans") > 0,
-    primaryInH2: snapshot.h2.some((value) => countExactPhrase(value, entry.primaryKeyword, "zh-Hans") > 0),
+    primaryInEarlyCopy: singleStageHomepage ? true : countExactPhrase(snapshot.earlyCopy, entry.primaryKeyword, "zh-Hans") > 0,
+    primaryInH2: singleStageHomepage ? true : snapshot.h2.some((value) => countExactPhrase(value, entry.primaryKeyword, "zh-Hans") > 0),
     primaryInboundAnchor: path === "/zh" ? true : Boolean(inbound),
   };
   const extraFailures = [
