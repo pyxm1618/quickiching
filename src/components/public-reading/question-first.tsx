@@ -32,6 +32,14 @@ type QuestionFirstProps = {
   children: ReactNode;
 };
 
+export type HomeExperienceStage = "landing" | "question-confirm" | "ritual";
+
+export function homeExperienceStageForSession(session?: { started?: boolean; question?: string }): HomeExperienceStage {
+  if (session?.started) return "ritual";
+  if (session?.question) return "question-confirm";
+  return "landing";
+}
+
 const QuestionFirstContext = createContext<QuestionContext | null>(null);
 
 export function useQuestionFirstContext(): QuestionContext | undefined {
@@ -52,8 +60,8 @@ export function QuestionFirst({
   const homeRitual = presentation === "home-ritual";
   const zh = dictionary.locale === "zh-Hans";
   const [started, setStarted] = useState(() => initialSession?.started ?? false);
-  const [experienceStage, setExperienceStage] = useState<"landing" | "question-confirm" | "ritual">(
-    () => initialSession?.started ? "ritual" : initialSession?.question ? "question-confirm" : "landing",
+  const [experienceStage, setExperienceStage] = useState<HomeExperienceStage>(
+    () => homeExperienceStageForSession(initialSession),
   );
   const [question, setQuestionState] = useState<string | undefined>(() => initialSession?.question ?? undefined);
   const [coreQuestionAtCast, setCoreQuestionAtCast] = useState<string | undefined>(() => initialSession?.coreQuestionAtCast ?? undefined);
@@ -69,7 +77,7 @@ export function QuestionFirst({
     setCoreQuestionAtCast(restored.coreQuestionAtCast);
     setCoreQuestionFrozenAtCast(restored.coreQuestionFrozenAtCast);
     if (homeRitual) {
-      setExperienceStage(restored.started ? "ritual" : restored.question ? "question-confirm" : "landing");
+      setExperienceStage(homeExperienceStageForSession(restored));
     }
   }, [homeRitual, legacyStorageKeys, storageKey]);
 
