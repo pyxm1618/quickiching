@@ -84,27 +84,22 @@ async function seedThreeCoin(page, question) {
   await seedThreeCoinSession(page, `fixture-${Date.now()}`, new Date().toISOString(), FIXTURE_STEPS, question);
 }
 
+
 async function verifyChineseNoChangingLines(page) {
   await seedThreeCoinSession(page, `fixture-no-change-${Date.now()}`, new Date().toISOString(), NO_CHANGE_STEPS, "这次起卦没有动爻吗？");
   await openSeededThreeCoinResult(page, "zh-Hans");
-  const result = await page.$eval("[data-public-reading-result]", (node) => ({
-    text: node.textContent ?? "",
-    overviewLabel: node.querySelector("[data-primary-overview]")?.getAttribute("aria-label") ?? "",
-    overviewDescription: node.querySelector("[data-primary-overview]")?.textContent ?? "",
-    bridgeLabel: node.querySelector(".change-bridge")?.getAttribute("aria-label") ?? "",
-    relatingCards: node.querySelectorAll("[data-relating-card]").length,
-    noRelatingCards: node.querySelectorAll("[data-no-relating-card]").length,
+  const gate = await page.evaluate(() => ({
+    hasSixLines: document.querySelector("[data-completed-six-lines]") !== null,
+    primaryCard: document.querySelector("[data-primary-card]") !== null,
+    relatingCard: document.querySelector("[data-relating-card]") !== null,
+    text: document.body?.innerText ?? "",
   }));
-  assert(result.text.includes("无动爻"), "Chinese result must identify that no lines changed");
-  assert(result.text.includes("本次没有变卦（之卦）"), "Chinese result must say no relating hexagram was produced");
-  assert(result.text.includes("六爻均未发生变化，因此本次阅读以本卦为核心。"), "Chinese no-change result must explain why there is no relating hexagram");
-  assert(result.overviewLabel.includes("本卦"), "Chinese overview aria label must identify the primary hexagram");
-  assert(result.overviewDescription.includes("无动爻"), "Chinese overview must expose no changing lines to assistive technology");
-  assert(result.bridgeLabel.includes("无动爻") && result.bridgeLabel.includes("本次没有变卦"), "Chinese bridge aria label must describe the unchanged cast");
-  assert.equal(result.relatingCards, 0, "A no-change cast must not render a fabricated relating hexagram");
-  assert.equal(result.noRelatingCards, 1, "A no-change cast must explain the missing relating hexagram");
-  assert(!/None\b/.test(result.text), "Chinese no-change result must not expose an English None label");
-  log("Chinese Three-Coin no-changing-lines labels, explanation, and screen-reader text PASS");
+  assert(gate.hasSixLines, "Chinese auth gate must preserve the completed six lines");
+  assert.equal(gate.primaryCard, false, "Chinese anonymous gate must not reveal the primary hexagram");
+  assert.equal(gate.relatingCard, false, "Chinese anonymous gate must not reveal whether a relating hexagram exists");
+  assert(gate.text.includes("登录、保存并查看本次卦象"), "Chinese completed cast must require sign-in before reveal");
+  await assertNoOverflow(page, "Chinese no-changing completed-cast gate 390px");
+  log("Chinese no-changing completed cast remains sealed behind auth-before-reveal PASS");
 }
 
 async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, question = "") {
@@ -121,6 +116,7 @@ async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, 
   }, { key: THREE_COIN_STORAGE_KEY, id, createdAt, steps, question });
 }
 
+
 async function openSeededThreeCoinResult(page, locale = "en") {
   const prefix = locale === "zh-Hans" ? "/zh" : "";
   const methodPath = `${prefix}/methods/three-coin`;
@@ -133,11 +129,11 @@ async function openSeededThreeCoinResult(page, locale = "en") {
   await new Promise((resolve) => setTimeout(resolve, 500));
   assert.equal(new URL(page.url()).pathname, methodPath, "Restored completed cast must not auto-navigate to an old result");
   await page.goto(`${BASE}${resultPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])", { timeout: 15_000 });
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
 }
 
-async function assertQuestionPrivacy(page, question) {
-  const state = await page.evaluate((sentinel) => ({
+async function assertQuestionPrivacy(page, question, { requireVisible = true } = {}) {
+  const state = await page.evaluate(() => ({
     url: location.href,
     title: document.title,
     description: document.querySelector('meta[name="description"]')?.getAttribute("content") ?? "",
@@ -146,8 +142,8 @@ async function assertQuestionPrivacy(page, question) {
     activeQuestion: (document.querySelector('input[data-private-question]') instanceof HTMLInputElement)
       ? document.querySelector('input[data-private-question]').value
       : document.querySelector('[data-core-question-at-cast]')?.textContent?.trim() ?? "",
-  }), question);
-  assert(state.activeQuestion === question, "Question was not preserved in the editable reading flow");
+  }));
+  if (requireVisible) assert(state.activeQuestion === question, "Question was not preserved in the editable reading flow");
   assert(!state.url.includes(encodeURIComponent(question)) && !state.url.includes(question), "Question leaked into the URL");
   assert(!state.title.includes(question), "Question leaked into the page title");
   assert(!state.description.includes(question), "Question leaked into the meta description");
@@ -209,6 +205,7 @@ async function verifySeoAssets(page) {
   log("140-URL sitemap, English/Chinese hubs, entity metadata/anchors, History noindex, and API closure PASS");
 }
 
+
 async function verifyQuestionReading(page) {
   const question = "What deserves my attention in this transition?";
   await resetThreeCoin(page);
@@ -216,6 +213,7 @@ async function verifyQuestionReading(page) {
   await page.waitForSelector("textarea[data-private-question]");
   await page.type("textarea[data-private-question]", question);
   await clickText(page, "Continue with question");
+
   const castButtonSelector = 'button[aria-label^="Toss three coins"]';
   for (let line = 1; line <= 6; line += 1) {
     await page.waitForSelector(castButtonSelector, { timeout: 15_000 });
@@ -223,47 +221,39 @@ async function verifyQuestionReading(page) {
     if (line === 6) {
       await page.waitForFunction(
         () => location.pathname === "/readings/three-coin/result" || Boolean(document.body?.innerText?.includes("6 / 6 lines")),
-        { timeout: 15_000 }
+        { timeout: 15_000 },
       );
     } else {
       await waitForText(page, `${line} / 6 lines`);
     }
   }
+
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
-  await waitForText(page, "Your Three-Coin Reading");
-  await waitForText(page, question);
-  await assertQuestionPrivacy(page, question);
+  await waitForText(page, "Your completed cast is preserved");
+  await assertQuestionPrivacy(page, question, { requireVisible: false });
+
   const questionState = await page.evaluate(() => ({
-    displayedQuestion: document.querySelector("[data-core-question-at-cast]")?.textContent?.trim() ?? "",
     session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
+    authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
+    primaryCard: document.querySelector("[data-primary-card]") !== null,
+    deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
   }));
-  assert.equal(questionState.displayedQuestion, question, "The unified result must restore the question frozen before the first line");
   assert.equal(questionState.session.coreQuestionAtCast, question, "The frozen question must be stored with this cast");
-  assert.equal(questionState.session.coreQuestionFrozenAtCast, true, "The session must record the question freeze");
-  await waitForText(page, "What does this reading mean for your specific situation?");
-  await clickText(page, "Save reading");
-  await waitForText(page, "Saved in this browser");
-  const savedLocalReading = await page.evaluate(() => {
-    const records = JSON.parse(localStorage.getItem("quickiching:public-history:v1") || "[]");
-    return Array.isArray(records) ? records[0] ?? null : null;
-  });
-  assert.equal(savedLocalReading?.question, question, "Explicit History save must preserve the question with the cast");
-  assert.equal(savedLocalReading?.method, "three-coin", "History save must retain the casting method");
-  assert.equal(savedLocalReading?.lineValuesBottomUp?.length, 6, "History save must retain the exact six cast lines");
-  const freeEndpointCalls = await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("personalized-interpretation") || entry.name.includes("/api/readings/")).length);
-  assert.equal(freeEndpointCalls, 0, "The free cast must not call an AI or paid generation endpoint");
-  assert.equal(await page.$("[data-interpret-question]"), null, "The retired free personalized CTA must not render");
+  assert.equal(questionState.session.coreQuestionFrozenAtCast, true, "The session must record the first-real-cast question freeze");
+  assert.equal(questionState.session.data?.steps?.length, 6, "The completed browser session must preserve all six authoritative steps");
+  assert(questionState.authGate, "Anonymous completed cast must enter auth-before-reveal");
+  assert.equal(questionState.primaryCard, false, "Free result must not reveal before sign-in and History save");
+  assert.equal(questionState.deepEntry, false, "Deep Reading must remain downstream of the result reveal gate");
+
+  const sessionBeforeRefresh = JSON.stringify(questionState.session);
   await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "Your Three-Coin Reading");
-  await assertQuestionPrivacy(page, question);
-  await waitForText(page, "What does this reading mean for your specific situation?");
-  await waitForText(page, "Sign in to continue");
-  const paidEndpointCalls = await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/api/readings/")).length);
-  assert.equal(paidEndpointCalls, 0, "An anonymous visit must not start paid generation");
-  assert(await page.$("[data-deep-reading-entry]"), "Deep Reading entry must appear alongside the complete free cast interpretation");
-  assert(await page.$("#general-cast-interpretation"), "Complete free cast interpretation must remain available on the Deep Reading page");
-  log("Question-before-cast, immutable first-line binding, refresh recovery, free endpoint closure, and sign-in gated Deep Reading PASS");
+  await waitForText(page, "Your completed cast is preserved");
+  await assertQuestionPrivacy(page, question, { requireVisible: false });
+  const sessionAfterRefresh = await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin"));
+  assert.equal(sessionAfterRefresh, sessionBeforeRefresh, "Auth-gate refresh must restore the exact same completed cast and question");
+  log("Question freeze, six authoritative casts, privacy, completed-cast restore, and auth-before-reveal PASS");
 }
+
 
 async function verifyQuestionSkipFreeOnly(page) {
   await resetThreeCoin(page);
@@ -291,100 +281,46 @@ async function verifyQuestionSkipFreeOnly(page) {
     await page.click(castButtonSelector);
     if (line < 6) await waitForText(page, `${line} / 6 lines`);
   }
+
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
-  await waitForText(page, "This cast was not bound to a clear question before the first line was cast");
-  assert(await page.$("[data-primary-card]"), "A questionless cast must still provide its complete free interpretation");
-  assert.equal(await page.$("[data-context-enrichment-form]"), null, "A questionless cast must not open Deep Reading context input");
-  const paidCalls = await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/api/readings/")).length);
-  assert.equal(paidCalls, 0, "A questionless free cast must not start paid generation");
-  log("Optional question skip, free-only cast, first-line freeze, and no late Deep Reading question PASS");
+  await waitForText(page, "Your completed cast is preserved");
+  const state = await page.evaluate(() => ({
+    session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
+    authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
+    primaryCard: document.querySelector("[data-primary-card]") !== null,
+    deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
+  }));
+  assert.equal(state.session.coreQuestionFrozenAtCast, true, "Questionless cast must still freeze the no-question decision at first cast");
+  assert.equal(state.session.coreQuestionAtCast ?? "", "", "Questionless cast must not manufacture a question");
+  assert.equal(state.session.data?.steps?.length, 6, "Questionless completed cast must preserve six lines");
+  assert(state.authGate, "Questionless completed cast still requires account save before result reveal");
+  assert.equal(state.primaryCard, false, "Questionless cast must not reveal free result before account save");
+  assert.equal(state.deepEntry, false, "Questionless cast must not expose Deep Reading before result reveal");
+  log("Optional question skip, first-line freeze, six-line completion, and auth-before-reveal PASS");
 }
+
 
 async function verifyChineseQuestionAndDeepEntry(page) {
   const question = "面对职业选择，我现在最需要看清什么？";
   await seedThreeCoin(page, question);
   await openSeededThreeCoinResult(page, "zh-Hans");
-  await waitForText(page, "本次三枚铜钱起卦结果");
-  await assertQuestionPrivacy(page, question);
-  assert.equal(await page.$eval("[data-core-question-at-cast]", (node) => node.textContent?.trim()), question, "Chinese unified result must restore the frozen question");
-  assert.equal(await page.$("[data-interpret-question]"), null, "Retired free personalized CTA must not render in Chinese");
-  await assertNoOverflow(page, "Chinese Three-Coin result 390px");
+  await waitForText(page, "本次起卦已经完成");
+  await assertQuestionPrivacy(page, question, { requireVisible: false });
 
-  await waitForText(page, "这次卦象对你的具体处境意味着什么？");
-  await waitForText(page, "登录并继续");
-  const placement = await page.evaluate(() => {
-    const result = document.querySelector("[data-public-reading-result]");
-    const overview = result?.querySelector("[data-primary-overview]");
-    const entry = result?.querySelector("[data-deep-reading-entry]");
-    const freeInterpretation = result?.querySelector("#general-cast-interpretation");
-    const login = [...(entry?.querySelectorAll("a") ?? [])].find((node) => node.textContent?.includes("登录并继续"));
-    const detailsButton = [...(entry?.querySelectorAll("button") ?? [])].find((node) => node.textContent?.includes("补充选项、限制与顾虑"));
-    return {
-      overviewBeforeEntry: Boolean(overview && entry && (overview.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING)),
-      entryBeforeFreeInterpretation: Boolean(entry && freeInterpretation && (entry.compareDocumentPosition(freeInterpretation) & Node.DOCUMENT_POSITION_FOLLOWING)),
-      entryTop: entry ? Math.round(entry.getBoundingClientRect().top + window.scrollY) : null,
-      loginTop: login ? Math.round(login.getBoundingClientRect().top + window.scrollY) : null,
-      loginLabel: login?.textContent?.trim() ?? "",
-      hasSituationForm: entry?.querySelector("[data-context-enrichment-form]") !== null,
-      optionalDetailsButton: detailsButton instanceof HTMLButtonElement,
-      optionalFieldsHidden: entry?.querySelector('textarea[placeholder*="每行"]') === null,
-    };
-  });
-  assert(placement.overviewBeforeEntry, "The cast summary must appear before the Deep Reading entry");
-  assert(placement.entryBeforeFreeInterpretation, "Deep Reading must appear before the long free interpretation");
-  assert(placement.hasSituationForm, "An eligible anonymous cast must allow the user to enter situation context");
-  assert(placement.optionalDetailsButton && placement.optionalFieldsHidden, "Additional context fields must start collapsed");
-  assert(placement.loginLabel.includes("$2.99"), "Anonymous Deep Reading CTA must show its current price");
-  assert(await page.$("#general-cast-interpretation"), "Chinese complete free cast interpretation must remain available");
-
-  const viewport = page.viewport();
-  assert(viewport, "Browser gate must have an explicit mobile viewport");
-  assert(placement.loginTop - placement.entryTop < viewport.height * 2, "Mobile Deep Reading CTA must not be pushed more than two screens down the entry card");
-  await page.setViewport({ width: 1440, height: 1000 });
-  await page.waitForFunction(() => window.innerWidth === 1440);
-  const desktopPlacement = await page.$eval("[data-deep-reading-entry]", (entry) => {
-    const login = [...entry.querySelectorAll("a")].find((node) => node.textContent?.includes("登录并继续"));
-    return {
-      entryTop: Math.round(entry.getBoundingClientRect().top + window.scrollY),
-      loginTop: login ? Math.round(login.getBoundingClientRect().top + window.scrollY) : null,
-    };
-  });
-  assert(desktopPlacement.loginTop !== null && desktopPlacement.loginTop - desktopPlacement.entryTop < 1000, "Desktop Deep Reading CTA must remain close to the cast summary");
-  await page.setViewport(viewport);
-  await assertNoOverflow(page, "Chinese Three-Coin result 390px");
-  // Emergency risk replaces the editable Deep Reading form with immediate crisis guidance.
-  // Type the trigger on the final keystroke so the controlled field can safely unmount afterward.
-  await page.type("#deep-context-situation", "I want to hurt mysel");
-  await page.type("#deep-context-situation", "f");
-  await page.waitForSelector('[data-deep-reading-blocked="risk"]');
-  const emergencyText = await page.$eval('[data-deep-reading-blocked="risk"]', (node) => node.textContent ?? "");
-  assert(emergencyText.includes("988") && emergencyText.includes("911"), "Emergency guidance must surface 988 and 911");
-  assert.equal(await page.$("[data-context-enrichment-form]"), null, "Emergency risk must replace the Deep Reading context form");
-  assert.equal(await page.$('[data-deep-reading-entry] a[href*="signin"]'), null, "Emergency context must not send an anonymous user toward a paid request");
-  assert(await page.$("#general-cast-interpretation"), "Risk blocking must preserve the complete free interpretation");
-
-  // Start a fresh anonymous fixture to verify a non-emergency professional-risk context remains editable,
-  // then can be corrected back to an eligible state.
-  await seedThreeCoin(page, question);
-  await openSeededThreeCoinResult(page, "zh-Hans");
-  await page.waitForSelector("#deep-context-situation", { timeout: 15_000 });
-  await page.type("#deep-context-situation", "Should I stop taking my prescribed medication because of this role?");
-  await page.waitForSelector('[data-deep-reading-blocked="risk"]');
-  assert(await page.$("#deep-context-situation"), "Professional-risk context must remain editable");
-  assert.equal(await page.$('[data-deep-reading-entry] a[href*="signin"]'), null, "Professional-risk context must not send an anonymous user toward a paid request");
-  await page.$eval("#deep-context-situation", (node, nextValue) => {
-    if (!(node instanceof HTMLTextAreaElement)) throw new Error("Deep Reading situation field is not a textarea");
-    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
-    if (!setter) throw new Error("Textarea value setter is unavailable");
-    setter.call(node, nextValue);
-    node.dispatchEvent(new Event("input", { bubbles: true }));
-  }, "I am considering a new role and want to understand what responsibilities to clarify.");
-  await page.waitForSelector('[data-deep-reading-blocked="risk"]', { hidden: true });
-  assert(await page.$('[data-deep-reading-entry] a[href*="signin"]'), "Correcting optional context must restore the eligible CTA without changing the core question");
-  assert.equal(await page.$eval("[data-core-question-at-cast]", (node) => node.textContent?.trim()), question);
-  const apiCalls = await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/api/readings/")).length);
-  assert.equal(apiCalls, 0, "Anonymous Chinese visit must not start paid generation");
-  log("Chinese question binding, mobile layout, localized Deep Reading entry, and anonymous generation boundary PASS");
+  const state = await page.evaluate(() => ({
+    authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
+    primaryCard: document.querySelector("[data-primary-card]") !== null,
+    deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
+    session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
+  }));
+  assert(state.authGate, "Chinese anonymous completed cast must enter auth-before-reveal");
+  assert.equal(state.primaryCard, false, "Chinese primary hexagram must remain hidden before History save");
+  assert.equal(state.deepEntry, false, "Chinese Deep Reading must remain downstream of saved result reveal");
+  assert.equal(state.session.question, question, "Chinese callback source session must preserve the same question");
+  assert.equal(state.session.coreQuestionAtCast, question, "Chinese callback source session must preserve the frozen core question");
+  assert.equal(state.session.data?.steps?.length, 6, "Chinese callback source session must preserve the same six lines");
+  await assertNoOverflow(page, "Chinese completed-cast auth gate 390px");
+  log("Chinese question binding, same-cast restore source, privacy, and auth-before-reveal PASS");
 }
 
 async function setManualValues(page, values) {
@@ -496,50 +432,22 @@ async function verifyYarrowPartialRestart(page) {
   log("Partial Yarrow restart preserves the question while replacing identity and change facts PASS");
 }
 
+
 async function verifyHistory(page) {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(() => localStorage.removeItem("quickiching:public-history:v1"));
-  await seedThreeCoin(page, "Same facts · first question");
+  await seedThreeCoin(page, "Same completed cast must wait for account History");
   await openSeededThreeCoinResult(page);
-  await waitForText(page, "Your Three-Coin Reading");
-  await clickText(page, "Save reading");
-  await waitForText(page, "Saved in this browser");
 
-  await seedThreeCoinSession(page, "history-three-coin-second", "2026-08-19T12:00:00.000Z", FIXTURE_STEPS, "Same facts · second question");
-  await openSeededThreeCoinResult(page);
-  await waitForText(page, "Your Three-Coin Reading");
-  await clickText(page, "Save reading");
-  await waitForText(page, "Saved in this browser");
-
-  await page.goto(`${BASE}/history/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await waitForText(page, "History · 2/50");
-  const historyText = await page.$eval("[data-history-page]", (node) => node.textContent ?? "");
-  assert(historyText.includes("Same facts · first question") && historyText.includes("Same facts · second question"), "Same cast facts with different questions must remain two history records");
-  await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "Your I Ching reading");
-  await clickText(page, "Rename");
-  const titleInput = await page.$('input[id^="history-title-"]');
-  assert(titleInput, "History rename input missing");
-  await titleInput.evaluate((node, nextValue) => {
-    if (!(node instanceof HTMLInputElement)) throw new Error("History title field is not an input");
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-    if (!setter) throw new Error("Input value setter is unavailable");
-    setter.call(node, nextValue);
-    node.dispatchEvent(new Event("input", { bubbles: true }));
-  }, "Transition notes");
-  assert.equal(await titleInput.evaluate((node) => node.value), "Transition notes", "History rename input must hold the replacement title before save");
-  await clickText(page, "Save name");
-  await waitForText(page, "Transition notes");
-  await clickText(page, "Save reading");
-  await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "Transition notes");
-  await clickText(page, "Delete");
-  await clickText(page, "Confirm delete");
-  await waitForText(page, "History · 1/50");
-  await clickText(page, "Delete");
-  await clickText(page, "Confirm delete");
-  await waitForText(page, "No saved readings");
-  log("Three-Coin same-facts/different-question History isolation, Save, refresh/View, Rename, confirmed Delete, and local-only flow PASS");
+  const state = await page.evaluate(() => ({
+    localHistory: JSON.parse(localStorage.getItem("quickiching:public-history:v1") || "[]"),
+    authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
+    primaryCard: document.querySelector("[data-primary-card]") !== null,
+  }));
+  assert(state.authGate, "Anonymous result route must wait for account History persistence");
+  assert.equal(state.primaryCard, false, "Anonymous result route must not reveal before account History persistence");
+  assert.equal(Array.isArray(state.localHistory) ? state.localHistory.length : 0, 0, "New flow must not treat local browser History as the reveal boundary");
+  log("Three-Coin reveal boundary no longer relies on local browser History PASS");
 }
 
 async function verifyResponsiveKeyboard(page) {
