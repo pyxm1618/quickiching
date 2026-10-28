@@ -263,6 +263,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
         locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
+        initialUser={{ id: "usr_1", email: "test@example.com" }}
         initialState={{ kind: "error", code: "TEST_ERROR" }}
       />,
     );
@@ -436,7 +437,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           context: "这次变化中我应该先看清什么？",
           lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
           readingReport: null,
-          owns: false,
+          owns: true,
         }}
       />,
     );
@@ -457,6 +458,8 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     const htmlZh = renderToStaticMarkup(
       <ThreeCoinResultClient
         locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
+        initialUser={{ id: "usr_1", email: "test@example.com" }}
+        initialCredits={0}
         initialState={{
           kind: "ready", lineValues: [7, 7, 7, 7, 7, 7],
           question: "我的核心问题是否能够解决？",
@@ -467,7 +470,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           context: "我的核心问题是否能够解决？",
           lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
           readingReport: null,
-          owns: false,
+          owns: true,
         }}
       />,
     );
@@ -476,11 +479,14 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(htmlZh).toContain("说明你的具体处境与关键事实");
     expect(htmlZh).toContain("你最想看清什么？");
     expect(htmlZh).toContain("+ 补充选项、限制与顾虑（可选）");
-    expect(htmlZh).toContain("登录并继续 · $2.99");
+    expect(htmlZh).toContain("选择深度解读次数包 · $2.99 起");
+    expect(htmlZh).not.toContain("登录并继续 · $2.99");
 
     const htmlEn = renderToStaticMarkup(
       <ThreeCoinResultClient
         locale="en"
+        initialUser={{ id: "usr_1", email: "test@example.com" }}
+        initialCredits={0}
         initialState={{
           kind: "ready", lineValues: [7, 7, 7, 7, 7, 7],
           question: "How should I approach this transition?",
@@ -491,7 +497,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           context: "How should I approach this transition?",
           lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
           readingReport: null,
-          owns: false,
+          owns: true,
         }}
       />,
     );
@@ -500,7 +506,8 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(htmlEn).toContain("Tell us what matters in your situation");
     expect(htmlEn).toContain("What would you like clarity on?");
     expect(htmlEn).toContain("+ Add more details (options, constraints, concerns)");
-    expect(htmlEn).toContain("Sign in to continue · $2.99");
+    expect(htmlEn).toContain("Choose a Deep Reading pack · from $2.99");
+    expect(htmlEn).not.toContain("Sign in to continue · $2.99");
   });
 
   it("renders Why this interpretation summary in completed Deep Reading report", () => {
