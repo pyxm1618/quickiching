@@ -120,11 +120,8 @@ async function verifyHttpAndSeo() {
   assert(homeHtml.includes(`<title>${HOME_TITLE}</title>`), "Exact homepage title is missing from initial HTML");
   assert(homeHtml.includes(`content="${HOME_DESCRIPTION}"`), "Exact homepage description is missing from initial HTML");
   assert(homeHtml.includes(HOME_H1), "Exact homepage H1 is missing from initial HTML");
-  assert(homeHtml.includes('href="/methods/yarrow-stalks"'), "Yarrow crawlable link missing from initial HTML");
-  assert(homeHtml.includes('href="/methods/mei-hua-yi-shu"'), "Mei Hua crawlable link missing from initial HTML");
-  assert(homeHtml.includes('href="/methods/manual-cast"'), "Manual Cast crawlable link missing from initial HTML");
-  assert(homeHtml.includes('href="/guides/changing-lines"'), "Changing-lines crawlable link missing from initial HTML");
-  assert(homeHtml.includes('href="/hexagrams"'), "Hexagrams crawlable link missing from initial HTML");
+  assert(homeHtml.includes("data-three-coin-home-stage"), "Homepage Three-Coin single-stage scaffold is missing from initial HTML");
+  assert(!homeHtml.includes('"@type":"FAQPage"'), "Homepage must not keep FAQ structured data after the visible FAQ was removed");
 
   for (const path of INDEXABLE_PATHS) {
     const response = await expectStatus(path, 200);
@@ -310,17 +307,19 @@ async function assertBasicResult(page) {
 async function skipOptionalQuestion(page) {
   const skipped = await page.evaluate(() => {
     const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Skip — free reading only");
-    if (!(button instanceof HTMLButtonElement)) return false;
+    if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
     button.click();
     return true;
   });
   assert(skipped, "Question skip must clearly leave this cast free-only");
-  await waitForText(page, "Question · set before the first line");
+  await waitForText(page, "Confirm your question");
+  await clickButton(page, "Start Casting");
+  await waitForText(page, "0 / 6 lines");
 }
 
 async function verifyThreeCoinTransactionSemantics(page) {
   const storageKey = "quickiching:public-v1:three-coin";
-  await waitForText(page, "0 / 6 lines");
+  await skipOptionalQuestion(page);
 
   await dispatchThreeCoinPointer(page, "pointerdown", 41);
   await dispatchThreeCoinPointer(page, "pointercancel", 41);
@@ -369,7 +368,8 @@ async function verifyThreeCoinTransactionSemantics(page) {
 
 async function finishThreeCoin(page) {
   const storageKey = "quickiching:public-v1:three-coin";
-  await waitForText(page, "0 / 6 lines");
+  await skipOptionalQuestion(page);
+
   const focused = await page.evaluate(() => {
     const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Toss three coins");
     if (!(button instanceof HTMLButtonElement)) return false;
@@ -377,23 +377,22 @@ async function finishThreeCoin(page) {
     return document.activeElement === button;
   });
   assert(focused, "Three-Coin button cannot receive keyboard focus");
+
   await page.keyboard.press("Enter");
+  await waitForText(page, "Record This Cast");
+  await clickButton(page, "Record This Cast");
   await waitForText(page, "1 / 6 lines");
+
   for (let line = 2; line <= 6; line += 1) {
     await clickButton(page, "Toss three coins");
-    if (line === 6) {
-      await page.waitForFunction(
-        () => location.pathname === "/readings/three-coin/result" || Boolean(document.body?.innerText?.includes("6 / 6 lines")),
-        { timeout: 15_000 }
-      );
-    } else {
-      await waitForText(page, `${line} / 6 lines`);
-    }
+    await waitForText(page, "Record This Cast");
+    await clickButton(page, "Record This Cast");
+    if (line < 6) await waitForText(page, `${line} / 6 lines`);
   }
 
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
-  const sealedBeforeReveal = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
-  assert(sealedBeforeReveal, "Completed Three-Coin reading must remain sealed after direct result navigation");
+  const sealedBeforeGate = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
+  assert(sealedBeforeGate, "Completed Three-Coin reading must remain sealed after result navigation");
   const castLineValues = await page.evaluate((key) => {
     const parsed = JSON.parse(sessionStorage.getItem(key) || "null");
     const steps = Array.isArray(parsed) ? parsed : parsed?.data?.steps;
@@ -401,55 +400,19 @@ async function finishThreeCoin(page) {
   }, storageKey);
   assert.equal(castLineValues?.length, 6, "Completed Three-Coin reading must preserve all six cast lines");
   assert(castLineValues.every((value) => [6, 7, 8, 9].includes(value)), "Completed Three-Coin reading must preserve valid line values");
-  const expectedActiveLinePositions = castLineValues.flatMap((value, index) => value === 6 || value === 9 ? [index + 1] : []);
-  const locationAfterReveal = await page.evaluate(() => ({ pathname: location.pathname, search: location.search }));
-  assert.equal(locationAfterReveal.pathname, "/readings/three-coin/result");
-  assert.equal(locationAfterReveal.search, "", "Three-Coin result URL must carry no cast state in query parameters");
-  await waitForText(page, "Your Three-Coin Reading");
-  for (const expected of [
-    "Primary Hexagram",
-    "Core meaning",
-    "Changing Lines",
-    "A way to return to the question",
-    "Bottom line",
-    "Three questions to carry forward",
-  ]) await waitForText(page, expected);
-  if (expectedActiveLinePositions.length > 0) await waitForText(page, "Classical line text");
-  const actualActiveLinePositions = await page.$$eval("[data-active-line]", (nodes) => nodes.map((node) => Number(node.getAttribute("data-active-line"))));
-  assert.deepEqual(actualActiveLinePositions, expectedActiveLinePositions, "Result active-line detail must match the sealed cast");
 
-  const resultSections = await page.evaluate(() => {
-    const result = document.querySelector("[data-public-reading-result]");
-    const deepReading = result?.querySelector("[data-deep-reading-entry]");
-    const freeDetails = result?.querySelector("[data-primary-card]");
-    return {
-      hasFreeBoundary: result?.querySelector("[data-free-cast-boundary]") !== null,
-      hasHexagramDetailsLink: freeDetails?.querySelector('a[href^="/hexagrams/"]') !== null,
-      deepReadingBeforeDetails: Boolean(deepReading && freeDetails && deepReading.compareDocumentPosition(freeDetails) & Node.DOCUMENT_POSITION_FOLLOWING),
-    };
-  });
-  assert(resultSections.hasFreeBoundary, "Result must label the free cast interpretation boundary");
-  assert(resultSections.hasHexagramDetailsLink, "Free cast interpretation must link to the primary hexagram details");
-  assert(resultSections.deepReadingBeforeDetails, "Deep Reading value must appear before the detailed free interpretation");
+  await waitForText(page, "Your completed cast is preserved");
+  await waitForText(page, "Sign in to save and reveal this reading");
+  assert(await page.$("[data-auth-required-before-reveal]"), "Anonymous completed cast must enter auth-before-reveal gate");
+  assert.equal(await page.$("[data-primary-card]"), null, "Primary hexagram must not reveal before authentication and History save");
+  assert.equal(await page.$("[data-deep-reading-entry]"), null, "Deep Reading must remain downstream of the result reveal gate");
 
-  const readingBeforeRefresh = await page.$eval("main", (node) => node.textContent ?? "");
+  const gateBeforeRefresh = await page.$eval("main", (node) => node.textContent ?? "");
   await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "Bottom Line");
-  assert.equal(await page.$eval("main", (node) => node.textContent ?? ""), readingBeforeRefresh, "Three-Coin refresh must preserve the exact visible reading");
+  await waitForText(page, "Your completed cast is preserved");
+  assert.equal(await page.$eval("main", (node) => node.textContent ?? ""), gateBeforeRefresh, "Anonymous auth gate must restore the same completed cast after refresh");
   const sealedAfterRefresh = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
-  assert.equal(sealedAfterRefresh, sealedBeforeReveal, "Result refresh must not alter the sealed six-line cast");
-
-  await clickButton(page, "Start a New Reading");
-  await page.waitForFunction(() => location.pathname === "/" && location.hash === "#three-coin-reading", { timeout: 15_000 });
-  await skipOptionalQuestion(page);
-  await waitForText(page, "0 / 6 lines");
-  const resetSteps = await page.evaluate((key) => {
-    const raw = sessionStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? null;
-  }, storageKey);
-  assert.equal(resetSteps, null, "Explicit Start a New Reading must clear sealed Three-Coin line data");
+  assert.equal(sealedAfterRefresh, sealedBeforeGate, "Auth gate refresh must not alter the completed six-line cast");
 }
 
 async function finishYarrow(page, verifyResume) {
@@ -519,11 +482,11 @@ async function verifyBrowserFlows() {
     const desktop = { width: 1440, height: 1000 };
     const mobile = { width: 375, height: 812 };
     await runPage(browser, { path: "/", viewport: desktop, flow: verifyThreeCoinTransactionSemantics, label: "Desktop Three Coin → commit/reveal/cancel semantics" });
-    await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → Reveal → V2 result/refresh/reset" });
+    await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → completed cast → auth-before-reveal" });
     await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → V1 result/reset" });
     await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → V1 result/reset" });
 
-    await runPage(browser, { path: "/", viewport: mobile, flow: finishThreeCoin, label: "375px homepage → Three Coin → V2 result" });
+    await runPage(browser, { path: "/", viewport: mobile, flow: finishThreeCoin, label: "375px homepage → Three Coin → auth-before-reveal" });
     await runPage(browser, { path: "/methods/yarrow-stalks", viewport: mobile, flow: (page) => finishYarrow(page, false), label: "375px Yarrow → V1 result" });
     await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → V1 result" });
 
@@ -531,10 +494,10 @@ async function verifyBrowserFlows() {
       await runPage(browser, {
         path: "/",
         viewport,
-        label: `${viewport.width}px navigation/FAQ/footer`,
+        label: `${viewport.width}px navigation/single-stage/footer`,
         flow: async (page) => {
           await waitForText(page, HOME_H1);
-          await waitForText(page, "Common Questions About I Ching Online");
+          assert(await page.$("[data-three-coin-home-stage][data-experience-stage='landing']"), "Single-stage homepage landing is missing");
           const mobileTrigger = await page.$('header button[aria-controls^="nav-drawer-"]');
           assert(mobileTrigger, "Mobile navigation trigger missing");
           const triggerVisible = await page.$eval(
@@ -555,14 +518,7 @@ async function verifyBrowserFlows() {
           assert(drawerNavigation.links > 0, "Mobile drawer navigation links missing");
           await page.keyboard.press("Escape");
           await page.waitForFunction(() => !document.querySelector('[role="dialog"][aria-modal="true"]'), { timeout: 5000 });
-          const opened = await page.evaluate(() => {
-            const summary = [...document.querySelectorAll("summary")].find((node) => node.textContent?.trim() === "What is an I Ching online reading?");
-            if (!(summary instanceof HTMLElement)) return false;
-            summary.click();
-            return true;
-          });
-          assert(opened, "FAQ summary could not be opened");
-          await waitForText(page, "structured framework for reflection");
+          assert.equal(await page.$("summary"), null, "Single-stage homepage must not retain the old FAQ accordion");
           const footerVisible = await page.$eval("footer", (node) => Boolean(node.getClientRects().length));
           assert(footerVisible, "Footer not visible");
         },
