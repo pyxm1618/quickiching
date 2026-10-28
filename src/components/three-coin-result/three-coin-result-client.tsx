@@ -60,6 +60,18 @@ export type ThreeCoinResultClientProps = {
 
 type DeepStatus = "idle" | "generating" | "completed" | "failed";
 type PersistenceStatus = "idle" | "saving" | "saved" | "error";
+export type ResultRevealGate = "auth-required" | "saving" | "save-error" | "reveal";
+
+export function getResultRevealGate(input: {
+  authenticated: boolean;
+  castingId: string | null;
+  persistenceStatus: PersistenceStatus;
+}): ResultRevealGate {
+  if (!input.authenticated) return "auth-required";
+  if (input.castingId && input.persistenceStatus === "saved") return "reveal";
+  if (input.persistenceStatus === "error") return "save-error";
+  return "saving";
+}
 type ContextDraft = {
   contextNotes: string;
   optionsText: string;
@@ -130,7 +142,6 @@ function currentBrowserReturnPath(): string {
 
 
 export function ThreeCoinResultClient({
-  initialSessionId,
   initialUser = null,
   initialCredits = 0,
   initialInterpretationBundles,
@@ -210,7 +221,12 @@ export function ThreeCoinResultClient({
       evidence: { kind: "history", originalMethod: "three-coin" },
     });
   }, [castingId, clientCastingId, state]);
-  const revealAllowed = Boolean(user && castingId && persistenceStatus === "saved");
+  const resultRevealGate = getResultRevealGate({
+    authenticated: Boolean(user),
+    castingId,
+    persistenceStatus,
+  });
+  const revealAllowed = resultRevealGate === "reveal";
   const shouldDeferBrowserInterpretation = revealAllowed
     && !zh
     && initialState === undefined
@@ -774,11 +790,7 @@ export function ThreeCoinResultClient({
   const resultDictionary = zh ? ZH_HANS_UI_DICTIONARY : EN_UI_DICTIONARY;
 
   if (!revealAllowed) {
-    const gateState = !user
-      ? "auth-required"
-      : persistenceStatus === "error"
-        ? "save-error"
-        : "saving";
+    const gateState = resultRevealGate;
     return (
       <div
         className={`${styles.page} mx-auto min-h-[100svh] w-full max-w-[1180px] px-4 py-10 sm:px-6`}
