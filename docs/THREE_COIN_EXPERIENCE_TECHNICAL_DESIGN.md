@@ -1,0 +1,1360 @@
+# Quick I Ching 三枚铜钱主流程改版技术设计文档
+
+> 状态：与 `docs/THREE_COIN_EXPERIENCE_REDESIGN.md` 配套
+> 适用范围：首页单屏体验 + 三枚铜钱主流程表现层改造
+> 适用仓库：`pyxm1618/quickiching`
+> 核心原则：**只重做首页与三枚铜钱体验层；现有算法、会话、卦象计算、结果、AI、账户、支付、数据库和其他起卦方式继续作为唯一业务真源。**
+
+---
+
+## 0. 第一优先级：像素级还原与动效忠实度
+
+本任务的第一验收标准不是“能跑”，而是**在锁定的基准环境中 100% 像素级还原已确认设计稿，并 100% 忠实执行已确认动效参考**。
+
+优先级固定为：
+
+1. 设计稿 / 已确认视觉参考；
+2. 已确认动效参考；
+3. 产品流程正确；
+4. 现有业务逻辑正确复用；
+5. 性能优化与工程便利。
+
+其中第 5 项不得反过来牺牲前 1～4 项。
+
+硬性规则：
+
+- Desktop 主验收必须先锁定唯一 viewport、浏览器、缩放比例、字体、素材版本，再按原始设计稿逐关键状态做截图 overlay / difference 对比；
+- 位置、尺寸、间距、层级、字体、颜色、透明度、模糊、阴影、铜钱比例、材质、粒子密度、光效范围等均以设计稿为准；
+- 设计稿中需要独立运动的视觉元素必须拆成独立层 / 独立素材 / 独立 DOM 或独立 3D 对象，不允许为了省事烘焙成一张无法正确运动的整图；
+- 如果实现所需的背景、铜钱正面、铜钱反面、局部切图、纹理、遮罩、动效参考或其他素材缺失，**停止对应视觉实现并向用户索取**；
+- 不允许使用占位素材、其他项目素材、临时 AI 图、CSS 伪造纹理、近似粒子或“效果差不多”的替代方案作为最终实现；
+- 如果某个动效存在两种及以上合理实现、而静态稿无法唯一确定运动方式，立即标记 MOTION BLOCKED，必须先向用户确认或索取 Motion Reference，不允许开发者自行选择一种；
+- 任何 fallback 只服务于 WebGL 不可用、reduced motion 或低性能兼容场景，**不能拿 fallback 作为 Desktop 主验收版本**；
+- 在缺失关键素材或参考的情况下，不允许声明“像素级完成”“视觉完成”或“可以收口”。
+- 唯一允许的“实现自由”仅限用户不可见的内部工程细节，并且必须同时满足：不改变像素结果、不改变动效结果、不改变业务结果、不扩大依赖与范围。任何会改变用户看到或感受到的内容，都不属于可自由决定事项。
+
+---
+
+## 1. 技术目标
+
+本技术方案只解决已经确认的产品流程：
+
+1. 首页保持单屏主舞台。
+2. 用户填写问题并点击“开始起卦”。
+3. 首页宣传内容退场，问题区域移动到中央进入确认态。
+4. 用户点击“开始掷币”后，问题缩成弱提示，三枚铜钱进入中央主舞台。
+5. 每次由现有算法先生成并持久化权威结果，再播放与结果一致的 3D 铜钱动画。
+6. 铜钱落定后展示三枚正反面、6 / 7 / 8 / 9、阴阳和动爻。
+7. 用户确认“记录这一爻”后进入下一次。
+8. 共六次，自下而上形成六爻。
+9. 第六爻确认完成后，铜钱退场，完整六爻接管视觉中心，但暂不揭示本卦名称和免费解读。
+10. 在结果揭示前完成登录检查；未登录用户进入现有 Sign In，登录后返回同一份 completed cast。
+11. 使用现有 `POST /api/readings` 将 completed cast 幂等保存到账户 History。
+12. 保存成功后才 reveal 本卦 / 动爻 / 之卦和免费解读。
+13. 免费解读之后继续复用现有 credit / entitlement / AI Deep Reading。
+
+本次不建立第二套起卦系统，也不建立第二套结果系统。
+
+---
+
+## 2. 现有代码的唯一真源
+
+以下现有代码继续承担业务职责，不允许在新视觉层重新实现。
+
+### 2.1 三枚铜钱随机与爻值
+
+继续使用：
+
+`src/domain/casting/three-coin/algorithm.ts`
+
+继续保持：
+
+- yang / head = 3；
+- yin / tail = 2；
+- 三枚相加得到 6 / 7 / 8 / 9；
+- `generateThreeCoinLine(...)` 生成 `coinFaces` 与 `lineValue`；
+- 随机源继续使用现有 browser crypto 路径。
+
+**禁止在 Three.js 场景中生成业务随机数。**
+
+Three.js 只能读取已经生成的 `coinFaces` 并把铜钱动画落到相同结果。
+
+### 2.2 六爻、本卦、动爻、之卦
+
+继续使用：
+
+`src/domain/casting/hexagrams/compute.ts`
+
+`buildHexagramResult(...)` 仍然是统一卦象计算入口。
+
+不允许新建另一套：
+
+- 阴阳判断；
+- 动爻判断；
+- King Wen 映射；
+- 之卦翻转算法。
+
+### 2.3 三枚铜钱会话
+
+继续使用：
+
+`src/lib/three-coin-session.ts`
+
+必须保留现有行为：
+
+- 最多六爻；
+- 每爻结构校验；
+- 浏览器会话恢复；
+- 已完成结果备份；
+- 写入失败时不能把未保存结果假装成已落定；
+- 写入失败后的 retry 必须保存同一个结果，不能重新随机。
+
+### 2.4 问题状态
+
+继续复用：
+
+`src/components/public-reading/question-first.tsx`
+
+以及现有 public reading session。
+
+必须保持：
+
+- 问题规范化；
+- 最大长度规则；
+- 问题隐私；
+- 第一次真实起爻时锁定核心问题；
+- 已经起爻后不能事后改问题；
+- 免费起卦允许无问题的现有业务语义继续存在；
+- 是否具备 Deep Reading 资格继续由现有业务逻辑决定。
+
+新设计可以改变问题控件的位置和形态，但不能改变这些规则。
+
+### 2.5 结果和 AI
+
+继续复用现有：
+
+- `buildPublicReading(...)`；
+- `PublicReadingResult`；
+- `/readings/three-coin/result`；
+- `/zh/readings/three-coin/result`；
+- AI Deep Reading；
+- 登录、credit、entitlement、风险控制。
+
+本次只调整进入结果时的视觉连续性与登录门槛时机：**免费结果的正式 reveal 改为 completed cast 成功保存到登录用户账户之后发生**。Auth、History、Payment、Credit、Deep Reading 的服务端能力和 API contract 继续复用。
+
+---
+
+## 3. 改造范围分层
+
+### 3.1 直接复用，不改业务逻辑
+
+以下模块原则上只调用，不重写：
+
+- `src/domain/casting/three-coin/algorithm.ts`
+- `src/domain/casting/hexagrams/compute.ts`
+- `src/lib/three-coin-session.ts`
+- public reading domain
+- 结果页 domain
+- AI Deep Reading
+- Auth
+- Payment
+- Credit / Entitlement
+- Database / Drizzle
+- History
+- 六十四卦内容和详情页
+- 蓍草、梅花易数、手动起卦
+
+### 3.2 允许做表现层适配
+
+重点允许修改：
+
+- `src/app/(default)/page.tsx`
+- `src/app/(localized)/zh/page.tsx`
+- `src/components/public-reading/question-first.tsx`
+- `src/components/public-reading/three-coin-tool.tsx`
+- 与本次体验直接相关的样式
+- 三枚铜钱运行时视觉资产
+- 与上述变化直接相关的测试 / browser gate
+
+### 3.3 允许新增
+
+只允许为本次 3D 演出增加必要组件，例如：
+
+- `src/components/public-reading/three-coin-scene.tsx`
+- 对应局部样式文件
+- 必要的 Three.js scene helper
+
+不要建立新的通用动画框架、游戏框架或全站状态框架。
+
+---
+
+## 4. 页面技术结构
+
+新首页仍由 Next.js 页面负责 SEO metadata、canonical、语言和服务端静态内容入口。
+
+实际单屏交互由 Client Component 承担。
+
+结构要求：
+
+```
+Home Page (Server Component)
+├─ Site Header（现有）
+├─ Three-Coin Home Stage（Client）
+│  ├─ Landing / Hero
+│  ├─ QuestionFirst（现有业务状态，做最小表现适配）
+│  └─ ThreeCoinTool（现有起卦状态，做最小表现适配）
+│     ├─ ThreeCoinScene（新增 Three.js 纯表现层）
+│     ├─ 六爻进度 DOM
+│     └─ 当前一爻结果 DOM
+└─ 不再继续首页第二屏主内容流
+```
+
+不要求把整个首页改成 Client Component。
+
+---
+
+## 5. 状态设计：业务状态和视觉状态必须分开
+
+### 5.1 业务状态
+
+业务状态继续由现有组件 / session 掌握，例如：
+
+- question
+- coreQuestionAtCast
+- coreQuestionFrozenAtCast
+- steps
+- readingMeta
+- pendingStep
+- unpersistedCommit
+- revealedCount
+- storageError
+- complete
+
+这些是事实状态。
+
+### 5.2 新增的状态只能是表现状态
+
+可以增加少量 UI-only stage，例如：
+
+```ts
+type ExperienceStage =
+  | "landing"
+  | "question-confirm"
+  | "ritual"
+  | "result-transition";
+```
+
+该 stage 只决定：
+
+- 哪块 UI 显示；
+- 哪块 UI 退场；
+- 问题处于大输入框还是弱提示；
+- 铜钱在右侧视觉位还是中央主舞台；
+- 是否开始结果过渡。
+
+**ExperienceStage 不能保存 coinFaces、lineValue、卦号或动爻。**
+
+禁止出现“视觉层自己再维护一份六爻数据”的情况。
+
+---
+
+## 6. 首页各状态的精确技术行为
+
+### 6.1 Landing
+
+页面初始：
+
+- Header 保持现有导航语义；
+- 背景为最终确认的干净背景图；
+- 主标题和短文案为 DOM；
+- 问题输入框为 DOM；
+- “开始起卦”为主要按钮；
+- 三枚铜钱位于设计稿右侧主视觉位置；
+- Desktop 主验收版本的铜钱必须使用能够还原设计稿的正式视觉实现；静态 / CSS fallback 只允许用于内部业务接线、WebGL 不可用、reduced-motion 或兼容场景，不得作为 Desktop 正式视觉版本。
+
+首页不继续渲染第二屏、第三屏主内容。
+
+“每日一卦”等本次未定义功能不新增。
+
+### 6.2 点击“开始起卦”
+
+执行顺序：
+
+1. 使用现有 question normalization / session 写入逻辑保存当前问题状态。
+2. 不起爻，不调用 `generateThreeCoinLine(...)`。
+3. ExperienceStage 进入 `question-confirm`。
+4. Header 不动。
+5. 背景不切换。
+6. 首页标题、辅助文案淡出 / 滑出。
+7. 问题输入区域移动到中央。
+8. 问题文本继续完整显示。
+9. 主按钮切换为“开始掷币”。
+
+这里不创建第二个问题输入框。
+
+如果用户仍处于第一次真实起爻之前，现有规则允许的编辑能力继续有效。
+
+### 6.3 点击“开始掷币”
+
+“开始掷币”表示进入真正的三枚铜钱舞台。
+
+执行：
+
+1. ExperienceStage 进入 `ritual`。
+2. 完整问题输入框收起。
+3. 问题内容转换为一行弱提示。
+4. 问题弱提示继续使用 DOM，并保留隐私标记。
+5. 三枚铜钱移动到中央主舞台。
+6. 六爻进度出现。
+
+第一次真正生成结果时，仍调用现有 `freezeCoreQuestion()`。
+
+问题锁定时机不得提前到首页第一次点击“开始起卦”，否则会改变当前业务语义。
+
+---
+
+## 7. 每一爻的权威执行顺序
+
+每一次起爻必须严格按照以下顺序：
+
+```
+用户触发本次掷币
+    ↓
+freezeCoreQuestion()（仅第一次需要）
+    ↓
+generateThreeCoinLine(lineIndex, browserRandomBit)
+    ↓
+得到权威 ThreeCoinStep
+    ↓
+writeThreeCoinSteps(committedSteps)
+    ↓
+写入成功
+    ↓
+ThreeCoinScene 接收同一个 coinFaces
+    ↓
+播放 3D 动画
+    ↓
+落到完全一致的三枚正反面
+    ↓
+DOM 展示 lineValue / 阴阳 / 动爻
+    ↓
+用户点击“记录这一爻”
+    ↓
+进入下一爻或最终结果过渡
+```
+
+### 7.1 为什么必须先写入再播放最终落定
+
+当前代码已经有正确原则：
+
+> cast becomes authoritative before visual settlement。
+
+继续保持。
+
+如果随机结果已经生成，但浏览器存储失败：
+
+- 不显示该结果已经正式落定；
+- 不重新随机；
+- 保留 `unpersistedCommit`；
+- retry 只重试保存同一个 step；
+- 保存成功后才继续对应动画 / reveal。
+
+---
+
+## 8. “记录这一爻”的技术定义
+
+产品上存在“记录这一爻”按钮，但它**不是新的业务持久化边界**。
+
+真实结果已经在动画前由现有 session 安全写入。
+
+“记录这一爻”只负责：
+
+- 让用户明确看完本次三枚正反面；
+- 确认视觉上的这一爻已经完成；
+- 将 UI 从 `settled` 进入下一次 `idle / ready`；
+- 六爻进度继续显示已经落定的数据。
+
+禁止在“记录这一爻”按钮里：
+
+- 再次随机；
+- 重新计算 lineValue；
+- 再建立另一份 steps；
+- 改写已经持久化的结果。
+
+第六爻的“记录这一爻”完成后，才进入结果视觉过渡。
+
+---
+
+## 9. ThreeCoinTool 的改造原则
+
+当前 `ThreeCoinTool` 已经持有：
+
+- `steps`
+- `readingMeta`
+- `revealedCount`
+- `motion`
+- `pendingStep`
+- `unpersistedCommit`
+- `storageError`
+- 完成后导航
+- 音效
+- session restore
+
+这些继续保留。
+
+### 9.1 不允许重写成第二个新工具
+
+不要创建 `NewThreeCoinToolV2` 并复制当前逻辑。
+
+正确做法：
+
+> 在现有 ThreeCoinTool 上增加本次首页需要的 presentation path，并把 3D renderer 下沉为纯视觉子组件。
+
+### 9.2 MotionState
+
+现有：
+
+`idle | holding | casting | settled`
+
+原则上保持其业务语义不变；若为接入已确认 UI 流程需要调整内部命名，只允许等价重构，不得改变生成、保存、revealed 与完成判定时机。
+
+新首页不强制保留“按住摇动 · 松开起爻”作为唯一交互。
+
+如果最终设计采用单击“开始掷币 / 掷下一爻”：
+
+- 允许把 click 作为触发入口；
+- 底层仍复用同一个生成、持久化、settlement 函数；
+- Keyboard Enter / Space 仍必须可触发；
+- 不能因为交互从 hold 改 click 而改变随机算法。
+
+旧 presentation 若仍需要 hold，可以继续保留，不要求全站同步改变。
+
+---
+
+## 10. QuestionFirst 的最小改造
+
+`QuestionFirst` 继续是问题业务状态拥有者。
+
+只允许增加完成新首页演出所需的最小表现适配，例如：
+
+- 一个明确的 home ritual presentation mode；
+- 必要的 stage callback / data attribute；
+- confirm 状态下的布局差异；
+- ritual 状态下把完整输入框替换为弱提示；
+- reset 后回到 landing。
+
+不要：
+
+- 抽象一个全站表单引擎；
+- 新建第二套 question session；
+- 改问题长度；
+- 改问题隐私规则；
+- 改 Deep Reading eligibility；
+- 把问题写入 URL；
+- 把问题写入 metadata / analytics。
+
+现有 `data-private-question` / masking 语义继续保留。
+
+---
+
+## 11. Three.js 场景设计
+
+### 11.1 依赖
+
+当前项目没有 Three.js。
+
+本次允许新增：
+
+- `three`
+
+不因为本任务引入：
+
+- React Three Fiber
+- Cannon
+- Rapier
+- Phaser
+- Babylon
+- 其他物理 / 游戏引擎
+
+除非后续有新的明确需求，否则 plain Three.js 足够。
+
+### 11.2 加载方式
+
+Three.js 场景必须 client-only。
+
+要求：
+
+- dynamic import；
+- 不进入 Server Component 执行；
+- Canvas 只在需要时挂载；
+- 卸载时释放 renderer、geometry、material、texture；
+- 不让 WebGL 失败阻断起卦。
+
+### 11.3 ThreeCoinScene 的输入
+
+场景只接收视觉输入，类似：
+
+```ts
+type ThreeCoinSceneProps = {
+  faces: readonly [CoinFace, CoinFace, CoinFace];
+  phase: "hero" | "ready" | "casting" | "settled" | "exit";
+  lineIndex: 0 | 1 | 2 | 3 | 4 | 5;
+  reducedMotion: boolean;
+};
+```
+
+可根据实现调整名字，但约束不变：
+
+- 不传业务 random function；
+- 不在 scene 内计算 lineValue；
+- 不在 scene 内写 session；
+- scene 不导航；
+- scene 不调用 AI；
+- scene 不知道 hexagram number。
+
+### 11.4 铜钱几何
+
+先使用程序化几何进行正式还原验证，但**只有在基准 viewport 的截图 / 材质对比能够达到设计稿要求时才允许作为最终方案**。若无法达到，不得继续调成“差不多”，必须切换到用户提供 / 确认的高精度贴图、材质图或 GLB / GLTF。
+
+必须具备：
+
+1. 外圆；
+2. 中央方孔；
+3. 真实厚度；
+4. 正面；
+5. 反面；
+6. 侧边金属；
+7. 与设计稿一致的比例、边缘、材质和光照观感。
+
+可使用：
+
+- 带方孔的 Shape；
+- ExtrudeGeometry 或等价方案；
+- 正反面独立 texture；
+- 必要的 normal / roughness / height 信息。
+
+如果程序化几何无法忠实还原设计稿中的铜钱轮廓、雕刻、厚度或表面质感，**不得用近似几何硬凑**。应暂停该部分并向用户索取更高质量贴图、材质图或 GLB / GLTF 模型。
+
+不允许把正反面画成一张 CSS sprite 冒充 3D。
+
+### 11.5 铜钱素材
+
+运行时至少需要：
+
+- clean background；
+- coin front PNG；
+- coin back PNG。
+
+要求：
+
+- 透明背景；
+- 正视；
+- 无透视；
+- 正反面方向定义固定；
+- 不把动态文字、按钮、六爻烘焙进背景。
+
+### 11.6 动画
+
+动画必须是**受控演出 + 参考驱动**。
+
+只有已确认设计稿 / 动效参考明确存在的效果才进入最终实现，例如：
+
+- 翻滚；
+- 上升 / 下落；
+- 三枚铜钱错峰；
+- 横向分离；
+- 粒子；
+- 金色轨迹；
+- 落定光效；
+- 镜头或景深变化。
+
+不能因为“看起来更酷”自行增加设计稿没有的动作，也不能因为某个效果难做而换成另一种效果。
+
+最终朝向必须由 `faces` 决定。
+
+不要用真实刚体物理结果决定正反面。
+
+**禁止为了制造自然感而自行加入未确认的随机镜头、随机路径、随机粒子节奏或随机位移。** 如果参考明确需要自然扰动，扰动范围必须先从参考中确定；无法确定时向用户确认。
+
+为保证像素级回归可复现：
+
+- 正式视觉实现不得直接使用不可控的 `Math.random()` 决定粒子位置、轨迹、旋转、相机或光效；
+- 任何参考中明确需要的视觉扰动必须使用确定性参数或固定 seed；
+- 同一输入状态、同一基准时间点、同一 viewport 下必须得到可重复的同一画面；
+- screenshot / visual regression 模式必须能冻结到明确时间点和固定视觉 seed；
+- 这些视觉 seed 绝不能参与业务随机，也不能改变 `coinFaces` / `lineValue`。
+
+---
+
+## 12. 粒子和光效
+
+粒子和光效不是“可有可无的装饰”，只要设计稿 / 动效参考中存在，就属于像素级还原的一部分。
+
+允许使用的实现手段限于能够忠实复现参考的技术，例如：
+
+- Three.js Points；
+- Sprite；
+- additive blending；
+- emissive；
+- noise texture；
+- shader；
+- Bloom / post-processing（参考明确需要时）。
+
+开发者可以在这些工程手段中选择实现方式，但**没有任何视觉设计自由**：技术选择只能服务于已确认画面，不能改变形态、密度、颜色、轨迹、时序或层级。最终画面与动效参考才是验收标准。
+
+因此：
+
+- 设计稿是细金色尘粒，就不能改成大光球；
+- 设计稿是流动气雾，就不能用简单 sparkle 代替；
+- 设计稿存在特定光轨，就不能只放通用 glow；
+- 设计稿需要 Bloom，就应实现 Bloom 或达到同等视觉结果，不能以“依赖太重”为理由直接删掉；
+- 如果现有技术方案无法达到参考效果，先更换合适的实现技术或向用户索取必要素材 / 参考，不能自行降级为另一个效果；
+- Desktop 主验收版本不得为了性能主动降低粒子密度、光效层级或材质质量；性能优化应优先从资源尺寸、渲染策略、DPR、按需渲染等方式解决；
+- Mobile / reduced-motion / WebGL fallback 可以降级，但必须与 Desktop 主验收版本明确区分。
+
+粒子数量、后处理参数等最终值应通过和设计稿 / 动效参考对比确定，而不是由开发者凭感觉决定。
+
+---
+
+## 13. CSS 与 WebGL 分工
+
+### CSS / DOM
+
+负责：
+
+- 首页标题退场；
+- 问题框移动到中央；
+- 问题框收起为弱提示；
+- 按钮进入 / 退出；
+- 六爻进度布局；
+- 结果文字；
+- opacity / transform / blur；
+- 页面整体状态过渡。
+
+### Three.js
+
+负责：
+
+- 铜钱厚度和真实透视；
+- 正反面；
+- 空间翻滚；
+- 金属光照；
+- 三枚独立轨迹；
+- 粒子 / 光轨 / 气；
+- 落定效果。
+
+不要用 Canvas 绘制正文、按钮、问题和六爻文字。
+
+---
+
+## 14. 六爻进度
+
+六爻进度继续读取现有 `steps / revealedSteps`。
+
+规则：
+
+- 第 1 爻位于最下方；
+- 第 6 爻位于最上方；
+- 已落定爻不得因为动画重播改变；
+- 当前正在 casting 的 step 不应提前当成“已展示完成”；
+- storage 未成功时不能增加正式进度；
+- 显示 6 / 7 / 8 / 9 时使用现有 line semantics；
+- 6 / 9 必须清楚标识 changing。
+
+六爻进度是 DOM，不由 Three.js 维护。
+
+---
+
+## 15. 第六爻、登录保存与结果 Reveal
+
+当前 result route 继续保留：
+
+- `/readings/three-coin/result`
+- `/zh/readings/three-coin/result`
+
+不新增第二套结果页面。
+
+### 15.1 第六爻完成后的固定状态顺序
+
+第六爻必须先成为本地 authoritative completed cast。
+
+固定顺序：
+
+```
+第六爻生成
+  ↓
+writeThreeCoinSteps(...) 成功
+  ↓
+第六爻 3D 动画落定
+  ↓
+用户记录第六爻
+  ↓
+六条爻完整形成
+  ↓
+ExperienceStage = "result-transition"
+  ↓
+进入现有 result route
+  ↓
+进入 auth / persistence gate
+  ↓
+账户保存成功
+  ↓
+Result Reveal
+```
+
+在进入 Result Reveal 之前：
+
+- 可以显示完整六爻；
+- 可以显示“六爻已成 / 起卦完成”的过渡状态；
+- **不得渲染本卦名称、卦号、之卦名称或免费解读正文；**
+- 不得触发 AI Deep Reading；
+- 不得因登录或网络往返重新生成任何一爻。
+
+### 15.2 不新增“生成卦象”业务按钮
+
+本次不新增一个独立的“生成卦象”业务步骤。
+
+原因：
+
+- 六爻完成后，本卦 / 动爻 / 之卦属于现有确定性计算结果；
+- 它们不需要用户再触发一次随机或业务计算；
+- 用户真正需要执行的动作是“登录并保存本次起卦”。
+
+因此：
+
+- 第六爻完成后，视觉上自动进入“六爻已成”状态；
+- 未登录时唯一新的业务 CTA 是**登录以保存并查看本次结果**；
+- 最终 CTA 文案、位置、尺寸、样式必须按确认设计稿；
+- 开发者不得自行增加“生成卦象”“继续计算”等额外按钮。
+
+### 15.3 未登录用户
+
+result route 已有 `getCurrentUser({ allowUnavailable: true })`。
+
+当 `initialUser === null` 时，新 presentation 必须进入 **AUTH_REQUIRED_BEFORE_REVEAL** 状态。
+
+该状态：
+
+- 从现有 browser session 恢复同一份 completed cast；
+- 显示完整六爻及已确认的登录门槛视觉；
+- 不 mount / 不展示免费结果正文；
+- 不调用 Deep Reading；
+- 提供现有 Sign In 链接；
+- callbackURL 必须指向当前 result route / 当前浏览器 return path。
+
+登录前 completed cast 仍保留在现有浏览器 session 中。
+
+不允许：
+
+- 清除 session；
+- 生成新 `clientCastingId` 来替代本次结果；
+- 修改 question；
+- 修改 line values；
+- 重新随机；
+- 让用户重新完成六次起爻。
+
+### 15.4 登录返回同一份 Completed Cast
+
+登录成功后：
+
+1. Sign In 使用现有 callbackURL 返回同一个 result route；
+2. result route 重新执行现有 `getCurrentUser(...)`；
+3. browser session 继续恢复登录前的同一组六爻、同一 question、同一 client casting identity；
+4. 前端调用现有 `POST /api/readings`；
+5. 请求继续使用现有：
+   - `clientCastingId`
+   - `lineValuesBottomUp`
+   - `question`
+6. 依赖现有幂等语义，避免重复创建同一次起卦；
+7. 保存成功得到 `castingId`；
+8. 当前 URL 使用现有机制写入 `session=<castingId>`；
+9. 此时才允许进入 Result Reveal。
+
+**不得新增新的保存 API。**
+
+### 15.5 已登录用户
+
+如果用户在起卦前已经登录：
+
+- 首页和六次起爻不增加新的 auth 检查 UI；
+- 第六爻完成后照常进入现有 result route；
+- result route 通过现有 `getCurrentUser(...)` 得到用户；
+- 自动使用现有 `POST /api/readings` 幂等保存当前 completed cast；
+- 保存期间显示设计稿规定的“完成 / 保存中”过渡状态；
+- 保存成功后直接 Result Reveal；
+- 不显示登录 CTA。
+
+### 15.6 保存失败
+
+如果 `POST /api/readings` 失败：
+
+- completed cast 仍由现有 browser session 保留；
+- Result Reveal 保持关闭；
+- 显示明确的保存失败状态；
+- 提供重试；
+- 重试继续提交同一个 `clientCastingId`、同一组六爻和同一 question；
+- 不 reroll；
+- 不重新起卦；
+- 不因为 retry 创建第二份历史记录。
+
+只有账户保存成功才能解除 reveal gate。
+
+### 15.7 Result Reveal
+
+账户持久化成功后才开始正式 reveal：
+
+1. 六爻按设计稿 / Motion Reference 进入结果构图；
+2. 揭示本卦；
+3. 揭示动爻；
+4. 有动爻时揭示之卦；
+5. 展示现有免费卦象解读；
+6. 本次 reading 已经存在于用户账户 History。
+
+这一步继续复用：
+
+- 现有 `buildPublicReading(...)`；
+- 现有 `buildHexagramResult(...)` / interpretation；
+- 现有 `PublicReadingResult` / ThreeCoin result components；
+- 现有 Result Route。
+
+可以调整“什么时候 mount / reveal 这些组件”，不能重写其业务计算。
+
+### 15.8 AI Deep Reading
+
+Result Reveal 完成后再提供现有 AI Deep Reading。
+
+此时用户已经登录，因此：
+
+- 不再出现第二次 Sign In；
+- 继续使用现有 credit / entitlement；
+- 无 credit → 现有 pricing / pack；
+- 有 credit → 现有 `POST /api/readings/:castingId/deep`；
+- 状态恢复继续使用现有 `GET /api/readings/:castingId/deep`。
+
+不新增：
+
+- Auth API；
+- Payment API；
+- Credit API；
+- Deep Reading API；
+- 数据库表；
+- migration。
+
+### 15.9 现有后端边界保持不变
+
+本次需要复用的已有能力包括：
+
+- `getCurrentUser(...)`；
+- 现有 Sign In / callbackURL；
+- `POST /api/readings`；
+- `GET / POST /api/readings/:castingId/deep`；
+- casting persistence；
+- History；
+- credit / entitlement；
+- pricing；
+- Deep Reading。
+
+本次产品变化发生在：
+
+> **什么时候要求登录、什么时候保存、什么时候允许前端 reveal 免费结果。**
+
+不是：
+
+> 新建另一套登录、保存、支付或 AI 服务。
+
+---
+
+
+## 16. 首页 SEO 的技术边界
+
+当前首页包含大量可见 SEO 正文、FAQ 和结构化数据。
+
+产品要求变成单屏后，不能使用以下错误方案：
+
+- 把旧正文 `display:none` 继续留给搜索引擎；
+- 把大量关键词塞进 visually hidden DOM；
+- 可见 FAQ 删除后仍保留与页面内容不一致的 FAQ structured data；
+- 为了过旧 gate 而让 UI 假装仍然是长页面。
+
+正确处理：
+
+1. metadata、canonical、hreflang 继续保留。
+2. 新首页首屏保留真实可见的 H1 和必要说明。
+3. 旧内容资产不删除，但可以继续存在于既有方法页、六十四卦页、指南页等正确位置。
+4. 如果某个首页 JSON-LD 已不再对应可见内容，应同步调整，而不是隐藏内容作弊。
+5. 只更新与新首页真实结构冲突的 SEO gate。
+6. 不借本次机会重新做一轮全站 SEO。
+
+---
+
+## 17. Header 与一级导航
+
+继续使用现有 Header / 导航组件和已有路由。
+
+本次只允许为了新背景做必要视觉适配，例如：
+
+- 透明 / 半透明背景；
+- 对比度；
+- hover / focus 可见性。
+
+不改：
+
+- 六十四卦的信息架构；
+- Methods 层级；
+- Guides；
+- History；
+- Account；
+- 语言切换；
+- Auth 行为。
+
+“每日一卦”不新增。
+
+---
+
+## 18. 英文与中文
+
+英文为主版本，但技术实现不得复制两套业务组件。
+
+要求：
+
+- 继续使用现有 dictionary / locale；
+- 背景图不烘焙语言文字；
+- 铜钱贴图如为传统文字，本身作为视觉资产共用；
+- 英文与中文使用相同起卦逻辑、scene 和状态；
+- 中文 / 英文只替换 UI copy 和必要排版宽度。
+
+---
+
+## 19. 移动端
+
+Desktop 是本次视觉主验收端。
+
+Mobile 保持相同业务流程，但允许视觉降级：
+
+- 铜钱缩小；
+- 粒子减少；
+- 光效减少；
+- 过渡缩短；
+- 六爻进度调整位置；
+- 必要时使用更简单的 Canvas / CSS fallback。
+
+不允许移动端：
+
+- 少起一爻；
+- 省略三枚正反面；
+- 改随机逻辑；
+- 改问题锁定规则；
+- 改结果。
+
+---
+
+## 20. Reduced Motion 与 WebGL Fallback
+
+### prefers-reduced-motion
+
+开启时：
+
+- 不做长时间翻滚；
+- 不做大范围飞行；
+- 可以快速从 ready 过渡到 settled；
+- 仍展示相同三枚正反面；
+- 仍展示同一 lineValue；
+- 仍走相同 session。
+
+### WebGL 不可用
+
+fallback：
+
+- 复用 / 改造现有 CSS 铜钱视觉；
+- 或静态正反面 DOM；
+- 业务起卦继续完整可用。
+
+WebGL 是否成功绝不能成为用户能不能起卦的条件。
+
+---
+
+## 21. 音效
+
+现有 Web Audio 属于可选反馈，可以继续复用。
+
+规则：
+
+- 声音关闭时完全不影响流程；
+- AudioContext 失败不影响流程；
+- 新动画时间变化时只调整音效时机；
+- 不新增音频资源依赖，除非设计明确要求。
+
+---
+
+## 22. 运行时资产位置
+
+文档参考图继续放在：
+
+`docs/assets/`
+
+真正网页运行时的背景 / 铜钱贴图应进入正常 public asset 目录，例如：
+
+```
+public/
+  three-coin/
+    background.*
+    coin-front.png
+    coin-back.png
+```
+
+最终实际文件名以提供的素材为准。
+
+不要让页面运行时依赖 `docs/assets`。
+
+---
+
+## 23. 性能要求
+
+必须做到：
+
+- Three.js 动态加载；
+- 不阻塞首屏文本 / 输入框可交互；
+- renderer 只创建一次；
+- resize 不反复重建 scene；
+- texture 只加载一次并复用；
+- 页面卸载时 dispose；
+- Desktop 基准验收环境不得通过降低 devicePixelRatio 牺牲设计还原；其他设备可按性能设置 DPR 上限，但必须与主验收版本区分；
+- 页面进入后台时避免无意义高频渲染；
+- 无动画时尽量降低 render loop 成本；
+- mobile 自动降低视觉负载。
+
+不要为了视觉效果引入与本任务无关的大型依赖。
+
+---
+
+## 24. 可访问性
+
+Canvas 只做视觉，设置为不承担业务语义。
+
+真实语义必须存在于 DOM：
+
+- 当前第几爻；
+- 三枚正 / 反；
+- 6 / 7 / 8 / 9；
+- 阴 / 阳；
+- 是否动爻；
+- 按钮状态；
+- 错误状态。
+
+要求：
+
+- 键盘可以完成整个起卦；
+- focus 状态可见；
+- motion reduced 可用；
+- Canvas 失败仍可用；
+- 颜色不能是动爻的唯一信息。
+
+---
+
+## 25. 错误处理
+
+### Browser storage error
+
+继续沿用当前 fail-safe：
+
+- 阻止继续正式起爻；
+- 展示明确错误；
+- 如果已有 `unpersistedCommit`，retry 同一个结果；
+- 不 reroll。
+
+### Three.js load error
+
+只降级视觉：
+
+- 捕获错误；
+- fallback CSS / DOM coins；
+- 不修改 session；
+- 不修改 result。
+
+### Texture load error
+
+- fallback 到基础金属材质 / CSS coin；
+- 不阻断业务。
+
+---
+
+## 26. 测试范围
+
+### 26.1 必须保留的现有测试
+
+现有：
+
+- three-coin algorithm；
+- hexagram compute；
+- session validation；
+- public reading；
+- result；
+- SEO / browser gate；
+
+不能因视觉重构失效而直接删除。
+
+### 26.2 新增 / 更新的必要测试
+
+只增加本次流程直接需要的覆盖：
+
+1. 首页初始只显示确认的主舞台内容。
+2. “开始起卦”不生成任何爻。
+3. “开始起卦”后问题仍存在并进入确认态。
+4. 第一次真正掷币时问题才锁定。
+5. 一次 cast 只调用一次权威随机生成。
+6. scene 最终 faces 与 authoritative `ThreeCoinStep.coinFaces` 一致。
+7. storage 写入失败不会 reveal / reroll。
+8. retry 保存同一个 step。
+9. 六爻顺序 bottom-up。
+10. settled 后“记录这一爻”不重新计算结果。
+11. 第六爻确认后进入 completed cast / result-transition，而不是直接 reveal 免费结果。
+12. 未登录用户在 result route 只能看到六爻完成态与登录门槛，不得看到本卦名称 / 卦号 / 之卦名称 / 免费解读正文。
+13. Sign In callback 返回同一个 result route，并恢复登录前同一份 completed cast。
+14. 登录返回后 `POST /api/readings` 使用同一个 client casting identity、同一组六爻和同一 question。
+15. 已登录用户第六爻后无需登录 CTA，但必须先完成账户保存再 reveal。
+16. `POST /api/readings` 失败时保持同一 completed cast、禁止 reveal、可安全 retry 且不 reroll。
+17. 保存成功后才 reveal 本卦 / 动爻 / 之卦与免费解读。
+18. 保存成功后该 reading 可从现有账户 History 恢复。
+19. 免费结果后进入 Deep Reading 时不再次要求登录。
+20. 无 credit 继续现有 pricing；有 credit 继续现有 Deep Reading API。
+21. 已完成 session restore 仍可正确进入对应 auth / persistence / reveal 状态。
+22. reduced motion 可完成六次及登录后的 reveal。
+23. WebGL fallback 可完成六次及登录后的 reveal。
+24. 英文 / 中文走同一业务路径。
+25. 问题不进入 metadata 或非必要 analytics；只有现有受控 result/session 导航可以使用既有标识。
+
+### 26.3 视觉与动效验收
+
+这是本任务的最高优先级 gate。
+
+#### 基准环境
+
+验收前必须锁定并记录：
+
+- Desktop viewport / 原始设计画布尺寸；
+- 浏览器及版本；
+- 页面缩放比例；
+- devicePixelRatio；
+- 字体文件 / 字体名称 / 字重；
+- 所有视觉素材的最终版本；
+- 每个关键状态对应的原始设计稿；
+- 每段存在歧义的动效对应的 Motion Reference 或用户确认规则。
+
+缺任何一项且会影响对比结果时，标记 VISUAL BLOCKED，不进入最终 PASS。
+
+#### 静态关键帧
+
+至少逐一对比：
+
+- Landing；
+- Question Confirm；
+- Casting；
+- Settled；
+- Six-line progress；
+- Result transition。
+
+必须执行 screenshot overlay / difference 对比。
+
+逐项检查：
+
+- 页面构图；
+- x / y 位置；
+- 宽高；
+- 间距；
+- 字体与字号；
+- 字重与行高；
+- 颜色；
+- 透明度；
+- blur；
+- 阴影；
+- 铜钱尺寸与角度；
+- 铜钱厚度、材质、纹理与高光；
+- 前后景层级；
+- 粒子形态、粒径、密度、范围和亮度；
+- 光效位置、范围、颜色和强度；
+- 雾 / 气流层级；
+- 六爻位置；
+- 结果转场前后的关键帧。
+
+**PASS 标准：100% 像素级还原。**
+不接受“肉眼接近”“整体一致”“95%”“基本还原”等替代结论。
+
+如果存在无法消除的差异，必须继续修正；如果差异源于缺字体、缺切图、缺纹理、缺模型、缺 viewport 或缺分层信息，则向用户索取并保持 BLOCKED。
+
+#### 动效
+
+所有存在视觉意义的运动参数必须来自：
+
+- 已确认视频 / GIF / Motion Reference；
+- 用户确认的 duration / easing / 轨迹 / 时序规则；
+- 或连续关键帧能够唯一、低歧义推导出的最小过渡。
+
+需要核对：
+
+- 起点 / 终点；
+- 轨迹；
+- 旋转方向和圈数；
+- 高度；
+- duration；
+- easing；
+- 铜钱错峰；
+- 粒子生成、移动与消失时序；
+- 光效强弱变化；
+- 气流；
+- 镜头 / 景深；
+- DOM 元素进出场顺序。
+
+只要其中任一关键参数存在多种合理答案，就标记 MOTION BLOCKED 并向用户确认。
+
+**禁止以“开发者认为更自然”“更酷”“性能更好”“差不多”作为任何最终动效决策依据。**
+
+#### 最终视觉完成定义
+
+只有同时满足以下条件才能声明 VISUAL COMPLETE：
+
+1. 所有必需素材已齐全；
+2. 所有关键状态已完成 100% 像素级对比；
+3. 所有存在歧义的动效已获得明确参考 / 确认；
+4. 所有正式 Desktop 动效已按参考复现；
+5. 不存在临时素材、占位素材、近似粒子或 fallback 冒充正式版本；
+6. 用户未要求补充任何尚缺视觉资产。
+
+---
+
+## 27. 实施顺序
+
+严格按以下顺序，避免同时改太多层：
+
+### Phase 0：素材与参考就绪检查
+
+开发视觉部分之前先核对：
+
+- 原始设计稿，而且必须是开发 / 验收时可访问的正式参考文件；仓库中的重绘 SVG 只能说明流程，不能代替原始设计稿做像素级基准；
+- Desktop 设计画布 / viewport；
+- 干净背景；
+- 铜钱正面；
+- 铜钱反面；
+- 需要独立运动的其他切图 / 遮罩 / 光层；
+- 动效参考或已明确的运动规则。
+
+缺失任何会影响最终还原的必需项，标记 BLOCKED 并向用户索取。**不得自行补素材。**
+
+如果开发者只能看到仓库中的流程 SVG、看不到用户确认的原始效果图 / 关键帧，则直接标记 **VISUAL REFERENCE BLOCKED**，不得依据 SVG 猜测最终像素。
+
+索取时必须明确说明：
+
+- 缺少的具体文件 / 参考是什么；
+- 为什么现有素材不足；
+- 需要的格式、透明背景、正视角、尺寸或分层要求；
+- 缺失项具体阻塞哪个关键状态 / 哪段动效。
+
+不能只说“素材不够”后自行用替代方案继续。
+
+### Phase 1：页面骨架
+
+- 首页收敛为单屏；
+- 保留 Header；
+- 完成 landing → question-confirm → ritual 的 DOM / CSS 状态；
+- 开发期间可以临时使用现有 coin fallback 验证业务接线，但该 fallback 只属于内部脚手架，不能作为最终视觉交付或验收依据。
+
+### Phase 2：接回现有业务
+
+- QuestionFirst；
+- ThreeCoinTool；
+- session restore；
+- storage error；
+- 六次起爻；
+- result navigation；
+- auth-before-reveal gate；
+- 登录 callback 恢复同一 completed cast；
+- 现有 `POST /api/readings` 账户保存；
+- History 持久化完成后才 reveal；
+- Deep Reading 继续现有 credit / pricing 链路。
+
+先保证新布局下业务完整正确。
+
+### Phase 3：Three.js 铜钱
+
+- 引入 `three`；
+- 新建 scene；
+- 使用正反面素材；
+- 接入 authoritative coinFaces；
+- 完成 hero / ready / casting / settled / exit。
+
+### Phase 4：粒子、光效与像素级收口
+
+- 按参考实现粒子；
+- 按参考实现光效；
+- 按参考实现气流；
+- 按参考完成材质与景深；
+- 对每个关键帧做截图对齐；
+- 对 Motion Reference 做动效对齐。
+
+这里不是“可选美化阶段”，而是本任务最终能否通过验收的核心阶段。
+
+### Phase 5：性能、降级、验收
+
+- reduced motion；
+- WebGL fallback；
+- mobile；
+- resource disposal；
+- browser / SEO gate；
+- Design screenshot 对比。
+
+---
+
+## 28. 明确禁止的技术扩散
+
+本次不允许：
+
+- 重写三枚铜钱算法；
+- 新增服务器随机 API；
+- 新建数据库表；
+- 新增 migration；
+- 重写 public reading；
+- 重写结果页 domain；
+- 重写 AI；
+- 改支付；
+- 改 credit；
+- 重写登录系统 / Auth API / Sign In 语义；本次只允许调整登录门槛出现时机与返回后的视觉续接；
+- 重写 History 数据模型或保存接口；本次只允许要求 completed cast 在 reveal 前通过现有能力写入 History；
+- 重做六十四卦；
+- 重做蓍草；
+- 重做梅花易数；
+- 重做手动起卦；
+- 新增“每日一卦”；
+- 引入物理引擎；
+- 引入完整游戏引擎；
+- 建全站动画框架；
+- 为本任务重构全站状态管理；
+- 复制一套 V2 ThreeCoinTool；
+- 在 Canvas 内重做全部 UI；
+- 用占位图 / 临时图 / AI 临时图作为最终素材；
+- 用其他项目或互联网近似素材替代缺失素材；
+- 因为某种粒子 / 光效难实现而换成另一种视觉效果；
+- 因为 Three.js 实现困难而降低设计稿中的铜钱材质、厚度、轨迹或光效要求；
+- 在缺 Motion Reference 且运动存在歧义时自行设计最终动画；
+- 把需要独立运动的图层合并进背景以省实现成本；
+- 以 Mobile / fallback 版本代替 Desktop 主验收版本；
+- 在缺失关键素材时宣称视觉完成或像素级通过；
+- 用“接近”“类似”“肉眼差不多”“95% 还原”等口径替代 100% 像素级验收；
+- 未执行基准 viewport 的 screenshot overlay / difference 对比就宣称像素级通过；
+- 未获得动效参考 / 用户确认就在存在歧义的运动上自行定 duration、easing、轨迹、粒子时序或镜头；
+- 隐藏 SEO 长文只给爬虫；
+- 为制造 diff 修改无关文件。
+
+---
+
+## 29. 最终技术边界
+
+本次正确实现应满足：
+
+> **现有业务系统继续决定“问了什么、掷出了什么、形成什么卦、如何保存、如何登录、如何进入 History、如何付费、如何生成 Deep Reading”；本次只改变前端主流程与 reveal 时机：六爻完成后必须登录并通过现有能力保存到账户 History，保存成功才揭示免费结果。新代码同时必须在锁定的基准环境中 100% 像素级还原已确认设计稿，并 100% 忠实执行已确认动效参考。业务不得重写，视觉零自由发挥；缺素材 / 缺动效定义只能 BLOCKED 并向用户索取，不能自行替代。**
+
+判断任何技术改动是否应该进入本次开发，只问一个问题：
+
+> **如果去掉新视觉，这段代码是否在重新定义 Quick I Ching 的业务？**
+
+如果答案是“是”，默认超出本次范围。
+
+如果答案是“否”，并且它直接服务于首页单屏、问题确认、三枚铜钱演出、六爻进度或结果视觉衔接，才属于本次范围。
