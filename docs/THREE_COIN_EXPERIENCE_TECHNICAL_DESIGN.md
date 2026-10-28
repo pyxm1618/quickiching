@@ -686,6 +686,62 @@ type ThreeCoinSceneProps = {
 
 恢复到一个已经完成六爻的 session 时，继续允许现有恢复逻辑直接进入结果，不要求重新播放六次仪式。
 
+### 15.1 登录 / 付费接入时机
+
+新的首页与起卦流程**不新增 Auth、Payment、Credit 或 Deep Reading API**。
+
+继续复用现有结果页商业链路：
+
+- `getCurrentUser(...)`；
+- 现有 `/signin` / `/zh/signin`；
+- 现有 callbackURL 返回机制；
+- `POST /api/readings`；
+- `GET / POST /api/readings/:castingId/deep`；
+- 现有 credit / entitlement / pricing 流程。
+
+固定接入时序：
+
+```
+Landing
+  ↓
+Question Confirm
+  ↓
+6 次起爻
+  ↓
+免费结果完整展示
+  ↓
+用户主动点击 Deep Reading
+  ↓
+未登录？── 是 → 现有 Sign In → callback 回同一 Result
+  │
+  否
+  ↓
+检查现有 credit / entitlement
+  ↓
+无 credit → 现有 pricing / pack
+  ↓
+有 credit → 现有 Deep Reading
+```
+
+硬性约束：
+
+- Landing 不查登录作为进入条件；
+- Question Confirm 不要求登录；
+- Ritual / 六次起爻不要求登录；
+- 免费结果不要求登录；
+- 不允许在第 1～6 爻之间弹登录；
+- 不允许为了“保存结果”提前强迫登录；
+- 未登录用户只有在主动点击 Deep Reading CTA 后才进入 Sign In；
+- 登录成功后必须通过现有 callbackURL 回到**同一份已完成结果**；
+- 回来后继续由现有逻辑将当前 completed reading 幂等持久化到后端；
+- 不重新随机、不重起六爻、不改变 question；
+- 已登录用户直接继续 credit / entitlement；
+- 无 credit 时进入现有 pricing，不新增支付接口；
+- 有 credit 时调用现有 deep-reading API；
+- Auth / Payment / Entitlement 的服务端语义、数据库模型和 API contract 均不得因本次 UI 重构而改变。
+
+因此，本次所谓“登录流程改造”只是**前端接入时机与视觉衔接明确化**，不是重做登录系统。
+
 ---
 
 ## 16. 首页 SEO 的技术边界
