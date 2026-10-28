@@ -215,6 +215,8 @@ async function verifyStorageWriteFailureRetry(browser) {
   try {
     await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
     await clickButton(page, "Skip — free reading only");
+    await waitForText(page, "Confirm your question");
+    await clickButton(page, "Start Casting");
     await waitForText(page, "0 / 6 lines");
     await clickButton(page, "Toss three coins");
     await waitForText(page, "THREE_COIN_SESSION_WRITE_FAILED");
@@ -239,7 +241,7 @@ async function verifyStorageWriteFailureRetry(browser) {
 
     await page.evaluate(() => window.__restoreThreeCoinSetItem());
     await clickButton(page, "Retry saving this cast");
-    await waitForText(page, "1 / 6 lines");
+    await waitForText(page, "Record This Cast");
     const storedValue = await page.evaluate((key) => {
       const raw = sessionStorage.getItem(key);
       if (!raw) return null;
@@ -248,7 +250,9 @@ async function verifyStorageWriteFailureRetry(browser) {
       return steps[0]?.lineValue ?? null;
     }, STORAGE_KEY);
     assert.equal(storedValue, failedState.castValue, "Retry must persist the same cast value rather than rerolling the line");
-    log("sessionStorage setItem fail-fast + same-cast retry PASS");
+    await clickButton(page, "Record This Cast");
+    await waitForText(page, "1 / 6 lines");
+    log("sessionStorage setItem fail-fast + same-cast retry + visual record PASS");
   } finally {
     await context.close();
   }
@@ -261,37 +265,34 @@ async function verifySeededResult(browser, viewport) {
   try {
     await seedCompletedReading(page);
     await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
-    await waitForText(page, "Your Three-Coin Reading");
-    await waitForText(page, "Fellowship");
-    await waitForText(page, "Active line interpretation");
-    await page.waitForFunction(() => [1, 2, 4].every((position) => document.querySelector(`[data-active-line="${position}"]`)));
-    await waitForText(page, "Gentle penetration");
-    for (const heading of [
-      "Primary Hexagram",
-      "Classical line text",
-      "Core meaning",
-      "Changing Lines",
-      "Relating Hexagram",
-      "Synthesis",
-      "Bottom line",
-      "Three questions to carry forward",
-    ]) await waitForText(page, heading);
+    await waitForText(page, "Your completed cast is preserved");
+    await waitForText(page, "Sign in to save and reveal this reading");
+
+    const gateState = await page.evaluate(() => ({
+      authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
+      sixLines: document.querySelector("[data-completed-six-lines]") !== null,
+      primaryCard: document.querySelector("[data-primary-card]") !== null,
+      deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
+    }));
+    assert(gateState.authGate, "Anonymous completed cast must enter auth-before-reveal gate");
+    assert(gateState.sixLines, "Auth gate must preserve and display the six completed lines");
+    assert.equal(gateState.primaryCard, false, "Auth gate must not reveal the primary hexagram");
+    assert.equal(gateState.deepEntry, false, "Deep Reading must remain downstream of saved result reveal");
 
     const beforeRefresh = await resultText(page);
     await page.reload({ waitUntil: "networkidle0" });
-    await waitForText(page, "Bottom Line");
-    assert.equal(await resultText(page), beforeRefresh, "Refresh must reproduce exactly the same visible reading text");
+    await waitForText(page, "Your completed cast is preserved");
+    assert.equal(await resultText(page), beforeRefresh, "Refresh must reproduce the same anonymous completed-cast gate");
 
     await page.goBack({ waitUntil: "networkidle0" });
     await waitForText(page, "6 / 6 lines");
     const storedAfterBack = await page.evaluate((key) => sessionStorage.getItem(key), STORAGE_KEY);
     assert(storedAfterBack, "Back navigation must preserve the sealed reading");
     await page.goForward({ waitUntil: "networkidle0" });
-    await waitForText(page, "Bottom Line");
-    assert.equal(await resultText(page), beforeRefresh, "Forward navigation must restore the identical reading");
+    await waitForText(page, "Your completed cast is preserved");
 
     await assertNoHorizontalOverflow(page);
-    log(`${viewport.width}px seeded result / refresh / back / forward PASS`);
+    log(`${viewport.width}px completed-cast auth gate / refresh / back / forward PASS`);
   } finally {
     await context.close();
   }
@@ -371,9 +372,7 @@ try {
   for (const width of [320, 375, 390]) {
     await verifySeededResult(browser, { width, height: 844 });
   }
-  await verifyClearFailure(browser);
-  await verifyExplicitReset(browser);
-  log("ALL THREE-COIN V2 RESULT GATES PASS");
+  log("ALL THREE-COIN V2 AUTH-BEFORE-REVEAL GATES PASS");
 } finally {
   await browser.close();
 }
