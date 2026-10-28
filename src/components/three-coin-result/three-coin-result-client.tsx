@@ -807,7 +807,7 @@ export function ThreeCoinResultClient({
           <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
             {t(
               "These are the same six sealed lines from your browser session. No hexagram name or interpretation is revealed until this cast is saved to your account History.",
-              "这里保留的是浏览器会话中同一组六条已落定爻。保存到账户 History 成功之前，不会揭示本卦名称或免费解读。",
+              "这里保留的是浏览器会话中同一组六条已落定爻。保存到账户历史记录成功之前，不会揭示本卦名称或免费解读。",
             )}
           </p>
           <div className="mx-auto mt-8 w-full max-w-[440px]" data-completed-six-lines>
@@ -825,7 +825,7 @@ export function ThreeCoinResultClient({
               <p className="text-sm leading-7 text-[var(--danger)]">
                 {actionError ?? t(
                   "Saving failed. The same completed cast is still preserved and has not been revealed.",
-                  "保存失败。同一份 completed cast 仍然保留，结果尚未揭示。",
+                  "保存失败。同一份已完成起卦仍然保留，结果尚未揭示。",
                 )}
               </p>
               <button type="button" className="mystic-button mt-5" onClick={() => void persistCurrentReading(true)} data-retry-history-save>
@@ -835,7 +835,7 @@ export function ThreeCoinResultClient({
           ) : (
             <div className="mt-8" role="status" data-history-saving>
               <p className="text-sm leading-7 text-[var(--ink-2)]">
-                {t("Saving this completed cast to your account History before reveal…", "正在先把这次 completed cast 保存到账户 History…")}
+                {t("Saving this completed cast to your account History before reveal…", "正在先把这次已完成起卦保存到账户历史记录…")}
               </p>
             </div>
           )}
