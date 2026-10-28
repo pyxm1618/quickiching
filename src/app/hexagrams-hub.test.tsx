@@ -56,16 +56,14 @@ describe("hexagram hub inbound anchors", () => {
     }
   });
 
-  it("connects each locale home, hub, and all 64 detail routes", () => {
+  it("keeps each locale home as the confirmed single-stage entry while hubs retain all 64 detail routes", () => {
     const englishHome = renderWithClassicReact(<EnglishHomePage />);
     const chineseHome = renderWithClassicReact(<ChineseHomePage />);
     const englishHub = renderToStaticMarkup(<EnglishHexagramsHubPage />);
     const chineseHub = renderToStaticMarkup(<ChineseHexagramsHubPage />);
 
-    expect(englishHome).toContain('href="/hexagrams"');
-    expect(englishHome).toContain('data-seo-hub-link="/hexagrams"');
-    expect(chineseHome).toContain('href="/zh/hexagrams"');
-    expect(chineseHome).toContain('data-seo-hub-link="/zh/hexagrams"');
+    expect(englishHome).toContain("data-three-coin-home-stage");
+    expect(chineseHome).toContain("data-three-coin-home-stage");
     expect(englishHub).toContain('data-seo-home-link="/"');
     expect(chineseHub).toContain('data-seo-home-link="/zh"');
 
