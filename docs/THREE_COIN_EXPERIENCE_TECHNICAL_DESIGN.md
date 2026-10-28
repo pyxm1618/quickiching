@@ -47,8 +47,11 @@
 6. 铜钱落定后展示三枚正反面、6 / 7 / 8 / 9、阴阳和动爻。
 7. 用户确认“记录这一爻”后进入下一次。
 8. 共六次，自下而上形成六爻。
-9. 第六爻确认完成后，铜钱退场，六爻 / 卦象接管视觉中心。
-10. 继续进入现有结果页、免费解读和 AI Deep Reading。
+9. 第六爻确认完成后，铜钱退场，完整六爻接管视觉中心，但暂不揭示本卦名称和免费解读。
+10. 在结果揭示前完成登录检查；未登录用户进入现有 Sign In，登录后返回同一份 completed cast。
+11. 使用现有 `POST /api/readings` 将 completed cast 幂等保存到账户 History。
+12. 保存成功后才 reveal 本卦 / 动爻 / 之卦和免费解读。
+13. 免费解读之后继续复用现有 credit / entitlement / AI Deep Reading。
 
 本次不建立第二套起卦系统，也不建立第二套结果系统。
 
@@ -137,7 +140,7 @@ Three.js 只能读取已经生成的 `coinFaces` 并把铜钱动画落到相同�
 - AI Deep Reading；
 - 登录、credit、entitlement、风险控制。
 
-本次只调整进入结果时的视觉连续性。
+本次只调整进入结果时的视觉连续性与登录门槛时机：**免费结果的正式 reveal 改为 completed cast 成功保存到登录用户账户之后发生**。Auth、History、Payment、Credit、Deep Reading 的服务端能力和 API contract 继续复用。
 
 ---
 
@@ -662,87 +665,205 @@ type ThreeCoinSceneProps = {
 
 ---
 
-## 15. 第六爻与结果转场
+## 15. 第六爻、登录保存与结果 Reveal
 
-当前 result route 继续保留。
+当前 result route 继续保留：
 
-新流程只增加视觉过渡：
+- `/readings/three-coin/result`
+- `/zh/readings/three-coin/result`
 
-1. 第六爻保存成功；
-2. 动画落定；
-3. 用户完成“记录这一爻”；
-4. ExperienceStage → `result-transition`；
-5. 铜钱和粒子退场；
-6. 完整六爻成为视觉中心；
-7. 使用现有完成条件确认 session 完整；
-8. 导航到现有 result route；
-9. Result 页面继续读取现有 reading/session 数据。
+不新增第二套结果页面。
 
-不要：
+### 15.1 第六爻完成后的固定状态顺序
 
-- 在首页重新实现完整结果页；
-- 把结果页面逻辑复制进 ThreeCoinTool；
-- 为了动画废掉 result route。
+第六爻必须先成为本地 authoritative completed cast。
 
-恢复到一个已经完成六爻的 session 时，继续允许现有恢复逻辑直接进入结果，不要求重新播放六次仪式。
+固定顺序：
 
-### 15.1 登录 / 付费接入时机
+```
+第六爻生成
+  ↓
+writeThreeCoinSteps(...) 成功
+  ↓
+第六爻 3D 动画落定
+  ↓
+用户记录第六爻
+  ↓
+六条爻完整形成
+  ↓
+ExperienceStage = "result-transition"
+  ↓
+进入现有 result route
+  ↓
+进入 auth / persistence gate
+  ↓
+账户保存成功
+  ↓
+Result Reveal
+```
 
-新的首页与起卦流程**不新增 Auth、Payment、Credit 或 Deep Reading API**。
+在进入 Result Reveal 之前：
 
-继续复用现有结果页商业链路：
+- 可以显示完整六爻；
+- 可以显示“六爻已成 / 起卦完成”的过渡状态；
+- **不得渲染本卦名称、卦号、之卦名称或免费解读正文；**
+- 不得触发 AI Deep Reading；
+- 不得因登录或网络往返重新生成任何一爻。
+
+### 15.2 不新增“生成卦象”业务按钮
+
+本次不新增一个独立的“生成卦象”业务步骤。
+
+原因：
+
+- 六爻完成后，本卦 / 动爻 / 之卦属于现有确定性计算结果；
+- 它们不需要用户再触发一次随机或业务计算；
+- 用户真正需要执行的动作是“登录并保存本次起卦”。
+
+因此：
+
+- 第六爻完成后，视觉上自动进入“六爻已成”状态；
+- 未登录时唯一新的业务 CTA 是**登录以保存并查看本次结果**；
+- 最终 CTA 文案、位置、尺寸、样式必须按确认设计稿；
+- 开发者不得自行增加“生成卦象”“继续计算”等额外按钮。
+
+### 15.3 未登录用户
+
+result route 已有 `getCurrentUser({ allowUnavailable: true })`。
+
+当 `initialUser === null` 时，新 presentation 必须进入 **AUTH_REQUIRED_BEFORE_REVEAL** 状态。
+
+该状态：
+
+- 从现有 browser session 恢复同一份 completed cast；
+- 显示完整六爻及已确认的登录门槛视觉；
+- 不 mount / 不展示免费结果正文；
+- 不调用 Deep Reading；
+- 提供现有 Sign In 链接；
+- callbackURL 必须指向当前 result route / 当前浏览器 return path。
+
+登录前 completed cast 仍保留在现有浏览器 session 中。
+
+不允许：
+
+- 清除 session；
+- 生成新 `clientCastingId` 来替代本次结果；
+- 修改 question；
+- 修改 line values；
+- 重新随机；
+- 让用户重新完成六次起爻。
+
+### 15.4 登录返回同一份 Completed Cast
+
+登录成功后：
+
+1. Sign In 使用现有 callbackURL 返回同一个 result route；
+2. result route 重新执行现有 `getCurrentUser(...)`；
+3. browser session 继续恢复登录前的同一组六爻、同一 question、同一 client casting identity；
+4. 前端调用现有 `POST /api/readings`；
+5. 请求继续使用现有：
+   - `clientCastingId`
+   - `lineValuesBottomUp`
+   - `question`
+6. 依赖现有幂等语义，避免重复创建同一次起卦；
+7. 保存成功得到 `castingId`；
+8. 当前 URL 使用现有机制写入 `session=<castingId>`；
+9. 此时才允许进入 Result Reveal。
+
+**不得新增新的保存 API。**
+
+### 15.5 已登录用户
+
+如果用户在起卦前已经登录：
+
+- 首页和六次起爻不增加新的 auth 检查 UI；
+- 第六爻完成后照常进入现有 result route；
+- result route 通过现有 `getCurrentUser(...)` 得到用户；
+- 自动使用现有 `POST /api/readings` 幂等保存当前 completed cast；
+- 保存期间显示设计稿规定的“完成 / 保存中”过渡状态；
+- 保存成功后直接 Result Reveal；
+- 不显示登录 CTA。
+
+### 15.6 保存失败
+
+如果 `POST /api/readings` 失败：
+
+- completed cast 仍由现有 browser session 保留；
+- Result Reveal 保持关闭；
+- 显示明确的保存失败状态；
+- 提供重试；
+- 重试继续提交同一个 `clientCastingId`、同一组六爻和同一 question；
+- 不 reroll；
+- 不重新起卦；
+- 不因为 retry 创建第二份历史记录。
+
+只有账户保存成功才能解除 reveal gate。
+
+### 15.7 Result Reveal
+
+账户持久化成功后才开始正式 reveal：
+
+1. 六爻按设计稿 / Motion Reference 进入结果构图；
+2. 揭示本卦；
+3. 揭示动爻；
+4. 有动爻时揭示之卦；
+5. 展示现有免费卦象解读；
+6. 本次 reading 已经存在于用户账户 History。
+
+这一步继续复用：
+
+- 现有 `buildPublicReading(...)`；
+- 现有 `buildHexagramResult(...)` / interpretation；
+- 现有 `PublicReadingResult` / ThreeCoin result components；
+- 现有 Result Route。
+
+可以调整“什么时候 mount / reveal 这些组件”，不能重写其业务计算。
+
+### 15.8 AI Deep Reading
+
+Result Reveal 完成后再提供现有 AI Deep Reading。
+
+此时用户已经登录，因此：
+
+- 不再出现第二次 Sign In；
+- 继续使用现有 credit / entitlement；
+- 无 credit → 现有 pricing / pack；
+- 有 credit → 现有 `POST /api/readings/:castingId/deep`；
+- 状态恢复继续使用现有 `GET /api/readings/:castingId/deep`。
+
+不新增：
+
+- Auth API；
+- Payment API；
+- Credit API；
+- Deep Reading API；
+- 数据库表；
+- migration。
+
+### 15.9 现有后端边界保持不变
+
+本次需要复用的已有能力包括：
 
 - `getCurrentUser(...)`；
-- 现有 `/signin` / `/zh/signin`；
-- 现有 callbackURL 返回机制；
+- 现有 Sign In / callbackURL；
 - `POST /api/readings`；
 - `GET / POST /api/readings/:castingId/deep`；
-- 现有 credit / entitlement / pricing 流程。
+- casting persistence；
+- History；
+- credit / entitlement；
+- pricing；
+- Deep Reading。
 
-固定接入时序：
+本次产品变化发生在：
 
-```
-Landing
-  ↓
-Question Confirm
-  ↓
-6 次起爻
-  ↓
-免费结果完整展示
-  ↓
-用户主动点击 Deep Reading
-  ↓
-未登录？── 是 → 现有 Sign In → callback 回同一 Result
-  │
-  否
-  ↓
-检查现有 credit / entitlement
-  ↓
-无 credit → 现有 pricing / pack
-  ↓
-有 credit → 现有 Deep Reading
-```
+> **什么时候要求登录、什么时候保存、什么时候允许前端 reveal 免费结果。**
 
-硬性约束：
+不是：
 
-- Landing 不查登录作为进入条件；
-- Question Confirm 不要求登录；
-- Ritual / 六次起爻不要求登录；
-- 免费结果不要求登录；
-- 不允许在第 1～6 爻之间弹登录；
-- 不允许为了“保存结果”提前强迫登录；
-- 未登录用户只有在主动点击 Deep Reading CTA 后才进入 Sign In；
-- 登录成功后必须通过现有 callbackURL 回到**同一份已完成结果**；
-- 回来后继续由现有逻辑将当前 completed reading 幂等持久化到后端；
-- 不重新随机、不重起六爻、不改变 question；
-- 已登录用户直接继续 credit / entitlement；
-- 无 credit 时进入现有 pricing，不新增支付接口；
-- 有 credit 时调用现有 deep-reading API；
-- Auth / Payment / Entitlement 的服务端语义、数据库模型和 API contract 均不得因本次 UI 重构而改变。
-
-因此，本次所谓“登录流程改造”只是**前端接入时机与视觉衔接明确化**，不是重做登录系统。
+> 新建另一套登录、保存、支付或 AI 服务。
 
 ---
+
 
 ## 16. 首页 SEO 的技术边界
 
@@ -986,12 +1107,21 @@ Canvas 只做视觉，设置为不承担业务语义。
 8. retry 保存同一个 step。
 9. 六爻顺序 bottom-up。
 10. settled 后“记录这一爻”不重新计算结果。
-11. 第六爻确认后才进入结果转场。
-12. 已完成 session restore 仍可正确进入 result。
-13. reduced motion 可完成六次。
-14. WebGL fallback 可完成六次。
-15. 英文 / 中文走同一业务路径。
-16. 问题不进入 URL、metadata 或非必要 analytics。
+11. 第六爻确认后进入 completed cast / result-transition，而不是直接 reveal 免费结果。
+12. 未登录用户在 result route 只能看到六爻完成态与登录门槛，不得看到本卦名称 / 卦号 / 之卦名称 / 免费解读正文。
+13. Sign In callback 返回同一个 result route，并恢复登录前同一份 completed cast。
+14. 登录返回后 `POST /api/readings` 使用同一个 client casting identity、同一组六爻和同一 question。
+15. 已登录用户第六爻后无需登录 CTA，但必须先完成账户保存再 reveal。
+16. `POST /api/readings` 失败时保持同一 completed cast、禁止 reveal、可安全 retry 且不 reroll。
+17. 保存成功后才 reveal 本卦 / 动爻 / 之卦与免费解读。
+18. 保存成功后该 reading 可从现有账户 History 恢复。
+19. 免费结果后进入 Deep Reading 时不再次要求登录。
+20. 无 credit 继续现有 pricing；有 credit 继续现有 Deep Reading API。
+21. 已完成 session restore 仍可正确进入对应 auth / persistence / reveal 状态。
+22. reduced motion 可完成六次及登录后的 reveal。
+23. WebGL fallback 可完成六次及登录后的 reveal。
+24. 英文 / 中文走同一业务路径。
+25. 问题不进入 metadata 或非必要 analytics；只有现有受控 result/session 导航可以使用既有标识。
 
 ### 26.3 视觉与动效验收
 
@@ -1134,7 +1264,12 @@ Canvas 只做视觉，设置为不承担业务语义。
 - session restore；
 - storage error；
 - 六次起爻；
-- result navigation。
+- result navigation；
+- auth-before-reveal gate；
+- 登录 callback 恢复同一 completed cast；
+- 现有 `POST /api/readings` 账户保存；
+- History 持久化完成后才 reveal；
+- Deep Reading 继续现有 credit / pricing 链路。
 
 先保证新布局下业务完整正确。
 
@@ -1181,8 +1316,8 @@ Canvas 只做视觉，设置为不承担业务语义。
 - 重写 AI；
 - 改支付；
 - 改 credit；
-- 改登录；
-- 改 History；
+- 重写登录系统 / Auth API / Sign In 语义；本次只允许调整登录门槛出现时机与返回后的视觉续接；
+- 重写 History 数据模型或保存接口；本次只允许要求 completed cast 在 reveal 前通过现有能力写入 History；
 - 重做六十四卦；
 - 重做蓍草；
 - 重做梅花易数；
@@ -1214,7 +1349,7 @@ Canvas 只做视觉，设置为不承担业务语义。
 
 本次正确实现应满足：
 
-> **现有业务系统继续决定“问了什么、掷出了什么、保存了什么、形成什么卦、展示什么结果”；新代码必须在锁定的基准环境中 100% 像素级还原已确认设计稿，并 100% 忠实执行已确认动效参考。业务不得重写，视觉零自由发挥；缺素材 / 缺动效定义只能 BLOCKED 并向用户索取，不能自行替代。**
+> **现有业务系统继续决定“问了什么、掷出了什么、形成什么卦、如何保存、如何登录、如何进入 History、如何付费、如何生成 Deep Reading”；本次只改变前端主流程与 reveal 时机：六爻完成后必须登录并通过现有能力保存到账户 History，保存成功才揭示免费结果。新代码同时必须在锁定的基准环境中 100% 像素级还原已确认设计稿，并 100% 忠实执行已确认动效参考。业务不得重写，视觉零自由发挥；缺素材 / 缺动效定义只能 BLOCKED 并向用户索取，不能自行替代。**
 
 判断任何技术改动是否应该进入本次开发，只问一个问题：
 
