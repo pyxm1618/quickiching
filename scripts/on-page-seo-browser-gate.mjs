@@ -40,16 +40,9 @@ const GUIDE_PATHS = [
   "/guides/primary-relating-hexagrams",
 ];
 const REQUIRED_INTERNAL_EDGES = {
-  "/": [
-    "/methods/three-coin",
-    "/methods/yarrow-stalks",
-    "/methods/mei-hua-yi-shu",
-    "/methods/manual-cast",
-    "/guides/how-to-ask-the-i-ching",
-    "/guides/changing-lines",
-    "/guides/primary-relating-hexagrams",
-    "/hexagrams",
-  ],
+  // The redesigned homepage is intentionally a single Three-Coin stage.
+  // Crawlable content routes remain in the site navigation / route graph instead of the old long-form homepage body.
+  "/": [],
   "/methods/three-coin": ["/guides/how-to-ask-the-i-ching", "/guides/changing-lines", "/guides/primary-relating-hexagrams"],
   "/methods/yarrow-stalks": ["/", "/methods/three-coin", "/guides/changing-lines", "/guides/primary-relating-hexagrams"],
   "/methods/mei-hua-yi-shu": ["/", "/hexagrams", "/guides/changing-lines"],
