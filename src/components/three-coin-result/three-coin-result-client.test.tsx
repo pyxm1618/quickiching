@@ -427,6 +427,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
         locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
+        initialUser={{ id: "usr_1", email: "test@example.com" }}
         initialState={{
           kind: "ready", lineValues: [7, 7, 7, 7, 7, 7],
           question: "这次变化中我应该先看清什么？",
