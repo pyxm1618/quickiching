@@ -174,9 +174,10 @@ export function ThreeCoinResultClient({
   );
   const [user] = useState<{ id: string; email: string } | null>(initialUser);
   const [credits, setCredits] = useState<number>(initialCredits);
-  const initialReport = readingReportSchema.safeParse(initialCastingView?.readingReport);
-  const initialLegacyReport = legacyReadingReportSchema.safeParse(initialCastingView?.readingReport);
-  const initialSnapshot = deepReadingContextSnapshotSchema.safeParse(initialCastingView?.deepSnapshot);
+  const ownedInitialCastingView = initialCastingView?.owns ? initialCastingView : null;
+  const initialReport = readingReportSchema.safeParse(ownedInitialCastingView?.readingReport);
+  const initialLegacyReport = legacyReadingReportSchema.safeParse(ownedInitialCastingView?.readingReport);
+  const initialSnapshot = deepReadingContextSnapshotSchema.safeParse(ownedInitialCastingView?.deepSnapshot);
   const [deepStatus, setDeepStatus] = useState<DeepStatus>(initialReport.success || initialLegacyReport.success ? "completed" : "idle");
   const [deepReport, setDeepReport] = useState<DeepReadingReport | null>(initialReport.success ? initialReport.data : null);
   const [legacyReport, setLegacyReport] = useState<CommercialReadingReport | null>(initialLegacyReport.success ? initialLegacyReport.data : null);
@@ -428,7 +429,8 @@ export function ThreeCoinResultClient({
     async function init() {
       // 优先从服务端 initialCastingView 恢复
       if (
-        initialCastingView?.lineValuesBottomUp &&
+        initialCastingView?.owns &&
+        initialCastingView.lineValuesBottomUp &&
         initialCastingView.lineValuesBottomUp.length === 6
       ) {
         if (active) {
