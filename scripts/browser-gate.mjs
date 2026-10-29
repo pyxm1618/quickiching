@@ -119,7 +119,8 @@ async function verifyHttpAndSeo() {
   const homeHtml = await home.text();
   assert(homeHtml.includes(`<title>${HOME_TITLE}</title>`), "Exact homepage title is missing from initial HTML");
   assert(homeHtml.includes(`content="${HOME_DESCRIPTION}"`), "Exact homepage description is missing from initial HTML");
-  assert(homeHtml.includes(HOME_H1), "Exact homepage H1 is missing from initial HTML");
+  const initialHeadings = [...homeHtml.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gu)].map((match) => match[1].replace(/<[^>]+>/gu, ""));
+  assert.deepEqual(initialHeadings, [HOME_H1], "Exact homepage H1 is missing from initial HTML");
   assert(homeHtml.includes("data-three-coin-home-stage"), "Homepage Three-Coin single-stage scaffold is missing from initial HTML");
   assert(!homeHtml.includes('"@type":"FAQPage"'), "Homepage must not keep FAQ structured data after the visible FAQ was removed");
 
@@ -314,8 +315,8 @@ async function skipOptionalQuestion(page) {
   });
   assert(skipped, "Question skip must clearly leave this cast free-only");
   if (homeRitual) {
-    await waitForText(page, "Confirm your question");
-    await clickButton(page, "Start Casting");
+    await page.waitForSelector("[data-question-confirm]", { timeout: 5000 });
+    await clickButton(page, "Cast the Coins");
     await waitForText(page, "0 / 6 lines");
     return;
   }
@@ -387,6 +388,7 @@ async function finishThreeCoin(page) {
   await waitForText(page, "1 / 6 lines");
 
   for (let line = 2; line <= 6; line += 1) {
+    await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 5000 });
     await clickButton(page, "Toss three coins");
     await waitForText(page, "Record This Cast");
     await clickButton(page, "Record This Cast");
@@ -500,7 +502,7 @@ async function verifyBrowserFlows() {
         label: `${viewport.width}px navigation/single-stage/footer`,
         skipQuestion: false,
         flow: async (page) => {
-          await waitForText(page, HOME_H1);
+          await page.waitForFunction((wanted) => document.querySelector("h1")?.textContent === wanted, { timeout: 15_000 }, HOME_H1);
           assert(await page.$("[data-three-coin-home-stage][data-experience-stage='landing']"), "Single-stage homepage landing is missing");
           const mobileTrigger = await page.$('header button[aria-controls^="nav-drawer-"]');
           assert(mobileTrigger, "Mobile navigation trigger missing");

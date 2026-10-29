@@ -176,7 +176,7 @@ async function verifyStorageReadFailure(browser) {
     await waitForText(page, "This question could not be saved.");
     const state = await page.evaluate(() => ({
       questionPromptVisible: document.querySelector("[data-question-first] textarea") !== null,
-      castControlsVisible: document.querySelector('[data-realm="chamber"]') !== null,
+      castControlsVisible: document.querySelector('[data-three-coin-presentation] .hold-button') !== null,
       savedQuestionError: document.body?.innerText.includes("This question could not be saved."),
     }));
     assert(state.questionPromptVisible, "Question prompt must remain visible when its storage read fails");
@@ -215,8 +215,8 @@ async function verifyStorageWriteFailureRetry(browser) {
   try {
     await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
     await clickButton(page, "Skip — free reading only");
-    await waitForText(page, "Confirm your question");
-    await clickButton(page, "Start Casting");
+    await page.waitForSelector("[data-question-confirm]", { timeout: 5000 });
+    await clickButton(page, "Cast the Coins");
     await waitForText(page, "0 / 6 lines");
     await clickButton(page, "Toss three coins");
     await waitForText(page, "THREE_COIN_SESSION_WRITE_FAILED");

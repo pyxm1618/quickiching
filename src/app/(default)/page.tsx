@@ -1,3 +1,4 @@
+import { ritualBrush } from "@/components/public-reading/ritual-font";
 import React from "react";
 import type { Metadata } from "next";
 import { QuestionFirst } from "@/components/public-reading/question-first";
@@ -21,7 +22,7 @@ const WEBSITE_STRUCTURED_DATA = {
 
 export default function HomePage() {
   return (
-    <article className="home-oracle" data-three-coin-home-experience>
+    <article className={`home-oracle ${ritualBrush.variable}`} data-three-coin-home-experience>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_STRUCTURED_DATA) }}
