@@ -1,3 +1,4 @@
+import "@/components/public-reading/ritual.css";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth/session";
 import { loadCastingView, loadEntitlementBalance } from "@/server/loaders";
@@ -42,7 +43,8 @@ export default async function ThreeCoinResultPage(props: {
     : undefined;
 
   return (
-    <div data-realm="chamber">
+    <div data-realm="chamber" className="ritual-result-scene">
+      <div className="ritual-room" aria-hidden="true" />
       <ThreeCoinResultClient
         initialSessionId={sessionId}
         initialUser={user ? { id: user.id, email: user.email } : null}

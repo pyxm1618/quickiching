@@ -1,37 +1,34 @@
 # Phase 3–5 implementation / evidence ledger
 
-Base / current commit: `8329ef2f3dfe912a2a0e37fdcbaddb6e06f5bf66` (implementation is uncommitted).
+Base commit: `8329ef2f3dfe912a2a0e37fdcbaddb6e06f5bf66`.
+Performance checkpoint: `3911d3555c6bce582b4a9f5030421e4c0e943687` (pushed and remote SHA verified). The subsequent Complete Coverage changes are recorded in the new checkpoint containing QA_CAPTURE_INDEX.json.
 Branch: `codex/three-coin-visual-phase3-5`.
 
 This ledger records incomplete work. It is not an acceptance certificate.
 
-## Current snapshot (after iteration-22; foreground remains NOT PASS)
+## Current snapshot — Complete Coverage finished; Strict Pixel Closeout started
 
-- Latest fetched `origin/main` remains `8329ef2f3dfe912a2a0e37fdcbaddb6e06f5bf66`; behind count 0. Branch implementation remains uncommitted.
-- All three implementation phases remain FAIL/incomplete. Reference coverage remains 7 = 0 PASS + 1 reviewed/NOT PASS + 6 unreviewed; no reference is excluded.
-- Latest full unit run: 133 files / 877 tests PASS. New reduced-motion/trail/emission tests have observed red-to-green evidence.
-- Latest complete local CI (attempt 6): functional/SEO/language/transaction/auth/navigation/logo gates PASS; overall FAIL because mobile LCP is 7898ms. Desktop LCP is 2313ms. New non-QA resource sizing has not yet had a successful performance run.
-- Latest full real-Chrome boundary suite: 16/16 PASS, 0 FAIL, 0 unreviewed on iteration-22 build. Includes all eight authoritative faces, both fallbacks, delayed textures, storage retry, six-line auth concealment and EN/ZH Reduced Motion. This is not visual acceptance or real-account History persistence proof.
-- Iteration-21 has reference/runtime/side-by-side/overlay/difference evidence and 8/8 browser source-pixel checks with zero differing channels. Canonical runtime is pixel-identical to iteration-17 despite non-QA resource optimizations. Home foreground remains NOT PASS. Latest airflow shader refinement is not part of this capture.
-- Iterations 16 and 18 correctly rejected transparent WebP derivatives; only the pixel-identical room encodings remain in use. Paper/decorations retain PNG. The original six production masters are unchanged.
-- Isolated background comparison (iteration-16) is PASS with a null difference bounding box against the clean PNG master plus its one right-edge column. This does not certify Home foreground.
-- No PR, push, merge or deployment has been performed. No visual/experience readiness is claimed.
+- Performance checkpoint `3911d3555c6bce582b4a9f5030421e4c0e943687` is pushed and its remote SHA was read back. No reset or baseline switch occurred.
+- Pass 1 coverage: 7 = 0 PASS + 7 reviewed NOT PASS + 0 unreviewed + 0 deferred + 0 rejected. All seven have actual native browser captures, side-by-side, overlay, difference and concrete findings in `PASS_1_DIFF_INVENTORY.md`.
+- All seven states were recaptured on the same QA build `ovnaexo_sa8Yer7I0tDQH`; isolated backgrounds are pixel-identical to the clean master in 7/7 states. Foreground status remains NOT PASS in all seven. No source-art permission waives layout, material or effects.
+- New coverage checkpoint validation: ordinary production build PASS; 134 files / 879 tests PASS; lint PASS; full real-Chrome boundary suite 16/16 PASS, 0 FAIL / 0 unreviewed. Gate tests also assert that the new card/Deep Reading stay absent before save, and saved result lines render 6 → 1 from top to bottom.
+- Result visual fixture uses the actual client with explicit local-only saved-reading props. This is not real authentication/History-save evidence. Its generated route was removed by exact owned-content verification.
+- Full CI remains NOT PASS. Last measured mobile LCP 5670.60ms belongs to an earlier build; no fresh performance PASS is claimed.
+- No PR, merge or deployment. Visual Complete: NO. Phase 3/4/5 remain incomplete.
 
 ## Coverage accounting
 
-Original reference total = 7 = 0 approved/pass + 0 deferred + 0 confirmed reject + 7 unreviewed/unknown at handoff to implementation. No reference is deleted or excluded.
-
-| Reference | Current visual status | Evidence / remaining work |
+| Reference | Visual status | Local evidence directory |
 |---|---|---|
-| ref-01 Home | NOT PASS | `.artifacts/ritual-qa/ref-01/iteration-01` through `iteration-21`: runtime, reference, side-by-side, overlay, difference, environment, comparison JSON. Refining foreground. |
-| ref-02 Question | NOT PASS | Formal source read and image inspected; not yet reached sequential implementation/acceptance. |
-| ref-03 Casting | NOT PASS | Formal source read and image inspected; scene connected to authoritative live casting UI; formal pixel acceptance not reached. |
-| ref-04 Cast Result | NOT PASS | Source inspected; not yet implemented/verified. |
-| ref-05 Progress | NOT PASS | Source inspected; not yet implemented/verified. |
-| ref-06 Auth / Save | NOT PASS | Source inspected; existing gate not restyled or reverified. |
-| ref-07 Result | NOT PASS | Source inspected; existing result not restyled or reverified. |
+| ref-01 Home | NOT PASS | `.artifacts/ritual-qa/seven-state-checkpoint/ref-01` |
+| ref-02 Question | NOT PASS | `.artifacts/ritual-qa/seven-state-checkpoint/ref-02` |
+| ref-03 Casting | NOT PASS | `.artifacts/ritual-qa/seven-state-checkpoint/ref-03` |
+| ref-04 Cast Result | NOT PASS | `.artifacts/ritual-qa/seven-state-checkpoint/ref-04` |
+| ref-05 Six-Line Progress | NOT PASS | `.artifacts/ritual-qa/seven-state-checkpoint/ref-05` |
+| ref-06 Auth / Save Gate | NOT PASS | `.artifacts/ritual-qa/seven-state-checkpoint/ref-06` |
+| ref-07 Result Reveal | NOT PASS | `.artifacts/ritual-qa/seven-state-checkpoint/ref-07` |
 
-Internal coverage states: ref-01 reviewed/fail=1, unreviewed=6, pass=0, rejected=0, deferred=0. Total=7. `NOT PASS` above is not rejection or evidence of completed QA.
+Internal reviewed NOT PASS = 7; unreviewed = 0; PASS = 0. No reference is rejected or excluded. Strict Pixel Closeout is a separate remaining gate.
 
 ## Locked environment
 
@@ -134,3 +131,11 @@ Ref-02 first production capture completed with 0 business random draws; full com
 2026-10-29: checkpoint preserves existing implementation, including the newly connected casting presentation. Fresh production build PASS; complete unit suite 134 files / 879 tests PASS; complete real-Chrome boundary suite 16/16 PASS (0 FAIL, 0 unreviewed); lint and diff whitespace checks PASS. No visual/business code was modified for this checkpoint. Home stays NOT PASS; ref-02–07 complete visual QA is pending; Visual Complete = NO. Full CI remains NOT PASS and was not rerun for this checkpoint. This is a reproducible profiling baseline, not Phase 3–5 completion.
 
 Staging audit: 43 related source/asset/tool/document files; 241 local temporary artifact files excluded and preserved. No reference or original production master is modified. No API, database, migration, Auth backend, History backend, payment or AI changes. QUESTION_LOCKED is UNCHANGED / BUSINESS RELEASE BLOCKED.
+
+After checkpoint: ref-03 actual casting at fixed 500ms captured and compared, NOT PASS (pose/lighting/trail curvature/particle extent/heading metrics). First helper incorrectly serialized DOMStringMap as empty; capture was rejected and repeated with explicit attribute copying, verifying real WebGL and phase. ref-04 real first cast captured and compared, NOT PASS (overbright metallic response, label geometry, result-heading metrics, CTA treatment); final fixture now uses reference Heads/Tails/Tails without changing the algorithm. ref-05 first capture exposed a presentation-layer opacity defect; only the last coin opacity had controlled the whole layer. Fix uses maximum visible opacity, preserving all existing three-coin phases. Revised capture shows the actual single shared-mesh progress coin and bottom-up recorded rows. NOT PASS: overexposed coin, excessive high trails, insufficient smoke richness, progress/sidebar ornament and spacing. Source line data remains authoritative; no second progress state was introduced.
+
+Pass 1 completed: all seven states have native real-browser evidence and an explicit NOT PASS finding list. Scope is still presentation only. Pass 2 begins with a bounded shared-metal calibration (face tint 0x888888; key intensity 2.0) to address observed face overexposure, without changing textures, geometry, camera, particles, paths or business data. Also removes legacy reading-reveal purple/white background and border only within the Ritual result wrapper; other methods retain their original DOM via a Fragment. New screenshots and regression verification pending.
+
+Strict closeout iteration-23: Home has a fresh native runtime/reference/side-by-side/overlay/difference set. Eight source pixel checks PASS, real WebGL/DPR1 confirmed, no console errors. Home remains NOT PASS; material calibration alone does not resolve trails, smoke, particles, typography/card/CTA differences. Fresh ordinary build (without the temporary fixture route), 134 files / 879 tests, lint and full 16/16 Chrome boundary suite PASS. Temporary QA URL returns HTTP 404; generated route is absent from source. These post-checkpoint changes remain uncommitted; remote checkpoint 3911d35 is unchanged. No manual deployment command was run; automated provider deployment status was not checked.
+
+Coverage checkpoint closeout: seven native capture/diff sets share one QA build; all foregrounds remain NOT PASS, all seven isolated clean backgrounds compare exactly. Ordinary build excludes the generated fixture route and returns 404 for it. Fresh 879 unit tests / 16 browser cases / lint PASS. Evidence hashes and complete findings are recorded in QA_CAPTURE_INDEX.json and PASS_1_DIFF_INVENTORY.md. Performance patch a169a4c6dd8ae58e86d4619b89ea039925997257 remains unintegrated. This is a new development checkpoint after 3911d355, not visual completion.

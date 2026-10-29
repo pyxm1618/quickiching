@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Check, ArrowRight, UserRound } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
@@ -795,33 +796,25 @@ export function ThreeCoinResultClient({
     const gateState = resultRevealGate;
     return (
       <div
-        className={`${styles.page} mx-auto min-h-[100svh] w-full max-w-[1180px] px-4 py-10 sm:px-6`}
+        className="ritual-save-gate"
         data-completed-cast-gate={gateState}
-        data-visual-status="internal-scaffold"
+        data-visual-status="in-development"
       >
-        <section className="mx-auto max-w-3xl text-center" aria-labelledby="completed-cast-title">
-          <p className="mystic-kicker">{t("Six lines complete", "六爻已成")}</p>
-          <h1 id="completed-cast-title" className="mt-3 font-display text-3xl font-normal text-white sm:text-5xl">
-            {t("Your completed cast is preserved", "本次起卦已经完成")}
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
-            {t(
-              "These are the same six sealed lines from your browser session. No hexagram name or interpretation is revealed until this cast is saved to your account History.",
-              "这里保留的是浏览器会话中同一组六条已落定爻。保存到账户历史记录成功之前，不会揭示本卦名称或免费解读。",
-            )}
-          </p>
-          <div className="mx-auto mt-8 w-full max-w-[440px]" data-completed-six-lines>
-            <HexagramLines lines={state.lineValues} sealedCount={6} size="lg" showLabels locale={locale} />
-          </div>
+        <section className="ritual-gate-card" aria-labelledby="completed-cast-title">
+          <div className="ritual-gate-complete-mark" aria-hidden="true"><Check /></div>
+          <p className="ritual-gate-complete">{t("Your six lines are complete", "六爻已经完成")}</p>
+          <h1 id="completed-cast-title">{t("Save Your Reading", "保存本次起卦")}</h1>
+          <p className="ritual-gate-description">{!user ? <>{t("Sign in to save this reading and", "登录以保存本次起卦，")}<br />{t("continue to view the full result.", "继续查看完整结果。")}</> : t("Your completed cast is preserved while it is saved to History.", "保存到历史记录期间，同一份已完成起卦始终保留。")}</p>
+          <div className="sr-only" data-completed-six-lines><HexagramLines lines={state.lineValues} sealedCount={6} size="lg" showLabels locale={locale} /></div>
 
           {!user ? (
-            <div className="mt-8" data-auth-required-before-reveal>
-              <Link href={signinHref} prefetch={false} className="mystic-button">
-                {t("Sign in to save and reveal this reading", "登录、保存并查看本次卦象")}
+            <div className="ritual-gate-action" data-auth-required-before-reveal>
+              <Link href={signinHref} prefetch={false} className="ritual-gate-signin" aria-label={t("Sign in to save and reveal this reading", "登录、保存并查看本次卦象")}>
+                <UserRound aria-hidden="true" />{t("Sign In to Save & Reveal", "登录、保存并查看")}<ArrowRight aria-hidden="true" />
               </Link>
             </div>
           ) : persistenceStatus === "error" ? (
-            <div className="mt-8" data-history-save-error role="alert">
+            <div className="ritual-gate-action ritual-gate-error" data-history-save-error role="alert">
               <p className="text-sm leading-7 text-[var(--danger)]">
                 {actionError ?? t(
                   "Saving failed. The same completed cast is still preserved and has not been revealed.",
@@ -833,7 +826,7 @@ export function ThreeCoinResultClient({
               </button>
             </div>
           ) : (
-            <div className="mt-8" role="status" data-history-saving>
+            <div className="ritual-gate-action" role="status" data-history-saving>
               <p className="text-sm leading-7 text-[var(--ink-2)]">
                 {t("Saving this completed cast to your account History before reveal…", "正在先把这次已完成起卦保存到账户历史记录…")}
               </p>
@@ -862,6 +855,7 @@ export function ThreeCoinResultClient({
   return (
     <>
       <PublicReadingResult
+        presentation="ritual"
         reading={resultReading!}
         onNewReading={startNewReading}
         dictionary={resultDictionary}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { RitualResultCard } from "./ritual-result-card";
 import React, { useEffect, useMemo, useState } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
@@ -49,6 +50,7 @@ export function PublicReadingResult({
   title = dictionary.reading.title,
   headingLevel = "h3",
   newReadingLabel = dictionary.reading.newReading,
+  presentation = "default",
 }: {
   reading: PublicReading;
   onNewReading?: () => void;
@@ -59,6 +61,7 @@ export function PublicReadingResult({
   title?: string;
   headingLevel?: "h1" | "h3";
   newReadingLabel?: string;
+  presentation?: "default" | "ritual";
 }) {
   const [bundles, setBundles] = useState<{ primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null }>(initialBundles ?? {});
   const [resolvedLocalizedContent, setResolvedLocalizedContent] = useState<LocalizedReadingContent | undefined>(localizedContent);
@@ -122,7 +125,9 @@ export function PublicReadingResult({
     [reading, bundles, resolvedLocalizedContent],
   );
   const isChinese = dictionary.locale === "zh-Hans";
-  const ResultHeading = headingLevel;
+  const ritual = presentation === "ritual";
+  const ResultHeading = ritual ? "h2" : headingLevel;
+  const ResultDetails = ritual ? "div" : React.Fragment;
   const movingPositions = reading.changingLines.join(isChinese ? "、" : ", ");
   const hasChangingLines = reading.changingLines.length > 0;
   const bridgeLabel = hasChangingLines
@@ -149,6 +154,8 @@ export function PublicReadingResult({
 
   return (
     <section className="reading-reveal" aria-live="polite" aria-labelledby="public-reading-result-title" data-public-reading-result data-reading-fingerprint={readingFingerprint(reading)}>
+      {ritual ? <RitualResultCard reading={reading} primary={model.primary} zh={isChinese} onNewReading={onNewReading} onSave={save} saved={saveState === "saved"} /> : null}
+      <ResultDetails {...(ritual ? {className:"ritual-result-details"} : {})}>
       <div className="text-center">
         <p className="mystic-kicker">{resolveReadingKicker(reading, dictionary)}</p>
         <ResultHeading id="public-reading-result-title" className="mt-2 font-display text-3xl font-normal tracking-[-0.03em] sm:text-4xl">{title}</ResultHeading>
@@ -306,6 +313,7 @@ export function PublicReadingResult({
       </div>
 
       <p className="mt-7 border-t border-white/[0.08] pt-5 text-xs leading-6 text-[var(--ink-3)]">{dictionary.reading.safety}</p>
+      </ResultDetails>
     </section>
   );
 }

@@ -22,3 +22,5 @@ QA environment: real installed Chrome 155.0.8059.85 through local Puppeteer, mac
 2026-10-28 user clarification: background area is independently validated against bg-stage-master-clean.png. Concept background differences are an intentional deviation only for that area. Foreground tolerances are not broadened.
 
 2026-10-29 owner instruction supersedes sequential PASS gating: Pass 1 must implement and capture all seven states with concrete findings (PASS/NOT PASS), then Pass 2 closes each strictly. Home iteration-22 is frozen NOT PASS. Core files have one writer; performance remains a separate blocker.
+
+2026-10-29: profiling checkpoint 3911d3555c6bce582b4a9f5030421e4c0e943687 committed/pushed with fresh build, 879 unit tests and 16 browser cases PASS. Continued core work immediately. Pass 1 seven-state real screenshot/diff coverage is now complete (7 NOT PASS, 0 unreviewed), recorded in PASS_1_DIFF_INVENTORY.md. Pass 2 started at Home iteration-23, still NOT PASS. No visual readiness or full CI PASS is claimed.

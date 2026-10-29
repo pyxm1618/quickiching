@@ -142,7 +142,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     textures.forEach(texture=>{texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=renderer.capabilities.getMaxAnisotropy();});
     const {geometry:coinGeometry}=createCoinGeometry();
     const edgeMaterial=new THREE.MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0xa97432,metalness:0.83,roughness:0.32});
-    const faceMaterials=textures.map(map=>new THREE.MeshStandardMaterial({map,color:0x999999,bumpMap:map,bumpScale:0.0015,metalness:0.78,roughness:0.4,envMapIntensity:0.15,emissive:0xb77022,emissiveMap:map,emissiveIntensity:0.02}));
+    const faceMaterials=textures.map(map=>new THREE.MeshStandardMaterial({map,color:0x888888,bumpMap:map,bumpScale:0.0015,metalness:0.78,roughness:0.4,envMapIntensity:0.15,emissive:0xb77022,emissiveMap:map,emissiveIntensity:0.02}));
     const haloGeometry=new THREE.PlaneGeometry(2.5,2.5);
     const haloMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
       vertexShader:`varying vec2 p;void main(){p=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -155,7 +155,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       scene.add(coin);return coin;
     });
     scene.add(new THREE.AmbientLight(0xffffff,0.25));
-    const key=new THREE.DirectionalLight(0xfff1d3,3.5);key.position.set(700,-500,500);scene.add(key);
+    const key=new THREE.DirectionalLight(0xfff1d3,2.0);key.position.set(700,-500,500);scene.add(key);
     const rim=new THREE.DirectionalLight(0xffae48,4);rim.position.set(700,-100,-600);scene.add(rim);
     const fill=new THREE.DirectionalLight(0xffefcd,0.35);fill.position.set(-700,-200,800);scene.add(fill);
     const effects=makeEffects(current.current.visualSeed);scene.add(effects.group);
@@ -189,7 +189,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       if(texturesLoaded<2)return;
       const time=input.phase==='hero'?700:fixedTime===null?performance.now()-start:Number(fixedTime);
       const scale=Math.min(width/1672,height/941)*941/height;
-      let layerOpacity=1;
+      let layerOpacity=0;
       coins.forEach((coin,index)=> {
         const pose=coinPose({phase:input.phase,face:input.faces[index],index,time,seed:input.visualSeed,reducedMotion:reduced.matches});
         const physicalDiameter=190;
@@ -200,7 +200,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         coin.lookAt(camera.position);
         const viewOrientation=coin.quaternion.clone();
         coin.rotation.set(...pose.rotation,pose.rotationOrder);coin.quaternion.premultiply(viewOrientation);
-        coin.visible=pose.opacity>0;layerOpacity=pose.opacity;
+        coin.visible=pose.opacity>0;layerOpacity=Math.max(layerOpacity,pose.opacity);
         coin.userData.targetFace=input.faces[index];coin.userData.settled=pose.settled;
       });
       container!.style.opacity=String(layerOpacity);
