@@ -280,6 +280,10 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
                   aria-current={selected ? "true" : undefined}
                   aria-label={(selected ? "Open Hexagram " : "Select Hexagram ") + item.number + ": " + item.englishName}
                   tabIndex={nearby ? 0 : -1}
+                  onPointerUp={() => {
+                    const drag = dragRef.current;
+                    if (!selected && (!drag || !drag.moved)) setSelectedHexagram(item);
+                  }}
                   onClick={(event) => {
                     if (performance.now() < suppressClickUntilRef.current) {
                       event.preventDefault();
