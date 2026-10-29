@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ritual-closeout-visual-qa-${{ github.ref }}
-  cancel-in-progress: true
+  group: ritual-closeout-visual-qa-${{ github.sha }}
+  cancel-in-progress: false
 
 jobs:
   capture:
