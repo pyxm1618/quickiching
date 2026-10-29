@@ -1,0 +1,241 @@
+/* Scoped to Account surfaces. Reference: final PNGs supplied 2026-10-29. */
+.qic-account-dialog, .qic-user-menu, .qic-my-readings-page {
+  font-family: "Times New Roman", "Songti SC", serif;
+  --account-gold: #e9a22c;
+  --account-ink: #25170d;
+  --account-paper: #f5d7af;
+}
+.qic-account-dialog {
+  position: fixed; inset: 0; margin: auto; padding: 0; width: 828px; max-width: calc(100vw - 32px);
+  height: 800px; max-height: calc(100dvh - 40px); border: 0; overflow: visible;
+  color: #f7dfaa; background: transparent;
+}
+.qic-account-dialog::backdrop { background: #0009; backdrop-filter: blur(3px); }
+.qic-account-frame {
+  height: 100%; position: relative; padding: 14px 18px 16px; display: flex; flex-direction: column;
+  border: 2px solid #efac32; border-radius: 22px; outline: 1px solid #b47d20; outline-offset: -7px;
+  background: url('/account/dark-landscape.png') left 12px top 12px / 240px 112px no-repeat,
+    url('/account/dark-landscape.png') right 12px top 12px / 240px 112px no-repeat, #100b05;
+  box-shadow: inset 0 0 45px #000, 0 22px 65px #0009;
+}
+.qic-account-frame::before, .qic-account-frame::after { content: ""; position: absolute; width: 39px; height: 35px; pointer-events: none; background: url('/account/frame-corner.png') center / contain no-repeat; }
+.qic-account-frame::before { left: -3px; top: -3px; }
+.qic-account-frame::after { right: -3px; bottom: -3px; transform: rotate(180deg); }
+.qic-account-close { position: absolute; z-index: 2; right: 20px; top: 15px; width: 36px; height: 36px; color: #f8d384; background: none; border: 0; font: 36px/1 "Times New Roman", serif; cursor: pointer; }
+.qic-account-heading { position: relative; flex: 0 0 145px; padding: 12px 50px 14px; text-align: center; color: #fff7e5; }
+.qic-account-heading h1 { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0; color: #f6ce80; font-family: "Snell Roundhand", "Apple Chancery", cursive; font-size: 80px; line-height: 1.12; font-weight: 400; white-space: nowrap; }
+.qic-account-heading h1::before, .qic-account-heading h1::after { content: ""; position: absolute; width: 100px; height: 46px; background: url('/account/cloud-flourish.png') center / contain no-repeat; top: 63px; pointer-events: none; }
+.qic-account-heading h1::before { left: 92px; }
+.qic-account-heading h1::after { right: 70px; transform: rotate(180deg); }
+.qic-account-heading .qic-account-seal { display: inline-block; background: #df0905; border-radius: 5px; padding: 6px 3px; color: #fff4d8; font: 18px/1.05 "Times New Roman", serif; writing-mode: vertical-rl; height: 76px; text-align: center; }
+.qic-account-heading p { font-size: 20px; line-height: 1.3; margin: 8px 0 0; }
+.qic-account-body { flex: 1; min-height: 0; display: flex; }
+.qic-account-primary, .qic-account-settings-primary { width: 100%; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.qic-account-paper {
+  position: relative; color: var(--account-ink); border: 2px solid #cf873b; border-radius: 14px;
+  background: url('/account/paper-landscape.png') right bottom / auto 130px no-repeat,
+    url('/account/paper-texture.png') center / 160px 64px repeat, #f5d7af;
+  box-shadow: inset 0 0 0 3px #ffe2b7, inset 0 0 0 5px #d69a54, inset 0 0 24px #e6ac72;
+}
+.qic-account-dialog h2 { font: bold 25px/1.2 "Times New Roman", "Songti SC", serif; margin: 0; display: flex; align-items: center; gap: 20px; }
+.qic-account-dialog h2 > svg { width: 30px; height: 30px; flex: 0 0 30px; stroke-width: 1.6; color: #674010; }
+.qic-account-identity { padding: 16px 24px; flex: 0 0 136px; }
+.qic-account-identity dl { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.5fr); margin: 8px 0 0 50px; }
+.qic-account-identity dl > div { min-width: 0; padding-right: 18px; }
+.qic-account-identity dl > div + div { border-left: 1px solid #cb995d; padding-left: 44px; }
+.qic-account-identity dt { font-size: 16px; }
+.qic-account-identity dd { font-size: 18px; margin: 5px 0 0; display: flex; align-items: center; gap: 20px; overflow-wrap: anywhere; }
+.qic-account-identity dd svg { width: 23px; height: 23px; flex-shrink: 0; }
+.qic-account-credits { flex: 0 0 184px; position: relative; padding: 15px 22px; border: 1px solid #daa32b; outline: 1px solid #bd7e13; outline-offset: -5px; border-radius: 14px; overflow: hidden; background: url('/account/antique-coins-clean.png') right 160px bottom -32px / 280px auto no-repeat, radial-gradient(ellipse at 60% 90%, #7c3b03a6, transparent 70%), #170e04; }
+.qic-account-credits h2 { color: #ffe4a2; font-weight: 400; }
+.qic-account-credits h2 svg { color: #eec25d; }
+.qic-account-credit-row { display: flex; align-items: center; gap: 14px; margin: 16px 0 0 14px; position: relative; }
+.qic-account-credit-row > strong { border: 1px solid #db9022; background: radial-gradient(circle at 35% 35%, #5c370e, #100b04 75%); border-radius: 50%; box-shadow: 0 0 12px #d58b2266; width: 106px; height: 106px; flex-shrink: 0; display: grid; place-items: center; color: #ffecc4; font-size: 82px; font-weight: 400; line-height: 1; }
+.qic-account-credit-row > span { font-size: 22px; color: #ffe8ae; }
+.qic-account-gold-button { margin-left: auto; min-height: 50px; padding: 12px 28px; display: inline-flex; align-items: center; justify-content: center; gap: 16px; border: 2px solid #f7c66b; border-radius: 9px; background: linear-gradient(130deg, #ffd87b, #ffb631, #ffd986); color: #261600; font-size: 18px; font-weight: bold; box-shadow: 0 0 15px #f4a93888, inset 0 0 0 2px #ffdc91; }
+.qic-account-purchases { flex: 1; min-height: 0; padding: 14px 16px 12px; display: flex; flex-direction: column; }
+.qic-account-purchases h2 { margin: 0 8px 9px; flex-shrink: 0; }
+.qic-account-purchase-scroll { flex: 1; min-height: 0; overflow: auto; }
+.qic-account-purchase-scroll, .qic-my-readings-scroll { scrollbar-gutter: stable; scrollbar-width: auto; scrollbar-color: #efa42d #4b2b0b; }
+.qic-account-purchase-scroll::-webkit-scrollbar, .qic-my-readings-scroll::-webkit-scrollbar { width: 13px; }
+.qic-account-purchase-scroll::-webkit-scrollbar-track, .qic-my-readings-scroll::-webkit-scrollbar-track { background: #3c230c; border: 1px solid #a56818; border-radius: 10px; }
+.qic-account-purchase-scroll::-webkit-scrollbar-thumb, .qic-my-readings-scroll::-webkit-scrollbar-thumb { background: linear-gradient(90deg,#b57115,#ffbb3f,#d98c19); border: 2px solid #5b360d; border-radius: 10px; }
+.qic-account-purchases table { width: 100%; border-collapse: separate; border-spacing: 0 2px; font-size: 15px; text-align: left; }
+.qic-account-purchases th { font-weight: 400; color: #66503c; padding: 3px 12px; }
+.qic-account-purchases td { padding: 12px; background: #fff7e02c; border-top: 1px solid #c99c6e88; border-bottom: 1px solid #c99c6e88; white-space: nowrap; }
+.qic-account-refund-link { text-decoration: underline; color: #724722; background: none; border: 0; cursor: pointer; }
+.qic-account-secondary { width: 100%; padding: 18px 28px 26px; display: flex; flex-direction: column; min-height: 0; }
+.qic-account-back { font: 18px/1.3 "Times New Roman", serif; align-self: flex-start; border: 0; background: none; color: #46301c; padding: 0; cursor: pointer; margin: 0 0 16px; }
+.qic-account-secondary h2 { font-size: 34px; margin: 0 0 8px 68px; }
+.qic-account-rule { font-size: 20px; line-height: 1.4; margin: 0 0 16px 68px; }
+.qic-refund-purchase { margin: 0 0 18px; padding: 20px 28px; display: grid; grid-template-columns: 210px 1fr; gap: 13px 0; border: 1px solid #cc9a62; font-size: 20px; background: #ffefd533; }
+.qic-refund-purchase dd { margin: 0; }
+.qic-account-refund-form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.qic-account-refund-form label { font: bold 25px/1.2 "Times New Roman", serif; margin-top: 4px; }
+.qic-account-refund-form textarea { flex: 1; min-height: 64px; max-height: 106px; resize: vertical; font: 20px/1.4 "Times New Roman", serif; background: #f5e3cfb3; border: 1px solid #ce9d68; border-radius: 8px; padding: 15px 18px; margin-top: 12px; color: #281a12; }
+.qic-account-refund-form textarea::placeholder, .qic-account-delete-form input::placeholder { color: #a6947b; }
+.qic-account-dialog .qic-account-refund-form button, .qic-account-dialog .qic-account-delete-form button { width: 100%; min-height: 56px; margin-top: 20px; border: 1px solid #c19136; border-radius: 9px; color: #261b08; background: linear-gradient(#f8cc69,#d39735); font: 20px/1.25 "Times New Roman", serif; cursor: pointer; }
+.qic-account-dialog .qic-account-refund-form button:disabled { opacity: 1; background: #9a8257; border-color: #ac976e; color: #d8c9ad; cursor: default; box-shadow: inset 0 0 18px #d3bb8066; }
+.qic-account-settings-primary { gap: 14px; }
+.qic-settings-privacy, .qic-settings-actions, .qic-settings-danger { padding: 18px 26px; }
+.qic-settings-privacy { flex: 1.25; }
+.qic-settings-actions { flex: .73; }
+.qic-settings-danger { flex: .93; background-color: #efc5a5; }
+.qic-settings-privacy a, .qic-settings-action-row { display: flex; align-items: center; gap: 26px; padding: 18px 8px 8px 42px; color: #271c0f; }
+.qic-settings-privacy a + a { border-top: 1px solid #b98d585e; margin-top: 8px; }
+.qic-settings-privacy a > svg, .qic-settings-action-row > svg { flex: 0 0 34px; width: 34px; height: 34px; stroke-width: 1.6; }
+.qic-settings-privacy a > svg:last-child { width: 20px; flex: 0 0 20px; margin-left: auto; }
+.qic-settings-privacy strong, .qic-settings-action-row strong { display: block; font-size: 23px; font-weight: 400; }
+.qic-settings-privacy small, .qic-settings-action-row small { display: block; font-size: 15px; line-height: 1.4; margin-top: 3px; }
+.qic-settings-action-row > span { flex: 1; min-width: 0; }
+.qic-account-outline-button, .qic-account-danger-button { min-width: 155px; min-height: 50px; padding: 10px 20px; border: 1px solid #5e3d19; background: transparent; color: #281b0e; font: 20px/1.2 "Times New Roman", serif; border-radius: 8px; cursor: pointer; }
+.qic-settings-danger h2, .qic-settings-danger .qic-settings-action-row > svg { color: #9b2f1b; }
+.qic-settings-danger h2 { padding-bottom: 12px; border-bottom: 1px solid #a8674d66; }
+.qic-settings-danger h2 > svg { color: #9b2f1b; }
+.qic-settings-danger .qic-settings-action-row { padding-top: 12px; align-items: flex-start; }
+.qic-settings-danger small { color: #77503b; }
+.qic-account-danger-button { background: #a53722; border-color: #b95737; color: #fff1db; align-self: center; }
+.qic-account-delete-form { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.qic-account-delete-form h3 { font: bold 32px/1.2 "Times New Roman", serif; margin: 0 0 8px 68px; }
+.qic-account-permanent { font-size: 21px; margin: 0 0 16px 68px; }
+.qic-account-deletion-summary { border: 1px solid #c48c58; padding: 16px 24px 16px 92px; background: #fff4dc33; font-size: 20px; }
+.qic-account-deletion-summary strong { font-size: 23px; }
+.qic-account-deletion-summary ul { margin: 8px 0 12px; padding-left: 26px; list-style: disc; }
+.qic-account-deletion-summary li { margin: 5px 0; }
+.qic-account-deletion-summary li::marker { color: #9f2417; }
+.qic-account-deletion-summary p { border-top: 1px solid #bd966c; padding-top: 12px; font-size: 17px; }
+.qic-account-delete-form label { font: bold 27px/1.2 "Times New Roman", serif; margin: 20px 0 0 84px; }
+.qic-account-delete-form input { margin: 14px 8px 0 84px; width: auto; min-height: 58px; border: 1px solid #bd9368; background: #f7e4cc9c; padding: 10px 26px; font: 24px/1.2 "Times New Roman", serif; color: #2b1c11; border-radius: 8px; }
+.qic-account-dialog .qic-account-delete-form button { margin-left: 84px; margin-right: 8px; width: auto; background: #a23b2c; border-color: #b75841; color: #fff0d7; }
+.qic-account-dialog .qic-account-delete-form button:disabled { background: #a45745; color: #e1b5a3; opacity: .7; cursor: default; }
+.qic-account-delete-form [role="alert"], .qic-account-refund-form [role="alert"] { font-size: 15px; line-height: 1.4; color: #882b1d; }
+.qic-account-load { width: 100%; padding: 28px; font-size: 20px; }
+.qic-account-dialog :focus-visible, .qic-user-menu :focus-visible, .qic-my-readings-page :focus-visible { outline: 2px solid #b5771b; outline-offset: 4px; }
+.qic-user-menu { position: absolute; right: 0; top: calc(100% + 10px); z-index: 60; width: 306px; padding: 20px 14px 30px; color: #fff3d8; border: 2px solid #ad7929; outline: 1px solid #d19b3a; outline-offset: -7px; border-radius: 14px; background: url('/account/dark-landscape.png') right bottom / 100% auto no-repeat, #100d07; box-shadow: 0 15px 35px #0009; }
+.qic-user-menu-identity { display: flex; align-items: center; gap: 16px; padding: 8px 6px 16px; }
+.qic-user-menu-identity > span { width: 54px; height: 54px; flex-shrink: 0; border: 1px solid #f8d886; border-radius: 50%; background: #78502066; display: grid; place-items: center; color: #ffe6a1; font-size: 30px; }
+.qic-user-menu-identity p { font-size: 17px; overflow-wrap: anywhere; min-width: 0; }
+.qic-user-menu-divider { display: flex; align-items: center; gap: 10px; color: #e5b65e; justify-content: center; margin-bottom: 12px; }
+.qic-user-menu-divider::before, .qic-user-menu-divider::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg, transparent, #7c5926); }
+.qic-user-menu-divider::after { transform: rotate(180deg); }
+.qic-user-menu > a, .qic-user-menu > button { display: flex; align-items: center; width: 100%; min-height: 58px; gap: 24px; padding: 10px 18px; font-size: 18px; text-align: left; color: #fff4db; cursor: pointer; border: 1px solid transparent; border-radius: 9px; background: transparent; }
+.qic-user-menu > a + button, .qic-user-menu > button + button { border-top-color: #97703633; }
+.qic-user-menu > a:hover, .qic-user-menu > button:hover, .qic-user-menu > a:focus-visible, .qic-user-menu > button:focus-visible { border-color: #ffc969; background: linear-gradient(90deg,#965719aa,#7b4c1c55); box-shadow: 0 0 10px #e99e2466, inset 0 0 12px #e99e2444; }
+.qic-user-menu svg { color: #e8be69; width: 28px; height: 28px; flex-shrink: 0; }
+.qic-user-menu svg:last-child { width: 18px; height: 18px; margin-left: auto; }
+.qic-account-mobile-menu { display: grid; gap: 4px; }
+.qic-account-mobile-menu a, .qic-account-mobile-menu button { min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 10px 16px; text-align: left; }
+.qic-account-mobile-menu svg { width: 20px; height: 20px; }
+.qic-my-readings-page { min-height: calc(100dvh - 80px); padding: 24px max(24px,calc((100vw - 1220px)/2)) 36px; background: url('/ritual/bg-stage-master-clean.png') center / cover; color: #fff0d2; }
+.qic-my-readings-page .qic-account-heading { height: 160px; padding-top: 10px; }
+.qic-my-readings-page .qic-account-heading h1 { font-size: 100px; }
+.qic-my-readings-page .qic-account-heading p { font-size: 23px; }
+.qic-my-readings-page .qic-account-heading h1::before { left: calc(50% - 365px); top: 58px; }
+.qic-my-readings-page .qic-account-heading h1::after { right: calc(50% - 380px); top: 94px; }
+.qic-my-readings-frame { border: 2px solid #b67b24; outline: 1px solid #edb841; outline-offset: -7px; border-radius: 16px; padding: 13px 12px 13px 14px; background: #090703a8; box-shadow: 0 0 0 2px #2a1b07, 0 12px 30px #0007; }
+.qic-my-readings-scroll { height: 646px; max-height: calc(100dvh - 296px); min-height: 180px; overflow-y: scroll; padding-right: 18px; }
+.qic-my-readings-scroll ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.qic-my-reading { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 16px 30px 16px 44px; min-height: 101px; font-size: 26px; }
+.qic-my-reading strong { font-size: 28px; line-height: 1.2; font-weight: 400; display: block; overflow-wrap: anywhere; }
+.qic-my-reading time { display: block; margin-top: 7px; font-size: 20px; color: #62503c; }
+.qic-reading-arrow { flex-shrink: 0; font: 44px/1 "Times New Roman", serif; }
+.qic-my-reading:hover, .qic-my-reading:focus-visible { color: #ffefd4; background: url('/account/dark-landscape.png') right center / auto 100% no-repeat, #291608; border-color: #ffd783; box-shadow: inset 0 0 0 2px #f3b441, 0 0 12px #f3a126; }
+.qic-my-reading:hover time, .qic-my-reading:focus-visible time { color: #eec581; }
+.qic-no-readings { padding: 28px; font-size: 20px; }
+@media (max-width: 700px), (max-height: 760px) {
+  .qic-account-dialog { max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
+  .qic-account-frame { padding: 10px; }
+  .qic-account-heading { flex-basis: 110px; padding: 8px 20px 12px; }
+  .qic-account-heading h1 { font-size: 52px; }
+  .qic-account-heading .qic-account-seal { height: 52px; font-size: 14px; }
+  .qic-account-heading p { font-size: 16px; }
+  .qic-account-heading h1::before, .qic-account-heading h1::after { display: none; }
+  .qic-account-close { right: 10px; top: 8px; font-size: 30px; }
+  .qic-account-body { overflow-y: auto; }
+  .qic-account-primary, .qic-account-settings-primary { min-height: min-content; }
+  .qic-account-identity { flex-basis: auto; padding: 16px; }
+  .qic-account-identity dl { margin-left: 0; grid-template-columns: 1fr; gap: 10px; }
+  .qic-account-identity dl > div + div { border: 0; padding: 0; }
+  .qic-account-identity dd { font-size: 16px; gap: 8px; }
+  .qic-account-credits { flex-basis: auto; min-height: 182px; padding: 16px; background-position: right -60px bottom -10px; background-size: 240px auto; }
+  .qic-account-credit-row { flex-wrap: wrap; margin-left: 0; gap: 8px; }
+  .qic-account-credit-row > strong { width: 68px; height: 68px; font-size: 52px; }
+  .qic-account-credit-row > span { font-size: 18px; }
+  .qic-account-gold-button { padding: 8px 16px; min-height: 42px; font-size: 16px; }
+  .qic-account-purchases { flex: none; height: 250px; }
+  .qic-account-secondary { min-height: min-content; padding: 18px; }
+  .qic-account-secondary h2, .qic-account-delete-form h3 { font-size: 28px; margin-left: 0; }
+  .qic-account-rule, .qic-account-permanent { margin-left: 0; font-size: 18px; }
+  .qic-refund-purchase { grid-template-columns: minmax(100px, .8fr) 1fr; padding: 16px; gap: 12px; font-size: 17px; }
+  .qic-account-refund-form textarea { min-height: 100px; font-size: 18px; }
+  .qic-settings-privacy, .qic-settings-actions, .qic-settings-danger { padding: 18px; }
+  .qic-settings-action-row, .qic-settings-privacy a { padding-left: 0; gap: 12px; flex-wrap: wrap; }
+  .qic-settings-action-row > span { flex-basis: calc(100% - 50px); }
+  .qic-account-outline-button, .qic-account-danger-button { margin-left: 46px; font-size: 18px; }
+  .qic-account-deletion-summary { padding: 16px; font-size: 18px; }
+  .qic-account-deletion-summary strong { font-size: 20px; }
+  .qic-account-delete-form label { margin-left: 0; font-size: 23px; }
+  .qic-account-delete-form input { margin-left: 0; margin-right: 0; }
+  .qic-account-dialog .qic-account-delete-form button { margin-left: 0; margin-right: 0; }
+  .qic-my-readings-page { padding: 22px 12px; }
+  .qic-my-readings-page .qic-account-heading { height: 130px; }
+  .qic-my-readings-page .qic-account-heading h1 { font-size: 58px; }
+  .qic-my-readings-page .qic-account-heading p { font-size: 17px; }
+  .qic-my-readings-scroll { max-height: calc(100dvh - 260px); padding-right: 10px; }
+  .qic-my-reading { padding: 16px; }
+  .qic-my-reading strong { font-size: 22px; }
+  .qic-my-reading time { font-size: 17px; }
+}
+/* Custom native scrollbar stays visibly draggable on desktop Chrome/macOS. */
+.qic-account-purchase-scroll, .qic-my-readings-scroll { scrollbar-color: auto; }
+.qic-account-dialog { line-height: 1.3; }
+.qic-account-identity dl { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+.qic-account-credits { background-size: 400px auto, auto, auto; background-position: right 120px bottom 0, center, center; }
+.qic-account-settings-primary { display: grid; grid-template-rows: minmax(0, 1.25fr) minmax(0, .8fr) minmax(0, 1fr); height: 100%; }
+.qic-settings-privacy, .qic-settings-actions, .qic-settings-danger { min-height: 0; }
+.qic-settings-privacy a { padding-top: 14px; }
+.qic-account-deletion-summary { line-height: 1.3; }
+@media (max-width: 700px), (max-height: 760px) {
+ .qic-account-settings-primary { display: flex; height: auto; }
+ .qic-account-identity dl { grid-template-columns: 1fr; }
+ .qic-account-credits { background-size: 300px auto; background-position: right -50px bottom 0; }
+}
+.qic-account-scroll-region { position: relative; min-height: 0; padding-right: 22px; }
+.qic-account-purchase-region { flex: 1; min-height: 0; }
+.qic-account-purchase-scroll { height: 100%; }
+.qic-my-readings-region { height: 646px; max-height: calc(100dvh - 296px); min-height: 180px; }
+.qic-my-readings-scroll { height: 100%; max-height: none; min-height: 0; padding-right: 0; }
+.qic-account-purchase-scroll, .qic-my-readings-scroll { scrollbar-gutter: auto; scrollbar-width: none; }
+.qic-account-purchase-scroll::-webkit-scrollbar, .qic-my-readings-scroll::-webkit-scrollbar { display: none; }
+.qic-account-scroll-rail { position: absolute; top: 0; bottom: 0; right: 1px; width: 13px; border: 1px solid #a56818; border-radius: 10px; background: #241605; touch-action: none; }
+.qic-account-scroll-thumb { width: 100%; border: 1px solid #c18220; border-radius: 9px; background: linear-gradient(90deg,#bc7412,#ffbb43,#d98b16); box-shadow: 0 0 6px #dc8e1d80; cursor: grab; }
+.qic-account-scroll-thumb:active { cursor: grabbing; }
+.qic-my-reading { line-height: 1.2; }
+.qic-my-reading time { line-height: 1.2; }
+@media (max-width: 700px), (max-height: 760px) {
+ .qic-my-readings-region { max-height: calc(100dvh - 260px); }
+ .qic-my-readings-scroll { max-height: none; }
+}
+.qic-account-paper { border-color: transparent; border-radius: 0; box-shadow: none; }
+.qic-account-paper::after { content: ""; position: absolute; inset: -2px; border: 16px solid transparent; border-image: url('/account/paper-border.png') 20 stretch; pointer-events: none; }
+.qic-account-identity h2 > svg, .qic-account-purchases h2 > svg, .qic-settings-privacy h2 > svg { stroke: transparent; background: url('/account/ink-knot.png') center / contain no-repeat; }
+.qic-account-credits h2 > svg { stroke: transparent; background: url('/account/gold-knot.png') center / contain no-repeat; }
+.qic-account-secondary h2, .qic-account-delete-form h3 { position: relative; }
+.qic-account-secondary h2::before, .qic-account-delete-form h3::before { content: ""; position: absolute; left: -68px; top: 0; width: 40px; height: 38px; background: url('/account/ink-knot.png') center / contain no-repeat; }
+@media (max-width: 700px), (max-height: 760px) {
+ .qic-account-secondary h2::before, .qic-account-delete-form h3::before { display: none; }
+}
+.qic-account-dialog .qic-account-heading h1 { min-height: 90px; }
+.qic-account-dialog[data-account-surface="account"] .qic-account-heading h1 { font-size: 68px; }
+@media (max-width: 700px), (max-height: 760px) {
+ .qic-account-dialog .qic-account-heading h1 { min-height: 58px; }
+ .qic-account-dialog[data-account-surface="account"] .qic-account-heading h1 { font-size: 48px; }
+}
+.qic-account-credits { background-size: 320px auto, auto, auto; background-position: right 132px bottom 0, center, center; }
+.qic-settings-danger { background-image: linear-gradient(#ae3e2320,#ae3e2320), url('/account/paper-landscape.png'), url('/account/paper-texture.png'); background-position: center, right bottom, center; background-size: auto, auto 130px, 160px 64px; background-repeat: no-repeat, no-repeat, repeat; }
+.qic-account-outline-button { border-radius: 0; clip-path: polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px); }
+@media (max-width: 700px), (max-height: 760px) {
+ .qic-account-credits { background-size: 300px auto; background-position: right -50px bottom 0; }
+}
+.qic-account-purchase-status { text-transform: capitalize; }
+.qic-account-purchase-status[data-paid="true"]::before { content: "✓"; display: inline-grid; place-items: center; width: 17px; height: 17px; margin-right: 9px; border-radius: 50%; background: #995a1a; color: #ffe9c4; font-size: 12px; }

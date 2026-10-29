@@ -4,9 +4,11 @@ import React, { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, LogOut, FileText, ChevronDown } from "lucide-react";
+import { User, Settings, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
+import { openAccountSurface, type AccountSurface } from "@/components/account/account-events";
+import "@/components/account/account.css";
 
 export type UserNavControlProps = {
   initialUser?: { id: string; email: string } | null;
@@ -100,23 +102,19 @@ export function UserNavControl({
     };
   }, [isOpen]);
 
-  async function handleSignOut() {
-    try {
-      await fetch("/api/auth/sign-out", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch {
-      // 降级刷新
-    }
-    window.location.assign(isChinese ? "/zh" : "/");
+  function openModal(surface: AccountSurface) {
+    setIsOpen(false);
+    onItemClick?.();
+    requestAnimationFrame(() => openAccountSurface(surface));
   }
 
   const authPrefix = isChinese ? "/zh" : "";
   const signinHref = `${authPrefix}/signin?callbackURL=${encodeURIComponent(pathname)}`;
   const signupHref = `${authPrefix}/signup?callbackURL=${encodeURIComponent(pathname)}`;
-  const accountHref = `${authPrefix}/account`;
-  const historyHref = `${authPrefix}/history`;
+  const readingsHref = `${authPrefix}/my-readings`;
+  const readingsLabel = isChinese ? "我的解读" : "My Readings";
+  const accountLabel = isChinese ? "我的账户" : "My Account";
+  const settingsLabel = isChinese ? "设置" : "Settings";
 
   if (loading) {
     if (hideUnauthenticated && !isMobileDrawer) {
@@ -175,24 +173,10 @@ export function UserNavControl({
           </div>
         </div>
 
-        <div className="space-y-1">
-          <Link
-            href={accountHref}
-            prefetch={false}
-            onClick={onItemClick}
-            className="flex min-h-11 items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--ink)]"
-          >
-            <User className="h-4 w-4 text-[var(--gold)]" />
-            <span>{copy.accountAndHistory}</span>
-          </Link>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="flex min-h-11 w-full items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--danger)] transition-colors hover:bg-white/[0.08]"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>{copy.signOut}</span>
-          </button>
+        <div className="qic-account-mobile-menu">
+          <Link href={readingsHref} prefetch={false} onClick={onItemClick}><FileText aria-hidden="true" />{readingsLabel}</Link>
+          <button onClick={() => openModal("account")}><User aria-hidden="true" />{accountLabel}</button>
+          <button onClick={() => openModal("settings")}><Settings aria-hidden="true" />{settingsLabel}</button>
         </div>
       </div>
     );
@@ -247,57 +231,12 @@ export function UserNavControl({
       </button>
 
       {isOpen && (
-        <div
-          role="menu"
-          data-user-nav-dropdown
-          className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-white/[0.12] bg-[#120f1d]/95 p-2 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in zoom-in-95 duration-150"
-        >
-          <div className="px-3 py-2 border-b border-white/[0.08] mb-1">
-            <p className="text-[10.5px] uppercase tracking-[0.08em] text-[var(--ink-3)]">{copy.signedInAs}</p>
-            <p className="truncate text-xs font-medium text-[var(--ink)] mt-0.5" title={user.email}>
-              {user.email}
-            </p>
-          </div>
-
-          <Link
-            ref={(node) => { menuItemRefs.current[0] = node; }}
-            href={accountHref}
-            prefetch={false}
-            role="menuitem"
-            onKeyDown={(event) => handleMenuItemKeyDown(event, 0)}
-            onClick={() => setIsOpen(false)}
-            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--gold-2)]"
-          >
-            <User className="h-3.5 w-3.5 text-[var(--gold)]" />
-            <span>{copy.account}</span>
-          </Link>
-
-          <Link
-            ref={(node) => { menuItemRefs.current[1] = node; }}
-            href={historyHref}
-            prefetch={false}
-            role="menuitem"
-            onKeyDown={(event) => handleMenuItemKeyDown(event, 1)}
-            onClick={() => setIsOpen(false)}
-            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--ink)]"
-          >
-            <FileText className="h-3.5 w-3.5 text-[var(--ink-3)]" />
-            <span>{copy.history}</span>
-          </Link>
-
-          <div className="my-1 border-t border-white/[0.08]" />
-
-          <button
-            ref={(node) => { menuItemRefs.current[2] = node; }}
-            type="button"
-            role="menuitem"
-            onKeyDown={(event) => handleMenuItemKeyDown(event, 2)}
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-[var(--danger)] transition-colors hover:bg-white/[0.08] cursor-pointer"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span>{copy.signOut}</span>
-          </button>
+        <div role="menu" data-user-nav-dropdown className="qic-user-menu">
+          <div className="qic-user-menu-identity"><span aria-hidden="true">{initial}</span><p title={user.email}>{user.email}</p></div>
+          <div className="qic-user-menu-divider" aria-hidden="true">☯</div>
+          <Link ref={(node) => { menuItemRefs.current[0] = node; }} href={readingsHref} prefetch={false} role="menuitem" onKeyDown={(event) => handleMenuItemKeyDown(event, 0)} onClick={() => setIsOpen(false)}><FileText aria-hidden="true" /><span>{readingsLabel}</span><ChevronRight aria-hidden="true" /></Link>
+          <button ref={(node) => { menuItemRefs.current[1] = node; }} role="menuitem" onKeyDown={(event) => handleMenuItemKeyDown(event, 1)} onClick={() => openModal("account")}><User aria-hidden="true" /><span>{accountLabel}</span><ChevronRight aria-hidden="true" /></button>
+          <button ref={(node) => { menuItemRefs.current[2] = node; }} role="menuitem" onKeyDown={(event) => handleMenuItemKeyDown(event, 2)} onClick={() => openModal("settings")}><Settings aria-hidden="true" /><span>{settingsLabel}</span><ChevronRight aria-hidden="true" /></button>
         </div>
       )}
     </div>

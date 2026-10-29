@@ -1,3 +1,4 @@
+import { AccountModalHost } from "@/components/account/account-modal-host";
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import "../globals.css";
@@ -31,6 +32,7 @@ export default function DefaultRootLayout({ children }: { children: React.ReactN
         <SiteHeader locale="en" authEnabled={authEnabled} />
         <main className="flex-1">{children}</main>
         <SiteFooter locale="en" />
+        <AccountModalHost locale="en" />
         <SiteAnalytics />
       </body>
     </html>
