@@ -1,11 +1,11 @@
-import * as THREE from 'three';
+import {ExtrudeGeometry,Path,Shape} from 'three';
 
 export function createCoinGeometry() {
-  const shape=new THREE.Shape();shape.absarc(0,0,1,0,Math.PI*2,false);
-  const hole=new THREE.Path();
+  const shape=new Shape();shape.absarc(0,0,1,0,Math.PI*2,false);
+  const hole=new Path();
   hole.moveTo(-.21,-.21);hole.lineTo(-.21,.21);hole.lineTo(.21,.21);hole.lineTo(.21,-.21);hole.closePath();
   shape.holes.push(hole);
-  const geometry=new THREE.ExtrudeGeometry(shape,{depth:.20,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:.012,bevelThickness:.012,curveSegments:192});
+  const geometry=new ExtrudeGeometry(shape,{depth:.20,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:.012,bevelThickness:.012,curveSegments:192});
   geometry.translate(0,0,-.10);
   const caps=geometry.groups.find(group=>group.materialIndex===0);
   const walls=geometry.groups.find(group=>group.materialIndex===1);
