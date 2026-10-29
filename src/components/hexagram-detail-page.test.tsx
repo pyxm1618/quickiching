@@ -79,7 +79,7 @@ describe("static hexagram detail page", () => {
         />,
       );
       expect((html.match(/<h1\b/g) ?? []).length, item.locale + " " + item.number).toBe(1);
-      expect(html).toContain(">" + hexagramSeoFor(item.number, item.locale).finalH1 + "<");
+      expect(html).toContain(">" + (item.locale === "en" ? knowledge.englishName : hexagramSeoFor(item.number, item.locale).finalH1) + "<");
       for (let position = 1; position <= 6; position += 1) {
         expect(html).toContain('id="line-' + position + '"');
       }
@@ -105,8 +105,8 @@ describe("static hexagram detail page", () => {
     }
   });
 
-  it("gives all 128 pages natural early coverage of the primary and at least one core secondary keyword", async () => {
-    for (const seo of hexagramSeoRows()) {
+  it("preserves existing Chinese early keyword coverage", async () => {
+    for (const seo of hexagramSeoRows().filter((row) => row.locale === "zh-Hans")) {
       const knowledge = await loadPublicHexagramKnowledge(seo.number);
       const classicalIndex = CLASSICAL_HEXAGRAMS.findIndex((entry) => entry.number === seo.number);
       const html = renderToStaticMarkup(
@@ -183,30 +183,31 @@ describe("static hexagram detail page", () => {
     expect(failures).toEqual([]);
   }, 15_000);
 
-  it("renders workbook-approved English intent modules and keyworded line headings", async () => {
-    const relationshipNumbers: number[] = [];
+  it("uses the approved knowledge-page structure and only auxiliary sequence navigation for all 64 English pages", async () => {
     for (let number = 1; number <= 64; number += 1) {
       const knowledge = await loadPublicHexagramKnowledge(number);
-      const seo = hexagramSeoFor(number, "en");
-      const html = renderToStaticMarkup(
-        <HexagramDetailPageView
-          locale="en"
-          knowledge={knowledge}
-          seo={seo}
-          previous={number > 1 ? CLASSICAL_HEXAGRAMS[number - 2] : null}
-          next={number < 64 ? CLASSICAL_HEXAGRAMS[number] : null}
-        />,
-      );
-      const normalized = html.toLocaleLowerCase("en-US");
-      expect(normalized, seo.canonicalUrl).toContain(`>${seo.loveKeyword} meaning<`);
-      expect(normalized, seo.canonicalUrl).toContain(`>${seo.unchangingKeyword}<`);
-      expect(html, seo.canonicalUrl).toContain(`Hexagram ${number} Line 1`);
-      expect(html, seo.canonicalUrl).toContain(`Hexagram ${number} Line 6`);
-      if (html.includes("data-relationship-module")) relationshipNumbers.push(number);
-      expect(html, seo.canonicalUrl).toContain(`data-seo-home-link="/"`);
-      expect(html, seo.canonicalUrl).toContain(`data-seo-hub-link="/hexagrams"`);
+      const html = renderToStaticMarkup(<HexagramDetailPageView locale="en" knowledge={knowledge} seo={hexagramSeoFor(number, "en")} previous={number > 1 ? CLASSICAL_HEXAGRAMS[number - 2] : null} next={number < 64 ? CLASSICAL_HEXAGRAMS[number] : null} />);
+      expect(html).toContain("data-basic-identity");
+      expect(html).toContain(">" + knowledge.englishName + "<");
+      expect(html).toContain("What This Hexagram Means");
+      expect(html).toContain("Classical Text &amp; Modern Interpretation");
+      expect(html).toContain("The Six Lines");
+      expect(html).toContain("Modern Meaning");
+      expect(html).not.toContain("Classical Line Text");
+      expect(html).not.toContain("data-reading-cases");
+      expect(html).not.toContain("data-hexagram-relations");
+      expect(html).not.toContain("data-love-module");
+      expect(html).not.toContain("data-seo-home-link");
+      expect(html).not.toContain("Start a Reading");
+      const navigation = html.match(/<nav[^>]*data-auxiliary-navigation[^>]*>([\s\S]*?)<\/nav>/u)?.[1] ?? "";
+      expect(navigation).toContain('href="/hexagrams"');
+      expect(navigation).toContain("Previous");
+      expect(navigation).toContain("Next");
+      expect((navigation.match(/<a\b/gu) ?? []).length).toBe(number === 1 || number === 64 ? 2 : 3);
+      for (const line of knowledge.lines) {
+        expect(html).toContain(line.meaning.replaceAll("&", "&amp;").replaceAll("'", "&#x27;").replaceAll('"', "&quot;"));
+      }
     }
-    expect(relationshipNumbers).toEqual([1, 26, 37, 41, 42, 49, 54, 56]);
   });
 
   it("uses protected Chinese Primary phrases in all six line headings", async () => {
@@ -256,28 +257,16 @@ describe("static hexagram detail page", () => {
     }
   });
 
-  it("includes only the new workbook special English phrases", async () => {
-    const knowledge23 = await loadPublicHexagramKnowledge(23);
-    const knowledge54 = await loadPublicHexagramKnowledge(54);
-    const render = (number: number, knowledge: Awaited<ReturnType<typeof loadPublicHexagramKnowledge>>) => {
-      const index = CLASSICAL_HEXAGRAMS.findIndex((entry) => entry.number === number);
-      return renderToStaticMarkup(
-        <HexagramDetailPageView
-          locale="en"
-          knowledge={knowledge}
-          seo={hexagramSeoFor(number, "en")}
-          previous={index > 0 ? CLASSICAL_HEXAGRAMS[index - 1] : null}
-          next={index < CLASSICAL_HEXAGRAMS.length - 1 ? CLASSICAL_HEXAGRAMS[index + 1] : null}
-        />,
-      );
-    };
-    const hexagram23Html = render(23, knowledge23);
-    expect(hexagram23Html).toContain('data-special-serp-module="hexagram-23"');
-    expect(visibleText(hexagram23Html).toLocaleLowerCase("en-US")).toContain("i ching hexagram 23 meaning splitting apart bo");
-    expect(visibleText(render(54, knowledge54)).toLocaleLowerCase("en-US")).toContain("hexagram 54 in romance reading");
-    for (const number of [52, 61, 64]) {
+  it("does not present absent English translations or stage data as authored classical text", async () => {
+    for (const number of [1, 3, 5, 62, 64]) {
       const knowledge = await loadPublicHexagramKnowledge(number);
-      expect(render(number, knowledge)).not.toContain(`data-special-serp-module="hexagram-${number}"`);
+      const html = renderToStaticMarkup(<HexagramDetailPageView locale="en" knowledge={knowledge} seo={hexagramSeoFor(number, "en")} previous={null} next={null} />);
+      expect(html).not.toContain("English Rendering / Translation");
+      expect(html).not.toContain("Stage / State");
+      expect(html).toContain(knowledge.source.textSourceUrl.replaceAll("&", "&amp;"));
+      expect(html).toContain("Judgment");
+      expect(html).toContain("Image");
+      expect((html.match(/data-hexagram-line=/gu) ?? []).length).toBe(6);
     }
   });
 

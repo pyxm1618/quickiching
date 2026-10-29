@@ -1,0 +1,46 @@
+{
+  "originalTotal": 7,
+  "states": {
+    "approved/pass": 2,
+    "deferred": 5,
+    "confirmedReject": 0,
+    "unreviewedUnknown": 0
+  },
+  "items": [
+    {
+      "item": "Basic Identity",
+      "status": "approved/pass",
+      "evidence": "Existing number, pinyin, English name, trigrams; six bars from real trigram bits."
+    },
+    {
+      "item": "What This Hexagram Means",
+      "status": "deferred",
+      "evidence": "Available core theme/meaning, strength, challenge and orientation shown. Key Energy and Suitable Situations have no dedicated data fields."
+    },
+    {
+      "item": "Classical Text & Modern Interpretation",
+      "status": "deferred",
+      "evidence": "Judgment and Image source links shown. No English renderings or distinct Judgment/Image modern interpretation fields; no substituted text."
+    },
+    {
+      "item": "The Six Lines",
+      "status": "deferred",
+      "evidence": "All six real modern meanings and cautions shown, descending like reference with stable anchors. English rendering and Stage/State fields unavailable; their columns absent."
+    },
+    {
+      "item": "Hexagram-Specific Reading Cases",
+      "status": "deferred",
+      "evidence": "No real case data in the consumed contract; entire section and its local nav entry absent."
+    },
+    {
+      "item": "Relationships with Other Hexagrams",
+      "status": "deferred",
+      "evidence": "No real relation data; no inferred complementary/paired figures; entire section and local nav entry absent."
+    },
+    {
+      "item": "Auxiliary Navigation",
+      "status": "approved/pass",
+      "evidence": "Exactly Previous, Back to 64 Hexagrams, Next; unavailable boundary items disabled, without invented wraparound links."
+    }
+  ]
+}
