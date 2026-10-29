@@ -8,6 +8,7 @@ await mkdir(output,{recursive:true});
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--window-size=1672,941','--force-device-scale-factor=1']});
 try {
  const page=await browser.newPage();await page.setViewport({width:1672,height:941,deviceScaleFactor:1});
+ await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
  const errors=[];page.on('pageerror',error=>errors.push(String(error)));page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
  await page.goto('http://127.0.0.1:3028/?ritualTime=700',{waitUntil:'networkidle0'});
  const consentButtons=await page.$$('button');
