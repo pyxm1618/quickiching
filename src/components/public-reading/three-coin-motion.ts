@@ -122,7 +122,7 @@ export function coinPose(input:{
   const spin=spinProgress(progress,index===2?8:index===1?1.8:1);
   const targetAngle=(index===1&&face==='yang'?6*PI:4*PI)+(face==='yin'?PI:0);
   const precession=Math.pow(Math.sin(spin*PI),index===0?2.5:2)*[1.53,2.4,2.7][index];
-  const roll=Math.pow(Math.sin(clamp(progress/.72)*PI),index===2?10:1)*[.8,1.01,.5][index];
+  const roll=Math.pow(Math.sin(clamp(progress/.72)*PI),index===2?10:1)*[.8,.35,.5][index];
   return {x,y,diameter,rotation:[
     initial[0]*(1-spin)+targetAngle*spin,
     (precession+initial[1]*(1-spin))*(1-guidance),
