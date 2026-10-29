@@ -170,6 +170,7 @@ jobs:
           console.log('BOOTUP_TOP '+JSON.stringify(boot));
           console.log('LONG_TASKS_TOP '+JSON.stringify(longTasks));
           console.log('MAINTHREAD_BREAKDOWN '+JSON.stringify(breakdown));
+          console.log('USER_TIMINGS '+JSON.stringify(report.audits['user-timings']?.details?.items||[]));
           if(performance<65||lcp>4000) process.exit(1);
           NODE
 
