@@ -93,7 +93,7 @@ function wheelStyle(offset: number): CssVars {
   const direction = offset === 0 ? 0 : Math.sign(offset);
   const x = Math.tanh(distance / 3.2) * 430 * direction;
   const y = -Math.min(250, Math.pow(distance, 1.4) * 20);
-  const z = -Math.pow(distance, 1.3) * 70;
+  const z = Math.max(18, 90 - distance * 8);
   return {
     "--wheel-x": x + "px",
     "--wheel-y": y + "px",
