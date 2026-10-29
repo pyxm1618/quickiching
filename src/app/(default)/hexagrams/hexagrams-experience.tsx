@@ -158,6 +158,16 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
 
   const stepSelection = (delta: number) => selectByIndex(selectedIndex + delta);
 
+  const activateWheelIndex = (index: number) => {
+    const item = hexagrams[index];
+    if (!item) return;
+    if (index === selectedIndex) {
+      window.location.assign("/hexagrams/" + item.slug);
+      return;
+    }
+    selectByIndex(index);
+  };
+
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 && event.pointerType === "mouse") return;
     dragRef.current = { pointerId: event.pointerId, startX: event.clientX, lastX: event.clientX, moved: false };
@@ -183,7 +193,12 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
   const finishPointer = (event: PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    if (drag.moved) suppressClickUntilRef.current = performance.now() + 320;
+    if (drag.moved) {
+      suppressClickUntilRef.current = performance.now() + 320;
+    } else {
+      const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-wheel-index]");
+      if (target && event.currentTarget.contains(target)) activateWheelIndex(Number(target.dataset.wheelIndex));
+    }
     dragRef.current = null;
     event.currentTarget.dataset.dragging = "false";
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
@@ -252,17 +267,9 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
           onPointerCancel={finishPointer}
           onWheel={handleWheel}
           onClick={(event) => {
+            if (event.detail !== 0 || performance.now() < suppressClickUntilRef.current) return;
             const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-wheel-index]");
-            if (!target || !event.currentTarget.contains(target)) return;
-            if (performance.now() < suppressClickUntilRef.current) return;
-            const index = Number(target.dataset.wheelIndex);
-            const item = hexagrams[index];
-            if (!item) return;
-            if (index === selectedIndex) {
-              window.location.assign("/hexagrams/" + item.slug);
-              return;
-            }
-            selectByIndex(index);
+            if (target && event.currentTarget.contains(target)) activateWheelIndex(Number(target.dataset.wheelIndex));
           }}
           onKeyDown={(event) => {
             if (event.key === "ArrowRight") {
