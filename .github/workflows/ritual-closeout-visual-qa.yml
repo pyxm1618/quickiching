@@ -131,6 +131,17 @@ jobs:
         run: bun run build
       - name: Install Lighthouse only
         run: bun add --no-save --cache-dir=/tmp/quickiching-bun-cache lighthouse@13.4.1
+      - name: Identify ritual client chunks
+        shell: bash
+        run: |
+          echo "RITUAL_CHUNK_DIAG"
+          grep -l "RITUAL_SHADER_PRECOMPILE_FALLBACK" .next/static/chunks/*.js 2>/dev/null | while read -r f; do
+            wc -c "$f"
+            basename "$f"
+          done
+          grep -l "RoomEnvironment" .next/static/chunks/*.js 2>/dev/null | while read -r f; do
+            echo "ROOM_ENV_CHUNK $(basename "$f") $(wc -c < "$f")"
+          done
       - name: Start production server
         shell: bash
         run: |
