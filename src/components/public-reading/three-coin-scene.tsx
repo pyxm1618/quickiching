@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
+import {
+  ACESFilmicToneMapping,\n  AdditiveBlending,\n  AmbientLight,\n  BufferAttribute,\n  BufferGeometry,\n  CatmullRomCurve3,\n  DirectionalLight,\n  DoubleSide,\n  Euler,\n  Group,\n  HalfFloatType,\n  ImageBitmapLoader,\n  ImageLoader,\n  Matrix4,\n  Mesh,\n  MeshStandardMaterial,\n  PMREMGenerator,\n  PerspectiveCamera,\n  PlaneGeometry,\n  Points,\n  Quaternion,\n  SRGBColorSpace,\n  Scene,\n  ShaderMaterial,\n  Texture,\n  Vector2,\n  Vector3,\n  WebGLRenderTarget,\n  WebGLRenderer,
+} from 'three';
 import { createCoinGeometry } from './three-coin-geometry';
 import { ThreeCoinFallback } from './three-coin-fallback';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -22,49 +24,49 @@ export type ThreeCoinSceneProps = {
 };
 
 function makeEffects(seed:number) {
-  const group=new THREE.Group();
-  const heroCurves=HERO_LIGHT_PATHS.map(points=>new THREE.CatmullRomCurve3(points.map(([x,y])=>new THREE.Vector3(x,y,0)),false,'centripetal'));
+  const group=new Group();
+  const heroCurves=HERO_LIGHT_PATHS.map(points=>new CatmullRomCurve3(points.map(([x,y])=>new Vector3(x,y,0)),false,'centripetal'));
   const samples=290;
-  const geometry=new THREE.BufferGeometry();
-  geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(samples*3),3));
+  const geometry=new BufferGeometry();
+  geometry.setAttribute('position',new BufferAttribute(new Float32Array(samples*3),3));
   const sizes=Float32Array.from({length:samples},(_,i)=>i<90?1.5+visualNoise(seed,i+500)*2.5:0.6+visualNoise(seed,i+500)*0.6);
-  geometry.setAttribute('size',new THREE.BufferAttribute(sizes,1));
-  geometry.setAttribute('opacity',new THREE.BufferAttribute(new Float32Array(samples),1));
-  const material=new THREE.ShaderMaterial({
+  geometry.setAttribute('size',new BufferAttribute(sizes,1));
+  geometry.setAttribute('opacity',new BufferAttribute(new Float32Array(samples),1));
+  const material=new ShaderMaterial({
     uniforms:{intensity:{value:0},dpr:{value:1}},transparent:true,depthWrite:false,
-    blending:THREE.AdditiveBlending,
+    blending:AdditiveBlending,
     vertexShader:`attribute float size;attribute float opacity;varying float vOpacity;varying float vCore;varying float vPrimary;uniform float dpr;void main(){vPrimary=step(1.5,size);float diameter=size+mix(1.2,4.,vPrimary);vCore=size/diameter;vOpacity=opacity;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_PointSize=diameter*dpr;}`,
     fragmentShader:`uniform float intensity;varying float vOpacity;varying float vCore;varying float vPrimary;void main(){float d=length(gl_PointCoord-.5)*2.;float core=1.-smoothstep(vCore*.55,vCore,d);float halo=exp(-d*d*5.)*.18*(1.-core);float a=min(.5,(core+halo)*intensity*vOpacity*mix(.4,1.,vPrimary));vec3 color=mix(vec3(1.25,.38,.05),vec3(2.8,1.18,.22),core);gl_FragColor=vec4(color,a);}`,
   });
-  const points=new THREE.Points(geometry,material);group.add(points);
+  const points=new Points(geometry,material);group.add(points);
   // Warm curved traces and broad translucent qi ribbons are separate effects.
   const strands=Array.from({length:12},(_,index)=> {
-    const geometry=new THREE.BufferGeometry();
-    geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(100*2*3),3));
-    geometry.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(100*2*2),2));
+    const geometry=new BufferGeometry();
+    geometry.setAttribute('position',new BufferAttribute(new Float32Array(100*2*3),3));
+    geometry.setAttribute('uv',new BufferAttribute(new Float32Array(100*2*2),2));
     const indices=[];for(let i=0;i<99;i++) {const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}geometry.setIndex(indices);
-    const material=new THREE.ShaderMaterial({
-      uniforms:{intensity:{value:0}},transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+    const material=new ShaderMaterial({
+      uniforms:{intensity:{value:0}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
       vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
       fragmentShader:`varying vec2 vUv;uniform float intensity;void main(){float d=abs(vUv.x-.5)*2.;float core=exp(-d*d*24.);float halo=exp(-d*d*5.)*.25;float ends=sin(vUv.y*3.14159);vec3 radiance=mix(vec3(1.35,.4,.07),vec3(2.45,1.08,.2),core);gl_FragColor=vec4(radiance,min(.28,(core+halo)*ends*intensity));}`,
     });
-    const ribbon=new THREE.Mesh(geometry,material);group.add(ribbon);return ribbon;
+    const ribbon=new Mesh(geometry,material);group.add(ribbon);return ribbon;
   });
-  const glowMaterial=new THREE.ShaderMaterial({
-    uniforms:{intensity:{value:0},radiance:{value:new THREE.Vector3(1.5,.6,.1)}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  const glowMaterial=new ShaderMaterial({
+    uniforms:{intensity:{value:0},radiance:{value:new Vector3(1.5,.6,.1)}},transparent:true,depthWrite:false,blending:AdditiveBlending,
     vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader:`varying vec2 vUv;uniform float intensity;uniform vec3 radiance;void main(){vec2 p=(vUv-.5)*2.;float a=exp(-dot(p,p)*5.)*intensity;gl_FragColor=vec4(radiance,a);}`,
   });
-  const glow=new THREE.Mesh(new THREE.PlaneGeometry(300,180),glowMaterial);group.add(glow);
+  const glow=new Mesh(new PlaneGeometry(300,180),glowMaterial);group.add(glow);
   const baseGlowMaterial=glowMaterial.clone();baseGlowMaterial.uniforms.radiance.value.set(4,1.6,.22);
-  const baseGlow=new THREE.Mesh(new THREE.PlaneGeometry(140,70),baseGlowMaterial);group.add(baseGlow);
+  const baseGlow=new Mesh(new PlaneGeometry(140,70),baseGlowMaterial);group.add(baseGlow);
   const qi=Array.from({length:6},(_,strand)=> {
-    const geometry=new THREE.BufferGeometry();
-    geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(100*2*3),3));
-    geometry.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(100*2*2),2));
+    const geometry=new BufferGeometry();
+    geometry.setAttribute('position',new BufferAttribute(new Float32Array(100*2*3),3));
+    geometry.setAttribute('uv',new BufferAttribute(new Float32Array(100*2*2),2));
     const indices=[];for(let i=0;i<99;i++) {const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}geometry.setIndex(indices);
-    const material=new THREE.ShaderMaterial({
-      uniforms:{intensity:{value:0},flowTime:{value:0},strandSeed:{value:visualNoise(seed,strand+1200)*100}},transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+    const material=new ShaderMaterial({
+      uniforms:{intensity:{value:0},flowTime:{value:0},strandSeed:{value:visualNoise(seed,strand+1200)*100}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
       vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
       fragmentShader:`
         varying vec2 vUv;uniform float intensity;uniform float flowTime;uniform float strandSeed;
@@ -81,9 +83,9 @@ function makeEffects(seed:number) {
           gl_FragColor=vec4(.91,.73,.53,a);
         }`,
     });
-    const mesh=new THREE.Mesh(geometry,material);group.add(mesh);return mesh;
+    const mesh=new Mesh(geometry,material);group.add(mesh);return mesh;
   });
-  const historyMatrices=Array.from({length:3},()=>Array.from({length:100},()=>new THREE.Matrix4()));
+  const historyMatrices=Array.from({length:3},()=>Array.from({length:100},()=>new Matrix4()));
   const centers=Array.from({length:12},()=>new Float32Array(300));
   const projected=Array.from({length:12},()=>new Float32Array(200));
   return {group,points,strands,glow,baseGlow,qi,heroCurves,historyMatrices,centers,projected};
@@ -101,23 +103,23 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     if(fixedTime!==null && (!Number.isFinite(fixedTime)||fixedTime<0||fixedTime>10000))throw new Error('RITUAL_QA_TIME_INVALID: expected finite milliseconds between 0 and 10000');
     let readinessAnnounced=false;
     function announceReady() {if(!readinessAnnounced){readinessAnnounced=true;current.current.onReady?.();}}
-    let renderer:THREE.WebGLRenderer;
-    try {renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});}
+    let renderer:WebGLRenderer;
+    try {renderer=new WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});}
     catch(error) {console.error('RITUAL_WEBGL_UNAVAILABLE',error);setFallback(true);announceReady();return;}
-    const scene=new THREE.Scene();
+    const scene=new Scene();
     const environmentRoom=new RoomEnvironment();
-    const environmentGenerator=new THREE.PMREMGenerator(renderer);
+    const environmentGenerator=new PMREMGenerator(renderer);
     const environmentTarget=environmentGenerator.fromScene(environmentRoom,0.04);
     scene.environment=environmentTarget.texture;
     environmentRoom.dispose();environmentGenerator.dispose();
-    const camera=new THREE.PerspectiveCamera(35,1672/941,1,10000);
+    const camera=new PerspectiveCamera(35,1672/941,1,10000);
     camera.position.z=941/(2*Math.tan(35*Math.PI/360));
-    renderer.setClearColor(0,0);renderer.outputColorSpace=THREE.SRGBColorSpace;
-    renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
-    const sceneTarget=new THREE.WebGLRenderTarget(1672,941,{type:THREE.HalfFloatType});
+    renderer.setClearColor(0,0);renderer.outputColorSpace=SRGBColorSpace;
+    renderer.toneMapping=ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
+    const sceneTarget=new WebGLRenderTarget(1672,941,{type:HalfFloatType});
     const composer=new EffectComposer(renderer);
     composer.addPass(new TexturePass(sceneTarget.texture));
-    const bloom=new UnrealBloomPass(new THREE.Vector2(1672,941),0.6,0.3,1.0);
+    const bloom=new UnrealBloomPass(new Vector2(1672,941),0.6,0.3,1.0);
     composer.addPass(bloom);
     // Preserve the DOM room under transparent pixels; bloom never replaces the room.
     composer.addPass(new ShaderPass({
@@ -138,40 +140,40 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     // Canonical Desktop still decodes both untouched 2048px production masters; ImageBitmap keeps PNG decode off the main thread.
     const textureSuffix=window.innerWidth<800?'mobile-512':'master';
     const textureUrls=[`/ritual/coin-front-${textureSuffix}.png`,`/ritual/coin-back-${textureSuffix}.png`];
-    const textures=[new THREE.Texture(),new THREE.Texture()];
-    textures.forEach(texture=>{texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=renderer.capabilities.getMaxAnisotropy();});
+    const textures=[new Texture(),new Texture()];
+    textures.forEach(texture=>{texture.colorSpace=SRGBColorSpace;texture.anisotropy=renderer.capabilities.getMaxAnisotropy();});
     if(typeof createImageBitmap==='function') {
-      const loader=new THREE.ImageBitmapLoader();
+      const loader=new ImageBitmapLoader();
       loader.setOptions({imageOrientation:'flipY',premultiplyAlpha:'none'});
       textureUrls.forEach((url,index)=>loader.load(url,bitmap=>{
         if(disposed){bitmap.close();return;}
         textures[index].image=bitmap;textures[index].flipY=false;textures[index].needsUpdate=true;textureReady();
       },undefined,onTextureError));
     } else {
-      const loader=new THREE.ImageLoader();
+      const loader=new ImageLoader();
       textureUrls.forEach((url,index)=>loader.load(url,image=>{
         if(disposed)return;
         textures[index].image=image;textures[index].needsUpdate=true;textureReady();
       },undefined,onTextureError));
     }
     const {geometry:coinGeometry}=createCoinGeometry();
-    const edgeMaterial=new THREE.MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0x9a6b32,metalness:0.9,roughness:0.36});
-    const faceMaterials=textures.map(map=>new THREE.MeshStandardMaterial({map,color:0x715d43,bumpMap:map,bumpScale:0.0015,metalness:0.82,roughness:0.4,envMapIntensity:0.12,emissive:0xb77022,emissiveMap:map,emissiveIntensity:0.003}));
-    const haloGeometry=new THREE.PlaneGeometry(2.5,2.5);
-    const haloMaterial=new THREE.ShaderMaterial({uniforms:{strength:{value:.18}},transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+    const edgeMaterial=new MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0x9a6b32,metalness:0.9,roughness:0.36});
+    const faceMaterials=textures.map(map=>new MeshStandardMaterial({map,color:0x715d43,bumpMap:map,bumpScale:0.0015,metalness:0.82,roughness:0.4,envMapIntensity:0.12,emissive:0xb77022,emissiveMap:map,emissiveIntensity:0.003}));
+    const haloGeometry=new PlaneGeometry(2.5,2.5);
+    const haloMaterial=new ShaderMaterial({uniforms:{strength:{value:.18}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
       vertexShader:`varying vec2 p;void main(){p=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
       fragmentShader:`uniform float strength;varying vec2 p;void main(){float d=(length(p)-1.);float a=exp(-d*d*350.)*(.2+.8*pow(max(0.,dot(normalize(p),normalize(vec2(-1.,1.)))),3.));gl_FragColor=vec4(1.,.6,.15,a*strength);}`,
     });
     const coins=Array.from({length:3},()=> {
-      const coin=new THREE.Group();
-      const halo=new THREE.Mesh(haloGeometry,haloMaterial.clone());halo.position.z=-0.13;coin.add(halo);
-      coin.add(new THREE.Mesh(coinGeometry,[faceMaterials[0],faceMaterials[1],edgeMaterial]));
+      const coin=new Group();
+      const halo=new Mesh(haloGeometry,haloMaterial.clone());halo.position.z=-0.13;coin.add(halo);
+      coin.add(new Mesh(coinGeometry,[faceMaterials[0],faceMaterials[1],edgeMaterial]));
       scene.add(coin);return coin;
     });
-    scene.add(new THREE.AmbientLight(0xffffff,0.12));
-    const key=new THREE.DirectionalLight(0xfff1d3,1.15);key.position.set(700,-500,500);scene.add(key);
-    const rim=new THREE.DirectionalLight(0xffae48,4.5);rim.position.set(700,-100,-600);scene.add(rim);
-    const fill=new THREE.DirectionalLight(0xffefcd,0.16);fill.position.set(-700,-200,800);scene.add(fill);
+    scene.add(new AmbientLight(0xffffff,0.12));
+    const key=new DirectionalLight(0xfff1d3,1.15);key.position.set(700,-500,500);scene.add(key);
+    const rim=new DirectionalLight(0xffae48,4.5);rim.position.set(700,-100,-600);scene.add(rim);
+    const fill=new DirectionalLight(0xffefcd,0.16);fill.position.set(-700,-200,800);scene.add(fill);
     const effects=makeEffects(current.current.visualSeed);scene.add(effects.group);
     effects.group.position.z=-480;effects.group.scale.setScalar((camera.position.z+480)/camera.position.z);
     let frame=0;
@@ -180,10 +182,10 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     let previousPhase=current.current.phase;let previousSeed=current.current.visualSeed;
     let width=1672,height=941,renderDpr=1;
     const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
-    const samplePosition=new THREE.Vector3(),sampleDirection=new THREE.Vector3(),sampleScale=new THREE.Vector3();
-    const sampleOrientation=new THREE.Quaternion(),sampleLocal=new THREE.Quaternion();
-    const sampleEuler=new THREE.Euler(),rimPoint=new THREE.Vector3(),projection=new THREE.Vector3();
-    const normalZ=new THREE.Vector3(0,0,1),inverseEffects=new THREE.Matrix4();
+    const samplePosition=new Vector3(),sampleDirection=new Vector3(),sampleScale=new Vector3();
+    const sampleOrientation=new Quaternion(),sampleLocal=new Quaternion();
+    const sampleEuler=new Euler(),rimPoint=new Vector3(),projection=new Vector3();
+    const normalZ=new Vector3(0,0,1),inverseEffects=new Matrix4();
     function onTextureError(error:unknown) {if(!disposed){console.error('RITUAL_TEXTURE_UNAVAILABLE',error);setFallback(true);announceReady();}}
     function contextLost(event:Event) {event.preventDefault();setFallback(true);announceReady();}
     renderer.domElement.addEventListener('webglcontextlost',contextLost);
@@ -193,8 +195,6 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       renderer.setPixelRatio(renderDpr);renderer.setSize(width,height,false);
       sceneTarget.setSize(width*renderDpr,height*renderDpr);
       composer.setPixelRatio(renderDpr);composer.setSize(width,height);
-      // Keep the base scene at full Desktop DPR. Bloom is a low-frequency blur, so its internal buffers can render at half resolution and composite back over the full-resolution coins.
-      bloom.setSize(Math.max(1,Math.round(width*renderDpr*.5)),Math.max(1,Math.round(height*renderDpr*.5)));
       camera.aspect=width/height;camera.updateProjectionMatrix();
       render();
     }
@@ -219,7 +219,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         const viewOrientation=coin.quaternion.clone();
         coin.rotation.set(...pose.rotation,pose.rotationOrder);coin.quaternion.premultiply(viewOrientation);
         coin.visible=pose.opacity>0;layerOpacity=Math.max(layerOpacity,pose.opacity);
-        const halo=coin.children[0] as THREE.Mesh<THREE.PlaneGeometry,THREE.ShaderMaterial>;
+        const halo=coin.children[0] as Mesh<PlaneGeometry,ShaderMaterial>;
         halo.material.uniforms.strength.value=input.phase==='settled'?(index===0?.85:.06):.18;
         coin.userData.targetFace=input.faces[index];coin.userData.settled=pose.settled;
       });
@@ -234,9 +234,9 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       const effectTime=heroScene?700:time;
       const originX=progressScene?1008:heroScene?1120:835;
       const originY=790;
-      const position=effects.points.geometry.getAttribute('position') as THREE.BufferAttribute;
-      const opacities=effects.points.geometry.getAttribute('opacity') as THREE.BufferAttribute;
-      const sizes=effects.points.geometry.getAttribute('size') as THREE.BufferAttribute;
+      const position=effects.points.geometry.getAttribute('position') as BufferAttribute;
+      const opacities=effects.points.geometry.getAttribute('opacity') as BufferAttribute;
+      const sizes=effects.points.geometry.getAttribute('size') as BufferAttribute;
       for(let i=0;i<position.count;i++) {
         sizes.setX(i,i<90?1.5+visualNoise(input.visualSeed,i+500)*2.5:0.6+visualNoise(input.visualSeed,i+500)*0.6);
         const n=visualNoise(input.visualSeed,i);const altitude=Math.pow(visualNoise(input.visualSeed,i+200),1.35)*(heroScene?500:430);
@@ -255,7 +255,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         position.setXYZ(i,(x-836)*scale,(470.5-y)*scale,20);
       }
       position.needsUpdate=true;opacities.needsUpdate=true;sizes.needsUpdate=true;
-      const particleMaterial=effects.points.material as THREE.ShaderMaterial;
+      const particleMaterial=effects.points.material as ShaderMaterial;
       particleMaterial.uniforms.intensity.value=energy*0.95;particleMaterial.uniforms.dpr.value=renderDpr;
       if(input.phase==='casting') {
         camera.updateMatrixWorld();effects.group.updateMatrixWorld(true);inverseEffects.copy(effects.group.matrixWorld).invert();
@@ -270,8 +270,8 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         }
       }
       effects.strands.forEach((ribbon,index)=> {
-        const positions=ribbon.geometry.getAttribute('position') as THREE.BufferAttribute;
-        const uv=ribbon.geometry.getAttribute('uv') as THREE.BufferAttribute;
+        const positions=ribbon.geometry.getAttribute('position') as BufferAttribute;
+        const uv=ribbon.geometry.getAttribute('uv') as BufferAttribute;
         if(input.phase==='casting') {
           const angle=Math.floor(index/3)*Math.PI/2,centers=effects.centers[index],screen=effects.projected[index];
           for(let i=0;i<100;i++) {
@@ -307,8 +307,8 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         positions.needsUpdate=true;uv.needsUpdate=true;
       });
       effects.qi.forEach((mesh,index)=> {
-        const positions=mesh.geometry.getAttribute('position') as THREE.BufferAttribute;
-        const uv=mesh.geometry.getAttribute('uv') as THREE.BufferAttribute;
+        const positions=mesh.geometry.getAttribute('position') as BufferAttribute;
+        const uv=mesh.geometry.getAttribute('uv') as BufferAttribute;
         for(let i=0;i<100;i++) {
           const t=i/99;const angle=t*9+index*1.5+effectTime/4000;
           const x=originX+Math.sin(angle)*t*210;
@@ -333,7 +333,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       renderer.setRenderTarget(null);composer.render();
       container!.dataset.renderer='three-webgl';container!.dataset.renderDpr=String(renderDpr);container!.dataset.phase=input.phase;container!.dataset.faces=input.faces.join(',');
       // Observed mesh orientation for QA only; never fed into casting/session state.
-      container!.dataset.visibleFaces=coins.map(coin=>new THREE.Vector3(0,0,1).applyQuaternion(coin.quaternion).z>=0?'yang':'yin').join(',');
+      container!.dataset.visibleFaces=coins.map(coin=>new Vector3(0,0,1).applyQuaternion(coin.quaternion).z>=0?'yang':'yin').join(',');
       announceReady();
     }
     function tick() {
@@ -352,7 +352,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       invalidate.current=()=>{};document.removeEventListener('visibilitychange',invalidateScene);reduced.removeEventListener('change',invalidateScene);
       renderer.domElement.removeEventListener('webglcontextlost',contextLost);
       scene.traverse(object=> {
-        const mesh=object as THREE.Mesh;
+        const mesh=object as Mesh;
         mesh.geometry?.dispose();
         if(mesh.material) (Array.isArray(mesh.material)?mesh.material:[mesh.material]).forEach(material=>material.dispose());
       });
