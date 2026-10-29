@@ -24,7 +24,7 @@ export function RitualCastPresentation({zh,motion,steps,visibleStep,complete,can
  const state=complete?'complete':canRecord||(motion==='casting'&&castBeat==='result')?'result':motion==='casting'?'casting':steps.length>0?'progress':'ready';
  useEffect(()=>{
   if(state!=='result')return;
-  const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?180:440;
+  const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?180:265;
   const timer=setTimeout(()=>setRecordEntered(true),duration);
   return ()=>clearTimeout(timer);
  },[state]);
@@ -68,7 +68,7 @@ export function RitualCastPresentation({zh,motion,steps,visibleStep,complete,can
   </>:null}
   {state==='progress'||state==='complete'?<>
    <ol className="ritual-journey" aria-label={t('Ritual steps','起卦流程')}>
-    {[['Open the Home Page','打开首页'],['Enter Your Question','输入问题'],['Throw 3 Coins (Repeat 6 Times)','掷三枚铜钱（重复六次）'],['View the 3 Coins Result','查看掷币结果'],['Repeat 6 Times to Complete All Six Lines','重复六次形成六爻'],['Generate Hexagram and Interpretation','保存后揭示卦象与解读']].map(([en,cn],index)=><li key={en} data-active={index===4} data-done={index<4}><span>{zh?`第 ${index+1} 步`:`Step ${index+1}`}</span><p>{t(en,cn)}</p></li>)}
+    {[['Open the Home Page','打开首页'],['Enter Your Question','输入问题'],['Throw 3 Coins (Repeat 6 Times)','掷三枚铜钱（重复六次）'],['View the 3 Coins Result','查看掷币结果'],['Repeat 6 Times to Complete All Six Lines','重复六次形成六爻'],['Generate Hexagram and Interpretation','保存后揭示卦象与解读']].map(([en,cn],index)=><li key={en} data-active={index===4} data-done={index<4}><span>{zh?`第 ${index+1} 步`:`Step ${index+1}`}</span><p>{zh?cn:index===2?<>{'Throw 3 Coins'}<br/>{'(Repeat 6 Times)'}</>:index===4?<>{'Repeat 6 Times to'}<br/>{'Complete All Six Lines'}</>:en}</p></li>)}
    </ol>
    <ol className="ritual-six-lines" aria-label={t('Six lines, bottom to top','自下而上的六爻')}>
     {[5,4,3,2,1,0].map(index=>{const step=steps[index];const yang=step?.lineValue===7||step?.lineValue===9;return <li key={index} data-line-position={index+1} data-state={step?'done':'waiting'} data-just-recorded={index===steps.length-1}>

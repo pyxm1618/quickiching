@@ -19,7 +19,13 @@ describe('Ritual presentation consumes authoritative casts',()=>{
   const html=renderToStaticMarkup(<RitualCastPresentation {...common} motion="settled" canRecord steps={[]} visibleStep={step}/>);
   expect(html.match(/<button[^>]*data-record-this-cast[^>]*>/)?.[0]).toContain('disabled');
  });
- it('keeps a non-interactive result departure layer during the reset after recording',()=>{
+ it('locks the two reference Progress journey wraps without changing their wording',()=>{
+  const step=generateThreeCoinLine(0,()=>true);
+  const html=renderToStaticMarkup(<RitualCastPresentation {...common} steps={[step]} visibleStep={step}/>);
+  expect(html).toContain('Throw 3 Coins<br/>(Repeat 6 Times)');
+  expect(html).toContain('Repeat 6 Times to<br/>Complete All Six Lines');
+ });
+  it('keeps a non-interactive result departure layer during the reset after recording',()=>{
   const step=generateThreeCoinLine(0,()=>true);
   const html=renderToStaticMarkup(<RitualCastPresentation {...common} steps={[step]} visibleStep={step} resetting/>);
   expect(html).toContain('data-ritual-view="progress"');

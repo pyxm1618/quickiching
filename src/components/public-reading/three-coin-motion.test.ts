@@ -16,7 +16,8 @@ describe('pure Three.js presentation contract', () => {
       const facing=Math.abs(Math.cos(pose.rotation[0])*Math.cos(pose.rotation[1]));
       expect(facing).toBeGreaterThan(.45);
       expect(facing).toBeLessThan(.95);
-      expect(Math.abs(pose.rotation[2])).toBeLessThan(.4);
+      expect(pose.rotation[2]).toBeGreaterThan(-.65);
+      expect(pose.rotation[2]).toBeLessThan(-.35);
     }
   });
   it('freezes the same seed/time to identical poses and decorative samples', () => {

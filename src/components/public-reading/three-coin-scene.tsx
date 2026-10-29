@@ -24,7 +24,7 @@ export type ThreeCoinSceneProps = {
 function makeEffects(seed:number) {
   const group=new THREE.Group();
   const heroCurves=HERO_LIGHT_PATHS.map(points=>new THREE.CatmullRomCurve3(points.map(([x,y])=>new THREE.Vector3(x,y,0)),false,'centripetal'));
-  const samples=210;
+  const samples=290;
   const geometry=new THREE.BufferGeometry();
   geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(samples*3),3));
   const sizes=Float32Array.from({length:samples},(_,i)=>i<90?1.5+visualNoise(seed,i+500)*2.5:0.6+visualNoise(seed,i+500)*0.6);
@@ -58,7 +58,7 @@ function makeEffects(seed:number) {
   const glow=new THREE.Mesh(new THREE.PlaneGeometry(300,180),glowMaterial);group.add(glow);
   const baseGlowMaterial=glowMaterial.clone();baseGlowMaterial.uniforms.radiance.value.set(4,1.6,.22);
   const baseGlow=new THREE.Mesh(new THREE.PlaneGeometry(140,70),baseGlowMaterial);group.add(baseGlow);
-  const qi=Array.from({length:4},(_,strand)=> {
+  const qi=Array.from({length:6},(_,strand)=> {
     const geometry=new THREE.BufferGeometry();
     geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(100*2*3),3));
     geometry.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(100*2*2),2));
@@ -156,7 +156,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     }
     const {geometry:coinGeometry}=createCoinGeometry();
     const edgeMaterial=new THREE.MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0x9a6b32,metalness:0.9,roughness:0.36});
-    const faceMaterials=textures.map(map=>new THREE.MeshStandardMaterial({map,color:0x5f5f5f,bumpMap:map,bumpScale:0.0015,metalness:0.82,roughness:0.4,envMapIntensity:0.12,emissive:0xb77022,emissiveMap:map,emissiveIntensity:0.003}));
+    const faceMaterials=textures.map(map=>new THREE.MeshStandardMaterial({map,color:0x715d43,bumpMap:map,bumpScale:0.0015,metalness:0.82,roughness:0.4,envMapIntensity:0.12,emissive:0xb77022,emissiveMap:map,emissiveIntensity:0.003}));
     const haloGeometry=new THREE.PlaneGeometry(2.5,2.5);
     const haloMaterial=new THREE.ShaderMaterial({uniforms:{strength:{value:.18}},transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
       vertexShader:`varying vec2 p;void main(){p=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -204,7 +204,8 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       const time=input.phase==='hero'?700:fixedTime===null?performance.now()-start:Number(fixedTime);
       const scale=Math.min(width/1672,height/941)*941/height;
       let layerOpacity=0;
-      key.intensity=input.phase==='progress'?.55:1.15;fill.intensity=input.phase==='progress'?.1:.16;
+      key.intensity=input.phase==='progress'?.32:input.phase==='settled'?.60:input.phase==='hero'||input.phase==='hero-exit'?.85:1.15;
+      fill.intensity=input.phase==='progress'?.05:input.phase==='settled'?.07:input.phase==='hero'||input.phase==='hero-exit'?.12:.16;
       coins.forEach((coin,index)=> {
         const pose=coinPose({phase:input.phase,face:input.faces[index],index,time,seed:input.visualSeed,reducedMotion:reduced.matches});
         const physicalDiameter=190;
@@ -217,7 +218,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         coin.rotation.set(...pose.rotation,pose.rotationOrder);coin.quaternion.premultiply(viewOrientation);
         coin.visible=pose.opacity>0;layerOpacity=Math.max(layerOpacity,pose.opacity);
         const halo=coin.children[0] as THREE.Mesh<THREE.PlaneGeometry,THREE.ShaderMaterial>;
-        halo.material.uniforms.strength.value=input.phase==='settled'?(index===0?.55:.06):.18;
+        halo.material.uniforms.strength.value=input.phase==='settled'?(index===0?.85:.06):.18;
         coin.userData.targetFace=input.faces[index];coin.userData.settled=pose.settled;
       });
       container!.style.opacity=String(layerOpacity);
@@ -299,7 +300,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
               uv.setXY(i*2+side,side,i/99);
             }
           }
-          ribbon.material.uniforms.intensity.value=energy*(index<8?.5:.24);
+          ribbon.material.uniforms.intensity.value=energy*(index<8?.62:.36);
         }
         positions.needsUpdate=true;uv.needsUpdate=true;
       });
@@ -311,7 +312,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
           const x=originX+Math.sin(angle)*t*210;
           const y=originY-t*490-((effectTime-index*200)%1300)/1000*25;
           for(let side=0;side<2;side++) {
-            positions.setXYZ(i*2+side,(x-836+(side-.5)*(8+Math.sin(t*Math.PI)*48))*scale,(470.5-y)*scale,12);
+            positions.setXYZ(i*2+side,(x-836+(side-.5)*(10+Math.sin(t*Math.PI)*70))*scale,(470.5-y)*scale,12);
             uv.setXY(i*2+side,side,t);
           }
         }

@@ -3,7 +3,7 @@ import type { CoinFace } from '@/domain/casting/three-coin/algorithm';
 export type CoinScenePhase = 'hero' | 'hero-exit' | 'ready' | 'progress' | 'casting' | 'settled' | 'reset' | 'exit';
 export const COIN_LAUNCH_LEAD_MS = 80;
 export const COIN_MOTION_END_MS = 1750;
-export const CAST_ACTION_MS = 2200;
+export const CAST_ACTION_MS = 2070;
 export const COIN_RESET_MS = 320;
 export const COIN_EXIT_MS = 500;
 const FLIGHT_DURATIONS = [1520,1500,1540] as const;
@@ -36,7 +36,7 @@ export function castTrailIntensity(time:number,index:number):number {
   if(time<launch)return 0;
   const progress=clamp((time-launch)/FLIGHT_DURATIONS[index]);
   const fade=1-smooth(clamp((time-launch-FLIGHT_DURATIONS[index])/220));
-  return .35*(.25+.75*Math.sin(progress*PI))*fade;
+  return .48*(.25+.75*Math.sin(progress*PI))*fade;
 }
 
 // Integral of the specified acceleration / fast-spin / deceleration / settle envelope.
@@ -122,7 +122,7 @@ export function coinPose(input:{
   const spin=spinProgress(progress,index===2?8:index===1?1.8:1);
   const targetAngle=(index===1&&face==='yang'?6*PI:4*PI)+(face==='yin'?PI:0);
   const precession=Math.pow(Math.sin(spin*PI),index===0?2.5:2)*[1.53,2.4,2.7][index];
-  const roll=Math.pow(Math.sin(clamp(progress/.72)*PI),index===2?10:1)*[.8,.35,.5][index];
+  const roll=Math.pow(Math.sin(clamp(progress/.72)*PI),index===2?10:1)*[.8,-.5,.5][index];
   return {x,y,diameter,rotation:[
     initial[0]*(1-spin)+targetAngle*spin,
     (precession+initial[1]*(1-spin))*(1-guidance),
