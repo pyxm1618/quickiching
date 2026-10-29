@@ -311,10 +311,12 @@
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
+  pointer-events: none;
 }
 
 .wheelCard {
   position: absolute;
+  pointer-events: auto;
   left: 50%;
   padding: 0;
   border: 0;
