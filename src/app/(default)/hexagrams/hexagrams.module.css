@@ -316,6 +316,11 @@
 .wheelCard {
   position: absolute;
   left: 50%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
   top: 48%;
   display: block;
   width: clamp(96px, 8.8vw, 150px);
