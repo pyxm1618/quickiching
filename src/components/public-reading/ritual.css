@@ -304,6 +304,17 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 @keyframes ritual-casting-enter {from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes ritual-heading-exit {to{opacity:0;transform:translateY(-8px)}}
 @keyframes ritual-record-enter {from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes ritual-result-heading-exit {to{opacity:0;transform:translateY(-8px)}}
+@keyframes ritual-result-labels-exit {to{opacity:0;transform:translateY(5px)}}
+@keyframes ritual-result-record-exit {to{opacity:0;transform:translateY(6px)}}
+.ritual-result-departure {position:absolute;inset:0;z-index:3;pointer-events:none;}
+.ritual-departing-result-heading {position:absolute;left:calc(480 * var(--u));top:calc(123 * var(--u));width:calc(712 * var(--u));text-align:center;animation:ritual-result-heading-exit 180ms var(--ritual-exit) both;}
+.ritual-departing-result-heading h2 {font:700 calc(64 * var(--u))/1.2 Georgia,serif;margin:calc(12 * var(--u)) 0 0;color:#fff0c7;}
+.ritual-departing-result-heading > p:last-child {font:400 calc(26 * var(--u))/1.25 Georgia,serif;margin:calc(10 * var(--u)) calc(-100 * var(--u)) 0;color:#fff8ed;}
+.ritual-face-labels.ritual-departing-face-labels {animation:ritual-result-labels-exit 150ms var(--ritual-exit) both;}
+.ritual-face-labels.ritual-departing-face-labels > span {animation:none;}
+.ritual-record-action.ritual-departing-record-action {animation:ritual-result-record-exit 160ms var(--ritual-exit) both;}
+.ritual-record-action.ritual-departing-record-action .ritual-gold-button {font-size:calc(28 * var(--u));height:calc(72 * var(--u));}
 :is([data-ritual-view='ready'],[data-ritual-view='casting']) .ritual-cast-heading {animation:ritual-casting-enter 320ms var(--ritual-enter) 120ms both;}
 [data-ritual-view='casting'][data-flight-beat='landing'] .ritual-cast-heading {animation:ritual-heading-exit 180ms var(--ritual-exit) both;}
 .ritual-face-labels > span {animation-delay:60ms;}

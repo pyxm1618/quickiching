@@ -47,6 +47,18 @@ export function RitualCastPresentation({zh,motion,steps,visibleStep,complete,can
     <p>{t('Focus on your question, keep a calm mind…','专注于你的问题，静下心来…')}<br/>{t('Three coins are being cast, and the result is about to reveal itself.','三枚铜钱即将落定，为你呈现本次结果。')}</p>
    </>}
   </div>
+  {resetting&&!complete&&visibleStep?<div className="ritual-result-departure" data-result-departure aria-hidden="true">
+   <div className="ritual-departing-result-heading">
+    <p className="ritual-stage-number">{t('Step 4 of 6','第 4 步 / 共 6 步')}</p>
+    <h2>{t('Casting Result','掷币结果')}</h2>
+    <p>{t('These are the faces of your three coins.','这是本次三枚铜钱落定的正反面。')}<br/>{t('Click below to record this cast.','点击下方记录这一爻。')}</p>
+   </div>
+   <div className="ritual-face-labels ritual-departing-face-labels">{visibleStep.coinFaces.map((face,index)=><span key={index} data-face={face}>{face==='yang'?t('Heads','阳面'):t('Tails','阴面')}</span>)}</div>
+   <div className="ritual-record-action ritual-departing-record-action">
+    <button type="button" className="ritual-gold-button" disabled>{t('Record This Cast','记录这一爻')} <ArrowRight size={28}/></button>
+    <p className="ritual-stage-number">{zh?`第 ${visibleStep.lineIndex+1} 爻 / 共 6 爻`:`Cast ${visibleStep.lineIndex+1} of 6`} · {visibleStep.lineValue}</p>
+   </div>
+  </div>:null}
   {state==='result'&&visibleStep?<>
    <div className="ritual-face-labels" aria-live="polite">{visibleStep.coinFaces.map((face,index)=><span key={index} data-face={face}>{face==='yang'?t('Heads','阳面'):t('Tails','阴面')}</span>)}</div>
    <div className="ritual-record-action" data-entered={recordEntered} data-settled-awaiting-record onAnimationEnd={event=>{if(event.target===event.currentTarget)setRecordEntered(true);}}>

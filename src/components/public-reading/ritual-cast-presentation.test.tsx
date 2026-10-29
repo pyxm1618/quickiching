@@ -19,7 +19,14 @@ describe('Ritual presentation consumes authoritative casts',()=>{
   const html=renderToStaticMarkup(<RitualCastPresentation {...common} motion="settled" canRecord steps={[]} visibleStep={step}/>);
   expect(html.match(/<button[^>]*data-record-this-cast[^>]*>/)?.[0]).toContain('disabled');
  });
- it('shows line six at the top, line one at the bottom, using only recorded steps',()=>{
+ it('keeps a non-interactive result departure layer during the reset after recording',()=>{
+  const step=generateThreeCoinLine(0,()=>true);
+  const html=renderToStaticMarkup(<RitualCastPresentation {...common} steps={[step]} visibleStep={step} resetting/>);
+  expect(html).toContain('data-ritual-view="progress"');
+  expect(html).toContain('data-result-departure="true"');
+  expect(html.match(/data-result-departure="true"[\\s\\S]*?<button[^>]*disabled/)).not.toBeNull();
+ });
+  it('shows line six at the top, line one at the bottom, using only recorded steps',()=>{
   const steps=[generateThreeCoinLine(0,()=>true),generateThreeCoinLine(1,()=>false)];
   const html=renderToStaticMarkup(<RitualCastPresentation {...common} steps={steps} visibleStep={steps[1]}/>);
   expect([...html.matchAll(/data-line-position="(\d)" data-state="([^"]+)"/g)].map(match=>[Number(match[1]),match[2]])).toEqual([[6,'waiting'],[5,'waiting'],[4,'waiting'],[3,'waiting'],[2,'done'],[1,'done']]);
