@@ -107,6 +107,7 @@ function wheelStyle(offset: number): CssVars {
 }
 
 export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
+  const router = useRouter();
   const [selectedHexagram, setSelectedHexagram] = useState<HexagramItem>(() => hexagrams[0]);
   const selectedIndex = Math.max(0, hexagrams.findIndex((item) => item.number === selectedHexagram.number));
   const dragRef = useRef<{ pointerId: number; startX: number; lastX: number; moved: boolean } | null>(null);
