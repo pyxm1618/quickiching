@@ -129,12 +129,6 @@ export function buildPublicHexagramKnowledgeDetail(
         editorialRendering,
         classicalLine.position,
       ) as SourceDerivedRendering & { sourceField: "line"; linePosition: LinePosition },
-      // Stage/state is not newly authored. The existing, line-specific V2 theme is reused
-      // so no second line interpretation catalog is created.
-      stageState: editorialDerived(
-        interpretation.theme,
-        `Existing interpretation.v2 line.theme for Hexagram ${classical.number}, line ${classicalLine.position}; reused without re-authoring.`,
-      ),
       modernMeaning: editorialDerived(
         interpretation.meaning,
         `Existing interpretation.v2 line.meaning for Hexagram ${classical.number}, line ${classicalLine.position}; reused without re-authoring.`,
