@@ -1,4 +1,6 @@
 import { classicalHexagramByNumber, type ClassicalHexagram } from "./classical";
+import { buildPublicHexagramKnowledgeDetail } from "./knowledge-detail";
+import type { PublicHexagramKnowledgeDetail } from "./knowledge-detail-types";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 import type { HexagramInterpretation, LineInterpretation } from "@/domain/interpretation/v2/types";
 
@@ -10,6 +12,7 @@ export type PublicHexagramKnowledge = Omit<ClassicalHexagram, "lines"> & {
   interpretation: HexagramInterpretation;
   lines: readonly [LineInterpretation, LineInterpretation, LineInterpretation, LineInterpretation, LineInterpretation, LineInterpretation];
   classicalLines: ClassicalHexagram["lines"];
+  detail: PublicHexagramKnowledgeDetail;
 };
 
 export async function loadPublicHexagramKnowledge(number: number): Promise<PublicHexagramKnowledge> {
@@ -30,5 +33,6 @@ export async function loadPublicHexagramKnowledge(number: number): Promise<Publi
     ],
     interpretation: bundle.hexagram,
     lines: bundle.lines,
+    detail: buildPublicHexagramKnowledgeDetail(classical, bundle),
   };
 }
