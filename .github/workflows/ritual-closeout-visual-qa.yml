@@ -31,7 +31,7 @@ jobs:
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
       - name: Install visual-QA browser driver
-        run: npm install --no-save --package-lock=false puppeteer-core@24
+        run: bun add --no-save puppeteer-core@24
       - name: Install local-only result fixture
         run: node scripts/ritual-qa-fixture.mjs install
       - name: Production build
