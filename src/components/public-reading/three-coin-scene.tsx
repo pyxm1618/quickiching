@@ -131,15 +131,29 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     composer.addPass(new OutputPass());
     container.appendChild(renderer.domElement);
     renderer.domElement.setAttribute('aria-hidden','true');
-    const loader=new THREE.TextureLoader();
     let disposed=false;
     let texturesLoaded=0;
     function textureReady() {texturesLoaded+=1;if(texturesLoaded===2)render();}
     // Non-QA phones sample the same master artwork at a bounded texture resolution.
-    // Canonical Desktop always loads both untouched production masters directly.
+    // Canonical Desktop still decodes both untouched 2048px production masters; ImageBitmap keeps PNG decode off the main thread.
     const textureSuffix=window.innerWidth<800?'mobile-512':'master';
-    const textures=[loader.load(`/ritual/coin-front-${textureSuffix}.png`,textureReady,undefined,onTextureError),loader.load(`/ritual/coin-back-${textureSuffix}.png`,textureReady,undefined,onTextureError)];
+    const textureUrls=[`/ritual/coin-front-${textureSuffix}.png`,`/ritual/coin-back-${textureSuffix}.png`];
+    const textures=[new THREE.Texture(),new THREE.Texture()];
     textures.forEach(texture=>{texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=renderer.capabilities.getMaxAnisotropy();});
+    if(typeof createImageBitmap==='function') {
+      const loader=new THREE.ImageBitmapLoader();
+      loader.setOptions({imageOrientation:'flipY',premultiplyAlpha:'none'});
+      textureUrls.forEach((url,index)=>loader.load(url,bitmap=>{
+        if(disposed){bitmap.close();return;}
+        textures[index].image=bitmap;textures[index].flipY=false;textures[index].needsUpdate=true;textureReady();
+      },undefined,onTextureError));
+    } else {
+      const loader=new THREE.ImageLoader();
+      textureUrls.forEach((url,index)=>loader.load(url,image=>{
+        if(disposed)return;
+        textures[index].image=image;textures[index].needsUpdate=true;textureReady();
+      },undefined,onTextureError));
+    }
     const {geometry:coinGeometry}=createCoinGeometry();
     const edgeMaterial=new THREE.MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0x9a6b32,metalness:0.9,roughness:0.36});
     const faceMaterials=textures.map(map=>new THREE.MeshStandardMaterial({map,color:0x5f5f5f,bumpMap:map,bumpScale:0.0015,metalness:0.82,roughness:0.4,envMapIntensity:0.12,emissive:0xb77022,emissiveMap:map,emissiveIntensity:0.003}));
@@ -339,7 +353,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         mesh.geometry?.dispose();
         if(mesh.material) (Array.isArray(mesh.material)?mesh.material:[mesh.material]).forEach(material=>material.dispose());
       });
-      haloMaterial.dispose();textures.forEach(texture=>texture.dispose());environmentTarget.dispose();composer.passes.forEach(pass=>pass.dispose());composer.dispose();sceneTarget.dispose();renderer.dispose();renderer.domElement.remove();
+      haloMaterial.dispose();textures.forEach(texture=>{const image=texture.image as ImageBitmap|undefined;if(image&&typeof image.close==='function')image.close();texture.dispose();});environmentTarget.dispose();composer.passes.forEach(pass=>pass.dispose());composer.dispose();sceneTarget.dispose();renderer.dispose();renderer.domElement.remove();
     };
   },[]);
   useEffect(()=>invalidate.current(),[props.phase,props.faces,props.visualSeed]);
