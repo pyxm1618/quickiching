@@ -251,6 +251,19 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
           onPointerUp={finishPointer}
           onPointerCancel={finishPointer}
           onWheel={handleWheel}
+          onClick={(event) => {
+            const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-wheel-index]");
+            if (!target || !event.currentTarget.contains(target)) return;
+            if (performance.now() < suppressClickUntilRef.current) return;
+            const index = Number(target.dataset.wheelIndex);
+            const item = hexagrams[index];
+            if (!item) return;
+            if (index === selectedIndex) {
+              window.location.assign("/hexagrams/" + item.slug);
+              return;
+            }
+            selectByIndex(index);
+          }}
           onKeyDown={(event) => {
             if (event.key === "ArrowRight") {
               event.preventDefault();
@@ -286,17 +299,10 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
                     type="button"
                     className={className}
                     style={wheelStyle(offset)}
+                    data-wheel-index={index}
                     aria-current={selected ? "true" : undefined}
                     aria-label={(selected ? "Open Hexagram " : "Select Hexagram ") + item.number + ": " + item.englishName}
                     tabIndex={nearby ? 0 : -1}
-                    onClick={() => {
-                      if (performance.now() < suppressClickUntilRef.current) return;
-                      if (selected) {
-                        window.location.assign(href);
-                        return;
-                      }
-                      setSelectedHexagram(item);
-                    }}
                   >
                     <img src="/hexagrams/card-frame.png" alt="" className={styles.cardFrame} draggable={false} />
                     <span className={styles.cardContent}>
