@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type WheelEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { UserNavControl } from "@/components/auth/user-nav-control";
 import { TRIGRAM_BITS, type Trigram } from "@/domain/casting/hexagrams/king-wen";
 import styles from "./hexagrams.module.css";
@@ -270,39 +271,42 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
                 styles.wheelCard +
                 (selected ? " " + styles.wheelCardSelected : "") +
                 (nearby ? "" : " " + styles.wheelCardFar);
+              const href = "/hexagrams/" + item.slug;
               return (
-                <Link
-                  key={item.number}
-                  href={"/hexagrams/" + item.slug}
-                  data-seo-inbound-anchor={item.primaryKeyword}
-                  className={className}
-                  style={wheelStyle(offset)}
-                  aria-current={selected ? "true" : undefined}
-                  aria-label={(selected ? "Open Hexagram " : "Select Hexagram ") + item.number + ": " + item.englishName}
-                  tabIndex={nearby ? 0 : -1}
-                  onPointerUp={() => {
-                    const drag = dragRef.current;
-                    if (!selected && (!drag || !drag.moved)) setSelectedHexagram(item);
-                  }}
-                  onClick={(event) => {
-                    if (performance.now() < suppressClickUntilRef.current) {
-                      event.preventDefault();
-                      return;
-                    }
-                    if (!selected) {
-                      event.preventDefault();
+                <React.Fragment key={item.number}>
+                  <Link
+                    href={href}
+                    data-seo-inbound-anchor={item.primaryKeyword}
+                    className={styles.srOnly}
+                    tabIndex={-1}
+                    aria-hidden="true"
+                  >
+                    {item.primaryKeyword}
+                  </Link>
+                  <button
+                    type="button"
+                    className={className}
+                    style={wheelStyle(offset)}
+                    aria-current={selected ? "true" : undefined}
+                    aria-label={(selected ? "Open Hexagram " : "Select Hexagram ") + item.number + ": " + item.englishName}
+                    tabIndex={nearby ? 0 : -1}
+                    onClick={() => {
+                      if (performance.now() < suppressClickUntilRef.current) return;
+                      if (selected) {
+                        router.push(href);
+                        return;
+                      }
                       setSelectedHexagram(item);
-                    }
-                  }}
-                >
-                  <img src="/hexagrams/card-frame.png" alt="" className={styles.cardFrame} draggable={false} />
-                  <span className={styles.cardContent}>
-                    <span className={styles.cardNumber}>{String(item.number).padStart(2, "0")}</span>
-                    <HexagramGlyph item={item} />
-                    <span className={styles.cardName}>{item.englishName}</span>
-                  </span>
-                  <span className={styles.srOnly}>{item.primaryKeyword}</span>
-                </Link>
+                    }}
+                  >
+                    <img src="/hexagrams/card-frame.png" alt="" className={styles.cardFrame} draggable={false} />
+                    <span className={styles.cardContent}>
+                      <span className={styles.cardNumber}>{String(item.number).padStart(2, "0")}</span>
+                      <HexagramGlyph item={item} />
+                      <span className={styles.cardName}>{item.englishName}</span>
+                    </span>
+                  </button>
+                </React.Fragment>
               );
             })}
           </div>
