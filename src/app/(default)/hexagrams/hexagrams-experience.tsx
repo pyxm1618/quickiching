@@ -2,9 +2,7 @@
 
 import React, { useMemo, useRef, useState, type CSSProperties, type PointerEvent, type WheelEvent } from "react";
 import Link from "next/link";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { UserNavControl } from "@/components/auth/user-nav-control";
-import { getDictionary } from "@/i18n/dictionaries";
 import { TRIGRAM_BITS, type Trigram } from "@/domain/casting/hexagrams/king-wen";
 import styles from "./hexagrams.module.css";
 
@@ -109,7 +107,6 @@ function wheelStyle(offset: number): CssVars {
 }
 
 export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
-  const dictionary = getDictionary("en");
   const [selectedHexagram, setSelectedHexagram] = useState<HexagramItem>(() => hexagrams[0]);
   const selectedIndex = Math.max(0, hexagrams.findIndex((item) => item.number === selectedHexagram.number));
   const dragRef = useRef<{ pointerId: number; startX: number; lastX: number; moved: boolean } | null>(null);
@@ -169,7 +166,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
       <div className={styles.sceneShade} aria-hidden="true" />
 
       <div className={styles.chrome} aria-label="Page controls">
-        <LanguageSwitcher locale="en" labels={dictionary.language} idPrefix="hexagrams-immersive" />
+        <Link href="/zh/hexagrams" className={styles.languageControl} aria-label="Switch language">EN</Link>
         {authEnabled && <UserNavControl locale="en" />}
       </div>
 
