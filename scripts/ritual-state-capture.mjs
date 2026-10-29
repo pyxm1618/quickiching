@@ -45,7 +45,7 @@ try {
   await page.locator('[data-private-question]').fill('Should I continue on my current path?');
   await page.locator('[data-home-primary-action]').click();
   await page.waitForSelector('[data-question-confirm]');
-  if(state==='02'){await page.$eval('textarea[data-private-question]',node=>{node.focus();node.select();});await page.keyboard.press('Backspace');await page.waitForFunction(()=>document.querySelector('.ritual-character-count')?.textContent.startsWith('0/'));}
+  if(state==='02'){await page.$eval('textarea[data-private-question]',node=>{node.focus();node.select();});await page.keyboard.press('Backspace');await page.waitForFunction(()=>document.querySelector('.ritual-character-count')?.textContent.startsWith('0/'));await page.$eval('textarea[data-private-question]',node=>node.blur());}
   else {
    await page.locator('[data-home-primary-action]').click();
    if(state==='03') {
@@ -58,6 +58,7 @@ try {
      await page.waitForSelector('[data-record-this-cast]');
      if(state!=='04')await page.locator('[data-record-this-cast]').click();
     }
+    if(state==='04')await page.waitForSelector('[data-record-this-cast]:not(:disabled)');
     if(state==='05'){await page.waitForSelector('.hold-button:not(:disabled)');await page.waitForSelector('[data-renderer="three-webgl"][data-phase="progress"]');}
     if(state==='06')await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
    }

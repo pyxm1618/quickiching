@@ -14,6 +14,11 @@ describe('Ritual presentation consumes authoritative casts',()=>{
   expect([...html.matchAll(/data-face="([^"]+)"/g)].map(match=>match[1])).toEqual(step.coinFaces);
   expect(draws).toBe(3);
  });
+ it('keeps Record disabled until its visual entrance completes',()=>{
+  const step=generateThreeCoinLine(0,()=>true);
+  const html=renderToStaticMarkup(<RitualCastPresentation {...common} motion="settled" canRecord steps={[]} visibleStep={step}/>);
+  expect(html.match(/<button[^>]*data-record-this-cast[^>]*>/)?.[0]).toContain('disabled');
+ });
  it('shows line six at the top, line one at the bottom, using only recorded steps',()=>{
   const steps=[generateThreeCoinLine(0,()=>true),generateThreeCoinLine(1,()=>false)];
   const html=renderToStaticMarkup(<RitualCastPresentation {...common} steps={steps} visibleStep={steps[1]}/>);

@@ -5,6 +5,7 @@ import { Check, ArrowRight, UserRound } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
+import { RitualRevealTransition } from "@/components/public-reading/ritual-reveal-transition";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
@@ -795,7 +796,7 @@ export function ThreeCoinResultClient({
   if (!revealAllowed) {
     const gateState = resultRevealGate;
     return (
-      <div
+      <RitualRevealTransition stage="gate"><div
         className="ritual-save-gate"
         data-completed-cast-gate={gateState}
         data-visual-status="in-development"
@@ -808,13 +809,13 @@ export function ThreeCoinResultClient({
           <div className="sr-only" data-completed-six-lines><HexagramLines lines={state.lineValues} sealedCount={6} size="lg" showLabels locale={locale} /></div>
 
           {!user ? (
-            <div className="ritual-gate-action" data-auth-required-before-reveal>
-              <Link href={signinHref} prefetch={false} className="ritual-gate-signin" aria-label={t("Sign in to save and reveal this reading", "登录、保存并查看本次卦象")}>
+            <div key="auth-required" className="ritual-gate-action" data-auth-required-before-reveal>
+              <Link href={signinHref} prefetch={false} className="ritual-gate-signin" onClick={(event) => { if (event.currentTarget.closest(".ritual-gate-card")?.getAnimations().some(animation => animation.playState === "running")) event.preventDefault(); }} aria-label={t("Sign in to save and reveal this reading", "登录、保存并查看本次卦象")}>
                 <UserRound aria-hidden="true" />{t("Sign In to Save & Reveal", "登录、保存并查看")}<ArrowRight aria-hidden="true" />
               </Link>
             </div>
           ) : persistenceStatus === "error" ? (
-            <div className="ritual-gate-action ritual-gate-error" data-history-save-error role="alert">
+            <div key="save-error" className="ritual-gate-action ritual-gate-error" data-history-save-error role="alert">
               <p className="text-sm leading-7 text-[var(--danger)]">
                 {actionError ?? t(
                   "Saving failed. The same completed cast is still preserved and has not been revealed.",
@@ -826,34 +827,28 @@ export function ThreeCoinResultClient({
               </button>
             </div>
           ) : (
-            <div className="ritual-gate-action" role="status" data-history-saving>
+            <div key="saving" className="ritual-gate-action" role="status" data-history-saving>
               <p className="text-sm leading-7 text-[var(--ink-2)]">
                 {t("Saving this completed cast to your account History before reveal…", "正在先把这次已完成起卦保存到账户历史记录…")}
               </p>
             </div>
           )}
         </section>
-      </div>
+      </div></RitualRevealTransition>
     );
   }
 
   if (waitingForBrowserInterpretation) {
-    return (
-      <div
-        className={`${styles.page} mx-auto min-h-[100svh] w-full max-w-[1180px] px-4 sm:px-6`}
-        data-reading-interpretation-loading="true"
-        data-result-reveal-pending="true"
-      >
-        <div className={styles.loadingState} role="status" aria-label={t("Preparing your saved reading", "正在准备已保存的起卦结果")}>
-          <p className="mystic-kicker">{t("Saved to History", "已保存到 History")}</p>
-          <p className="mt-3 font-display text-3xl font-normal text-white">{t("Preparing your reading…", "正在准备结果揭示…")}</p>
-        </div>
-      </div>
-    );
+    return <RitualRevealTransition stage="gate"><div className="ritual-save-gate" data-reading-interpretation-loading="true" data-result-reveal-pending="true">
+      <section className="ritual-gate-card" role="status" aria-label={t("Preparing your saved reading", "正在准备已保存的起卦结果")}>
+        <p className="ritual-gate-complete">{t("Saved to History", "已保存到 History")}</p>
+        <h1>{t("Preparing your reading…", "正在准备结果揭示…")}</h1>
+      </section>
+    </div></RitualRevealTransition>;
   }
 
   return (
-    <>
+    <RitualRevealTransition stage="result">
       <PublicReadingResult
         presentation="ritual"
         reading={resultReading!}
@@ -1072,6 +1067,6 @@ export function ThreeCoinResultClient({
           {!zh ? <p className="mt-2 font-mono text-xs text-[var(--ink-3)]">{clearError}</p> : null}
         </div>
       ) : null}
-    </>
+    </RitualRevealTransition>
   );
 }

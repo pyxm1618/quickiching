@@ -9,7 +9,7 @@ describe('one physical coin with two textured caps and shared walls',()=>{
   expect(new Set(points.map(point=>point.x))).toEqual(new Set([-.21,.21]));
   expect(new Set(points.map(point=>point.y))).toEqual(new Set([-.21,.21]));
   geometry.computeBoundingBox();
-  expect(geometry.boundingBox!.max.z-geometry.boundingBox!.min.z).toBeCloseTo(.144,5);
+  expect(geometry.boundingBox!.max.z-geometry.boundingBox!.min.z).toBeCloseTo(.224,5);
   geometry.dispose();
  });
  it('assigns each cap to its own material without a second coplanar face mesh',()=>{

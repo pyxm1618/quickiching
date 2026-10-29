@@ -49,13 +49,13 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-ink {position:absolute;z-index:-1;left:0;top:calc(-15 * var(--u));width:calc(245 * var(--u));height:calc(223 * var(--u));background-size:contain;background-position:center;}
 .ritual-cloud {position:absolute;right:calc(55 * var(--u));top:calc(137 * var(--u));width:calc(140 * var(--u));height:calc(55 * var(--u));background-image:url('/ritual/decor/gold-cloud.png');background-size:contain;background-position:center;}
 .ritual-divider {width:calc(350 * var(--u));height:calc(35 * var(--u));margin:auto;background-image:url('/ritual/decor/yin-yang-divider.png');background-size:contain;background-position:center;}
-[data-experience-stage='question-confirm'] .ritual-question-card {left:calc(485 * var(--u));top:calc(470 * var(--u));width:calc(688 * var(--u));height:calc(140 * var(--u));padding:calc(23 * var(--u)) calc(34 * var(--u));}
-[data-experience-stage='question-confirm'] .ritual-question-card label,[data-experience-stage='question-confirm'] .ritual-question-description {display:none;}
-[data-experience-stage='question-confirm'] textarea {height:100%;border:0;padding:0;font-size:calc(24 * var(--u));background:transparent;}
-[data-experience-stage='question-confirm'] .ritual-character-count {top:auto;bottom:calc(20 * var(--u));}
-[data-experience-stage='question-confirm'] .ritual-question-actions {left:calc(609 * var(--u));top:calc(636 * var(--u));width:calc(447 * var(--u));}
-[data-experience-stage='question-confirm'] .ritual-gold-button {height:calc(82 * var(--u));font-size:calc(30 * var(--u));}
-[data-experience-stage='question-confirm'] .ritual-cta-description {font-size:calc(19 * var(--u));color:#fff8e8;}
+:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card {left:calc(485 * var(--u));top:calc(470 * var(--u));width:calc(688 * var(--u));height:calc(140 * var(--u));padding:calc(23 * var(--u)) calc(34 * var(--u));}
+:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card label,:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-description {display:none;}
+:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) textarea {height:100%;border:0;padding:0;font-size:calc(24 * var(--u));background:transparent;}
+:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-character-count {top:auto;bottom:calc(20 * var(--u));}
+:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-actions {left:calc(609 * var(--u));top:calc(636 * var(--u));width:calc(447 * var(--u));}
+:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-gold-button {height:calc(82 * var(--u));font-size:calc(30 * var(--u));}
+:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-cta-description {font-size:calc(19 * var(--u));color:#fff8e8;}
 .ritual-question-context {position:fixed;top:calc(328 * var(--u));left:25%;width:50%;z-index:2;text-align:center;color:#d8c7aa;font-size:calc(15 * var(--u));}
 .ritual-question-context input {width:100%;background:transparent;border:0;text-align:center;font:inherit;color:inherit;}
 .ritual-form-error {background:#fff0d6;color:#8b1f12;font-size:16px;position:relative;z-index:3;}
@@ -68,10 +68,10 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
  .ritual-home-heading h1,.ritual-home-heading h1 em {font-size:36px;}
  .ritual-home-heading p,.ritual-confirm-heading p {font-size:17px;margin:20px 0;}
  .ritual-confirm-heading h1 {font-size:42px;}
- .ritual-question-card,[data-experience-stage='question-confirm'] .ritual-question-card {position:relative;inset:auto;width:100%;margin-top:28px;height:200px;padding:24px;}
+ .ritual-question-card,:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card {position:relative;inset:auto;width:100%;margin-top:28px;height:200px;padding:24px;}
  .ritual-question-card label {font-size:22px;}.ritual-question-description{font-size:16px;}
  .ritual-character-count {font-size:14px;right:25px;top:65px;}
- .ritual-question-actions,[data-experience-stage='question-confirm'] .ritual-question-actions {position:relative;inset:auto;width:100%;margin-top:24px;}
+ .ritual-question-actions,:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-actions {position:relative;inset:auto;width:100%;margin-top:24px;}
  .ritual-gold-button {font-size:22px;gap:12px;}
  .ritual-cta-description {margin:20px 0 0;font-size:15px;}
  .ritual-webgl {opacity:.45;}.ritual-ink,.ritual-cloud{display:none;}
@@ -94,6 +94,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
  [data-experience-stage='landing'] .ritual-gold-button {font-weight:400;font-size:calc(26.2 * var(--u));gap:calc(14 * var(--u));padding-bottom:calc(3 * var(--u));}
  [data-experience-stage='landing'] .ritual-taichi {width:calc(46 * var(--u));height:calc(46 * var(--u));}
  [data-experience-stage='landing'] .ritual-gold-button::after {display:none;}
+ [data-experience-stage='landing'] .ritual-gold-button {background:radial-gradient(ellipse at 50% 50%,#ffe3a2 0%,#ffdf95 42%,#edab49 74%,#e3973c 100%);box-shadow:inset 0 -8px 12px #fff0c0,0 0 5px #fff0b1,0 0 20px #ed9d30,0 0 40px #b1651a;}
 }
 .ritual-question-card::before {content:'';position:absolute;inset:5px;border:1px solid #d3a970;border-radius:5px;pointer-events:none;}
 
@@ -249,3 +250,93 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
  .ritual-result-actions{position:relative;inset:auto;gap:14px;margin-top:24px;flex-direction:column;}.ritual-result-actions button,.ritual-result-actions button+button{width:100%;font-size:23px;}
  .ritual-result-details{padding-top:40px;}
 }
+
+/* Measured resting Question Confirm foreground; the form state stays shared. */
+@media(min-width:801px) {
+ .ritual-confirm-heading {top:calc(162 * var(--u));}
+ .ritual-confirm-heading h1 {font-size:calc(90 * var(--u));letter-spacing:.01em;}
+ .ritual-confirm-heading p {margin-top:calc(10 * var(--u));margin-bottom:calc(5 * var(--u));}
+ .ritual-confirm-heading .ritual-cloud {top:calc(127 * var(--u));}
+ .ritual-confirm-heading .ritual-divider {position:relative;background-image:url('/ritual/decor/yin-yang.png');background-size:calc(35 * var(--u)) calc(35 * var(--u));background-position:center;width:calc(350 * var(--u));height:calc(35 * var(--u));}
+ .ritual-confirm-heading .ritual-divider::before,.ritual-confirm-heading .ritual-divider::after {content:'';position:absolute;top:0;width:calc(145 * var(--u));height:100%;background:url('/ritual/decor/yin-yang-divider.png') left center/calc(360 * var(--u)) calc(52 * var(--u)) no-repeat;}
+ .ritual-confirm-heading .ritual-divider::before {left:0;}
+ .ritual-confirm-heading .ritual-divider::after {right:0;background-position:right center;}
+ :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card {border-radius:3px;border-width:2px;}
+ :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-gold-button::after {display:none;}
+ :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-taichi {width:calc(54 * var(--u));height:calc(54 * var(--u));}
+}
+
+@media(min-width:801px) {
+ [data-ritual-view='casting'] .ritual-cast-heading h2 {font-size:calc(94 * var(--u));line-height:1.12;}
+ [data-ritual-view='casting'] .ritual-cast-heading .ritual-ink {width:calc(230 * var(--u));height:calc(205 * var(--u));left:calc(14 * var(--u));top:calc(-25 * var(--u));}
+}
+
+@media(min-width:801px) {
+ [data-ritual-view='result'] .ritual-cast-heading {top:calc(123 * var(--u));}
+ .ritual-record-action .ritual-gold-button::after {display:none;}
+}
+
+@keyframes ritual-line-enter {from{opacity:0;transform:scaleX(.92)}to{opacity:1;transform:scaleX(1)}}
+.ritual-six-lines li[data-just-recorded='true'] {animation:ritual-line-enter 220ms var(--ritual-enter) both;}
+@media(min-width:801px) {
+ .ritual-journey {width:calc(260 * var(--u));}
+ .ritual-journey p {font-size:calc(18 * var(--u));}
+ .ritual-journey li[data-active='true']::before {width:calc(40 * var(--u));height:calc(40 * var(--u));left:calc(-6 * var(--u));top:calc(1 * var(--u));}
+}
+
+@media(min-width:801px) {
+ .ritual-gate-card h1 {margin-top:calc(16 * var(--u));}
+ .ritual-gate-action {margin-top:calc(28 * var(--u));}
+ .ritual-gate-complete-mark {position:relative;}
+ .ritual-gate-complete-mark::before,.ritual-gate-complete-mark::after {content:'';position:absolute;top:0;width:calc(115 * var(--u));height:100%;background:url('/ritual/decor/yin-yang-divider.png') left center/calc(360 * var(--u)) calc(52 * var(--u)) no-repeat;}
+ .ritual-gate-complete-mark::before {right:calc(90 * var(--u));}
+ .ritual-gate-complete-mark::after {left:calc(90 * var(--u));background-position:right center;}
+}
+
+@media(min-width:801px) {
+ .ritual-result-back {left:calc(167 * var(--u));}
+ .ritual-result-seal {width:calc(36 * var(--u));min-height:calc(74 * var(--u));display:flex;align-items:center;justify-content:center;}
+ .ritual-result-lines {gap:calc(18.6 * var(--u));}
+ .ritual-result-actions button {font-weight:400;font-size:calc(28 * var(--u));}
+}
+@media(max-width:800px) {.ritual-result-back {position:relative;inset:auto;display:inline-block;margin:16px 20px;font-size:18px;}}
+
+@keyframes ritual-casting-enter {from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes ritual-heading-exit {to{opacity:0;transform:translateY(-8px)}}
+@keyframes ritual-record-enter {from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+:is([data-ritual-view='ready'],[data-ritual-view='casting']) .ritual-cast-heading {animation:ritual-casting-enter 320ms var(--ritual-enter) 120ms both;}
+[data-ritual-view='casting'][data-flight-beat='landing'] .ritual-cast-heading {animation:ritual-heading-exit 180ms var(--ritual-exit) both;}
+.ritual-face-labels > span {animation-delay:60ms;}
+.ritual-record-action {animation:ritual-record-enter 220ms var(--ritual-enter) 180ms both;}
+[data-resetting='true'] .ritual-cast-heading {animation-delay:120ms;}
+@media(prefers-reduced-motion:reduce) {
+ @keyframes ritual-ui-enter {from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+ @keyframes ritual-line-enter {from{opacity:0}to{opacity:1}}
+ @keyframes ritual-casting-enter {from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+ @keyframes ritual-heading-exit {to{opacity:0;transform:translateY(-3px)}}
+ @keyframes ritual-record-enter {from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+}
+
+@keyframes ritual-home-exit {to{opacity:0;transform:translateY(-10px) scale(.99)}}
+@keyframes ritual-question-exit {to{opacity:0;transform:translateY(-14px) scale(.985)}}
+.ritual-home-heading[data-leaving='true'] {animation:ritual-home-exit 260ms var(--ritual-exit) both;}
+.ritual-question-stage[data-leaving='true'] {animation:ritual-question-exit 240ms var(--ritual-exit) both;pointer-events:none;}
+[data-experience-stage='question-confirm'] .ritual-question-actions {animation:ritual-ui-enter 320ms var(--ritual-enter) 120ms both;}
+@media(prefers-reduced-motion:reduce) {
+ @keyframes ritual-home-exit {to{opacity:0;transform:translateY(-3px)}}
+ @keyframes ritual-question-exit {to{opacity:0;transform:translateY(-3px)}}
+}
+
+@keyframes ritual-gate-exit {to{opacity:0;transform:translateY(-10px) scale(.99)}}
+.ritual-gate-exiting .ritual-gate-card {animation:ritual-gate-exit 240ms var(--ritual-exit,cubic-bezier(.4,0,1,1)) both;pointer-events:none;}
+@media(prefers-reduced-motion:reduce) {
+ @keyframes ritual-gate-exit {to{opacity:0}}
+ .ritual-gate-exiting .ritual-gate-card {animation-duration:160ms!important;}
+}
+
+@media(prefers-reduced-motion:reduce) {
+ .ritual-canvas *,.ritual-result-scene * {animation-delay:0ms!important;}
+}
+
+/* Finish the presentation even if the browser cancels or suppresses animation events. */
+.ritual-question-actions[data-entered='true'],.ritual-record-action[data-entered='true'] {animation:none;opacity:1;transform:none;}

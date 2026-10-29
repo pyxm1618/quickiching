@@ -6,7 +6,11 @@ Branch: `codex/three-coin-visual-phase3-5`.
 
 This ledger records incomplete work. It is not an acceptance certificate.
 
-## Current snapshot — Complete Coverage finished; Strict Pixel Closeout started
+## Latest final closeout verification
+
+See `FINAL_CLOSEOUT_QA.md` and `FINAL_CLOSEOUT_CAPTURE_INDEX.json` for current source changes, seven-state evidence, Chrome 156 environment and fresh checks. Full local CI PASS, 881 unit tests PASS, 16/16 final browser cases PASS, three-run Mobile LCP median 3899.4198ms PASS. Remote CI NOT RUN. All seven foreground states and strict Motion remain NOT PASS; Visual Complete NO. Historical results below retain their original build provenance.
+
+## Historical Complete Coverage snapshot
 
 - Performance checkpoint `3911d3555c6bce582b4a9f5030421e4c0e943687` is pushed and its remote SHA was read back. No reset or baseline switch occurred.
 - Pass 1 coverage: 7 = 0 PASS + 7 reviewed NOT PASS + 0 unreviewed + 0 deferred + 0 rejected. All seven have actual native browser captures, side-by-side, overlay, difference and concrete findings in `PASS_1_DIFF_INVENTORY.md`.

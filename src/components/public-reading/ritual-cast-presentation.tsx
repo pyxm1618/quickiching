@@ -1,5 +1,6 @@
 'use client';
-import React, {type ReactNode} from 'react';
+import React, {useEffect,useState,type ReactNode} from 'react';
+import {COIN_MOTION_END_MS} from './three-coin-motion';
 import {ArrowRight,Check} from 'lucide-react';
 import type {ThreeCoinStep} from '@/domain/casting/three-coin/algorithm';
 
@@ -8,9 +9,26 @@ export function RitualCastPresentation({zh,motion,steps,visibleStep,complete,can
  motion:string;steps:readonly ThreeCoinStep[];visibleStep:ThreeCoinStep|null;complete:boolean;canRecord:boolean;resetting:boolean;restartDisabled:boolean;
  onRecord:()=>void;onRestart:()=>void;soundOn:boolean;onSound:()=>void;children:ReactNode;error:ReactNode;
 }) {
+ const [castBeat,setCastBeat]=useState<'flight'|'landing'|'result'>('flight');
+ const [recordEntered,setRecordEntered]=useState(false);
+ useEffect(()=>{
+  if(motion!=='casting'){setCastBeat('flight');return;}
+  setRecordEntered(false);
+  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  setCastBeat('flight');
+  const exit=setTimeout(()=>setCastBeat('landing'),reduced?240:COIN_MOTION_END_MS-100);
+  const result=setTimeout(()=>setCastBeat('result'),reduced?300:COIN_MOTION_END_MS+60);
+  return ()=>{clearTimeout(exit);clearTimeout(result);};
+ },[motion]);
  const t=(en:string,cn:string)=>zh?cn:en;
- const state=complete?'complete':canRecord?'result':motion==='casting'?'casting':steps.length>0?'progress':'ready';
- return <div className="ritual-cast-ui" data-ritual-view={state} data-resetting={resetting}>
+ const state=complete?'complete':canRecord||(motion==='casting'&&castBeat==='result')?'result':motion==='casting'?'casting':steps.length>0?'progress':'ready';
+ useEffect(()=>{
+  if(state!=='result')return;
+  const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?180:440;
+  const timer=setTimeout(()=>setRecordEntered(true),duration);
+  return ()=>clearTimeout(timer);
+ },[state]);
+ return <div className="ritual-cast-ui" data-ritual-view={state} data-resetting={resetting} data-flight-beat={castBeat}>
   <button type="button" className="ritual-back" onClick={onRestart} disabled={restartDisabled}>← {t('Back','返回')}</button>
   <button type="button" className="ritual-sound" onClick={onSound} aria-pressed={soundOn}>{soundOn?t('Sound on','声音开'):t('Sound off','声音关')}</button>
   <div className="ritual-cast-heading" key={state}>
@@ -31,8 +49,8 @@ export function RitualCastPresentation({zh,motion,steps,visibleStep,complete,can
   </div>
   {state==='result'&&visibleStep?<>
    <div className="ritual-face-labels" aria-live="polite">{visibleStep.coinFaces.map((face,index)=><span key={index} data-face={face}>{face==='yang'?t('Heads','阳面'):t('Tails','阴面')}</span>)}</div>
-   <div className="ritual-record-action" data-settled-awaiting-record>
-    <button type="button" className="ritual-gold-button" data-record-this-cast onClick={onRecord}>{t('Record This Cast','记录这一爻')} <ArrowRight size={28}/></button>
+   <div className="ritual-record-action" data-entered={recordEntered} data-settled-awaiting-record onAnimationEnd={event=>{if(event.target===event.currentTarget)setRecordEntered(true);}}>
+    <button type="button" className="ritual-gold-button" data-record-this-cast disabled={!canRecord||!recordEntered} onClick={onRecord}>{t('Record This Cast','记录这一爻')} <ArrowRight size={28}/></button>
     <p className="ritual-stage-number">{zh?`第 ${visibleStep.lineIndex+1} 爻 / 共 6 爻`:`Cast ${visibleStep.lineIndex+1} of 6`} · {visibleStep.lineValue}</p>
    </div>
   </>:null}
@@ -41,7 +59,7 @@ export function RitualCastPresentation({zh,motion,steps,visibleStep,complete,can
     {[['Open the Home Page','打开首页'],['Enter Your Question','输入问题'],['Throw 3 Coins (Repeat 6 Times)','掷三枚铜钱（重复六次）'],['View the 3 Coins Result','查看掷币结果'],['Repeat 6 Times to Complete All Six Lines','重复六次形成六爻'],['Generate Hexagram and Interpretation','保存后揭示卦象与解读']].map(([en,cn],index)=><li key={en} data-active={index===4} data-done={index<4}><span>{zh?`第 ${index+1} 步`:`Step ${index+1}`}</span><p>{t(en,cn)}</p></li>)}
    </ol>
    <ol className="ritual-six-lines" aria-label={t('Six lines, bottom to top','自下而上的六爻')}>
-    {[5,4,3,2,1,0].map(index=>{const step=steps[index];const yang=step?.lineValue===7||step?.lineValue===9;return <li key={index} data-line-position={index+1} data-state={step?'done':'waiting'}>
+    {[5,4,3,2,1,0].map(index=>{const step=steps[index];const yang=step?.lineValue===7||step?.lineValue===9;return <li key={index} data-line-position={index+1} data-state={step?'done':'waiting'} data-just-recorded={index===steps.length-1}>
      <span className="ritual-line-check">{step?<Check size={17}/>:null}</span><span>{zh?`第 ${index+1} 爻`:`No.${index+1}`}</span><span>{zh?step?`爻值 ${step.lineValue}`:'待起':`Line ${index+1}`}</span>
      <span className="ritual-line-symbol" data-yang={yang} data-sealed={Boolean(step)} aria-label={step?`${index+1}: ${step.lineValue}`:t('Not yet cast','尚未起出')}><i/><i/></span>
     </li>;})}

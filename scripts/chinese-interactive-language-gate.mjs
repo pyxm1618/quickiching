@@ -645,12 +645,14 @@ async function main() {
     await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 5000 });
     const completedState = await page.evaluate(() => ({
       heading: document.querySelector("h1")?.textContent?.trim() ?? "",
+      completionCopy: document.querySelector(".ritual-gate-complete")?.textContent?.trim() ?? "",
       authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
       sixLines: document.querySelector("[data-completed-six-lines]") !== null,
       primaryCard: document.querySelector("[data-primary-card]") !== null,
       deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
     }));
-    assert(completedState.heading.includes("本次起卦已经完成"), `Completed-cast heading mismatch: ${completedState.heading}`);
+    assert.equal(completedState.heading, "保存本次起卦", `Completed-cast heading mismatch: ${completedState.heading}`);
+    assert.equal(completedState.completionCopy, "六爻已经完成", "The formal gate must confirm six-line completion");
     assert(completedState.authGate, "Completed Chinese Three-Coin cast must require sign-in before reveal");
     assert(completedState.sixLines, "Completed Chinese Three-Coin cast must preserve all six lines");
     assert.equal(completedState.primaryCard, false, "Primary result must remain hidden before sign-in and History save");

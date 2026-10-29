@@ -10,6 +10,14 @@ describe('pure Three.js presentation contract', () => {
       expect(pose.settled).toBe(true);
     }
   });
+  it('keeps coin B obliquely readable at the canonical airborne sample',()=>{
+    for(const face of ['yang','yin'] as const) {
+      const pose=coinPose({phase:'casting',face,index:1,time:500,seed:1618,reducedMotion:false});
+      const facing=Math.abs(Math.cos(pose.rotation[0])*Math.cos(pose.rotation[1]));
+      expect(facing).toBeGreaterThan(.45);
+      expect(facing).toBeLessThan(.95);
+    }
+  });
   it('freezes the same seed/time to identical poses and decorative samples', () => {
     const input={phase:'casting' as const,face:'yang' as const,index:1,time:700,seed:47,reducedMotion:false};
     expect(coinPose(input)).toEqual(coinPose(input));

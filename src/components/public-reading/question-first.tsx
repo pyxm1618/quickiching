@@ -70,6 +70,21 @@ export function QuestionFirst({
   const [experienceStage, setExperienceStage] = useState<HomeExperienceStage>(
     () => homeExperienceStageForSession(initialSession),
   );
+  const [confirmationEntered,setConfirmationEntered]=useState(false);
+  useEffect(()=>{
+    if(experienceStage!=="question-confirm"){setConfirmationEntered(false);return;}
+    const duration=window.matchMedia("(prefers-reduced-motion: reduce)").matches?200:500;
+    const timer=setTimeout(()=>setConfirmationEntered(true),duration);
+    return ()=>clearTimeout(timer);
+  },[experienceStage]);
+  const [presentationStage,setPresentationStage]=useState<HomeExperienceStage>(()=>homeExperienceStageForSession(initialSession));
+  useEffect(()=>{
+    if(!homeRitual||presentationStage===experienceStage)return;
+    const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const delay=reduced?140:presentationStage==="landing"?260:presentationStage==="question-confirm"?240:0;
+    const timer=setTimeout(()=>setPresentationStage(experienceStage),delay);
+    return ()=>clearTimeout(timer);
+  },[homeRitual,presentationStage,experienceStage]);
   const [question, setQuestionState] = useState<string | undefined>(() => initialSession?.question ?? undefined);
   const [coreQuestionAtCast, setCoreQuestionAtCast] = useState<string | undefined>(() => initialSession?.coreQuestionAtCast ?? undefined);
   const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(() => initialSession?.coreQuestionFrozenAtCast ?? false);
@@ -85,6 +100,7 @@ export function QuestionFirst({
     setCoreQuestionFrozenAtCast(restored.coreQuestionFrozenAtCast);
     if (homeRitual) {
       setExperienceStage(homeExperienceStageForSession(restored));
+      setPresentationStage(homeExperienceStageForSession(restored));
     }
   }, [homeRitual, legacyStorageKeys, storageKey]);
 
@@ -226,6 +242,8 @@ export function QuestionFirst({
   if (homeRitual) {
     const landing = experienceStage === "landing";
     const confirming = experienceStage === "question-confirm";
+    const homeLeaving=presentationStage==="landing"&&confirming;
+    const questionLeaving=presentationStage==="question-confirm"&&experienceStage==="ritual";
     const homeTitleParts = homeHeading?.split(/\s*—\s*/u);
     const homeTitleFirst = homeTitleParts?.[0] ?? (zh ? "一卦一念" : "A Single Divination");
     const homeTitleSecond = homeTitleParts && homeTitleParts.length > 1
@@ -241,12 +259,12 @@ export function QuestionFirst({
         <link rel="preload" as="image" href="/ritual/decor/gold-cloud-button-2x.png" media="(max-width:800px)" fetchPriority="low" />
         <link rel="preload" as="image" href="/ritual/decor/yin-yang.png" media="(max-width:800px)" fetchPriority="low" />
         <section id="three-coin-reading" data-question-first data-three-coin-home-stage
-          data-experience-stage={experienceStage} data-visual-status="in-development" className="ritual-canvas">
+          data-experience-stage={experienceStage} data-question-leaving={questionLeaving} data-visual-status="in-development" className="ritual-canvas">
           <div className="ritual-room" aria-hidden="true" />
-          {experienceStage !== "ritual" ? (
-            <div className="ritual-question-stage">
-              {landing ? <>
-                <div className="ritual-home-heading">
+          {experienceStage !== "ritual" || questionLeaving ? (
+            <div className="ritual-question-stage" data-leaving={questionLeaving} inert={questionLeaving}>
+              {landing || homeLeaving ? <>
+                <div className="ritual-home-heading" data-leaving={homeLeaving}>
                   <span className="ritual-cloud ritual-home-cloud-left" aria-hidden="true" />
                   <span className="ritual-cloud ritual-home-cloud-right" aria-hidden="true" />
                   <h1><em>{homeTitleFirst}</em>{homeTitleSecond ? <span className="ritual-title-second">{homeTitleSecond}</span> : null}</h1>
@@ -254,14 +272,15 @@ export function QuestionFirst({
                     It is not about predicting the future,<br />
                     but about seeing yourself more clearly in the present.</>}</p>
                 </div>
-              </> : <div className="ritual-confirm-heading" data-question-confirm>
+              </> : null}
+              {!landing ? <div className="ritual-confirm-heading" data-question-confirm>
                 <span className="ritual-ink" aria-hidden="true" />
                 <h1>{zh ? "此刻，你想问什么？" : <>What Would You Like<br />to Ask?</>}</h1>
                 <span className="ritual-cloud" aria-hidden="true" />
                 <p>{zh ? "静下心，写下此刻最想看清的问题。" : "Enter your question with a clear and focused mind."}<br />
                   {zh ? "让三枚铜钱带来易经的启示。" : "Let three coins reveal your guidance from the I Ching."}</p>
                 <span className="ritual-divider" aria-hidden="true" />
-              </div>}
+              </div> : null}
               <div className="ritual-question-card">
                 <label htmlFor={`${storageKey}-home-question`}>
                   {zh ? "此刻，你想问什么？" : "What would you like to ask?"}
@@ -274,9 +293,9 @@ export function QuestionFirst({
                 <span className="ritual-character-count">{Array.from(draft).length}/{PUBLIC_QUESTION_MAX_CODE_POINTS}</span>
                 {error ? <p role="alert" className="ritual-form-error">{error}</p> : null}
               </div>
-              <div className="ritual-question-actions">
+              <div className="ritual-question-actions" data-entered={confirmationEntered} onAnimationEnd={event=>{if(event.target===event.currentTarget&&confirming)setConfirmationEntered(true);}}>
                 <button type="button" className="ritual-gold-button" onClick={landing ? prepareQuestionConfirmation : continueToCasting}
-                  disabled={landing && deepReadingEligible && !draft.trim()} data-home-primary-action>
+                  disabled={(landing && deepReadingEligible && !draft.trim())||(confirming&&!confirmationEntered)} data-home-primary-action>
                   <span className="ritual-taichi" aria-hidden="true" />
                   {landing ? (zh ? "开始起卦" : "Start Divination") : (zh ? "开始掷币" : "Cast the Coins")}
                   <ArrowRight size={26} strokeWidth={1.5} aria-hidden="true" />

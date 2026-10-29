@@ -5,8 +5,8 @@ export function createCoinGeometry() {
   const hole=new THREE.Path();
   hole.moveTo(-.21,-.21);hole.lineTo(-.21,.21);hole.lineTo(.21,.21);hole.lineTo(.21,-.21);hole.closePath();
   shape.holes.push(hole);
-  const geometry=new THREE.ExtrudeGeometry(shape,{depth:.12,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:.012,bevelThickness:.012,curveSegments:192});
-  geometry.translate(0,0,-.06);
+  const geometry=new THREE.ExtrudeGeometry(shape,{depth:.20,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:.012,bevelThickness:.012,curveSegments:192});
+  geometry.translate(0,0,-.10);
   const caps=geometry.groups.find(group=>group.materialIndex===0);
   const walls=geometry.groups.find(group=>group.materialIndex===1);
   if(!caps||!walls||caps.count%2!==0)throw new Error('RITUAL_COIN_GEOMETRY_GROUPS_INVALID');
@@ -28,7 +28,7 @@ export function createCoinGeometry() {
   // Reuse only the approved master's worn bronze rim on the physical outer/inner walls.
   for(let index=walls.start;index<walls.start+walls.count;index++) {
     const angle=Math.atan2(positions.getY(index),positions.getX(index));
-    const depth=(positions.getZ(index)+.072)/.144;
+    const depth=(positions.getZ(index)+.112)/.224;
     const radius=.425*(.90+.085*depth);
     uv.setXY(index,.5+Math.cos(angle)*radius,.5+Math.sin(angle)*radius);
   }

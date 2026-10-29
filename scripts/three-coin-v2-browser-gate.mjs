@@ -93,6 +93,9 @@ async function waitForText(page, text, timeout = 15_000) {
 }
 
 async function clickButton(page, label) {
+  if (["Cast the Coins", "Record This Cast"].includes(label)) {
+    await page.waitForFunction(wanted => [...document.querySelectorAll("button")].some(node => node.textContent?.trim() === wanted && !node.disabled), {timeout:3000}, label);
+  }
   const clicked = await page.evaluate((wanted) => {
     const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === wanted);
     if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
@@ -119,12 +122,13 @@ async function seedCompletedReading(page) {
     steps: FIXTURE_STEPS,
   });
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await waitForText(page, "6 / 6 lines");
+  await page.waitForSelector('[data-ritual-view="complete"]');
+  await page.waitForFunction(()=>document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===6);
   await new Promise((resolve) => setTimeout(resolve, 750));
 
   const completedState = await page.evaluate(() => ({
     pathname: location.pathname,
-    progressComplete: document.body?.innerText.includes("6 / 6 lines"),
+    progressComplete: document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===6,
   }));
   assert.equal(completedState.pathname, "/", "Restoring a completed cast must not auto-navigate away from the current page");
   assert(completedState.progressComplete, "Restored completed cast must remain available in the casting UI");
@@ -217,7 +221,8 @@ async function verifyStorageWriteFailureRetry(browser) {
     await clickButton(page, "Skip — free reading only");
     await page.waitForSelector("[data-question-confirm]", { timeout: 5000 });
     await clickButton(page, "Cast the Coins");
-    await waitForText(page, "0 / 6 lines");
+    await page.waitForSelector(".hold-button:not(:disabled)");
+    assert.equal(await page.$$eval('.ritual-six-lines li[data-state="done"]',nodes=>nodes.length),0);
     await clickButton(page, "Toss three coins");
     await waitForText(page, "THREE_COIN_SESSION_WRITE_FAILED");
     await waitForText(page, "Retry saving this cast");
@@ -229,7 +234,7 @@ async function verifyStorageWriteFailureRetry(browser) {
       const parsed = raw ? JSON.parse(raw) : null;
       return {
         castValue: match ? Number(match[1]) : null,
-        progress: document.body?.innerText.includes("0 / 6 lines"),
+        progress: document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===0,
         storedSteps: Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? null,
         revealCount: [...document.querySelectorAll("a")].filter((node) => node.textContent?.trim() === "Reveal Your Reading").length,
       };
@@ -251,7 +256,7 @@ async function verifyStorageWriteFailureRetry(browser) {
     }, STORAGE_KEY);
     assert.equal(storedValue, failedState.castValue, "Retry must persist the same cast value rather than rerolling the line");
     await clickButton(page, "Record This Cast");
-    await waitForText(page, "1 / 6 lines");
+    await page.waitForFunction(()=>document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===1);
     log("sessionStorage setItem fail-fast + same-cast retry + visual record PASS");
   } finally {
     await context.close();
@@ -265,8 +270,8 @@ async function verifySeededResult(browser, viewport) {
   try {
     await seedCompletedReading(page);
     await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
-    await waitForText(page, "Your completed cast is preserved");
-    await waitForText(page, "Sign in to save and reveal this reading");
+    await waitForText(page, "Your six lines are complete");
+    await waitForText(page, "Sign In to Save & Reveal");
 
     const gateState = await page.evaluate(() => ({
       authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
@@ -281,15 +286,16 @@ async function verifySeededResult(browser, viewport) {
 
     const beforeRefresh = await resultText(page);
     await page.reload({ waitUntil: "networkidle0" });
-    await waitForText(page, "Your completed cast is preserved");
+    await waitForText(page, "Your six lines are complete");
     assert.equal(await resultText(page), beforeRefresh, "Refresh must reproduce the same anonymous completed-cast gate");
 
     await page.goBack({ waitUntil: "networkidle0" });
-    await waitForText(page, "6 / 6 lines");
+    await page.waitForSelector('[data-ritual-view="complete"]');
+  await page.waitForFunction(()=>document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===6);
     const storedAfterBack = await page.evaluate((key) => sessionStorage.getItem(key), STORAGE_KEY);
     assert(storedAfterBack, "Back navigation must preserve the sealed reading");
     await page.goForward({ waitUntil: "networkidle0" });
-    await waitForText(page, "Your completed cast is preserved");
+    await waitForText(page, "Your six lines are complete");
 
     await assertNoHorizontalOverflow(page);
     log(`${viewport.width}px completed-cast auth gate / refresh / back / forward PASS`);
@@ -343,7 +349,8 @@ async function verifyExplicitReset(browser) {
     await clickButton(page, "Start a New Reading");
     await page.waitForFunction(() => location.pathname === "/" && location.hash === "#three-coin-reading", { timeout: 15_000 });
     await clickButton(page, "Skip — free reading only");
-    await waitForText(page, "0 / 6 lines");
+    await page.waitForSelector(".hold-button:not(:disabled)");
+    assert.equal(await page.$$eval('.ritual-six-lines li[data-state="done"]',nodes=>nodes.length),0);
     const storedSteps = await page.evaluate((key) => {
       const raw = sessionStorage.getItem(key);
       if (!raw) return null;
