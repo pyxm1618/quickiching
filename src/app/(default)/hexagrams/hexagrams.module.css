@@ -68,12 +68,16 @@
   backdrop-filter: blur(10px);
 }
 
-.chrome :global([data-language-switcher] > button) {
+.languageControl {
+  display: inline-flex;
   min-height: 36px;
-  border-color: transparent;
-  background: transparent;
+  align-items: center;
   padding-inline: 10px;
+  border-radius: 999px;
   color: #ead9b5;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
 }
 
 .chrome :global(a[href^="/signup"]) {
