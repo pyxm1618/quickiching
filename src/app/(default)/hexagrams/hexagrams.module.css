@@ -109,7 +109,7 @@
 .scrollStage {
   position: absolute;
   left: 1.4vw;
-  top: 20.7vh;
+  top: 23.2vh;
   z-index: 18;
   width: min(53.6vw, 920px);
   aspect-ratio: 3 / 2;
@@ -259,10 +259,10 @@
 
 .wheelStage {
   position: absolute;
-  left: 44.8vw;
+  left: 47vw;
   top: 22.5vh;
   z-index: 22;
-  width: 54.5vw;
+  width: 50vw;
   height: 76vh;
   overflow: visible;
   perspective: 1400px;
@@ -272,9 +272,9 @@
 .platform {
   position: absolute;
   left: 50%;
-  bottom: -6.5%;
+  bottom: 8%;
   z-index: 8;
-  width: 103%;
+  width: 100%;
   height: auto;
   max-width: none;
   transform: translateX(-50%);
