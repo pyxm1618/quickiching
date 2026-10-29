@@ -25,7 +25,6 @@ const GRID_CORNERS = {
   br: { x: 85.29, y: 84.96 },
 } as const;
 
-const WHEEL_STEP_DEGREES = 360 / 64;
 const DRAG_STEP_PX = 58;
 const WHEEL_THROTTLE_MS = 260;
 
@@ -90,18 +89,18 @@ function gridPosition(row: number, column: number): { x: number; y: number } {
 }
 
 function wheelStyle(offset: number): CssVars {
-  const angle = offset * WHEEL_STEP_DEGREES * (Math.PI / 180);
   const distance = Math.abs(offset);
-  const x = Math.sin(angle) * 190;
-  const y = -(1 - Math.cos(angle)) * 38;
-  const z = (Math.cos(angle) - 1) * 1700;
+  const direction = offset === 0 ? 0 : Math.sign(offset);
+  const x = Math.tanh(distance / 4.5) * 75 * direction;
+  const y = -Math.pow(distance, 1.45) * 1.85;
+  const z = -Math.pow(distance, 1.4) * 35;
   return {
     "--wheel-x": x + "%",
     "--wheel-y": y + "%",
     "--wheel-z": z + "px",
     "--wheel-rotate": offset * -9.5 + "deg",
-    "--wheel-scale": Math.max(0.58, 1 - distance * 0.055),
-    "--wheel-opacity": distance <= 1 ? 1 : Math.max(0.18, 1 - (distance - 1) * 0.13),
+    "--wheel-scale": Math.max(0.54, 1 - distance * 0.052),
+    "--wheel-opacity": distance <= 2 ? 1 : Math.max(0.16, 1 - (distance - 2) * 0.115),
     zIndex: 120 - distance,
   };
 }
@@ -227,7 +226,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
             {hexagrams.map((item, index) => {
               const offset = shortestOffset(index, selectedIndex, hexagrams.length);
               const selected = offset === 0;
-              const nearby = Math.abs(offset) <= 7;
+              const nearby = Math.abs(offset) <= 9;
               const className =
                 styles.wheelCard +
                 (selected ? " " + styles.wheelCardSelected : "") +
