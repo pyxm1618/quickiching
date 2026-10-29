@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type WheelEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { UserNavControl } from "@/components/auth/user-nav-control";
 import { TRIGRAM_BITS, type Trigram } from "@/domain/casting/hexagrams/king-wen";
 import styles from "./hexagrams.module.css";
@@ -107,7 +106,6 @@ function wheelStyle(offset: number): CssVars {
 }
 
 export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
-  const router = useRouter();
   const [selectedHexagram, setSelectedHexagram] = useState<HexagramItem>(() => hexagrams[0]);
   const selectedIndex = Math.max(0, hexagrams.findIndex((item) => item.number === selectedHexagram.number));
   const dragRef = useRef<{ pointerId: number; startX: number; lastX: number; moved: boolean } | null>(null);
@@ -294,7 +292,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
                     onClick={() => {
                       if (performance.now() < suppressClickUntilRef.current) return;
                       if (selected) {
-                        router.push(href);
+                        window.location.assign(href);
                         return;
                       }
                       setSelectedHexagram(item);
