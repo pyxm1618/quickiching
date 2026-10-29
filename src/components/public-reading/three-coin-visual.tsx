@@ -22,9 +22,26 @@ class SceneLoadBoundary extends Component<ThreeCoinSceneProps & {children:ReactN
 export function ThreeCoinVisual(props:ThreeCoinSceneProps) {
   const [startScene,setStartScene]=useState(false);
   useEffect(()=>{
-    let second=0;
-    const first=requestAnimationFrame(()=>{second=requestAnimationFrame(()=>setStartScene(true));});
-    return ()=>{cancelAnimationFrame(first);cancelAnimationFrame(second);};
-  },[]);
+    if(startScene)return;
+    // Preserve the existing Desktop mount schedule and activate every casting phase.
+    if(window.innerWidth>=800||props.phase!=='hero') {
+      let second=0;
+      const first=requestAnimationFrame(()=>{second=requestAnimationFrame(()=>setStartScene(true));});
+      return ()=>{cancelAnimationFrame(first);cancelAnimationFrame(second);};
+    }
+    // Only the idle mobile hero defers the heavy scene; no business state is produced here.
+    let cancelled=false;
+    const activate=()=>{if(!cancelled)setStartScene(true);};
+    const events=['pointerdown','keydown','touchstart','scroll'] as const;
+    events.forEach(event=>window.addEventListener(event,activate,{once:true,passive:true}));
+    const onResize=()=>{if(window.innerWidth>=800)activate();};
+    window.addEventListener('resize',onResize);
+    const timer=setTimeout(activate,5000);
+    return ()=>{
+      cancelled=true;clearTimeout(timer);
+      events.forEach(event=>window.removeEventListener(event,activate));
+      window.removeEventListener('resize',onResize);
+    };
+  },[props.phase,startScene]);
   return <SceneLoadBoundary {...props}>{startScene?<Scene {...props} />:null}</SceneLoadBoundary>;
 }
