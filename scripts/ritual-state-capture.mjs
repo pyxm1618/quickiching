@@ -33,10 +33,6 @@ try {
    return original.call(this,array);
   };
  },bits);
- if(state==='03') await page.evaluateOnNewDocument(()=>{
-  const nativeSetTimeout=window.setTimeout.bind(window);
-  window.setTimeout=(handler,timeout=0,...args)=>nativeSetTimeout(handler,timeout===2200?8000:timeout,...args);
- });
  const animationTime=state==='03'?500:2200;
  const url=state==='07'?'http://127.0.0.1:3028/ritual-qa-local?view=result':`http://127.0.0.1:3028/?ritualTime=${animationTime}`;
  await page.goto(url,{waitUntil:'networkidle0'});
@@ -55,6 +51,8 @@ try {
    if(state==='03') {
     await page.waitForSelector('.hold-button:not(:disabled)');await page.locator('.hold-button').click();
     await page.waitForSelector('[data-renderer="three-webgl"][data-phase="casting"]');
+    const cdp=await page.createCDPSession();
+    await cdp.send('Emulation.setVirtualTimePolicy',{policy:'pause'});
    } else {
     const count=state==='04'?1:state==='05'?4:6;
     for(let index=0;index<count;index++) {
