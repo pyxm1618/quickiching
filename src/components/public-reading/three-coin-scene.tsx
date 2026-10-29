@@ -2,7 +2,35 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  ACESFilmicToneMapping,\n  AdditiveBlending,\n  AmbientLight,\n  BufferAttribute,\n  BufferGeometry,\n  CatmullRomCurve3,\n  DirectionalLight,\n  DoubleSide,\n  Euler,\n  Group,\n  HalfFloatType,\n  ImageBitmapLoader,\n  ImageLoader,\n  Matrix4,\n  Mesh,\n  MeshStandardMaterial,\n  PMREMGenerator,\n  PerspectiveCamera,\n  PlaneGeometry,\n  Points,\n  Quaternion,\n  SRGBColorSpace,\n  Scene,\n  ShaderMaterial,\n  Texture,\n  Vector2,\n  Vector3,\n  WebGLRenderTarget,\n  WebGLRenderer,
+  ACESFilmicToneMapping,
+  AdditiveBlending,
+  AmbientLight,
+  BufferAttribute,
+  BufferGeometry,
+  CatmullRomCurve3,
+  DirectionalLight,
+  DoubleSide,
+  Euler,
+  Group,
+  HalfFloatType,
+  ImageBitmapLoader,
+  ImageLoader,
+  Matrix4,
+  Mesh,
+  MeshStandardMaterial,
+  PMREMGenerator,
+  PerspectiveCamera,
+  PlaneGeometry,
+  Points,
+  Quaternion,
+  SRGBColorSpace,
+  Scene,
+  ShaderMaterial,
+  Texture,
+  Vector2,
+  Vector3,
+  WebGLRenderTarget,
+  WebGLRenderer,
 } from 'three';
 import { createCoinGeometry } from './three-coin-geometry';
 import { ThreeCoinFallback } from './three-coin-fallback';
