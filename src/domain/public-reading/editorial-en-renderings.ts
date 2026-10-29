@@ -5,7 +5,9 @@ import { EDITORIAL_EN_49_64 } from "./editorial-en-renderings-49-64";
 
 export type EditorialEnglishRenderingRecord = {
   judgment: string;
+  judgmentInterpretation: string;
   image: string;
+  imageInterpretation: string;
   lines: readonly [string, string, string, string, string, string];
   useLine?: string;
 };

@@ -182,8 +182,8 @@ export function buildPublicHexagramKnowledgeDetail(
         editorial.judgment,
       ) as SourceDerivedRendering & { sourceField: "judgment" },
       modernInterpretation: editorialDerived(
-        bundle.hexagram.coreMeaning,
-        `Existing interpretation.v2 hexagram.coreMeaning for Hexagram ${classical.number}; reused without re-authoring.`,
+        editorial.judgmentInterpretation,
+        `Field-level Quick I Ching editorial interpretation bound directly to the Judgment source text for Hexagram ${classical.number}.`,
       ),
     },
     image: {
@@ -195,8 +195,8 @@ export function buildPublicHexagramKnowledgeDetail(
         editorial.image,
       ) as SourceDerivedRendering & { sourceField: "image" },
       modernInterpretation: editorialDerived(
-        bundle.hexagram.structureInterpretation,
-        `Existing interpretation.v2 hexagram.structureInterpretation for Hexagram ${classical.number}; reused without re-authoring.`,
+        editorial.imageInterpretation,
+        `Field-level Quick I Ching editorial interpretation bound directly to the Image source text for Hexagram ${classical.number}.`,
       ),
     },
     lines,

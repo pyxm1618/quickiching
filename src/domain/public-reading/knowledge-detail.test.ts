@@ -82,11 +82,39 @@ describe("English hexagram knowledge detail data", () => {
         expect(line.synthesis.text).toBe(existing.synthesisPhrase);
       }
 
-      expect(detail.judgment.modernInterpretation.text).toBe(bundle.hexagram.coreMeaning);
-      expect(detail.image.modernInterpretation.text).toBe(bundle.hexagram.structureInterpretation);
+      const editorial = EDITORIAL_EN_RENDERINGS[classical.number];
+      expect(editorial).toBeDefined();
+      if (!editorial) throw new Error(`TEST_EDITORIAL_RENDERING_MISSING: ${classical.number}`);
+
+      expect(detail.judgment.modernInterpretation.text).toBe(editorial.judgmentInterpretation);
+      expect(detail.image.modernInterpretation.text).toBe(editorial.imageInterpretation);
+      expect(detail.judgment.modernInterpretation.text).not.toBe(bundle.hexagram.coreMeaning);
+      expect(detail.image.modernInterpretation.text).not.toBe(bundle.hexagram.structureInterpretation);
+      expect(detail.judgment.modernInterpretation.text.trim().length).toBeGreaterThan(0);
+      expect(detail.image.modernInterpretation.text.trim().length).toBeGreaterThan(0);
       expect(detail.judgment.modernInterpretation.dataClass).toBe("editorial-derived");
       expect(detail.image.modernInterpretation.dataClass).toBe("editorial-derived");
     }
+  });
+
+  it("locks the semantic-audit corrections that remove unsupported or over-determined meaning", () => {
+    expect(EDITORIAL_EN_RENDERINGS[22]?.image).toBe(
+      "Fire is beneath the mountain: Grace. The noble person clarifies the many affairs of government but does not dare decide legal cases.",
+    );
+    expect(EDITORIAL_EN_RENDERINGS[25]?.lines[1]).toBe(
+      "Not plowing yet harvesting; not clearing a new field yet having a mature field. Then it is favorable to have somewhere to go.",
+    );
+    expect(EDITORIAL_EN_RENDERINGS[29]?.lines[2]).toContain("dangerous and unsettled");
+    expect(EDITORIAL_EN_RENDERINGS[34]?.lines[0]).toBe(
+      "Power in the toes. Setting out brings misfortune. There is sincerity.",
+    );
+    expect(EDITORIAL_EN_RENDERINGS[55]?.lines[0]).toContain("Even through a full cycle");
+    expect(EDITORIAL_EN_RENDERINGS[61]?.lines[0]).toBe(
+      "Forethought brings good fortune. If there is something else, there is no peace.",
+    );
+    expect(EDITORIAL_EN_RENDERINGS[63]?.lines[3]).toBe(
+      "There is fine silk together with worn cloth. Remain on guard all day.",
+    );
   });
 
   it("models only Qian Use of Nine and Kun Use of Six as source-derived special cases", async () => {
