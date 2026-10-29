@@ -13,7 +13,7 @@
 - [x] Implement dedicated My Readings page with fixed-height scrolling list.
 - [x] Match six references with supplied assets; record missing assets and any visual differences. No substitute generated assets.
 - [x] Verify tests, lint, typecheck, build and browser behavior; reconcile all 20 acceptance items.
-- [ ] Commit task files, push isolated branch, create Draft PR. No merge.
+Delivery: commit task files, push isolated branch, create Draft PR. No merge.
 
 ## Evidence / status ledger
 20 acceptance items start Unknown; each will be assessed individually in account acceptance document. No data deletion or bulk migration is part of development. Delete API is exercised only through isolated tests, never a real user deletion.
@@ -31,3 +31,5 @@ Production dpl_AFmsiYzAopkP5VV95Eu7hRJXUTxr READY matches base. No error/fatal l
 Ruling: middleware intentionally rejects every Next Server Action. Reuse /api/user/me with an explicit view=account query; default response remains identity-only. No middleware or auth changes.
 
 Ruling: final visual sign-off is deferred; source PNG does not supply font files, and clean existing stage artwork differs from the flattened reference background. Record differences rather than claim pixel identity.
+
+Final validation after rebase to de30a7a: build/lint/typecheck PASS; unit tests 135 files / 889 tests; PostgreSQL 25 files / 154 tests. Acceptance ledger: 17 PASS, 3 visual DEFERRED, 0 UNKNOWN.

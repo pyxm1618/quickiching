@@ -1,0 +1,27 @@
+{
+  "fixture_only": true,
+  "checks": "scrollbar drag, native dialog keyboard focus loop, mobile drawer handoff, menu, 16 valid readings, untitled fallback, internal scroll, same-size subviews, exact DELETE gate, trimmed reason gate, context restore, legacy route, real result link, mobile fit",
+  "page_errors": [],
+  "screenshots": [
+    "account-desktop.png",
+    "account-mobile.png",
+    "delete-disabled-desktop.png",
+    "my-readings-desktop.png",
+    "refund-disabled-desktop.png",
+    "settings-delete-mobile.png",
+    "settings-desktop.png",
+    "user-menu-desktop.png"
+  ],
+  "screenshot_count": 8,
+  "viewport_desktop": {
+    "width": 1536,
+    "height": 1024,
+    "dpr": 1
+  },
+  "viewport_mobile": {
+    "width": 390,
+    "height": 844,
+    "dpr": 1
+  },
+  "environment": "Local Next dev with bypass_csp=True for Next dev eval only; no repository CSP change"
+}
