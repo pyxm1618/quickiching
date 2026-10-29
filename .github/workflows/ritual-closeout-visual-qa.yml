@@ -89,8 +89,15 @@ jobs:
       - name: Motion boundary evidence
         shell: bash
         run: |
+          set +e
           set -o pipefail
           node scripts/ritual-motion-gate.mjs | tee .artifacts/ritual-qa/remote/motion-gate.log
+          status=${PIPESTATUS[0]}
+          if [ -f .artifacts/ritual-qa/final-closeout/motion/results.json ]; then
+            cp .artifacts/ritual-qa/final-closeout/motion/results.json .artifacts/ritual-qa/remote/motion-results.json
+            cat .artifacts/ritual-qa/remote/motion-results.json
+          fi
+          exit "$status"
       - name: Runner environment
         if: always()
         shell: bash
