@@ -74,7 +74,7 @@
 
 .titleBlock {
   position: absolute;
-  top: clamp(68px, 8.4vh, 94px);
+  top: clamp(82px, 10.2vh, 110px);
   left: clamp(58px, 6.1vw, 105px);
   z-index: 20;
   width: min(47vw, 760px);
@@ -109,7 +109,7 @@
 .scrollStage {
   position: absolute;
   left: 1.4vw;
-  top: 23.2vh;
+  top: 24.5vh;
   z-index: 18;
   width: min(53.6vw, 920px);
   aspect-ratio: 3 / 2;
@@ -197,9 +197,9 @@
   margin-top: 1px;
   overflow: hidden;
   font-family: var(--font-fraunces), Georgia, serif;
-  font-size: clamp(5px, 0.45vw, 7.5px);
+  font-size: clamp(6.5px, 0.52vw, 8.7px);
   font-weight: 580;
-  line-height: 1.02;
+  line-height: 1.01;
   text-align: center;
   text-wrap: balance;
 }
