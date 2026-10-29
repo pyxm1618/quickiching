@@ -12,6 +12,7 @@ await mkdir(output,{recursive:true});
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1','--window-size=1672,941']});
 try {
  const page=await browser.newPage();await page.setViewport({width:1672,height:941,deviceScaleFactor:1});
+ await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
  const errors=[];page.on('pageerror',error=>errors.push(String(error)));
  if(state==='07'){
   await page.setRequestInterception(true);
@@ -69,7 +70,7 @@ try {
  await page.addStyleTag({content:'*,*::before,*::after{animation-delay:0s!important;animation-duration:0s!important;transition:none!important;caret-color:transparent!important}'});
  await page.screenshot({path:output+'/runtime.png'});
  const observed=await page.evaluate(()=>({
-  viewport:[innerWidth,innerHeight],dpr:devicePixelRatio,zoom:visualViewport.scale,
+  viewport:[innerWidth,innerHeight],dpr:devicePixelRatio,zoom:visualViewport.scale,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,
   scene:document.querySelector('[data-renderer]')?{...document.querySelector('[data-renderer]').dataset}:null,
   stage:document.querySelector('[data-three-coin-home-stage]')?.dataset.experienceStage,
   gate:document.querySelector('[data-completed-cast-gate]')?.dataset.completedCastGate,
@@ -78,7 +79,7 @@ try {
   background:document.querySelector('.ritual-room')?getComputedStyle(document.querySelector('.ritual-room')).backgroundImage:null,
   runtimeAssets:performance.getEntriesByType('resource').filter(item=>item.name.includes('/ritual/')).map(item=>item.name),
  }));
- assert.deepEqual(observed.viewport,[1672,941]);assert.equal(observed.dpr,1);assert.equal(observed.zoom,1);
+ assert.deepEqual(observed.viewport,[1672,941]);assert.equal(observed.dpr,1);assert.equal(observed.zoom,1);assert.equal(observed.reducedMotion,false,'Canonical visual captures use standard motion; Reduced Motion is audited separately');
  assert(observed.background?.includes('bg-stage-master-clean.lossless.webp'),'All states must use the same production room');
  if(['03','04','05'].includes(state)){assert.equal(observed.scene.renderer,'three-webgl','Desktop cannot use fallback');assert.equal(Number(observed.scene.renderDpr),1,'Canonical renderer DPR must stay 1');}
  if(state==='03')assert.equal(observed.scene.phase,'casting','Capture must occur while actual cast is running');
