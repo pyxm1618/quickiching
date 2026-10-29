@@ -217,7 +217,6 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
     if (now - lastWheelAtRef.current < WHEEL_THROTTLE_MS) return;
     const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
     if (Math.abs(delta) < 4) return;
-    event.preventDefault();
     lastWheelAtRef.current = now;
     stepSelection(delta > 0 ? 1 : -1);
   };
