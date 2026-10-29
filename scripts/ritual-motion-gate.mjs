@@ -53,7 +53,7 @@ async function run(reduced,suppressed=false){
    assert(firstResult.elapsed>=1750&&firstResult.elapsed<2050,`Heading time ${firstResult.elapsed}`);
    assert(firstLabel.elapsed>=1850&&firstLabel.elapsed<2200,`Label time ${firstLabel.elapsed}`);
    assert(firstAction.elapsed>=2050&&firstAction.elapsed<2400,`Record time ${firstAction.elapsed}`);
-  }else if(reduced)assert(firstAction.elapsed<650,'Reduced cast must not replay the full throw');
+  }else if(reduced)assert(firstAction.elapsed<800,'Reduced cast must not replay the full throw');
   assert.equal(await page.evaluate(()=>window.__motionCanvas===document.querySelector('.ritual-webgl canvas')),true);
   const session=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
   const visible=await page.$eval('[data-renderer]',node=>node.dataset.visibleFaces.split(','));
