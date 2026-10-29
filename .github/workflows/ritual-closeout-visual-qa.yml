@@ -1,0 +1,102 @@
+name: Ritual Closeout Visual QA
+
+on:
+  push:
+    branches:
+      - codex/three-coin-visual-phase3-5
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ritual-closeout-visual-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    name: Canonical ritual capture
+    runs-on: macos-15
+    timeout-minutes: 35
+    env:
+      RITUAL_VISUAL_QA: "1"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Install local-only result fixture
+        run: node scripts/ritual-qa-fixture.mjs install
+      - name: Production build
+        run: bun run build
+      - name: Resolve Chrome
+        shell: bash
+        run: |
+          CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          if [ ! -x "$CHROME" ]; then
+            brew install --cask google-chrome
+          fi
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+      - name: Start production server
+        shell: bash
+        run: |
+          mkdir -p .artifacts/ritual-qa/remote
+          (RITUAL_VISUAL_QA=1 bunx next start -p 3028 > .artifacts/ritual-qa/remote/server.log 2>&1 & echo $! > .artifacts/ritual-qa/remote/server.pid)
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3028/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat .artifacts/ritual-qa/remote/server.log
+          exit 1
+      - name: Capture seven canonical states
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=.artifacts/ritual-qa/remote
+          node scripts/ritual-capture.mjs "$ROOT/ref-01"
+          for state in 02 03 04 05 06 07; do
+            node scripts/ritual-state-capture.mjs "$state" "$ROOT/ref-$state"
+          done
+      - name: Generate overlays and differences
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv .qa-venv
+          .qa-venv/bin/pip install --quiet pillow
+          for state in 01 02 03 04 05 06 07; do
+            case "$state" in
+              01) ref=ref-01-home-full-en.png ;;
+              02) ref=ref-02-question-full-en.png ;;
+              03) ref=ref-03-casting-full-en.png ;;
+              04) ref=ref-04-cast-result-full-en.png ;;
+              05) ref=ref-05-six-lines-progress-full-en.png ;;
+              06) ref=ref-06-auth-save-gate-full-en.png ;;
+              07) ref=ref-07-hexagram-result-full-en.png ;;
+            esac
+            .qa-venv/bin/python scripts/ritual-image-compare.py               "docs/design/ritual-redesign/references/$ref"               ".artifacts/ritual-qa/remote/ref-$state/runtime.png"               ".artifacts/ritual-qa/remote/ref-$state"
+          done
+      - name: Motion boundary evidence
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/ritual-motion-gate.mjs | tee .artifacts/ritual-qa/remote/motion-gate.log
+      - name: Runner environment
+        if: always()
+        shell: bash
+        run: |
+          sw_vers > .artifacts/ritual-qa/remote/runner-environment.txt
+          uname -a >> .artifacts/ritual-qa/remote/runner-environment.txt
+          "${CHROME_PATH}" --version >> .artifacts/ritual-qa/remote/runner-environment.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ritual-closeout-visual-qa
+          path: .artifacts/ritual-qa/remote
+          if-no-files-found: error
+          retention-days: 3
