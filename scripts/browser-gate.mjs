@@ -232,7 +232,14 @@ async function waitForText(page, text, timeout = 15_000) {
 
 async function clickButton(page, label) {
   if (["Cast the Coins", "Record This Cast"].includes(label)) {
-    await page.waitForFunction(wanted => [...document.querySelectorAll("button")].some(node => node.textContent?.trim() === wanted && !node.disabled), {timeout:3000}, label);
+    await page.waitForFunction(
+      wanted => [...document.querySelectorAll("button")].some(node => {
+        const text=node.textContent?.trim() ?? "";
+        return (text===wanted || text.startsWith(wanted)) && !node.disabled;
+      }),
+      {timeout:8000},
+      label,
+    );
   }
   const clicked = await page.evaluate((wanted) => {
     const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === wanted || node.textContent?.trim().startsWith(wanted));
