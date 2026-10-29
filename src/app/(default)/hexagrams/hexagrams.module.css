@@ -279,7 +279,7 @@
 
 .wheelStage {
   position: absolute;
-  left: 47.2vw;
+  left: 44.8vw;
   top: 22.5vh;
   z-index: 22;
   width: 54.5vw;
@@ -336,7 +336,7 @@
 .wheelCard {
   position: absolute;
   left: 50%;
-  top: 43%;
+  top: 48%;
   display: block;
   width: clamp(96px, 8.8vw, 150px);
   aspect-ratio: 2 / 3;
