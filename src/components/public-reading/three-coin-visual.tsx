@@ -21,10 +21,44 @@ class SceneLoadBoundary extends Component<ThreeCoinSceneProps & {children:ReactN
 
 export function ThreeCoinVisual(props:ThreeCoinSceneProps) {
   const [startScene,setStartScene]=useState(false);
+  const phase = props.phase;
+
   useEffect(()=>{
-    let second=0;
-    const first=requestAnimationFrame(()=>{second=requestAnimationFrame(()=>setStartScene(true));});
-    return ()=>{cancelAnimationFrame(first);cancelAnimationFrame(second);};
-  },[]);
+    if (typeof window === 'undefined') return;
+
+    // Desktop (viewport >= 800px) and active casting/progression phases mount immediately
+    // to preserve 100% identical Desktop Pixel QA and deterministic testing semantics.
+    const isDesktop = window.innerWidth >= 800;
+    if (isDesktop || phase !== 'hero') {
+      let second = 0;
+      const first = requestAnimationFrame(()=>{second = requestAnimationFrame(()=>setStartScene(true));});
+      return ()=>{cancelAnimationFrame(first);cancelAnimationFrame(second);};
+    }
+
+    // Mobile hero phase (question-asking stage): defer heavy WebGL bundle and 512x512 coin
+    // textures until early user interaction occurs or idle, in accordance with Technical Design
+    // lines 612-613 and 1021 (mobile visual budget & non-blocking hydration).
+    let cancelled = false;
+    const activate = () => {
+      if (!cancelled) setStartScene(true);
+    };
+
+    const interactionEvents = ['pointerdown', 'keydown', 'touchstart', 'scroll'] as const;
+    const onInteract = () => {
+      interactionEvents.forEach(e => window.removeEventListener(e, onInteract));
+      activate();
+    };
+    interactionEvents.forEach(e => window.addEventListener(e, onInteract, { once: true, passive: true }));
+
+    // Safety timer so visual background coins eventually mount if user idles on mobile
+    const timerId = setTimeout(activate, 5000);
+
+    return () => {
+      cancelled = true;
+      interactionEvents.forEach(e => window.removeEventListener(e, onInteract));
+      clearTimeout(timerId);
+    };
+  },[phase]);
+
   return <SceneLoadBoundary {...props}>{startScene?<Scene {...props} />:null}</SceneLoadBoundary>;
 }
