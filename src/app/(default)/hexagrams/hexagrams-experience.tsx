@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useState, type CSSProperties, type PointerEvent, type WheelEvent } from "react";
+import React, { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type WheelEvent } from "react";
 import Link from "next/link";
 import { UserNavControl } from "@/components/auth/user-nav-control";
 import { TRIGRAM_BITS, type Trigram } from "@/domain/casting/hexagrams/king-wen";
@@ -111,6 +111,45 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
   const dragRef = useRef<{ pointerId: number; startX: number; lastX: number; moved: boolean } | null>(null);
   const suppressClickUntilRef = useRef(0);
   const lastWheelAtRef = useRef(0);
+
+  useEffect(() => {
+    const body = document.body;
+    const main = document.querySelector<HTMLElement>("body > main");
+    const siteHeader = document.querySelector<HTMLElement>("body > header");
+    const siteFooter = document.querySelector<HTMLElement>("body > footer");
+
+    const previous = {
+      bodyOverflow: body.style.overflow,
+      bodyBackground: body.style.background,
+      mainHeight: main?.style.height ?? "",
+      mainMinHeight: main?.style.minHeight ?? "",
+      mainOverflow: main?.style.overflow ?? "",
+      headerDisplay: siteHeader?.style.display ?? "",
+      footerDisplay: siteFooter?.style.display ?? "",
+    };
+
+    body.style.overflow = "hidden";
+    body.style.background = "#100b07";
+    if (main) {
+      main.style.height = "100dvh";
+      main.style.minHeight = "100dvh";
+      main.style.overflow = "hidden";
+    }
+    if (siteHeader) siteHeader.style.display = "none";
+    if (siteFooter) siteFooter.style.display = "none";
+
+    return () => {
+      body.style.overflow = previous.bodyOverflow;
+      body.style.background = previous.bodyBackground;
+      if (main) {
+        main.style.height = previous.mainHeight;
+        main.style.minHeight = previous.mainMinHeight;
+        main.style.overflow = previous.mainOverflow;
+      }
+      if (siteHeader) siteHeader.style.display = previous.headerDisplay;
+      if (siteFooter) siteFooter.style.display = previous.footerDisplay;
+    };
+  }, []);
 
   const selectByIndex = (index: number) => {
     const next = hexagrams[wrapIndex(index, hexagrams.length)];
