@@ -411,9 +411,10 @@
 
 .wheelCardSelected {
   filter:
-    drop-shadow(0 0 8px rgba(255, 216, 126, 0.72))
-    drop-shadow(0 0 25px rgba(218, 152, 51, 0.48))
-    drop-shadow(0 0 48px rgba(153, 91, 26, 0.24));
+    brightness(1.16)
+    drop-shadow(0 0 10px rgba(255, 225, 151, 0.86))
+    drop-shadow(0 0 28px rgba(231, 166, 61, 0.62))
+    drop-shadow(0 0 56px rgba(164, 94, 24, 0.34));
 }
 
 .wheelCardSelected::before {
