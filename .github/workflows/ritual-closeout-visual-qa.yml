@@ -159,5 +159,16 @@ jobs:
           const lcp=Math.round(report.audits['largest-contentful-paint'].numericValue);
           const tbt=Math.round(report.audits['total-blocking-time'].numericValue);
           console.log(JSON.stringify({performance,accessibility,seo,lcp,tbt}));
+          const boot=(report.audits['bootup-time']?.details?.items||[])
+            .sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,12)
+            .map(item=>({url:item.url,total:Math.round(item.total||0),scripting:Math.round(item.scripting||0),parse:Math.round(item.scriptParseCompile||0)}));
+          const longTasks=(report.audits['long-tasks']?.details?.items||[])
+            .sort((a,b)=>(b.duration||0)-(a.duration||0)).slice(0,12)
+            .map(item=>({url:item.url,duration:Math.round(item.duration||0),startTime:Math.round(item.startTime||0)}));
+          const breakdown=(report.audits['mainthread-work-breakdown']?.details?.items||[])
+            .map(item=>({group:item.groupLabel,duration:Math.round(item.duration||0)}));
+          console.log('BOOTUP_TOP '+JSON.stringify(boot));
+          console.log('LONG_TASKS_TOP '+JSON.stringify(longTasks));
+          console.log('MAINTHREAD_BREAKDOWN '+JSON.stringify(breakdown));
           if(performance<65||lcp>4000) process.exit(1);
           NODE
