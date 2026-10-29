@@ -93,7 +93,9 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 @media(min-width:801px) {
  [data-experience-stage='landing'] .ritual-gold-button {font-weight:400;font-size:calc(26.2 * var(--u));gap:calc(14 * var(--u));padding-bottom:calc(3 * var(--u));}
  [data-experience-stage='landing'] .ritual-taichi {width:calc(46 * var(--u));height:calc(46 * var(--u));}
- [data-experience-stage='landing'] .ritual-question-card {border-width:2px;border-radius:3px;}\n [data-experience-stage='landing'] .ritual-question-card::before {inset:4px;border-radius:2px;}\n [data-experience-stage='landing'] .ritual-gold-button::after {display:none;}
+ [data-experience-stage='landing'] .ritual-question-card {border-width:2px;border-radius:3px;}
+ [data-experience-stage='landing'] .ritual-question-card::before {inset:4px;border-radius:2px;}
+ [data-experience-stage='landing'] .ritual-gold-button::after {display:none;}
  [data-experience-stage='landing'] .ritual-gold-button {background:radial-gradient(ellipse at 50% 50%,#ffd26b 0%,#f5b64e 42%,#e99b32 74%,#d98528 100%);box-shadow:inset 0 -4px 8px rgba(255,225,140,.78),0 0 4px rgba(245,194,106,.9),0 0 14px rgba(216,136,46,.85),0 0 28px rgba(137,71,21,.65);}
 }
 .ritual-question-card::before {content:'';position:absolute;inset:5px;border:1px solid #d3a970;border-radius:5px;pointer-events:none;}
