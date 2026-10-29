@@ -257,6 +257,26 @@ describe("static hexagram detail page", () => {
     }
   });
 
+  it("retains the exact fixed source and six individually labelled line links on all 128 detail pages", async () => {
+    for (const classical of CLASSICAL_HEXAGRAMS) {
+      const knowledge = await loadPublicHexagramKnowledge(classical.number);
+      for (const locale of ["en", "zh-Hans"] as const) {
+        const html = renderToStaticMarkup(<HexagramDetailPageView locale={locale} knowledge={knowledge} seo={hexagramSeoFor(classical.number, locale)} content={locale === "zh-Hans" ? zhHansHexagramContent(classical.number) : undefined} previous={null} next={null} />);
+        const links = [...html.matchAll(/<a\b[^>]*>/gu)].map((match) => match[0]);
+        const sourceLinks = links.filter((link) => link.includes("zh.wikisource.org"));
+        const fixedHref = 'href="' + classical.source.textSourceUrl.replaceAll("&", "&amp;") + '"';
+        expect(sourceLinks, `${locale}:${classical.number}`).toHaveLength(locale === "en" ? 8 : 7);
+        for (const link of sourceLinks) expect(link).toContain(fixedHref);
+        for (const line of classical.lines) {
+          const label = locale === "en" ? `Source for classical line ${line.position}` : `第${line.position}爻经典原文来源`;
+          const labelledSources = sourceLinks.filter((link) => link.includes(`aria-label="${label}"`));
+          expect(labelledSources, `${locale}:${classical.number}:line-${line.position}`).toHaveLength(1);
+          expect(labelledSources[0]).toContain('href="' + line.source.textSourceUrl.replaceAll("&", "&amp;") + '"');
+        }
+      }
+    }
+  });
+
   it("does not present absent English translations or stage data as authored classical text", async () => {
     for (const number of [1, 3, 5, 62, 64]) {
       const knowledge = await loadPublicHexagramKnowledge(number);
