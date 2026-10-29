@@ -1,66 +1,61 @@
-# English hexagram detail UI — 2026-10-29
+# PR #70 — integrated English knowledge detail QA
 
-Draft implementation. Engineering checks pass; visual parity with the approved design does **not** pass. Do not label this pixel-complete or ready for acceptance.
+Engineering implementation: PASS locally. Production material sources: COMPLETE (15 approved originals). Visual acceptance: **NOT PASS**. Remote CI: read the current PR head checks; local success is not remote CI success. **No merge is authorized.**
 
-Base: `8329ef2f3dfe912a2a0e37fdcbaddb6e06f5bf66` (`origin/main`). Branch: `codex/hexagram-detail-ui`.
+Branch: `codex/hexagram-detail-ui`. Original UI base: `8329ef2f3dfe912a2a0e37fdcbaddb6e06f5bf66`. Data PR #69 was merged from `origin/main` (`de30a7a`) into this same branch. This is a continuation of PR #70, not a second page or PR.
 
-## Inputs and scope
+## Production materials and scope
 
-The user confirmed `reference.png` as the final English knowledge-detail design. Its source is `/Users/milushangdi/Desktop/QIC/单卦详情页/乾卦：至刚创生的易经指南.png`. The final PASS ZIP supplied 13 images; each deployed asset is byte-identical to its archive member (`assets.json`). Asset ledger: original 13 = pass 13 + deferred 0 + reject 0 + unknown 0. No rejected versions, generated images, screenshot backgrounds or baked text are used.
+The approved design remains `reference.png`. The original final PASS ZIP supplies 13 images. The user then supplied `/Users/milushangdi/Desktop/灯影水庭夜色朦胧.png` (1024×1536 RGB) and `/Users/milushangdi/Desktop/墨金太极乾坤图_透明边缘清理_2048.png` (2048×2048 RGBA). They are copied byte-identically as `background/lantern-scene.png` and `decorations/hero-taiji.png`. The Taiji has actual alpha, four fully transparent corners, and was inspected on parchment. No generated art, screenshot crops, baked page text or replacement assets were introduced.
 
-The existing route and exported `HexagramDetailPageView` remain. Only English presentation, its scoped stylesheet, static assets, frontend tests and QA evidence change. Chinese HTML was compared against the base for all 64 routes and is identical. Domain/content files, API, schema, services, algorithms, reading flows, auth and payment remain untouched. Metadata values remain unchanged; the English visible H1 now binds the actual English entity name as in the design.
+`assets.json` and `visual-materials-readiness.json` reconcile **15 = pass 15 + deferred 0 + reject 0 + unknown 0**. All 15 HTTP-served originals match their SHA-256 values. Source approval and successful asset delivery do not establish pixel parity.
 
-The English scroll supplies its own section and sequence navigation; the shared site header/footer are hidden only while this English detail article is present. The existing analytics consent banner remains functional. Capture browser declined through its actual button; no analytics code or consent behavior was changed.
+The existing English view/route is reused. Chinese markup and behavior are preserved. Domain, API, database, schema, services, casting, reading flows, auth, payment, dependencies, build configuration and metadata values were not edited by this UI integration. Domain changes in the ancestry come from the separately merged PR #69; `git diff origin/main -- src/domain src/app src/server package.json bun.lock` is empty.
 
-## Verification
+The English detail supplies its own section/sequence navigation. Site header/footer and the previous site's star overlay are hidden only on this English detail composition. Consent behavior remains unchanged; captures decline through its actual button. The new scene is a fixed, aspect-preserving viewport background, not a vertically stretched full-page image. Scroll sides still use actual top + vertically repeating middle + bottom pieces, with intrinsic cap aspect ratios.
 
-- `bun run build` — PASS, production static generation completed.
-- `bun run lint` — PASS.
-- `bun run typecheck` — PASS.
-- `bun run test` — PASS, 130 files / 860 tests.
-- `bun run seo:registry` — PASS, 128 entries, original source hashes preserved.
-- Existing SEO production browser gate — PASS, 128 pages plus language/keyboard/hub/mobile checks.
-- Existing quality audit — PASS, 128/128. English reading-intent modules, keyword display slots and direct-home link were superseded by the user's fixed design; these are explicitly non-applicable, not fabricated passes. Chinese assertions remain.
-- Independent read-only review — no actionable code findings; visual fidelity remains unapproved.
+## Data bindings and optional states
 
-Local tools: Bun 1.4.2, Node 26.7.0, Chrome 156.0.8078.48. CI uses repository-pinned Node 22/Bun 1.3.14; local results do not establish remote CI status.
+`integrated-data-coverage.json` records the actual consumed data: 64 Judgment renderings, 64 Image renderings, 384 line renderings, 2 use-line cases (hexagrams 1 and 2), 120 supplied structural relations across 64 hexagrams, and **0 Stage/State entries**.
 
-## Actual browser coverage
+- Judgment/Image each use their own `rendering.editorialRendering` and `modernInterpretation.text`; they do not borrow `coreMeaning` or one another's interpretation.
+- English text is labelled **English Rendering / Translation** and attributed to the supplied **Quick I Ching editorial rendering**. It is never labelled Classical Line Text or presented as an ancient English original.
+- Six lines bind by position, preserving full rendering, modern meaning and caution. Their visual order follows the reference (Sixth to First), and stable `#line-1`…`#line-6` anchors remain.
+- Missing detail data safely hides its rendering slots; the previous real modern meaning/caution remains available. Stage/State stays hidden when empty. Its conditional rendering has a clearly labelled test-only fixture, never production content.
+- Actual use-line cases and structural relations render only when supplied. Unchanging cases, Key Energy and Suitable Situations are not invented from unrelated fields.
+- Related figures use each related entity's actual trigram data. The UI does not generate relationships or interpretation content.
+- Auxiliary navigation remains exactly Previous, Back to 64 Hexagrams, Next, with disabled sequence boundaries and no reading/purchase CTA.
 
-`qa-results.json` records 25 checks against a production server: 1024×900, 1440×1000, 390×844, 320×812 and 801×900, each on hexagrams 1, 3, 5, 62 and 64. These are real Chrome CSS viewports at DPR 1, not physical mobile devices.
+`coverage.json` reconciles all seven component responsibilities: 7 pass, 0 deferred/reject/unknown. That measures binding/optional-state handling; it does not approve visual fidelity or imply missing semantic fields were supplied.
 
-Each run checks real title/identity, six bars, full untruncated modern-meaning text against the catalog, hidden unavailable case/relation sections, no horizontal scrolling, no clipped text, sequence boundaries, cap aspect ratios, cap/middle/bottom adjacency and actual vertical repetition. Navigation was clicked through Previous, Next and Back to 64 Hexagrams. All 13 HTTP-served image bodies matched their source hashes. No page errors were recorded. Chinese header styling stays visible on the Chinese route.
+## Verification evidence
 
-Actual catalog names verified: The Creative (1), Difficulty at the Beginning (3), Waiting (5), Small Exceeding (62), Before Completion (64). The user-requested `Preponderance of the Small` was separately inserted into temporary browser DOM at 1024/390/320px as a **layout stress test only**. It fits without horizontal overflow or clipping. The catalog was not renamed; the stress screenshot is explicitly named `test-only-long-name-320.png`.
+- Production `bun run build`, lint and typecheck: PASS.
+- Full unit suite: **131 files / 869 tests PASS**. One earlier run hit an existing pricing timer assertion; that unrelated test passed in isolation and the full suite then passed. The failed log was preserved; no pricing/payment code or test was changed.
+- Detail component suite: 12/12 PASS, including all 128 localized source-link bindings, new data bindings, safe missing detail and empty optional modules.
+- Updated full P0 production browser gate: PASS. Its obsolete wording assertion was replaced by the new knowledge contract; canonical/anchors, Judgment/Image sources, all six individually labelled source links and exact fixed URL/revision checks remain.
+- Negative DOM audits: deleting line 3's source link and changing its `oldid` to `1` each correctly FAIL the gate even though the total link count remains sufficient. See `P0-CONTRACT-FOLLOWUP.md`.
+- Existing production SEO browser and quality checks: PASS, 128/128 pages. Metadata, languages, source-noise rules, inbound links and Chinese checks remain. English line headings are checked for six real, non-empty line headings rather than obsolete keyword repetition.
+- Final production Chrome checks: **30 cases** across 1024×900, 1440×1000, 390×844, 320×812, 801×900, each on hexagrams **1, 2, 3, 5, 62, 64**. DPR 1; these are actual CSS viewports, not physical devices.
+- Each case verifies identity, six current bars, actual optional sections, full line rendering/meaning/caution against supplied data, Judgment/Image field-specific binding, stages, no horizontal overflow or clipped text, real sequence links, cap aspect ratios, cap adjacency and vertical middle repetition. Real Previous/Next/Back clicks pass; no page errors; Chinese styling stays isolated.
+- `Preponderance of the Small` is a separate temporary DOM layout test at 1024/390/320px. The real #62 name remains `Small Exceeding`. It was not written to the catalog or used as a production fallback.
+- Independent read-only review found no actionable code issues and independently passed the 12 component tests. It did not approve pixel fidelity.
 
-Desktop structural QA: PASS. Mobile structural/readability QA: PASS. Desktop/mobile visual fidelity to the approved composition: **NOT PASS**.
+Raw logs/screenshots remain under `outputs/hexagram-detail/`. Baseline evidence at `e1bd74c` is retained in Git and in the original local output folders. `integrated-qa-results.json`, `integrated-geometry.md` and the committed viewport screenshots describe this integration. Local tools: Bun 1.4.2 / Node 26.7.0 / Chrome 156; CI runs the repository-pinned versions.
 
-Manual screenshot review covered top/bottom rolls, repeat borders, parchment, branch positions, long headings and long six-line text, hidden-section continuity, footer links, absence of obvious white/color edge halos and text occlusion. A first-round overlap between the top roll and number badge was corrected by moving the content start below the real roll ornament. Mobile branches were constrained to the page edge to avoid the local navigation. The screenshot inspection does not establish physical-device rendering or cross-browser parity.
+## Pixel QA and the height rule
 
-## Measured differences and remaining inputs
+**Never treat 3020px vs 1536px, or the integrated page's larger height, as a UI defect by itself.** Preserve all actual text at readable sizes. Do not delete paragraphs, shrink text, clamp content or force fixed heights to equal the short example. Judge the visual system, component proportions/styles, local spacing rhythm, material placement, contrast and continuity. Content-driven section growth and downstream Y offsets are diagnostics, not defect counts.
 
-At 1024px, the reference has height 1536px; the live Qian page is about 3020px because its real authored content is substantially longer. The text is neither truncated nor rewritten. Measured anchors are in `geometry.md`; the screenshot comparison uses the same 1024px width and DPR 1, without vertically rescaling the candidate.
+The 1024px comparison uses the original reference scale without vertically rescaling either image. `integrated-geometry.md` records nine selected regions. The final calibration restored the 900px paper width, aligned the form's X/width, corrected the badge's extra offset and brought the cases/relations split within about 2px of the selected reference bounds. These are geometry checks, not a similarity percentage.
 
-- Hero starts about 47.6px below the reference; this reserves space for the approved roll's larger ornament. Hero Taiji art and the lantern/scene backdrop visible in the reference are absent from the supplied asset set. They have not been redrawn, generated or screenshot-cropped.
-- Meaning section is about 429.6px taller. Only four available semantic fields are displayed; dedicated Key Energy/Suitable Situations data is unavailable. The current long `coreMeaning` differs from the short design example.
-- Classical section is about 71.4px shorter. It has real source links but no unavailable English rendering or dedicated Judgment/Image modern interpretation. Editorial modern meaning is never relabeled as a classical translation.
-- Six Lines is about 1230.2px taller than the short reference example. Modern meaning and caution remain complete. English-rendering and Stage/State columns are absent, rather than showing placeholders or using unrelated fields.
-- Cases and relationships are omitted because their real data contracts are absent. Their missing source data also changes page rhythm and bottom artwork context. See `coverage.json`: original 7 sections = pass 2 + deferred 5 + reject 0 + unknown 0. Deferred means data-dependent portions are incomplete, not rejected.
-- Navigation starts about 1423.9px later than in the reference and is about 29.2px taller. It contains only the three permitted sequence/index items. No trailing menu button from the reference was added because the explicit user instruction limits navigation to those items.
-- The section panel corner filigree and dense scene decoration in the reference are not present as separate approved assets. The current borders and standard UI icons are code; ornamental art was not invented. The reference does not provide a font specification. The serif rendering uses Times New Roman, confirmed in Chrome's rendered-font inspection, without introducing font dependencies; exact original typeface identity is unverified.
-- Mobile stacks the form and meaning/classical columns, and stacks the six-line cells with their labels. This is a responsive adaptation; no separate mobile design was supplied. The landscape is hidden at narrow widths to avoid covering text.
+**Visible differences remain, so pixel acceptance is NOT PASS:**
 
-**Still waiting for a data PR:** yes — English renderings, distinct Judgment/Image modern interpretations, Stage/State, actual cases and actual hexagram relations (and the missing short semantic fields). The frontend consumes the current contract only; no speculative new production fields or content generation were introduced.
+- Hero starts about 47.6px lower than the reference; the supplied top roll's intrinsic ornament geometry is taller. Caps are preserved rather than stretched or cut to disguise the difference. The badge/form have correspondingly lower Y positions.
+- The form is shorter because the reference's lower descriptive/polarity copy is not a supplied dedicated data field. No text was fabricated to fill it.
+- Some fine panel-border treatments, branch scale/placement and roll/ornament outlines still differ from the reference. The approved assets are used as-is; no new ornamental art was invented.
+- The reference does not supply a font specification. Chrome confirms Times New Roman is actually rendered, but exact identity with the source artwork's typeface remains unverified.
+- The meaning section has four available semantic fields, rather than the six short fields shown in the reference. Stage/State and an unchanging-case card have no real supplied content. Safe omissions and full long paragraphs legitimately change the layout's content density.
+- Mobile stacks the form, semantic panels and line cells while preserving labels, source links and text. No approved mobile image was supplied, so its adaptation is checked for readability/continuity rather than asserted as a pixel match to a nonexistent mobile baseline.
 
-Reproduce local browser checks with the production server at port 3217:
-
-```sh
-bun run build
-bun run start --port 3217
-# In another terminal, using the repository's existing ephemeral browser audit tooling:
-bun scripts/hexagram-detail-ui-browser.mjs
-HEXAGRAM_SEO_BROWSER_BASE_URL=http://localhost:3217 bun scripts/hexagram-seo-browser-gate.mjs
-HEXAGRAM_SEO_AUDIT_BASE_URL=http://localhost:3217 bun scripts/hexagram-seo-quality-audit.mjs
-```
-
-Complete local screenshots and raw logs are preserved under `outputs/hexagram-detail/` (ignored). The three committed viewport screenshots are genuine browser captures; the long-name image is the test-only case described above. Geometry and screenshot overlays diagnose differences; they are not a similarity percentage or a visual PASS.
+Desktop structural/interaction QA: PASS. Mobile structural/readability QA: PASS. Full desktop/mobile visual acceptance: **NOT PASS**. Materials are now complete and PR #69 is integrated, but neither fact authorizes merging or removes these recorded visual differences.

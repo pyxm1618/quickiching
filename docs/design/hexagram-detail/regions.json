@@ -62,6 +62,46 @@
         45
       ],
       "selector": "[data-auxiliary-navigation]"
+    },
+    {
+      "name": "cases",
+      "box": [
+        96,
+        1240,
+        516,
+        210
+      ],
+      "selector": "[data-reading-cases]"
+    },
+    {
+      "name": "relationships",
+      "box": [
+        620,
+        1240,
+        376,
+        210
+      ],
+      "selector": "[data-hexagram-relations]"
+    },
+    {
+      "name": "form",
+      "box": [
+        647,
+        135,
+        309,
+        182
+      ],
+      "selector": "[data-basic-identity] > section"
+    },
+    {
+      "name": "number-badge",
+      "box": [
+        125,
+        107,
+        58,
+        86
+      ],
+      "selector": "[data-basic-identity] > div:first-child"
     }
   ]
 }

@@ -141,6 +141,7 @@ async function snapshotPage(page, entry) {
       ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute("content") ?? "",
       ogDescription: document.querySelector('meta[property="og:description"]')?.getAttribute("content") ?? "",
       h1: [...root.querySelectorAll("h1")].map((node) => node.textContent?.replace(/\s+/gu, " ").trim() ?? ""),
+      lineHeadings: Array.from({ length: 6 }, (_, index) => root.querySelector(`#line-${index + 1} h3`)?.textContent?.trim() ?? ""),
       hasKnowledgeSections: Boolean(root.querySelector("[data-basic-identity]")) && ["hexagram-meaning-title", "hexagram-classical-title", "hexagram-lines-title"].every((id) => root.querySelector(`#${id}`)),
       earlyCopy: root.querySelector("[data-seo-early-copy]")?.textContent?.replace(/\s+/gu, " ").trim() ?? "",
       h2: [...root.querySelectorAll("h2")].map((node) => node.textContent?.replace(/\s+/gu, " ").trim() ?? ""),
@@ -284,7 +285,7 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     noLoveModule: !snapshot.hasLoveModule,
     noRelationshipGuidanceModule: !snapshot.hasRelationshipModule,
     noSpecialIntentModule: snapshot.specialModules.length === 0,
-    sixLineHeadings: snapshot.h3.filter((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)).length >= 6,
+    sixLineHeadings: snapshot.lineHeadings.length === 6 && snapshot.lineHeadings.every(Boolean),
   } : {
     love: true,
     unchanging: snapshot.h2.some((value) => hasExactPhrase(value, entry.unchangingKeyword, entry.locale)),

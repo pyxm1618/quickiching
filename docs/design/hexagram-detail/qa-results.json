@@ -2113,5 +2113,8 @@
       "file": "test-only-long-name-320.png",
       "sha256": "90981f254f6c58c33371af59d9183d49417210f58f7990ef4201068fdfe113aa"
     }
-  ]
+  ],
+  "evidenceRevision": "e1bd74c4602f69adb21accfbd880ea9057435096",
+  "heightComparisonPolicy": "Total height and content-driven vertical offsets are contextual, not a UI failure criterion. Preserve all text at readable size; assess visual system, proportions, component styling and local rhythm.",
+  "visualMaterialsReadiness": "NOT COMPLETE: approved Hero Taiji and lantern/scene source deliveries absent"
 }

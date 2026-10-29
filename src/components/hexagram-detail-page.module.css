@@ -6,7 +6,7 @@
   isolation: isolate;
   max-width: 1440px;
   margin: 0 auto;
-  padding: clamp(112px, 11vw, 158px) 34px 68px 96px;
+  padding: clamp(112px, 11vw, 158px) 28px 68px 96px;
   background: #160e07;
   color: var(--detail-ink);
   font: 16px/1.45 "Times New Roman", Times, serif;
@@ -34,22 +34,21 @@
 .rightEdge > span:first-child { aspect-ratio: 162 / 354; background-image: url('/hexagram-detail/frame/right-top.png'); }
 .rightEdge > span:nth-child(2) { flex: 1; background-image: url('/hexagram-detail/frame/right-middle-repeat.png'); background-repeat: repeat-y; }
 .rightEdge > span:last-child { aspect-ratio: 162 / 267; background-image: url('/hexagram-detail/frame/right-bottom.png'); }
-.cherryTop, .cherryBottom, .pine, .landscape { position: absolute; background-repeat: no-repeat; background-size: contain; }
+.cherryTop, .cherryBottom, .pine { position: absolute; background-repeat: no-repeat; background-size: contain; }
 .cherryTop { left: 0; top: 15px; width: 13%; aspect-ratio: 1334 / 1179; background-image: url('/hexagram-detail/decorations/cherry-branch-top-left.png'); }
 .cherryBottom { bottom: 55px; left: 0; width: 10%; aspect-ratio: 1334 / 1179; background-image: url('/hexagram-detail/decorations/cherry-branch-bottom-left.png'); }
 .pine { right: 0; top: 38%; width: 30px; aspect-ratio: 1334 / 1179; background-image: url('/hexagram-detail/decorations/pine-branch-right.png'); }
-.landscape { right: 0; bottom: 78px; width: 30%; aspect-ratio: 2048 / 682; background-image: url('/hexagram-detail/decorations/ink-landscape.png'); opacity: .75; }
 .detail .sectionNav { position: absolute; left: 10px; top: 287px; width: 66px; z-index: 4; display: grid; gap: 24px; text-align: center; font-size: 14px; line-height: 1.2; }
 .detail .sectionNav a { color: #fff0c5 !important; text-decoration: none; }
 .sectionNav span { margin: 0 auto 5px; display: block; border: 1px solid #d69a43; border-radius: 50%; width: 27px; height: 27px; line-height: 25px; }
 .identity { position: relative; display: grid; grid-template-columns: 70px minmax(0, 1fr) minmax(270px, .9fr); gap: 20px; align-items: center; padding: 36px 28px 38px 22px; min-height: 282px; }
-.numberBadge { align-self: start; margin-top: 60px; border: 1px solid #b98338; outline: 1px solid #d7b479; outline-offset: 4px; text-align: center; padding: 8px 3px; }
+.numberBadge { align-self: start; margin-top: 8px; margin-left: 8px; border: 1px solid #b98338; outline: 1px solid #d7b479; outline-offset: 4px; text-align: center; padding: 8px 3px; }
 .numberBadge span { font-size: 12px; }
 .numberBadge strong { display: block; font-weight: 400; font-size: 42px; line-height: 1.1; }
 .identityCopy { min-width: 0; }
 .pinyin { font-size: clamp(48px, 7vw, 90px); line-height: 1; margin: 0; }
 .identity h1 { font-size: clamp(26px, 3.2vw, 40px); font-weight: 400; line-height: 1.15; margin: 12px 0 0; text-wrap: balance; overflow-wrap: break-word; }
-.heroMeaning { font-size: 21px; line-height: 1.2; margin-top: 14px; }
+.heroMeaning { max-width: min(100%, 300px); font-size: 21px; line-height: 1.2; margin-top: 14px; }
 .form { border: 1px solid #c49559; outline: 2px solid #eac691; outline-offset: 3px; background: #f9e7c7c9; padding: 16px; }
 .form h2 { font-size: 16px; font-weight: 700; margin: 0 0 12px; }
 .formBody { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 20px; align-items: center; }
@@ -65,7 +64,7 @@
 .section::before { content: ""; position: absolute; top: -8px; left: -1px; right: -1px; height: 7px; background: #bd925757; border-block: 1px solid #d0a979; }
 .sectionTitle { display: flex; align-items: center; gap: 16px; font-size: 26px; font-weight: 700; line-height: 1.12; min-height: 51px; padding: 4px 0; margin: 0; }
 .sectionTitle > span { flex: 0 0 46px; height: 46px; display: grid; place-items: center; border: 2px solid #d59c36; border-radius: 50%; color: #fff3d3; background: #1b1308; font-size: 29px; font-style: italic; font-weight: 400; }
-.meaningGrid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; }
+.meaningGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .meaningGrid > section, .classicalGrid > section { min-width: 0; border: 1px solid #c6954d55; padding: 14px 13px; }
 .meaningGrid h3 { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 0 0 15px; }
 .meaningGrid svg, .classicalGrid svg { flex-shrink: 0; width: 38px; height: 38px; padding: 6px; border-radius: 50%; background: #edc1806b; stroke-width: 1.5; }
@@ -91,13 +90,14 @@
 .detail .auxiliaryNav a, .detail .auxiliaryNav > span { color: #ffebaf !important; border: 1px solid #ae7328; border-radius: 14px; padding: 8px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .auxiliaryNav > span[aria-disabled] { opacity: .45; }
 @media (min-width: 1280px) {
+  .numberBadge { margin-top: 60px; }
   .detail { padding-left: 112px; padding-right: 44px; font-size: 18px; }
   .identity { grid-template-columns: 80px minmax(0, 1fr) minmax(320px, .85fr); padding-block: 48px; }
   .sectionTitle { font-size: 30px; }
   .leftEdge { width: 96px; }
   .rightEdge { width: 40px; }
 }
-@media (max-width: 800px) {
+@media (max-width: 960px) {
   .detail { padding: 50px 26px 55px; font-size: 16px; }
   .leftEdge { width: 24px; top: 45px; bottom: 35px; }
   .rightEdge { width: 24px; top: 45px; bottom: 35px; }
@@ -106,7 +106,7 @@
   .cherryTop { width: 24px; top: 0; }
   .sectionNav span { width: 23px; height: 23px; line-height: 21px; }
   .identity { grid-template-columns: 48px minmax(0, 1fr); gap: 16px; padding: 28px 18px; }
-  .numberBadge { margin-top: 8px; }
+  .numberBadge { margin-top: 8px; margin-left: 0; }
   .numberBadge strong { font-size: 32px; }
   .numberBadge span { font-size: 10px; }
   .pinyin { font-size: 58px; }
@@ -141,8 +141,72 @@
   .auxiliaryNav > :nth-child(2) { grid-row: 2; grid-column: 1 / -1; }
   .cherryTop { width: 17px; }
   .cherryBottom { width: 17px; }
-  .landscape { display: none; }
 }
 /* The approved detail composition supplies its own navigation and frame. */
 :global(body):has(.detail) > :global(header),
 :global(body):has(.detail) > :global(footer) { display: none; }
+/* The two follow-up production assets are user-supplied originals, never screenshot crops. */
+.detail { background: transparent; }
+:global(body):has(.detail) { background: #160e07 url('/hexagram-detail/background/lantern-scene.png') center top / cover fixed no-repeat; }
+:global(body):has(.detail)::before { display: none; }
+.identity { overflow: hidden; grid-template-columns: 70px minmax(0, 1fr) 309px; padding-right: 40px; }
+.identity::before { content: ""; position: absolute; z-index: 0; top: clamp(-216px, -15vw, -120px); right: 12%; width: clamp(360px, 46vw, 660px); aspect-ratio: 1; background: url('/hexagram-detail/decorations/hero-taiji.png') center / contain no-repeat; pointer-events: none; }
+.identity > * { position: relative; z-index: 1; }
+.pinyin { font-size: clamp(60px, 8.8vw, 126px); }
+.identity h1 { font-size: clamp(30px, 4.3vw, 62px); }
+.form { background: #f9e7c7 url('/hexagram-detail/background/paper-texture.png') center / 627px 627px repeat; }
+.classicalEntry { display: grid; grid-template-columns: 143px minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 22px; }
+.classicalEntry p { margin: 0; }
+.classicalEntry blockquote { margin: 0; }
+.textLabel { display: block; width: fit-content; max-width: 100%; border-radius: 16px; padding: 7px 10px; background: #f0c78099; font-size: 13px; font-weight: 700; line-height: 1.2; }
+.renderingAttribution { font-size: 12px; text-align: right; margin: 0 0 8px; color: #684414; }
+.linesWithRendering .lineTableHead, .linesWithRendering .lineRow { grid-template-columns: 105px minmax(125px, .7fr) minmax(0, 1.15fr) minmax(0, 1fr); }
+.linesWithStage .lineTableHead, .linesWithStage .lineRow { grid-template-columns: 85px minmax(0, 1.15fr) minmax(90px, .6fr) minmax(0, 1fr); }
+.linesWithRendering.linesWithStage .lineTableHead, .linesWithRendering.linesWithStage .lineRow { grid-template-columns: 75px minmax(110px, .7fr) minmax(0, 1.15fr) minmax(85px, .6fr) minmax(0, 1fr); }
+.lineRow [data-line-rendering] { font-weight: 600; }
+.optionalSections { display: grid; grid-template-columns: 1.36fr 1fr; gap: 8px; }
+.optionalSections > section:only-child { grid-column: 1 / -1; }
+.optionalSections .sectionTitle { font-size: 22px; gap: 10px; }
+.readingCase { padding: 16px; }
+.readingCase h3 { font-size: 20px; font-weight: 700; margin: 0 0 16px; }
+.readingCase p { margin-top: 14px; }
+.relationsGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.relation { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 18px; padding: 16px; }
+.relation h3 { font-size: 17px; font-weight: 700; margin: 0 0 8px; }
+.relation a { color: #4b3212; font-weight: 600; }
+.relation p { margin-top: 10px; font-size: 14px; }
+.relation .hexagramBars { align-self: start; margin-top: 5px; gap: 4px; }
+.relation .hexagramBars > span { height: 6px; }
+@media (min-width: 1280px) {
+  .identity { grid-template-columns: 80px minmax(0, 1fr) 34%; }
+  .heroMeaning { max-width: 420px; }
+}
+@media (max-width: 960px) {
+  .identity { grid-template-columns: 48px minmax(0, 1fr); }
+  .identity::before { width: 390px; top: -60px; right: -65px; opacity: .22; }
+  .pinyin { font-size: 58px; }
+  .identity h1 { font-size: 30px; }
+  .optionalSections { grid-template-columns: 1fr; }
+  .classicalEntry { grid-template-columns: 1fr; gap: 10px; }
+  .detail .sectionNav { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 540px) {
+  .pinyin { font-size: 48px; }
+  .identity h1 { font-size: 26px; }
+  .linesTable .lineRow { grid-template-columns: 1fr; }
+  .lineRow > div { padding-top: 10px; padding-bottom: 10px; }
+  .lineRow .lineIdentity { padding-top: 16px; }
+  .optionalSections .sectionTitle { font-size: 21px; }
+  .form dl dt, .form dl dd { display: block; margin-left: 0; }
+  .identity::before { width: 290px; right: -50px; }
+}
+
+.relationshipsSection { isolation: isolate; padding-bottom: 65px; }
+.relationshipsSection::after { content: ""; position: absolute; z-index: -1; left: 8px; bottom: 2px; width: min(55%, 200px); aspect-ratio: 2048 / 682; background: url('/hexagram-detail/decorations/ink-landscape.png') left bottom / contain no-repeat; pointer-events: none; }
+
+@media (min-width: 541px) {
+  .lineIdentity { display: grid; grid-template-columns: minmax(0, 1fr) 28px; column-gap: 5px; align-content: start; align-items: center; }
+  .lineIdentity h3 { margin: 0; }
+  .lineIdentity > span { width: 28px; margin: 0; }
+  .lineIdentity a { grid-column: 1 / -1; }
+}

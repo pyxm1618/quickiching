@@ -5,7 +5,7 @@ import Link from "next/link";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { TRIGRAM_BITS } from "@/domain/casting/hexagrams/king-wen";
 import type { ContentLocale } from "@/i18n/config";
-import type { ClassicalHexagram } from "@/domain/public-reading/classical";
+import { CLASSICAL_HEXAGRAMS, type ClassicalHexagram } from "@/domain/public-reading/classical";
 import type { PublicHexagramKnowledge } from "@/domain/public-reading/knowledge";
 import type { HexagramSeoEntry } from "@/content/hexagrams/seo";
 import type { ZhHansHexagramDetailContent } from "@/content/hexagrams/types";
@@ -13,13 +13,14 @@ import { absoluteUrl } from "@/lib/seo";
 
 export type HexagramDetailPageViewProps = {
   locale: ContentLocale;
-  knowledge: PublicHexagramKnowledge;
+  knowledge: Omit<PublicHexagramKnowledge, "detail"> & { detail?: PublicHexagramKnowledge["detail"] };
   seo: HexagramSeoEntry;
   content?: ZhHansHexagramDetailContent;
   previous: ClassicalHexagram | null;
   next: ClassicalHexagram | null;
 };
 
+const ENGLISH_LINE_POSITIONS = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth"] as const;
 const POSITIONS = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"] as const;
 const ENGLISH_TRIGRAM_NAMES: Record<string, string> = {
   qian: "Heaven",
@@ -135,9 +136,14 @@ function DetailSectionTitle({ number, id, children }: { number: string; id: stri
   return <h2 id={id} className={styles.sectionTitle}><span aria-hidden="true">{number}</span>{children}</h2>;
 }
 
-function DetailLineBars({ lines }: { lines: number[] }) {
+function detailLineValues(trigrams: ClassicalHexagram["trigrams"]): number[] {
+  const bits = (TRIGRAM_BITS[trigrams.upper as keyof typeof TRIGRAM_BITS] << 3) | TRIGRAM_BITS[trigrams.lower as keyof typeof TRIGRAM_BITS];
+  return Array.from({ length: 6 }, (_, index) => (bits & (1 << index)) !== 0 ? 7 : 8);
+}
+
+function DetailLineBars({ lines, related = false }: { lines: number[]; related?: boolean }) {
   return <div className={styles.hexagramBars} role="img" aria-label={lines.slice().reverse().map((value, index) => `Line ${6 - index}: ${value === 7 ? "yang" : "yin"}`).join("; ")}>
-    {lines.slice().reverse().map((value, index) => <span key={index} data-hexagram-line={6 - index} className={value === 7 ? styles.yang : styles.yin}><i /><i /></span>)}
+    {lines.slice().reverse().map((value, index) => <span key={index} data-hexagram-line={related ? undefined : 6 - index} data-related-line={related ? 6 - index : undefined} className={value === 7 ? styles.yang : styles.yin}><i /><i /></span>)}
   </div>;
 }
 
@@ -150,7 +156,6 @@ function DetailScrollFrame() {
     <div className={styles.cherryTop} />
     <div className={styles.cherryBottom} />
     <div className={styles.pine} />
-    <div className={styles.landscape} />
   </div>;
 }
 
@@ -169,14 +174,20 @@ export function HexagramDetailPageView({
     ? seo.primaryKeyword + "（" + secondary + "）是易经第" + knowledge.number + "卦。本页结合卦象、卦辞、大象和六条经典爻辞，提供简体中文的结构说明与现实反思；它不是确定性预言。"
     : secondary + ", " + knowledge.englishName + ", is the entity this page examines. The primary structure, classical text, changing lines, and modern interpretation are kept together so you can reflect without treating the result as a fixed prediction.";
   const structuredData = buildStructuredData({ locale, knowledge, seo, hubPath });
-  const staticBits = (TRIGRAM_BITS[knowledge.trigrams.upper as keyof typeof TRIGRAM_BITS] << 3) | TRIGRAM_BITS[knowledge.trigrams.lower as keyof typeof TRIGRAM_BITS];
-  const staticLines = Array.from({ length: 6 }, (_, index) => (staticBits & (1 << index)) !== 0 ? 7 : 8);
+  const staticLines = detailLineValues(knowledge.trigrams);
   if (!isChinese) {
+    const detail = knowledge.detail;
+    const hasLineRenderings = Boolean(detail?.lines?.some((line) => line.rendering.editorialRendering));
+    const hasStageStates = Boolean(detail?.lines?.some((line) => line.stageState?.text));
+    const readingCases = detail?.specialReadingCases?.filter((entry) => entry.rendering.editorialRendering) ?? [];
+    const relationships = detail?.relationships?.filter((entry) => CLASSICAL_HEXAGRAMS.some((hexagram) => hexagram.number === entry.relatedHexagram)) ?? [];
     const sections = [
       { id: "basic-identity", number: "01", label: "Basic Identity" },
       { id: "hexagram-meaning-title", number: "02", label: "Meaning" },
       { id: "hexagram-classical-title", number: "03", label: "Classical Text" },
       { id: "hexagram-lines-title", number: "04", label: "Six Lines" },
+      ...(readingCases.length > 0 ? [{ id: "hexagram-cases-title", number: "05", label: "Reading Cases" }] : []),
+      ...(relationships.length > 0 ? [{ id: "hexagram-relations-title", number: "06", label: "Related Hexagrams" }] : []),
     ];
     return (
       <article className={styles.detail} data-hexagram-detail data-seo-copy data-locale={locale} data-seo-primary={seo.primaryKeyword}>
@@ -214,32 +225,66 @@ export function HexagramDetailPageView({
 
           <section className={styles.section} aria-labelledby="hexagram-classical-title" data-seo-exclude>
             <DetailSectionTitle number="03" id="hexagram-classical-title">Classical Text &amp; Modern Interpretation</DetailSectionTitle>
-            {/* The current data contract supplies Chinese classical source records only.
-                English rendering and Judgment/Image-specific modern interpretation stay
-                absent until supplied by the data layer; coreMeaning is not a translation. */}
+            {detail?.judgment?.rendering?.editorialAttribution ? <p id="english-rendering-attribution" className={styles.renderingAttribution}>{detail.judgment.rendering.editorialAttribution}</p> : null}
             <div className={styles.classicalGrid}>
-              <section><h3><BookOpen aria-hidden="true" />Judgment</h3><a href={knowledge.source.textSourceUrl} rel="noreferrer">Open the classical text source</a></section>
-              <section><h3><Cloud aria-hidden="true" />Image</h3><a href={knowledge.source.textSourceUrl} rel="noreferrer">Open the classical text source</a></section>
+              {([
+                { label: "Judgment", icon: BookOpen, field: detail?.judgment },
+                { label: "Image", icon: Cloud, field: detail?.image },
+              ] as const).map(({ label, icon: Icon, field }) => (
+                <section key={label} data-classical-field={label.toLowerCase()}>
+                  <h3><Icon aria-hidden="true" />{label}</h3>
+                  {field?.rendering?.editorialRendering ? <div className={styles.classicalEntry}><span className={styles.textLabel}>English Rendering / Translation</span><blockquote aria-describedby="english-rendering-attribution"><p data-classical-rendering>{field.rendering.editorialRendering}</p></blockquote></div> : null}
+                  {field?.modernInterpretation?.text ? <div className={styles.classicalEntry}><span className={styles.textLabel}>Modern Interpretation</span><p data-classical-modern>{field.modernInterpretation.text}</p></div> : null}
+                  <a className={styles.lineSource} href={field?.rendering?.sourceUrl ?? knowledge.source.textSourceUrl} rel="noreferrer">Open the classical text source</a>
+                </section>
+              ))}
             </div>
             <p className={styles.attribution}><a href={knowledge.source.recordSourceUrl} rel="noreferrer">Record attribution</a></p>
           </section>
 
           <section className={styles.section} aria-labelledby="hexagram-lines-title">
             <DetailSectionTitle number="04" id="hexagram-lines-title">The Six Lines</DetailSectionTitle>
-            {/* No English rendering or Stage/State fields exist in the present contract. */}
-            <div className={styles.linesTable} role="table" aria-label="The Six Lines">
-              <div className={styles.lineTableHead} role="row"><span role="columnheader">Line</span><span role="columnheader">Modern Meaning</span><span role="columnheader">Caution / Practical Understanding</span></div>
-              {knowledge.lines.slice().reverse().map((line) => (
-                <section key={line.position} id={"line-" + line.position} className={styles.lineRow} role="row">
-                  <div role="rowheader" className={styles.lineIdentity}><h3>Hexagram {knowledge.number} Line {line.position}</h3><span className={staticLines[line.position - 1] === 7 ? styles.yang : styles.yin} aria-label={staticLines[line.position - 1] === 7 ? "Yang" : "Yin"}><i /><i /></span><a href={"#line-" + line.position} aria-label={"Link to line " + line.position}>#{line.position}</a></div>
-                  <div role="cell" className={styles.lineMeaning}><span className={styles.mobileLabel}>Modern Meaning</span><h4>{line.theme}</h4><p>{line.meaning}</p></div>
-                  <div role="cell"><span className={styles.mobileLabel}>Caution / Practical Understanding</span><p>{line.caution}</p><a className={styles.lineSource} href={knowledge.classicalLines[line.position - 1].source.textSourceUrl} rel="noreferrer" aria-label={"Source for classical line " + line.position}>Classical source</a></div>
-                </section>
-              ))}
+            <div className={[styles.linesTable, hasLineRenderings ? styles.linesWithRendering : "", hasStageStates ? styles.linesWithStage : ""].filter(Boolean).join(" ")} role="table" aria-label="The Six Lines">
+              <div className={styles.lineTableHead} role="row"><span role="columnheader">Line</span>{hasLineRenderings ? <span role="columnheader">English Rendering / Translation</span> : null}<span role="columnheader">Modern Meaning</span>{hasStageStates ? <span role="columnheader">Stage / State</span> : null}<span role="columnheader">Caution / Practical Understanding</span></div>
+              {knowledge.lines.slice().reverse().map((line) => {
+                const suppliedLine = detail?.lines?.find((entry) => entry.position === line.position);
+                return (
+                  <section key={line.position} id={"line-" + line.position} className={styles.lineRow} role="row">
+                    <div role="rowheader" className={styles.lineIdentity}><h3>{ENGLISH_LINE_POSITIONS[line.position - 1]}</h3><span className={staticLines[line.position - 1] === 7 ? styles.yang : styles.yin} aria-label={staticLines[line.position - 1] === 7 ? "Yang" : "Yin"}><i /><i /></span><a href={"#line-" + line.position} aria-label={"Link to line " + line.position}>#{line.position}</a></div>
+                    {hasLineRenderings ? <div role="cell"><span className={styles.mobileLabel}>English Rendering / Translation</span>{suppliedLine?.rendering?.editorialRendering ? <p data-line-rendering aria-describedby="english-rendering-attribution">{suppliedLine.rendering.editorialRendering}</p> : null}</div> : null}
+                    <div role="cell" className={styles.lineMeaning}><span className={styles.mobileLabel}>Modern Meaning</span><h4>{line.theme}</h4><p data-modern-meaning>{suppliedLine?.modernMeaning?.text ?? line.meaning}</p></div>
+                    {hasStageStates ? <div role="cell">{suppliedLine?.stageState?.text ? <><span className={styles.mobileLabel}>Stage / State</span><p data-stage-state>{suppliedLine.stageState.text}</p></> : null}</div> : null}
+                    <div role="cell"><span className={styles.mobileLabel}>Caution / Practical Understanding</span><p data-line-caution>{suppliedLine?.caution?.text ?? line.caution}</p><a className={styles.lineSource} href={suppliedLine?.rendering?.sourceUrl ?? knowledge.classicalLines[line.position - 1].source.textSourceUrl} rel="noreferrer" aria-label={"Source for classical line " + line.position}>Classical source</a></div>
+                  </section>
+                );
+              })}
             </div>
           </section>
-          {/* Reading cases and hexagram relations have no data contract yet.
-              No placeholders, inferred relations, or generated case copy are rendered. */}
+
+          {readingCases.length > 0 || relationships.length > 0 ? <div className={styles.optionalSections}>
+            {readingCases.length > 0 ? <section className={styles.section} aria-labelledby="hexagram-cases-title" data-reading-cases>
+              <DetailSectionTitle number="05" id="hexagram-cases-title">Hexagram-Specific Reading Cases</DetailSectionTitle>
+              {readingCases.map((readingCase) => <div key={readingCase.kind} className={styles.readingCase}>
+                <h3>{knowledge.useLine?.label === "用九" ? "Use of Nine" : knowledge.useLine?.label === "用六" ? "Use of Six" : "Use Line"}</h3>
+                <span className={styles.textLabel}>English Rendering / Translation</span>
+                <p aria-describedby="english-rendering-attribution">{readingCase.rendering.editorialRendering}</p>
+                <a className={styles.lineSource} href={readingCase.rendering.sourceUrl} rel="noreferrer">Classical source</a>
+              </div>)}
+            </section> : null}
+            {relationships.length > 0 ? <section className={[styles.section, styles.relationshipsSection].join(" ")} aria-labelledby="hexagram-relations-title" data-hexagram-relations>
+              <DetailSectionTitle number="06" id="hexagram-relations-title">Relationships with Other Hexagrams</DetailSectionTitle>
+              <div className={styles.relationsGrid}>
+                {relationships.map((relation) => {
+                  const related = CLASSICAL_HEXAGRAMS.find((entry) => entry.number === relation.relatedHexagram);
+                  if (!related) return null;
+                  return <div key={relation.relationType} className={styles.relation}>
+                    <DetailLineBars lines={detailLineValues(related.trigrams)} related />
+                    <div><h3>{relation.relationType === "structural-complement" ? "Structural Complement" : "Line Reversal"}</h3><Link href={detailPath(locale, related.slug)}>Hexagram {related.number} — {related.englishName}</Link><p>{relation.explanation}</p></div>
+                  </div>;
+                })}
+              </div>
+            </section> : null}
+          </div> : null}
           <nav className={styles.auxiliaryNav} data-auxiliary-navigation aria-label="Hexagram navigation">
             {previous ? <Link href={detailPath(locale, previous.slug)} aria-label={"Previous: Hexagram " + previous.number + " " + previous.englishName}><span aria-hidden="true">← </span>Previous</Link> : <span aria-disabled="true">Previous</span>}
             <Link href={hubPath} data-seo-hub-link={hubPath}><span aria-hidden="true">↑ </span>Back to 64 Hexagrams</Link>

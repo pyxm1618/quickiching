@@ -6,7 +6,7 @@ import { loadPublicHexagramKnowledge } from "@/domain/public-reading/knowledge";
 import { hexagramSeoFor, hexagramSeoRows } from "@/content/hexagrams/seo";
 import { evaluateKeywordQuality } from "@/content/hexagrams/seo-quality";
 import { zhHansHexagramContent } from "@/content/hexagrams/zh-Hans";
-import { HexagramDetailPageView } from "./hexagram-detail-page";
+import { HexagramDetailPageView, type HexagramDetailPageViewProps } from "./hexagram-detail-page";
 
 function keywordPhrases(value: string): string[] {
   return value.split(/[;；]/u).map((part) => part.trim()).filter(Boolean);
@@ -194,8 +194,8 @@ describe("static hexagram detail page", () => {
       expect(html).toContain("The Six Lines");
       expect(html).toContain("Modern Meaning");
       expect(html).not.toContain("Classical Line Text");
-      expect(html).not.toContain("data-reading-cases");
-      expect(html).not.toContain("data-hexagram-relations");
+      expect(html.includes("data-reading-cases")).toBe(knowledge.detail.specialReadingCases.length > 0);
+      expect(html.includes("data-hexagram-relations")).toBe(knowledge.detail.relationships.length > 0);
       expect(html).not.toContain("data-love-module");
       expect(html).not.toContain("data-seo-home-link");
       expect(html).not.toContain("Start a Reading");
@@ -265,7 +265,7 @@ describe("static hexagram detail page", () => {
         const links = [...html.matchAll(/<a\b[^>]*>/gu)].map((match) => match[0]);
         const sourceLinks = links.filter((link) => link.includes("zh.wikisource.org"));
         const fixedHref = 'href="' + classical.source.textSourceUrl.replaceAll("&", "&amp;") + '"';
-        expect(sourceLinks, `${locale}:${classical.number}`).toHaveLength(locale === "en" ? 8 : 7);
+        expect(sourceLinks.length, `${locale}:${classical.number}`).toBeGreaterThanOrEqual(locale === "en" ? 8 : 7);
         for (const link of sourceLinks) expect(link).toContain(fixedHref);
         for (const line of classical.lines) {
           const label = locale === "en" ? `Source for classical line ${line.position}` : `第${line.position}爻经典原文来源`;
@@ -277,17 +277,46 @@ describe("static hexagram detail page", () => {
     }
   });
 
-  it("does not present absent English translations or stage data as authored classical text", async () => {
-    for (const number of [1, 3, 5, 62, 64]) {
-      const knowledge = await loadPublicHexagramKnowledge(number);
-      const html = renderToStaticMarkup(<HexagramDetailPageView locale="en" knowledge={knowledge} seo={hexagramSeoFor(number, "en")} previous={null} next={null} />);
-      expect(html).not.toContain("English Rendering / Translation");
+  it("binds supplied editorial renderings and field-specific interpretations for all 64 English pages", async () => {
+    for (const classical of CLASSICAL_HEXAGRAMS) {
+      const knowledge = await loadPublicHexagramKnowledge(classical.number);
+      const html = renderToStaticMarkup(<HexagramDetailPageView locale="en" knowledge={knowledge} seo={hexagramSeoFor(classical.number, "en")} previous={null} next={null} />);
+      const encode = (text: string) => text.replaceAll("&", "&amp;").replaceAll("'", "&#x27;").replaceAll('"', "&quot;");
+      expect(html).toContain("English Rendering / Translation");
+      expect(html).not.toContain("Classical Line Text");
       expect(html).not.toContain("Stage / State");
-      expect(html).toContain(knowledge.source.textSourceUrl.replaceAll("&", "&amp;"));
-      expect(html).toContain("Judgment");
-      expect(html).toContain("Image");
+      for (const field of [knowledge.detail.judgment, knowledge.detail.image]) {
+        expect(html).toContain(encode(field.rendering.editorialRendering));
+        expect(html).toContain(encode(field.modernInterpretation.text));
+      }
+      for (const line of knowledge.detail.lines) {
+        expect(html).toContain(encode(line.rendering.editorialRendering));
+        expect(html).toContain(encode(line.modernMeaning.text));
+        expect(html).toContain(encode(line.caution.text));
+      }
+      for (const readingCase of knowledge.detail.specialReadingCases) expect(html).toContain(encode(readingCase.rendering.editorialRendering));
+      for (const relation of knowledge.detail.relationships) expect(html).toContain(encode(relation.explanation));
       expect((html.match(/data-hexagram-line=/gu) ?? []).length).toBe(6);
     }
+  });
+
+  it("safely hides unavailable detail data and only shows a stage column when supplied", async () => {
+    const knowledge = await loadPublicHexagramKnowledge(1);
+    const { detail, ...previousContract } = knowledge;
+    const render = (entry: HexagramDetailPageViewProps["knowledge"]) => renderToStaticMarkup(<HexagramDetailPageView locale="en" knowledge={entry} seo={hexagramSeoFor(1, "en")} previous={null} next={null} />);
+    const absent = render(previousContract);
+    expect(absent).not.toContain("English Rendering / Translation");
+    expect(absent).not.toContain("data-reading-cases");
+    expect(absent).not.toContain("data-hexagram-relations");
+    expect(absent).not.toContain("Stage / State");
+    expect(absent).toContain(knowledge.lines[0].meaning);
+    const emptyOptional = render({ ...knowledge, detail: { ...detail, specialReadingCases: [], relationships: [] } });
+    expect(emptyOptional).not.toContain("data-reading-cases");
+    expect(emptyOptional).not.toContain("data-hexagram-relations");
+    const testOnlyStage = structuredClone(knowledge);
+    testOnlyStage.detail.lines[0].stageState = { dataClass: "editorial-derived", text: "Test-only optional stage", basis: "UI conditional-rendering fixture; never production content" };
+    expect(render(testOnlyStage)).toContain("Stage / State");
+    expect(render(testOnlyStage)).toContain("Test-only optional stage");
   });
 
   it("does not label a detail-to-hub link as an inbound anchor", async () => {

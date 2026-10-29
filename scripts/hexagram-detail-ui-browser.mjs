@@ -11,7 +11,7 @@ import { CLASSICAL_HEXAGRAMS } from "../src/domain/public-reading/classical.ts";
 import { loadPublicHexagramKnowledge } from "../src/domain/public-reading/knowledge.ts";
 
 const base = new URL(process.env.HEXAGRAM_DETAIL_UI_BASE_URL || "http://localhost:3217");
-const output = new URL("../outputs/hexagram-detail/final/", import.meta.url);
+const output = new URL("../outputs/hexagram-detail/integrated/", import.meta.url);
 const sourceLedger = JSON.parse(await readFile(new URL("../docs/design/hexagram-detail/assets.json", import.meta.url), "utf8"));
 assert.equal(sourceLedger.originalTotal, sourceLedger.assets.length);
 assert.equal(Object.values(sourceLedger.states).reduce((sum, value) => sum + value, 0), sourceLedger.originalTotal);
@@ -27,7 +27,7 @@ try {
   page.on("pageerror", (error) => pageErrors.push(String(error)));
   for (const viewport of [{ width: 1024, height: 900 }, { width: 1440, height: 1000 }, { width: 390, height: 844 }, { width: 320, height: 812 }, { width: 801, height: 900 }]) {
     await page.setViewport({ ...viewport, deviceScaleFactor: 1 });
-    for (const number of [1, 3, 5, 62, 64]) {
+    for (const number of [1, 2, 3, 5, 62, 64]) {
       const knowledge = await loadPublicHexagramKnowledge(number);
       const entry = CLASSICAL_HEXAGRAMS[number - 1];
       const response = await page.goto(new URL(`/hexagrams/${entry.slug}`, base).href, { waitUntil: "networkidle0" });
@@ -48,18 +48,28 @@ try {
           return element.scrollWidth > element.clientWidth + 1 || (["hidden", "clip"].includes(style.overflowY) && element.scrollHeight > element.clientHeight + 1);
         }).map((element) => element.textContent.slice(0, 70));
         const rows = [...article.querySelectorAll('[role="row"]')].slice(1);
-        const meanings = rows.map((row) => row.querySelector('[role="cell"] p').textContent);
+        const meanings = rows.map((row) => row.querySelector("[data-modern-meaning]").textContent);
         const auxiliary = article.querySelector("[data-auxiliary-navigation]");
         const sideFrames = [...article.querySelectorAll("[data-scroll-side]")].map((side) => {
           const pieces = [...side.children].map((piece) => ({ y: piece.getBoundingClientRect().top, height: piece.getBoundingClientRect().height, width: piece.getBoundingClientRect().width, repeat: getComputedStyle(piece).backgroundRepeat, size: getComputedStyle(piece).backgroundSize }));
           return { side: side.getAttribute("data-scroll-side"), pieces };
         });
-        return { url: location.href, title: document.title, viewport: { width: innerWidth, height: innerHeight }, dpr: devicePixelRatio, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight, h1: article.querySelector("h1").textContent, h1Count: article.querySelectorAll("h1").length, sideFrames, lineCount: article.querySelectorAll("[data-hexagram-line]").length, meanings, clipped, optionalSections: article.querySelectorAll("[data-reading-cases], [data-hexagram-relations]").length, auxiliaryLinks: [...auxiliary.querySelectorAll("a")].map((a) => a.getAttribute("href")), topLevelHeaderVisible: document.body.querySelector(":scope > header").getBoundingClientRect().height > 0 };
+        return { url: location.href, title: document.title, viewport: { width: innerWidth, height: innerHeight }, dpr: devicePixelRatio, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight, h1: article.querySelector("h1").textContent, h1Count: article.querySelectorAll("h1").length, sideFrames, lineCount: article.querySelectorAll("[data-basic-identity] [data-hexagram-line]").length, meanings, clipped, optionalSections: article.querySelectorAll("[data-reading-cases], [data-hexagram-relations]").length, auxiliaryLinks: [...auxiliary.querySelectorAll("a")].map((a) => a.getAttribute("href")), topLevelHeaderVisible: document.body.querySelector(":scope > header").getBoundingClientRect().height > 0 };
       });
       assert.equal(state.h1, knowledge.englishName);
       assert.equal(state.h1Count, 1);
       assert.equal(state.lineCount, 6);
-      assert.equal(state.optionalSections, 0);
+      assert.equal(state.optionalSections, (knowledge.detail.specialReadingCases.length > 0 ? 1 : 0) + (knowledge.detail.relationships.length > 0 ? 1 : 0));
+      const supplied = await page.evaluate(() => ({
+        classical: [...document.querySelectorAll('[data-classical-field]')].map((node) => ({ field: node.getAttribute("data-classical-field"), rendering: node.querySelector('[data-classical-rendering]')?.textContent, modernInterpretation: node.querySelector('[data-classical-modern]')?.textContent, source: node.querySelector('a[href]')?.getAttribute('href') })),
+        renderings: [...document.querySelectorAll('[data-hexagram-detail] [data-line-rendering]')].map((node) => node.textContent),
+        cautions: [...document.querySelectorAll('[data-hexagram-detail] [data-line-caution]')].map((node) => node.textContent),
+        stages: [...document.querySelectorAll('[data-hexagram-detail] [data-stage-state]')].map((node) => node.textContent),
+      }));
+      assert.deepEqual(supplied.classical, ["judgment", "image"].map((field) => ({ field, rendering: knowledge.detail[field].rendering.editorialRendering, modernInterpretation: knowledge.detail[field].modernInterpretation.text, source: knowledge.detail[field].rendering.sourceUrl })));
+      assert.deepEqual(supplied.renderings, knowledge.detail.lines.slice().reverse().map((line) => line.rendering.editorialRendering));
+      assert.deepEqual(supplied.cautions, knowledge.detail.lines.slice().reverse().map((line) => line.caution.text));
+      assert.deepEqual(supplied.stages, knowledge.detail.lines.slice().reverse().filter((line) => line.stageState?.text).map((line) => line.stageState.text));
       assert.equal(state.sideFrames.length, 2);
       for (const side of state.sideFrames) {
         assert.equal(side.pieces.length, 3);

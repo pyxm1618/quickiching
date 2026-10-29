@@ -1,0 +1,2509 @@
+{
+  "base": "http://localhost:3217",
+  "browser": "Chrome/156.0.8078.48",
+  "viewportChecks": [
+    {
+      "url": "http://localhost:3217/hexagrams/1-the-creative",
+      "title": "I Ching Hexagram 1: The Creative \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "dpr": 1,
+      "documentWidth": 1024,
+      "documentHeight": 4139,
+      "h1": "The Creative",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 185.84375,
+              "width": 84,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 285.84375,
+              "height": 3663.4375,
+              "width": 84,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3949.28125,
+              "height": 140.171875,
+              "width": 84,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 65.546875,
+              "width": 30,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 165.546875,
+              "height": 3874.46875,
+              "width": 30,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4040.015625,
+              "height": 49.4375,
+              "width": 30,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 2,
+      "auxiliaryLinks": [
+        "/hexagrams",
+        "/hexagrams/2-the-receptive"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-1-1024.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/2-the-receptive",
+      "title": "I Ching Hexagram 2: The Receptive \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "dpr": 1,
+      "documentWidth": 1024,
+      "documentHeight": 4257,
+      "h1": "The Receptive",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 185.84375,
+              "width": 84,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 285.84375,
+              "height": 3781.375,
+              "width": 84,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4067.21875,
+              "height": 140.171875,
+              "width": 84,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 65.546875,
+              "width": 30,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 165.546875,
+              "height": 3992.40625,
+              "width": 30,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4157.953125,
+              "height": 49.4375,
+              "width": 30,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 2,
+      "auxiliaryLinks": [
+        "/hexagrams/1-the-creative",
+        "/hexagrams",
+        "/hexagrams/3-difficulty-at-the-beginning"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-2-1024.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/3-difficulty-at-the-beginning",
+      "title": "I Ching Hexagram 3: Difficulty at the Beginning \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "dpr": 1,
+      "documentWidth": 1024,
+      "documentHeight": 4167,
+      "h1": "Difficulty at the Beginning",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 185.84375,
+              "width": 84,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 285.84375,
+              "height": 3690.515625,
+              "width": 84,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3976.359375,
+              "height": 140.171875,
+              "width": 84,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 65.546875,
+              "width": 30,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 165.546875,
+              "height": 3901.546875,
+              "width": 30,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4067.09375,
+              "height": 49.4375,
+              "width": 30,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/2-the-receptive",
+        "/hexagrams",
+        "/hexagrams/4-youthful-folly"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-3-1024.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/5-waiting",
+      "title": "I Ching Hexagram 5: Waiting \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "dpr": 1,
+      "documentWidth": 1024,
+      "documentHeight": 4164,
+      "h1": "Waiting",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 185.84375,
+              "width": 84,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 285.84375,
+              "height": 3688.265625,
+              "width": 84,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3974.109375,
+              "height": 140.171875,
+              "width": 84,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 65.546875,
+              "width": 30,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 165.546875,
+              "height": 3899.296875,
+              "width": 30,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4064.84375,
+              "height": 49.4375,
+              "width": 30,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/4-youthful-folly",
+        "/hexagrams",
+        "/hexagrams/6-conflict"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-5-1024.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/62-small-exceeding",
+      "title": "I Ching Hexagram 62: Preponderance of the Small \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "dpr": 1,
+      "documentWidth": 1024,
+      "documentHeight": 3796,
+      "h1": "Small Exceeding",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 185.84375,
+              "width": 84,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 285.84375,
+              "height": 3320.15625,
+              "width": 84,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3606,
+              "height": 140.171875,
+              "width": 84,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 65.546875,
+              "width": 30,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 165.546875,
+              "height": 3531.1875,
+              "width": 30,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3696.734375,
+              "height": 49.4375,
+              "width": 30,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/61-inner-truth",
+        "/hexagrams",
+        "/hexagrams/63-after-completion"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-62-1024.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/64-before-completion",
+      "title": "I Ching Hexagram 64: Before Completion \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "dpr": 1,
+      "documentWidth": 1024,
+      "documentHeight": 3932,
+      "h1": "Before Completion",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 185.84375,
+              "width": 84,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 285.84375,
+              "height": 3456.390625,
+              "width": 84,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3742.234375,
+              "height": 140.171875,
+              "width": 84,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 65.546875,
+              "width": 30,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 165.546875,
+              "height": 3667.421875,
+              "width": 30,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3832.96875,
+              "height": 49.4375,
+              "width": 30,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/63-after-completion",
+        "/hexagrams"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-64-1024.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/1-the-creative",
+      "title": "I Ching Hexagram 1: The Creative \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "documentWidth": 1440,
+      "documentHeight": 3861,
+      "h1": "The Creative",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 212.390625,
+              "width": 96,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 312.390625,
+              "height": 3338.671875,
+              "width": 96,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3651.0625,
+              "height": 160.1875,
+              "width": 96,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 87.40625,
+              "width": 40,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 187.40625,
+              "height": 3557.921875,
+              "width": 40,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3745.328125,
+              "height": 65.921875,
+              "width": 40,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 2,
+      "auxiliaryLinks": [
+        "/hexagrams",
+        "/hexagrams/2-the-receptive"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-1-1440.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/2-the-receptive",
+      "title": "I Ching Hexagram 2: The Receptive \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "documentWidth": 1440,
+      "documentHeight": 3861,
+      "h1": "The Receptive",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 212.390625,
+              "width": 96,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 312.390625,
+              "height": 3338.671875,
+              "width": 96,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3651.0625,
+              "height": 160.1875,
+              "width": 96,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 87.40625,
+              "width": 40,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 187.40625,
+              "height": 3557.921875,
+              "width": 40,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3745.328125,
+              "height": 65.921875,
+              "width": 40,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 2,
+      "auxiliaryLinks": [
+        "/hexagrams/1-the-creative",
+        "/hexagrams",
+        "/hexagrams/3-difficulty-at-the-beginning"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-2-1440.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/3-difficulty-at-the-beginning",
+      "title": "I Ching Hexagram 3: Difficulty at the Beginning \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "documentWidth": 1440,
+      "documentHeight": 3737,
+      "h1": "Difficulty at the Beginning",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 212.390625,
+              "width": 96,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 312.390625,
+              "height": 3214,
+              "width": 96,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3526.390625,
+              "height": 160.1875,
+              "width": 96,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 87.40625,
+              "width": 40,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 187.40625,
+              "height": 3433.25,
+              "width": 40,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3620.65625,
+              "height": 65.921875,
+              "width": 40,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/2-the-receptive",
+        "/hexagrams",
+        "/hexagrams/4-youthful-folly"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-3-1440.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/5-waiting",
+      "title": "I Ching Hexagram 5: Waiting \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "documentWidth": 1440,
+      "documentHeight": 3763,
+      "h1": "Waiting",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 212.390625,
+              "width": 96,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 312.390625,
+              "height": 3240.09375,
+              "width": 96,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3552.484375,
+              "height": 160.1875,
+              "width": 96,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 87.40625,
+              "width": 40,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 187.40625,
+              "height": 3459.34375,
+              "width": 40,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3646.75,
+              "height": 65.921875,
+              "width": 40,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/4-youthful-folly",
+        "/hexagrams",
+        "/hexagrams/6-conflict"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-5-1440.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/62-small-exceeding",
+      "title": "I Ching Hexagram 62: Preponderance of the Small \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "documentWidth": 1440,
+      "documentHeight": 3528,
+      "h1": "Small Exceeding",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 212.390625,
+              "width": 96,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 312.390625,
+              "height": 3005.25,
+              "width": 96,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3317.640625,
+              "height": 160.1875,
+              "width": 96,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 87.40625,
+              "width": 40,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 187.40625,
+              "height": 3224.5,
+              "width": 40,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3411.90625,
+              "height": 65.921875,
+              "width": 40,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/61-inner-truth",
+        "/hexagrams",
+        "/hexagrams/63-after-completion"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-62-1440.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/64-before-completion",
+      "title": "I Ching Hexagram 64: Before Completion \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "documentWidth": 1440,
+      "documentHeight": 3653,
+      "h1": "Before Completion",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 212.390625,
+              "width": 96,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 312.390625,
+              "height": 3130.421875,
+              "width": 96,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3442.8125,
+              "height": 160.1875,
+              "width": 96,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 100,
+              "height": 87.40625,
+              "width": 40,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 187.40625,
+              "height": 3349.671875,
+              "width": 40,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 3537.078125,
+              "height": 65.921875,
+              "width": 40,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/63-after-completion",
+        "/hexagrams"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-64-1440.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/1-the-creative",
+      "title": "I Ching Hexagram 1: The Creative \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dpr": 1,
+      "documentWidth": 390,
+      "documentHeight": 7222,
+      "h1": "The Creative",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 35.390625,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 80.390625,
+              "height": 7079.59375,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 7159.984375,
+              "height": 26.6875,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 34.953125,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 79.953125,
+              "height": 7080.359375,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 7160.3125,
+              "height": 26.359375,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 2,
+      "auxiliaryLinks": [
+        "/hexagrams",
+        "/hexagrams/2-the-receptive"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-1-390.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/2-the-receptive",
+      "title": "I Ching Hexagram 2: The Receptive \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dpr": 1,
+      "documentWidth": 390,
+      "documentHeight": 7313,
+      "h1": "The Receptive",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 35.390625,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 80.390625,
+              "height": 7170.75,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 7251.140625,
+              "height": 26.6875,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 34.953125,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 79.953125,
+              "height": 7171.515625,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 7251.46875,
+              "height": 26.359375,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 2,
+      "auxiliaryLinks": [
+        "/hexagrams/1-the-creative",
+        "/hexagrams",
+        "/hexagrams/3-difficulty-at-the-beginning"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-2-390.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/3-difficulty-at-the-beginning",
+      "title": "I Ching Hexagram 3: Difficulty at the Beginning \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dpr": 1,
+      "documentWidth": 390,
+      "documentHeight": 7240,
+      "h1": "Difficulty at the Beginning",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 35.390625,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 80.390625,
+              "height": 7097.9375,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 7178.328125,
+              "height": 26.6875,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 34.953125,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 79.953125,
+              "height": 7098.703125,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 7178.65625,
+              "height": 26.359375,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/2-the-receptive",
+        "/hexagrams",
+        "/hexagrams/4-youthful-folly"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-3-390.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/5-waiting",
+      "title": "I Ching Hexagram 5: Waiting \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dpr": 1,
+      "documentWidth": 390,
+      "documentHeight": 7023,
+      "h1": "Waiting",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 35.390625,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 80.390625,
+              "height": 6880.953125,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 6961.34375,
+              "height": 26.6875,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 34.953125,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 79.953125,
+              "height": 6881.71875,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 6961.671875,
+              "height": 26.359375,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/4-youthful-folly",
+        "/hexagrams",
+        "/hexagrams/6-conflict"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-5-390.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/62-small-exceeding",
+      "title": "I Ching Hexagram 62: Preponderance of the Small \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dpr": 1,
+      "documentWidth": 390,
+      "documentHeight": 6679,
+      "h1": "Small Exceeding",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 35.390625,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 80.390625,
+              "height": 6536.734375,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 6617.125,
+              "height": 26.6875,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 34.953125,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 79.953125,
+              "height": 6537.5,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 6617.453125,
+              "height": 26.359375,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/61-inner-truth",
+        "/hexagrams",
+        "/hexagrams/63-after-completion"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-62-390.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/64-before-completion",
+      "title": "I Ching Hexagram 64: Before Completion \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dpr": 1,
+      "documentWidth": 390,
+      "documentHeight": 6884,
+      "h1": "Before Completion",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 35.390625,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 80.390625,
+              "height": 6741.828125,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 6822.21875,
+              "height": 26.6875,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 34.953125,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 79.953125,
+              "height": 6742.59375,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 6822.546875,
+              "height": 26.359375,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/63-after-completion",
+        "/hexagrams"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-64-390.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/1-the-creative",
+      "title": "I Ching Hexagram 1: The Creative \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 320,
+        "height": 812
+      },
+      "dpr": 1,
+      "documentWidth": 320,
+      "documentHeight": 8263,
+      "h1": "The Creative",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 35.390625,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 80.390625,
+              "height": 8120.625,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 8201.015625,
+              "height": 26.6875,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 34.953125,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 79.953125,
+              "height": 8121.390625,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 8201.34375,
+              "height": 26.359375,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 2,
+      "auxiliaryLinks": [
+        "/hexagrams",
+        "/hexagrams/2-the-receptive"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-1-320.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/2-the-receptive",
+      "title": "I Ching Hexagram 2: The Receptive \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 320,
+        "height": 812
+      },
+      "dpr": 1,
+      "documentWidth": 320,
+      "documentHeight": 8447,
+      "h1": "The Receptive",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 35.390625,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 80.390625,
+              "height": 8304.53125,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 8384.921875,
+              "height": 26.6875,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 34.953125,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 79.953125,
+              "height": 8305.296875,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 8385.25,
+              "height": 26.359375,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 2,
+      "auxiliaryLinks": [
+        "/hexagrams/1-the-creative",
+        "/hexagrams",
+        "/hexagrams/3-difficulty-at-the-beginning"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-2-320.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/3-difficulty-at-the-beginning",
+      "title": "I Ching Hexagram 3: Difficulty at the Beginning \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 320,
+        "height": 812
+      },
+      "dpr": 1,
+      "documentWidth": 320,
+      "documentHeight": 8394,
+      "h1": "Difficulty at the Beginning",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 35.390625,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 80.390625,
+              "height": 8252.015625,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 8332.40625,
+              "height": 26.6875,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 34.953125,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 79.953125,
+              "height": 8252.78125,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 8332.734375,
+              "height": 26.359375,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/2-the-receptive",
+        "/hexagrams",
+        "/hexagrams/4-youthful-folly"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-3-320.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/5-waiting",
+      "title": "I Ching Hexagram 5: Waiting \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 320,
+        "height": 812
+      },
+      "dpr": 1,
+      "documentWidth": 320,
+      "documentHeight": 8108,
+      "h1": "Waiting",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 35.390625,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 80.390625,
+              "height": 7965.46875,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 8045.859375,
+              "height": 26.6875,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 34.953125,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 79.953125,
+              "height": 7966.234375,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 8046.1875,
+              "height": 26.359375,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/4-youthful-folly",
+        "/hexagrams",
+        "/hexagrams/6-conflict"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-5-320.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/62-small-exceeding",
+      "title": "I Ching Hexagram 62: Preponderance of the Small \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 320,
+        "height": 812
+      },
+      "dpr": 1,
+      "documentWidth": 320,
+      "documentHeight": 7750,
+      "h1": "Small Exceeding",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 35.390625,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 80.390625,
+              "height": 7607.6875,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 7688.078125,
+              "height": 26.6875,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 34.953125,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 79.953125,
+              "height": 7608.453125,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 7688.40625,
+              "height": 26.359375,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/61-inner-truth",
+        "/hexagrams",
+        "/hexagrams/63-after-completion"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-62-320.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/64-before-completion",
+      "title": "I Ching Hexagram 64: Before Completion \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 320,
+        "height": 812
+      },
+      "dpr": 1,
+      "documentWidth": 320,
+      "documentHeight": 7881,
+      "h1": "Before Completion",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 35.390625,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 80.390625,
+              "height": 7738.703125,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 7819.09375,
+              "height": 26.6875,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 34.953125,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 79.953125,
+              "height": 7739.46875,
+              "width": 16,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 7819.421875,
+              "height": 26.359375,
+              "width": 16,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/63-after-completion",
+        "/hexagrams"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-64-320.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/1-the-creative",
+      "title": "I Ching Hexagram 1: The Creative \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 801,
+        "height": 900
+      },
+      "dpr": 1,
+      "documentWidth": 801,
+      "documentHeight": 4839,
+      "h1": "The Creative",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 53.09375,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 98.09375,
+              "height": 4665.390625,
+              "width": 24,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4763.484375,
+              "height": 40.046875,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 52.4375,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 97.4375,
+              "height": 4666.546875,
+              "width": 24,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4763.984375,
+              "height": 39.546875,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 2,
+      "auxiliaryLinks": [
+        "/hexagrams",
+        "/hexagrams/2-the-receptive"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-1-801.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/2-the-receptive",
+      "title": "I Ching Hexagram 2: The Receptive \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 801,
+        "height": 900
+      },
+      "dpr": 1,
+      "documentWidth": 801,
+      "documentHeight": 4837,
+      "h1": "The Receptive",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 53.09375,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 98.09375,
+              "height": 4663.796875,
+              "width": 24,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4761.890625,
+              "height": 40.046875,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 52.4375,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 97.4375,
+              "height": 4664.953125,
+              "width": 24,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4762.390625,
+              "height": 39.546875,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 2,
+      "auxiliaryLinks": [
+        "/hexagrams/1-the-creative",
+        "/hexagrams",
+        "/hexagrams/3-difficulty-at-the-beginning"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-2-801.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/3-difficulty-at-the-beginning",
+      "title": "I Ching Hexagram 3: Difficulty at the Beginning \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 801,
+        "height": 900
+      },
+      "dpr": 1,
+      "documentWidth": 801,
+      "documentHeight": 4558,
+      "h1": "Difficulty at the Beginning",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 53.09375,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 98.09375,
+              "height": 4384.4375,
+              "width": 24,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4482.53125,
+              "height": 40.046875,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 52.4375,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 97.4375,
+              "height": 4385.59375,
+              "width": 24,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4483.03125,
+              "height": 39.546875,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/2-the-receptive",
+        "/hexagrams",
+        "/hexagrams/4-youthful-folly"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-3-801.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/5-waiting",
+      "title": "I Ching Hexagram 5: Waiting \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 801,
+        "height": 900
+      },
+      "dpr": 1,
+      "documentWidth": 801,
+      "documentHeight": 4558,
+      "h1": "Waiting",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 53.09375,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 98.09375,
+              "height": 4384.4375,
+              "width": 24,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4482.53125,
+              "height": 40.046875,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 52.4375,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 97.4375,
+              "height": 4385.59375,
+              "width": 24,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4483.03125,
+              "height": 39.546875,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/4-youthful-folly",
+        "/hexagrams",
+        "/hexagrams/6-conflict"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-5-801.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/62-small-exceeding",
+      "title": "I Ching Hexagram 62: Preponderance of the Small \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 801,
+        "height": 900
+      },
+      "dpr": 1,
+      "documentWidth": 801,
+      "documentHeight": 4144,
+      "h1": "Small Exceeding",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 53.09375,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 98.09375,
+              "height": 3971.25,
+              "width": 24,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4069.34375,
+              "height": 40.046875,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 52.4375,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 97.4375,
+              "height": 3972.40625,
+              "width": 24,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4069.84375,
+              "height": 39.546875,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/61-inner-truth",
+        "/hexagrams",
+        "/hexagrams/63-after-completion"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-62-801.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    },
+    {
+      "url": "http://localhost:3217/hexagrams/64-before-completion",
+      "title": "I Ching Hexagram 64: Before Completion \u2014 Meaning, Love & Unchanging",
+      "viewport": {
+        "width": 801,
+        "height": 900
+      },
+      "dpr": 1,
+      "documentWidth": 801,
+      "documentHeight": 4185,
+      "h1": "Before Completion",
+      "h1Count": 1,
+      "sideFrames": [
+        {
+          "side": "left",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 53.09375,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 98.09375,
+              "height": 4011.84375,
+              "width": 24,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4109.9375,
+              "height": 40.046875,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        },
+        {
+          "side": "right",
+          "pieces": [
+            {
+              "y": 45,
+              "height": 52.4375,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            },
+            {
+              "y": 97.4375,
+              "height": 4013,
+              "width": 24,
+              "repeat": "repeat-y",
+              "size": "100% auto"
+            },
+            {
+              "y": 4110.4375,
+              "height": 39.546875,
+              "width": 24,
+              "repeat": "no-repeat",
+              "size": "100% auto"
+            }
+          ]
+        }
+      ],
+      "lineCount": 6,
+      "clipped": [],
+      "optionalSections": 1,
+      "auxiliaryLinks": [
+        "/hexagrams/63-after-completion",
+        "/hexagrams"
+      ],
+      "topLevelHeaderVisible": false,
+      "screenshot": "hexagram-64-801.png",
+      "status": "PASS (structural checks only)",
+      "fullMeaningMatchedCatalog": true
+    }
+  ],
+  "navigation": [
+    {
+      "label": "Previous",
+      "path": "/hexagrams/4-youthful-folly",
+      "status": "PASS"
+    },
+    {
+      "label": "Next",
+      "path": "/hexagrams/5-waiting",
+      "status": "PASS"
+    },
+    {
+      "label": "Back to 64 Hexagrams",
+      "path": "/hexagrams",
+      "status": "PASS"
+    }
+  ],
+  "assetChecks": [
+    {
+      "path": "public/hexagram-detail/background/paper-texture.png",
+      "sha256": "41e43371a1826c1e8f42fa90072c452a7a36c782e2aa4033657d7e51f2fca5d3",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/frame/right-middle-repeat.png",
+      "sha256": "e01edd03f5c1390ae1ee5eedcb31c162b90c7ca58e9c27d1b3c8c5d61aa74f78",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/frame/left-middle-repeat.png",
+      "sha256": "f6963b3469498cea14929db6ad5a6fee72f4db953cab961b5acdada033e45649",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/frame/right-bottom.png",
+      "sha256": "541d17ff0e964ec671c77029b80bad353cc982c38106792e6801113ee67e2f3a",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/frame/bottom-scroll.png",
+      "sha256": "476b10522e695c30d1e11e6e26c841d07546dcd2a788eb5c567e5a8c5a721e7f",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/frame/left-bottom.png",
+      "sha256": "e1d8512808bbc531d2c0d71ea8108dc541d36f3e293ea41c1db68d85b664279b",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/frame/left-top.png",
+      "sha256": "bbe18d8e8ec9a4ee4410e54ff6ed7e3e7f0bb888d5e8ec2125e2751912529fe4",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/frame/top-scroll.png",
+      "sha256": "e77654c753d6209749140d06cdc1bffd30536a441d34ad8717eed89f5be5ef69",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/frame/right-top.png",
+      "sha256": "36a6e5dfb878a43b518c47182cb91b356d2773b7b821b53f943160f07aa13441",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/decorations/cherry-branch-top-left.png",
+      "sha256": "0d5b0d770a58b05fadf7943568407dee93da232b1caf2652928f58c47e3bbd9d",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/decorations/ink-landscape.png",
+      "sha256": "ddd9183298a4c4b46bbd37470b9542c6ad13413e9ac1c18cd8bc784914059a30",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/decorations/cherry-branch-bottom-left.png",
+      "sha256": "814162972a99f2771689cc1cd525b3feae0317449d57a96889b674523ebf4cd0",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/decorations/pine-branch-right.png",
+      "sha256": "df38f670759dbcc15876c7bd4a0a35bdc90aad097a6735c6e9bb9aa6f89dd2fd",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/background/lantern-scene.png",
+      "sha256": "c87c94d77cd6ad15cf6dbf9564843fd996606eb31aacbcb884a0fb3137936033",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/decorations/hero-taiji.png",
+      "sha256": "9d3f402a4f38e583acbe0ee5b89ab84e57e52619c212d39b70e0484be09404b5",
+      "status": "PASS"
+    }
+  ],
+  "visualFidelity": "NOT PASS: residual static component/roll/decoration differences; overall content-driven page height is not a failure criterion.",
+  "consentForCapture": "Declined through the existing banner in this isolated browser; product consent behavior unchanged",
+  "longNameStress": [
+    {
+      "text": "Preponderance of the Small",
+      "scrollWidth": 419,
+      "width": 419,
+      "documentWidth": 1024,
+      "viewport": 1024,
+      "provenance": "User-specified alternate name injected into temporary DOM for layout testing only; real catalog unchanged",
+      "status": "PASS"
+    },
+    {
+      "text": "Preponderance of the Small",
+      "scrollWidth": 244,
+      "width": 244,
+      "documentWidth": 390,
+      "viewport": 390,
+      "provenance": "User-specified alternate name injected into temporary DOM for layout testing only; real catalog unchanged",
+      "status": "PASS"
+    },
+    {
+      "text": "Preponderance of the Small",
+      "scrollWidth": 174,
+      "width": 174,
+      "documentWidth": 320,
+      "viewport": 320,
+      "provenance": "User-specified alternate name injected into temporary DOM for layout testing only; real catalog unchanged",
+      "status": "PASS"
+    }
+  ],
+  "chineseStyleIsolation": "PASS",
+  "pageErrors": [],
+  "sourceDataIntegration": "PR #69, origin/main de30a7a, merged into this branch; no domain/data code altered by the UI integration.",
+  "fullRawReport": "outputs/hexagram-detail/integrated/report.json",
+  "screenshots": [
+    {
+      "file": "hexagram-1-1024-viewport.png",
+      "sha256": "7652e3394a5f507a98daf606f047b07350a56ff10365d82a6d8e304a91033b4d"
+    },
+    {
+      "file": "hexagram-1-390-viewport.png",
+      "sha256": "32ab60c7fce92459e8afd2757940512737ebe1882c754c69e6a84a294ce123fc"
+    },
+    {
+      "file": "test-only-long-name-320.png",
+      "sha256": "e17224e6e3d12efbdf352f3e5c1b06d5369765782e6d58bab4c04ef084f80be5"
+    }
+  ]
+}
