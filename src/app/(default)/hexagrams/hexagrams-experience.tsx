@@ -93,14 +93,14 @@ function wheelStyle(offset: number): CssVars {
   const direction = offset === 0 ? 0 : Math.sign(offset);
   const angle = Math.min(distance, 14) * 11.5 * (Math.PI / 180);
   const x = Math.sin(angle) * 470 * direction;
-  const y = -(1 - Math.cos(angle)) * 150;
+  const y = distance === 0 ? 18 : -(1 - Math.cos(angle)) * 150;
   const z = Math.max(20, 96 - distance * 5);
   return {
     "--wheel-x": x + "px",
     "--wheel-y": y + "px",
     "--wheel-z": z + "px",
     "--wheel-rotate": direction * -Math.min(68, distance * 8) + "deg",
-    "--wheel-scale": Math.max(0.54, 1 - distance * 0.045),
+    "--wheel-scale": distance === 0 ? 1.08 : Math.max(0.52, 0.96 - distance * 0.04),
     "--wheel-opacity": distance <= 8 ? 1 : Math.max(0.28, 1 - (distance - 8) * 0.12),
     zIndex: 140 - distance,
   };
