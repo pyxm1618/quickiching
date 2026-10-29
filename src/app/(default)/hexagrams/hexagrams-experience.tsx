@@ -108,9 +108,32 @@ function wheelStyle(offset: number): CssVars {
 export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
   const [selectedHexagram, setSelectedHexagram] = useState<HexagramItem>(() => hexagrams[0]);
   const selectedIndex = Math.max(0, hexagrams.findIndex((item) => item.number === selectedHexagram.number));
+  const wheelRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ pointerId: number; startX: number; lastX: number; moved: boolean } | null>(null);
   const suppressClickUntilRef = useRef(0);
   const lastWheelAtRef = useRef(0);
+
+  useEffect(() => {
+    const wheel = wheelRef.current;
+    if (!wheel) return;
+
+    const handleClick = (event: MouseEvent) => {
+      if (performance.now() < suppressClickUntilRef.current) return;
+      const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-wheel-index]");
+      if (!target || !wheel.contains(target)) return;
+      const index = Number(target.dataset.wheelIndex);
+      const item = hexagrams[index];
+      if (!item) return;
+      if (target.getAttribute("aria-current") === "true") {
+        window.location.assign("/hexagrams/" + item.slug);
+        return;
+      }
+      setSelectedHexagram(item);
+    };
+
+    wheel.addEventListener("click", handleClick);
+    return () => wheel.removeEventListener("click", handleClick);
+  }, [hexagrams]);
 
   useEffect(() => {
     const body = document.body;
@@ -158,16 +181,6 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
 
   const stepSelection = (delta: number) => selectByIndex(selectedIndex + delta);
 
-  const activateWheelIndex = (index: number) => {
-    const item = hexagrams[index];
-    if (!item) return;
-    if (index === selectedIndex) {
-      window.location.assign("/hexagrams/" + item.slug);
-      return;
-    }
-    selectByIndex(index);
-  };
-
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 && event.pointerType === "mouse") return;
     dragRef.current = { pointerId: event.pointerId, startX: event.clientX, lastX: event.clientX, moved: false };
@@ -193,12 +206,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
   const finishPointer = (event: PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    if (drag.moved) {
-      suppressClickUntilRef.current = performance.now() + 320;
-    } else {
-      const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-wheel-index]");
-      if (target && event.currentTarget.contains(target)) activateWheelIndex(Number(target.dataset.wheelIndex));
-    }
+    if (drag.moved) suppressClickUntilRef.current = performance.now() + 320;
     dragRef.current = null;
     event.currentTarget.dataset.dragging = "false";
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
@@ -257,6 +265,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
       <section className={styles.wheelStage} aria-label="Rotating 64-hexagram wheel">
         <img src="/hexagrams/ritual-platform.png" alt="" className={styles.platform} draggable={false} />
         <div
+          ref={wheelRef}
           className={styles.wheelInteraction}
           role="group"
           aria-label="Drag or scroll horizontally to rotate through all 64 hexagrams"
@@ -266,11 +275,6 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
           onPointerUp={finishPointer}
           onPointerCancel={finishPointer}
           onWheel={handleWheel}
-          onClick={(event) => {
-            if (event.detail !== 0 || performance.now() < suppressClickUntilRef.current) return;
-            const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-wheel-index]");
-            if (target && event.currentTarget.contains(target)) activateWheelIndex(Number(target.dataset.wheelIndex));
-          }}
           onKeyDown={(event) => {
             if (event.key === "ArrowRight") {
               event.preventDefault();
