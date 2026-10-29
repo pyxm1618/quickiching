@@ -90,6 +90,11 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-gold-button {position:relative;isolation:isolate;overflow:hidden;}
 .ritual-gold-button::before {content:'';position:absolute;inset:0;z-index:-1;opacity:.13;background-image:url('/ritual/decor/gold-cloud.png'),url('/ritual/decor/gold-cloud.png');background-size:100px 40px;background-position:left center,right center;background-repeat:no-repeat;mix-blend-mode:multiply;}
 .ritual-gold-button::after {content:'';position:absolute;inset:4px;border:1px solid rgba(255,239,184,.7);border-radius:inherit;pointer-events:none;}
+@media(min-width:801px) {
+ [data-experience-stage='landing'] .ritual-gold-button {font-weight:400;font-size:calc(26.2 * var(--u));gap:calc(14 * var(--u));padding-bottom:calc(3 * var(--u));}
+ [data-experience-stage='landing'] .ritual-taichi {width:calc(46 * var(--u));height:calc(46 * var(--u));}
+ [data-experience-stage='landing'] .ritual-gold-button::after {display:none;}
+}
 .ritual-question-card::before {content:'';position:absolute;inset:5px;border:1px solid #d3a970;border-radius:5px;pointer-events:none;}
 
 [data-three-coin-presentation="home-ritual"] > .ritual-webgl {position:fixed;}
