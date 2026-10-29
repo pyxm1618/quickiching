@@ -34,7 +34,7 @@ function makeEffects(seed:number) {
     uniforms:{intensity:{value:0},dpr:{value:1}},transparent:true,depthWrite:false,
     blending:THREE.AdditiveBlending,
     vertexShader:`attribute float size;attribute float opacity;varying float vOpacity;varying float vCore;varying float vPrimary;uniform float dpr;void main(){vPrimary=step(1.5,size);float diameter=size+mix(1.2,4.,vPrimary);vCore=size/diameter;vOpacity=opacity;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_PointSize=diameter*dpr;}`,
-    fragmentShader:`uniform float intensity;varying float vOpacity;varying float vCore;varying float vPrimary;void main(){float d=length(gl_PointCoord-.5)*2.;float core=1.-smoothstep(vCore*.55,vCore,d);float halo=exp(-d*d*5.)*.18*(1.-core);float a=min(.5,(core+halo)*intensity*vOpacity*mix(.4,1.,vPrimary));vec3 color=mix(vec3(1.5,.45,.06),vec3(4.,2.,.5),core);gl_FragColor=vec4(color,a);}`,
+    fragmentShader:`uniform float intensity;varying float vOpacity;varying float vCore;varying float vPrimary;void main(){float d=length(gl_PointCoord-.5)*2.;float core=1.-smoothstep(vCore*.55,vCore,d);float halo=exp(-d*d*5.)*.18*(1.-core);float a=min(.5,(core+halo)*intensity*vOpacity*mix(.4,1.,vPrimary));vec3 color=mix(vec3(1.25,.38,.05),vec3(2.8,1.18,.22),core);gl_FragColor=vec4(color,a);}`,
   });
   const points=new THREE.Points(geometry,material);group.add(points);
   // Warm curved traces and broad translucent qi ribbons are separate effects.
@@ -46,7 +46,7 @@ function makeEffects(seed:number) {
     const material=new THREE.ShaderMaterial({
       uniforms:{intensity:{value:0}},transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
       vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`varying vec2 vUv;uniform float intensity;void main(){float d=abs(vUv.x-.5)*2.;float core=exp(-d*d*24.);float halo=exp(-d*d*5.)*.25;float ends=sin(vUv.y*3.14159);vec3 radiance=mix(vec3(2.,.65,.12),vec3(5.,3.,.95),core);gl_FragColor=vec4(radiance,min(.35,(core+halo)*ends*intensity));}`,
+      fragmentShader:`varying vec2 vUv;uniform float intensity;void main(){float d=abs(vUv.x-.5)*2.;float core=exp(-d*d*24.);float halo=exp(-d*d*5.)*.25;float ends=sin(vUv.y*3.14159);vec3 radiance=mix(vec3(1.35,.4,.07),vec3(2.45,1.08,.2),core);gl_FragColor=vec4(radiance,min(.28,(core+halo)*ends*intensity));}`,
     });
     const ribbon=new THREE.Mesh(geometry,material);group.add(ribbon);return ribbon;
   });
@@ -76,7 +76,7 @@ function makeEffects(seed:number) {
           float curl=wisps(drift*.7+strandSeed)-.5;
           float across=vUv.x+curl*.32;
           float edges=pow(max(0.,sin(clamp(across,0.,1.)*3.14159)),2.);
-          float density=smoothstep(.24,.76,wisps(drift+vec2(curl,0.)));
+          float density=smoothstep(.18,.62,wisps(drift+vec2(curl,0.)));
           float a=edges*sin(vUv.y*3.14159)*density*intensity;
           gl_FragColor=vec4(.91,.73,.53,a);
         }`,
@@ -239,7 +239,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       }
       position.needsUpdate=true;opacities.needsUpdate=true;sizes.needsUpdate=true;
       const particleMaterial=effects.points.material as THREE.ShaderMaterial;
-      particleMaterial.uniforms.intensity.value=energy*0.7;particleMaterial.uniforms.dpr.value=renderDpr;
+      particleMaterial.uniforms.intensity.value=energy*0.95;particleMaterial.uniforms.dpr.value=renderDpr;
       if(input.phase==='casting') {
         camera.updateMatrixWorld();effects.group.updateMatrixWorld(true);inverseEffects.copy(effects.group.matrixWorld).invert();
         for(let coinIndex=0;coinIndex<3;coinIndex++)for(let sample=0;sample<100;sample++) {
@@ -267,7 +267,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
             const dx=screen[after*2]-screen[before*2],dy=screen[after*2+1]-screen[before*2+1],length=Math.hypot(dx,dy)||1;
             const depthScale=(camera.position.z-centers[i*3+2])/camera.position.z;
             for(let side=0;side<2;side++) {
-              const offset=(side-.5)*10*scale*depthScale;
+              const offset=(side-.5)*4*scale*depthScale;
               rimPoint.set(centers[i*3]-dy/length*offset,centers[i*3+1]+dx/length*offset,centers[i*3+2]).applyMatrix4(inverseEffects);
               positions.setXYZ(i*2+side,rimPoint.x,rimPoint.y,rimPoint.z);uv.setXY(i*2+side,side,i/99);
             }
@@ -280,12 +280,12 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
             const before=Math.max(0,i-1),after=Math.min(99,i+1),centers=effects.centers[index];
             const dx=centers[after*3]-centers[before*3],dy=centers[after*3+1]-centers[before*3+1],length=Math.hypot(dx,dy)||1;
             for(let side=0;side<2;side++) {
-              const offset=(side-.5)*8;
+              const offset=(side-.5)*4;
               positions.setXYZ(i*2+side,(centers[i*3]-836-dy/length*offset)*scale,(470.5-centers[i*3+1]-dx/length*offset)*scale,0);
               uv.setXY(i*2+side,side,i/99);
             }
           }
-          ribbon.material.uniforms.intensity.value=energy*(index<8?.65:.3);
+          ribbon.material.uniforms.intensity.value=energy*(index<8?.5:.24);
         }
         positions.needsUpdate=true;uv.needsUpdate=true;
       });
@@ -307,10 +307,10 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         mesh.material.uniforms.flowTime.value=effectTime/4000;
       });
       effects.glow.position.set((originX-836)*scale,(470.5-(heroScene?650:660))*scale,-5);effects.glow.scale.set(scale,scale*(heroScene?2:1),scale);
-      effects.glow.material.uniforms.intensity.value=energy*0.5;
+      effects.glow.material.uniforms.intensity.value=energy*0.4;
       effects.baseGlow.visible=true;
       effects.baseGlow.position.set(((progressScene?1008:heroScene?1118:835)-836)*scale,(470.5-(progressScene?770:heroScene?785:800))*scale,-4);
-      effects.baseGlow.scale.setScalar(scale);effects.baseGlow.material.uniforms.intensity.value=energy*.8;
+      effects.baseGlow.scale.setScalar(scale);effects.baseGlow.material.uniforms.intensity.value=energy*.65;
       }
       renderer.setRenderTarget(sceneTarget);renderer.clear();renderer.render(scene,camera);
       renderer.setRenderTarget(null);composer.render();
