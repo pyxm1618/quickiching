@@ -135,11 +135,13 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     try {renderer=new WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});}
     catch(error) {console.error('RITUAL_WEBGL_UNAVAILABLE',error);setFallback(true);announceReady();return;}
     const scene=new Scene();
+    performance.mark('ritual-pmrem-start');
     const environmentRoom=new RoomEnvironment();
     const environmentGenerator=new PMREMGenerator(renderer);
     const environmentTarget=environmentGenerator.fromScene(environmentRoom,0.04);
     scene.environment=environmentTarget.texture;
     environmentRoom.dispose();environmentGenerator.dispose();
+    performance.mark('ritual-pmrem-end');performance.measure('ritual-pmrem','ritual-pmrem-start','ritual-pmrem-end');
     const camera=new PerspectiveCamera(35,1672/941,1,10000);
     camera.position.z=941/(2*Math.tan(35*Math.PI/360));
     renderer.setClearColor(0,0);renderer.outputColorSpace=SRGBColorSpace;
@@ -213,7 +215,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       console.warn('RITUAL_SHADER_PRECOMPILE_FALLBACK',error);
       shadersReady=true;render();
     });
-    let frame=0;
+    let frame=0;let firstRenderMeasured=false;
     // A terminal stage restored before the module loads must not replay absent Hero coins.
     let start=performance.now()-(current.current.phase==='hero-exit'?260:current.current.phase==='exit'?500:0);
     let previousPhase=current.current.phase;let previousSeed=current.current.visualSeed;
@@ -240,6 +242,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       const input=current.current;
       if(input.phase!==previousPhase || input.visualSeed!==previousSeed) {start=performance.now();previousPhase=input.phase;previousSeed=input.visualSeed;}
       if(texturesLoaded<2)return;
+      const measureFirst=!firstRenderMeasured;if(measureFirst)performance.mark('ritual-first-render-start');
       const time=input.phase==='hero'?700:fixedTime===null?performance.now()-start:Number(fixedTime);
       const scale=Math.min(width/1672,height/941)*941/height;
       let layerOpacity=0;
@@ -368,6 +371,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       }
       renderer.setRenderTarget(sceneTarget);renderer.clear();renderer.render(scene,camera);
       renderer.setRenderTarget(null);composer.render();
+      if(measureFirst){firstRenderMeasured=true;performance.mark('ritual-first-render-end');performance.measure('ritual-first-render','ritual-first-render-start','ritual-first-render-end');}
       container!.dataset.renderer='three-webgl';container!.dataset.renderDpr=String(renderDpr);container!.dataset.phase=input.phase;container!.dataset.faces=input.faces.join(',');
       // Observed mesh orientation for QA only; never fed into casting/session state.
       container!.dataset.visibleFaces=coins.map(coin=>new Vector3(0,0,1).applyQuaternion(coin.quaternion).z>=0?'yang':'yin').join(',');
