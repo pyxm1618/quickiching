@@ -74,13 +74,12 @@ describe("English hexagram knowledge detail data", () => {
           sourceUrl: classicalLine.source.textSourceUrl,
         });
         expect(line.rendering.editorialRendering.trim().length).toBeGreaterThan(0);
-        expect(line.stageState?.text).toBe(existing.theme);
+        expect(line.stageState).toBeUndefined();
         expect(line.modernMeaning.text).toBe(existing.meaning);
         expect(line.changeDynamic.text).toBe(existing.changeDynamic);
         expect(line.caution.text).toBe(existing.caution);
         expect(line.reflection.text).toBe(existing.reflection);
         expect(line.synthesis.text).toBe(existing.synthesisPhrase);
-        expect(line.stageState?.dataClass).toBe("editorial-derived");
       }
 
       expect(detail.judgment.modernInterpretation.text).toBe(bundle.hexagram.coreMeaning);
