@@ -193,6 +193,8 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       renderer.setPixelRatio(renderDpr);renderer.setSize(width,height,false);
       sceneTarget.setSize(width*renderDpr,height*renderDpr);
       composer.setPixelRatio(renderDpr);composer.setSize(width,height);
+      // Keep the base scene at full Desktop DPR. Bloom is a low-frequency blur, so its internal buffers can render at half resolution and composite back over the full-resolution coins.
+      bloom.setSize(Math.max(1,Math.round(width*renderDpr*.5)),Math.max(1,Math.round(height*renderDpr*.5)));
       camera.aspect=width/height;camera.updateProjectionMatrix();
       render();
     }
