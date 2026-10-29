@@ -176,6 +176,15 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     const fill=new DirectionalLight(0xffefcd,0.16);fill.position.set(-700,-200,800);scene.add(fill);
     const effects=makeEffects(current.current.visualSeed);scene.add(effects.group);
     effects.group.position.z=-480;effects.group.scale.setScalar((camera.position.z+480)/camera.position.z);
+    let shadersReady=false;
+    void renderer.compileAsync(scene,camera).then(()=>{
+      if(disposed)return;
+      shadersReady=true;render();
+    }).catch(error=>{
+      if(disposed)return;
+      console.warn('RITUAL_SHADER_PRECOMPILE_FALLBACK',error);
+      shadersReady=true;render();
+    });
     let frame=0;
     // A terminal stage restored before the module loads must not replay absent Hero coins.
     let start=performance.now()-(current.current.phase==='hero-exit'?260:current.current.phase==='exit'?500:0);
@@ -199,7 +208,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       render();
     }
     function render() {
-      if(disposed)return;
+      if(disposed||!shadersReady)return;
       const input=current.current;
       if(input.phase!==previousPhase || input.visualSeed!==previousSeed) {start=performance.now();previousPhase=input.phase;previousSeed=input.visualSeed;}
       if(texturesLoaded<2)return;
