@@ -91,16 +91,16 @@ function gridPosition(row: number, column: number): { x: number; y: number } {
 function wheelStyle(offset: number): CssVars {
   const distance = Math.abs(offset);
   const direction = offset === 0 ? 0 : Math.sign(offset);
-  const x = Math.tanh(distance / 4.5) * 75 * direction;
-  const y = -Math.pow(distance, 1.45) * 1.85;
-  const z = -Math.pow(distance, 1.4) * 35;
+  const x = Math.tanh(distance / 3.2) * 430 * direction;
+  const y = -Math.min(250, Math.pow(distance, 1.4) * 20);
+  const z = -Math.pow(distance, 1.3) * 70;
   return {
-    "--wheel-x": x + "%",
-    "--wheel-y": y + "%",
+    "--wheel-x": x + "px",
+    "--wheel-y": y + "px",
     "--wheel-z": z + "px",
-    "--wheel-rotate": offset * -9.5 + "deg",
-    "--wheel-scale": Math.max(0.54, 1 - distance * 0.052),
-    "--wheel-opacity": distance <= 2 ? 1 : Math.max(0.16, 1 - (distance - 2) * 0.115),
+    "--wheel-rotate": offset * -7.5 + "deg",
+    "--wheel-scale": Math.max(0.58, 1 - distance * 0.06),
+    "--wheel-opacity": distance <= 3 ? 1 : Math.max(0.18, 1 - (distance - 3) * 0.12),
     zIndex: 120 - distance,
   };
 }
