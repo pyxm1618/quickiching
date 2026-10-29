@@ -48,16 +48,34 @@ describe('pure Three.js presentation contract', () => {
     }
     expect(castTrailIntensity(79,0)).toBeCloseTo(0);
   });
-  it('reduced motion uses short visible lifts and begins the direct rotation at the ready orientation', () => {
-    const input={face:'yin' as const,index:0,seed:1618,reducedMotion:true};
-    let visibleRunStart:{x:number;y:number}|undefined;
-    for(let time=0;time<=320;time+=10) {
-      const pose=coinPose({...input,phase:'casting',time});
-      if(pose.opacity<.1){visibleRunStart=undefined;continue;}
-      visibleRunStart??=pose;
-      expect(Math.hypot(pose.x-visibleRunStart.x,pose.y-visibleRunStart.y)).toBeLessThanOrEqual(.3*pose.diameter);
+  it('reduced motion keeps one continuous visible 3D path from the cast origin to the authoritative result anchor', () => {
+    for(const face of ['yang','yin'] as const) for(let index=0;index<3;index++) {
+      const input={face,index,seed:1618,reducedMotion:true};
+      const ready=coinPose({...input,phase:'ready',time:0});
+      const start=coinPose({...input,phase:'casting',time:0});
+      expect(start.x).toBeCloseTo(ready.x,8);
+      expect(start.y).toBeCloseTo(ready.y,8);
+      expect(start.rotation).toEqual(ready.rotation);
+      expect(start.opacity).toBe(1);
+
+      let previous=start;
+      for(let time=10;time<280;time+=10) {
+        const pose=coinPose({...input,phase:'casting',time});
+        expect(pose.opacity).toBe(1);
+        expect(Math.hypot(pose.x-previous.x,pose.y-previous.y)).toBeLessThan(.2*pose.diameter);
+        previous=pose;
+      }
+
+      const midpoint=coinPose({...input,phase:'casting',time:140});
+      const directMidY=(ready.y+560)/2;
+      expect(directMidY-midpoint.y).toBeCloseTo(40,5);
+
+      const landed=coinPose({...input,phase:'casting',time:280});
+      expect(landed.x).toBe([565,835,1105][index]);
+      expect(landed.y).toBe(560);
+      expect(landed.opacity).toBe(1);
+      expect(landed.settled).toBe(true);
     }
-    expect(coinPose({...input,phase:'casting',time:0}).rotation).toEqual(coinPose({...input,phase:'ready',time:0}).rotation);
   });
   it('reduced motion retains authoritative faces and settles within 320ms', () => {
     for(const face of ['yang','yin'] as const) for(let index=0;index<3;index++) {

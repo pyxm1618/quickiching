@@ -89,15 +89,18 @@ export function coinPose(input:{
   if(progress===1)return final;
   if(reducedMotion) {
     const target:[number,number,number]=[face==='yin'?(initial[0]<0?-PI:PI):0,0,0];
-    const rotation=initial.map((value,axis)=>mix(value,target[axis],smooth(progress))) as [number,number,number];
-    // Section 9: replace the large anchor change with a fade at zero opacity;
-    // each visible lift remains 40px (0.244D), with one shortest orientation change.
-    if(time<=100) {
-      const t=smooth(clamp(time/100));
-      return {...ready,y:800-40*t,rotation,opacity:1-t};
-    }
-    const t=smooth(clamp((time-100)/(duration-100)));
-    return {...final,y:560+40*(1-t),rotation,settled:false,opacity:t};
+    const eased=smooth(progress);
+    const rotation=initial.map((value,axis)=>mix(value,target[axis],eased)) as [number,number,number];
+    const lift=Math.sin(progress*PI)*40;
+    return {
+      x:mix(originX,resultX,eased),
+      y:mix(800,560,eased)-lift,
+      diameter:164,
+      rotation,
+      rotationOrder:'ZYX',
+      settled:false,
+      opacity:1,
+    };
   }
   const peakDiameter=[210,190,215][index];
   const variance=visualNoise(seed,index)*3;
