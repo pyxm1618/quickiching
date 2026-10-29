@@ -40,6 +40,13 @@ try {
  await page.evaluate(()=>document.fonts.ready);
  // Layout snapshots sample completed CSS entrances; motion is audited separately in real time.
  await page.addStyleTag({content:'*,*::before,*::after{animation-delay:0s!important;animation-duration:0s!important;transition:none!important;caret-color:transparent!important}'});
+ // Whole-page WebGL capture is slower on hosted macOS runners. Keep the visual sample at
+ // ritualTime=500ms, but prevent the real 2200ms settle timer from advancing state 03
+ // before the screenshot completes. This QA-only browser shim never changes production code.
+ if(state==='03') await page.evaluate(()=>{
+  const nativeSetTimeout=window.setTimeout.bind(window);
+  window.setTimeout=(handler,timeout=0,...args)=>nativeSetTimeout(handler,timeout===2200?8000:timeout,...args);
+ });
  if(state!=='07') {
   await page.waitForSelector('[data-renderer="three-webgl"]');
   await page.locator('[data-private-question]').fill('Should I continue on my current path?');
