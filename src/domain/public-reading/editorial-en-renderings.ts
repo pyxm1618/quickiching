@@ -15,9 +15,9 @@ export type EditorialEnglishRenderingRecord = {
  * These are not a historical or commercial translation. Each item is bound
  * at load time to the repository's fixed Chinese source text and revision.
  */
-export const EDITORIAL_EN_RENDERINGS = {
+export const EDITORIAL_EN_RENDERINGS: Readonly<Record<number, EditorialEnglishRenderingRecord>> = {
   ...EDITORIAL_EN_01_16,
   ...EDITORIAL_EN_17_32,
   ...EDITORIAL_EN_33_48,
   ...EDITORIAL_EN_49_64,
-} as const satisfies Readonly<Record<number, EditorialEnglishRenderingRecord>>;
+};
