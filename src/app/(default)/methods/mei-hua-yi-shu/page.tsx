@@ -29,7 +29,7 @@ export default function MeiHuaPage() {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-12">
-        <h2 className="font-display text-2xl font-medium">How to interpret the result</h2><p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">Current-time casting creates one moving line. Read the primary hexagram as the starting pattern, then note the single changing position and the relating hexagram created by reversing that line. The free text remains a general reflection framework, not a claim that the timestamp determines a fixed future.</p>
+        <h2 className="font-display text-2xl font-medium">How to interpret the result</h2><p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">Once an approved number + moment calculation is connected, the result will use the same primary hexagram, changing-line, and relating-hexagram reading structure already shared by Quick I Ching. Until then, a locked cast remains locked without inventing those facts.</p>
         <nav className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm" aria-label="Related Mei Hua guides"><Link href="/hexagrams" className="font-semibold text-[var(--jade)] hover:underline">64 Hexagrams hub</Link><Link href="/guides/changing-lines" className="font-semibold text-[var(--jade)] hover:underline">Changing lines</Link><Link href="/" className="font-semibold text-[var(--jade)] hover:underline">I Ching online home</Link></nav>
       </section>
     </article>
