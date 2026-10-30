@@ -126,11 +126,8 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 @media (max-width:800px) {
  .ritual-gold-button::before {background-image:url('/ritual/decor/gold-cloud-button-2x.png'),url('/ritual/decor/gold-cloud-button-2x.png');}
 }
-.ritual-question-card-mobile-art {display:none;}
 @media (max-width:470px) {
- .ritual-question-card {background-image:none;isolation:isolate;overflow:hidden;}
- .ritual-question-card-mobile-art {display:block;position:absolute;inset:0;z-index:-1;pointer-events:none;}
- .ritual-question-card-mobile-art img {display:block;width:100%;height:100%;object-fit:cover;object-position:center;border-radius:inherit;}
+ .ritual-question-card {background-image:url('/ritual/question-parchment-mobile-crop.webp');}
 }
 
 /* The casting UI consumes the same recorded steps as the application owner. */
