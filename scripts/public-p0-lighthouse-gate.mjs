@@ -60,7 +60,7 @@ async function audit(browser, { origin, path, label, desktop = false, seed = fal
       config: desktop ? desktopConfig : undefined,
       flags: { logLevel: "error", onlyCategories: ["performance", "accessibility", "seo"], disableStorageReset: true },
     });
-    if (label === "AFTER_CHINESE_HEXAGRAM_DETAIL" || label === "AFTER_HEXAGRAM_DETAIL") {
+    if (label === "AFTER_CHINESE_HEXAGRAM_DETAIL" || label === "AFTER_HEXAGRAM_DETAIL" || label === "AFTER_HEXAGRAM_HUB") {
       const report = result?.lhr;
       const lcpBreakdown = report?.audits?.["lcp-breakdown-insight"]?.details ?? null;
       const networkItems = report?.audits?.["network-requests"]?.details?.items;
