@@ -6,6 +6,7 @@ const base=process.env.PUBLIC_V1_TEST_BASE_URL||'http://127.0.0.1:3028';
 if(new URL(base).hostname!=='127.0.0.1')throw new Error('This fixture gate only runs on 127.0.0.1');
 const key='quickiching:public-v1:three-coin';
 const output='.artifacts/ritual-qa/business-boundary';await mkdir(output,{recursive:true});
+const assets=JSON.parse(await readFile('docs/performance/pr-76-assets.json','utf8'));
 const outcomes=[];
 async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFailure=false,moduleFailure=false,completedFlow=false,deferTextures=false}) {
  let page;
@@ -16,7 +17,7 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
   if(deferTextures) {
    await page.setRequestInterception(true);
    page.on('request',request=>{
-    if(/\/ritual\/coin-(front|back)-master\.png$/.test(request.url()))heldTextureRequests.push(request);
+    if([assets.coinFrontDesktop.url,assets.coinBackDesktop.url].some(url=>request.url().endsWith(url)))heldTextureRequests.push(request);
     else request.continue();
    });
   }
@@ -94,7 +95,8 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
   if(fallback || moduleFailure) {
    await page.waitForSelector('[data-webgl-fallback="true"]');
    const sources=await page.$$eval('.ritual-fallback img',nodes=>nodes.map(node=>node.getAttribute('src')));
-   assert.deepEqual(sources,authoritative.map(face=>`/ritual/coin-${face==='yang'?'front':'back'}-master.png`));
+   assert.equal(sources.length,3);
+   sources.forEach((source,index)=>assert(decodeURIComponent(source).includes(authoritative[index]==='yang'?assets.coinFrontDesktop.url:assets.coinBackDesktop.url)));
   } else {
    await page.waitForFunction(expected=>document.querySelector('[data-renderer="three-webgl"]')?.getAttribute('data-visible-faces')===expected,{},authoritative.join(','));
    assert.equal(await page.$eval('[data-renderer="three-webgl"]',node=>node.dataset.faces),authoritative.join(','));

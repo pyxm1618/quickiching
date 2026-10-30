@@ -57,7 +57,7 @@
 .qic-account-identity dt { font-size: 16px; }
 .qic-account-identity dd { font-size: 18px; margin: 5px 0 0; display: flex; align-items: center; gap: 20px; overflow-wrap: anywhere; }
 .qic-account-identity dd svg { width: 23px; height: 23px; flex-shrink: 0; }
-.qic-account-credits { flex: 0 0 184px; position: relative; padding: 15px 22px; border: 1px solid #daa32b; outline: 1px solid #bd7e13; outline-offset: -5px; border-radius: 14px; overflow: hidden; background: url('/account/antique-coins-clean.png') right 160px bottom -32px / 280px auto no-repeat, radial-gradient(ellipse at 60% 90%, #7c3b03a6, transparent 70%), #170e04; }
+.qic-account-credits { flex: 0 0 184px; position: relative; padding: 15px 22px; border: 1px solid #daa32b; outline: 1px solid #bd7e13; outline-offset: -5px; border-radius: 14px; overflow: hidden; background: url('/performance/accountCoins.7a4f85ddcc102bdf.webp') right 160px bottom -32px / 280px auto no-repeat, radial-gradient(ellipse at 60% 90%, #7c3b03a6, transparent 70%), #170e04; }
 .qic-account-credits h2 { color: #ffe4a2; font-weight: 400; }
 .qic-account-credits h2 svg { color: #eec25d; }
 .qic-account-credit-row { display: flex; align-items: center; gap: 14px; margin: 16px 0 0 14px; position: relative; }
@@ -137,7 +137,7 @@
 .qic-account-mobile-menu { display: grid; gap: 4px; }
 .qic-account-mobile-menu a, .qic-account-mobile-menu button { min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 10px 16px; text-align: left; }
 .qic-account-mobile-menu svg { width: 20px; height: 20px; }
-.qic-my-readings-page { min-height: calc(100dvh - 80px); padding: 24px max(24px,calc((100vw - 1220px)/2)) 36px; background: url('/ritual/bg-stage-master-clean.png') center / cover; color: #fff0d2; }
+.qic-my-readings-page { min-height: calc(100dvh - 80px); padding: 24px max(24px,calc((100vw - 1220px)/2)) 36px; background: url('/performance/stageDesktop.e37364561615e31f.webp') center / cover; color: #fff0d2; }
 .qic-my-readings-page .qic-account-heading { height: 160px; padding-top: 10px; }
 .qic-my-readings-page .qic-account-heading h1 { font-size: 92px; }
 .qic-my-readings-page .qic-account-heading p { font-size: 21px; }
@@ -244,7 +244,7 @@
  .qic-account-dialog[data-account-surface="account"] .qic-account-heading h1 { font-size: 48px; }
 }
 .qic-account-credits {
-  background-image: url('/account/antique-coins-clean.png'),
+  background-image: url('/performance/accountCoins.7a4f85ddcc102bdf.webp'),
     radial-gradient(circle at 64% 52%, #f3a93342 0 12%, transparent 34%),
     radial-gradient(ellipse at 58% 95%, #7c3b03a6, transparent 72%);
   background-size: 300px auto, auto, auto;

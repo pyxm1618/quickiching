@@ -1,3 +1,4 @@
+import { assertPerformanceBudget, metricsFromReport } from "./performance-budget.mjs";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { spawn, spawnSync } from "node:child_process";
@@ -109,7 +110,7 @@ async function summarizeLighthouse(label, path) {
   }
   if (lcp > 2500) log(`WARNING: ${label} lab LCP is above the 2.5s target (${lcp}ms)`);
 
-  return { label, performance, accessibility, seo, lcp, cls, tbt };
+  return { label, performance, accessibility, seo, lcp, cls, tbt, ...metricsFromReport(report) };
 }
 
 function assertLighthouse(metrics) {
@@ -118,7 +119,8 @@ function assertLighthouse(metrics) {
     if (result.accessibility < 90) failures.push(`${result.label} Lighthouse accessibility score below 90`);
     if (result.seo < 90) failures.push(`${result.label} Lighthouse SEO score below 90`);
     if (result.cls > 0.1) failures.push(`${result.label} CLS exceeds 0.10`);
-    if (result.performance < 65 || result.lcp > 4000) failures.push(`${result.label} severe performance regression`);
+    try { assertPerformanceBudget(result.label, result, result.label.endsWith("DESKTOP")); }
+    catch (error) { failures.push(error.message); }
   }
   if (failures.length > 0) throw new Error(failures.join("; "));
 }
@@ -131,6 +133,7 @@ run("bun", ["run", "test"]);
 log("IndexNow gate is DRY_RUN only; production submission is intentionally forbidden here");
 run("bun", ["run", "indexnow"]);
 run("bun", ["run", "build"]);
+run("node", ["scripts/performance-asset-gate.mjs"]);
 run("bun", ["scripts/public-v1-server-action-gate.ts"]);
 run("node", ["scripts/invalid-locale-server-log-gate.mjs"]);
 
@@ -237,9 +240,9 @@ try {
 
   log("Running populated Three-Coin result Lighthouse with preserved sessionStorage");
   run("bun", ["scripts/result-lighthouse-gate.mjs"], { env: browserEnv });
-  log("Running Public P0 before/after Lighthouse coverage for home, Three-Coin, populated unified result, hub, detail, and History");
+  log("Running Public P0 Lighthouse against the recorded PR #76 baseline and strict resource budgets");
   run("bun", ["scripts/public-p0-lighthouse-gate.mjs"], {
-    env: { ...browserEnv, PUBLIC_V1_LIGHTHOUSE_BASELINE_URL: process.env.PUBLIC_V1_LIGHTHOUSE_BASELINE_URL || "https://www.quickiching.com" },
+    env: browserEnv,
   });
   log("ALL PUBLIC SEO V1 + PUBLIC READING P0 + THREE-COIN FREE READING V2 + ON-PAGE SEO QUALITY / BUILD / BROWSER / BUNDLE / LIGHTHOUSE GATES PASS");
 } finally {

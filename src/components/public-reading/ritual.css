@@ -6,7 +6,7 @@
   position: relative; isolation:isolate; height: calc(100svh - 75px); min-height: 650px;
   color: #fff3d4; font-family: Georgia,"Libre Baskerville",serif;
 }
-.ritual-room { position: fixed; inset:0; z-index:-1; pointer-events:none; background:#21160c url('/ritual/bg-stage-master-clean.lossless.webp') center / auto 100% no-repeat; }
+.ritual-room { position: fixed; inset:0; z-index:-1; pointer-events:none; background:#21160c url('/performance/stageDesktop.e37364561615e31f.webp') center / auto 100% no-repeat; }
 body:has(.ritual-canvas) { background:#21160c; }
 body:has(.ritual-canvas)::before,body:has(.ritual-canvas)::after { display:none; }
 body:has(.ritual-canvas) > footer { position:relative;z-index:2; }
@@ -23,7 +23,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-home-heading h1 em { font-size:calc(72 * var(--u));font-weight:700;font-style:normal; }
 .ritual-home-heading p { position:absolute;top:calc(146 * var(--u));left:0;white-space:nowrap;font-size:calc(24 * var(--u));line-height:1.18;margin:calc(17 * var(--u)) 0 0 calc(45 * var(--u));color:#fff8ed; }
 .ritual-question-card { position:absolute;left:calc(200 * var(--u));top:calc(411 * var(--u));width:calc(646 * var(--u));height:calc(184 * var(--u));z-index:2;
-  padding:calc(19 * var(--u)) calc(36 * var(--u));background:url('/ritual/question-parchment-crop.png') center / cover no-repeat;background-origin:border-box;color:#16110b;border:4px double #be8d50;border-radius:14px;
+  padding:calc(19 * var(--u)) calc(36 * var(--u));background:url('/performance/questionDesktop.d616c1d6e5957a79.png') center / cover no-repeat;background-origin:border-box;color:#16110b;border:4px double #be8d50;border-radius:14px;
   transition:left 360ms var(--ritual-enter) 80ms,top 360ms var(--ritual-enter) 80ms,width 360ms var(--ritual-enter) 80ms,height 360ms var(--ritual-enter) 80ms;
 }
 .ritual-question-card label { display:block;font-size:calc(28 * var(--u));font-weight:700;line-height:1.2; }
@@ -84,7 +84,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-home-cloud-right {left:calc(658 * var(--u));right:auto;top:calc(102 * var(--u));width:calc(112 * var(--u));height:calc(54 * var(--u));opacity:.75;}
 /* Native production artwork at canonical size, with only its final edge repeated. */
 @media (width:1672px) and (height:941px) {
- .ritual-room {background-image:url('/ritual/bg-stage-master-clean.lossless.webp'),url('/ritual/bg-stage-master-clean.lossless.webp');background-size:auto 100%,auto 100%;background-position:left center,right center;}
+ .ritual-room {background-image:url('/performance/stageDesktop.e37364561615e31f.webp'),url('/performance/stageDesktop.e37364561615e31f.webp');background-size:auto 100%,auto 100%;background-position:left center,right center;}
 }
 
 .ritual-gold-button {position:relative;isolation:isolate;overflow:hidden;}
@@ -114,20 +114,20 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 
 /* Exact center pixels from the same room master; offscreen pixels need no transfer. */
 @media (max-aspect-ratio:11/20) {
- .ritual-room {background-image:url('/ritual/bg-stage-portrait-crop.webp');}
+ .ritual-room {background-image:url('/performance/stagePortrait.bde3e415eb141bc8.webp');}
 }
 
 .ritual-home-skip {display:block;width:100%;padding:0;margin:calc(20 * var(--u)) 0 0;font:400 calc(16 * var(--u))/1.25 Georgia,serif;color:#ffe8a4;text-decoration:none;}
 
 /* Non-QA narrow screens retain the same room/composition with a bounded raster budget. */
 @media (max-width:600px) and (max-aspect-ratio:11/20) {
- .ritual-room {background-image:url('/ritual/bg-stage-mobile-600.webp');}
+ .ritual-room {background-image:url('/performance/stageMobile.285965e6cb8c7840.webp');}
 }
 @media (max-width:800px) {
  .ritual-gold-button::before {background-image:url('/ritual/decor/gold-cloud-button-2x.png'),url('/ritual/decor/gold-cloud-button-2x.png');}
 }
 @media (max-width:470px) {
- .ritual-question-card {background-image:url('/ritual/question-parchment-mobile-crop.webp');}
+ .ritual-question-card {background-image:url('/performance/questionMobile.aeacbe5208415e49.webp');}
 }
 
 /* The casting UI consumes the same recorded steps as the application owner. */
@@ -146,7 +146,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 [data-ritual-view='result'] .ritual-cast-heading h2 {font:700 calc(64 * var(--u))/1.2 Georgia,serif;margin-top:calc(12 * var(--u));}
 [data-ritual-view='result'] .ritual-cast-heading > p:last-child {font-size:calc(26 * var(--u));margin-top:calc(10 * var(--u));}
 .ritual-face-labels {position:absolute;left:calc(490 * var(--u));top:calc(643 * var(--u));display:flex;gap:calc(130 * var(--u));}
-.ritual-face-labels > span {display:flex;align-items:center;justify-content:center;width:calc(140 * var(--u));height:calc(46 * var(--u));background:url('/ritual/question-parchment-crop.png') center/cover;color:#17100a;font:700 calc(25 * var(--u))/1 Georgia,serif;clip-path:polygon(6% 0,95% 0,100% 20%,98% 83%,93% 100%,5% 100%,0 70%,2% 20%);animation:ritual-ui-enter 180ms var(--ritual-enter) both;}
+.ritual-face-labels > span {display:flex;align-items:center;justify-content:center;width:calc(140 * var(--u));height:calc(46 * var(--u));background:url('/performance/questionDesktop.d616c1d6e5957a79.png') center/cover;color:#17100a;font:700 calc(25 * var(--u))/1 Georgia,serif;clip-path:polygon(6% 0,95% 0,100% 20%,98% 83%,93% 100%,5% 100%,0 70%,2% 20%);animation:ritual-ui-enter 180ms var(--ritual-enter) both;}
 .ritual-record-action {position:absolute;left:calc(615 * var(--u));top:calc(732 * var(--u));width:calc(440 * var(--u));text-align:center;animation:ritual-ui-enter 220ms var(--ritual-enter) both;}
 .ritual-record-action .ritual-gold-button {font-size:calc(28 * var(--u));height:calc(72 * var(--u));}
 .ritual-record-action .ritual-stage-number {margin-top:calc(20 * var(--u));}
@@ -203,7 +203,7 @@ body:has(.ritual-result-scene) {background:#21160c;}
 body:has(.ritual-result-scene)::before,body:has(.ritual-result-scene)::after {display:none;}
 body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 .ritual-save-gate {position:relative;min-height:calc(100svh - 75px);}
-.ritual-gate-card {position:absolute;left:calc(300 * var(--u));top:calc(85 * var(--u));width:calc(1080 * var(--u));height:calc(640 * var(--u));padding:calc(86 * var(--u)) calc(90 * var(--u)) 0;background:url('/ritual/hexagram-result-card-blank.png') center/100% 100% no-repeat;color:#15100a;text-align:center;animation:ritual-gate-enter 360ms var(--ritual-enter,cubic-bezier(.22,1,.36,1)) both;}
+.ritual-gate-card {position:absolute;left:calc(300 * var(--u));top:calc(85 * var(--u));width:calc(1080 * var(--u));height:calc(640 * var(--u));padding:calc(86 * var(--u)) calc(90 * var(--u)) 0;background:url('/performance/resultDesktop.c8b42fcbbe5723fe.webp') center/100% 100% no-repeat;color:#15100a;text-align:center;animation:ritual-gate-enter 360ms var(--ritual-enter,cubic-bezier(.22,1,.36,1)) both;}
 .ritual-gate-complete-mark {width:calc(68 * var(--u));height:calc(68 * var(--u));border:3px solid #946022;border-radius:50%;display:grid;place-items:center;margin:auto;color:#825019;}
 .ritual-gate-complete-mark svg {width:calc(45 * var(--u));height:calc(45 * var(--u));stroke-width:2;}
 .ritual-gate-complete {font-size:calc(26 * var(--u));line-height:1.3;margin:calc(8 * var(--u)) 0 0;color:#63421b;}
@@ -215,7 +215,7 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 .ritual-gate-action [data-history-saving],.ritual-gate-action p {color:#64411e;}
 .ritual-gate-error p {color:#8a2614!important;}
 .ritual-result-scene [data-public-reading-result] {position:relative;max-width:none;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;}
-.ritual-result-card {position:absolute;left:calc(289 * var(--u));top:calc(87 * var(--u));width:calc(1166 * var(--u));height:calc(657 * var(--u));background:url('/ritual/hexagram-result-card-blank.png') center/100% 100% no-repeat;color:#110d07;animation:ritual-card-enter 420ms cubic-bezier(.22,1,.36,1) both;}
+.ritual-result-card {position:absolute;left:calc(289 * var(--u));top:calc(87 * var(--u));width:calc(1166 * var(--u));height:calc(657 * var(--u));background:url('/performance/resultDesktop.c8b42fcbbe5723fe.webp') center/100% 100% no-repeat;color:#110d07;animation:ritual-card-enter 420ms cubic-bezier(.22,1,.36,1) both;}
 .ritual-result-title {position:absolute;left:calc(260 * var(--u));top:calc(74 * var(--u));width:calc(650 * var(--u));text-align:center;}
 .ritual-result-title h1 {font:700 calc(52 * var(--u))/1.15 Georgia,serif;margin:0;color:#100d07;}
 .ritual-result-title p {font:400 calc(30 * var(--u))/1.2 Georgia,serif;color:#665741;margin:calc(8 * var(--u)) 0 0;}
@@ -242,7 +242,7 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 }
 @media(max-width:800px) {
  .ritual-result-scene {--u:1px;}
- .ritual-gate-card,.ritual-result-card {background-image:url('/ritual/hexagram-result-card-mobile.webp');}
+ .ritual-gate-card,.ritual-result-card {background-image:url('/performance/resultMobile.b62092713b0e63f0.webp');}
  .ritual-gate-card {position:relative;left:auto;top:auto;width:calc(100% - 24px);height:auto;min-height:620px;margin:30px 12px;padding:70px 35px 90px;}
  .ritual-gate-card h1{font-size:38px;}.ritual-gate-description{font-size:22px;}.ritual-gate-complete{font-size:21px;}.ritual-gate-signin{width:100%;font-size:19px;gap:10px;}
  .ritual-result-card{position:relative;inset:auto;width:calc(100% - 20px);height:auto;min-height:900px;margin:20px 10px;padding:65px 35px;}

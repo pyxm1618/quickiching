@@ -251,11 +251,11 @@ export function QuestionFirst({
       : homeHeading ? undefined : (zh ? "看见更大的自己" : "See a Greater You");
     return (
       <QuestionFirstContext.Provider value={context}>
-        <link rel="preload" as="image" href="/ritual/question-parchment-crop.png" media="(min-width:471px)" fetchPriority="high" />
-        <link rel="preload" as="image" href="/ritual/question-parchment-mobile-crop.webp" media="(max-width:470px)" fetchPriority="high" />
-        <link rel="preload" as="image" href="/ritual/bg-stage-master-clean.lossless.webp" media="not all and (max-aspect-ratio:11/20)" fetchPriority="high" />
-        <link rel="preload" as="image" href="/ritual/bg-stage-portrait-crop.webp" media="(min-width:601px) and (max-aspect-ratio:11/20)" fetchPriority="high" />
-        <link rel="preload" as="image" href="/ritual/bg-stage-mobile-600.webp" media="(max-width:600px) and (max-aspect-ratio:11/20)" fetchPriority="low" />
+        <link rel="preload" as="image" href="/performance/questionDesktop.d616c1d6e5957a79.png" media="(min-width:471px)" fetchPriority="high" />
+        <link rel="preload" as="image" href="/performance/questionMobile.aeacbe5208415e49.webp" media="(max-width:470px)" fetchPriority="high" />
+        <link rel="preload" as="image" href="/performance/stageDesktop.e37364561615e31f.webp" media="not all and (max-aspect-ratio:11/20)" fetchPriority="high" />
+        <link rel="preload" as="image" href="/performance/stagePortrait.bde3e415eb141bc8.webp" media="(min-width:601px) and (max-aspect-ratio:11/20)" fetchPriority="high" />
+        <link rel="preload" as="image" href="/performance/stageMobile.285965e6cb8c7840.webp" media="(max-width:600px) and (max-aspect-ratio:11/20)" fetchPriority="low" />
         <link rel="preload" as="image" href="/ritual/decor/gold-cloud-button-2x.png" media="(max-width:800px)" fetchPriority="low" />
         <link rel="preload" as="image" href="/ritual/decor/yin-yang.png" media="(max-width:800px)" fetchPriority="low" />
         <section id="three-coin-reading" data-question-first data-three-coin-home-stage

@@ -1,3 +1,4 @@
+import { visualRuntimeAssets } from "@/lib/visual-runtime-assets";
 import "@/components/public-reading/ritual.css";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -44,6 +45,8 @@ export default async function ThreeCoinResultPage(props: {
 
   return (
     <div data-realm="chamber" className="ritual-result-scene">
+      <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
+      <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
       <div className="ritual-room" aria-hidden="true" />
       <ThreeCoinResultClient
         initialSessionId={sessionId}

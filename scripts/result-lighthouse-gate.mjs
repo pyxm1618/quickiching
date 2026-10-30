@@ -1,3 +1,4 @@
+import { assertPerformanceBudget, metricsFromReport } from "./performance-budget.mjs";
 import assert from "node:assert/strict";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
@@ -174,7 +175,7 @@ function summarize(label, runnerResult) {
 
   assert(accessibility >= 90, `${label}: accessibility score below 90`);
   assert(cls <= 0.1, `${label}: CLS exceeds 0.10`);
-  assert(performance >= 65 && lcp <= 4000, `${label}: severe performance regression`);
+  assertPerformanceBudget(label, metricsFromReport(report), label === "RESULT_DESKTOP");
   // The product result is intentionally noindex. Its SEO category is recorded but not used as an indexing gate.
   return { performance, accessibility, seo, lcp, cls, tbt };
 }

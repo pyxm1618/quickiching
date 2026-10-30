@@ -32,6 +32,7 @@ import {
   WebGLRenderTarget,
   WebGLRenderer,
 } from 'three';
+import { visualRuntimeAssets } from '@/lib/visual-runtime-assets';
 import { createCoinGeometry } from './three-coin-geometry';
 import { ThreeCoinFallback } from './three-coin-fallback';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -147,7 +148,8 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     renderer.setClearColor(0,0);renderer.outputColorSpace=SRGBColorSpace;
     renderer.toneMapping=ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
     const sceneTarget=new WebGLRenderTarget(1672,941,{type:HalfFloatType});
-    const composer=new EffectComposer(renderer);
+    const postTarget=new WebGLRenderTarget(1,1,{type:HalfFloatType,depthBuffer:false});
+    const composer=new EffectComposer(renderer,postTarget);
     composer.addPass(new TexturePass(sceneTarget.texture));
     const bloom=new UnrealBloomPass(new Vector2(1672,941),0.6,0.3,1.0);
     composer.addPass(bloom);
@@ -166,10 +168,10 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     let disposed=false;
     let texturesLoaded=0;
     function textureReady() {texturesLoaded+=1;if(texturesLoaded===2)render();}
-    // Non-QA phones sample the same master artwork at a bounded texture resolution.
-    // Canonical Desktop still decodes both untouched 2048px production masters; ImageBitmap keeps PNG decode off the main thread.
-    const textureSuffix=window.innerWidth<800?'mobile-512':'master';
-    const textureUrls=[`/ritual/coin-front-${textureSuffix}.png`,`/ritual/coin-back-${textureSuffix}.png`];
+    // Same artwork, bounded delivery resolution; retain off-main-thread ImageBitmap decode.
+    const textureUrls=window.innerWidth<800
+      ? [visualRuntimeAssets.coinFrontMobile,visualRuntimeAssets.coinBackMobile]
+      : [visualRuntimeAssets.coinFrontDesktop,visualRuntimeAssets.coinBackDesktop];
     const textures=[new Texture(),new Texture()];
     textures.forEach(texture=>{texture.colorSpace=SRGBColorSpace;texture.anisotropy=renderer.capabilities.getMaxAnisotropy();});
     if(typeof createImageBitmap==='function') {
@@ -230,7 +232,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     renderer.domElement.addEventListener('webglcontextlost',contextLost);
     function resize() {
       const rect=container!.getBoundingClientRect();width=rect.width;height=rect.height;
-      renderDpr=width<800?Math.min(window.devicePixelRatio,1):window.devicePixelRatio;
+      renderDpr=width<800?Math.min(window.devicePixelRatio,1):Math.min(window.devicePixelRatio,2);
       renderer.setPixelRatio(renderDpr);renderer.setSize(width,height,false);
       sceneTarget.setSize(width*renderDpr,height*renderDpr);
       composer.setPixelRatio(renderDpr);composer.setSize(width,height);
@@ -238,7 +240,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       render();
     }
     function render() {
-      if(disposed||!shadersReady)return;
+      if(disposed||!shadersReady||document.hidden)return;
       const input=current.current;
       if(input.phase!==previousPhase || input.visualSeed!==previousSeed) {start=performance.now();previousPhase=input.phase;previousSeed=input.visualSeed;}
       if(texturesLoaded<2)return;

@@ -24,6 +24,7 @@ export function buildContentSecurityPolicy(environment = process.env) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  images: { minimumCacheTTL: 86400 },
   poweredByHeader: false,
   experimental: {
     globalNotFound: true,
@@ -63,6 +64,10 @@ const nextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/performance/:asset",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, s-maxage=31536000, immutable" }],
+      },
       {
         source: "/:path*",
         headers: [

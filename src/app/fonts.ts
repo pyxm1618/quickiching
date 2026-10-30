@@ -17,8 +17,18 @@ const instrumentSans = Instrument_Sans({
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-plex",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  // The visible ritual counter uses 400; keep its preload to avoid a late font request.
+  weight: ["400"],
   display: "swap",
+});
+
+// Keep existing secondary weights available without preloading three unused faces.
+const ibmPlexMonoSecondary = IBM_Plex_Mono({
+  variable: "--font-plex-secondary",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
+  preload: false,
 });
 
 const notoSerifSC = Noto_Serif_SC({
@@ -32,6 +42,7 @@ export const fontVariableClassNames = [
   fraunces.variable,
   instrumentSans.variable,
   ibmPlexMono.variable,
+  ibmPlexMonoSecondary.variable,
 ].join(" ");
 
 export const localizedFontVariableClassNames = [

@@ -278,6 +278,7 @@ export function SiteHeader({
         {/* Brand Logo - exactly 1 visible product name */}
         <Link
           ref={brandRef}
+          prefetch={false}
           href={isChinese ? "/zh" : "/"}
           className="flex min-h-11 items-center gap-3 font-semibold tracking-[0.02em] text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--cinnabar)]"
         >

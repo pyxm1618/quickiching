@@ -1,11 +1,12 @@
+import { assertPerformanceBudget, metricsFromReport } from "./performance-budget.mjs";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import { desktopConfig, navigation } from "lighthouse";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
-const BASELINE = process.env.PUBLIC_V1_LIGHTHOUSE_BASELINE_URL || "https://www.quickiching.com";
+const BASELINE = JSON.parse(readFileSync(new URL("../docs/performance/pr-76-lab-baseline.json", import.meta.url), "utf8"));
 
 function log(message) {
   console.log(`[Public P0 Lighthouse Gate] ${message}`);
@@ -26,11 +27,11 @@ function summarize(label, result) {
   return metrics;
 }
 
-function assertQuality(label, metrics, indexable = true, enforcePerformance = true) {
+function assertQuality(label, metrics, indexable = true, enforcePerformance = true, desktop = false) {
   assert(metrics.accessibility >= 90, `${label}: accessibility below 90`);
   if (indexable) assert(metrics.seo >= 90, `${label}: SEO below 90`);
   assert(metrics.cls <= 0.1, `${label}: CLS exceeds 0.10`);
-  if (enforcePerformance) assert(metrics.performance >= 65 && metrics.lcp <= 4_000, `${label}: severe performance regression`);
+  if (enforcePerformance) assertPerformanceBudget(label, metrics, desktop);
 }
 
 async function seedManualReading(page, origin) {
@@ -98,8 +99,8 @@ async function audit(browser, { origin, path, label, desktop = false, seed = fal
       log(`${label}_FONT_REQUESTS ${JSON.stringify(fontRequests)}`);
       log(`${label}_PAGE_FONTS ${JSON.stringify(pageFonts)}`);
     }
-    const metrics = summarize(label, result);
-    assertQuality(label, metrics, indexable, enforcePerformance);
+    const metrics = { ...summarize(label, result), ...metricsFromReport(result.lhr) };
+    assertQuality(label, metrics, indexable, enforcePerformance, desktop);
     if (path === "/methods/manual-cast") await page.waitForFunction(() => document.body?.innerText.toLocaleLowerCase().includes("your i ching reading"), { timeout: 15_000 });
     return metrics;
   } finally {
@@ -118,12 +119,12 @@ const browser = await puppeteer.launch({
 });
 
 try {
-  const baseline = {};
-  for (const [key, path, label] of [["home", "/", "BASELINE_HOME"], ["threeCoin", "/methods/three-coin", "BASELINE_THREE_COIN"], ["hub", "/hexagrams", "BASELINE_HEXAGRAM_HUB"]]) {
-    baseline[key] = await audit(browser, { origin: BASELINE, path, label, enforcePerformance: false });
-  }
+  // Same redesign Head and same device profiles, rather than a different production UI.
+  const baseline = { home: BASELINE.metrics["desktop-home"], threeCoin: BASELINE.metrics["mobile-methods-three-coin"], hub: BASELINE.metrics["desktop-hexagrams"] };
+  log(`Recorded baseline head=${BASELINE.head} Lighthouse=${BASELINE.lighthouseVersion}`);
 
   const after = {};
+  after.homeMobile = await audit(browser, { origin: BASE, path: "/", label: "AFTER_HOME_MOBILE" });
   after.home = await audit(browser, { origin: BASE, path: "/", label: "AFTER_HOME", desktop: true });
   after.threeCoin = await audit(browser, { origin: BASE, path: "/methods/three-coin", label: "AFTER_THREE_COIN" });
   after.populatedResult = await audit(browser, { origin: BASE, path: "/methods/manual-cast", label: "AFTER_POPULATED_RESULT", seed: true, indexable: true });
@@ -134,8 +135,7 @@ try {
   after.history = await audit(browser, { origin: BASE, path: "/history/", label: "AFTER_HISTORY", indexable: false });
 
   for (const key of ["home", "threeCoin", "hub"]) {
-    const minAcceptable = Math.max(baseline[key].performance - 10, 70);
-    assert(after[key].performance >= minAcceptable, `${key}: performance dropped below acceptable threshold (${baseline[key].performance} → ${after[key].performance}, min: ${minAcceptable})`);
+    assertPerformanceBudget(key, after[key], key !== "threeCoin", baseline[key]);
   }
   log("Before/after comparable Lighthouse gates, English/Chinese Hub and detail pages, populated result, and History PASS; CLS target <= 0.10");
 } finally {

@@ -36,6 +36,8 @@ jobs:
         run: node scripts/ritual-qa-fixture.mjs install
       - name: Production build
         run: bun run build
+      - name: Runtime asset and initial JS budgets
+        run: node scripts/performance-asset-gate.mjs
       - name: Resolve Chrome
         shell: bash
         run: |
@@ -129,6 +131,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Production build
         run: bun run build
+      - name: Runtime asset and initial JS budgets
+        run: node scripts/performance-asset-gate.mjs
       - name: Install Lighthouse only
         run: bun add --no-save --cache-dir=/tmp/quickiching-bun-cache lighthouse@13.4.1
       - name: Identify ritual client chunks
@@ -182,7 +186,7 @@ jobs:
           console.log('LONG_TASKS_TOP '+JSON.stringify(longTasks));
           console.log('MAINTHREAD_BREAKDOWN '+JSON.stringify(breakdown));
           console.log('USER_TIMINGS '+JSON.stringify(report.audits['user-timings']?.details?.items||[]));
-          if(performance<65||lcp>4000) process.exit(1);
+          if(performance<95||lcp>2750) process.exit(1);
           NODE
 
   perf-smoke-mac:
@@ -201,6 +205,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Production build
         run: bun run build
+      - name: Runtime asset and initial JS budgets
+        run: node scripts/performance-asset-gate.mjs
       - name: Install Lighthouse only
         run: bun add --no-save --cache-dir=/tmp/quickiching-bun-cache lighthouse@13.4.1
       - name: Resolve Chrome
@@ -236,5 +242,5 @@ jobs:
           const lcp=Math.round(report.audits['largest-contentful-paint'].numericValue);
           const tbt=Math.round(report.audits['total-blocking-time'].numericValue);
           console.log(JSON.stringify({performance,accessibility,seo,lcp,tbt}));
-          if(performance<65||lcp>4000) process.exit(1);
+          if(performance<95||lcp>2750) process.exit(1);
           NODE

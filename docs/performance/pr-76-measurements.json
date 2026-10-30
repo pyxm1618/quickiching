@@ -1,0 +1,5655 @@
+{
+  "startingHead": "05435e9faa8ae406d337bca2a4caf55f49d4469c",
+  "environment": {
+    "node": "v22.23.2",
+    "browser": "Chrome/156.0.8078.48",
+    "buildId": "NuG9B5bnPghz00gZQr7wq",
+    "base": "http://127.0.0.1:3046",
+    "simulation": "Lighthouse mobile/desktop defaults; no throttling overrides"
+  },
+  "coverage": {
+    "originalTotal": 18,
+    "pass": 12,
+    "deferred": 2,
+    "reject": 4,
+    "unknown": 0
+  },
+  "rows": [
+    {
+      "id": "mobile-home",
+      "before": {
+        "performance": 86,
+        "lcp": 4085.4193000000005,
+        "cls": 0,
+        "tbt": 1,
+        "imageBytes": 148871,
+        "scriptBytes": 250263,
+        "maxImageBytes": 59850,
+        "sampleCount": 3,
+        "lcpRange": [
+          2428.5436499999996,
+          4086.3467999999993
+        ]
+      },
+      "after": {
+        "performance": 88,
+        "lcp": 3854.897099999999,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 148944,
+        "scriptBytes": 251047,
+        "maxImageBytes": 59887
+      },
+      "samples": [
+        {
+          "performance": 88,
+          "lcp": 3810.154,
+          "cls": 0,
+          "tbt": 7,
+          "imageBytes": 148944,
+          "scriptBytes": 251047
+        },
+        {
+          "performance": 88,
+          "lcp": 3854.897099999999,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 148944,
+          "scriptBytes": 251047
+        },
+        {
+          "performance": 88,
+          "lcp": 3875.9977,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 148944,
+          "scriptBytes": 251047
+        }
+      ],
+      "lcpRange": [
+        3810.154,
+        3875.9977
+      ],
+      "firstLoadJsBefore": "174 kB",
+      "firstLoadJsAfter": "174 kB",
+      "status": "FAIL",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3092,
+          "resourceSize": 2488,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/question-parchment-mobile-crop.webp",
+          "transferSize": 15600,
+          "resourceSize": 14504,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/bg-stage-mobile-600.webp",
+          "transferSize": 59850,
+          "resourceSize": 58754,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/decor/gold-cloud-button-2x.png",
+          "transferSize": 23730,
+          "resourceSize": 22635,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/decor/yin-yang.png",
+          "transferSize": 46599,
+          "resourceSize": 45504,
+          "priority": "Low"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/questionMobile.aeacbe5208415e49.webp",
+          "transferSize": 15637,
+          "resourceSize": 14504,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/stageMobile.285965e6cb8c7840.webp",
+          "transferSize": 59887,
+          "resourceSize": 58754,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/gold-cloud-button-2x.png",
+          "transferSize": 23730,
+          "resourceSize": 22635,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/yin-yang.png",
+          "transferSize": 46599,
+          "resourceSize": 45504,
+          "priority": "Low"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 70.7829999923706,
+          "networkRequestTime": 71.02799999713898,
+          "networkEndTime": 80.14099997282028,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 70.90200001001358,
+          "networkRequestTime": 71.11599999666214,
+          "networkEndTime": 82.5689999461174,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 70.93000000715256,
+          "networkRequestTime": 71.27799999713898,
+          "networkEndTime": 85.22999995946884,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 70.95199996232986,
+          "networkRequestTime": 71.3759999871254,
+          "networkEndTime": 89.29899996519089,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 70.97399997711182,
+          "networkRequestTime": 71.44900000095367,
+          "networkEndTime": 91.783999979496,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 70.99000000953674,
+          "networkRequestTime": 71.52499997615814,
+          "networkEndTime": 103.47799998521805,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 71.00699996948242,
+          "networkRequestTime": 71.60400003194809,
+          "networkEndTime": 103.73400002717972,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 56.01500004529953,
+          "networkRequestTime": 57.11699998378754,
+          "networkEndTime": 68.83499997854233,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 56.96900004148483,
+          "networkRequestTime": 57.26300001144409,
+          "networkEndTime": 68.19100004434586,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 57.00199997425079,
+          "networkRequestTime": 57.48300004005432,
+          "networkEndTime": 76.06400001049042,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 57.028999984264374,
+          "networkRequestTime": 57.60299998521805,
+          "networkEndTime": 88.68099999427795,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "mobile-methods-three-coin",
+      "before": {
+        "performance": 100,
+        "lcp": 1358.2493,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 3091,
+        "scriptBytes": 251730,
+        "maxImageBytes": 3091,
+        "sampleCount": 3,
+        "lcpRange": [
+          1357.3518,
+          1360.2034
+        ]
+      },
+      "after": {
+        "performance": 100,
+        "lcp": 1359.0908,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 3091,
+        "scriptBytes": 249443,
+        "maxImageBytes": 3091
+      },
+      "samples": [
+        {
+          "performance": 100,
+          "lcp": 1359.0908,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 3091,
+          "scriptBytes": 249443
+        },
+        {
+          "performance": 100,
+          "lcp": 1358.9436,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 3091,
+          "scriptBytes": 249443
+        },
+        {
+          "performance": 100,
+          "lcp": 1359.6642,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 3091,
+          "scriptBytes": 249443
+        }
+      ],
+      "lcpRange": [
+        1358.9436,
+        1359.6642
+      ],
+      "firstLoadJsBefore": "173 kB",
+      "firstLoadJsAfter": "174 kB",
+      "status": "PASS",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 9.138999998569489,
+          "networkRequestTime": 9.356000006198883,
+          "networkEndTime": 13.51500004529953,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 9.254999995231628,
+          "networkRequestTime": 9.430999994277954,
+          "networkEndTime": 14.925999999046326,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 9.297000050544739,
+          "networkRequestTime": 9.594000041484833,
+          "networkEndTime": 16.65800005197525,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 9.324000000953674,
+          "networkRequestTime": 9.709000051021576,
+          "networkEndTime": 18.26500004529953,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 9.346000015735626,
+          "networkRequestTime": 9.79799997806549,
+          "networkEndTime": 18.842000007629395,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 9.364000022411346,
+          "networkRequestTime": 9.875,
+          "networkEndTime": 22.50499999523163,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 85.63200002908707,
+          "networkRequestTime": 85.7490000128746,
+          "networkEndTime": 88.7039999961853,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 20.721999943256378,
+          "networkRequestTime": 20.942000031471252,
+          "networkEndTime": 25.426999986171722,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 20.835000038146973,
+          "networkRequestTime": 21.026999950408936,
+          "networkEndTime": 26.384999990463257,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 20.85699999332428,
+          "networkRequestTime": 21.188999950885773,
+          "networkEndTime": 29.837000012397766,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "mobile-readings-three-coin-result",
+      "before": {
+        "performance": 79,
+        "lcp": 5421.74575,
+        "cls": 0.0530023075935033,
+        "tbt": 0,
+        "imageBytes": 197049,
+        "scriptBytes": 270752,
+        "maxImageBytes": 134108,
+        "sampleCount": 3,
+        "lcpRange": [
+          5115.6539999999995,
+          5425.1785
+        ]
+      },
+      "after": {
+        "performance": 99,
+        "lcp": 1360.4353,
+        "cls": 0.0530023075935033,
+        "tbt": 0,
+        "imageBytes": 197123,
+        "scriptBytes": 248294,
+        "maxImageBytes": 134145
+      },
+      "samples": [
+        {
+          "performance": 99,
+          "lcp": 1360.74,
+          "cls": 0.0530023075935033,
+          "tbt": 0,
+          "imageBytes": 197123,
+          "scriptBytes": 248294
+        },
+        {
+          "performance": 99,
+          "lcp": 1360.4353,
+          "cls": 0.0530023075935033,
+          "tbt": 0,
+          "imageBytes": 197123,
+          "scriptBytes": 248294
+        },
+        {
+          "performance": 99,
+          "lcp": 1359.9439,
+          "cls": 0.0530023075935033,
+          "tbt": 0,
+          "imageBytes": 197123,
+          "scriptBytes": 248294
+        }
+      ],
+      "lcpRange": [
+        1359.9439,
+        1360.74
+      ],
+      "firstLoadJsBefore": "186 kB",
+      "firstLoadJsAfter": "186 kB",
+      "status": "PASS",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/bg-stage-mobile-600.webp",
+          "transferSize": 59850,
+          "resourceSize": 58754,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/hexagram-result-card-mobile.webp",
+          "transferSize": 134108,
+          "resourceSize": 133010,
+          "priority": "High"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/resultMobile.b62092713b0e63f0.webp",
+          "transferSize": 134145,
+          "resourceSize": 133010,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/stageMobile.285965e6cb8c7840.webp",
+          "transferSize": 59887,
+          "resourceSize": 58754,
+          "priority": "High"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 29.846000015735626,
+          "networkRequestTime": 30.054000079631805,
+          "networkEndTime": 35.65299999713898,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 29.948000073432922,
+          "networkRequestTime": 30.353000044822693,
+          "networkEndTime": 35.60300004482269,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 29.97299998998642,
+          "networkRequestTime": 30.473000049591064,
+          "networkEndTime": 36.625,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 29.999000012874603,
+          "networkRequestTime": 30.610000014305115,
+          "networkEndTime": 38.736000061035156,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.021000027656555,
+          "networkRequestTime": 30.718000054359436,
+          "networkEndTime": 39.0450000166893,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.03600001335144,
+          "networkRequestTime": 30.805999994277954,
+          "networkEndTime": 48.44200003147125,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 116.43800002336502,
+          "networkRequestTime": 116.64600002765656,
+          "networkEndTime": 121.59400004148483,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.414000034332275,
+          "networkRequestTime": 30.623000025749207,
+          "networkEndTime": 35.341000020504,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.52000004053116,
+          "networkRequestTime": 30.92600005865097,
+          "networkEndTime": 36.550000071525574,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.541000068187714,
+          "networkRequestTime": 31.06500005722046,
+          "networkEndTime": 36.76100009679794,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "mobile-hexagrams",
+      "before": {
+        "performance": 83,
+        "lcp": 4249.46625,
+        "cls": 0.0911300121506683,
+        "tbt": 0.9999999999997726,
+        "imageBytes": 2874990,
+        "scriptBytes": 266114,
+        "maxImageBytes": 2629325,
+        "sampleCount": 3,
+        "lcpRange": [
+          4248.447500000001,
+          5418.4146
+        ]
+      },
+      "after": {
+        "performance": 82,
+        "lcp": 4448.861600000001,
+        "cls": 0.0911300121506683,
+        "tbt": 0,
+        "imageBytes": 437645,
+        "scriptBytes": 230084,
+        "maxImageBytes": 191983
+      },
+      "samples": [
+        {
+          "performance": 84,
+          "lcp": 4102.4339,
+          "cls": 0.0911300121506683,
+          "tbt": 0,
+          "imageBytes": 437645,
+          "scriptBytes": 230084
+        },
+        {
+          "performance": 82,
+          "lcp": 4448.861600000001,
+          "cls": 0.0911300121506683,
+          "tbt": 0,
+          "imageBytes": 437645,
+          "scriptBytes": 230084
+        },
+        {
+          "performance": 82,
+          "lcp": 4520.411250000001,
+          "cls": 0.0911300121506683,
+          "tbt": 0,
+          "imageBytes": 437645,
+          "scriptBytes": 230084
+        }
+      ],
+      "lcpRange": [
+        4102.4339,
+        4520.411250000001
+      ],
+      "firstLoadJsBefore": "131 kB",
+      "firstLoadJsAfter": "131 kB",
+      "status": "FAIL",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fhexagrams%2Fhero.png&w=750&q=90",
+          "transferSize": 110787,
+          "resourceSize": 110200,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fhexagrams%2Fscroll-grid.png&w=640&q=90",
+          "transferSize": 64431,
+          "resourceSize": 63838,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagrams/ritual-platform.png",
+          "transferSize": 2629325,
+          "resourceSize": 2628226,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fhexagrams%2Fcard-frame.png&w=384&q=90",
+          "transferSize": 67356,
+          "resourceSize": 66764,
+          "priority": "High"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fhexagrams%2Fhero.png&w=750&q=90",
+          "transferSize": 110786,
+          "resourceSize": 110200,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fhexagrams%2Fscroll-grid.png&w=640&q=90",
+          "transferSize": 64430,
+          "resourceSize": 63838,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/platformMobile.5ee9b24ef7aa3211.webp",
+          "transferSize": 191983,
+          "resourceSize": 190848,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fhexagrams%2Fcard-frame.png&w=384&q=90",
+          "transferSize": 67355,
+          "resourceSize": 66764,
+          "priority": "Low"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 25.833000004291534,
+          "networkRequestTime": 26.060000002384186,
+          "networkEndTime": 28.937000036239624,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 25.94300001859665,
+          "networkRequestTime": 26.143999993801117,
+          "networkEndTime": 29.50299996137619,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 25.967000007629395,
+          "networkRequestTime": 26.32200002670288,
+          "networkEndTime": 31.719999969005585,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 25.99200004339218,
+          "networkRequestTime": 26.394999980926514,
+          "networkEndTime": 33.74000000953674,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 26.01500004529953,
+          "networkRequestTime": 26.544000029563904,
+          "networkEndTime": 33.791999995708466,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 26.039000034332275,
+          "networkRequestTime": 26.665000021457672,
+          "networkEndTime": 39.398999989032745,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.83399999141693,
+          "networkRequestTime": 28.07200002670288,
+          "networkEndTime": 31.769999980926514,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.948000013828278,
+          "networkRequestTime": 28.156000018119812,
+          "networkEndTime": 32.74300003051758,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.97599995136261,
+          "networkRequestTime": 28.32499998807907,
+          "networkEndTime": 36.648999989032745,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/db96af6b531dc71f-s.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 51.88400000333786,
+          "networkRequestTime": 52.973999977111816,
+          "networkEndTime": 58.533999979496,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "VeryHigh",
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/98e207f02528a563-s.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 52.287999987602234,
+          "networkRequestTime": 53.02799999713898,
+          "networkEndTime": 58.70200002193451,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "VeryHigh",
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "mobile-hexagrams-24-return",
+      "before": {
+        "performance": 88,
+        "lcp": 3895.1624999999995,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 148420,
+        "scriptBytes": 214225,
+        "maxImageBytes": 32739,
+        "sampleCount": 3,
+        "lcpRange": [
+          3894.199999999999,
+          3897.034499999999
+        ]
+      },
+      "after": {
+        "performance": 90,
+        "lcp": 3596.1620000000003,
+        "cls": 0,
+        "tbt": 0.5,
+        "imageBytes": 148420,
+        "scriptBytes": 214457,
+        "maxImageBytes": 32739
+      },
+      "samples": [
+        {
+          "performance": 90,
+          "lcp": 3596.1620000000003,
+          "cls": 0,
+          "tbt": 0.5,
+          "imageBytes": 148420,
+          "scriptBytes": 214457
+        },
+        {
+          "performance": 90,
+          "lcp": 3598.6580000000004,
+          "cls": 0,
+          "tbt": 1,
+          "imageBytes": 148420,
+          "scriptBytes": 214457
+        },
+        {
+          "performance": 90,
+          "lcp": 3588.2358,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 148420,
+          "scriptBytes": 214457
+        }
+      ],
+      "lcpRange": [
+        3588.2358,
+        3598.6580000000004
+      ],
+      "firstLoadJsBefore": "107 kB",
+      "firstLoadJsAfter": "107 kB",
+      "status": "FAIL",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/paper-mobile-1254.webp",
+          "transferSize": 23660,
+          "resourceSize": 22564,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/scene-mobile-640.avif",
+          "transferSize": 15698,
+          "resourceSize": 14602,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/left-repeat-160.webp",
+          "transferSize": 8227,
+          "resourceSize": 7132,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/right-repeat-162.webp",
+          "transferSize": 8359,
+          "resourceSize": 7264,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/left-top-160.avif",
+          "transferSize": 8583,
+          "resourceSize": 7488,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/right-top-162.avif",
+          "transferSize": 8355,
+          "resourceSize": 7260,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/top-scroll-960.avif",
+          "transferSize": 24860,
+          "resourceSize": 23764,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/cherry-top-48.avif",
+          "transferSize": 2873,
+          "resourceSize": 1779,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/taiji-580.avif",
+          "transferSize": 32739,
+          "resourceSize": 31643,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/landscape-400.avif",
+          "transferSize": 8006,
+          "resourceSize": 6911,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/pine-80.avif",
+          "transferSize": 3969,
+          "resourceSize": 2875,
+          "priority": "Low"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/paper-mobile-1254.webp",
+          "transferSize": 23660,
+          "resourceSize": 22564,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/scene-mobile-640.avif",
+          "transferSize": 15698,
+          "resourceSize": 14602,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/left-repeat-160.webp",
+          "transferSize": 8227,
+          "resourceSize": 7132,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/right-repeat-162.webp",
+          "transferSize": 8359,
+          "resourceSize": 7264,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/left-top-160.avif",
+          "transferSize": 8583,
+          "resourceSize": 7488,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/right-top-162.avif",
+          "transferSize": 8355,
+          "resourceSize": 7260,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/top-scroll-960.avif",
+          "transferSize": 24860,
+          "resourceSize": 23764,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/cherry-top-48.avif",
+          "transferSize": 2873,
+          "resourceSize": 1779,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/taiji-580.avif",
+          "transferSize": 32739,
+          "resourceSize": 31643,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/landscape-400.avif",
+          "transferSize": 8006,
+          "resourceSize": 6911,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/pine-80.avif",
+          "transferSize": 3969,
+          "resourceSize": 2875,
+          "priority": "Low"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.97599995136261,
+          "networkRequestTime": 28.199000000953674,
+          "networkEndTime": 32.9329999089241,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 28.084999978542328,
+          "networkRequestTime": 28.29399996995926,
+          "networkEndTime": 33.9549999833107,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 28.110999941825867,
+          "networkRequestTime": 28.462999939918518,
+          "networkEndTime": 35.63800001144409,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 28.13299995660782,
+          "networkRequestTime": 28.54399996995926,
+          "networkEndTime": 37.05199998617172,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 28.170999944210052,
+          "networkRequestTime": 28.64499992132187,
+          "networkEndTime": 37.99399995803833,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 28.189999997615814,
+          "networkRequestTime": 28.73199999332428,
+          "networkEndTime": 41.04399996995926,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 9.569999992847443,
+          "networkRequestTime": 9.800999999046326,
+          "networkEndTime": 14.486999988555908,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 9.682999968528748,
+          "networkRequestTime": 9.888999998569489,
+          "networkEndTime": 15.546000003814697,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 9.707000017166138,
+          "networkRequestTime": 10.060999989509583,
+          "networkEndTime": 19.14800000190735,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "mobile-zh-hexagrams",
+      "before": {
+        "performance": 100,
+        "lcp": 1508.3439,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 3091,
+        "scriptBytes": 252353,
+        "maxImageBytes": 3091,
+        "sampleCount": 1,
+        "lcpRange": [
+          1508.3439,
+          1508.3439
+        ]
+      },
+      "after": {
+        "performance": 100,
+        "lcp": 1508.2693,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 3091,
+        "scriptBytes": 253138,
+        "maxImageBytes": 3091
+      },
+      "samples": [
+        {
+          "performance": 100,
+          "lcp": 1508.2693,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 3091,
+          "scriptBytes": 253138
+        }
+      ],
+      "lcpRange": [
+        1508.2693,
+        1508.2693
+      ],
+      "firstLoadJsBefore": "107 kB",
+      "firstLoadJsAfter": "107 kB",
+      "status": "PASS",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 12.64000004529953,
+          "networkRequestTime": 12.931000053882599,
+          "networkEndTime": 17.097000062465668,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 12.764000058174133,
+          "networkRequestTime": 13.129000067710876,
+          "networkEndTime": 17.868000030517578,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 12.795000076293945,
+          "networkRequestTime": 13.412000060081482,
+          "networkEndTime": 19.44400006532669,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 12.82200002670288,
+          "networkRequestTime": 13.58600002527237,
+          "networkEndTime": 20.480000019073486,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 12.842000007629395,
+          "networkRequestTime": 13.727000057697296,
+          "networkEndTime": 21.653000056743622,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 12.861000061035156,
+          "networkRequestTime": 13.895000040531158,
+          "networkEndTime": 23.64200007915497,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 116.49600005149841,
+          "networkRequestTime": 116.74200004339218,
+          "networkEndTime": 121.80500000715256,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 23.514999985694885,
+          "networkRequestTime": 23.751999974250793,
+          "networkEndTime": 27.883000016212463,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 23.623000025749207,
+          "networkRequestTime": 23.86599999666214,
+          "networkEndTime": 27.932999968528748,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 23.655000030994415,
+          "networkRequestTime": 24.057999968528748,
+          "networkEndTime": 31.533999979496002,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 124.74300003051758,
+          "networkRequestTime": 124.93299996852875,
+          "networkEndTime": 128.54100000858307,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "mobile-zh-hexagrams-24-return",
+      "before": {
+        "performance": 100,
+        "lcp": 1508.3962,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 3091,
+        "scriptBytes": 253771,
+        "maxImageBytes": 3091,
+        "sampleCount": 1,
+        "lcpRange": [
+          1508.3962,
+          1508.3962
+        ]
+      },
+      "after": {
+        "performance": 100,
+        "lcp": 1506.7763,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 3091,
+        "scriptBytes": 215875,
+        "maxImageBytes": 3091
+      },
+      "samples": [
+        {
+          "performance": 100,
+          "lcp": 1506.7763,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 3091,
+          "scriptBytes": 215875
+        }
+      ],
+      "lcpRange": [
+        1506.7763,
+        1506.7763
+      ],
+      "firstLoadJsBefore": "107 kB",
+      "firstLoadJsAfter": "107 kB",
+      "status": "PASS",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.564999997615814,
+          "networkRequestTime": 27.803000032901764,
+          "networkEndTime": 32.49700003862381,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.69300001859665,
+          "networkRequestTime": 27.897000014781952,
+          "networkEndTime": 33.23100000619888,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.716000020503998,
+          "networkRequestTime": 28.089000046253204,
+          "networkEndTime": 34.735000014305115,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.74200004339218,
+          "networkRequestTime": 28.169000029563904,
+          "networkEndTime": 35.923000037670135,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.762000024318695,
+          "networkRequestTime": 28.39500004053116,
+          "networkEndTime": 37.46000003814697,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.784000039100647,
+          "networkRequestTime": 28.522000014781952,
+          "networkEndTime": 41.70400005578995,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 127.11900001764297,
+          "networkRequestTime": 127.2620000243187,
+          "networkEndTime": 131.58500003814697,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 25.22000002861023,
+          "networkRequestTime": 25.457000017166138,
+          "networkEndTime": 28.343000054359436,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 25.33399999141693,
+          "networkRequestTime": 25.5450000166893,
+          "networkEndTime": 31.484000027179718,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 25.368000030517578,
+          "networkRequestTime": 25.719000041484833,
+          "networkEndTime": 31.4310000538826,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "mobile-my-readings",
+      "status": "DEFERRED",
+      "reason": "AssertionError [ERR_ASSERTION]: Lighthouse runtime failure: Lighthouse was unable to reliably load the page you requested. Make sure you are testing the correct URL and that the server is properly responding to all requests. (Status code: 410)",
+      "before": null,
+      "after": null
+    },
+    {
+      "id": "mobile-account",
+      "before": {
+        "performance": 86,
+        "lcp": 4077.05465,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 149010,
+        "scriptBytes": 248957
+      },
+      "after": {
+        "performance": 89,
+        "lcp": 3744.50975,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 149084,
+        "scriptBytes": 251047,
+        "maxImageBytes": 59887
+      },
+      "samples": [
+        {
+          "performance": 89,
+          "lcp": 3744.50975,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 149084,
+          "scriptBytes": 251047
+        }
+      ],
+      "lcpRange": [
+        3744.50975,
+        3744.50975
+      ],
+      "firstLoadJsBefore": "174 kB",
+      "firstLoadJsAfter": "174 kB",
+      "status": "FAIL",
+      "baselineRuntime": "Node 26 initial full baseline only",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/question-parchment-mobile-crop.webp",
+          "transferSize": 15600,
+          "resourceSize": 14504,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/bg-stage-mobile-600.webp",
+          "transferSize": 59850,
+          "resourceSize": 58754,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/gold-cloud-button-2x.png",
+          "transferSize": 23730,
+          "resourceSize": 22635,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/yin-yang.png",
+          "transferSize": 46599,
+          "resourceSize": 45504,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/dark-landscape.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/frame-corner.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/paper-landscape.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/paper-texture.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/paper-border.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 3091,
+          "resourceSize": 2488,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/questionMobile.aeacbe5208415e49.webp",
+          "transferSize": 15637,
+          "resourceSize": 14504,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/stageMobile.285965e6cb8c7840.webp",
+          "transferSize": 59887,
+          "resourceSize": 58754,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/gold-cloud-button-2x.png",
+          "transferSize": 23730,
+          "resourceSize": 22635,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/yin-yang.png",
+          "transferSize": 46599,
+          "resourceSize": 45504,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/dark-landscape.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/frame-corner.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/paper-landscape.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/paper-texture.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/paper-border.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 13.92900002002716,
+          "networkRequestTime": 14.155000030994415,
+          "networkEndTime": 19.423000037670135,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 14.050000011920929,
+          "networkRequestTime": 14.245000004768372,
+          "networkEndTime": 19.362000048160553,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 14.075999975204468,
+          "networkRequestTime": 14.4200000166893,
+          "networkEndTime": 20.649999976158142,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 14.097000062465668,
+          "networkRequestTime": 14.523000001907349,
+          "networkEndTime": 22.6810000538826,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 14.11599999666214,
+          "networkRequestTime": 14.610000014305115,
+          "networkEndTime": 23.962999999523163,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 14.136000037193298,
+          "networkRequestTime": 14.69400006532669,
+          "networkEndTime": 24.207000017166138,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 14.152000069618225,
+          "networkRequestTime": 14.812000036239624,
+          "networkEndTime": 27.857000052928925,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 19.612999975681305,
+          "networkRequestTime": 19.834999978542328,
+          "networkEndTime": 24.198000013828278,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 19.73499995470047,
+          "networkRequestTime": 19.923999965190887,
+          "networkEndTime": 25.15499997138977,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 19.760999977588654,
+          "networkRequestTime": 20.087999939918518,
+          "networkEndTime": 28.45799994468689,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 19.781999945640564,
+          "networkRequestTime": 20.212999999523163,
+          "networkEndTime": 32.79000002145767,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "desktop-home",
+      "before": {
+        "performance": 86,
+        "lcp": 2547.17275,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 2107930,
+        "scriptBytes": 285615,
+        "maxImageBytes": 1568734,
+        "sampleCount": 1,
+        "lcpRange": [
+          2547.17275,
+          2547.17275
+        ]
+      },
+      "after": {
+        "performance": 95,
+        "lcp": 1579.801,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 910218,
+        "scriptBytes": 286838,
+        "maxImageBytes": 370985
+      },
+      "samples": [
+        {
+          "performance": 95,
+          "lcp": 1579.801,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 910218,
+          "scriptBytes": 286838
+        }
+      ],
+      "lcpRange": [
+        1579.801,
+        1579.801
+      ],
+      "firstLoadJsBefore": "174 kB",
+      "firstLoadJsAfter": "174 kB",
+      "status": "PASS",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/question-parchment-crop.png",
+          "transferSize": 174211,
+          "resourceSize": 173114,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/bg-stage-master-clean.lossless.webp",
+          "transferSize": 1568734,
+          "resourceSize": 1567634,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/decor/gold-cloud.png",
+          "transferSize": 316940,
+          "resourceSize": 315843,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/decor/yin-yang.png",
+          "transferSize": 46599,
+          "resourceSize": 45504,
+          "priority": "High"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/questionDesktop.d616c1d6e5957a79.png",
+          "transferSize": 174248,
+          "resourceSize": 173114,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/stageDesktop.e37364561615e31f.webp",
+          "transferSize": 370985,
+          "resourceSize": 369850,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/gold-cloud.png",
+          "transferSize": 316940,
+          "resourceSize": 315843,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/yin-yang.png",
+          "transferSize": 46599,
+          "resourceSize": 45504,
+          "priority": "High"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 25.901000022888184,
+          "networkRequestTime": 26.124000072479248,
+          "networkEndTime": 31.687000036239624,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 26.009000062942505,
+          "networkRequestTime": 26.222000062465668,
+          "networkEndTime": 31.736999988555908,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 26.032000064849854,
+          "networkRequestTime": 26.464000046253204,
+          "networkEndTime": 33.35900002717972,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 26.055000066757202,
+          "networkRequestTime": 26.60699999332428,
+          "networkEndTime": 35.946000039577484,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 26.075000047683716,
+          "networkRequestTime": 26.704000055789948,
+          "networkEndTime": 36.54900002479553,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 26.097000002861023,
+          "networkRequestTime": 26.777999997138977,
+          "networkEndTime": 41.47800004482269,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 26.119000017642975,
+          "networkRequestTime": 26.866999983787537,
+          "networkEndTime": 43.916999995708466,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.394999980926514,
+          "networkRequestTime": 5.630999982357025,
+          "networkEndTime": 10.486999988555908,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.50900000333786,
+          "networkRequestTime": 5.777999997138977,
+          "networkEndTime": 11.893999993801117,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.532000005245209,
+          "networkRequestTime": 5.933999955654144,
+          "networkEndTime": 14.153999984264374,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.561999976634979,
+          "networkRequestTime": 6.035999953746796,
+          "networkEndTime": 20.79799997806549,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "desktop-methods-three-coin",
+      "before": {
+        "performance": 100,
+        "lcp": 329.058,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 1446,
+        "scriptBytes": 285615,
+        "maxImageBytes": 1446,
+        "sampleCount": 1,
+        "lcpRange": [
+          329.058,
+          329.058
+        ]
+      },
+      "after": {
+        "performance": 100,
+        "lcp": 329.36,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 1446,
+        "scriptBytes": 285186,
+        "maxImageBytes": 1446
+      },
+      "samples": [
+        {
+          "performance": 100,
+          "lcp": 329.36,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 1446,
+          "scriptBytes": 285186
+        }
+      ],
+      "lcpRange": [
+        329.36,
+        329.36
+      ],
+      "firstLoadJsBefore": "173 kB",
+      "firstLoadJsAfter": "174 kB",
+      "status": "PASS",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "Low"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "Low"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.169999957084656,
+          "networkRequestTime": 5.4489999413490295,
+          "networkEndTime": 9.864999949932098,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.273999989032745,
+          "networkRequestTime": 5.570999979972839,
+          "networkEndTime": 10.651999950408936,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.296999990940094,
+          "networkRequestTime": 5.758999943733215,
+          "networkEndTime": 12.990999937057495,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.318999946117401,
+          "networkRequestTime": 5.8459999561309814,
+          "networkEndTime": 14.513999938964844,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.34199994802475,
+          "networkRequestTime": 5.947999954223633,
+          "networkEndTime": 15.214999914169312,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.371999979019165,
+          "networkRequestTime": 6.052999973297119,
+          "networkEndTime": 20.190999925136566,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 83.02899992465973,
+          "networkRequestTime": 83.14699995517731,
+          "networkEndTime": 87.83599990606308,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 16.68400001525879,
+          "networkRequestTime": 16.935000002384186,
+          "networkEndTime": 19.13100004196167,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 16.807000041007996,
+          "networkRequestTime": 17.024999976158142,
+          "networkEndTime": 24.587000012397766,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 16.833000004291534,
+          "networkRequestTime": 17.175000071525574,
+          "networkEndTime": 24.675999999046326,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "desktop-readings-three-coin-result",
+      "before": {
+        "performance": 77,
+        "lcp": 4973.81125,
+        "cls": 0.05453112687155241,
+        "tbt": 0,
+        "imageBytes": 4953427,
+        "scriptBytes": 306104,
+        "maxImageBytes": 3297397,
+        "sampleCount": 1,
+        "lcpRange": [
+          4973.81125,
+          4973.81125
+        ]
+      },
+      "after": {
+        "performance": 100,
+        "lcp": 328.3944,
+        "cls": 0.05453112687155241,
+        "tbt": 0,
+        "imageBytes": 1088128,
+        "scriptBytes": 305668,
+        "maxImageBytes": 629847
+      },
+      "samples": [
+        {
+          "performance": 100,
+          "lcp": 328.3944,
+          "cls": 0.05453112687155241,
+          "tbt": 0,
+          "imageBytes": 1088128,
+          "scriptBytes": 305668
+        }
+      ],
+      "lcpRange": [
+        328.3944,
+        328.3944
+      ],
+      "firstLoadJsBefore": "186 kB",
+      "firstLoadJsAfter": "186 kB",
+      "status": "PASS",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/bg-stage-master-clean.lossless.webp",
+          "transferSize": 1568734,
+          "resourceSize": 1567634,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/hexagram-result-card-blank.png",
+          "transferSize": 3297397,
+          "resourceSize": 3296298,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/ritual/decor/yin-yang-divider.png",
+          "transferSize": 85850,
+          "resourceSize": 84754,
+          "priority": "High"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/resultDesktop.c8b42fcbbe5723fe.webp",
+          "transferSize": 629847,
+          "resourceSize": 628712,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/stageDesktop.e37364561615e31f.webp",
+          "transferSize": 370985,
+          "resourceSize": 369850,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/yin-yang-divider.png",
+          "transferSize": 85850,
+          "resourceSize": 84754,
+          "priority": "High"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 37.83800005912781,
+          "networkRequestTime": 38.080000042915344,
+          "networkEndTime": 42.92900002002716,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 37.968000054359436,
+          "networkRequestTime": 38.16899996995926,
+          "networkEndTime": 42.8740000128746,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 38.00600004196167,
+          "networkRequestTime": 38.46900004148483,
+          "networkEndTime": 44.0789999961853,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 38.035000026226044,
+          "networkRequestTime": 38.57200002670288,
+          "networkEndTime": 45.56500005722046,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 38.057000041007996,
+          "networkRequestTime": 38.66500002145767,
+          "networkEndTime": 46.51800000667572,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 38.075000047683716,
+          "networkRequestTime": 38.796999990940094,
+          "networkEndTime": 50.11200004816055,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 124.25600004196167,
+          "networkRequestTime": 124.39200001955032,
+          "networkEndTime": 128.4770000576973,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.532999992370605,
+          "networkRequestTime": 30.74599999189377,
+          "networkEndTime": 36.062999963760376,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.637999951839447,
+          "networkRequestTime": 30.830999970436096,
+          "networkEndTime": 38.444000005722046,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.671000003814697,
+          "networkRequestTime": 31.125999987125397,
+          "networkEndTime": 42.36100000143051,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "desktop-hexagrams",
+      "before": {
+        "performance": 99,
+        "lcp": 783.5894,
+        "cls": 0.05555555555555555,
+        "tbt": 0,
+        "imageBytes": 3069217,
+        "scriptBytes": 285494,
+        "maxImageBytes": 2629325,
+        "sampleCount": 1,
+        "lcpRange": [
+          783.5894,
+          783.5894
+        ]
+      },
+      "after": {
+        "performance": 99,
+        "lcp": 854.1175249999998,
+        "cls": 0.05555555555555555,
+        "tbt": 0,
+        "imageBytes": 631874,
+        "scriptBytes": 263485,
+        "maxImageBytes": 322310
+      },
+      "samples": [
+        {
+          "performance": 99,
+          "lcp": 854.1175249999998,
+          "cls": 0.05555555555555555,
+          "tbt": 0,
+          "imageBytes": 631874,
+          "scriptBytes": 263485
+        }
+      ],
+      "lcpRange": [
+        854.1175249999998,
+        854.1175249999998
+      ],
+      "firstLoadJsBefore": "131 kB",
+      "firstLoadJsAfter": "131 kB",
+      "status": "PASS",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fhexagrams%2Fhero.png&w=1920&q=90",
+          "transferSize": 322311,
+          "resourceSize": 321724,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fhexagrams%2Fscroll-grid.png&w=750&q=90",
+          "transferSize": 83544,
+          "resourceSize": 82952,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagrams/ritual-platform.png",
+          "transferSize": 2629325,
+          "resourceSize": 2628226,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fhexagrams%2Fcard-frame.png&w=256&q=90",
+          "transferSize": 32591,
+          "resourceSize": 32000,
+          "priority": "Low"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fhexagrams%2Fhero.png&w=1920&q=90",
+          "transferSize": 322310,
+          "resourceSize": 321724,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fhexagrams%2Fscroll-grid.png&w=750&q=90",
+          "transferSize": 83544,
+          "resourceSize": 82952,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/platformMobile.5ee9b24ef7aa3211.webp",
+          "transferSize": 191983,
+          "resourceSize": 190848,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fhexagrams%2Fcard-frame.png&w=256&q=90",
+          "transferSize": 32591,
+          "resourceSize": 32000,
+          "priority": "High"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.821999967098236,
+          "networkRequestTime": 28.034000039100647,
+          "networkEndTime": 34.410999953746796,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.930999994277954,
+          "networkRequestTime": 28.12799996137619,
+          "networkEndTime": 34.467000007629395,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.953999996185303,
+          "networkRequestTime": 28.32099997997284,
+          "networkEndTime": 35.4990000128746,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.976000010967255,
+          "networkRequestTime": 28.42799997329712,
+          "networkEndTime": 37.333000004291534,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 28.00499999523163,
+          "networkRequestTime": 28.61300003528595,
+          "networkEndTime": 37.92900002002716,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 28.023999989032745,
+          "networkRequestTime": 28.72299998998642,
+          "networkEndTime": 40.246999979019165,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 129.70800000429153,
+          "networkRequestTime": 129.8759999871254,
+          "networkEndTime": 135.6700000166893,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 12.901000022888184,
+          "networkRequestTime": 13.129000008106232,
+          "networkEndTime": 18.0110000371933,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 13.008000016212463,
+          "networkRequestTime": 13.231000006198883,
+          "networkEndTime": 18.06599998474121,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 13.031000018119812,
+          "networkRequestTime": 13.42900002002716,
+          "networkEndTime": 22.368000030517578,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/db96af6b531dc71f-s.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 39.28700000047684,
+          "networkRequestTime": 40.37600004673004,
+          "networkEndTime": 42.78700000047684,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "VeryHigh",
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/98e207f02528a563-s.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 39.6710000038147,
+          "networkRequestTime": 40.446000039577484,
+          "networkEndTime": 42.905000030994415,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "VeryHigh",
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "desktop-hexagrams-24-return",
+      "before": {
+        "performance": 99,
+        "lcp": 878.1263999999999,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 345498,
+        "scriptBytes": 214225,
+        "maxImageBytes": 111124,
+        "sampleCount": 1,
+        "lcpRange": [
+          878.1263999999999,
+          878.1263999999999
+        ]
+      },
+      "after": {
+        "performance": 100,
+        "lcp": 797.3592,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 345496,
+        "scriptBytes": 214457,
+        "maxImageBytes": 111124
+      },
+      "samples": [
+        {
+          "performance": 100,
+          "lcp": 797.3592,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 345496,
+          "scriptBytes": 214457
+        }
+      ],
+      "lcpRange": [
+        797.3592,
+        797.3592
+      ],
+      "firstLoadJsBefore": "107 kB",
+      "firstLoadJsAfter": "107 kB",
+      "status": "PASS",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1448,
+          "resourceSize": 844,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/paper-627.webp",
+          "transferSize": 8989,
+          "resourceSize": 7894,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/left-repeat-160.webp",
+          "transferSize": 8227,
+          "resourceSize": 7132,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/right-repeat-162.webp",
+          "transferSize": 8359,
+          "resourceSize": 7264,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/left-top-160.avif",
+          "transferSize": 8583,
+          "resourceSize": 7488,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/right-top-162.avif",
+          "transferSize": 8355,
+          "resourceSize": 7260,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/top-scroll-1557.avif",
+          "transferSize": 37497,
+          "resourceSize": 36401,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/cherry-top-190.avif",
+          "transferSize": 11444,
+          "resourceSize": 10348,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/taiji-660.avif",
+          "transferSize": 111124,
+          "resourceSize": 110026,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/scene-1024.avif",
+          "transferSize": 80517,
+          "resourceSize": 79420,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/landscape-200.avif",
+          "transferSize": 4267,
+          "resourceSize": 3173,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/left-bottom-160.avif",
+          "transferSize": 6184,
+          "resourceSize": 5089,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/right-bottom-162.avif",
+          "transferSize": 6588,
+          "resourceSize": 5493,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/bottom-scroll-1575.avif",
+          "transferSize": 32551,
+          "resourceSize": 31455,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/cherry-bottom-144.avif",
+          "transferSize": 8944,
+          "resourceSize": 7849,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3047/hexagram-detail/delivery/pine-40.avif",
+          "transferSize": 2421,
+          "resourceSize": 1327,
+          "priority": "Low"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/paper-627.webp",
+          "transferSize": 8989,
+          "resourceSize": 7894,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/left-repeat-160.webp",
+          "transferSize": 8227,
+          "resourceSize": 7132,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/right-repeat-162.webp",
+          "transferSize": 8359,
+          "resourceSize": 7264,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/left-top-160.avif",
+          "transferSize": 8583,
+          "resourceSize": 7488,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/right-top-162.avif",
+          "transferSize": 8355,
+          "resourceSize": 7260,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/top-scroll-1557.avif",
+          "transferSize": 37497,
+          "resourceSize": 36401,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/cherry-top-190.avif",
+          "transferSize": 11444,
+          "resourceSize": 10348,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/taiji-660.avif",
+          "transferSize": 111124,
+          "resourceSize": 110026,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/scene-1024.avif",
+          "transferSize": 80517,
+          "resourceSize": 79420,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/landscape-200.avif",
+          "transferSize": 4267,
+          "resourceSize": 3173,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/left-bottom-160.avif",
+          "transferSize": 6184,
+          "resourceSize": 5089,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/right-bottom-162.avif",
+          "transferSize": 6588,
+          "resourceSize": 5493,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/bottom-scroll-1575.avif",
+          "transferSize": 32551,
+          "resourceSize": 31455,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/cherry-bottom-144.avif",
+          "transferSize": 8944,
+          "resourceSize": 7849,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/hexagram-detail/delivery/pine-40.avif",
+          "transferSize": 2421,
+          "resourceSize": 1327,
+          "priority": "Low"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 22.782999992370605,
+          "networkRequestTime": 22.983999967575073,
+          "networkEndTime": 27.04100000858307,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 22.892000019550323,
+          "networkRequestTime": 23.06599998474121,
+          "networkEndTime": 28.151000022888184,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 22.914999961853027,
+          "networkRequestTime": 23.224999964237213,
+          "networkEndTime": 29.619000017642975,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 22.935999989509583,
+          "networkRequestTime": 23.2950000166893,
+          "networkEndTime": 31.29799997806549,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 22.960000038146973,
+          "networkRequestTime": 23.38400000333786,
+          "networkEndTime": 32.95100003480911,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 22.977999985218048,
+          "networkRequestTime": 23.47900003194809,
+          "networkEndTime": 37.09299999475479,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 22.558000028133392,
+          "networkRequestTime": 22.771000027656555,
+          "networkEndTime": 27.70200002193451,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 22.666999995708466,
+          "networkRequestTime": 22.865000009536743,
+          "networkEndTime": 27.5349999666214,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 22.689000010490417,
+          "networkRequestTime": 23.03800004720688,
+          "networkEndTime": 29.012000024318695,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "desktop-zh-hexagrams",
+      "before": {
+        "performance": 100,
+        "lcp": 369.3564,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 1446,
+        "scriptBytes": 271733,
+        "maxImageBytes": 1446,
+        "sampleCount": 1,
+        "lcpRange": [
+          369.3564,
+          369.3564
+        ]
+      },
+      "after": {
+        "performance": 100,
+        "lcp": 368.116,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 1446,
+        "scriptBytes": 272511,
+        "maxImageBytes": 1446
+      },
+      "samples": [
+        {
+          "performance": 100,
+          "lcp": 368.116,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 1446,
+          "scriptBytes": 272511
+        }
+      ],
+      "lcpRange": [
+        368.116,
+        368.116
+      ],
+      "firstLoadJsBefore": "107 kB",
+      "firstLoadJsAfter": "107 kB",
+      "status": "PASS",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "Low"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "Low"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.069999992847443,
+          "networkRequestTime": 30.274999976158142,
+          "networkEndTime": 34.93199998140335,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.175999999046326,
+          "networkRequestTime": 30.361999988555908,
+          "networkEndTime": 36.46599996089935,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.197999954223633,
+          "networkRequestTime": 30.519999980926514,
+          "networkEndTime": 37.92599993944168,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.219000041484833,
+          "networkRequestTime": 30.587999999523163,
+          "networkEndTime": 39.187000036239624,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.243000030517578,
+          "networkRequestTime": 30.675999999046326,
+          "networkEndTime": 40.87900000810623,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 30.263000011444092,
+          "networkRequestTime": 30.77300000190735,
+          "networkEndTime": 42.77700001001358,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 136.47699999809265,
+          "networkRequestTime": 136.58399999141693,
+          "networkEndTime": 140.97299998998642,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 24.366999983787537,
+          "networkRequestTime": 24.574000000953674,
+          "networkEndTime": 27.671999990940094,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 24.475000023841858,
+          "networkRequestTime": 24.657999992370605,
+          "networkEndTime": 32.09700000286102,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 24.518999993801117,
+          "networkRequestTime": 24.819000005722046,
+          "networkEndTime": 32.04100000858307,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 126.68800002336502,
+          "networkRequestTime": 126.78799998760223,
+          "networkEndTime": 136.42700004577637,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "desktop-zh-hexagrams-24-return",
+      "before": {
+        "performance": 100,
+        "lcp": 367.4361,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 1446,
+        "scriptBytes": 273151,
+        "maxImageBytes": 1446,
+        "sampleCount": 1,
+        "lcpRange": [
+          367.4361,
+          367.4361
+        ]
+      },
+      "after": {
+        "performance": 100,
+        "lcp": 367.7741,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 1446,
+        "scriptBytes": 250694,
+        "maxImageBytes": 1446
+      },
+      "samples": [
+        {
+          "performance": 100,
+          "lcp": 367.7741,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 1446,
+          "scriptBytes": 250694
+        }
+      ],
+      "lcpRange": [
+        367.7741,
+        367.7741
+      ],
+      "firstLoadJsBefore": "107 kB",
+      "firstLoadJsAfter": "107 kB",
+      "status": "PASS",
+      "baselineRuntime": "Node 22.23.2 pinned baseline",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "Low"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "Low"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 27.947000086307526,
+          "networkRequestTime": 28.147000014781952,
+          "networkEndTime": 31.523000061511993,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 28.048000037670135,
+          "networkRequestTime": 28.23000007867813,
+          "networkEndTime": 32.54700005054474,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 28.069999992847443,
+          "networkRequestTime": 28.3860000371933,
+          "networkEndTime": 33.80100005865097,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 28.09299999475479,
+          "networkRequestTime": 28.47100007534027,
+          "networkEndTime": 34.834000051021576,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 28.11700004339218,
+          "networkRequestTime": 28.531000018119812,
+          "networkEndTime": 36.09400004148483,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 28.14000004529953,
+          "networkRequestTime": 28.609000027179718,
+          "networkEndTime": 38.6350000500679,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3047/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 118.80000007152557,
+          "networkRequestTime": 118.92800003290176,
+          "networkEndTime": 123.62000006437302,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 25.87999999523163,
+          "networkRequestTime": 26.084999978542328,
+          "networkEndTime": 28.383999943733215,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 25.986999988555908,
+          "networkRequestTime": 26.169999957084656,
+          "networkEndTime": 32.898999989032745,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 26.01199996471405,
+          "networkRequestTime": 26.330999970436096,
+          "networkEndTime": 32.86199998855591,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "desktop-my-readings",
+      "status": "DEFERRED",
+      "reason": "AssertionError [ERR_ASSERTION]: Lighthouse runtime failure: Lighthouse was unable to reliably load the page you requested. Make sure you are testing the correct URL and that the server is properly responding to all requests. (Status code: 410)",
+      "before": null,
+      "after": null
+    },
+    {
+      "id": "desktop-account",
+      "before": {
+        "performance": 89,
+        "lcp": 2177.94575,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 2108098,
+        "scriptBytes": 283755
+      },
+      "after": {
+        "performance": 95,
+        "lcp": 1536.2484000000004,
+        "cls": 0,
+        "tbt": 0,
+        "imageBytes": 910386,
+        "scriptBytes": 286838,
+        "maxImageBytes": 370985
+      },
+      "samples": [
+        {
+          "performance": 95,
+          "lcp": 1536.2484000000004,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 910386,
+          "scriptBytes": 286838
+        }
+      ],
+      "lcpRange": [
+        1536.2484000000004,
+        1536.2484000000004
+      ],
+      "firstLoadJsBefore": "174 kB",
+      "firstLoadJsAfter": "174 kB",
+      "status": "PASS",
+      "baselineRuntime": "Node 26 initial full baseline only",
+      "imagesBefore": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/question-parchment-crop.png",
+          "transferSize": 174211,
+          "resourceSize": 173114,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/bg-stage-master-clean.lossless.webp",
+          "transferSize": 1568734,
+          "resourceSize": 1567634,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/gold-cloud.png",
+          "transferSize": 316940,
+          "resourceSize": 315843,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/yin-yang.png",
+          "transferSize": 46599,
+          "resourceSize": 45504,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/dark-landscape.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/frame-corner.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/cloud-flourish.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/paper-landscape.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/paper-texture.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/paper-border.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        }
+      ],
+      "imagesAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "transferSize": 1446,
+          "resourceSize": 844,
+          "priority": "Low"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/questionDesktop.d616c1d6e5957a79.png",
+          "transferSize": 174248,
+          "resourceSize": 173114,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/performance/stageDesktop.e37364561615e31f.webp",
+          "transferSize": 370985,
+          "resourceSize": 369850,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/gold-cloud.png",
+          "transferSize": 316940,
+          "resourceSize": 315843,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/ritual/decor/yin-yang.png",
+          "transferSize": 46599,
+          "resourceSize": 45504,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/dark-landscape.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/frame-corner.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/cloud-flourish.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/paper-landscape.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/paper-texture.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        },
+        {
+          "url": "http://127.0.0.1:3046/account/paper-border.png",
+          "transferSize": 28,
+          "resourceSize": 28,
+          "priority": "High"
+        }
+      ],
+      "fontsBefore": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 13.121999979019165,
+          "networkRequestTime": 13.380999982357025,
+          "networkEndTime": 18.22699999809265,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/37786be940ec402b-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 13.23499995470047,
+          "networkRequestTime": 13.573000013828278,
+          "networkEndTime": 18.966000020503998,
+          "finished": true,
+          "transferSize": 11242,
+          "resourceSize": 10128,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/98e207f02528a563-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 13.25900000333786,
+          "networkRequestTime": 13.91399997472763,
+          "networkEndTime": 20.719999969005585,
+          "finished": true,
+          "transferSize": 11174,
+          "resourceSize": 10060,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 13.283999979496002,
+          "networkRequestTime": 14.003000020980835,
+          "networkEndTime": 21.99099999666214,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 13.310999989509583,
+          "networkRequestTime": 14.098999977111816,
+          "networkEndTime": 23.4099999666214,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/db96af6b531dc71f-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 13.340000033378601,
+          "networkRequestTime": 14.203999996185303,
+          "networkEndTime": 26.946000039577484,
+          "finished": true,
+          "transferSize": 11234,
+          "resourceSize": 10120,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 13.358999967575073,
+          "networkRequestTime": 14.283999979496002,
+          "networkEndTime": 27.805000007152557,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ],
+      "fontsAfter": [
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/26d0ba92e140f0dc-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.125999987125397,
+          "networkRequestTime": 5.379999995231628,
+          "networkEndTime": 10.665000021457672,
+          "finished": true,
+          "transferSize": 31018,
+          "resourceSize": 29904,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/af4bf8399d1aacdf-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.23800003528595,
+          "networkRequestTime": 5.461999952793121,
+          "networkEndTime": 10.606000006198883,
+          "finished": true,
+          "transferSize": 37674,
+          "resourceSize": 36560,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/d3ebbfd689654d3a-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.262999951839447,
+          "networkRequestTime": 5.647000014781952,
+          "networkEndTime": 11.462999999523163,
+          "finished": true,
+          "transferSize": 11166,
+          "resourceSize": 10052,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        },
+        {
+          "url": "http://127.0.0.1:3046/_next/static/media/e6df576ec67d906e-s.p.woff2",
+          "sessionTargetType": "page",
+          "protocol": "http/1.1",
+          "cache": "none",
+          "rendererStartTime": 5.285999953746796,
+          "networkRequestTime": 5.7639999985694885,
+          "networkEndTime": 18.22400003671646,
+          "finished": true,
+          "transferSize": 24818,
+          "resourceSize": 23704,
+          "statusCode": 200,
+          "mimeType": "font/woff2",
+          "resourceType": "Font",
+          "priority": "High",
+          "isLinkPreload": true,
+          "experimentalFromMainFrame": true,
+          "entity": "127.0.0.1"
+        }
+      ]
+    }
+  ],
+  "sourceEvidence": "/Users/milushangdi/Projects/quickiching-perf-closeout/.artifacts/performance-closeout",
+  "outcome": "PERFORMANCE CLOSEOUT NOT PASS",
+  "webgl": {
+    "before": [
+      {
+        "requestedDpr": 1,
+        "mobile": false,
+        "initial": {
+          "canvas": false,
+          "textures": 0
+        },
+        "dpr": "1",
+        "canvas": [
+          1350,
+          940
+        ],
+        "measures": [
+          {
+            "name": "ritual-pmrem",
+            "duration": 53.5
+          },
+          {
+            "name": "ritual-first-render",
+            "duration": 82.59999996423721
+          }
+        ],
+        "textures": [
+          {
+            "url": "http://127.0.0.1:3047/ritual/coin-front-master.png",
+            "bytes": 6416677,
+            "duration": 38.5
+          },
+          {
+            "url": "http://127.0.0.1:3047/ritual/coin-back-master.png",
+            "bytes": 6066557,
+            "duration": 36.09999996423721
+          }
+        ],
+        "settledIdleDraws": 0,
+        "maxObservedEventLatency": 104
+      },
+      {
+        "requestedDpr": 2,
+        "mobile": false,
+        "initial": {
+          "canvas": false,
+          "textures": 0
+        },
+        "dpr": "2",
+        "canvas": [
+          2700,
+          1880
+        ],
+        "measures": [
+          {
+            "name": "ritual-pmrem",
+            "duration": 38.10000002384186
+          },
+          {
+            "name": "ritual-first-render",
+            "duration": 108.19999998807907
+          }
+        ],
+        "textures": [
+          {
+            "url": "http://127.0.0.1:3047/ritual/coin-front-master.png",
+            "bytes": 6416677,
+            "duration": 32.39999997615814
+          },
+          {
+            "url": "http://127.0.0.1:3047/ritual/coin-back-master.png",
+            "bytes": 6066557,
+            "duration": 36.89999997615814
+          }
+        ],
+        "settledIdleDraws": 0,
+        "maxObservedEventLatency": 56
+      },
+      {
+        "requestedDpr": 3,
+        "mobile": true,
+        "initial": {
+          "canvas": false,
+          "textures": 0
+        },
+        "dpr": "1",
+        "canvas": [
+          412,
+          915
+        ],
+        "measures": [
+          {
+            "name": "ritual-pmrem",
+            "duration": 37.30000001192093
+          },
+          {
+            "name": "ritual-first-render",
+            "duration": 29.600000023841858
+          }
+        ],
+        "textures": [
+          {
+            "url": "http://127.0.0.1:3047/ritual/coin-front-mobile-512.png",
+            "bytes": 414713,
+            "duration": 5.300000011920929
+          },
+          {
+            "url": "http://127.0.0.1:3047/ritual/coin-back-mobile-512.png",
+            "bytes": 397677,
+            "duration": 5
+          }
+        ],
+        "settledIdleDraws": 0,
+        "maxObservedEventLatency": 56
+      },
+      {
+        "requestedDpr": 3,
+        "mobile": false,
+        "initial": {
+          "canvas": false,
+          "textures": 0
+        },
+        "dpr": "3",
+        "canvas": [
+          4050,
+          2820
+        ],
+        "measures": [
+          {
+            "name": "ritual-pmrem",
+            "duration": 29.600000023841858
+          },
+          {
+            "name": "ritual-first-render",
+            "duration": 117.29999995231628
+          }
+        ],
+        "textures": [
+          {
+            "url": "http://127.0.0.1:3047/ritual/coin-front-master.png",
+            "bytes": 6416677,
+            "duration": 39.80000001192093
+          },
+          {
+            "url": "http://127.0.0.1:3047/ritual/coin-back-master.png",
+            "bytes": 6066557,
+            "duration": 41.09999996423721
+          }
+        ],
+        "settledIdleDraws": 0,
+        "maxObservedEventLatency": 64
+      }
+    ],
+    "after": [
+      {
+        "requestedDpr": 1,
+        "mobile": false,
+        "initial": {
+          "canvas": false,
+          "textures": 0
+        },
+        "dpr": "1",
+        "canvas": [
+          1350,
+          940
+        ],
+        "measures": [
+          {
+            "name": "ritual-pmrem",
+            "duration": 37.5
+          },
+          {
+            "name": "ritual-first-render",
+            "duration": 60.80000001192093
+          }
+        ],
+        "textures": [
+          {
+            "url": "http://127.0.0.1:3046/performance/coinFrontDesktop.f247842ffde6714b.webp",
+            "bytes": 431096,
+            "duration": 12.199999988079071
+          },
+          {
+            "url": "http://127.0.0.1:3046/performance/coinBackDesktop.30c2cec3fcce7aae.webp",
+            "bytes": 439088,
+            "duration": 14.099999964237213
+          }
+        ],
+        "settledIdleDraws": 0,
+        "maxObservedEventLatency": 128
+      },
+      {
+        "requestedDpr": 2,
+        "mobile": false,
+        "initial": {
+          "canvas": false,
+          "textures": 0
+        },
+        "dpr": "2",
+        "canvas": [
+          2700,
+          1880
+        ],
+        "measures": [
+          {
+            "name": "ritual-pmrem",
+            "duration": 27.19999998807907
+          },
+          {
+            "name": "ritual-first-render",
+            "duration": 45.89999997615814
+          }
+        ],
+        "textures": [
+          {
+            "url": "http://127.0.0.1:3046/performance/coinFrontDesktop.f247842ffde6714b.webp",
+            "bytes": 431096,
+            "duration": 3.5
+          },
+          {
+            "url": "http://127.0.0.1:3046/performance/coinBackDesktop.30c2cec3fcce7aae.webp",
+            "bytes": 439088,
+            "duration": 3.400000035762787
+          }
+        ],
+        "settledIdleDraws": 0,
+        "maxObservedEventLatency": 56
+      },
+      {
+        "requestedDpr": 3,
+        "mobile": true,
+        "initial": {
+          "canvas": false,
+          "textures": 0
+        },
+        "dpr": "1",
+        "canvas": [
+          412,
+          915
+        ],
+        "measures": [
+          {
+            "name": "ritual-pmrem",
+            "duration": 29
+          },
+          {
+            "name": "ritual-first-render",
+            "duration": 33.90000003576279
+          }
+        ],
+        "textures": [
+          {
+            "url": "http://127.0.0.1:3046/performance/coinFrontMobile.268fc93706d89c5d.webp",
+            "bytes": 305342,
+            "duration": 6.699999988079071
+          },
+          {
+            "url": "http://127.0.0.1:3046/performance/coinBackMobile.e8de8c6b39c8858b.webp",
+            "bytes": 283528,
+            "duration": 5.900000035762787
+          }
+        ],
+        "settledIdleDraws": 0,
+        "maxObservedEventLatency": 40
+      },
+      {
+        "requestedDpr": 3,
+        "mobile": false,
+        "initial": {
+          "canvas": false,
+          "textures": 0
+        },
+        "dpr": "2",
+        "canvas": [
+          2700,
+          1880
+        ],
+        "measures": [
+          {
+            "name": "ritual-pmrem",
+            "duration": 32.200000047683716
+          },
+          {
+            "name": "ritual-first-render",
+            "duration": 39.60000002384186
+          }
+        ],
+        "textures": [
+          {
+            "url": "http://127.0.0.1:3046/performance/coinFrontDesktop.f247842ffde6714b.webp",
+            "bytes": 431096,
+            "duration": 4.5
+          },
+          {
+            "url": "http://127.0.0.1:3046/performance/coinBackDesktop.30c2cec3fcce7aae.webp",
+            "bytes": 439088,
+            "duration": 4.400000035762787
+          }
+        ],
+        "settledIdleDraws": 0,
+        "maxObservedEventLatency": 48
+      }
+    ]
+  },
+  "cache": {
+    "results": {
+      "observations": [
+        {
+          "path": "/performance/stageDesktop.e37364561615e31f.webp",
+          "attempt": 1,
+          "status": 200,
+          "bytes": 369850,
+          "cacheControl": "public, max-age=31536000, s-maxage=31536000, immutable",
+          "vary": null
+        },
+        {
+          "path": "/performance/stageDesktop.e37364561615e31f.webp",
+          "attempt": 2,
+          "status": 200,
+          "bytes": 369850,
+          "cacheControl": "public, max-age=31536000, s-maxage=31536000, immutable",
+          "vary": null
+        },
+        {
+          "path": "/performance/coinFrontDesktop.f247842ffde6714b.webp",
+          "attempt": 1,
+          "status": 200,
+          "bytes": 430796,
+          "cacheControl": "public, max-age=31536000, s-maxage=31536000, immutable",
+          "vary": null
+        },
+        {
+          "path": "/performance/coinFrontDesktop.f247842ffde6714b.webp",
+          "attempt": 2,
+          "status": 200,
+          "bytes": 430796,
+          "cacheControl": "public, max-age=31536000, s-maxage=31536000, immutable",
+          "vary": null
+        },
+        {
+          "path": "/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "attempt": 1,
+          "status": 200,
+          "bytes": 2488,
+          "cacheControl": "public, max-age=60, must-revalidate",
+          "vary": "Accept"
+        },
+        {
+          "path": "/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "attempt": 2,
+          "status": 200,
+          "bytes": 2488,
+          "cacheControl": "public, max-age=60, must-revalidate",
+          "vary": "Accept"
+        },
+        {
+          "path": "/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=96&q=75",
+          "attempt": 1,
+          "status": 200,
+          "bytes": 4696,
+          "cacheControl": "public, max-age=86400, must-revalidate",
+          "vary": "Accept"
+        },
+        {
+          "path": "/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=96&q=75",
+          "attempt": 2,
+          "status": 200,
+          "bytes": 4696,
+          "cacheControl": "public, max-age=86400, must-revalidate",
+          "vary": "Accept"
+        },
+        {
+          "path": "/_next/image?url=%2Fperformance%2FcoinFrontDesktop.f247842ffde6714b.webp&w=640&q=95",
+          "attempt": 1,
+          "status": 200,
+          "bytes": 173150,
+          "cacheControl": "public, max-age=31536000, must-revalidate",
+          "vary": "Accept"
+        },
+        {
+          "path": "/_next/image?url=%2Fperformance%2FcoinFrontDesktop.f247842ffde6714b.webp&w=640&q=95",
+          "attempt": 2,
+          "status": 200,
+          "bytes": 173150,
+          "cacheControl": "public, max-age=31536000, must-revalidate",
+          "vary": "Accept"
+        }
+      ],
+      "resources": [
+        {
+          "name": "http://127.0.0.1:3046/favicon.ico",
+          "transferSize": 1888,
+          "encodedBodySize": 1588
+        },
+        {
+          "name": "http://127.0.0.1:3046/performance/stageDesktop.e37364561615e31f.webp",
+          "transferSize": 370150,
+          "encodedBodySize": 369850
+        },
+        {
+          "name": "http://127.0.0.1:3046/performance/stageDesktop.e37364561615e31f.webp",
+          "transferSize": 0,
+          "encodedBodySize": 369850
+        },
+        {
+          "name": "http://127.0.0.1:3046/performance/coinFrontDesktop.f247842ffde6714b.webp",
+          "transferSize": 431096,
+          "encodedBodySize": 430796
+        },
+        {
+          "name": "http://127.0.0.1:3046/performance/coinFrontDesktop.f247842ffde6714b.webp",
+          "transferSize": 0,
+          "encodedBodySize": 430796
+        },
+        {
+          "name": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 2788,
+          "encodedBodySize": 2488
+        },
+        {
+          "name": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+          "transferSize": 0,
+          "encodedBodySize": 2488
+        },
+        {
+          "name": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=96&q=75",
+          "transferSize": 4996,
+          "encodedBodySize": 4696
+        },
+        {
+          "name": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=96&q=75",
+          "transferSize": 0,
+          "encodedBodySize": 4696
+        },
+        {
+          "name": "http://127.0.0.1:3046/_next/image?url=%2Fperformance%2FcoinFrontDesktop.f247842ffde6714b.webp&w=640&q=95",
+          "transferSize": 173450,
+          "encodedBodySize": 173150
+        },
+        {
+          "name": "http://127.0.0.1:3046/_next/image?url=%2Fperformance%2FcoinFrontDesktop.f247842ffde6714b.webp&w=640&q=95",
+          "transferSize": 0,
+          "encodedBodySize": 173150
+        }
+      ]
+    },
+    "responses": [
+      {
+        "url": "http://127.0.0.1:3046/favicon.ico",
+        "fromDiskCache": false,
+        "cacheControl": "public, max-age=0, must-revalidate"
+      },
+      {
+        "url": "http://127.0.0.1:3046/performance/stageDesktop.e37364561615e31f.webp",
+        "fromDiskCache": false,
+        "cacheControl": "public, max-age=31536000, s-maxage=31536000, immutable"
+      },
+      {
+        "url": "http://127.0.0.1:3046/performance/stageDesktop.e37364561615e31f.webp",
+        "fromDiskCache": true,
+        "cacheControl": "public, max-age=31536000, s-maxage=31536000, immutable"
+      },
+      {
+        "url": "http://127.0.0.1:3046/performance/coinFrontDesktop.f247842ffde6714b.webp",
+        "fromDiskCache": false,
+        "cacheControl": "public, max-age=31536000, s-maxage=31536000, immutable"
+      },
+      {
+        "url": "http://127.0.0.1:3046/performance/coinFrontDesktop.f247842ffde6714b.webp",
+        "fromDiskCache": true,
+        "cacheControl": "public, max-age=31536000, s-maxage=31536000, immutable"
+      },
+      {
+        "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+        "fromDiskCache": false,
+        "cacheControl": "public, max-age=60, must-revalidate"
+      },
+      {
+        "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
+        "fromDiskCache": true,
+        "cacheControl": "public, max-age=60, must-revalidate"
+      },
+      {
+        "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=96&q=75",
+        "fromDiskCache": false,
+        "cacheControl": "public, max-age=86400, must-revalidate"
+      },
+      {
+        "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=96&q=75",
+        "fromDiskCache": true,
+        "cacheControl": "public, max-age=86400, must-revalidate"
+      },
+      {
+        "url": "http://127.0.0.1:3046/_next/image?url=%2Fperformance%2FcoinFrontDesktop.f247842ffde6714b.webp&w=640&q=95",
+        "fromDiskCache": false,
+        "cacheControl": "public, max-age=31536000, must-revalidate"
+      },
+      {
+        "url": "http://127.0.0.1:3046/_next/image?url=%2Fperformance%2FcoinFrontDesktop.f247842ffde6714b.webp&w=640&q=95",
+        "fromDiskCache": true,
+        "cacheControl": "public, max-age=31536000, must-revalidate"
+      }
+    ]
+  },
+  "encodingChecks": [
+    {
+      "name": "stageDesktop",
+      "width": 1671,
+      "height": 941,
+      "alphaWeightedPsnrDb": 38.36545196717586,
+      "maxAlphaDelta": 0
+    },
+    {
+      "name": "resultDesktop",
+      "width": 1670,
+      "height": 941,
+      "alphaWeightedPsnrDb": 39.3143190386733,
+      "maxAlphaDelta": 0
+    },
+    {
+      "name": "platformDesktop",
+      "width": 1536,
+      "height": 1024,
+      "alphaWeightedPsnrDb": 34.64716719599199,
+      "maxAlphaDelta": 0
+    },
+    {
+      "name": "platformMobile",
+      "width": 800,
+      "height": 533,
+      "alphaWeightedPsnrDb": 31.692310705811643,
+      "maxAlphaDelta": 0
+    },
+    {
+      "name": "coinFrontDesktop",
+      "width": 1024,
+      "height": 1024,
+      "alphaWeightedPsnrDb": 32.87146906107043,
+      "maxAlphaDelta": 0
+    },
+    {
+      "name": "coinBackDesktop",
+      "width": 1024,
+      "height": 1024,
+      "alphaWeightedPsnrDb": 34.65470471767204,
+      "maxAlphaDelta": 0
+    },
+    {
+      "name": "coinFrontMobile",
+      "width": 512,
+      "height": 512,
+      "alphaWeightedPsnrDb": "exact visible RGB",
+      "maxAlphaDelta": 0
+    },
+    {
+      "name": "coinBackMobile",
+      "width": 512,
+      "height": 512,
+      "alphaWeightedPsnrDb": "exact visible RGB",
+      "maxAlphaDelta": 0
+    },
+    {
+      "name": "accountCoins",
+      "width": 900,
+      "height": 450,
+      "alphaWeightedPsnrDb": "exact visible RGB",
+      "maxAlphaDelta": 0
+    }
+  ]
+}

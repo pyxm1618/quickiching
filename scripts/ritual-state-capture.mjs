@@ -5,6 +5,7 @@ import {resolve} from 'node:path';
 import os from 'node:os';
 import puppeteer from 'puppeteer-core';
 
+const assets=JSON.parse(await readFile('docs/performance/pr-76-assets.json','utf8'));
 const state=process.argv[2];
 assert(['02','03','04','05','06','07'].includes(state),'Choose reference state 02–07');
 const output=resolve(process.argv[3]||`.artifacts/ritual-qa/ref-${state}/pass-1`);
@@ -77,10 +78,10 @@ try {
   businessBitDraws:window.__ritualBitDraws,
   session:JSON.parse(sessionStorage.getItem('quickiching:public-v1:three-coin')||'null'),
   background:document.querySelector('.ritual-room')?getComputedStyle(document.querySelector('.ritual-room')).backgroundImage:null,
-  runtimeAssets:performance.getEntriesByType('resource').filter(item=>item.name.includes('/ritual/')).map(item=>item.name),
+  runtimeAssets:performance.getEntriesByType('resource').filter(item=>item.name.includes('/ritual/')||item.name.includes('/performance/')).map(item=>item.name),
  }));
  assert.deepEqual(observed.viewport,[1672,941]);assert.equal(observed.dpr,1);assert.equal(observed.zoom,1);assert.equal(observed.reducedMotion,false,'Canonical visual captures use standard motion; Reduced Motion is audited separately');
- assert(observed.background?.includes('bg-stage-master-clean.lossless.webp'),'All states must use the same production room');
+ assert(observed.background?.includes(assets.stageDesktop.url),'All states must use the same production room');
  if(['03','04','05'].includes(state)){assert.equal(observed.scene.renderer,'three-webgl','Desktop cannot use fallback');assert.equal(Number(observed.scene.renderDpr),1,'Canonical renderer DPR must stay 1');}
  if(state==='03')assert.equal(observed.scene.phase,'casting','Capture must occur while actual cast is running');
  if(state==='06')for(const selector of ['[data-primary-card]','[data-ritual-result-card]','[data-deep-reading-entry]'])assert.equal(await page.$(selector),null,'Gate must conceal '+selector);

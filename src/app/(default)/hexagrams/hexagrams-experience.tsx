@@ -1,4 +1,5 @@
 "use client";
+import { visualRuntimeAssets } from '@/lib/visual-runtime-assets';
 
 import React, { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type WheelEvent } from "react";
 import Link from "next/link";
@@ -286,7 +287,9 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
 
       <section className={styles.wheelStage} aria-label="Rotating 64-hexagram wheel">
         <img
-          src="/hexagrams/ritual-platform.png"
+          src={visualRuntimeAssets.platformDesktop}
+          srcSet={`${visualRuntimeAssets.platformMobile} 800w, ${visualRuntimeAssets.platformDesktop} 1536w`}
+          sizes="(max-width:820px) 66vw, (max-width:1180px) 57.5vw, 50vw"
           alt=""
           loading="lazy"
           decoding="async"
