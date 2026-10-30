@@ -13,6 +13,9 @@ const DESKTOP_PATHS = [
   ["/methods/yarrow-stalks", "Yarrow"],
   ["/methods/mei-hua-yi-shu", "Mei Hua"],
   ["/guides/how-to-ask-the-i-ching", "Guide"],
+];
+
+const IMMERSIVE_PATHS = [
   ["/hexagrams", "Hexagrams"],
 ];
 
@@ -129,7 +132,33 @@ async function inspectBrandChrome(page, label) {
   assert(state.scrollWidth <= state.clientWidth + 1, `${label}: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
 }
 
-async function runRoute(browser, path, label, viewport) {
+async function inspectHiddenGlobalChrome(page, label) {
+  await page.waitForFunction(
+    () => {
+      const header = document.querySelector("body > header");
+      const footer = document.querySelector("body > footer");
+      return header instanceof HTMLElement
+        && footer instanceof HTMLElement
+        && getComputedStyle(header).display === "none"
+        && getComputedStyle(footer).display === "none";
+    },
+    { timeout: 15_000 },
+  );
+
+  const state = await page.evaluate(() => {
+    const header = document.querySelector("body > header");
+    const footer = document.querySelector("body > footer");
+    return {
+      headerDisplay: header instanceof HTMLElement ? getComputedStyle(header).display : null,
+      footerDisplay: footer instanceof HTMLElement ? getComputedStyle(footer).display : null,
+    };
+  });
+
+  assert.equal(state.headerDisplay, "none", label + ": global Header should remain hidden");
+  assert.equal(state.footerDisplay, "none", label + ": global Footer should remain hidden");
+}
+
+async function runRoute(browser, path, label, viewport, { immersive = false } = {}) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
   await page.setViewport(viewport);
@@ -144,7 +173,11 @@ async function runRoute(browser, path, label, viewport) {
     const response = await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
     assert(response, `${label}: navigation returned no response`);
     assert.equal(response.status(), 200, `${label}: expected 200, received ${response.status()}`);
-    await inspectBrandChrome(page, label);
+    if (immersive) {
+      await inspectHiddenGlobalChrome(page, label);
+    } else {
+      await inspectBrandChrome(page, label);
+    }
     assert.deepEqual(consoleErrors, [], `${label}: console errors: ${consoleErrors.join(" | ")}`);
     assert.deepEqual(pageErrors, [], `${label}: page errors: ${pageErrors.join(" | ")}`);
     log(`${label} PASS`);
@@ -171,6 +204,10 @@ try {
   const desktop = { width: 1440, height: 1000 };
   for (const [path, name] of DESKTOP_PATHS) {
     await runRoute(browser, path, `Desktop ${name} brand chrome`, desktop);
+  }
+
+  for (const [path, name] of IMMERSIVE_PATHS) {
+    await runRoute(browser, path, "Desktop " + name + " immersive chrome", desktop, { immersive: true });
   }
 
   await runRoute(browser, "/", "375px Homepage brand/navigation/footer", { width: 375, height: 812 });

@@ -1,0 +1,569 @@
+.scene {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 620px;
+  overflow: hidden;
+  isolation: isolate;
+  color: #f7e8c2;
+  background-image: url("/hexagrams/hero.png");
+  background-size: cover;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+  font-family: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+}
+
+.scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 74% 56%, rgba(238, 172, 68, 0.09), transparent 33%),
+    linear-gradient(90deg, rgba(8, 5, 3, 0.2), transparent 45%, rgba(8, 5, 3, 0.07));
+}
+
+.sceneShade {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 130px rgba(0, 0, 0, 0.26);
+}
+
+.chrome {
+  position: absolute;
+  top: clamp(16px, 2.2vh, 25px);
+  right: clamp(18px, 1.9vw, 34px);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid rgba(220, 170, 89, 0.2);
+  border-radius: 999px;
+  background: rgba(18, 11, 7, 0.55);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.languageControl {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding-inline: 10px;
+  border-radius: 999px;
+  color: #ead9b5;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.chrome :global(a[href^="/signup"]) {
+  display: none;
+}
+
+.chrome :global(a[href^="/signin"]),
+.chrome :global([data-user-nav-menu-button]) {
+  min-height: 36px;
+  border-color: transparent;
+  background: transparent;
+  color: #ead9b5;
+}
+
+.titleBlock {
+  position: absolute;
+  top: clamp(82px, 10.2vh, 110px);
+  left: clamp(58px, 6.1vw, 105px);
+  z-index: 20;
+  width: min(47vw, 760px);
+  pointer-events: none;
+  text-shadow: 0 3px 24px rgba(18, 9, 3, 0.72);
+}
+
+.titleBlock h1 {
+  margin: 0;
+  color: #f4dfb0;
+  font-family: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  font-size: clamp(42px, 4.45vw, 76px);
+  font-style: italic;
+  font-variation-settings: "SOFT" 70, "WONK" 1;
+  font-weight: 540;
+  letter-spacing: -0.045em;
+  line-height: 0.96;
+  text-wrap: balance;
+  filter: drop-shadow(0 0 20px rgba(216, 160, 62, 0.12));
+}
+
+.titleBlock p {
+  margin: clamp(12px, 1.7vh, 18px) 0 0;
+  color: rgba(239, 221, 184, 0.88);
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: clamp(13px, 1.05vw, 18px);
+  font-style: italic;
+  letter-spacing: 0.01em;
+  line-height: 1.45;
+}
+
+.scrollStage {
+  position: absolute;
+  left: 1.4vw;
+  top: 24.5vh;
+  z-index: 18;
+  width: min(53.6vw, 920px);
+  aspect-ratio: 3 / 2;
+  transform: rotate(-0.15deg);
+  filter: drop-shadow(0 32px 30px rgba(0, 0, 0, 0.34));
+}
+
+.scrollImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+
+.scrollGrid {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scrollCellSlot {
+  position: absolute;
+  left: var(--cell-x);
+  top: var(--cell-y);
+  width: 8.1%;
+  height: 8.7%;
+  transform: translate(-50%, -50%);
+}
+
+.scrollCell {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 2px 3px 3px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: rgba(58, 40, 25, 0.9);
+  background: transparent;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.scrollCell:hover,
+.scrollCell:focus-visible {
+  color: #4d3018;
+  background: rgba(189, 131, 45, 0.09);
+  border-color: rgba(135, 83, 25, 0.28);
+}
+
+.scrollCell:focus-visible {
+  outline: 1px solid rgba(123, 72, 20, 0.9);
+  outline-offset: 1px;
+}
+
+.scrollCellSelected {
+  color: #4c2d12;
+  border-color: rgba(177, 109, 26, 0.72);
+  background: radial-gradient(circle at 50% 48%, rgba(255, 229, 151, 0.46), rgba(219, 160, 68, 0.21) 65%, rgba(173, 105, 33, 0.09));
+  box-shadow: 0 0 8px rgba(196, 126, 35, 0.55), inset 0 0 5px rgba(255, 239, 193, 0.38);
+  transform: scale(1.035);
+}
+
+.scrollNumber {
+  align-self: start;
+  font-family: var(--font-plex), ui-monospace, monospace;
+  font-size: clamp(5.5px, 0.42vw, 7px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  opacity: 0.76;
+}
+
+.scrollName {
+  width: 116%;
+  margin-top: 1px;
+  overflow: hidden;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: clamp(6.5px, 0.52vw, 8.7px);
+  font-weight: 580;
+  line-height: 1.01;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.glyphCompact,
+.glyph {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.glyphCompact {
+  width: 54%;
+  gap: 1px;
+}
+
+.glyph {
+  width: 54%;
+  gap: clamp(2px, 0.3vw, 4px);
+  margin-block: 8%;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.glyphCompact .line {
+  height: 1.5px;
+}
+
+.glyph .line {
+  height: clamp(2px, 0.22vw, 4px);
+}
+
+.yang,
+.yinHalf {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.yang {
+  width: 100%;
+}
+
+.yinHalf {
+  flex: 1 1 0;
+}
+
+.yinGap {
+  width: 18%;
+  flex: 0 0 18%;
+}
+
+.wheelStage {
+  position: absolute;
+  left: 47vw;
+  top: 22.5vh;
+  z-index: 22;
+  width: 50vw;
+  height: 76vh;
+  overflow: visible;
+  perspective: 1400px;
+  pointer-events: none;
+}
+
+.wheelStage::before,
+.wheelStage::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.wheelStage::before {
+  left: 7%;
+  right: 2%;
+  bottom: 7%;
+  z-index: 7;
+  height: 48%;
+  background:
+    radial-gradient(ellipse at 50% 68%, rgba(245, 166, 61, 0.22) 0%, rgba(194, 99, 24, 0.11) 31%, rgba(99, 43, 10, 0.035) 54%, transparent 73%),
+    radial-gradient(ellipse at 50% 42%, rgba(233, 153, 53, 0.09) 0%, transparent 60%);
+  filter: blur(10px);
+}
+
+.wheelStage::after {
+  left: 20%;
+  right: 12%;
+  bottom: 11%;
+  z-index: 14;
+  height: 25%;
+  background: radial-gradient(ellipse at 50% 62%, rgba(255, 185, 72, 0.24) 0%, rgba(221, 125, 30, 0.11) 38%, transparent 72%);
+  filter: blur(12px);
+}
+
+.platform {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  z-index: 8;
+  width: 100%;
+  height: auto;
+  max-width: none;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 42px 40px rgba(0, 0, 0, 0.5));
+  user-select: none;
+  pointer-events: none;
+}
+
+.wheelInteraction {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: pan-y;
+  outline: none;
+}
+
+.wheelInteraction[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+.wheelInteraction:focus-visible::after {
+  content: "";
+  position: absolute;
+  inset: 7% 4% 5%;
+  border: 1px solid rgba(229, 180, 92, 0.42);
+  border-radius: 50%;
+  box-shadow: 0 0 22px rgba(213, 148, 54, 0.12);
+  pointer-events: none;
+}
+
+.cardRing {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.wheelCard {
+  position: absolute;
+  pointer-events: auto;
+  left: 50%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  top: 48%;
+  display: block;
+  width: clamp(96px, 8.8vw, 150px);
+  aspect-ratio: 2 / 3;
+  opacity: var(--wheel-opacity);
+  transform:
+    translate(-50%, -50%)
+    translateX(var(--wheel-x))
+    translateY(var(--wheel-y))
+    translateZ(var(--wheel-z))
+    rotateY(var(--wheel-rotate))
+    scale(var(--wheel-scale));
+  transform-origin: 50% 75%;
+  transform-style: preserve-3d;
+  filter: brightness(var(--wheel-brightness)) saturate(var(--wheel-saturation));
+  transition:
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 320ms ease,
+    filter 260ms ease;
+  will-change: transform;
+  cursor: pointer;
+}
+
+.wheelCardFar {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.cardFrame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+  filter: drop-shadow(0 13px 14px rgba(0, 0, 0, 0.42));
+}
+
+.cardContent {
+  position: absolute;
+  inset: 12% 14% 13%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  color: #ead7a4;
+  text-align: center;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+.cardNumber {
+  font-family: var(--font-plex), ui-monospace, monospace;
+  font-size: clamp(9px, 0.75vw, 13px);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  color: #d9b96f;
+}
+
+.cardName {
+  width: 124%;
+  min-height: 2.2em;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: clamp(8px, 0.72vw, 12px);
+  font-weight: 590;
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.wheelCard:hover:not(.wheelCardSelected) .cardFrame,
+.wheelCard:focus-visible:not(.wheelCardSelected) .cardFrame {
+  filter: drop-shadow(0 13px 14px rgba(0, 0, 0, 0.42)) drop-shadow(0 0 10px rgba(214, 155, 63, 0.24));
+}
+
+.wheelCard:focus-visible {
+  outline: 1px solid rgba(248, 215, 141, 0.9);
+  outline-offset: 5px;
+  border-radius: 7px;
+}
+
+.wheelCardSelected {
+  filter:
+    brightness(1.19)
+    saturate(1.06)
+    drop-shadow(0 8px 11px rgba(48, 22, 5, 0.48))
+    drop-shadow(0 0 18px rgba(251, 184, 75, 0.58))
+    drop-shadow(0 0 44px rgba(210, 119, 29, 0.36));
+}
+
+.wheelCardSelected::before {
+  content: "";
+  position: absolute;
+  inset: -22% -30% -28%;
+  z-index: -1;
+  border-radius: 42%;
+  background: radial-gradient(ellipse at 50% 57%, rgba(255, 195, 91, 0.36) 0%, rgba(224, 134, 39, 0.18) 35%, rgba(132, 63, 13, 0.045) 58%, transparent 76%);
+  filter: blur(9px);
+}
+
+.srOnly {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+@media (max-width: 1180px) {
+  .titleBlock {
+    left: 4.6vw;
+    width: 52vw;
+  }
+
+  .scrollStage {
+    left: -1.2vw;
+    width: 57vw;
+  }
+
+  .wheelStage {
+    left: 45.5vw;
+    width: 57.5vw;
+  }
+
+  .wheelCard {
+    width: clamp(84px, 9vw, 116px);
+  }
+}
+
+@media (max-width: 820px) {
+  .scene {
+    min-height: 560px;
+    background-position: 53% 50%;
+  }
+
+  .chrome {
+    top: 10px;
+    right: 10px;
+    transform: scale(0.86);
+    transform-origin: top right;
+  }
+
+  .titleBlock {
+    top: 8vh;
+    left: 4vw;
+    width: 66vw;
+  }
+
+  .titleBlock h1 {
+    font-size: clamp(30px, 7vw, 48px);
+  }
+
+  .titleBlock p {
+    max-width: 68vw;
+    font-size: clamp(9px, 2vw, 13px);
+  }
+
+  .scrollStage {
+    top: 25vh;
+    left: -8vw;
+    width: 66vw;
+  }
+
+  .wheelStage {
+    left: 42vw;
+    top: 27vh;
+    width: 66vw;
+    height: 69vh;
+  }
+
+  .wheelCard {
+    width: clamp(66px, 13vw, 94px);
+  }
+
+  .scrollName {
+    font-size: clamp(3.8px, 0.9vw, 6px);
+  }
+
+  .scrollNumber {
+    font-size: clamp(4px, 0.85vw, 5.5px);
+  }
+}
+
+@media (max-height: 700px) and (min-width: 821px) {
+  .titleBlock {
+    top: 7vh;
+  }
+
+  .scrollStage {
+    top: 19vh;
+    width: min(50vw, 760px);
+  }
+
+  .wheelStage {
+    top: 18vh;
+    height: 80vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheelCard,
+  .scrollCell {
+    transition: none;
+  }
+}
