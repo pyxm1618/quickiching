@@ -3,10 +3,6 @@
 import React, { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type WheelEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import heroImage from "../../../../public/hexagrams/hero.png";
-import scrollGridImage from "../../../../public/hexagrams/scroll-grid.png";
-import ritualPlatformImage from "../../../../public/hexagrams/ritual-platform.png";
-import cardFrameImage from "../../../../public/hexagrams/card-frame.png";
 import { UserNavControl } from "@/components/auth/user-nav-control";
 import { TRIGRAM_BITS, type Trigram } from "@/domain/casting/hexagrams/king-wen";
 import styles from "./hexagrams.module.css";
@@ -232,7 +228,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
   return (
     <article className={styles.scene} data-hexagrams-immersive-page aria-labelledby="hexagrams-title">
       <Image
-        src={heroImage}
+        src="/hexagrams/hero.png"
         alt=""
         fill
         priority
@@ -255,7 +251,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
 
       <section className={styles.scrollStage} aria-label="All 64 hexagrams in King Wen order">
         <Image
-          src={scrollGridImage}
+          src="/hexagrams/scroll-grid.png"
           alt=""
           fill
           priority
@@ -289,11 +285,12 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
       </section>
 
       <section className={styles.wheelStage} aria-label="Rotating 64-hexagram wheel">
-        <Image
-          src={ritualPlatformImage}
+        <img
+          src="/hexagrams/ritual-platform.png"
           alt=""
-          quality={90}
-          sizes="(max-width: 820px) 66vw, (max-width: 1180px) 58vw, 50vw"
+          loading="lazy"
+          decoding="async"
+          fetchPriority="low"
           className={styles.platform}
           draggable={false}
         />
@@ -349,8 +346,9 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
                     tabIndex={nearby ? 0 : -1}
                   >
                     <Image
-                      src={cardFrameImage}
+                      src="/hexagrams/card-frame.png"
                       alt=""
+                      fill
                       quality={90}
                       sizes="150px"
                       className={styles.cardFrame}
