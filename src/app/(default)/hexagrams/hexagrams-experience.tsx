@@ -2,6 +2,11 @@
 
 import React, { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type WheelEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import heroImage from "../../../../public/hexagrams/hero.png";
+import scrollGridImage from "../../../../public/hexagrams/scroll-grid.png";
+import ritualPlatformImage from "../../../../public/hexagrams/ritual-platform.png";
+import cardFrameImage from "../../../../public/hexagrams/card-frame.png";
 import { UserNavControl } from "@/components/auth/user-nav-control";
 import { TRIGRAM_BITS, type Trigram } from "@/domain/casting/hexagrams/king-wen";
 import styles from "./hexagrams.module.css";
@@ -226,6 +231,16 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
 
   return (
     <article className={styles.scene} data-hexagrams-immersive-page aria-labelledby="hexagrams-title">
+      <Image
+        src={heroImage}
+        alt=""
+        fill
+        priority
+        quality={90}
+        sizes="100vw"
+        className={styles.heroImage}
+        aria-hidden="true"
+      />
       <div className={styles.sceneShade} aria-hidden="true" />
 
       <div className={styles.chrome} aria-label="Page controls">
@@ -239,7 +254,16 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
       </header>
 
       <section className={styles.scrollStage} aria-label="All 64 hexagrams in King Wen order">
-        <img src="/hexagrams/scroll-grid.png" alt="" className={styles.scrollImage} draggable={false} />
+        <Image
+          src={scrollGridImage}
+          alt=""
+          fill
+          priority
+          quality={90}
+          sizes="(max-width: 820px) 66vw, (max-width: 1180px) 57vw, 54vw"
+          className={styles.scrollImage}
+          draggable={false}
+        />
         <ol className={styles.scrollGrid}>
           {hexagrams.map((item, index) => {
             const position = gridPosition(Math.floor(index / 8), index % 8);
@@ -265,7 +289,14 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
       </section>
 
       <section className={styles.wheelStage} aria-label="Rotating 64-hexagram wheel">
-        <img src="/hexagrams/ritual-platform.png" alt="" className={styles.platform} draggable={false} />
+        <Image
+          src={ritualPlatformImage}
+          alt=""
+          quality={90}
+          sizes="(max-width: 820px) 66vw, (max-width: 1180px) 58vw, 50vw"
+          className={styles.platform}
+          draggable={false}
+        />
         <div
           ref={wheelRef}
           className={styles.wheelInteraction}
@@ -317,7 +348,14 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
                     aria-label={(selected ? "Open Hexagram " : "Select Hexagram ") + item.number + ": " + item.englishName}
                     tabIndex={nearby ? 0 : -1}
                   >
-                    <img src="/hexagrams/card-frame.png" alt="" className={styles.cardFrame} draggable={false} />
+                    <Image
+                      src={cardFrameImage}
+                      alt=""
+                      quality={90}
+                      sizes="150px"
+                      className={styles.cardFrame}
+                      draggable={false}
+                    />
                     <span className={styles.cardContent}>
                       <span className={styles.cardNumber}>{String(item.number).padStart(2, "0")}</span>
                       <HexagramGlyph item={item} />
