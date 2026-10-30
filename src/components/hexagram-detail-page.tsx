@@ -2,6 +2,7 @@ import React from "react";
 import { BookOpen, Cloud, Lightbulb, Sun, TriangleAlert, Triangle } from "lucide-react";
 import styles from "./hexagram-detail-page.module.css";
 import Link from "next/link";
+import { preload } from "react-dom";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { TRIGRAM_BITS } from "@/domain/casting/hexagrams/king-wen";
 import type { ContentLocale } from "@/i18n/config";
@@ -147,17 +148,21 @@ function DetailLineBars({ lines, related = false }: { lines: number[]; related?:
   </div>;
 }
 
+/* Native images use pre-encoded approved art; offscreen ornaments load near the viewport. */
+/* eslint-disable @next/next/no-img-element */
 function DetailScrollFrame() {
   return <div className={styles.frame} aria-hidden="true">
     <div className={styles.leftEdge} data-scroll-side="left"><span /><span /><span /></div>
     <div className={styles.rightEdge} data-scroll-side="right"><span /><span /><span /></div>
     <div className={styles.topScroll} />
-    <div className={styles.bottomScroll} />
+    <div className={styles.bottomScroll}><picture><source media="(max-width: 960px)" srcSet="/hexagram-detail/delivery/bottom-scroll-480.avif 1x, /hexagram-detail/delivery/bottom-scroll-960.avif 2x" /><img src="/hexagram-detail/delivery/bottom-scroll-1575.avif" alt="" width={1575} height={223} loading="lazy" decoding="async" /></picture></div>
     <div className={styles.cherryTop} />
-    <div className={styles.cherryBottom} />
-    <div className={styles.pine} />
+    <div className={styles.cherryBottom}><img src="/hexagram-detail/delivery/cherry-bottom-144.avif" srcSet="/hexagram-detail/delivery/cherry-bottom-24.avif 24w, /hexagram-detail/delivery/cherry-bottom-48.avif 48w, /hexagram-detail/delivery/cherry-bottom-144.avif 144w, /hexagram-detail/delivery/cherry-bottom-288.avif 288w" sizes="(max-width: 540px) 17px, (max-width: 1440px) 10vw, 144px" alt="" width={1334} height={1179} loading="lazy" decoding="async" /></div>
+    <div className={styles.pine}><img src="/hexagram-detail/delivery/pine-40.avif" srcSet="/hexagram-detail/delivery/pine-40.avif 1x, /hexagram-detail/delivery/pine-80.avif 2x" alt="" width={1334} height={1179} loading="lazy" decoding="async" /></div>
   </div>;
 }
+
+/* eslint-enable @next/next/no-img-element */
 
 export function HexagramDetailPageView({
   locale,
@@ -176,6 +181,12 @@ export function HexagramDetailPageView({
   const structuredData = buildStructuredData({ locale, knowledge, seo, hubPath });
   const staticLines = detailLineValues(knowledge.trigrams);
   if (!isChinese) {
+    preload("/hexagram-detail/delivery/paper-627.webp", { as: "image", imageSrcSet: "/hexagram-detail/delivery/paper-627.webp 1x, /hexagram-detail/delivery/paper-1254.webp 2x", fetchPriority: "high", media: "(min-width: 961px)" });
+    preload("/hexagram-detail/delivery/paper-mobile-627.webp", { as: "image", imageSrcSet: "/hexagram-detail/delivery/paper-mobile-627.webp 1x, /hexagram-detail/delivery/paper-mobile-1254.webp 2x", fetchPriority: "high", media: "(max-width: 960px)" });
+    // These visible mobile backgrounds otherwise wait for the stylesheet round trip.
+    preload("/hexagram-detail/delivery/scene-mobile-512.avif", { as: "image", imageSrcSet: "/hexagram-detail/delivery/scene-mobile-512.avif 1x, /hexagram-detail/delivery/scene-mobile-1024.avif 2x", media: "(max-width: 960px)" });
+    preload("/hexagram-detail/delivery/top-scroll-480.avif", { as: "image", imageSrcSet: "/hexagram-detail/delivery/top-scroll-480.avif 1x, /hexagram-detail/delivery/top-scroll-960.avif 2x", media: "(max-width: 960px)" });
+    preload("/hexagram-detail/delivery/taiji-290.avif", { as: "image", imageSrcSet: "/hexagram-detail/delivery/taiji-290.avif 1x, /hexagram-detail/delivery/taiji-580.avif 2x", media: "(max-width: 540px)" });
     const detail = knowledge.detail;
     const hasLineRenderings = Boolean(detail?.lines?.some((line) => line.rendering.editorialRendering));
     const hasStageStates = Boolean(detail?.lines?.some((line) => line.stageState?.text));

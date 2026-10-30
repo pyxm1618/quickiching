@@ -16,6 +16,10 @@ const sourceLedger = JSON.parse(await readFile(new URL("../docs/design/hexagram-
 assert.equal(sourceLedger.originalTotal, sourceLedger.assets.length);
 assert.equal(Object.values(sourceLedger.states).reduce((sum, value) => sum + value, 0), sourceLedger.originalTotal);
 assert.equal(sourceLedger.states.unknown, 0);
+const deliveryLedger = JSON.parse(await readFile(new URL("../docs/design/hexagram-detail/delivery-assets.json", import.meta.url), "utf8"));
+assert.equal(deliveryLedger.originalTotal, deliveryLedger.entries.length);
+assert.equal(deliveryLedger.states.pass, deliveryLedger.originalTotal);
+assert.equal(deliveryLedger.states.unknown, 0);
 await mkdir(output, { recursive: true });
 const runtime = await resolveChromeExecutable({ executablePath: async () => { throw new Error("Install Chrome or set CHROME_PATH to run the existing browser tooling."); } });
 const browser = await puppeteer.launch({ executablePath: runtime.executablePath, headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
@@ -50,14 +54,22 @@ try {
         const rows = [...article.querySelectorAll('[role="row"]')].slice(1);
         const meanings = rows.map((row) => row.querySelector("[data-modern-meaning]").textContent);
         const auxiliary = article.querySelector("[data-auxiliary-navigation]");
+        const assetDelivery = performance.getEntriesByType("resource").filter((entry) => {
+          const url = new URL(entry.name);
+          return url.pathname === "/_next/image" || url.pathname.startsWith("/hexagram-detail/");
+        }).map((entry) => ({ url: entry.name, bytes: entry.transferSize }));
         const sideFrames = [...article.querySelectorAll("[data-scroll-side]")].map((side) => {
           const pieces = [...side.children].map((piece) => ({ y: piece.getBoundingClientRect().top, height: piece.getBoundingClientRect().height, width: piece.getBoundingClientRect().width, repeat: getComputedStyle(piece).backgroundRepeat, size: getComputedStyle(piece).backgroundSize }));
           return { side: side.getAttribute("data-scroll-side"), pieces };
         });
-        return { url: location.href, title: document.title, viewport: { width: innerWidth, height: innerHeight }, dpr: devicePixelRatio, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight, h1: article.querySelector("h1").textContent, h1Count: article.querySelectorAll("h1").length, sideFrames, lineCount: article.querySelectorAll("[data-basic-identity] [data-hexagram-line]").length, meanings, clipped, optionalSections: article.querySelectorAll("[data-reading-cases], [data-hexagram-relations]").length, auxiliaryLinks: [...auxiliary.querySelectorAll("a")].map((a) => a.getAttribute("href")), topLevelHeaderVisible: document.body.querySelector(":scope > header").getBoundingClientRect().height > 0 };
+        return { url: location.href, title: document.title, viewport: { width: innerWidth, height: innerHeight }, dpr: devicePixelRatio, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight, h1: article.querySelector("h1").textContent, h1Count: article.querySelectorAll("h1").length, assetDelivery, sideFrames, lineCount: article.querySelectorAll("[data-basic-identity] [data-hexagram-line]").length, meanings, clipped, optionalSections: article.querySelectorAll("[data-reading-cases], [data-hexagram-relations]").length, auxiliaryLinks: [...auxiliary.querySelectorAll("a")].map((a) => a.getAttribute("href")), topLevelHeaderVisible: document.body.querySelector(":scope > header").getBoundingClientRect().height > 0 };
       });
       assert.equal(state.h1, knowledge.englishName);
       assert.equal(state.h1Count, 1);
+      assert.ok(state.assetDelivery.some((entry) => new URL(entry.url).pathname.startsWith("/hexagram-detail/delivery/")), "Detail images must use density-aware delivery");
+      const rawImages = state.assetDelivery.filter((entry) => new URL(entry.url).pathname.startsWith("/hexagram-detail/") && !new URL(entry.url).pathname.startsWith("/hexagram-detail/delivery/"));
+      assert.deepEqual(rawImages, [], "Every runtime detail image must use an audited delivery derivative");
+      assert.ok(state.assetDelivery.reduce((bytes, entry) => bytes + entry.bytes, 0) < 1_500_000, "DPR 1 detail image transfer exceeds 1.5 MB");
       assert.equal(state.lineCount, 6);
       assert.equal(state.optionalSections, (knowledge.detail.specialReadingCases.length > 0 ? 1 : 0) + (knowledge.detail.relationships.length > 0 ? 1 : 0));
       const supplied = await page.evaluate(() => ({
@@ -87,6 +99,14 @@ try {
       assert.equal(state.topLevelHeaderVisible, false);
       const expectedLinks = [...(number > 1 ? [`/hexagrams/${CLASSICAL_HEXAGRAMS[number - 2].slug}`] : []), "/hexagrams", ...(number < 64 ? [`/hexagrams/${CLASSICAL_HEXAGRAMS[number].slug}`] : [])];
       assert.deepEqual(state.auxiliaryLinks, expectedLinks);
+      // Visit each lazy ornament before capturing the full document. This also verifies
+      // that scrolling really loads it, rather than masking a missing image with a screenshot.
+      for (const ornament of await page.$$("[data-hexagram-detail] img[loading=lazy]")) {
+        await ornament.evaluate((image) => image.scrollIntoView({ block: "center" }));
+        await ornament.evaluate((image) => image.decode());
+        assert.ok(await ornament.evaluate((image) => image.naturalWidth > 0));
+      }
+      await page.evaluate(() => scrollTo(0, 0));
       const name = `hexagram-${number}-${viewport.width}`;
       await page.screenshot({ path: new URL(`${name}.png`, output).pathname, fullPage: true });
       if (number === 1 || number === 62) await page.screenshot({ path: new URL(`${name}-viewport.png`, output).pathname, fullPage: false });
@@ -134,6 +154,17 @@ try {
     const hash = createHash("sha256").update(await response.buffer()).digest("hex");
     assert.equal(hash, asset.sha256, asset.path);
     report.assetChecks.push({ path: asset.path, sha256: hash, status: "PASS" });
+  }
+  report.deliveryChecks = [];
+  for (const asset of deliveryLedger.entries) {
+    assert.equal(sourceLedger.assets.find((source) => source.path === asset.source)?.sha256, asset.sourceSha256);
+    const response = await page.goto(new URL(asset.path.replace(/^public/, ""), base).href);
+    assert.equal(response.status(), 200, asset.path);
+    const bytes = await response.buffer();
+    assert.equal(bytes.length, asset.bytes);
+    const hash = createHash("sha256").update(bytes).digest("hex");
+    assert.equal(hash, asset.sha256, asset.path);
+    report.deliveryChecks.push({ path: asset.path, sha256: hash, status: "PASS" });
   }
   assert.deepEqual(pageErrors, []);
   report.pageErrors = pageErrors;

@@ -1,5 +1,16 @@
 /* Scoped to the English knowledge detail page. Source reference: docs/design/hexagram-detail. */
 .detail {
+  --detail-paper: image-set(url("/hexagram-detail/delivery/paper-627.webp") 1x, url("/hexagram-detail/delivery/paper-1254.webp") 2x);
+  --detail-scene: url("/hexagram-detail/delivery/scene-1024.avif");
+  --detail-taiji: image-set(url("/hexagram-detail/delivery/taiji-660.avif") 1x, url("/hexagram-detail/delivery/taiji-1320.avif") 2x);
+  --detail-taiji-mobile: image-set(url("/hexagram-detail/delivery/taiji-360.avif") 1x, url("/hexagram-detail/delivery/taiji-720.avif") 2x);
+  --detail-top-scroll: url("/hexagram-detail/delivery/top-scroll-1557.avif");
+  --detail-left-top: url("/hexagram-detail/delivery/left-top-160.avif");
+  --detail-left-bottom: url("/hexagram-detail/delivery/left-bottom-160.avif");
+  --detail-right-top: url("/hexagram-detail/delivery/right-top-162.avif");
+  --detail-right-bottom: url("/hexagram-detail/delivery/right-bottom-162.avif");
+  --detail-cherry-top: image-set(url("/hexagram-detail/delivery/cherry-top-190.avif") 1x, url("/hexagram-detail/delivery/cherry-top-380.avif") 2x);
+  --detail-landscape: image-set(url("/hexagram-detail/delivery/landscape-200.avif") 1x, url("/hexagram-detail/delivery/landscape-400.avif") 2x);
   --detail-ink: #21180c;
   --detail-rule: #b07c37;
   position: relative;
@@ -19,25 +30,25 @@
 }
 .detail a { text-underline-offset: 3px; }
 .detail a:focus-visible { outline: 2px solid #815217; outline-offset: 4px; }
-.paper { position: relative; background: #f7e5c2 url('/hexagram-detail/background/paper-texture.png') repeat; background-size: 627px 627px; }
+.paper { position: relative; background: #f7e5c2 var(--detail-paper) repeat; background-size: 627px 627px; }
 .frame { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
 .topScroll, .bottomScroll { position: absolute; left: 0; width: 100%; background-repeat: no-repeat; background-size: 100% auto; }
-.topScroll { top: 0; aspect-ratio: 1557 / 297; background-image: url('/hexagram-detail/frame/top-scroll.png'); }
-.bottomScroll { bottom: 0; aspect-ratio: 1575 / 223; background-image: url('/hexagram-detail/frame/bottom-scroll.png'); background-position: center bottom; }
+.topScroll { top: 0; aspect-ratio: 1557 / 297; background-image: var(--detail-top-scroll); }
+.bottomScroll { bottom: 0; aspect-ratio: 1575 / 223; }
 .leftEdge, .rightEdge { position: absolute; top: 100px; bottom: 50px; display: flex; flex-direction: column; }
 .leftEdge { left: 0; width: 84px; }
 .rightEdge { right: 0; width: 30px; }
 .leftEdge > span, .rightEdge > span { display: block; background-size: 100% auto; background-repeat: no-repeat; }
-.leftEdge > span:first-child { aspect-ratio: 160 / 354; background-image: url('/hexagram-detail/frame/left-top.png'); }
-.leftEdge > span:nth-child(2) { flex: 1; background-image: url('/hexagram-detail/frame/left-middle-repeat.png'); background-repeat: repeat-y; }
-.leftEdge > span:last-child { aspect-ratio: 160 / 267; background-image: url('/hexagram-detail/frame/left-bottom.png'); }
-.rightEdge > span:first-child { aspect-ratio: 162 / 354; background-image: url('/hexagram-detail/frame/right-top.png'); }
-.rightEdge > span:nth-child(2) { flex: 1; background-image: url('/hexagram-detail/frame/right-middle-repeat.png'); background-repeat: repeat-y; }
-.rightEdge > span:last-child { aspect-ratio: 162 / 267; background-image: url('/hexagram-detail/frame/right-bottom.png'); }
+.leftEdge > span:first-child { aspect-ratio: 160 / 354; background-image: var(--detail-left-top); }
+.leftEdge > span:nth-child(2) { flex: 1; background-image: url('/hexagram-detail/delivery/left-repeat-160.webp'); background-repeat: repeat-y; }
+.leftEdge > span:last-child { aspect-ratio: 160 / 267; background-image: var(--detail-left-bottom); }
+.rightEdge > span:first-child { aspect-ratio: 162 / 354; background-image: var(--detail-right-top); }
+.rightEdge > span:nth-child(2) { flex: 1; background-image: url('/hexagram-detail/delivery/right-repeat-162.webp'); background-repeat: repeat-y; }
+.rightEdge > span:last-child { aspect-ratio: 162 / 267; background-image: var(--detail-right-bottom); }
 .cherryTop, .cherryBottom, .pine { position: absolute; background-repeat: no-repeat; background-size: contain; }
-.cherryTop { left: 0; top: 15px; width: 13%; aspect-ratio: 1334 / 1179; background-image: url('/hexagram-detail/decorations/cherry-branch-top-left.png'); }
-.cherryBottom { bottom: 55px; left: 0; width: 10%; aspect-ratio: 1334 / 1179; background-image: url('/hexagram-detail/decorations/cherry-branch-bottom-left.png'); }
-.pine { right: 0; top: 38%; width: 30px; aspect-ratio: 1334 / 1179; background-image: url('/hexagram-detail/decorations/pine-branch-right.png'); }
+.cherryTop { left: 0; top: 15px; width: 13%; aspect-ratio: 1334 / 1179; background-image: var(--detail-cherry-top); }
+.cherryBottom { bottom: 55px; left: 0; width: 10%; aspect-ratio: 1334 / 1179; }
+.pine { right: 0; top: 38%; width: 30px; aspect-ratio: 1334 / 1179; }
 .detail .sectionNav { position: absolute; left: 10px; top: 287px; width: 66px; z-index: 4; display: grid; gap: 24px; text-align: center; font-size: 14px; line-height: 1.2; }
 .detail .sectionNav a { color: #fff0c5 !important; text-decoration: none; }
 .sectionNav span { margin: 0 auto 5px; display: block; border: 1px solid #d69a43; border-radius: 50%; width: 27px; height: 27px; line-height: 25px; }
@@ -147,14 +158,15 @@
 :global(body):has(.detail) > :global(footer) { display: none; }
 /* The two follow-up production assets are user-supplied originals, never screenshot crops. */
 .detail { background: transparent; }
-:global(body):has(.detail) { background: #160e07 url('/hexagram-detail/background/lantern-scene.png') center top / cover fixed no-repeat; }
+:global(body):has(.detail) { background: #160e07; }
+.detail::before { content: ""; position: fixed; inset: 0; z-index: -1; background: var(--detail-scene) center top / cover no-repeat; pointer-events: none; }
 :global(body):has(.detail)::before { display: none; }
 .identity { overflow: hidden; grid-template-columns: 70px minmax(0, 1fr) 309px; padding-right: 40px; }
-.identity::before { content: ""; position: absolute; z-index: 0; top: clamp(-216px, -15vw, -120px); right: 12%; width: clamp(360px, 46vw, 660px); aspect-ratio: 1; background: url('/hexagram-detail/decorations/hero-taiji.png') center / contain no-repeat; pointer-events: none; }
+.identity::before { content: ""; position: absolute; z-index: 0; top: clamp(-216px, -15vw, -120px); right: 12%; width: clamp(360px, 46vw, 660px); aspect-ratio: 1; background: var(--detail-taiji) center / contain no-repeat; pointer-events: none; }
 .identity > * { position: relative; z-index: 1; }
 .pinyin { font-size: clamp(60px, 8.8vw, 126px); }
 .identity h1 { font-size: clamp(30px, 4.3vw, 62px); }
-.form { background: #f9e7c7 url('/hexagram-detail/background/paper-texture.png') center / 627px 627px repeat; }
+.form { background: #f9e7c7 var(--detail-paper) center / 627px 627px repeat; }
 .classicalEntry { display: grid; grid-template-columns: 143px minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 22px; }
 .classicalEntry p { margin: 0; }
 .classicalEntry blockquote { margin: 0; }
@@ -183,7 +195,7 @@
 }
 @media (max-width: 960px) {
   .identity { grid-template-columns: 48px minmax(0, 1fr); }
-  .identity::before { width: 390px; top: -60px; right: -65px; opacity: .22; }
+  .identity::before { background-image: var(--detail-taiji-mobile); width: 390px; top: -60px; right: -65px; opacity: .22; }
   .pinyin { font-size: 58px; }
   .identity h1 { font-size: 30px; }
   .optionalSections { grid-template-columns: 1fr; }
@@ -202,11 +214,26 @@
 }
 
 .relationshipsSection { isolation: isolate; padding-bottom: 65px; }
-.relationshipsSection::after { content: ""; position: absolute; z-index: -1; left: 8px; bottom: 2px; width: min(55%, 200px); aspect-ratio: 2048 / 682; background: url('/hexagram-detail/decorations/ink-landscape.png') left bottom / contain no-repeat; pointer-events: none; }
+.relationshipsSection::after { content: ""; position: absolute; z-index: -1; left: 8px; bottom: 2px; width: min(55%, 200px); aspect-ratio: 2048 / 682; background: var(--detail-landscape) left bottom / contain no-repeat; pointer-events: none; }
 
 @media (min-width: 541px) {
   .lineIdentity { display: grid; grid-template-columns: minmax(0, 1fr) 28px; column-gap: 5px; align-content: start; align-items: center; }
   .lineIdentity h3 { margin: 0; }
   .lineIdentity > span { width: 28px; margin: 0; }
   .lineIdentity a { grid-column: 1 / -1; }
+}
+
+/* Delivery resolutions follow the existing responsive geometry; the source art is unchanged. */
+@media (max-width: 960px) {
+  .detail {
+    --detail-paper: image-set(url("/hexagram-detail/delivery/paper-mobile-627.webp") 1x, url("/hexagram-detail/delivery/paper-mobile-1254.webp") 2x);
+  --detail-scene: image-set(url("/hexagram-detail/delivery/scene-mobile-512.avif") 1x, url("/hexagram-detail/delivery/scene-mobile-1024.avif") 2x);
+  --detail-top-scroll: image-set(url("/hexagram-detail/delivery/top-scroll-480.avif") 1x, url("/hexagram-detail/delivery/top-scroll-960.avif") 2x);
+  --detail-cherry-top: image-set(url("/hexagram-detail/delivery/cherry-top-24.avif") 1x, url("/hexagram-detail/delivery/cherry-top-48.avif") 2x);
+  }
+}
+
+.bottomScroll img, .cherryBottom img, .pine img { display: block; width: 100%; height: auto; }
+@media (max-width: 540px) {
+  .detail { --detail-taiji-mobile: image-set(url("/hexagram-detail/delivery/taiji-290.avif") 1x, url("/hexagram-detail/delivery/taiji-580.avif") 2x); }
 }

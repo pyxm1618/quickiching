@@ -1,0 +1,21 @@
+# Approved artwork delivery follow-up
+
+PR #70 at `f426b2a` failed the unchanged Public P0 Lighthouse gate: mobile `/hexagrams/24-return` LCP was 86,757 ms. The original 7.3 MB Taiji, 3.2 MB paper and other full PNGs were requested as CSS backgrounds. The obsolete source-test contract had already been repaired; removing source checks or lowering performance thresholds was not a solution.
+
+The follow-up only changes this English view's image delivery:
+
+- All 15 approved PNG originals and their source hashes remain intact. No artwork was generated, reconstructed, cropped from the design screenshot, or baked with page text.
+- `scripts/encode-hexagram-detail-assets.mjs` creates 37 explicit resized delivery encodings with installed Sharp 0.35.4/libheif 1.23.2. `delivery-assets.json` records every approved source SHA, output SHA, dimensions, format, encoder options and status. **37 = pass 37 + deferred 0 + reject 0 + unknown 0**. All 37 are actually decoded and checked; browser HTTP hashes also match.
+- General AVIF encodings use quality 65, effort 6, 4:4:4. Mobile scene and small Taiji encodings use quality 30; mobile Taiji remains under the pre-existing 0.22 CSS opacity. Desktop paper uses WebP quality 75; mobile paper quality 50 at the same 627/1254 density dimensions. These are lossy delivery versions, never labelled lossless or pixel-identical.
+- Both repeating edges use full-size **lossless WebP**, verified against source for exact alpha and every RGBA pixel with nonzero alpha. RGB under fully transparent pixels may be canonicalized by WebP and is invisible. Cap + repeat + cap structure, cap aspect ratios and repeat scale are unchanged.
+- Density-aware CSS and responsive native image sources avoid sending desktop decoration sizes to narrow screens. Offscreen bottom roll/branch and pine load via real native lazy images, retaining intrinsic geometry. Browser QA scrolls to each and waits for actual image decoding before full-page screenshots.
+- The actual paper background is preloaded, with matching desktop/mobile media and source sets. Mobile above-fold scene, top roll and Taiji also have matching resource hints. The paper remains the real LCP element; it was not moved or hidden to evade measurement.
+- No Next config, global optimizer setting, dependency, API, data, body text, font size, component spacing, or performance gate threshold changed. The fixed scene moved from the body background into a scoped fixed pseudo-element so it can inherit route-specific responsive delivery variables; its viewport positioning is preserved.
+
+## Verification
+
+Production build, lint, typecheck and full unit suite: PASS (131 files / 869 tests). Complete existing Public P0 browser gate: PASS. SEO quality: 128/128 PASS. Detail browser QA: 30 real-data viewport cases, 15 original HTTP hashes and 37 delivery HTTP hashes PASS. All 30 document widths/heights match the prior integrated geometry; this is not a requirement to match the reference's total height.
+
+The **complete, unmodified** Public P0 Lighthouse gate passes locally: mobile detail LCP **3,670 ms**, performance **89**, accessibility **96**, SEO **100**, CLS **0**. Local logs: `outputs/hexagram-detail/p0-contract/delivery-final-lighthouse-gate.log`. Earlier failed encoding/preload attempts remain in that output directory; their failures are not replaced by success labels. Baseline audits used the configured live production origin. Remote CI must be read for the final pushed head.
+
+1024px and 390px top/bottom captures were inspected. No new obvious white/colored alpha rectangles, missing lazy ornaments or encoding blocks were seen. This does **not** approve overall pixel fidelity: top-roll geometry, fine panel/branch treatment and exact source font remain the visual differences recorded in `QA.md`. **Visual acceptance remains NOT PASS. PR remains Draft; do not merge.**
