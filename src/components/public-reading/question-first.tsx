@@ -282,6 +282,18 @@ export function QuestionFirst({
                 <span className="ritual-divider" aria-hidden="true" />
               </div> : null}
               <div className="ritual-question-card">
+                <picture className="ritual-question-card-mobile-art" aria-hidden="true">
+                  <source media="(max-width:470px)" srcSet="/ritual/question-parchment-mobile-crop.webp" />
+                  <img
+                    src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+                    alt=""
+                    width="400"
+                    height="184"
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                  />
+                </picture>
                 <label htmlFor={`${storageKey}-home-question`}>
                   {zh ? "此刻，你想问什么？" : "What would you like to ask?"}
                 </label>
