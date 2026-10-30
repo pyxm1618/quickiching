@@ -60,7 +60,7 @@ async function audit(browser, { origin, path, label, desktop = false, seed = fal
       config: desktop ? desktopConfig : undefined,
       flags: { logLevel: "error", onlyCategories: ["performance", "accessibility", "seo"], disableStorageReset: true },
     });
-    if (label === "AFTER_CHINESE_HEXAGRAM_DETAIL") {
+    if (label === "AFTER_CHINESE_HEXAGRAM_DETAIL" || label === "AFTER_HEXAGRAM_DETAIL") {
       const report = result?.lhr;
       const lcpBreakdown = report?.audits?.["lcp-breakdown-insight"]?.details ?? null;
       const networkItems = report?.audits?.["network-requests"]?.details?.items;
@@ -74,6 +74,9 @@ async function audit(browser, { origin, path, label, desktop = false, seed = fal
               priority: item.priority ?? null,
             }))
         : [];
+      const imageRequests = Array.isArray(networkItems) ? networkItems
+        .filter((item) => item.resourceType === "Image")
+        .map((item) => ({ url: item.url, transferSize: item.transferSize, priority: item.priority, start: item.networkRequestTime, end: item.networkEndTime })) : [];
       const pageFonts = await page.evaluate(() => ({
         resources: performance.getEntriesByType("resource")
           .filter((entry) => /\\.woff2(?:\\?|$)/.test(entry.name))
@@ -90,9 +93,10 @@ async function audit(browser, { origin, path, label, desktop = false, seed = fal
           status: font.status,
         })),
       }));
-      log(`AFTER_CHINESE_HEXAGRAM_DETAIL_LCP_BREAKDOWN ${JSON.stringify(lcpBreakdown)}`);
-      log(`AFTER_CHINESE_HEXAGRAM_DETAIL_FONT_REQUESTS ${JSON.stringify(fontRequests)}`);
-      log(`AFTER_CHINESE_HEXAGRAM_DETAIL_PAGE_FONTS ${JSON.stringify(pageFonts)}`);
+      log(`${label}_IMAGE_REQUESTS ${JSON.stringify(imageRequests)}`);
+      log(`${label}_LCP_BREAKDOWN ${JSON.stringify(lcpBreakdown)}`);
+      log(`${label}_FONT_REQUESTS ${JSON.stringify(fontRequests)}`);
+      log(`${label}_PAGE_FONTS ${JSON.stringify(pageFonts)}`);
     }
     const metrics = summarize(label, result);
     assertQuality(label, metrics, indexable, enforcePerformance);

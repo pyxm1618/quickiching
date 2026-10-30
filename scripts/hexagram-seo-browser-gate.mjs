@@ -70,7 +70,7 @@ function assertSnapshot(entry, snapshot) {
   assert.doesNotMatch(snapshot.robots, /\bnoindex\b/iu, `${path}: detail page is noindex`);
   assert.equal(snapshot.canonical, entry.canonicalUrl, `${path}: canonical mismatch`);
   assert.equal(snapshot.ogUrl, entry.canonicalUrl, `${path}: og:url mismatch`);
-  assert.deepEqual(snapshot.h1, [entry.finalH1], `${path}: H1 is not unique/exact`);
+  assert.deepEqual(snapshot.h1, [entry.locale === "en" ? CLASSICAL_HEXAGRAMS.find((hexagram) => hexagram.number === entry.number).englishName : entry.finalH1], `${path}: H1 is not unique/exact`);
   assert(snapshot.lineAnchors.every(Boolean), `${path}: line anchors incomplete`);
   assert.equal(snapshot.detailInboundAnchorCount, 0, `${path}: detail page contains a fake inbound-anchor marker`);
   assert.equal(snapshot.htmlLang, entry.locale === "zh-Hans" ? "zh-Hans" : "en", `${path}: html lang mismatch`);
@@ -88,7 +88,11 @@ function assertSnapshot(entry, snapshot) {
   const hrefs = new Set(snapshot.internalHrefs);
   const previous = CLASSICAL_HEXAGRAMS.find((candidate) => candidate.slug === entry.slug)?.number;
   assert(hrefs.has(entry.locale === "zh-Hans" ? "/zh/hexagrams" : "/hexagrams"), `${path}: locale hub link missing`);
-  assert(hrefs.has(entry.locale === "zh-Hans" ? "/zh/methods/mei-hua-yi-shu" : "/methods/manual-cast"), `${path}: locale reading CTA missing`);
+  if (entry.locale === "zh-Hans") {
+    assert(hrefs.has("/zh/methods/mei-hua-yi-shu"), `${path}: locale reading CTA missing`);
+  } else {
+    assert(!hrefs.has("/methods/manual-cast"), `${path}: knowledge detail must not contain a reading CTA`);
+  }
   assert(![...hrefs].some((href) => /\/hexagrams\/\d+(?:$|\/)/u.test(href)), `${path}: numeric hexagram alias link found`);
   assert(![...hrefs].some((href) => /\/line-[1-6](?:$|\/)/u.test(href)), `${path}: separate line URL found`);
   if (previous > 1) {
@@ -146,13 +150,19 @@ try {
     assert([200, 304].includes(response?.status()), `${pathFor(entry)}: expected 200 or 304, got ${response?.status()}`);
     assertSnapshot(entry, await extractSnapshot(page));
   }
-  log("128/128 production detail DOM, exact TDH, canonical, hreflang, JSON-LD, line anchors, internal links, and no-alias checks PASS");
+  log("128/128 production detail DOM, exact metadata and locale-specific H1, canonical, hreflang, JSON-LD, line anchors, internal links, and no-alias checks PASS");
 
   for (const number of [...sampleNumbers, ...randomNumbers]) {
     const en = entryFor(number, "en");
     const zh = entryFor(number, "zh-Hans");
     for (const [entry, targetPath] of [[en, `/zh/hexagrams/${en.slug}`], [zh, `/hexagrams/${zh.slug}`]]) {
       await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
+      if (entry.locale === "en") {
+        // The approved English scroll has local section/sequence navigation, without a site header.
+        assert.equal(await page.$eval("body > header", (node) => node.getBoundingClientRect().height), 0);
+        await assertKeyboardFocus(page, pathFor(entry));
+        continue;
+      }
       const languageTrigger = await page.$("header [data-language-switcher] button[aria-haspopup='menu']");
       assert(languageTrigger, `${pathFor(entry)}: language switch trigger missing`);
       await languageTrigger.click();
@@ -172,7 +182,7 @@ try {
       await assertKeyboardFocus(page, pathFor(entry));
     }
   }
-  log("10 sampled paired language switches (including 1, 23, 52, 54, 61, 64) PASS");
+  log("10 sampled Chinese language switches and English scroll keyboard-focus checks PASS");
 
   for (const [path, expectedPrefix] of [["/hexagrams", "/hexagrams/"], ["/zh/hexagrams", "/zh/hexagrams/"]]) {
     await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
