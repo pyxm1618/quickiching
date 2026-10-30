@@ -8,22 +8,30 @@
 .qic-account-dialog {
   position: fixed; inset: 0; margin: auto; padding: 0; width: 828px; max-width: calc(100vw - 32px);
   height: 800px; max-height: calc(100dvh - 40px); border: 0; overflow: visible;
-  color: #f7dfaa; background: transparent;
+  color: #f7dfaa; background: transparent; transform: translateY(5px);
 }
-.qic-account-dialog::backdrop { background: #0009; backdrop-filter: blur(3px); }
+.qic-account-dialog::backdrop { background: rgba(0,0,0,.52); backdrop-filter: blur(4px); }
 .qic-account-frame {
   height: 100%; position: relative; padding: 14px 18px 16px; display: flex; flex-direction: column;
   border: 2px solid #efac32; border-radius: 22px; outline: 1px solid #b47d20; outline-offset: -7px;
   background: url('/account/dark-landscape.png') left 12px top 12px / 240px 112px no-repeat,
-    url('/account/dark-landscape.png') right 12px top 12px / 240px 112px no-repeat, #100b05;
-  box-shadow: inset 0 0 45px #000, 0 22px 65px #0009;
+    url('/account/dark-landscape.png') right 12px top 12px / 240px 112px no-repeat,
+    radial-gradient(ellipse at 50% 3%, #4b260b66 0, transparent 56%), #100b05;
+  box-shadow: inset 0 0 45px #000, inset 0 0 0 1px #74450c88, 0 22px 65px #0009;
 }
 .qic-account-frame::before, .qic-account-frame::after { content: ""; position: absolute; width: 39px; height: 35px; pointer-events: none; background: url('/account/frame-corner.png') center / contain no-repeat; }
 .qic-account-frame::before { left: -3px; top: -3px; }
 .qic-account-frame::after { right: -3px; bottom: -3px; transform: rotate(180deg); }
-.qic-account-close { position: absolute; z-index: 2; right: 20px; top: 15px; width: 36px; height: 36px; color: #f8d384; background: none; border: 0; font: 36px/1 "Times New Roman", serif; cursor: pointer; }
+.qic-account-close { position: absolute; z-index: 2; right: 20px; top: 19px; width: 36px; height: 36px; color: #f8d384; background: none; border: 0; font: 36px/1 "Times New Roman", serif; cursor: pointer; }
 .qic-account-heading { position: relative; flex: 0 0 145px; padding: 12px 50px 14px; text-align: center; color: #fff7e5; }
-.qic-account-heading h1 { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0; color: #f6ce80; font-family: "Snell Roundhand", "Apple Chancery", cursive; font-size: 80px; line-height: 1.12; font-weight: 400; white-space: nowrap; }
+.qic-account-heading h1 {
+  display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0;
+  color: #f6ce80; font-family: "Snell Roundhand", "Apple Chancery", cursive;
+  font-size: 80px; line-height: 1.12; font-weight: 400; white-space: nowrap;
+  background: linear-gradient(180deg,#fff4c8 0%,#f8df9b 34%,#f0ad38 72%,#ffd678 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  text-shadow: 0 1px 0 #6d350d, 0 0 13px #f2a52c4a;
+}
 .qic-account-heading h1::before, .qic-account-heading h1::after { content: ""; position: absolute; width: 100px; height: 46px; background: url('/account/cloud-flourish.png') center / contain no-repeat; top: 63px; pointer-events: none; }
 .qic-account-heading h1::before { left: 92px; }
 .qic-account-heading h1::after { right: 70px; transform: rotate(180deg); }
@@ -34,7 +42,8 @@
 .qic-account-paper {
   position: relative; color: var(--account-ink); border: 2px solid #cf873b; border-radius: 14px;
   background: url('/account/paper-landscape.png') right bottom / auto 130px no-repeat,
-    url('/account/paper-texture.png') center / 160px 64px repeat, #f5d7af;
+    linear-gradient(105deg,rgba(255,235,207,.88) 0%,rgba(244,211,173,.86) 55%,rgba(255,233,201,.90) 100%),
+    url('/account/paper-texture.png') center / 420px 152px repeat, #f5d7af;
   box-shadow: inset 0 0 0 3px #ffe2b7, inset 0 0 0 5px #d69a54, inset 0 0 24px #e6ac72;
 }
 .qic-account-dialog h2 { font: bold 25px/1.2 "Times New Roman", "Songti SC", serif; margin: 0; display: flex; align-items: center; gap: 20px; }
@@ -128,11 +137,11 @@
 .qic-account-mobile-menu svg { width: 20px; height: 20px; }
 .qic-my-readings-page { min-height: calc(100dvh - 80px); padding: 24px max(24px,calc((100vw - 1220px)/2)) 36px; background: url('/ritual/bg-stage-master-clean.png') center / cover; color: #fff0d2; }
 .qic-my-readings-page .qic-account-heading { height: 160px; padding-top: 10px; }
-.qic-my-readings-page .qic-account-heading h1 { font-size: 100px; }
-.qic-my-readings-page .qic-account-heading p { font-size: 23px; }
+.qic-my-readings-page .qic-account-heading h1 { font-size: 92px; }
+.qic-my-readings-page .qic-account-heading p { font-size: 21px; }
 .qic-my-readings-page .qic-account-heading h1::before { left: calc(50% - 365px); top: 58px; }
 .qic-my-readings-page .qic-account-heading h1::after { right: calc(50% - 380px); top: 94px; }
-.qic-my-readings-frame { border: 2px solid #b67b24; outline: 1px solid #edb841; outline-offset: -7px; border-radius: 16px; padding: 13px 12px 13px 14px; background: #090703a8; box-shadow: 0 0 0 2px #2a1b07, 0 12px 30px #0007; }
+.qic-my-readings-frame { border: 2px solid #b67b24; outline: 1px solid #edb841; outline-offset: -7px; border-radius: 5px; padding: 13px 12px 13px 14px; background: #100904d9; box-shadow: 0 0 0 2px #2a1b07, inset 0 0 30px #0008, 0 12px 30px #0007; }
 .qic-my-readings-scroll { height: 646px; max-height: calc(100dvh - 296px); min-height: 180px; overflow-y: scroll; padding-right: 18px; }
 .qic-my-readings-scroll ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .qic-my-reading { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 16px 30px 16px 44px; min-height: 101px; font-size: 26px; }
@@ -189,7 +198,7 @@
 /* Custom native scrollbar stays visibly draggable on desktop Chrome/macOS. */
 .qic-account-purchase-scroll, .qic-my-readings-scroll { scrollbar-color: auto; }
 .qic-account-dialog { line-height: 1.3; }
-.qic-account-identity dl { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+.qic-account-identity dl { grid-template-columns: 224px minmax(0, 1fr); }
 .qic-account-credits { background-size: 400px auto, auto, auto; background-position: right 120px bottom 0, center, center; }
 .qic-account-settings-primary { display: grid; grid-template-rows: minmax(0, 1.25fr) minmax(0, .8fr) minmax(0, 1fr); height: 100%; }
 .qic-settings-privacy, .qic-settings-actions, .qic-settings-danger { min-height: 0; }
@@ -226,13 +235,32 @@
  .qic-account-secondary h2::before, .qic-account-delete-form h3::before { display: none; }
 }
 .qic-account-dialog .qic-account-heading h1 { min-height: 90px; }
-.qic-account-dialog[data-account-surface="account"] .qic-account-heading h1 { font-size: 68px; }
+.qic-account-dialog[data-account-surface="account"] .qic-account-heading { flex-basis: 148px; }
+.qic-account-dialog[data-account-surface="account"] .qic-account-heading h1 { font-size: 76px; transform: translateX(8px); }
 @media (max-width: 700px), (max-height: 760px) {
  .qic-account-dialog .qic-account-heading h1 { min-height: 58px; }
  .qic-account-dialog[data-account-surface="account"] .qic-account-heading h1 { font-size: 48px; }
 }
-.qic-account-credits { background-size: 320px auto, auto, auto; background-position: right 132px bottom 0, center, center; }
-.qic-settings-danger { background-image: linear-gradient(#ae3e2320,#ae3e2320), url('/account/paper-landscape.png'), url('/account/paper-texture.png'); background-position: center, right bottom, center; background-size: auto, auto 130px, 160px 64px; background-repeat: no-repeat, no-repeat, repeat; }
+.qic-account-credits {
+  background-image: url('/account/antique-coins-clean.png'),
+    radial-gradient(circle at 64% 52%, #f3a93342 0 12%, transparent 34%),
+    radial-gradient(ellipse at 58% 95%, #7c3b03a6, transparent 72%);
+  background-size: 300px auto, auto, auto;
+  background-position: right 180px bottom 0, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+}
+.qic-account-credits .qic-account-gold-button { min-width: 182px; }
+.qic-settings-danger {
+  background-image: linear-gradient(#ae3e2326,#ae3e2326),
+    linear-gradient(105deg,rgba(250,214,190,.92),rgba(238,190,160,.92)),
+    url('/account/paper-texture.png');
+  background-position: center, center, center;
+  background-size: auto, auto, 420px 152px;
+  background-repeat: no-repeat, no-repeat, repeat;
+}
+.qic-settings-privacy h2, .qic-settings-actions h2, .qic-settings-danger h2 { font-size: 27px; }
+.qic-settings-privacy strong, .qic-settings-action-row strong { font-size: 24px; }
+.qic-account-outline-button { background: rgba(255,241,218,.16); box-shadow: inset 0 0 0 1px #77512d88; }
 .qic-account-outline-button { border-radius: 0; clip-path: polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px); }
 @media (max-width: 700px), (max-height: 760px) {
  .qic-account-credits { background-size: 300px auto; background-position: right -50px bottom 0; }
