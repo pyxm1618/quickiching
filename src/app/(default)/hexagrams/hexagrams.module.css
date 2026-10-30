@@ -6,11 +6,16 @@
   overflow: hidden;
   isolation: isolate;
   color: #f7e8c2;
-  background-image: url("/hexagrams/hero.png");
-  background-size: cover;
-  background-position: 50% 50%;
-  background-repeat: no-repeat;
+  background: #100b07;
   font-family: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+}
+
+.heroImage {
+  z-index: -2;
+  object-fit: cover;
+  object-position: 50% 50%;
+  user-select: none;
+  pointer-events: none;
 }
 
 .scene::before {
