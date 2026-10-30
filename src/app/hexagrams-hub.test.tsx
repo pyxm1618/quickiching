@@ -1,11 +1,16 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { HOME_H1 } from "@/lib/seo";
 import { HEXAGRAM_SEO_REGISTRY } from "@/content/hexagrams/seo";
 import EnglishHexagramsHubPage from "@/app/(default)/hexagrams/page";
 import ChineseHexagramsHubPage from "@/app/(localized)/zh/hexagrams/page";
 import EnglishHomePage from "@/app/(default)/page";
 import ChineseHomePage from "@/app/(localized)/zh/page";
+// Next compiles this font loader; real font rendering is verified in browser QA.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("@/components/public-reading/ritual-font", () => ({ ritualBrush: { variable: "ritual-brush-font" } }));
+
 
 function visibleAnchorText(anchor: string): string {
   return anchor.replace(/<[^>]*>/gu, " ").replace(/\s+/gu, " ").trim();
@@ -63,6 +68,8 @@ describe("hexagram hub inbound anchors", () => {
     const chineseHub = renderToStaticMarkup(<ChineseHexagramsHubPage />);
 
     expect(englishHome).toContain("data-three-coin-home-stage");
+    const heading = englishHome.match(/<h1[^>]*>([\s\S]*?)<\/h1>/u)?.[1].replace(/<[^>]+>/gu, "");
+    expect(heading).toBe(HOME_H1);
     expect(chineseHome).toContain("data-three-coin-home-stage");
     expect(englishHub).toContain('data-seo-home-link="/"');
     expect(chineseHub).toContain('data-seo-home-link="/zh"');

@@ -119,7 +119,8 @@ async function verifyHttpAndSeo() {
   const homeHtml = await home.text();
   assert(homeHtml.includes(`<title>${HOME_TITLE}</title>`), "Exact homepage title is missing from initial HTML");
   assert(homeHtml.includes(`content="${HOME_DESCRIPTION}"`), "Exact homepage description is missing from initial HTML");
-  assert(homeHtml.includes(HOME_H1), "Exact homepage H1 is missing from initial HTML");
+  const initialHeadings = [...homeHtml.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gu)].map((match) => match[1].replace(/<[^>]+>/gu, ""));
+  assert.deepEqual(initialHeadings, [HOME_H1], "Exact homepage H1 is missing from initial HTML");
   assert(homeHtml.includes("data-three-coin-home-stage"), "Homepage Three-Coin single-stage scaffold is missing from initial HTML");
   assert(!homeHtml.includes('"@type":"FAQPage"'), "Homepage must not keep FAQ structured data after the visible FAQ was removed");
 
@@ -230,6 +231,16 @@ async function waitForText(page, text, timeout = 15_000) {
 }
 
 async function clickButton(page, label) {
+  if (["Cast the Coins", "Record This Cast"].includes(label)) {
+    await page.waitForFunction(
+      wanted => [...document.querySelectorAll("button")].some(node => {
+        const text=node.textContent?.trim() ?? "";
+        return (text===wanted || text.startsWith(wanted)) && !node.disabled;
+      }),
+      {timeout:8000},
+      label,
+    );
+  }
   const clicked = await page.evaluate((wanted) => {
     const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === wanted || node.textContent?.trim().startsWith(wanted));
     if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
@@ -304,6 +315,10 @@ async function assertBasicResult(page) {
   assert(resultText.toLocaleLowerCase().includes("changing line"), "Reading result must identify changing lines or state that no lines changed");
 }
 
+async function waitForRecordedLines(page,count) {
+  await page.waitForFunction(expected=>document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===expected,{timeout:15000},count);
+}
+
 async function skipOptionalQuestion(page) {
   const homeRitual = await page.$("[data-three-coin-home-stage]") !== null;
   const skipped = await page.evaluate(() => {
@@ -314,9 +329,10 @@ async function skipOptionalQuestion(page) {
   });
   assert(skipped, "Question skip must clearly leave this cast free-only");
   if (homeRitual) {
-    await waitForText(page, "Confirm your question");
-    await clickButton(page, "Start Casting");
-    await waitForText(page, "0 / 6 lines");
+    await page.waitForSelector("[data-question-confirm]", { timeout: 5000 });
+    await clickButton(page, "Cast the Coins");
+    await page.waitForSelector(".hold-button:not(:disabled)");
+    await waitForRecordedLines(page,0);
     return;
   }
   await page.waitForFunction(() => document.querySelector("textarea[data-private-question]") === null, { timeout: 5000 });
@@ -328,18 +344,18 @@ async function verifyThreeCoinTransactionSemantics(page) {
   await dispatchThreeCoinPointer(page, "pointerdown", 41);
   await dispatchThreeCoinPointer(page, "pointercancel", 41);
   const cancelled = await page.evaluate((key) => ({
-    motion: document.querySelector(".coin-motion-stage")?.getAttribute("data-motion"),
+    motion: document.querySelector("[data-ritual-view]")?.getAttribute("data-ritual-view"),
     storedSteps: (() => {
       const raw = sessionStorage.getItem(key);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? parsed : Array.isArray(parsed?.data?.steps) ? parsed.data.steps : null;
     })(),
-    body: document.body?.innerText ?? "",
+    recordedLines: document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length,
   }), storageKey);
-  assert.equal(cancelled.motion, "idle", "pointercancel must return the Three-Coin chamber to idle");
+  assert.equal(cancelled.motion, "ready", "pointercancel must return the Three-Coin chamber to idle");
   assert.equal(cancelled.storedSteps, null, "pointercancel must not persist a Three-Coin line");
-  assert(cancelled.body.includes("0 / 6 lines"), "pointercancel must not advance Three-Coin progress");
+  assert.equal(cancelled.recordedLines,0,"pointercancel must not advance Three-Coin progress");
 
   await dispatchThreeCoinPointer(page, "pointerdown", 42);
   await dispatchThreeCoinPointer(page, "pointerup", 42);
@@ -349,16 +365,18 @@ async function verifyThreeCoinTransactionSemantics(page) {
     const parsed = raw ? JSON.parse(raw) : null;
     return {
       stored: Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? null,
-      body: document.body?.innerText ?? "",
-      motion: document.querySelector(".coin-motion-stage")?.getAttribute("data-motion"),
+      recordedLines: document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length,
+      labelsVisible: document.querySelector(".ritual-face-labels")!==null,
+      motion: document.querySelector("[data-ritual-view]")?.getAttribute("data-ritual-view"),
     };
   }, storageKey);
   assert.equal(duringReveal.stored?.length, 1, "release must immediately persist the authoritative Three-Coin line before reveal completes");
   assert.equal(duringReveal.motion, "casting", "release should still be visually revealing the committed line during Motion F");
-  assert(duringReveal.body.includes("0 / 6 lines"), "authoritative commit must not visually reveal the new line before Motion F settles");
+  assert.equal(duringReveal.recordedLines,0,"authoritative commit must not advance recorded progress before settling");
+  assert.equal(duringReveal.labelsVisible,false,"Faces must not be labelled during the initial airborne phase");
 
   await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "1 / 6 lines");
+  await waitForRecordedLines(page,1);
   const restored = await page.evaluate((key) => {
     const raw = sessionStorage.getItem(key);
     if (!raw) return 0;
@@ -366,8 +384,10 @@ async function verifyThreeCoinTransactionSemantics(page) {
     return (Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? []).length;
   }, storageKey);
   assert.equal(restored, 1, "reload during Motion F must restore the already-committed Three-Coin line");
-  await clickButton(page, "Restart casting");
-  await waitForText(page, "0 / 6 lines");
+  await page.locator(".ritual-back").click();
+  await page.waitForSelector('[data-experience-stage="landing"]');
+  const resetSteps=await page.evaluate(key=>JSON.parse(sessionStorage.getItem(key)||"null")?.data?.steps??[],storageKey);
+  assert.equal(resetSteps.length,0,"Explicit Back/restart clears the prior cast");
 }
 
 async function finishThreeCoin(page) {
@@ -384,13 +404,14 @@ async function finishThreeCoin(page) {
   await page.keyboard.press("Enter");
   await waitForText(page, "Record This Cast");
   await clickButton(page, "Record This Cast");
-  await waitForText(page, "1 / 6 lines");
+  await waitForRecordedLines(page,1);
 
   for (let line = 2; line <= 6; line += 1) {
+    await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 5000 });
     await clickButton(page, "Toss three coins");
     await waitForText(page, "Record This Cast");
     await clickButton(page, "Record This Cast");
-    if (line < 6) await waitForText(page, `${line} / 6 lines`);
+    if (line < 6) await waitForRecordedLines(page,line);
   }
 
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
@@ -404,15 +425,15 @@ async function finishThreeCoin(page) {
   assert.equal(castLineValues?.length, 6, "Completed Three-Coin reading must preserve all six cast lines");
   assert(castLineValues.every((value) => [6, 7, 8, 9].includes(value)), "Completed Three-Coin reading must preserve valid line values");
 
-  await waitForText(page, "Your completed cast is preserved");
-  await waitForText(page, "Sign in to save and reveal this reading");
+  await waitForText(page, "Your six lines are complete");
+  await waitForText(page, "Sign In to Save & Reveal");
   assert(await page.$("[data-auth-required-before-reveal]"), "Anonymous completed cast must enter auth-before-reveal gate");
   assert.equal(await page.$("[data-primary-card]"), null, "Primary hexagram must not reveal before authentication and History save");
   assert.equal(await page.$("[data-deep-reading-entry]"), null, "Deep Reading must remain downstream of the result reveal gate");
 
   const gateBeforeRefresh = await page.$eval("main", (node) => node.textContent ?? "");
   await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "Your completed cast is preserved");
+  await waitForText(page, "Your six lines are complete");
   assert.equal(await page.$eval("main", (node) => node.textContent ?? ""), gateBeforeRefresh, "Anonymous auth gate must restore the same completed cast after refresh");
   const sealedAfterRefresh = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
   assert.equal(sealedAfterRefresh, sealedBeforeGate, "Auth gate refresh must not alter the completed six-line cast");
@@ -500,7 +521,7 @@ async function verifyBrowserFlows() {
         label: `${viewport.width}px navigation/single-stage/footer`,
         skipQuestion: false,
         flow: async (page) => {
-          await waitForText(page, HOME_H1);
+          await page.waitForFunction((wanted) => document.querySelector("h1")?.textContent === wanted, { timeout: 15_000 }, HOME_H1);
           assert(await page.$("[data-three-coin-home-stage][data-experience-stage='landing']"), "Single-stage homepage landing is missing");
           const mobileTrigger = await page.$('header button[aria-controls^="nav-drawer-"]');
           assert(mobileTrigger, "Mobile navigation trigger missing");

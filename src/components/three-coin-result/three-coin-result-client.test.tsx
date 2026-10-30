@@ -76,6 +76,8 @@ describe("ThreeCoinResultClient auth-save-reveal gate", () => {
     expect(html).toContain("Sign in to save and reveal this reading");
     expect(html).toContain("data-completed-six-lines");
     expect(html).not.toContain("data-primary-card");
+    expect(html).not.toContain("data-ritual-result-card");
+    expect(html).not.toContain("data-deep-reading-entry");
   });
 
   it("renders a signed-in unsaved completed cast as saving without leaking the free result", () => {
@@ -89,6 +91,8 @@ describe("ThreeCoinResultClient auth-save-reveal gate", () => {
     expect(html).toContain('data-completed-cast-gate="saving"');
     expect(html).toContain("data-history-saving");
     expect(html).not.toContain("data-primary-card");
+    expect(html).not.toContain("data-ritual-result-card");
+    expect(html).not.toContain("data-deep-reading-entry");
   });
 });
 
@@ -166,6 +170,9 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
     expect(html).toContain("data-relating-card");
     expect(html).toContain(primary.hexagram.coreTheme);
     expect(html).toContain(relating.hexagram.coreTheme);
+    expect(html).toContain("data-ritual-result-card");
+    expect([...html.matchAll(/data-line-position="(\d)"/gu)].map(match=>Number(match[1]))).toEqual([6,5,4,3,2,1]);
+    expect(html).toContain('aria-label="1: 9"');
     expect(html).not.toContain("Restoring your sealed reading…");
   });
 });

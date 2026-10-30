@@ -48,6 +48,9 @@ async function waitForText(page, text, timeout = 15_000) {
 }
 
 async function clickText(page, text) {
+  if (["Cast the Coins", "Record This Cast"].includes(text)) {
+    await page.waitForFunction(wanted => [...document.querySelectorAll("button")].some(node => node.textContent?.trim() === wanted && !node.disabled), {timeout:3000}, text);
+  }
   const clicked = await page.evaluate((wanted) => {
     const node = [...document.querySelectorAll("button")].find((candidate) => candidate.textContent?.trim() === wanted);
     if (!(node instanceof HTMLButtonElement) || node.disabled) return false;
@@ -90,6 +93,7 @@ async function verifyChineseNoChangingLines(page) {
   await openSeededThreeCoinResult(page, "zh-Hans");
   const gate = await page.evaluate(() => ({
     hasSixLines: document.querySelector("[data-completed-six-lines]") !== null,
+    signInAria: document.querySelector(".ritual-gate-signin")?.getAttribute("aria-label"),
     primaryCard: document.querySelector("[data-primary-card]") !== null,
     relatingCard: document.querySelector("[data-relating-card]") !== null,
     text: document.body?.innerText ?? "",
@@ -97,7 +101,8 @@ async function verifyChineseNoChangingLines(page) {
   assert(gate.hasSixLines, "Chinese auth gate must preserve the completed six lines");
   assert.equal(gate.primaryCard, false, "Chinese anonymous gate must not reveal the primary hexagram");
   assert.equal(gate.relatingCard, false, "Chinese anonymous gate must not reveal whether a relating hexagram exists");
-  assert(gate.text.includes("登录、保存并查看本次卦象"), "Chinese completed cast must require sign-in before reveal");
+  assert.equal(gate.signInAria, "登录、保存并查看本次卦象", "Formal Chinese sign-in action must retain its accessible purpose");
+  assert(gate.text.includes("登录、保存并查看"), "Chinese completed cast must require sign-in before reveal");
   await assertNoOverflow(page, "Chinese no-changing completed-cast gate 390px");
   log("Chinese no-changing completed cast remains sealed behind auth-before-reveal PASS");
 }
@@ -229,7 +234,7 @@ async function verifyQuestionReading(page) {
   }
 
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
-  await waitForText(page, "Your completed cast is preserved");
+  await waitForText(page, "Your six lines are complete");
   await assertQuestionPrivacy(page, question, { requireVisible: false });
 
   const questionState = await page.evaluate(() => ({
@@ -247,7 +252,7 @@ async function verifyQuestionReading(page) {
 
   const sessionBeforeRefresh = JSON.stringify(questionState.session);
   await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "Your completed cast is preserved");
+  await waitForText(page, "Your six lines are complete");
   await assertQuestionPrivacy(page, question, { requireVisible: false });
   const sessionAfterRefresh = await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin"));
   assert.equal(sessionAfterRefresh, sessionBeforeRefresh, "Auth-gate refresh must restore the exact same completed cast and question");
@@ -283,7 +288,7 @@ async function verifyQuestionSkipFreeOnly(page) {
   }
 
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
-  await waitForText(page, "Your completed cast is preserved");
+  await waitForText(page, "Your six lines are complete");
   const state = await page.evaluate(() => ({
     session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
     authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
@@ -304,7 +309,8 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   const question = "面对职业选择，我现在最需要看清什么？";
   await seedThreeCoin(page, question);
   await openSeededThreeCoinResult(page, "zh-Hans");
-  await waitForText(page, "本次起卦已经完成");
+  await waitForText(page, "六爻已经完成");
+  await waitForText(page, "保存本次起卦");
   await assertQuestionPrivacy(page, question, { requireVisible: false });
 
   const state = await page.evaluate(() => ({

@@ -1,5 +1,7 @@
 "use client";
 
+import "./ritual.css";
+import { ArrowRight } from "lucide-react";
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { patchPublicReadingSession, readPublicReadingSessionState } from "@/lib/public-reading-session";
@@ -13,6 +15,7 @@ export type QuestionContext = {
   setQuestion: (value: string | undefined) => void;
   freezeCoreQuestion: () => string | undefined | false;
   restartQuestion: (force?: boolean) => void;
+  homeExperienceStage?: HomeExperienceStage;
 };
 
 type QuestionFirstProps = {
@@ -67,6 +70,21 @@ export function QuestionFirst({
   const [experienceStage, setExperienceStage] = useState<HomeExperienceStage>(
     () => homeExperienceStageForSession(initialSession),
   );
+  const [confirmationEntered,setConfirmationEntered]=useState(false);
+  useEffect(()=>{
+    if(experienceStage!=="question-confirm"){setConfirmationEntered(false);return;}
+    const duration=window.matchMedia("(prefers-reduced-motion: reduce)").matches?200:500;
+    const timer=setTimeout(()=>setConfirmationEntered(true),duration);
+    return ()=>clearTimeout(timer);
+  },[experienceStage]);
+  const [presentationStage,setPresentationStage]=useState<HomeExperienceStage>(()=>homeExperienceStageForSession(initialSession));
+  useEffect(()=>{
+    if(!homeRitual||presentationStage===experienceStage)return;
+    const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const delay=reduced?140:presentationStage==="landing"?260:presentationStage==="question-confirm"?240:0;
+    const timer=setTimeout(()=>setPresentationStage(experienceStage),delay);
+    return ()=>clearTimeout(timer);
+  },[homeRitual,presentationStage,experienceStage]);
   const [question, setQuestionState] = useState<string | undefined>(() => initialSession?.question ?? undefined);
   const [coreQuestionAtCast, setCoreQuestionAtCast] = useState<string | undefined>(() => initialSession?.coreQuestionAtCast ?? undefined);
   const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(() => initialSession?.coreQuestionFrozenAtCast ?? false);
@@ -82,6 +100,7 @@ export function QuestionFirst({
     setCoreQuestionFrozenAtCast(restored.coreQuestionFrozenAtCast);
     if (homeRitual) {
       setExperienceStage(homeExperienceStageForSession(restored));
+      setPresentationStage(homeExperienceStageForSession(restored));
     }
   }, [homeRitual, legacyStorageKeys, storageKey]);
 
@@ -217,110 +236,86 @@ export function QuestionFirst({
     setQuestion,
     freezeCoreQuestion,
     restartQuestion,
+    ...(homeRitual ? { homeExperienceStage: experienceStage } : {}),
   };
 
   if (homeRitual) {
     const landing = experienceStage === "landing";
     const confirming = experienceStage === "question-confirm";
+    const homeLeaving=presentationStage==="landing"&&confirming;
+    const questionLeaving=presentationStage==="question-confirm"&&experienceStage==="ritual";
+    const homeTitleParts = homeHeading?.split(/\s*—\s*/u);
+    const homeTitleFirst = homeTitleParts?.[0] ?? (zh ? "一卦一念" : "A Single Divination");
+    const homeTitleSecond = homeTitleParts && homeTitleParts.length > 1
+      ? ` — ${homeTitleParts.slice(1).join(" — ")}`
+      : homeHeading ? undefined : (zh ? "看见更大的自己" : "See a Greater You");
     return (
       <QuestionFirstContext.Provider value={context}>
-        <section
-          id="three-coin-reading"
-          data-question-first
-          data-three-coin-home-stage
-          data-experience-stage={experienceStage}
-          data-visual-status="internal-scaffold"
-          className="mystic-shell min-h-[calc(100svh-5rem)] py-10 sm:py-14"
-        >
-          {experienceStage !== "ritual" ? (
-            <div className="mx-auto grid min-h-[68svh] max-w-5xl content-center gap-7">
-              {landing ? (
-                <div>
-                  <p className="mystic-kicker">{zh ? "Quick I Ching · 三枚铜钱" : "Quick I Ching · Three-Coin Method"}</p>
-                  <h1 className="mt-4 max-w-4xl font-display text-4xl font-normal tracking-[-0.04em] sm:text-6xl">
-                    {homeHeading ?? (zh ? "易经在线起卦" : "I Ching Online Reading")}
-                  </h1>
-                  <p className="mt-5 max-w-2xl text-sm leading-7 text-[var(--ink-2)] sm:text-base">
-                    {homeDescription ?? (zh ? "写下此刻最想看清的问题，然后开始一次完整的六爻起卦。" : "Write the question you want to examine, then begin one complete six-line cast.")}
-                  </p>
+        <link rel="preload" as="image" href="/ritual/question-parchment-crop.png" media="(min-width:471px)" fetchPriority="high" />
+        <link rel="preload" as="image" href="/ritual/question-parchment-mobile-crop.webp" media="(max-width:470px)" fetchPriority="high" />
+        <link rel="preload" as="image" href="/ritual/bg-stage-master-clean.lossless.webp" media="not all and (max-aspect-ratio:11/20)" fetchPriority="high" />
+        <link rel="preload" as="image" href="/ritual/bg-stage-portrait-crop.webp" media="(min-width:601px) and (max-aspect-ratio:11/20)" fetchPriority="high" />
+        <link rel="preload" as="image" href="/ritual/bg-stage-mobile-600.webp" media="(max-width:600px) and (max-aspect-ratio:11/20)" fetchPriority="low" />
+        <link rel="preload" as="image" href="/ritual/decor/gold-cloud-button-2x.png" media="(max-width:800px)" fetchPriority="low" />
+        <link rel="preload" as="image" href="/ritual/decor/yin-yang.png" media="(max-width:800px)" fetchPriority="low" />
+        <section id="three-coin-reading" data-question-first data-three-coin-home-stage
+          data-experience-stage={experienceStage} data-question-leaving={questionLeaving} data-visual-status="in-development" className="ritual-canvas">
+          <div className="ritual-room" aria-hidden="true" />
+          {experienceStage !== "ritual" || questionLeaving ? (
+            <div className="ritual-question-stage" data-leaving={questionLeaving} inert={questionLeaving}>
+              {landing || homeLeaving ? <>
+                <div className="ritual-home-heading" data-leaving={homeLeaving}>
+                  <span className="ritual-cloud ritual-home-cloud-left" aria-hidden="true" />
+                  <span className="ritual-cloud ritual-home-cloud-right" aria-hidden="true" />
+                  <h1><em>{homeTitleFirst}</em>{homeTitleSecond ? <span className="ritual-title-second">{homeTitleSecond}</span> : null}</h1>
+                  <p data-home-hero-copy>{zh ? (homeDescription ?? "在变化之中，重新认识此刻的自己。") : <>Use the I Ching online to rediscover where you are.<br />
+                    It is not about predicting the future,<br />
+                    but about seeing yourself more clearly in the present.</>}</p>
                 </div>
-              ) : (
-                <div data-question-confirm>
-                  <p className="mystic-kicker">{zh ? "确认本次问题" : "Confirm this reading"}</p>
-                  <h1 className="mt-3 font-display text-3xl font-normal tracking-[-0.03em] sm:text-5xl">
-                    {zh ? "确认你要问的问题" : "Confirm your question"}
-                  </h1>
-                  <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--ink-2)]">
-                    {zh ? "第一次真实起爻前仍可修改；第一爻生成时才会锁定。" : "You can still edit it before the first real cast. It is frozen only when line one is generated."}
-                  </p>
-                </div>
-              )}
-
-              <div className="mystic-card max-w-3xl p-5 sm:p-7">
-                <label htmlFor={`${storageKey}-home-question`} className="block text-sm font-semibold text-[var(--ink)]">
-                  {dictionary.questionFirst.label} <span className="font-normal text-[var(--ink-3)]">{dictionary.questionFirst.optional}</span>
+              </> : null}
+              {!landing ? <div className="ritual-confirm-heading" data-question-confirm>
+                <span className="ritual-ink" aria-hidden="true" />
+                <h1>{zh ? "此刻，你想问什么？" : <>What Would You Like<br />to Ask?</>}</h1>
+                <span className="ritual-cloud" aria-hidden="true" />
+                <p>{zh ? "静下心，写下此刻最想看清的问题。" : "Enter your question with a clear and focused mind."}<br />
+                  {zh ? "让三枚铜钱带来易经的启示。" : "Let three coins reveal your guidance from the I Ching."}</p>
+                <span className="ritual-divider" aria-hidden="true" />
+              </div> : null}
+              <div className="ritual-question-card">
+                <label htmlFor={`${storageKey}-home-question`}>
+                  {zh ? "此刻，你想问什么？" : "What would you like to ask?"}
                 </label>
-                <textarea
-                  id={`${storageKey}-home-question`}
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  rows={3}
-                  className="mt-2 min-h-28 w-full resize-y rounded-2xl border border-white/[0.12] bg-white/[0.035] px-4 py-3 text-sm leading-7 text-[var(--ink)] outline-none"
-                  placeholder={dictionary.questionFirst.placeholder}
-                  data-clarity-mask="true"
-                  data-private-question="true"
-                  disabled={coreQuestionFrozenAtCast}
-                />
-                {error ? <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{error}</p> : null}
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    className="mystic-button"
-                    onClick={landing ? prepareQuestionConfirmation : continueToCasting}
-                    disabled={landing && deepReadingEligible && !draft.trim()}
-                    data-home-primary-action
-                  >
-                    {landing
-                      ? (zh ? "开始起卦" : "Start Reading")
-                      : (zh ? "开始掷币" : "Start Casting")}
-                  </button>
-                  {landing && !coreQuestionFrozenAtCast ? (
-                    <button type="button" onClick={skip} className="mystic-button-secondary" data-home-skip-question>
-                      {dictionary.questionFirst.skipFreeOnly}
-                    </button>
-                  ) : null}
-                  {confirming && !coreQuestionFrozenAtCast ? (
-                    <button type="button" onClick={() => setExperienceStage("landing")} className="mystic-button-secondary">
-                      {zh ? "返回" : "Back"}
-                    </button>
-                  ) : null}
-                </div>
+                <p className="ritual-question-description">{zh ? "描述一个你心中的具体问题。" : "Describe a specific question that is on your mind."}</p>
+                <textarea id={`${storageKey}-home-question`} value={draft}
+                  onChange={(event) => setDraft(event.target.value)} rows={3}
+                  placeholder={landing ? (zh ? "例如：我应该继续现在的道路吗？" : "For example: Should I continue on my current path?") : (zh ? "在此输入你的问题…" : "Type your question here...")}
+                  data-clarity-mask="true" data-private-question="true" disabled={coreQuestionFrozenAtCast} />
+                <span className="ritual-character-count">{Array.from(draft).length}/{PUBLIC_QUESTION_MAX_CODE_POINTS}</span>
+                {error ? <p role="alert" className="ritual-form-error">{error}</p> : null}
               </div>
-
-              <div className="min-h-40" data-home-coin-visual-placeholder aria-hidden="true" />
+              <div className="ritual-question-actions" data-entered={confirmationEntered} onAnimationEnd={event=>{if(event.target===event.currentTarget&&confirming)setConfirmationEntered(true);}}>
+                <button type="button" className="ritual-gold-button" onClick={landing ? prepareQuestionConfirmation : continueToCasting}
+                  disabled={(landing && deepReadingEligible && !draft.trim())||(confirming&&!confirmationEntered)} data-home-primary-action>
+                  <span className="ritual-taichi" aria-hidden="true" />
+                  {landing ? (zh ? "开始起卦" : "Start Divination") : (zh ? "开始掷币" : "Cast the Coins")}
+                  <ArrowRight size={26} strokeWidth={1.5} aria-hidden="true" />
+                </button>
+                {landing && !coreQuestionFrozenAtCast
+                  ? <button type="button" onClick={skip} className="ritual-text-button ritual-home-skip" data-home-skip-question>{dictionary.questionFirst.skipFreeOnly}</button>
+                  : <p className="ritual-cta-description">{landing
+                    ? (zh ? "每个问题都值得看见。现在开始你的起卦。" : "No question is too small. Begin your divination now →")
+                    : (zh ? "三枚铜钱将随机落定，为你带来一次易经起卦。" : <>Three coins will be cast at random,<br />bringing you an I Ching reading.</>)}</p>}
+              </div>
+              {confirming && !coreQuestionFrozenAtCast ? <button type="button" onClick={() => setExperienceStage("landing")} className="ritual-back">← {zh ? "返回" : "Back"}</button> : null}
             </div>
-          ) : (
-            <>
-              <div className="mb-4 flex justify-center" data-ritual-question-context>
-                {question ? (
-                  <input
-                    value={draft}
-                    onChange={(event) => setQuestion(event.target.value)}
-                    className="w-full max-w-2xl border-0 bg-transparent px-3 py-2 text-center text-sm text-[var(--ink-3)] outline-none"
-                    aria-label={zh ? "本次问题" : "Question for this reading"}
-                    data-clarity-mask="true"
-                    data-private-question="true"
-                    disabled={coreQuestionFrozenAtCast}
-                  />
-                ) : (
-                  <p className="text-center text-sm text-[var(--ink-3)]">
-                    {zh ? "本次为无问题的免费起卦" : "This is a free cast without a bound question"}
-                  </p>
-                )}
-              </div>
-              {children}
-            </>
-          )}
+          ) : <>
+            <div data-ritual-question-context className="ritual-question-context">
+              {question ? <input value={draft} onChange={(event) => setQuestion(event.target.value)} aria-label={zh ? "本次问题" : "Question for this reading"}
+                data-clarity-mask="true" data-private-question="true" disabled={coreQuestionFrozenAtCast} />
+                : <p>{zh ? "本次为无问题的免费起卦" : "This is a free cast without a bound question"}</p>}
+            </div>
+          </>}
+          {children}
         </section>
       </QuestionFirstContext.Provider>
     );

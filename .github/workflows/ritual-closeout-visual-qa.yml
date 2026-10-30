@@ -1,0 +1,240 @@
+name: Ritual Closeout Visual QA
+
+on:
+  push:
+    branches:
+      - codex/three-coin-visual-phase3-5
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ritual-closeout-visual-qa-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    name: Canonical ritual capture
+    runs-on: macos-15
+    timeout-minutes: 35
+    env:
+      RITUAL_VISUAL_QA: "1"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Install visual-QA browser driver
+        run: bun add --no-save puppeteer-core@24
+      - name: Install local-only result fixture
+        run: node scripts/ritual-qa-fixture.mjs install
+      - name: Production build
+        run: bun run build
+      - name: Resolve Chrome
+        shell: bash
+        run: |
+          CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          if [ ! -x "$CHROME" ]; then
+            brew install --cask google-chrome
+          fi
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+      - name: Start production server
+        shell: bash
+        run: |
+          mkdir -p .artifacts/ritual-qa/remote
+          (RITUAL_VISUAL_QA=1 bunx next start -p 3028 > .artifacts/ritual-qa/remote/server.log 2>&1 & echo $! > .artifacts/ritual-qa/remote/server.pid)
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3028/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat .artifacts/ritual-qa/remote/server.log
+          exit 1
+      - name: Capture seven canonical states
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=.artifacts/ritual-qa/remote
+          node scripts/ritual-capture.mjs "$ROOT/ref-01"
+          for state in 02 03 04 05 06 07; do
+            node scripts/ritual-state-capture.mjs "$state" "$ROOT/ref-$state"
+          done
+      - name: Generate overlays and differences
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv .qa-venv
+          .qa-venv/bin/pip install --quiet pillow
+          for state in 01 02 03 04 05 06 07; do
+            case "$state" in
+              01) ref=ref-01-home-full-en.png ;;
+              02) ref=ref-02-question-full-en.png ;;
+              03) ref=ref-03-casting-full-en.png ;;
+              04) ref=ref-04-cast-result-full-en.png ;;
+              05) ref=ref-05-six-lines-progress-full-en.png ;;
+              06) ref=ref-06-auth-save-gate-full-en.png ;;
+              07) ref=ref-07-hexagram-result-full-en.png ;;
+            esac
+            .qa-venv/bin/python scripts/ritual-image-compare.py \
+              "docs/design/ritual-redesign/references/$ref" \
+              ".artifacts/ritual-qa/remote/ref-$state/runtime.png" \
+              ".artifacts/ritual-qa/remote/ref-$state"
+          done
+      - name: Motion boundary evidence
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          node scripts/ritual-motion-gate.mjs | tee .artifacts/ritual-qa/remote/motion-gate.log
+          status=${PIPESTATUS[0]}
+          if [ -f .artifacts/ritual-qa/final-closeout/motion/results.json ]; then
+            cp .artifacts/ritual-qa/final-closeout/motion/results.json .artifacts/ritual-qa/remote/motion-results.json
+            cat .artifacts/ritual-qa/remote/motion-results.json
+          fi
+          exit "$status"
+      - name: Runner environment
+        if: always()
+        shell: bash
+        run: |
+          sw_vers > .artifacts/ritual-qa/remote/runner-environment.txt
+          uname -a >> .artifacts/ritual-qa/remote/runner-environment.txt
+          "${CHROME_PATH}" --version >> .artifacts/ritual-qa/remote/runner-environment.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ritual-closeout-visual-qa
+          path: .artifacts/ritual-qa/remote
+          if-no-files-found: error
+          retention-days: 3
+
+  perf-smoke:
+    name: Ritual desktop Lighthouse smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Production build
+        run: bun run build
+      - name: Install Lighthouse only
+        run: bun add --no-save --cache-dir=/tmp/quickiching-bun-cache lighthouse@13.4.1
+      - name: Identify ritual client chunks
+        shell: bash
+        run: |
+          echo "RITUAL_CHUNK_DIAG"
+          grep -l "RITUAL_SHADER_PRECOMPILE_FALLBACK" .next/static/chunks/*.js 2>/dev/null | while read -r f; do
+            wc -c "$f"
+            basename "$f"
+          done
+          grep -l "RoomEnvironment" .next/static/chunks/*.js 2>/dev/null | while read -r f; do
+            echo "ROOM_ENV_CHUNK $(basename "$f") $(wc -c < "$f")"
+          done
+      - name: Start production server
+        shell: bash
+        run: |
+          (PORT=3029 HOSTNAME=127.0.0.1 bun run start > /tmp/ritual-perf-server.log 2>&1 & echo $! > /tmp/ritual-perf-server.pid)
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3029/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ritual-perf-server.log
+          exit 1
+      - name: Desktop Lighthouse smoke
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          CHROME_PATH="$CHROME" ./node_modules/.bin/lighthouse http://127.0.0.1:3029 \
+            --quiet --preset=desktop \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+            --only-categories=performance,accessibility,seo \
+            --output=json --output-path=/tmp/ritual-lighthouse-desktop.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const report=JSON.parse(fs.readFileSync('/tmp/ritual-lighthouse-desktop.json','utf8'));
+          const performance=Math.round(report.categories.performance.score*100);
+          const accessibility=Math.round(report.categories.accessibility.score*100);
+          const seo=Math.round(report.categories.seo.score*100);
+          const lcp=Math.round(report.audits['largest-contentful-paint'].numericValue);
+          const tbt=Math.round(report.audits['total-blocking-time'].numericValue);
+          console.log(JSON.stringify({performance,accessibility,seo,lcp,tbt}));
+          const boot=(report.audits['bootup-time']?.details?.items||[])
+            .sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,12)
+            .map(item=>({url:item.url,total:Math.round(item.total||0),scripting:Math.round(item.scripting||0),parse:Math.round(item.scriptParseCompile||0)}));
+          const longTasks=(report.audits['long-tasks']?.details?.items||[])
+            .sort((a,b)=>(b.duration||0)-(a.duration||0)).slice(0,12)
+            .map(item=>({url:item.url,duration:Math.round(item.duration||0),startTime:Math.round(item.startTime||0)}));
+          const breakdown=(report.audits['mainthread-work-breakdown']?.details?.items||[])
+            .map(item=>({group:item.groupLabel,duration:Math.round(item.duration||0)}));
+          console.log('BOOTUP_TOP '+JSON.stringify(boot));
+          console.log('LONG_TASKS_TOP '+JSON.stringify(longTasks));
+          console.log('MAINTHREAD_BREAKDOWN '+JSON.stringify(breakdown));
+          console.log('USER_TIMINGS '+JSON.stringify(report.audits['user-timings']?.details?.items||[]));
+          if(performance<65||lcp>4000) process.exit(1);
+          NODE
+
+  perf-smoke-mac:
+    name: Ritual desktop Lighthouse smoke (Metal)
+    runs-on: macos-15
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Production build
+        run: bun run build
+      - name: Install Lighthouse only
+        run: bun add --no-save --cache-dir=/tmp/quickiching-bun-cache lighthouse@13.4.1
+      - name: Resolve Chrome
+        shell: bash
+        run: |
+          CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          if [ ! -x "$CHROME" ]; then brew install --cask google-chrome; fi
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+      - name: Start production server
+        shell: bash
+        run: |
+          (PORT=3030 HOSTNAME=127.0.0.1 bun run start > /tmp/ritual-perf-mac-server.log 2>&1 & echo $! > /tmp/ritual-perf-mac-server.pid)
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3030/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ritual-perf-mac-server.log
+          exit 1
+      - name: Desktop Lighthouse smoke
+        shell: bash
+        run: |
+          CHROME_PATH="$CHROME_PATH" ./node_modules/.bin/lighthouse http://127.0.0.1:3030 \
+            --quiet --preset=desktop \
+            --chrome-flags="--headless --disable-dev-shm-usage" \
+            --only-categories=performance,accessibility,seo \
+            --output=json --output-path=/tmp/ritual-lighthouse-desktop-mac.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const report=JSON.parse(fs.readFileSync('/tmp/ritual-lighthouse-desktop-mac.json','utf8'));
+          const performance=Math.round(report.categories.performance.score*100);
+          const accessibility=Math.round(report.categories.accessibility.score*100);
+          const seo=Math.round(report.categories.seo.score*100);
+          const lcp=Math.round(report.audits['largest-contentful-paint'].numericValue);
+          const tbt=Math.round(report.audits['total-blocking-time'].numericValue);
+          console.log(JSON.stringify({performance,accessibility,seo,lcp,tbt}));
+          if(performance<65||lcp>4000) process.exit(1);
+          NODE
