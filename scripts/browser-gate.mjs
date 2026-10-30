@@ -462,17 +462,61 @@ async function finishYarrow(page, verifyResume) {
 }
 
 async function finishMeiHua(page) {
-  await page.waitForSelector("#mei-hua-timezone");
-  const labelExists = await page.evaluate(() => Boolean(document.querySelector('label[for="mei-hua-timezone"]')));
-  assert(labelExists, "Mei Hua timezone input is missing its label");
-  await page.locator("#mei-hua-timezone").fill("Asia/Singapore");
-  await clickButton(page, "Cast current time");
-  await waitForText(page, "Recorded calculation");
-  await waitForText(page, "quickiching-gregorian-current-time-v2");
-  await assertBasicResult(page);
-  await clickButton(page, "New reading");
-  await skipOptionalQuestion(page);
-  await waitForText(page, "Cast current time");
+  const question = "What should I understand about this decision?";
+  await page.waitForSelector("#mei-hua-question");
+  await page.type("#mei-hua-question", question);
+  await clickButton(page, "Continue");
+  await waitForText(page, "Choose a Number");
+
+  await page.type("#mei-hua-number", "17");
+  await clickButton(page, "Change Question");
+  await page.waitForSelector("#mei-hua-question");
+  await page.locator("#mei-hua-question").fill(question + " now");
+  await clickButton(page, "Continue");
+  await waitForText(page, "Choose a Number");
+  assert.equal(await page.$eval("#mei-hua-number", (node) => node.value), "", "Changing the question must clear the unconfirmed number");
+
+  await page.type("#mei-hua-number", "17");
+  await clickButton(page, "Continue");
+  await waitForText(page, "Confirm Your Number");
+  await waitForText(page, "Current Date");
+  await waitForText(page, "Local Time");
+  await waitForText(page, "Time Zone");
+
+  const beforeConfirm = await page.evaluate(() => {
+    const raw = sessionStorage.getItem("quickiching:public-v1:mei-hua-number-time-v1");
+    return raw ? JSON.parse(raw) : null;
+  });
+  assert(beforeConfirm, "Mei Hua question session must exist before confirmation");
+  assert(!("data" in beforeConfirm), "Mei Hua must not create formal cast data before Confirm & Cast");
+
+  await clickButton(page, "Confirm & Cast");
+  await waitForText(page, "Cast Result");
+  await page.waitForSelector("[data-mei-hua-locked='true']");
+
+  const sealed = await page.evaluate(() => {
+    const raw = sessionStorage.getItem("quickiching:public-v1:mei-hua-number-time-v1");
+    return raw ? JSON.parse(raw) : null;
+  });
+  assert.equal(sealed?.coreQuestionFrozenAtCast, true, "Mei Hua question must freeze at Confirm & Cast");
+  assert.equal(sealed?.coreQuestionAtCast, question + " now", "Mei Hua must freeze the edited question");
+  assert.equal(sealed?.data?.input?.number, 17, "Mei Hua must seal the confirmed number");
+  assert(Number.isFinite(sealed?.data?.input?.utcMillis), "Mei Hua must seal an exact UTC timestamp");
+  assert.equal(typeof sealed?.data?.input?.ianaTimeZone, "string", "Mei Hua must seal the IANA timezone");
+  assert.equal(sealed?.data?.algorithmStatus, "unverified", "Mei Hua must expose the unverified number-time algorithm boundary");
+  assert(!sealed?.data?.result, "Mei Hua must not fabricate a result before the number-time algorithm is approved");
+
+  const viewReadingDisabled = await page.$eval("[data-mei-hua-view-reading]", (node) => node.disabled);
+  assert.equal(viewReadingDisabled, true, "View Reading must stay disabled without a legal hexagram result");
+  assert.equal(await page.$eval("[data-public-reading-result]", (nodes) => nodes.length), 0, "No shared reading may be fabricated");
+
+  const sealedSnapshot = JSON.stringify(sealed.data.input);
+  await page.reload({ waitUntil: "networkidle0", timeout: 30_000 });
+  await waitForText(page, "Cast Result");
+  await page.waitForSelector("[data-mei-hua-locked='true']");
+  const restored = await page.evaluate(() => JSON.parse(sessionStorage.getItem("quickiching:public-v1:mei-hua-number-time-v1") || "null"));
+  assert.equal(JSON.stringify(restored.data.input), sealedSnapshot, "Refresh must restore the same formal Mei Hua cast");
+  assert.equal(await page.$eval("#mei-hua-question, #mei-hua-number", (nodes) => nodes.length), 0, "A formal Mei Hua cast must not become editable after refresh");
 }
 
 async function runPage(browser, { path, viewport, flow, label, skipQuestion = true }) {
@@ -508,11 +552,11 @@ async function verifyBrowserFlows() {
     await runPage(browser, { path: "/", viewport: desktop, flow: verifyThreeCoinTransactionSemantics, label: "Desktop Three Coin → commit/reveal/cancel semantics" });
     await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → completed cast → auth-before-reveal" });
     await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → V1 result/reset" });
-    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → V1 result/reset" });
+    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → four-step locked cast", skipQuestion: false });
 
     await runPage(browser, { path: "/", viewport: mobile, flow: finishThreeCoin, label: "375px homepage → Three Coin → auth-before-reveal" });
     await runPage(browser, { path: "/methods/yarrow-stalks", viewport: mobile, flow: (page) => finishYarrow(page, false), label: "375px Yarrow → V1 result" });
-    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → V1 result" });
+    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → four-step locked cast", skipQuestion: false });
 
     for (const viewport of [{ width: 320, height: 800 }, { width: 390, height: 844 }]) {
       await runPage(browser, {
