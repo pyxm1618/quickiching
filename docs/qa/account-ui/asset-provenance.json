@@ -1,0 +1,101 @@
+{
+  "source_archive_sha256": "bdb174573401e0c5a5478bc68213b95c4603e5fb0d994f85f76bc8229623b2cb",
+  "source_reference": "Final My Account PNG, 1536 x 1024, supplied by user on 2026-10-29",
+  "authorization": "User explicitly authorized extraction of decoration-only pixels; no dynamic text may be rasterized.",
+  "assets": [
+    {
+      "path": "public/account/antique-coins-clean.png",
+      "sha256": "ae7b93ff7aec871d90c5b7c918b0c51d36e03bf06e0e4b09dfb9cd7ed0914d2f",
+      "source_crop_xyxy": null,
+      "processing": "Unmodified supplied transparent PNG"
+    },
+    {
+      "path": "public/account/cloud-flourish.png",
+      "sha256": "1a91ccb818fb3b90aeb8ef7276cf2cc73913f741fe02bd7c40eb0cb96eeaee8b",
+      "source_crop_xyxy": [
+        476,
+        198,
+        579,
+        244
+      ],
+      "processing": "Decoration-only crop; paper border center is transparent; landscape edges feathered; cloud background alpha-isolated"
+    },
+    {
+      "path": "public/account/dark-landscape.png",
+      "sha256": "bef01ac501abae5b07c4de40442e2428f26c196a0998143d971c9c01b0729c56",
+      "source_crop_xyxy": [
+        370,
+        136,
+        574,
+        198
+      ],
+      "processing": "Decoration-only crop; no text"
+    },
+    {
+      "path": "public/account/frame-corner.png",
+      "sha256": "b38a92d4a5bb6b54885dccf27aae962f1d694e9a0784b30052458057a228912f",
+      "source_crop_xyxy": [
+        353,
+        119,
+        392,
+        154
+      ],
+      "processing": "Decoration-only crop; no text"
+    },
+    {
+      "path": "public/account/gold-knot.png",
+      "sha256": "61b22debd51a5dcedb04cbaff04f924768e89a0f7cabcf2e99a2872204f9a8b1",
+      "source_crop_xyxy": [
+        398,
+        449,
+        432,
+        484
+      ],
+      "processing": "Decoration-only crop; no text"
+    },
+    {
+      "path": "public/account/ink-knot.png",
+      "sha256": "41d56a2a49542c44e5a605cfca3250f7e001e98b07f9ca59bbf43595d1bb62b2",
+      "source_crop_xyxy": [
+        397,
+        304,
+        435,
+        340
+      ],
+      "processing": "Decoration-only crop; no text"
+    },
+    {
+      "path": "public/account/paper-border.png",
+      "sha256": "229b71ff83d65a03c5a9661e503c74811d6ce40785a348b40b1673c1b3a27883",
+      "source_crop_xyxy": [
+        370,
+        286,
+        1154,
+        425
+      ],
+      "processing": "Decoration-only crop; paper border center is transparent; landscape edges feathered; cloud background alpha-isolated"
+    },
+    {
+      "path": "public/account/paper-landscape.png",
+      "sha256": "1facaed00ff67791a0f299091a0e9507105484d205bb2482b737e1baaa8acead",
+      "source_crop_xyxy": [
+        910,
+        297,
+        1138,
+        414
+      ],
+      "processing": "Decoration-only crop; paper border center is transparent; landscape edges feathered; cloud background alpha-isolated"
+    },
+    {
+      "path": "public/account/paper-texture.png",
+      "sha256": "5a1c0765da162c8bc2bef480d49cc43a59fb87f2ebafd59d7867f5c609041296",
+      "source_crop_xyxy": [
+        792,
+        299,
+        906,
+        340
+      ],
+      "processing": "Decoration-only crop; no text"
+    }
+  ]
+}

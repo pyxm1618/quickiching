@@ -12,6 +12,8 @@ export function RefundRequestControl(props: {
   orderStatus: string;
   existingRefund: ExistingRefund | null;
   locale?: "en" | "zh-Hans";
+  presentation?: "modal";
+  onRecorded?: () => void;
 }) {
   const zh = props.locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
@@ -47,6 +49,7 @@ export function RefundRequestControl(props: {
       };
       setResult(next);
       setReason("");
+      props.onRecorded?.();
       router.refresh();
     } catch {
       setError(t("Refund request could not be recorded. No refund has been issued; please try again.", "退款申请未能记录，也没有发出退款，请重试。"));
@@ -68,11 +71,13 @@ export function RefundRequestControl(props: {
   }
 
   return (
-    <div className="mt-3 rounded-md border border-[var(--line)] p-3">
+    <div className={props.presentation === "modal" ? "qic-account-refund-form" : "mt-3 rounded-md border border-[var(--line)] p-3"}>
+      {props.presentation !== "modal" && <>
       <p className="text-sm font-medium">{t("Request a refund", "申请退款")}</p>
       <p className="mt-1 text-xs leading-5 text-[var(--ink-3)]">
         {t("Requests must be submitted within 7 days. Submission starts review only; it does not issue a refund automatically.", "退款申请须在购买后 7 天内提交。提交只会进入审核流程，不会自动发出退款。")}
       </p>
+      </>}
       <label className="mt-3 block text-xs font-medium" htmlFor={`refund-reason-${props.orderId}`}>
         {t("Reason", "退款原因")}
       </label>
@@ -91,7 +96,7 @@ export function RefundRequestControl(props: {
         disabled={!reason.trim() || submitting}
         onClick={submitRefundRequest}
       >
-        {submitting ? t("Submitting…", "正在提交…") : t("Submit for manual review", "提交人工审核")}
+        {submitting ? t("Submitting…", "正在提交…") : t("Submit for Manual Review", "提交人工审核")}
       </Button>
       {error && <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
     </div>
