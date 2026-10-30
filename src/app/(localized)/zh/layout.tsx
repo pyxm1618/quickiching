@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { SITE_ORIGIN } from "@/lib/seo";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
-import { localizedFontVariableClassNames } from "../../fonts";
+import { localizedFontVariableClassNames } from "../../localized-fonts";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),

@@ -31,6 +31,10 @@ for (const device of ['Desktop', 'Mobile']) {
 }
 // Includes inherited client layout chunks as well as page chunks; measured compressed build bytes.
 const build = JSON.parse(await readFile('.next/app-build-manifest.json', 'utf8')).pages;
+// Chinese-only font declarations must not block the English initial layout.
+const layoutCss = async route => (await Promise.all(build[route].filter(path => path.endsWith('.css')).map(path => readFile(`.next/${path}`, 'utf8')))).join('\n');
+assert(!(await layoutCss('/(default)/layout')).includes('Noto Serif SC'), 'English layout ships Chinese font CSS');
+assert((await layoutCss('/(localized)/zh/layout')).includes('Noto Serif SC'), 'Chinese layout lost its existing font');
 for (const route of ['/(default)/page', '/(default)/methods/three-coin/page', '/(default)/readings/three-coin/result/page', '/(default)/hexagrams/page', '/(default)/hexagrams/[slug]/page', '/(default)/my-readings/page', '/(localized)/zh/hexagrams/page', '/(localized)/zh/hexagrams/[slug]/page']) {
   assert(build[route], `Missing page manifest: ${route}`);
   const layout = route.startsWith('/(localized)') ? '/(localized)/zh/layout' : '/(default)/layout';

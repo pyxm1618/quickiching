@@ -1,4 +1,4 @@
-import { Fraunces, IBM_Plex_Mono, Instrument_Sans, Noto_Serif_SC } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -31,21 +31,9 @@ const ibmPlexMonoSecondary = IBM_Plex_Mono({
   preload: false,
 });
 
-const notoSerifSC = Noto_Serif_SC({
-  variable: "--font-noto-sc",
-  weight: "variable",
-  display: "swap",
-  preload: false,
-});
-
 export const fontVariableClassNames = [
   fraunces.variable,
   instrumentSans.variable,
   ibmPlexMono.variable,
   ibmPlexMonoSecondary.variable,
-].join(" ");
-
-export const localizedFontVariableClassNames = [
-  fontVariableClassNames,
-  notoSerifSC.variable,
 ].join(" ");

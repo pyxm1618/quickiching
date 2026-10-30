@@ -3,15 +3,15 @@
   "environment": {
     "node": "v22.23.2",
     "browser": "Chrome/156.0.8078.48",
-    "buildId": "NuG9B5bnPghz00gZQr7wq",
+    "buildId": "1lc6UTJ4d2Zm4uu4B0lvE",
     "base": "http://127.0.0.1:3046",
     "simulation": "Lighthouse mobile/desktop defaults; no throttling overrides"
   },
   "coverage": {
     "originalTotal": 18,
-    "pass": 12,
+    "pass": 11,
     "deferred": 2,
-    "reject": 4,
+    "reject": 5,
     "unknown": 0
   },
   "rows": [
@@ -32,43 +32,43 @@
         ]
       },
       "after": {
-        "performance": 88,
-        "lcp": 3854.897099999999,
+        "performance": 91,
+        "lcp": 3404.8562,
         "cls": 0,
         "tbt": 0,
         "imageBytes": 148944,
-        "scriptBytes": 251047,
+        "scriptBytes": 219380,
         "maxImageBytes": 59887
       },
       "samples": [
         {
-          "performance": 88,
-          "lcp": 3810.154,
+          "performance": 91,
+          "lcp": 3404.8562,
           "cls": 0,
-          "tbt": 7,
+          "tbt": 9.5,
           "imageBytes": 148944,
-          "scriptBytes": 251047
+          "scriptBytes": 219380
         },
         {
-          "performance": 88,
-          "lcp": 3854.897099999999,
+          "performance": 91,
+          "lcp": 3519.522749999999,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 148944,
-          "scriptBytes": 251047
+          "scriptBytes": 219380
         },
         {
-          "performance": 88,
-          "lcp": 3875.9977,
+          "performance": 92,
+          "lcp": 3369.785599999999,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 148944,
-          "scriptBytes": 251047
+          "scriptBytes": 219380
         }
       ],
       "lcpRange": [
-        3810.154,
-        3875.9977
+        3369.785599999999,
+        3519.522749999999
       ],
       "firstLoadJsBefore": "174 kB",
       "firstLoadJsAfter": "174 kB",
@@ -279,9 +279,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 56.01500004529953,
-          "networkRequestTime": 57.11699998378754,
-          "networkEndTime": 68.83499997854233,
+          "rendererStartTime": 66.82400000095367,
+          "networkRequestTime": 67.31000000238419,
+          "networkEndTime": 77.12299996614456,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -298,9 +298,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 56.96900004148483,
-          "networkRequestTime": 57.26300001144409,
-          "networkEndTime": 68.19100004434586,
+          "rendererStartTime": 67.2030000090599,
+          "networkRequestTime": 67.39599996805191,
+          "networkEndTime": 77.43999999761581,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -317,9 +317,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 57.00199997425079,
-          "networkRequestTime": 57.48300004005432,
-          "networkEndTime": 76.06400001049042,
+          "rendererStartTime": 67.23199999332428,
+          "networkRequestTime": 67.55500000715256,
+          "networkEndTime": 78.97899997234344,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -336,9 +336,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 57.028999984264374,
-          "networkRequestTime": 57.60299998521805,
-          "networkEndTime": 88.68099999427795,
+          "rendererStartTime": 67.25499999523163,
+          "networkRequestTime": 67.783999979496,
+          "networkEndTime": 90.1579999923706,
           "finished": true,
           "transferSize": 24818,
           "resourceSize": 23704,
@@ -370,42 +370,42 @@
       },
       "after": {
         "performance": 100,
-        "lcp": 1359.0908,
+        "lcp": 1058.5271,
         "cls": 0,
         "tbt": 0,
         "imageBytes": 3091,
-        "scriptBytes": 249443,
+        "scriptBytes": 217776,
         "maxImageBytes": 3091
       },
       "samples": [
         {
           "performance": 100,
-          "lcp": 1359.0908,
+          "lcp": 1058.5271,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 3091,
-          "scriptBytes": 249443
+          "scriptBytes": 217776
         },
         {
           "performance": 100,
-          "lcp": 1358.9436,
+          "lcp": 1058.4047,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 3091,
-          "scriptBytes": 249443
+          "scriptBytes": 217776
         },
         {
           "performance": 100,
-          "lcp": 1359.6642,
+          "lcp": 1058.9808,
           "cls": 0,
-          "tbt": 0,
+          "tbt": 2.5,
           "imageBytes": 3091,
-          "scriptBytes": 249443
+          "scriptBytes": 217776
         }
       ],
       "lcpRange": [
-        1358.9436,
-        1359.6642
+        1058.4047,
+        1058.9808
       ],
       "firstLoadJsBefore": "173 kB",
       "firstLoadJsAfter": "174 kB",
@@ -424,7 +424,7 @@
           "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
           "transferSize": 3091,
           "resourceSize": 2488,
-          "priority": "Low"
+          "priority": "High"
         }
       ],
       "fontsBefore": [
@@ -568,9 +568,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 20.721999943256378,
-          "networkRequestTime": 20.942000031471252,
-          "networkEndTime": 25.426999986171722,
+          "rendererStartTime": 26.667999982833862,
+          "networkRequestTime": 26.893999993801117,
+          "networkEndTime": 31.455999970436096,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -587,9 +587,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 20.835000038146973,
-          "networkRequestTime": 21.026999950408936,
-          "networkEndTime": 26.384999990463257,
+          "rendererStartTime": 26.774999976158142,
+          "networkRequestTime": 26.978999972343445,
+          "networkEndTime": 33.156999945640564,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -606,9 +606,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 20.85699999332428,
-          "networkRequestTime": 21.188999950885773,
-          "networkEndTime": 29.837000012397766,
+          "rendererStartTime": 26.799999952316284,
+          "networkRequestTime": 27.134999990463257,
+          "networkEndTime": 34.671999990940094,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -639,46 +639,46 @@
         ]
       },
       "after": {
-        "performance": 99,
-        "lcp": 1360.4353,
+        "performance": 100,
+        "lcp": 1060.3227,
         "cls": 0.0530023075935033,
-        "tbt": 0,
+        "tbt": 0.5,
         "imageBytes": 197123,
-        "scriptBytes": 248294,
+        "scriptBytes": 235989,
         "maxImageBytes": 134145
       },
       "samples": [
         {
-          "performance": 99,
-          "lcp": 1360.74,
+          "performance": 100,
+          "lcp": 1064.2607,
           "cls": 0.0530023075935033,
-          "tbt": 0,
+          "tbt": 0.5,
           "imageBytes": 197123,
-          "scriptBytes": 248294
+          "scriptBytes": 235989
         },
         {
-          "performance": 99,
-          "lcp": 1360.4353,
+          "performance": 100,
+          "lcp": 1060.3227,
           "cls": 0.0530023075935033,
-          "tbt": 0,
+          "tbt": 0.5,
           "imageBytes": 197123,
-          "scriptBytes": 248294
+          "scriptBytes": 235989
         },
         {
-          "performance": 99,
-          "lcp": 1359.9439,
+          "performance": 100,
+          "lcp": 1058.7333,
           "cls": 0.0530023075935033,
-          "tbt": 0,
+          "tbt": 2.5,
           "imageBytes": 197123,
-          "scriptBytes": 248294
+          "scriptBytes": 235989
         }
       ],
       "lcpRange": [
-        1359.9439,
-        1360.74
+        1058.7333,
+        1064.2607
       ],
       "firstLoadJsBefore": "186 kB",
-      "firstLoadJsAfter": "186 kB",
+      "firstLoadJsAfter": "185 kB",
       "status": "PASS",
       "baselineRuntime": "Node 22.23.2 pinned baseline",
       "imagesBefore": [
@@ -706,7 +706,7 @@
           "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
           "transferSize": 3091,
           "resourceSize": 2488,
-          "priority": "Low"
+          "priority": "High"
         },
         {
           "url": "http://127.0.0.1:3046/performance/resultMobile.b62092713b0e63f0.webp",
@@ -862,9 +862,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 30.414000034332275,
-          "networkRequestTime": 30.623000025749207,
-          "networkEndTime": 35.341000020504,
+          "rendererStartTime": 51.33899998664856,
+          "networkRequestTime": 51.555999994277954,
+          "networkEndTime": 55.967000007629395,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -881,9 +881,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 30.52000004053116,
-          "networkRequestTime": 30.92600005865097,
-          "networkEndTime": 36.550000071525574,
+          "rendererStartTime": 51.462000012397766,
+          "networkRequestTime": 51.63800001144409,
+          "networkEndTime": 56.589999973773956,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -900,9 +900,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 30.541000068187714,
-          "networkRequestTime": 31.06500005722046,
-          "networkEndTime": 36.76100009679794,
+          "rendererStartTime": 51.494000017642975,
+          "networkRequestTime": 51.800999999046326,
+          "networkEndTime": 60.3759999871254,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -933,43 +933,43 @@
         ]
       },
       "after": {
-        "performance": 82,
-        "lcp": 4448.861600000001,
+        "performance": 85,
+        "lcp": 4001.580125,
         "cls": 0.0911300121506683,
         "tbt": 0,
         "imageBytes": 437645,
-        "scriptBytes": 230084,
+        "scriptBytes": 167614,
         "maxImageBytes": 191983
       },
       "samples": [
         {
-          "performance": 84,
-          "lcp": 4102.4339,
+          "performance": 82,
+          "lcp": 4596.6834,
           "cls": 0.0911300121506683,
           "tbt": 0,
           "imageBytes": 437645,
-          "scriptBytes": 230084
+          "scriptBytes": 167614
         },
         {
-          "performance": 82,
-          "lcp": 4448.861600000001,
+          "performance": 85,
+          "lcp": 4001.580125,
           "cls": 0.0911300121506683,
           "tbt": 0,
           "imageBytes": 437645,
-          "scriptBytes": 230084
+          "scriptBytes": 167614
         },
         {
-          "performance": 82,
-          "lcp": 4520.411250000001,
+          "performance": 89,
+          "lcp": 3422.28975,
           "cls": 0.0911300121506683,
-          "tbt": 0,
+          "tbt": 0.5,
           "imageBytes": 437645,
-          "scriptBytes": 230084
+          "scriptBytes": 167614
         }
       ],
       "lcpRange": [
-        4102.4339,
-        4520.411250000001
+        3422.28975,
+        4596.6834
       ],
       "firstLoadJsBefore": "131 kB",
       "firstLoadJsAfter": "131 kB",
@@ -1012,19 +1012,19 @@
           "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
           "transferSize": 3091,
           "resourceSize": 2488,
-          "priority": "Low"
+          "priority": "High"
         },
         {
           "url": "http://127.0.0.1:3046/_next/image?url=%2Fhexagrams%2Fhero.png&w=750&q=90",
           "transferSize": 110786,
           "resourceSize": 110200,
-          "priority": "Low"
+          "priority": "High"
         },
         {
           "url": "http://127.0.0.1:3046/_next/image?url=%2Fhexagrams%2Fscroll-grid.png&w=640&q=90",
           "transferSize": 64430,
           "resourceSize": 63838,
-          "priority": "Low"
+          "priority": "High"
         },
         {
           "url": "http://127.0.0.1:3046/performance/platformMobile.5ee9b24ef7aa3211.webp",
@@ -1036,7 +1036,7 @@
           "url": "http://127.0.0.1:3046/_next/image?url=%2Fhexagrams%2Fcard-frame.png&w=384&q=90",
           "transferSize": 67355,
           "resourceSize": 66764,
-          "priority": "Low"
+          "priority": "High"
         }
       ],
       "fontsBefore": [
@@ -1161,9 +1161,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 27.83399999141693,
-          "networkRequestTime": 28.07200002670288,
-          "networkEndTime": 31.769999980926514,
+          "rendererStartTime": 33.594999969005585,
+          "networkRequestTime": 33.84799998998642,
+          "networkEndTime": 36.142999947071075,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -1180,9 +1180,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 27.948000013828278,
-          "networkRequestTime": 28.156000018119812,
-          "networkEndTime": 32.74300003051758,
+          "rendererStartTime": 33.717000007629395,
+          "networkRequestTime": 33.93900001049042,
+          "networkEndTime": 41.59299999475479,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -1199,9 +1199,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 27.97599995136261,
-          "networkRequestTime": 28.32499998807907,
-          "networkEndTime": 36.648999989032745,
+          "rendererStartTime": 33.74299997091293,
+          "networkRequestTime": 34.11500000953674,
+          "networkEndTime": 41.64699995517731,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -1218,9 +1218,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 51.88400000333786,
-          "networkRequestTime": 52.973999977111816,
-          "networkEndTime": 58.533999979496,
+          "rendererStartTime": 53.64099997282028,
+          "networkRequestTime": 71.35799998044968,
+          "networkEndTime": 76.85600000619888,
           "finished": true,
           "transferSize": 11234,
           "resourceSize": 10120,
@@ -1236,9 +1236,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 52.287999987602234,
-          "networkRequestTime": 53.02799999713898,
-          "networkEndTime": 58.70200002193451,
+          "rendererStartTime": 54.02099996805191,
+          "networkRequestTime": 71.42499995231628,
+          "networkEndTime": 76.7030000090599,
           "finished": true,
           "transferSize": 11174,
           "resourceSize": 10060,
@@ -1268,43 +1268,43 @@
         ]
       },
       "after": {
-        "performance": 90,
-        "lcp": 3596.1620000000003,
+        "performance": 93,
+        "lcp": 3216.0878,
         "cls": 0,
-        "tbt": 0.5,
+        "tbt": 0,
         "imageBytes": 148420,
-        "scriptBytes": 214457,
+        "scriptBytes": 158997,
         "maxImageBytes": 32739
       },
       "samples": [
         {
-          "performance": 90,
-          "lcp": 3596.1620000000003,
-          "cls": 0,
-          "tbt": 0.5,
-          "imageBytes": 148420,
-          "scriptBytes": 214457
-        },
-        {
-          "performance": 90,
-          "lcp": 3598.6580000000004,
-          "cls": 0,
-          "tbt": 1,
-          "imageBytes": 148420,
-          "scriptBytes": 214457
-        },
-        {
-          "performance": 90,
-          "lcp": 3588.2358,
+          "performance": 93,
+          "lcp": 3218.640950000001,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 148420,
-          "scriptBytes": 214457
+          "scriptBytes": 158997
+        },
+        {
+          "performance": 93,
+          "lcp": 3216.0878,
+          "cls": 0,
+          "tbt": 0.5,
+          "imageBytes": 148420,
+          "scriptBytes": 158997
+        },
+        {
+          "performance": 93,
+          "lcp": 3215.2043000000003,
+          "cls": 0,
+          "tbt": 0,
+          "imageBytes": 148420,
+          "scriptBytes": 158997
         }
       ],
       "lcpRange": [
-        3588.2358,
-        3598.6580000000004
+        3215.2043000000003,
+        3218.640950000001
       ],
       "firstLoadJsBefore": "107 kB",
       "firstLoadJsAfter": "107 kB",
@@ -1580,9 +1580,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 9.569999992847443,
-          "networkRequestTime": 9.800999999046326,
-          "networkEndTime": 14.486999988555908,
+          "rendererStartTime": 22.357999980449677,
+          "networkRequestTime": 22.60599994659424,
+          "networkEndTime": 26.915999948978424,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -1599,9 +1599,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 9.682999968528748,
-          "networkRequestTime": 9.888999998569489,
-          "networkEndTime": 15.546000003814697,
+          "rendererStartTime": 22.474999964237213,
+          "networkRequestTime": 22.703999936580658,
+          "networkEndTime": 27.63400000333786,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -1618,9 +1618,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 9.707000017166138,
-          "networkRequestTime": 10.060999989509583,
-          "networkEndTime": 19.14800000190735,
+          "rendererStartTime": 22.503000020980835,
+          "networkRequestTime": 22.90200001001358,
+          "networkEndTime": 29.852999985218048,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -1652,26 +1652,26 @@
       },
       "after": {
         "performance": 100,
-        "lcp": 1508.2693,
+        "lcp": 1508.671,
         "cls": 0,
-        "tbt": 0,
+        "tbt": 4.5,
         "imageBytes": 3091,
-        "scriptBytes": 253138,
+        "scriptBytes": 221684,
         "maxImageBytes": 3091
       },
       "samples": [
         {
           "performance": 100,
-          "lcp": 1508.2693,
+          "lcp": 1508.671,
           "cls": 0,
-          "tbt": 0,
+          "tbt": 4.5,
           "imageBytes": 3091,
-          "scriptBytes": 253138
+          "scriptBytes": 221684
         }
       ],
       "lcpRange": [
-        1508.2693,
-        1508.2693
+        1508.671,
+        1508.671
       ],
       "firstLoadJsBefore": "107 kB",
       "firstLoadJsAfter": "107 kB",
@@ -1834,9 +1834,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 23.514999985694885,
-          "networkRequestTime": 23.751999974250793,
-          "networkEndTime": 27.883000016212463,
+          "rendererStartTime": 12.05299997329712,
+          "networkRequestTime": 12.27700001001358,
+          "networkEndTime": 15.384999990463257,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -1853,9 +1853,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 23.623000025749207,
-          "networkRequestTime": 23.86599999666214,
-          "networkEndTime": 27.932999968528748,
+          "rendererStartTime": 12.162999927997589,
+          "networkRequestTime": 12.393999934196472,
+          "networkEndTime": 21.937999963760376,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -1872,9 +1872,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 23.655000030994415,
-          "networkRequestTime": 24.057999968528748,
-          "networkEndTime": 31.533999979496002,
+          "rendererStartTime": 12.184000015258789,
+          "networkRequestTime": 12.578999996185303,
+          "networkEndTime": 22.259999990463257,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -1891,9 +1891,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 124.74300003051758,
-          "networkRequestTime": 124.93299996852875,
-          "networkEndTime": 128.54100000858307,
+          "rendererStartTime": 117.05199992656708,
+          "networkRequestTime": 117.30599999427795,
+          "networkEndTime": 121.57299995422363,
           "finished": true,
           "transferSize": 24818,
           "resourceSize": 23704,
@@ -1925,26 +1925,26 @@
       },
       "after": {
         "performance": 100,
-        "lcp": 1506.7763,
+        "lcp": 1511.8298,
         "cls": 0,
         "tbt": 0,
         "imageBytes": 3091,
-        "scriptBytes": 215875,
+        "scriptBytes": 160628,
         "maxImageBytes": 3091
       },
       "samples": [
         {
           "performance": 100,
-          "lcp": 1506.7763,
+          "lcp": 1511.8298,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 3091,
-          "scriptBytes": 215875
+          "scriptBytes": 160628
         }
       ],
       "lcpRange": [
-        1506.7763,
-        1506.7763
+        1511.8298,
+        1511.8298
       ],
       "firstLoadJsBefore": "107 kB",
       "firstLoadJsAfter": "107 kB",
@@ -1963,7 +1963,7 @@
           "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
           "transferSize": 3091,
           "resourceSize": 2488,
-          "priority": "Low"
+          "priority": "High"
         }
       ],
       "fontsBefore": [
@@ -2107,9 +2107,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 25.22000002861023,
-          "networkRequestTime": 25.457000017166138,
-          "networkEndTime": 28.343000054359436,
+          "rendererStartTime": 7.124000012874603,
+          "networkRequestTime": 7.346000015735626,
+          "networkEndTime": 10.876000046730042,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -2126,9 +2126,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 25.33399999141693,
-          "networkRequestTime": 25.5450000166893,
-          "networkEndTime": 31.484000027179718,
+          "rendererStartTime": 7.234000027179718,
+          "networkRequestTime": 7.435000061988831,
+          "networkEndTime": 16.602000057697296,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -2145,9 +2145,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 25.368000030517578,
-          "networkRequestTime": 25.719000041484833,
-          "networkEndTime": 31.4310000538826,
+          "rendererStartTime": 7.257000029087067,
+          "networkRequestTime": 7.602000057697296,
+          "networkEndTime": 23.14900004863739,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -2179,27 +2179,27 @@
         "scriptBytes": 248957
       },
       "after": {
-        "performance": 89,
-        "lcp": 3744.50975,
+        "performance": 92,
+        "lcp": 3367.1180000000013,
         "cls": 0,
         "tbt": 0,
         "imageBytes": 149084,
-        "scriptBytes": 251047,
+        "scriptBytes": 235708,
         "maxImageBytes": 59887
       },
       "samples": [
         {
-          "performance": 89,
-          "lcp": 3744.50975,
+          "performance": 92,
+          "lcp": 3367.1180000000013,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 149084,
-          "scriptBytes": 251047
+          "scriptBytes": 235708
         }
       ],
       "lcpRange": [
-        3744.50975,
-        3744.50975
+        3367.1180000000013,
+        3367.1180000000013
       ],
       "firstLoadJsBefore": "174 kB",
       "firstLoadJsAfter": "174 kB",
@@ -2272,7 +2272,7 @@
           "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=64&q=75",
           "transferSize": 3091,
           "resourceSize": 2488,
-          "priority": "Low"
+          "priority": "High"
         },
         {
           "url": "http://127.0.0.1:3046/performance/questionMobile.aeacbe5208415e49.webp",
@@ -2470,9 +2470,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 19.612999975681305,
-          "networkRequestTime": 19.834999978542328,
-          "networkEndTime": 24.198000013828278,
+          "rendererStartTime": 7.986999988555908,
+          "networkRequestTime": 8.229999959468842,
+          "networkEndTime": 13.02099996805191,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -2489,9 +2489,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 19.73499995470047,
-          "networkRequestTime": 19.923999965190887,
-          "networkEndTime": 25.15499997138977,
+          "rendererStartTime": 8.099999964237213,
+          "networkRequestTime": 8.322999954223633,
+          "networkEndTime": 13.890999972820282,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -2508,9 +2508,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 19.760999977588654,
-          "networkRequestTime": 20.087999939918518,
-          "networkEndTime": 28.45799994468689,
+          "rendererStartTime": 8.126999974250793,
+          "networkRequestTime": 8.490999937057495,
+          "networkEndTime": 15.246999979019165,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -2527,9 +2527,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 19.781999945640564,
-          "networkRequestTime": 20.212999999523163,
-          "networkEndTime": 32.79000002145767,
+          "rendererStartTime": 8.149999976158142,
+          "networkRequestTime": 8.599999964237213,
+          "networkEndTime": 20.39800000190735,
           "finished": true,
           "transferSize": 24818,
           "resourceSize": 23704,
@@ -2561,26 +2561,26 @@
       },
       "after": {
         "performance": 95,
-        "lcp": 1579.801,
+        "lcp": 1500.8678,
         "cls": 0,
         "tbt": 0,
         "imageBytes": 910218,
-        "scriptBytes": 286838,
+        "scriptBytes": 247489,
         "maxImageBytes": 370985
       },
       "samples": [
         {
           "performance": 95,
-          "lcp": 1579.801,
+          "lcp": 1500.8678,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 910218,
-          "scriptBytes": 286838
+          "scriptBytes": 247489
         }
       ],
       "lcpRange": [
-        1579.801,
-        1579.801
+        1500.8678,
+        1500.8678
       ],
       "firstLoadJsBefore": "174 kB",
       "firstLoadJsAfter": "174 kB",
@@ -2791,9 +2791,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 5.394999980926514,
-          "networkRequestTime": 5.630999982357025,
-          "networkEndTime": 10.486999988555908,
+          "rendererStartTime": 5.241000056266785,
+          "networkRequestTime": 5.444000005722046,
+          "networkEndTime": 9.712999999523163,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -2810,9 +2810,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 5.50900000333786,
-          "networkRequestTime": 5.777999997138977,
-          "networkEndTime": 11.893999993801117,
+          "rendererStartTime": 5.343999981880188,
+          "networkRequestTime": 5.525999963283539,
+          "networkEndTime": 10.962000012397766,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -2829,9 +2829,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 5.532000005245209,
-          "networkRequestTime": 5.933999955654144,
-          "networkEndTime": 14.153999984264374,
+          "rendererStartTime": 5.366999983787537,
+          "networkRequestTime": 5.706000030040741,
+          "networkEndTime": 12.32700002193451,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -2848,9 +2848,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 5.561999976634979,
-          "networkRequestTime": 6.035999953746796,
-          "networkEndTime": 20.79799997806549,
+          "rendererStartTime": 5.388000011444092,
+          "networkRequestTime": 5.805000007152557,
+          "networkEndTime": 16.267000019550323,
           "finished": true,
           "transferSize": 24818,
           "resourceSize": 23704,
@@ -2882,26 +2882,26 @@
       },
       "after": {
         "performance": 100,
-        "lcp": 329.36,
+        "lcp": 248.0546,
         "cls": 0,
         "tbt": 0,
         "imageBytes": 1446,
-        "scriptBytes": 285186,
+        "scriptBytes": 245837,
         "maxImageBytes": 1446
       },
       "samples": [
         {
           "performance": 100,
-          "lcp": 329.36,
+          "lcp": 248.0546,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 1446,
-          "scriptBytes": 285186
+          "scriptBytes": 245837
         }
       ],
       "lcpRange": [
-        329.36,
-        329.36
+        248.0546,
+        248.0546
       ],
       "firstLoadJsBefore": "173 kB",
       "firstLoadJsAfter": "174 kB",
@@ -3064,9 +3064,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 16.68400001525879,
-          "networkRequestTime": 16.935000002384186,
-          "networkEndTime": 19.13100004196167,
+          "rendererStartTime": 23.926999986171722,
+          "networkRequestTime": 24.14800000190735,
+          "networkEndTime": 29.076999962329865,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -3083,9 +3083,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 16.807000041007996,
-          "networkRequestTime": 17.024999976158142,
-          "networkEndTime": 24.587000012397766,
+          "rendererStartTime": 24.053999960422516,
+          "networkRequestTime": 24.227999985218048,
+          "networkEndTime": 29.12999999523163,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -3102,9 +3102,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 16.833000004291534,
-          "networkRequestTime": 17.175000071525574,
-          "networkEndTime": 24.675999999046326,
+          "rendererStartTime": 24.087999999523163,
+          "networkRequestTime": 24.383000016212463,
+          "networkEndTime": 33.13899999856949,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -3135,31 +3135,31 @@
         ]
       },
       "after": {
-        "performance": 100,
-        "lcp": 328.3944,
+        "performance": 93,
+        "lcp": 1731.2667999999994,
         "cls": 0.05453112687155241,
         "tbt": 0,
         "imageBytes": 1088128,
-        "scriptBytes": 305668,
+        "scriptBytes": 285681,
         "maxImageBytes": 629847
       },
       "samples": [
         {
-          "performance": 100,
-          "lcp": 328.3944,
+          "performance": 93,
+          "lcp": 1731.2667999999994,
           "cls": 0.05453112687155241,
           "tbt": 0,
           "imageBytes": 1088128,
-          "scriptBytes": 305668
+          "scriptBytes": 285681
         }
       ],
       "lcpRange": [
-        328.3944,
-        328.3944
+        1731.2667999999994,
+        1731.2667999999994
       ],
       "firstLoadJsBefore": "186 kB",
-      "firstLoadJsAfter": "186 kB",
-      "status": "PASS",
+      "firstLoadJsAfter": "185 kB",
+      "status": "FAIL",
       "baselineRuntime": "Node 22.23.2 pinned baseline",
       "imagesBefore": [
         {
@@ -3354,9 +3354,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 30.532999992370605,
-          "networkRequestTime": 30.74599999189377,
-          "networkEndTime": 36.062999963760376,
+          "rendererStartTime": 28.47299998998642,
+          "networkRequestTime": 28.67500001192093,
+          "networkEndTime": 31.246000051498413,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -3373,9 +3373,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 30.637999951839447,
-          "networkRequestTime": 30.830999970436096,
-          "networkEndTime": 38.444000005722046,
+          "rendererStartTime": 28.576000034809113,
+          "networkRequestTime": 28.753000020980835,
+          "networkEndTime": 36.28700000047684,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -3392,9 +3392,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 30.671000003814697,
-          "networkRequestTime": 31.125999987125397,
-          "networkEndTime": 42.36100000143051,
+          "rendererStartTime": 28.605000019073486,
+          "networkRequestTime": 29.03600001335144,
+          "networkEndTime": 36.36900007724762,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -3426,26 +3426,26 @@
       },
       "after": {
         "performance": 99,
-        "lcp": 854.1175249999998,
+        "lcp": 704.5917499999999,
         "cls": 0.05555555555555555,
         "tbt": 0,
         "imageBytes": 631874,
-        "scriptBytes": 263485,
+        "scriptBytes": 224808,
         "maxImageBytes": 322310
       },
       "samples": [
         {
           "performance": 99,
-          "lcp": 854.1175249999998,
+          "lcp": 704.5917499999999,
           "cls": 0.05555555555555555,
           "tbt": 0,
           "imageBytes": 631874,
-          "scriptBytes": 263485
+          "scriptBytes": 224808
         }
       ],
       "lcpRange": [
-        854.1175249999998,
-        854.1175249999998
+        704.5917499999999,
+        704.5917499999999
       ],
       "firstLoadJsBefore": "131 kB",
       "firstLoadJsAfter": "131 kB",
@@ -3512,7 +3512,7 @@
           "url": "http://127.0.0.1:3046/_next/image?url=%2Fhexagrams%2Fcard-frame.png&w=256&q=90",
           "transferSize": 32591,
           "resourceSize": 32000,
-          "priority": "High"
+          "priority": "Low"
         }
       ],
       "fontsBefore": [
@@ -3656,9 +3656,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 12.901000022888184,
-          "networkRequestTime": 13.129000008106232,
-          "networkEndTime": 18.0110000371933,
+          "rendererStartTime": 16.84500002861023,
+          "networkRequestTime": 17.06300002336502,
+          "networkEndTime": 21.397000014781952,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -3675,9 +3675,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 13.008000016212463,
-          "networkRequestTime": 13.231000006198883,
-          "networkEndTime": 18.06599998474121,
+          "rendererStartTime": 16.958000004291534,
+          "networkRequestTime": 17.150000035762787,
+          "networkEndTime": 26.057999968528748,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -3694,9 +3694,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 13.031000018119812,
-          "networkRequestTime": 13.42900002002716,
-          "networkEndTime": 22.368000030517578,
+          "rendererStartTime": 16.98300004005432,
+          "networkRequestTime": 17.312999963760376,
+          "networkEndTime": 25.530999958515167,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -3713,9 +3713,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 39.28700000047684,
-          "networkRequestTime": 40.37600004673004,
-          "networkEndTime": 42.78700000047684,
+          "rendererStartTime": 37.232000052928925,
+          "networkRequestTime": 38.60999995470047,
+          "networkEndTime": 42.06800001859665,
           "finished": true,
           "transferSize": 11234,
           "resourceSize": 10120,
@@ -3731,9 +3731,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 39.6710000038147,
-          "networkRequestTime": 40.446000039577484,
-          "networkEndTime": 42.905000030994415,
+          "rendererStartTime": 37.62000000476837,
+          "networkRequestTime": 38.65299999713898,
+          "networkEndTime": 42.16600000858307,
           "finished": true,
           "transferSize": 11174,
           "resourceSize": 10060,
@@ -3764,26 +3764,26 @@
       },
       "after": {
         "performance": 100,
-        "lcp": 797.3592,
+        "lcp": 651.7066,
         "cls": 0,
         "tbt": 0,
         "imageBytes": 345496,
-        "scriptBytes": 214457,
+        "scriptBytes": 158997,
         "maxImageBytes": 111124
       },
       "samples": [
         {
           "performance": 100,
-          "lcp": 797.3592,
+          "lcp": 651.7066,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 345496,
-          "scriptBytes": 214457
+          "scriptBytes": 158997
         }
       ],
       "lcpRange": [
-        797.3592,
-        797.3592
+        651.7066,
+        651.7066
       ],
       "firstLoadJsBefore": "107 kB",
       "firstLoadJsAfter": "107 kB",
@@ -3946,7 +3946,7 @@
           "url": "http://127.0.0.1:3046/hexagram-detail/delivery/scene-1024.avif",
           "transferSize": 80517,
           "resourceSize": 79420,
-          "priority": "High"
+          "priority": "Low"
         },
         {
           "url": "http://127.0.0.1:3046/hexagram-detail/delivery/landscape-200.avif",
@@ -4107,9 +4107,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 22.558000028133392,
-          "networkRequestTime": 22.771000027656555,
-          "networkEndTime": 27.70200002193451,
+          "rendererStartTime": 13.730000019073486,
+          "networkRequestTime": 13.93199998140335,
+          "networkEndTime": 18.78200000524521,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -4126,9 +4126,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 22.666999995708466,
-          "networkRequestTime": 22.865000009536743,
-          "networkEndTime": 27.5349999666214,
+          "rendererStartTime": 13.837000012397766,
+          "networkRequestTime": 14.016999959945679,
+          "networkEndTime": 18.83399999141693,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -4145,9 +4145,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 22.689000010490417,
-          "networkRequestTime": 23.03800004720688,
-          "networkEndTime": 29.012000024318695,
+          "rendererStartTime": 13.861000001430511,
+          "networkRequestTime": 14.17799997329712,
+          "networkEndTime": 19.41600000858307,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -4179,26 +4179,26 @@
       },
       "after": {
         "performance": 100,
-        "lcp": 368.116,
+        "lcp": 368.5134,
         "cls": 0,
         "tbt": 0,
         "imageBytes": 1446,
-        "scriptBytes": 272511,
+        "scriptBytes": 241057,
         "maxImageBytes": 1446
       },
       "samples": [
         {
           "performance": 100,
-          "lcp": 368.116,
+          "lcp": 368.5134,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 1446,
-          "scriptBytes": 272511
+          "scriptBytes": 241057
         }
       ],
       "lcpRange": [
-        368.116,
-        368.116
+        368.5134,
+        368.5134
       ],
       "firstLoadJsBefore": "107 kB",
       "firstLoadJsAfter": "107 kB",
@@ -4361,9 +4361,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 24.366999983787537,
-          "networkRequestTime": 24.574000000953674,
-          "networkEndTime": 27.671999990940094,
+          "rendererStartTime": 25.27600008249283,
+          "networkRequestTime": 25.482000052928925,
+          "networkEndTime": 27.87200003862381,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -4380,9 +4380,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 24.475000023841858,
-          "networkRequestTime": 24.657999992370605,
-          "networkEndTime": 32.09700000286102,
+          "rendererStartTime": 25.37700003385544,
+          "networkRequestTime": 25.564000010490417,
+          "networkEndTime": 32.29000002145767,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -4399,9 +4399,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 24.518999993801117,
-          "networkRequestTime": 24.819000005722046,
-          "networkEndTime": 32.04100000858307,
+          "rendererStartTime": 25.39900004863739,
+          "networkRequestTime": 25.718000054359436,
+          "networkEndTime": 32.245000064373016,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -4418,9 +4418,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 126.68800002336502,
-          "networkRequestTime": 126.78799998760223,
-          "networkEndTime": 136.42700004577637,
+          "rendererStartTime": 119.11500000953674,
+          "networkRequestTime": 119.2960000038147,
+          "networkEndTime": 124.07300001382828,
           "finished": true,
           "transferSize": 24818,
           "resourceSize": 23704,
@@ -4452,26 +4452,26 @@
       },
       "after": {
         "performance": 100,
-        "lcp": 367.7741,
+        "lcp": 367.3535,
         "cls": 0,
         "tbt": 0,
         "imageBytes": 1446,
-        "scriptBytes": 250694,
+        "scriptBytes": 219240,
         "maxImageBytes": 1446
       },
       "samples": [
         {
           "performance": 100,
-          "lcp": 367.7741,
+          "lcp": 367.3535,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 1446,
-          "scriptBytes": 250694
+          "scriptBytes": 219240
         }
       ],
       "lcpRange": [
-        367.7741,
-        367.7741
+        367.3535,
+        367.3535
       ],
       "firstLoadJsBefore": "107 kB",
       "firstLoadJsAfter": "107 kB",
@@ -4634,9 +4634,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 25.87999999523163,
-          "networkRequestTime": 26.084999978542328,
-          "networkEndTime": 28.383999943733215,
+          "rendererStartTime": 26.46799999475479,
+          "networkRequestTime": 26.76800000667572,
+          "networkEndTime": 30.621999979019165,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -4653,9 +4653,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 25.986999988555908,
-          "networkRequestTime": 26.169999957084656,
-          "networkEndTime": 32.898999989032745,
+          "rendererStartTime": 26.58399999141693,
+          "networkRequestTime": 26.899999976158142,
+          "networkEndTime": 31.533999979496002,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -4672,9 +4672,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 26.01199996471405,
-          "networkRequestTime": 26.330999970436096,
-          "networkEndTime": 32.86199998855591,
+          "rendererStartTime": 26.606000006198883,
+          "networkRequestTime": 27.080000042915344,
+          "networkEndTime": 34.61899995803833,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -4707,26 +4707,26 @@
       },
       "after": {
         "performance": 95,
-        "lcp": 1536.2484000000004,
+        "lcp": 1496.9642,
         "cls": 0,
         "tbt": 0,
         "imageBytes": 910386,
-        "scriptBytes": 286838,
+        "scriptBytes": 263817,
         "maxImageBytes": 370985
       },
       "samples": [
         {
           "performance": 95,
-          "lcp": 1536.2484000000004,
+          "lcp": 1496.9642,
           "cls": 0,
           "tbt": 0,
           "imageBytes": 910386,
-          "scriptBytes": 286838
+          "scriptBytes": 263817
         }
       ],
       "lcpRange": [
-        1536.2484000000004,
-        1536.2484000000004
+        1496.9642,
+        1496.9642
       ],
       "firstLoadJsBefore": "174 kB",
       "firstLoadJsAfter": "174 kB",
@@ -4805,7 +4805,7 @@
           "url": "http://127.0.0.1:3046/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
           "transferSize": 1446,
           "resourceSize": 844,
-          "priority": "Low"
+          "priority": "High"
         },
         {
           "url": "http://127.0.0.1:3046/performance/questionDesktop.d616c1d6e5957a79.png",
@@ -5009,9 +5009,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 5.125999987125397,
-          "networkRequestTime": 5.379999995231628,
-          "networkEndTime": 10.665000021457672,
+          "rendererStartTime": 5.285000026226044,
+          "networkRequestTime": 5.507999956607819,
+          "networkEndTime": 9.300999999046326,
           "finished": true,
           "transferSize": 31018,
           "resourceSize": 29904,
@@ -5028,9 +5028,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 5.23800003528595,
-          "networkRequestTime": 5.461999952793121,
-          "networkEndTime": 10.606000006198883,
+          "rendererStartTime": 5.388000011444092,
+          "networkRequestTime": 5.582000017166138,
+          "networkEndTime": 10.546000003814697,
           "finished": true,
           "transferSize": 37674,
           "resourceSize": 36560,
@@ -5047,9 +5047,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 5.262999951839447,
-          "networkRequestTime": 5.647000014781952,
-          "networkEndTime": 11.462999999523163,
+          "rendererStartTime": 5.409999966621399,
+          "networkRequestTime": 5.728000044822693,
+          "networkEndTime": 11.88100004196167,
           "finished": true,
           "transferSize": 11166,
           "resourceSize": 10052,
@@ -5066,9 +5066,9 @@
           "sessionTargetType": "page",
           "protocol": "http/1.1",
           "cache": "none",
-          "rendererStartTime": 5.285999953746796,
-          "networkRequestTime": 5.7639999985694885,
-          "networkEndTime": 18.22400003671646,
+          "rendererStartTime": 5.430999994277954,
+          "networkRequestTime": 5.824999988079071,
+          "networkEndTime": 15.630999982357025,
           "finished": true,
           "transferSize": 24818,
           "resourceSize": 23704,
@@ -5252,27 +5252,27 @@
         "measures": [
           {
             "name": "ritual-pmrem",
-            "duration": 37.5
+            "duration": 52.89999997615814
           },
           {
             "name": "ritual-first-render",
-            "duration": 60.80000001192093
+            "duration": 48.200000047683716
           }
         ],
         "textures": [
           {
             "url": "http://127.0.0.1:3046/performance/coinFrontDesktop.f247842ffde6714b.webp",
             "bytes": 431096,
-            "duration": 12.199999988079071
+            "duration": 3.400000035762787
           },
           {
             "url": "http://127.0.0.1:3046/performance/coinBackDesktop.30c2cec3fcce7aae.webp",
             "bytes": 439088,
-            "duration": 14.099999964237213
+            "duration": 3.699999988079071
           }
         ],
         "settledIdleDraws": 0,
-        "maxObservedEventLatency": 128
+        "maxObservedEventLatency": 104
       },
       {
         "requestedDpr": 2,
@@ -5289,27 +5289,27 @@
         "measures": [
           {
             "name": "ritual-pmrem",
-            "duration": 27.19999998807907
+            "duration": 40.90000003576279
           },
           {
             "name": "ritual-first-render",
-            "duration": 45.89999997615814
+            "duration": 42.30000001192093
           }
         ],
         "textures": [
           {
             "url": "http://127.0.0.1:3046/performance/coinFrontDesktop.f247842ffde6714b.webp",
             "bytes": 431096,
-            "duration": 3.5
+            "duration": 3.600000023841858
           },
           {
             "url": "http://127.0.0.1:3046/performance/coinBackDesktop.30c2cec3fcce7aae.webp",
             "bytes": 439088,
-            "duration": 3.400000035762787
+            "duration": 3.300000011920929
           }
         ],
         "settledIdleDraws": 0,
-        "maxObservedEventLatency": 56
+        "maxObservedEventLatency": 48
       },
       {
         "requestedDpr": 3,
@@ -5326,27 +5326,27 @@
         "measures": [
           {
             "name": "ritual-pmrem",
-            "duration": 29
+            "duration": 35.10000002384186
           },
           {
             "name": "ritual-first-render",
-            "duration": 33.90000003576279
+            "duration": 31
           }
         ],
         "textures": [
           {
             "url": "http://127.0.0.1:3046/performance/coinFrontMobile.268fc93706d89c5d.webp",
             "bytes": 305342,
-            "duration": 6.699999988079071
+            "duration": 4
           },
           {
             "url": "http://127.0.0.1:3046/performance/coinBackMobile.e8de8c6b39c8858b.webp",
             "bytes": 283528,
-            "duration": 5.900000035762787
+            "duration": 3.699999988079071
           }
         ],
         "settledIdleDraws": 0,
-        "maxObservedEventLatency": 40
+        "maxObservedEventLatency": 56
       },
       {
         "requestedDpr": 3,
@@ -5363,23 +5363,23 @@
         "measures": [
           {
             "name": "ritual-pmrem",
-            "duration": 32.200000047683716
+            "duration": 31.5
           },
           {
             "name": "ritual-first-render",
-            "duration": 39.60000002384186
+            "duration": 45.10000002384186
           }
         ],
         "textures": [
           {
             "url": "http://127.0.0.1:3046/performance/coinFrontDesktop.f247842ffde6714b.webp",
             "bytes": 431096,
-            "duration": 4.5
+            "duration": 4.100000023841858
           },
           {
             "url": "http://127.0.0.1:3046/performance/coinBackDesktop.30c2cec3fcce7aae.webp",
             "bytes": 439088,
-            "duration": 4.400000035762787
+            "duration": 4
           }
         ],
         "settledIdleDraws": 0,
@@ -5650,6 +5650,561 @@
       "height": 450,
       "alphaWeightedPsnrDb": "exact visible RGB",
       "maxAlphaDelta": 0
+    }
+  ],
+  "authenticatedPerformanceValidation": "NOT VERIFIED",
+  "accountFixture": {
+    "originalTotal": 4,
+    "pass": 4,
+    "fail": 0,
+    "unreviewed": 0,
+    "observations": [
+      {
+        "base": "http://127.0.0.1:3047",
+        "mobile": false,
+        "status": "PASS",
+        "kind": "explicit network fixture / not authenticated performance validation",
+        "credits": {
+          "x": 281,
+          "y": 422.96875,
+          "width": 788,
+          "height": 184,
+          "top": 422.96875,
+          "right": 1069,
+          "bottom": 606.96875,
+          "left": 281
+        },
+        "coinBackground": "url(\"http://127.0.0.1:3047/account/antique-coins-clean.png\"), radial-gradient(circle at 64% 52%, rgba(243, 169, 51, 0.26) 0px, rgba(243, 169, 51, 0.26) 12%, rgba(0, 0, 0, 0) 34%), radial-gradient(at 58% 95%, rgba(124, 59, 3, 0.65), rgba(0, 0, 0, 0) 72%)",
+        "resources": [
+          {
+            "url": "http://127.0.0.1:3047/ritual/bg-stage-master-clean.lossless.webp",
+            "transferSize": 1567934,
+            "decodedBodySize": 1567634
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/dark-landscape.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/frame-corner.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/cloud-flourish.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/paper-landscape.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/paper-texture.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/paper-border.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/ink-knot.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/antique-coins-clean.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/gold-knot.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          }
+        ],
+        "initialFocus": "qic-account-close",
+        "writes": [],
+        "assetResponses": [
+          {
+            "path": "/account/dark-landscape.png",
+            "status": 410
+          },
+          {
+            "path": "/account/frame-corner.png",
+            "status": 410
+          },
+          {
+            "path": "/account/cloud-flourish.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-landscape.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-texture.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-border.png",
+            "status": 410
+          },
+          {
+            "path": "/account/ink-knot.png",
+            "status": 410
+          },
+          {
+            "path": "/account/antique-coins-clean.png",
+            "status": 410
+          },
+          {
+            "path": "/account/gold-knot.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-texture.png",
+            "status": 410
+          }
+        ],
+        "runtimeImageValidation": "DEFERRED: /account static assets return 410 while Auth is disabled"
+      },
+      {
+        "base": "http://127.0.0.1:3047",
+        "mobile": true,
+        "status": "PASS",
+        "kind": "explicit network fixture / not authenticated performance validation",
+        "credits": {
+          "x": 20,
+          "y": 413.890625,
+          "width": 372,
+          "height": 198,
+          "top": 413.890625,
+          "right": 392,
+          "bottom": 611.890625,
+          "left": 20
+        },
+        "coinBackground": "url(\"http://127.0.0.1:3047/account/antique-coins-clean.png\"), radial-gradient(circle at 64% 52%, rgba(243, 169, 51, 0.26) 0px, rgba(243, 169, 51, 0.26) 12%, rgba(0, 0, 0, 0) 34%), radial-gradient(at 58% 95%, rgba(124, 59, 3, 0.65), rgba(0, 0, 0, 0) 72%)",
+        "resources": [
+          {
+            "url": "http://127.0.0.1:3047/ritual/bg-stage-mobile-600.webp",
+            "transferSize": 59054,
+            "decodedBodySize": 58754
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/dark-landscape.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/paper-landscape.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/frame-corner.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/paper-texture.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/paper-border.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/ink-knot.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/antique-coins-clean.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3047/account/gold-knot.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          }
+        ],
+        "initialFocus": "qic-account-close",
+        "writes": [],
+        "assetResponses": [
+          {
+            "path": "/account/dark-landscape.png",
+            "status": 410
+          },
+          {
+            "path": "/account/frame-corner.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-landscape.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-texture.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-border.png",
+            "status": 410
+          },
+          {
+            "path": "/account/ink-knot.png",
+            "status": 410
+          },
+          {
+            "path": "/account/antique-coins-clean.png",
+            "status": 410
+          },
+          {
+            "path": "/account/gold-knot.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-texture.png",
+            "status": 410
+          }
+        ],
+        "runtimeImageValidation": "DEFERRED: /account static assets return 410 while Auth is disabled"
+      },
+      {
+        "base": "http://127.0.0.1:3046",
+        "mobile": false,
+        "status": "PASS",
+        "kind": "explicit network fixture / not authenticated performance validation",
+        "credits": {
+          "x": 281,
+          "y": 422.96875,
+          "width": 788,
+          "height": 184,
+          "top": 422.96875,
+          "right": 1069,
+          "bottom": 606.96875,
+          "left": 281
+        },
+        "coinBackground": "url(\"http://127.0.0.1:3046/performance/accountCoins.7a4f85ddcc102bdf.webp\"), radial-gradient(circle at 64% 52%, rgba(243, 169, 51, 0.26) 0px, rgba(243, 169, 51, 0.26) 12%, rgba(0, 0, 0, 0) 34%), radial-gradient(at 58% 95%, rgba(124, 59, 3, 0.65), rgba(0, 0, 0, 0) 72%)",
+        "resources": [
+          {
+            "url": "http://127.0.0.1:3046/performance/questionDesktop.d616c1d6e5957a79.png",
+            "transferSize": 173414,
+            "decodedBodySize": 173114
+          },
+          {
+            "url": "http://127.0.0.1:3046/performance/stageDesktop.e37364561615e31f.webp",
+            "transferSize": 370150,
+            "decodedBodySize": 369850
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/dark-landscape.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/frame-corner.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/cloud-flourish.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/paper-landscape.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/paper-texture.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/paper-border.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/ink-knot.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/gold-knot.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/performance/accountCoins.7a4f85ddcc102bdf.webp",
+            "transferSize": 288482,
+            "decodedBodySize": 288182
+          }
+        ],
+        "initialFocus": "qic-account-close",
+        "writes": [],
+        "assetResponses": [
+          {
+            "path": "/performance/questionDesktop.d616c1d6e5957a79.png",
+            "status": 200
+          },
+          {
+            "path": "/performance/stageDesktop.e37364561615e31f.webp",
+            "status": 200
+          },
+          {
+            "path": "/account/dark-landscape.png",
+            "status": 410
+          },
+          {
+            "path": "/account/frame-corner.png",
+            "status": 410
+          },
+          {
+            "path": "/account/cloud-flourish.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-landscape.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-texture.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-border.png",
+            "status": 410
+          },
+          {
+            "path": "/account/ink-knot.png",
+            "status": 410
+          },
+          {
+            "path": "/account/gold-knot.png",
+            "status": 410
+          },
+          {
+            "path": "/performance/accountCoins.7a4f85ddcc102bdf.webp",
+            "status": 200
+          },
+          {
+            "path": "/account/paper-texture.png",
+            "status": 410
+          }
+        ],
+        "runtimeImageValidation": "DEFERRED: /account static assets return 410 while Auth is disabled"
+      },
+      {
+        "base": "http://127.0.0.1:3046",
+        "mobile": true,
+        "status": "PASS",
+        "kind": "explicit network fixture / not authenticated performance validation",
+        "credits": {
+          "x": 20,
+          "y": 413.890625,
+          "width": 372,
+          "height": 198,
+          "top": 413.890625,
+          "right": 392,
+          "bottom": 611.890625,
+          "left": 20
+        },
+        "coinBackground": "url(\"http://127.0.0.1:3046/performance/accountCoins.7a4f85ddcc102bdf.webp\"), radial-gradient(circle at 64% 52%, rgba(243, 169, 51, 0.26) 0px, rgba(243, 169, 51, 0.26) 12%, rgba(0, 0, 0, 0) 34%), radial-gradient(at 58% 95%, rgba(124, 59, 3, 0.65), rgba(0, 0, 0, 0) 72%)",
+        "resources": [
+          {
+            "url": "http://127.0.0.1:3046/performance/questionMobile.aeacbe5208415e49.webp",
+            "transferSize": 14804,
+            "decodedBodySize": 14504
+          },
+          {
+            "url": "http://127.0.0.1:3046/performance/stageMobile.285965e6cb8c7840.webp",
+            "transferSize": 59054,
+            "decodedBodySize": 58754
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/dark-landscape.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/frame-corner.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/paper-landscape.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/paper-texture.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/paper-border.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/ink-knot.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          },
+          {
+            "url": "http://127.0.0.1:3046/performance/accountCoins.7a4f85ddcc102bdf.webp",
+            "transferSize": 288482,
+            "decodedBodySize": 288182
+          },
+          {
+            "url": "http://127.0.0.1:3046/account/gold-knot.png",
+            "transferSize": 328,
+            "decodedBodySize": 28
+          }
+        ],
+        "initialFocus": "qic-account-close",
+        "writes": [],
+        "assetResponses": [
+          {
+            "path": "/performance/questionMobile.aeacbe5208415e49.webp",
+            "status": 200
+          },
+          {
+            "path": "/performance/stageMobile.285965e6cb8c7840.webp",
+            "status": 200
+          },
+          {
+            "path": "/account/dark-landscape.png",
+            "status": 410
+          },
+          {
+            "path": "/account/frame-corner.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-landscape.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-texture.png",
+            "status": 410
+          },
+          {
+            "path": "/account/paper-border.png",
+            "status": 410
+          },
+          {
+            "path": "/account/ink-knot.png",
+            "status": 410
+          },
+          {
+            "path": "/account/gold-knot.png",
+            "status": 410
+          },
+          {
+            "path": "/performance/accountCoins.7a4f85ddcc102bdf.webp",
+            "status": 200
+          },
+          {
+            "path": "/account/paper-texture.png",
+            "status": 410
+          }
+        ],
+        "runtimeImageValidation": "DEFERRED: /account static assets return 410 while Auth is disabled"
+      }
+    ]
+  },
+  "initialJsComparison": [
+    {
+      "kind": "before",
+      "route": "/(default)/page",
+      "bytes": 226587
+    },
+    {
+      "kind": "before",
+      "route": "/(default)/methods/three-coin/page",
+      "bytes": 226472
+    },
+    {
+      "kind": "before",
+      "route": "/(default)/readings/three-coin/result/page",
+      "bytes": 225761
+    },
+    {
+      "kind": "before",
+      "route": "/(default)/hexagrams/page",
+      "bytes": 208134
+    },
+    {
+      "kind": "before",
+      "route": "/(default)/hexagrams/[slug]/page",
+      "bytes": 195721
+    },
+    {
+      "kind": "before",
+      "route": "/(default)/my-readings/page",
+      "bytes": 195968
+    },
+    {
+      "kind": "before",
+      "route": "/(localized)/zh/hexagrams/page",
+      "bytes": 195051
+    },
+    {
+      "kind": "before",
+      "route": "/(localized)/zh/hexagrams/[slug]/page",
+      "bytes": 195722
+    },
+    {
+      "kind": "after",
+      "route": "/(default)/page",
+      "bytes": 197759
+    },
+    {
+      "kind": "after",
+      "route": "/(default)/methods/three-coin/page",
+      "bytes": 197642
+    },
+    {
+      "kind": "after",
+      "route": "/(default)/readings/three-coin/result/page",
+      "bytes": 214506
+    },
+    {
+      "kind": "after",
+      "route": "/(default)/hexagrams/page",
+      "bytes": 148941
+    },
+    {
+      "kind": "after",
+      "route": "/(default)/hexagrams/[slug]/page",
+      "bytes": 143764
+    },
+    {
+      "kind": "after",
+      "route": "/(default)/my-readings/page",
+      "bytes": 144010
+    },
+    {
+      "kind": "after",
+      "route": "/(localized)/zh/hexagrams/page",
+      "bytes": 143203
+    },
+    {
+      "kind": "after",
+      "route": "/(localized)/zh/hexagrams/[slug]/page",
+      "bytes": 143875
     }
   ]
 }

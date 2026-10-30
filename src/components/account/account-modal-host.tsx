@@ -1,15 +1,21 @@
 "use client";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import type { ContentLocale } from "@/i18n/config";
-import { fetchAccountModal } from "./fetch-account-modal";
 import type { AccountPurchase } from "@/server/account/purchase-loader";
 import { ACCOUNT_OPEN_EVENT, type AccountSurface } from "./account-events";
 import { AccountHeading } from "./account-heading";
-import { PurchaseView, type AccountModalData } from "./purchase-view";
-import { SettingsView } from "./settings-view";
+import type { AccountModalData } from "./purchase-view";
 import "./account.css";
+
+// Keep dialog chrome/focus management immediate; load only the selected secondary view.
+const PurchaseView = lazy(() => import("./purchase-view").then(module => ({ default: module.PurchaseView })));
+const SettingsView = lazy(() => import("./settings-view").then(module => ({ default: module.SettingsView })));
+
+async function fetchAccountModal() {
+  return (await import("./fetch-account-modal")).fetchAccountModal();
+}
 
 export function AccountModalHost({ locale = "en" }: { locale?: ContentLocale }) {
   const [surface, setSurface] = useState<AccountSurface | null>(null);
@@ -76,9 +82,11 @@ function AccountDialog({ surface, locale, onClose }: { surface: AccountSurface; 
       <button autoFocus className="qic-account-close" aria-label={t("Close", "关闭")} onClick={onClose}>×</button>
       <AccountHeading id="qic-account-title" title={surface === "account" ? t("My Account", "我的账户") : t("Settings", "设置")} subtitle={surface === "account" ? t("Manage your account and reading credits.", "管理你的账户和解读次数。") : t("Manage your privacy and account controls.", "管理你的隐私和账户操作。")} />
       <div className="qic-account-body">
+        <Suspense fallback={<div className="qic-account-paper qic-account-load" role="status">{t("Loading…", "正在加载…")}</div>}>
         {surface === "settings" ? <SettingsView deleting={deleting} onDeleteView={setDeleting} zh={zh} onClose={onClose} /> : account ? <PurchaseView account={account} selectedPurchase={selectedPurchase} onSelectPurchase={setSelectedPurchase} zh={zh} onClose={onClose} onRefundRecorded={() => {
           fetchAccountModal().then(setAccount, () => { setAccount(null); setFailed(true); });
         }} /> : <div className="qic-account-paper qic-account-load" role={failed ? "alert" : "status"}>{failed ? t("Account could not be loaded. Please close and try again.", "无法加载账户，请关闭后重试。") : t("Loading…", "正在加载…")}</div>}
+        </Suspense>
       </div>
     </div>
   </dialog>;
