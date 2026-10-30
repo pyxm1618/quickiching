@@ -28,6 +28,8 @@
   display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0;
   color: #f6ce80; font-family: "Snell Roundhand", "Apple Chancery", cursive;
   font-size: 80px; line-height: 1.12; font-weight: 400; white-space: nowrap;
+}
+.qic-account-heading h1 > span:not(.qic-account-seal) {
   background: linear-gradient(180deg,#fff4c8 0%,#f8df9b 34%,#f0ad38 72%,#ffd678 100%);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   text-shadow: 0 1px 0 #6d350d, 0 0 13px #f2a52c4a;
