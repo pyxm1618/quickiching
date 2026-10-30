@@ -152,14 +152,22 @@ function DetailLineBars({ lines, related = false }: { lines: number[]; related?:
 /* eslint-disable @next/next/no-img-element */
 function DetailScrollFrame() {
   return <div className={styles.frame} aria-hidden="true">
-    <div className={styles.leftEdge} data-scroll-side="left"><span /><span /><span /></div>
-    <div className={styles.rightEdge} data-scroll-side="right"><span /><span /><span /></div>
-    <div className={styles.topScroll} />
+    <div className={styles.leftEdge} data-scroll-side="left"><span><img src="/hexagram-detail/delivery/left-top-160.avif" alt="" width={160} height={354} fetchPriority="low" decoding="async" /></span><span /><span><img src="/hexagram-detail/delivery/left-bottom-160.avif" alt="" width={160} height={267} fetchPriority="low" loading="lazy" decoding="async" /></span></div>
+    <div className={styles.rightEdge} data-scroll-side="right"><span><img src="/hexagram-detail/delivery/right-top-162.avif" alt="" width={162} height={354} fetchPriority="low" decoding="async" /></span><span /><span><img src="/hexagram-detail/delivery/right-bottom-162.avif" alt="" width={162} height={267} fetchPriority="low" loading="lazy" decoding="async" /></span></div>
+    <div className={styles.topScroll}><picture><source media="(max-width: 960px)" srcSet="/hexagram-detail/delivery/top-scroll-480.avif 1x, /hexagram-detail/delivery/top-scroll-960.avif 2x" /><img src="/hexagram-detail/delivery/top-scroll-1557.avif" alt="" width={1557} height={297} fetchPriority="low" decoding="async" /></picture></div>
     <div className={styles.bottomScroll}><picture><source media="(max-width: 960px)" srcSet="/hexagram-detail/delivery/bottom-scroll-480.avif 1x, /hexagram-detail/delivery/bottom-scroll-960.avif 2x" /><img src="/hexagram-detail/delivery/bottom-scroll-1575.avif" alt="" width={1575} height={223} loading="lazy" decoding="async" /></picture></div>
-    <div className={styles.cherryTop} />
+    <div className={styles.cherryTop}><img src="/hexagram-detail/delivery/cherry-top-190.avif" srcSet="/hexagram-detail/delivery/cherry-top-24.avif 24w, /hexagram-detail/delivery/cherry-top-48.avif 48w, /hexagram-detail/delivery/cherry-top-190.avif 190w, /hexagram-detail/delivery/cherry-top-380.avif 380w" sizes="(max-width: 540px) 17px, (max-width: 960px) 24px, (max-width: 1440px) 13vw, 190px" alt="" width={1334} height={1179} fetchPriority="low" decoding="async" /></div>
     <div className={styles.cherryBottom}><img src="/hexagram-detail/delivery/cherry-bottom-144.avif" srcSet="/hexagram-detail/delivery/cherry-bottom-24.avif 24w, /hexagram-detail/delivery/cherry-bottom-48.avif 48w, /hexagram-detail/delivery/cherry-bottom-144.avif 144w, /hexagram-detail/delivery/cherry-bottom-288.avif 288w" sizes="(max-width: 540px) 17px, (max-width: 1440px) 10vw, 144px" alt="" width={1334} height={1179} loading="lazy" decoding="async" /></div>
     <div className={styles.pine}><img src="/hexagram-detail/delivery/pine-40.avif" srcSet="/hexagram-detail/delivery/pine-40.avif 1x, /hexagram-detail/delivery/pine-80.avif 2x" alt="" width={1334} height={1179} loading="lazy" decoding="async" /></div>
   </div>;
+}
+
+function DetailHeroArtwork() {
+  return <picture className={styles.taiji}>
+    <source media="(max-width: 540px)" srcSet="/hexagram-detail/delivery/taiji-290.avif 1x, /hexagram-detail/delivery/taiji-580.avif 2x" />
+    <source media="(max-width: 960px)" srcSet="/hexagram-detail/delivery/taiji-360.avif 1x, /hexagram-detail/delivery/taiji-720.avif 2x" />
+    <img src="/hexagram-detail/delivery/taiji-660.avif" srcSet="/hexagram-detail/delivery/taiji-660.avif 1x, /hexagram-detail/delivery/taiji-1320.avif 2x" alt="" width={2048} height={2048} fetchPriority="low" decoding="async" />
+  </picture>;
 }
 
 /* eslint-enable @next/next/no-img-element */
@@ -184,9 +192,10 @@ export function HexagramDetailPageView({
     preload("/hexagram-detail/delivery/paper-627.webp", { as: "image", imageSrcSet: "/hexagram-detail/delivery/paper-627.webp 1x, /hexagram-detail/delivery/paper-1254.webp 2x", fetchPriority: "high", media: "(min-width: 961px)" });
     preload("/hexagram-detail/delivery/paper-mobile-627.webp", { as: "image", imageSrcSet: "/hexagram-detail/delivery/paper-mobile-627.webp 1x, /hexagram-detail/delivery/paper-mobile-1254.webp 2x", fetchPriority: "high", media: "(max-width: 960px)" });
     // These visible mobile backgrounds otherwise wait for the stylesheet round trip.
-    preload("/hexagram-detail/delivery/scene-mobile-512.avif", { as: "image", imageSrcSet: "/hexagram-detail/delivery/scene-mobile-512.avif 1x, /hexagram-detail/delivery/scene-mobile-1024.avif 2x", media: "(max-width: 960px)" });
-    preload("/hexagram-detail/delivery/top-scroll-480.avif", { as: "image", imageSrcSet: "/hexagram-detail/delivery/top-scroll-480.avif 1x, /hexagram-detail/delivery/top-scroll-960.avif 2x", media: "(max-width: 960px)" });
-    preload("/hexagram-detail/delivery/taiji-290.avif", { as: "image", imageSrcSet: "/hexagram-detail/delivery/taiji-290.avif 1x, /hexagram-detail/delivery/taiji-580.avif 2x", media: "(max-width: 540px)" });
+    preload("/hexagram-detail/delivery/scene-mobile-512.avif", { as: "image", imageSrcSet: "/hexagram-detail/delivery/scene-mobile-512.avif 1x, /hexagram-detail/delivery/scene-mobile-1024.avif 2x", media: "(min-width: 541px) and (max-width: 960px)", fetchPriority: "low" });
+    preload("/hexagram-detail/delivery/scene-mobile-640.avif", { as: "image", media: "(max-width: 540px)", fetchPriority: "low" });
+    preload("/hexagram-detail/delivery/left-repeat-160.webp", { as: "image", fetchPriority: "low" });
+    preload("/hexagram-detail/delivery/right-repeat-162.webp", { as: "image", fetchPriority: "low" });
     const detail = knowledge.detail;
     const hasLineRenderings = Boolean(detail?.lines?.some((line) => line.rendering.editorialRendering));
     const hasStageStates = Boolean(detail?.lines?.some((line) => line.stageState?.text));
@@ -209,6 +218,7 @@ export function HexagramDetailPageView({
         </nav>
         <div className={styles.paper}>
           <header id="basic-identity" className={styles.identity} data-basic-identity>
+            <DetailHeroArtwork />
             <div className={styles.numberBadge}><span>Hexagram</span><strong>{knowledge.number}</strong></div>
             <div className={styles.identityCopy}>
               <p className={styles.pinyin}>{knowledge.pinyin.charAt(0).toUpperCase() + knowledge.pinyin.slice(1)}</p>

@@ -24,32 +24,20 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
-          "bytes": 79720
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
           "bytes": 7564
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
@@ -62,6 +50,10 @@
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-660.avif",
           "bytes": 110326
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
+          "bytes": 79720
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -159,52 +151,44 @@
       "h1Count": 1,
       "assetDelivery": [
         {
-          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
-          "bytes": 1144
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/paper-627.webp",
           "bytes": 8194
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
-          "bytes": 79720
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
+          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "bytes": 1144
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
           "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
           "bytes": 36701
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-190.avif",
+          "bytes": 10648
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-660.avif",
           "bytes": 110326
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-190.avif",
-          "bytes": 10648
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
+          "bytes": 79720
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -303,52 +287,44 @@
       "h1Count": 1,
       "assetDelivery": [
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/paper-627.webp",
-          "bytes": 8194
-        },
-        {
           "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
-          "bytes": 79720
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
+          "url": "http://localhost:3217/hexagram-detail/delivery/paper-627.webp",
+          "bytes": 8194
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
           "bytes": 7564
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-190.avif",
-          "bytes": 10648
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
           "bytes": 36701
         },
         {
+          "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-190.avif",
+          "bytes": 10648
+        },
+        {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-660.avif",
           "bytes": 110326
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
+          "bytes": 79720
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -447,36 +423,28 @@
       "h1Count": 1,
       "assetDelivery": [
         {
-          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
-          "bytes": 1144
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/paper-627.webp",
           "bytes": 8194
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
-          "bytes": 79720
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
+          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "bytes": 1144
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
           "bytes": 7560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
@@ -487,12 +455,12 @@
           "bytes": 10648
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-660.avif",
           "bytes": 110326
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
+          "bytes": 79720
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -591,40 +559,28 @@
       "h1Count": 1,
       "assetDelivery": [
         {
-          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
-          "bytes": 1144
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/paper-627.webp",
           "bytes": 8194
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
-          "bytes": 79720
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
+          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "bytes": 1144
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
           "bytes": 7564
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
@@ -637,6 +593,10 @@
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-660.avif",
           "bytes": 110326
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
+          "bytes": 79720
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -743,10 +703,6 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
-          "bytes": 79720
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
@@ -755,24 +711,16 @@
           "bytes": 7564
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
           "bytes": 7788
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
           "bytes": 36701
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-190.avif",
@@ -781,6 +729,10 @@
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-660.avif",
           "bytes": 110326
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
+          "bytes": 79720
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -886,32 +838,20 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
-          "bytes": 79720
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
           "bytes": 7564
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
@@ -924,6 +864,10 @@
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-660.avif",
           "bytes": 110326
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
+          "bytes": 79720
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -1029,36 +973,24 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
-          "bytes": 79720
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
           "bytes": 7564
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
-          "bytes": 36701
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
+          "bytes": 36701
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-190.avif",
@@ -1067,6 +999,10 @@
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-660.avif",
           "bytes": 110326
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
+          "bytes": 79720
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -1173,24 +1109,16 @@
           "bytes": 8194
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
-          "bytes": 79720
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
           "bytes": 7564
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
@@ -1201,16 +1129,16 @@
           "bytes": 36701
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-190.avif",
           "bytes": 10648
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-660.avif",
           "bytes": 110326
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
+          "bytes": 79720
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -1309,20 +1237,20 @@
       "h1Count": 1,
       "assetDelivery": [
         {
-          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
-          "bytes": 1144
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/paper-627.webp",
           "bytes": 8194
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
-          "bytes": 79720
+          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "bytes": 1144
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
@@ -1333,28 +1261,20 @@
           "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
+          "bytes": 36701
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-190.avif",
           "bytes": 10648
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
-          "bytes": 36701
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-660.avif",
           "bytes": 110326
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
+          "bytes": 79720
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -1453,36 +1373,28 @@
       "h1Count": 1,
       "assetDelivery": [
         {
-          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
-          "bytes": 1144
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/paper-627.webp",
           "bytes": 8194
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
-          "bytes": 79720
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
+          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "bytes": 1144
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
           "bytes": 7560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
@@ -1493,12 +1405,12 @@
           "bytes": 10648
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-660.avif",
           "bytes": 110326
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
+          "bytes": 79720
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -1605,32 +1517,20 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
-          "bytes": 79720
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
           "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-1557.avif",
@@ -1643,6 +1543,10 @@
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-660.avif",
           "bytes": 110326
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-1024.avif",
+          "bytes": 79720
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -1748,8 +1652,28 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
-          "bytes": 11205
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-640.avif",
+          "bytes": 14902
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
+          "bytes": 7432
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
+          "bytes": 0
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
@@ -1760,32 +1684,8 @@
           "bytes": 12560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
-          "bytes": 7432
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
           "bytes": 1279
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -1887,16 +1787,8 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
-          "bytes": 11205
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
-          "bytes": 12560
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-640.avif",
+          "bytes": 14902
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
@@ -1907,24 +1799,24 @@
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
           "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
           "bytes": 1279
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
+          "bytes": 12560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -2027,28 +1919,24 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
-          "bytes": 12560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
-          "bytes": 11205
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-640.avif",
+          "bytes": 14902
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
@@ -2059,12 +1947,8 @@
           "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
+          "bytes": 12560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -2159,52 +2043,44 @@
       "h1Count": 1,
       "assetDelivery": [
         {
-          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
-          "bytes": 1144
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/paper-mobile-627.webp",
           "bytes": 4338
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
-          "bytes": 11205
+          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
-          "bytes": 12560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-640.avif",
+          "bytes": 14902
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
           "bytes": 1279
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
+          "bytes": 12560
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -2307,44 +2183,36 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
-          "bytes": 11205
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
-          "bytes": 12560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-640.avif",
+          "bytes": 14902
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
           "bytes": 1279
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
+          "bytes": 12560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -2447,44 +2315,36 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
-          "bytes": 11205
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
-          "bytes": 12560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-640.avif",
+          "bytes": 14902
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
           "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
           "bytes": 1279
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
+          "bytes": 12560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -2586,12 +2446,16 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
-          "bytes": 11205
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-640.avif",
+          "bytes": 14902
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
-          "bytes": 12560
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
+          "bytes": 7432
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
@@ -2602,18 +2466,6 @@
           "bytes": 7788
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
-          "bytes": 7432
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
           "bytes": 7560
         },
@@ -2622,8 +2474,8 @@
           "bytes": 1279
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
+          "bytes": 12560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -2725,44 +2577,36 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
-          "bytes": 11205
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
-          "bytes": 12560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-640.avif",
+          "bytes": 14902
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
           "bytes": 7564
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
           "bytes": 1279
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
+          "bytes": 12560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -2865,44 +2709,36 @@
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
-          "bytes": 11205
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
-          "bytes": 12560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-640.avif",
+          "bytes": 14902
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
           "bytes": 7564
         },
         {
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
+        },
+        {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
           "bytes": 1279
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
+          "bytes": 12560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -2997,52 +2833,44 @@
       "h1Count": 1,
       "assetDelivery": [
         {
-          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
-          "bytes": 1144
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/paper-mobile-627.webp",
           "bytes": 4338
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
-          "bytes": 11205
+          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
-          "bytes": 12560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-640.avif",
+          "bytes": 14902
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
+        },
+        {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
           "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
           "bytes": 1279
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
+          "bytes": 12560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -3137,36 +2965,24 @@
       "h1Count": 1,
       "assetDelivery": [
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/paper-mobile-627.webp",
-          "bytes": 4338
-        },
-        {
           "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
           "bytes": 1144
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
-          "bytes": 11205
+          "url": "http://localhost:3217/hexagram-detail/delivery/paper-mobile-627.webp",
+          "bytes": 4338
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
-          "bytes": 12560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-640.avif",
+          "bytes": 14902
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
@@ -3177,12 +2993,16 @@
           "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
           "bytes": 1279
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
+          "bytes": 12560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -3285,44 +3105,36 @@
           "bytes": 4338
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
-          "bytes": 11205
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
-          "bytes": 12560
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
-          "bytes": 1279
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
           "bytes": 7564
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-640.avif",
+          "bytes": 14902
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
           "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
+          "bytes": 1279
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-290.avif",
+          "bytes": 12560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -3416,44 +3228,36 @@
       "h1Count": 1,
       "assetDelivery": [
         {
-          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
-          "bytes": 1144
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/paper-mobile-627.webp",
           "bytes": 4338
+        },
+        {
+          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "bytes": 1144
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
           "bytes": 11205
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
           "bytes": 7564
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
@@ -3559,32 +3363,20 @@
       "h1Count": 1,
       "assetDelivery": [
         {
-          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
-          "bytes": 1144
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/paper-mobile-627.webp",
           "bytes": 4338
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
+          "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
+          "bytes": 1144
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
           "bytes": 11205
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
@@ -3595,8 +3387,12 @@
           "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
@@ -3703,28 +3499,32 @@
       "h1Count": 1,
       "assetDelivery": [
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/paper-mobile-627.webp",
-          "bytes": 4338
-        },
-        {
           "url": "http://localhost:3217/_next/image?url=%2Fquick-i-ching-logo-mark.png&w=32&q=75",
           "bytes": 1144
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/paper-mobile-627.webp",
+          "bytes": 4338
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/scene-mobile-512.avif",
           "bytes": 11205
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-360.avif",
+          "bytes": 17408
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
+          "bytes": 1279
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
@@ -3735,20 +3535,8 @@
           "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
-          "bytes": 1279
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/taiji-360.avif",
-          "bytes": 17408
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/landscape-200.avif",
@@ -3859,8 +3647,12 @@
           "bytes": 11205
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
+          "bytes": 7432
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
+          "bytes": 7564
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
@@ -3871,24 +3663,12 @@
           "bytes": 7560
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
-          "bytes": 7564
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
-          "bytes": 7432
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
           "bytes": 1279
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-360.avif",
@@ -4003,36 +3783,28 @@
           "bytes": 11205
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
           "bytes": 7564
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
           "bytes": 1279
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-360.avif",
@@ -4147,36 +3919,28 @@
           "bytes": 11205
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
-          "bytes": 9302
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
-          "bytes": 7788
-        },
-        {
           "url": "http://localhost:3217/hexagram-detail/delivery/left-repeat-160.webp",
           "bytes": 7432
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/left-bottom-160.avif",
-          "bytes": 5389
-        },
-        {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
-          "bytes": 7560
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/right-repeat-162.webp",
           "bytes": 7564
         },
         {
-          "url": "http://localhost:3217/hexagram-detail/delivery/right-bottom-162.avif",
-          "bytes": 5793
+          "url": "http://localhost:3217/hexagram-detail/delivery/left-top-160.avif",
+          "bytes": 7788
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/cherry-top-24.avif",
           "bytes": 1279
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/right-top-162.avif",
+          "bytes": 7560
+        },
+        {
+          "url": "http://localhost:3217/hexagram-detail/delivery/top-scroll-480.avif",
+          "bytes": 9302
         },
         {
           "url": "http://localhost:3217/hexagram-detail/delivery/taiji-360.avif",
@@ -4420,6 +4184,11 @@
     {
       "path": "public/hexagram-detail/delivery/scene-mobile-512.avif",
       "sha256": "6c1478a9c65714cd16762235661ac3d2f69312a52129dacc410f0dba7686b552",
+      "status": "PASS"
+    },
+    {
+      "path": "public/hexagram-detail/delivery/scene-mobile-640.avif",
+      "sha256": "15bd1089d6cafab15a1ee6c70fbf30331d180247e9f3688bfac59bfee214992d",
       "status": "PASS"
     },
     {

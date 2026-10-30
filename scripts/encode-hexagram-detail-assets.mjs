@@ -9,7 +9,7 @@ const plans = [
   ['paper', 'background/paper-texture', [627, 1254]],
   ['paper-mobile', 'background/paper-texture', [627, 1254]],
   ['scene', 'background/lantern-scene', [1024]],
-  ['scene-mobile', 'background/lantern-scene', [512, 1024]],
+  ['scene-mobile', 'background/lantern-scene', [512, 640, 1024]],
   ['left-repeat', 'frame/left-middle-repeat', [160]],
   ['right-repeat', 'frame/right-middle-repeat', [162]],
   ['taiji', 'decorations/hero-taiji', [290, 360, 580, 660, 720, 1320]],

@@ -1,7 +1,7 @@
 {
-  "originalTotal": 37,
+  "originalTotal": 38,
   "states": {
-    "pass": 37,
+    "pass": 38,
     "deferred": 0,
     "reject": 0,
     "unknown": 0
@@ -123,6 +123,24 @@
       "hasAlpha": false,
       "bytes": 10905,
       "sha256": "6c1478a9c65714cd16762235661ac3d2f69312a52129dacc410f0dba7686b552"
+    },
+    {
+      "source": "public/hexagram-detail/background/lantern-scene.png",
+      "path": "public/hexagram-detail/delivery/scene-mobile-640.avif",
+      "width": 640,
+      "name": "scene-mobile",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "c87c94d77cd6ad15cf6dbf9564843fd996606eb31aacbcb884a0fb3137936033",
+      "options": {
+        "quality": 30,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 960,
+      "hasAlpha": false,
+      "bytes": 14602,
+      "sha256": "15bd1089d6cafab15a1ee6c70fbf30331d180247e9f3688bfac59bfee214992d"
     },
     {
       "source": "public/hexagram-detail/background/lantern-scene.png",
