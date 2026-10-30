@@ -75,10 +75,20 @@ async function summarizeLighthouse(label, path) {
   const lcp = Math.round(report.audits["largest-contentful-paint"].numericValue);
   const cls = Number(report.audits["cumulative-layout-shift"].numericValue);
   const tbt = Math.round(report.audits["total-blocking-time"].numericValue);
-  const lcpElement = report.audits["largest-contentful-paint-element"]?.details?.items?.[0]?.node?.snippet;
+  const legacyLcpNode = report.audits["largest-contentful-paint-element"]?.details?.items?.[0]?.node;
+  const lcpInsightItems = report.audits["lcp-breakdown-insight"]?.details?.items ?? [];
+  const insightLcpNode = lcpInsightItems.find((item) => item?.type === "node")
+    ?? lcpInsightItems.flatMap((item) => Array.isArray(item?.items) ? item.items : []).find((item) => item?.type === "node");
+  const lcpNode = legacyLcpNode ?? insightLcpNode;
 
   log(`LIGHTHOUSE_${label} performance=${performance} accessibility=${accessibility} seo=${seo} LCP_ms=${lcp} CLS=${cls.toFixed(4)} TBT_ms=${tbt}`);
-  if (lcpElement) log(`LIGHTHOUSE_${label}_LCP_ELEMENT ${lcpElement}`);
+  if (lcpNode) {
+    log(`LIGHTHOUSE_${label}_LCP_ELEMENT ${JSON.stringify({
+      selector: lcpNode.selector ?? null,
+      snippet: lcpNode.snippet ?? null,
+      nodeLabel: lcpNode.nodeLabel ?? null,
+    })}`);
+  }
   if (lcp > 2500) log(`WARNING: ${label} lab LCP is above the 2.5s target (${lcp}ms)`);
 
   return { label, performance, accessibility, seo, lcp, cls, tbt };
