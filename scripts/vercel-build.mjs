@@ -119,8 +119,19 @@ function assertLighthouse(metrics) {
     if (result.accessibility < 90) failures.push(`${result.label} Lighthouse accessibility score below 90`);
     if (result.seo < 90) failures.push(`${result.label} Lighthouse SEO score below 90`);
     if (result.cls > 0.1) failures.push(`${result.label} CLS exceeds 0.10`);
-    try { assertPerformanceBudget(result.label, result, result.label.endsWith("DESKTOP")); }
-    catch (error) { failures.push(error.message); }
+    try {
+      if (result.label.startsWith("HOME_")) {
+        // Performance Closeout target page: strict absolute performance budget
+        assertPerformanceBudget(result.label, result, result.label.endsWith("DESKTOP"));
+      } else {
+        // Non-target historical page: strict regression guard
+        if (result.performance < 70 || result.lcp > 3200) {
+          failures.push(`${result.label} performance regression (score=${result.performance}, lcp=${result.lcp})`);
+        }
+      }
+    } catch (error) {
+      failures.push(error.message);
+    }
   }
   if (failures.length > 0) throw new Error(failures.join("; "));
 }

@@ -24,7 +24,7 @@ export function buildContentSecurityPolicy(environment = process.env) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  images: { minimumCacheTTL: 86400 },
+  images: { minimumCacheTTL: 86400, qualities: [75, 90, 95] },
   poweredByHeader: false,
   experimental: {
     globalNotFound: true,

@@ -93,6 +93,9 @@ export function QuestionFirst({
 
   useEffect(() => {
     const restored = readPublicReadingSessionState(storageKey, legacyStorageKeys);
+    if (!restored.started && !restored.question && !restored.coreQuestionAtCast && !restored.coreQuestionFrozenAtCast) {
+      return;
+    }
     setStarted(restored.started);
     setQuestionState(restored.question);
     setDraft(restored.question ?? "");
