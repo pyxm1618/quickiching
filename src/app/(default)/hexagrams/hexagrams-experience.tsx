@@ -348,12 +348,11 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
                     aria-label={(selected ? "Open Hexagram " : "Select Hexagram ") + item.number + ": " + item.englishName}
                     tabIndex={nearby ? 0 : -1}
                   >
-                    <Image
-                      src="/hexagrams/card-frame.png"
+                    <img
+                      src="/hexagrams/delivery/card-frame-desktop.webp"
+                      srcSet="/hexagrams/delivery/card-frame-mobile.webp 240w, /hexagrams/delivery/card-frame-desktop.webp 360w"
+                      sizes="(max-width: 820px) 94px, 150px"
                       alt=""
-                      fill
-                      quality={90}
-                      sizes="150px"
                       className={styles.cardFrame}
                       draggable={false}
                     />
