@@ -508,7 +508,7 @@ async function finishMeiHua(page) {
 
   const viewReadingDisabled = await page.$eval("[data-mei-hua-view-reading]", (node) => node.disabled);
   assert.equal(viewReadingDisabled, true, "View Reading must stay disabled without a legal hexagram result");
-  assert.equal(await page.$eval("[data-public-reading-result]", (nodes) => nodes.length), 0, "No shared reading may be fabricated");
+  assert.equal(await page.$$eval("[data-public-reading-result]", (nodes) => nodes.length), 0, "No shared reading may be fabricated");
 
   const sealedSnapshot = JSON.stringify(sealed.data.input);
   await page.reload({ waitUntil: "networkidle0", timeout: 30_000 });
@@ -516,7 +516,7 @@ async function finishMeiHua(page) {
   await page.waitForSelector("[data-mei-hua-locked='true']");
   const restored = await page.evaluate(() => JSON.parse(sessionStorage.getItem("quickiching:public-v1:mei-hua-number-time-v1") || "null"));
   assert.equal(JSON.stringify(restored.data.input), sealedSnapshot, "Refresh must restore the same formal Mei Hua cast");
-  assert.equal(await page.$eval("#mei-hua-question, #mei-hua-number", (nodes) => nodes.length), 0, "A formal Mei Hua cast must not become editable after refresh");
+  assert.equal(await page.$$eval("#mei-hua-question, #mei-hua-number", (nodes) => nodes.length), 0, "A formal Mei Hua cast must not become editable after refresh");
 }
 
 async function runPage(browser, { path, viewport, flow, label, skipQuestion = true }) {
