@@ -27,7 +27,8 @@ export function ThreeCoinVisual(props:ThreeCoinSceneProps) {
     // intent creates avoidable main-thread work and does not produce any casting state.
     // Start it on the user's first real interaction, or immediately once the flow leaves
     // the idle hero (including restored/active casting sessions).
-    if(props.phase!=='hero') {
+    const visualQaPinned=new URLSearchParams(window.location.search).has('ritualTime');
+    if(props.phase!=='hero'||visualQaPinned) {
       let second=0;
       const first=requestAnimationFrame(()=>{second=requestAnimationFrame(()=>setStartScene(true));});
       return ()=>{cancelAnimationFrame(first);cancelAnimationFrame(second);};
