@@ -144,41 +144,45 @@ export function MeiHuaNumberFlow() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeCast);
-    if (current) {
-      setSessionId(current.id);
-      const restoredQuestion = current.coreQuestionAtCast ?? current.question;
-      setQuestion(restoredQuestion);
-      setQuestionDraft(restoredQuestion ?? "");
-      if (current.data) {
-        setCast(current.data);
-        setSelectedNumber(current.data.input.number);
-        setNumberDraft(String(current.data.input.number));
-        setStep(4);
-      } else if (current.question) {
-        setStep(2);
+    try {
+      const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeCast);
+      if (current) {
+        setSessionId(current.id);
+        const restoredQuestion = current.coreQuestionAtCast ?? current.question;
+        setQuestion(restoredQuestion);
+        setQuestionDraft(restoredQuestion ?? "");
+        if (current.data) {
+          setCast(current.data);
+          setSelectedNumber(current.data.input.number);
+          setNumberDraft(String(current.data.input.number));
+          setStep(4);
+        } else if (current.question) {
+          setStep(2);
+        }
+        return;
       }
-      return;
+
+      const legacy = readPublicReadingSession(LEGACY_STORAGE_KEY, (value) => {
+        const restored = parseLegacyCast(value);
+        return restored ? { cast: restored } : null;
+      });
+      const legacyCast = legacy?.data?.cast;
+      if (!legacy || !legacyCast) return;
+
+      const legacyQuestion = legacy.coreQuestionAtCast ?? legacy.question;
+      const result = meiHuaFromUtc(legacyCast.utcMillis, legacyCast.ianaTimeZone);
+      setLegacyReading(buildPublicReading({
+        id: legacy.id,
+        createdAt: new Date(legacyCast.utcMillis).toISOString(),
+        method: "mei-hua-yi-shu",
+        methodVersion: result.algorithmVersion,
+        question: legacyQuestion,
+        lineValuesBottomUp: result.lineValuesBottomUp,
+        evidence: { kind: "mei-hua-yi-shu", calculation: result },
+      }));
+    } catch {
+      setError("Browser session storage is unavailable. No cast has been created.");
     }
-
-    const legacy = readPublicReadingSession(LEGACY_STORAGE_KEY, (value) => {
-      const restored = parseLegacyCast(value);
-      return restored ? { cast: restored } : null;
-    });
-    const legacyCast = legacy?.data?.cast;
-    if (!legacy || !legacyCast) return;
-
-    const legacyQuestion = legacy.coreQuestionAtCast ?? legacy.question;
-    const result = meiHuaFromUtc(legacyCast.utcMillis, legacyCast.ianaTimeZone);
-    setLegacyReading(buildPublicReading({
-      id: legacy.id,
-      createdAt: new Date(legacyCast.utcMillis).toISOString(),
-      method: "mei-hua-yi-shu",
-      methodVersion: result.algorithmVersion,
-      question: legacyQuestion,
-      lineValuesBottomUp: result.lineValuesBottomUp,
-      evidence: { kind: "mei-hua-yi-shu", calculation: result },
-    }));
   }, []);
 
   useEffect(() => {
