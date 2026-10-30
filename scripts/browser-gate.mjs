@@ -492,6 +492,10 @@ async function finishMeiHua(page) {
 
   await clickButton(page, "Confirm & Cast");
   await waitForText(page, "Cast Result");
+  await waitForText(page, "Primary Hexagram");
+  await waitForText(page, "Changing Line");
+  await waitForText(page, "Relating Hexagram");
+  await waitForText(page, "Not calculated");
   await page.waitForSelector("[data-mei-hua-locked='true']");
 
   const sealed = await page.evaluate(() => {
