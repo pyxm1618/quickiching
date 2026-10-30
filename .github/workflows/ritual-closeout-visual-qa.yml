@@ -3,7 +3,7 @@ name: Ritual Closeout Visual QA
 on:
   push:
     branches:
-      - codex/three-coin-visual-phase3-5
+      - integration/quickiching-ui-redesign
   workflow_dispatch:
 
 permissions:
