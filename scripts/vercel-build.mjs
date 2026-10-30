@@ -89,6 +89,24 @@ async function summarizeLighthouse(label, path) {
       nodeLabel: lcpNode.nodeLabel ?? null,
     })}`);
   }
+  const lcpTables = [
+    ...lcpInsightItems.filter((item) => item?.type === "table"),
+    ...lcpInsightItems.flatMap((item) => Array.isArray(item?.items)
+      ? item.items.filter((nested) => nested?.type === "table")
+      : []),
+  ];
+  const lcpBreakdown = lcpTables.flatMap((table) => Array.isArray(table?.items) ? table.items : []);
+  if (lcpBreakdown.length > 0) {
+    log(`LIGHTHOUSE_${label}_LCP_BREAKDOWN ${JSON.stringify(lcpBreakdown.map((item) => ({
+      subpart: item.subpart ?? null,
+      label: item.label ?? null,
+      duration: item.duration ?? null,
+    })))}`);
+  }
+  const lcpDiscovery = report.audits["lcp-discovery-insight"]?.details?.items ?? [];
+  if (lcpDiscovery.length > 0) {
+    log(`LIGHTHOUSE_${label}_LCP_DISCOVERY ${JSON.stringify(lcpDiscovery)}`);
+  }
   if (lcp > 2500) log(`WARNING: ${label} lab LCP is above the 2.5s target (${lcp}ms)`);
 
   return { label, performance, accessibility, seo, lcp, cls, tbt };
