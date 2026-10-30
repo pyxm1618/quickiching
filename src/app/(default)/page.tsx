@@ -1,5 +1,6 @@
 import { ritualBrush } from "@/components/public-reading/ritual-font";
 import React from "react";
+import { preload } from "react-dom";
 import type { Metadata } from "next";
 import { QuestionFirst } from "@/components/public-reading/question-first";
 import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
@@ -21,6 +22,12 @@ const WEBSITE_STRUCTURED_DATA = {
 };
 
 export default function HomePage() {
+  preload("/ritual/bg-stage-mobile-600.webp", {
+    as: "image",
+    media: "(max-width: 600px) and (max-aspect-ratio: 11/20)",
+    fetchPriority: "high",
+  });
+
   return (
     <article className={`home-oracle ${ritualBrush.variable}`} data-three-coin-home-experience>
       <script
