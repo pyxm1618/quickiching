@@ -396,18 +396,27 @@ export function MeiHuaNumberFlow() {
             <p className="mt-2 text-sm leading-7" data-private-question="true">{question}</p>
           </section>
 
-          {publicReading ? (
-            <dl className="mt-6 grid gap-4 sm:grid-cols-3">
-              <div className="mystic-card-soft p-4"><dt className="mystic-kicker">Primary Hexagram</dt><dd className="mt-2 text-lg">Hexagram {publicReading.primaryHexagram}</dd></div>
-              <div className="mystic-card-soft p-4"><dt className="mystic-kicker">Changing Line</dt><dd className="mt-2 text-lg">{publicReading.changingLines.length ? `Line ${publicReading.changingLines.join(", ")}` : "None"}</dd></div>
-              <div className="mystic-card-soft p-4"><dt className="mystic-kicker">Relating Hexagram</dt><dd className="mt-2 text-lg">{publicReading.relatingHexagram ? `Hexagram ${publicReading.relatingHexagram}` : "None"}</dd></div>
-            </dl>
-          ) : (
-            <div className="mystic-card-soft mt-6 p-5" data-mei-hua-algorithm-boundary="unverified">
+          <dl className="mt-6 grid gap-4 sm:grid-cols-3">
+            <div className="mystic-card-soft p-4">
+              <dt className="mystic-kicker">Primary Hexagram</dt>
+              <dd className="mt-2 text-lg">{publicReading ? `Hexagram ${publicReading.primaryHexagram}` : "Not calculated"}</dd>
+            </div>
+            <div className="mystic-card-soft p-4">
+              <dt className="mystic-kicker">Changing Line</dt>
+              <dd className="mt-2 text-lg">{publicReading ? (publicReading.changingLines.length ? `Line ${publicReading.changingLines.join(", ")}` : "None") : "Not calculated"}</dd>
+            </div>
+            <div className="mystic-card-soft p-4">
+              <dt className="mystic-kicker">Relating Hexagram</dt>
+              <dd className="mt-2 text-lg">{publicReading ? (publicReading.relatingHexagram ? `Hexagram ${publicReading.relatingHexagram}` : "None") : "Not calculated"}</dd>
+            </div>
+          </dl>
+
+          {!publicReading ? (
+            <div className="mystic-card-soft mt-4 p-5" data-mei-hua-algorithm-boundary="unverified">
               <p className="font-semibold">Hexagram calculation is not yet available for this locked cast.</p>
               <p className="mt-2 text-sm leading-7 text-[var(--ink-2)]">The repository does not yet contain an approved one-number + time Mei Hua algorithm. Your question, number, exact cast time, and timezone are sealed, but no hexagram has been fabricated.</p>
             </div>
-          )}
+          ) : null}
 
           <details className="mt-6 text-sm">
             <summary className="cursor-pointer font-semibold">Cast Details</summary>
@@ -423,7 +432,6 @@ export function MeiHuaNumberFlow() {
             <button type="button" className="mystic-button" onClick={viewReading} disabled={!publicReading} data-mei-hua-view-reading>
               View Reading
             </button>
-            {!publicReading ? <button type="button" className="mystic-button-secondary" onClick={startNewReading}>Start New Reading</button> : null}
           </div>
         </div>
       ) : null}
