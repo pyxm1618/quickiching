@@ -82,12 +82,12 @@
       "mobileOutput": "/mei-hua/primary-stone-mobile.webp",
       "mobileTransform": "Resize the same supplied asset for its mobile display size; WebP quality 91",
       "runtimeSize": [
-        1536,
-        1024
+        1296,
+        864
       ],
-      "runtimeBytes": 532486,
-      "runtimeSha256": "0e273223f5fb4506b8de1e050e37bf5f2c53b1e3282c07fc9c6c0fb9da5518d8",
-      "desktopTransform": "Same supplied asset; WebP quality 90"
+      "runtimeBytes": 428120,
+      "runtimeSha256": "1cb537ce31ac9437e85cb14f850fe6079cec09a3cc2327f7fe0a192dd5bfb88f",
+      "desktopTransform": "Supplied PNG resized to 1296x864, WebP quality 90; preserves source aspect ratio"
     },
     {
       "sourceEntry": "梅花易数/金辉花石东方碑牌.png",
@@ -102,12 +102,12 @@
       "mobileOutput": "/mei-hua/relating-stone-mobile.webp",
       "mobileTransform": "Resize the same supplied asset for its mobile display size; WebP quality 91",
       "runtimeSize": [
-        1536,
-        1024
+        1296,
+        864
       ],
-      "runtimeBytes": 526528,
-      "runtimeSha256": "5648b16936f9199180c3be80453065d1fd93481d56ad6e22325e032cab700ee2",
-      "desktopTransform": "Same supplied asset; WebP quality 90"
+      "runtimeBytes": 423352,
+      "runtimeSha256": "901bee7090d56f476f383f38bc3beb8fb5e20b03d3bd1e6670b22a7182b22a7d",
+      "desktopTransform": "Supplied PNG resized to 1296x864, WebP quality 90; preserves source aspect ratio"
     },
     {
       "sourceEntry": "梅花易数/古韵花鸟山水卷轴横幅.png",
@@ -118,7 +118,17 @@
         724
       ],
       "state": "approved",
-      "evidence": "User supplied final asset; format conversion only"
+      "evidence": "User supplied final asset; format conversion only",
+      "compactQuestionBanner": {
+        "output": "/mei-hua/question-banner.webp",
+        "size": [
+          1080,
+          360
+        ],
+        "transform": "Same supplied scroll resized for question summaries, WebP quality 90",
+        "bytes": 134990,
+        "sha256": "4cc0dd5f0670b89a2d84b0b15a23eeadf256a4840a8256f864d4b87444100cbe"
+      }
     },
     {
       "sourceEntry": "梅花易数/鎏金花影《Quick I Ching》古籍.png",

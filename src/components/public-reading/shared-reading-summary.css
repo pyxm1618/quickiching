@@ -36,7 +36,7 @@
 .ritual-result-scene:has(.shared-reading-summary)>.ritual-room {background-image:none;}
 @media(min-width:601px) {
  .shared-reading-summary {--ru:min(calc(100vw / 1983),calc((100svh - 75px) / 793));padding-top:calc(45 * var(--ru));padding-bottom:calc(30 * var(--ru));}
- .shared-question {width:calc(900 * var(--ru));min-height:calc(150 * var(--ru));padding:calc(20 * var(--ru)) calc(55 * var(--ru));border:4px double #e0a051;border-radius:12px;background:linear-gradient(100deg,#ffedc9,#fff8e8,#ffe5b8);box-shadow:0 0 18px #efaa4a66;}
+ .shared-question {width:calc(900 * var(--ru));min-height:calc(150 * var(--ru));padding:calc(20 * var(--ru)) calc(55 * var(--ru));border:0;border-radius:0;background:transparent url('/mei-hua/question-banner.webp') center/100% 100% no-repeat;}
  .shared-question h1 {font-size:calc(27 * var(--ru));}.shared-question p {font-size:calc(43 * var(--ru));}
  .shared-cast-tableau {width:calc(1983 * var(--ru));max-width:100%;margin-top:calc(-15 * var(--ru));}
  .shared-primary .shared-stone-copy {left:42%;width:43%;}
@@ -47,7 +47,7 @@
  .shared-reading-entries {width:calc(480 * var(--ru));margin-top:calc(-70 * var(--ru));gap:calc(20 * var(--ru));}
  .shared-deep-entry {font-size:calc(43 * var(--ru));padding:calc(18 * var(--ru)) 20px;border:4px double #fff0b9;}.shared-free-entry {font-size:calc(27 * var(--ru));}
 }
-@media(max-width:600px) {.shared-question {background:linear-gradient(100deg,#ffedc9,#fff8e8,#ffe5b8);border:3px double #d6a052;border-radius:10px;}.shared-primary .shared-stone-copy {left:39%;width:46%;}.mei-question-summary {background:#f8e4bc;}}
+@media(max-width:600px) {.shared-question {background:transparent url('/mei-hua/question-banner.webp') center/100% 100% no-repeat;border:0;border-radius:0;}.shared-primary .shared-stone-copy {left:39%;width:46%;}}
 .shared-stone-copy>* {max-width:100%;}
 .shared-stone h3,.shared-stone p {overflow-wrap:anywhere;}
 /* The inherited reduced-motion rule sets a duration on every element. Restrict
@@ -69,3 +69,13 @@
 .ritual-result-scene[data-shared-result-scene] {background:#25160c url('/mei-hua/room.webp') center/cover fixed;}
 .ritual-result-scene .shared-reading-summary {background:none;}
 @media(max-width:600px) {.ritual-result-scene[data-shared-result-scene] {background-image:url('/mei-hua/room-mobile.webp');}}
+@media(max-width:600px) {
+ .shared-stone-copy {top:13%;height:76%;}
+ .shared-relating .shared-stone-copy {top:17%;height:76%;}
+ .shared-stone h2 {font-size:14px;line-height:1.15;}
+ .shared-stone h3 {font-size:18px;line-height:1.1;margin:5px 0;max-height:3.3em;overflow:auto;flex-shrink:0;}
+ .shared-stone p {font-size:13px;}
+ .shared-hex-lines {gap:4px;margin:6px auto;flex-shrink:0;}
+ .shared-hex-lines>div {height:5px;}
+ .shared-stone .shared-hex-number {font-size:12px;}
+}

@@ -31,7 +31,7 @@ try {
   assert.equal(await p.evaluate(k=>JSON.parse(sessionStorage.getItem(k)).data,key),undefined);
   const before=Date.now();await button(p,'☯Confirm & Cast');await p.waitForSelector('[data-mei-hua-locked="true"]');const after=Date.now();
   const sealed=await p.evaluate(k=>JSON.parse(sessionStorage.getItem(k)),key);
-  assert.equal(sealed.data.input.number,29);assert(sealed.data.input.utcMillis>=before&&sealed.data.input.utcMillis<=after);assert.equal(sealed.coreQuestionAtCast,'Should I change to a new job? This year.');assert.equal(sealed.coreQuestionFrozenAtCast,true);assert.equal(sealed.data.algorithmStatus,'unverified');assert.equal(sealed.data.result,undefined);assert.equal(await p.$('[data-mei-hua-step="4"]'),null);
+  assert.equal(sealed.data.input.number,29);assert.equal(sealed.data.input.ianaTimeZone,await p.evaluate(()=>Intl.DateTimeFormat().resolvedOptions().timeZone));assert(sealed.data.input.utcMillis>=before&&sealed.data.input.utcMillis<=after);assert.equal(sealed.coreQuestionAtCast,'Should I change to a new job? This year.');assert.equal(sealed.coreQuestionFrozenAtCast,true);assert.equal(sealed.data.algorithmStatus,'unverified');assert.equal(sealed.data.result,undefined);assert.equal(await p.$('[data-mei-hua-step="4"]'),null);
   await p.reload({waitUntil:'networkidle0'});await p.waitForSelector('[data-mei-hua-locked="true"]');assert.deepEqual(await p.evaluate(k=>JSON.parse(sessionStorage.getItem(k)),key),sealed);assert.equal(await p.$('#mei-hua-number'),null);
   results.checks.push(`${size}: edit/reset, change-number, click-time seal, immutable reload, no Step 4, algorithm blocker PASS`);console.log(results.checks.at(-1));
  }
@@ -47,7 +47,27 @@ try {
  // Both continuation intents, with an explicit browser-only authenticated response.
  let signedIn=false;await p.setRequestInterception(true);p.on('request',r=>{const u=new URL(r.url());if(u.pathname==='/api/user/me')return r.respond({status:200,contentType:'application/json',body:JSON.stringify({user:signedIn?{id:'qa-auth-seam',email:'qa@example.invalid'}:null})});if(u.pathname==='/signin'&&r.isNavigationRequest())return r.respond({status:200,contentType:'text/html',body:'<h1>Test-only login handoff</h1>'});return r.continue();});
  for(const choice of ['free','deep']){signedIn=false;await p.evaluate(id=>sessionStorage.removeItem(`quickiching:reading-entry:${id}`),sealed.id);await p.goto(`${BASE}/readings/result`,{waitUntil:'networkidle0'});await p.waitForSelector('[data-shared-reading-summary]');await p.click(`[data-reading-choice="${choice}"]`);await p.waitForFunction(()=>location.pathname==='/signin');const login=new URL(p.url());const callback=login.searchParams.get('callbackURL');assert(callback.endsWith(`#reading-${choice}`));assert(callback.startsWith('/readings/result'));assert.equal(new URL(callback,BASE).searchParams.get('session'),sealed.id);assert.equal(await p.evaluate(k=>sessionStorage.getItem(k),castKey),original);
-  signedIn=true;await p.goto(`${BASE}${callback}`,{waitUntil:'networkidle0'});await p.waitForSelector(`[data-reading-open="${choice}"]`);assert.equal(await p.$eval('[data-public-reading-result]',e=>e.dataset.readingFingerprint),fingerprint);assert.equal(await p.$eval('[data-shared-reading-summary]',e=>e.dataset.castId),sealed.id);assert.equal(await p.$eval('[data-shared-reading-summary]',e=>e.dataset.castCreatedAt),sealed.createdAt);assert.equal(await p.evaluate(k=>sessionStorage.getItem(k),castKey),original);await p.evaluate(id=>sessionStorage.removeItem(`quickiching:reading-entry:${id}`),sealed.id);await p.reload({waitUntil:'networkidle0'});await p.waitForSelector(`[data-reading-open="${choice}"]`);assert.equal(await p.$eval('[data-public-reading-result]',e=>e.dataset.readingFingerprint),fingerprint);results.checks.push(`Three Coin ${choice}: anonymous summary → login callback → same cast and selected entry PASS (test-only auth seam)`);
+  signedIn=true;
+  for(const loseTabIntent of [false,true]) {
+   if(loseTabIntent)await p.evaluate(id=>sessionStorage.removeItem(`quickiching:reading-entry:${id}`),sealed.id);
+   await p.goto(`${BASE}${callback}`,{waitUntil:'networkidle0'});
+   if(loseTabIntent)await p.reload({waitUntil:'networkidle0'});
+   if(choice==='free') {
+    await p.waitForSelector('[data-reading-open="free"]');
+    assert.equal(await p.$eval('[data-public-reading-result]',e=>e.dataset.readingFingerprint),fingerprint);
+    assert.equal(await p.$eval('[data-shared-reading-summary]',e=>e.dataset.castId),sealed.id);
+    assert.equal(await p.$eval('[data-shared-reading-summary]',e=>e.dataset.castCreatedAt),sealed.createdAt);
+   } else {
+    await p.waitForFunction(()=>location.pathname==='/readings/deep');
+    assert.equal(new URL(p.url()).searchParams.get('session'),sealed.id);
+    // This local server has no authenticated provider session. Its existing Deep
+    // authorization gate is expected; do not claim a live authenticated Deep result.
+    await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
+   }
+   assert.equal(await p.evaluate(id=>sessionStorage.getItem(`quickiching:reading-entry:${id}`),sealed.id),choice);
+   assert.equal(await p.evaluate(k=>sessionStorage.getItem(k),castKey),original);
+  }
+  results.checks.push(`Three Coin ${choice}: anonymous summary → callback with same cast ID and selected destination PASS; provider login NOT VERIFIED (test-only auth seam)`);
  }
  results.realThreeCoin={id:sealed.id,createdAt:sealed.createdAt,lines:sealed.data.steps.map(s=>s.lineValue),fingerprint};
  await writeFile(`${OUT}/verification.json`,JSON.stringify(results,null,2)+'\n');console.log(JSON.stringify(results,null,2));

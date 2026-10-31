@@ -81,7 +81,7 @@
  .mei-confirm-cards {width:70%;margin-top:0;}
  .mei-confirm-actions {margin-top:0;}
  .mei-moment {padding-left:12%;padding-right:4%;}
- .mei-question-summary {background:#f8e4bc;border:3px double #d5a158;}
+ .mei-question-summary {background:transparent url('/mei-hua/question-banner.webp') center/100% 100% no-repeat;border:0;border-radius:0;padding-left:45px;}
 }
 @media(min-width:601px) {
  .mei-moment {padding-left:16%;}
@@ -99,3 +99,9 @@
 .mei-moment dt {display:flex;align-items:center;gap:12px;}
 .mei-moment dt svg {width:calc(1.6 * var(--scene-unit));height:calc(1.6 * var(--scene-unit));flex-shrink:0;color:#88501f;}
 @media(max-width:600px) {.mei-moment dt {gap:7px;}.mei-moment dt svg {width:18px;height:18px;}}
+
+@media(max-width:600px) {.mei-question-summary {background:transparent url('/mei-hua/question-banner.webp') center/100% 100% no-repeat;border:0;border-radius:0;padding-left:32px;}}
+/* Align DOM copy to the circle center of the supplied cutout (52% of canvas). */
+.mei-number-ring h2 {left:19.5%;}
+.mei-number-ring p {left:22%;top:26%;}
+@media(max-width:600px) {.mei-number-ring p {top:38%;}}
