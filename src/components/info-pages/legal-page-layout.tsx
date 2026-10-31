@@ -18,18 +18,25 @@ export function LegalPageLayout({ title, eyebrow = "Legal", updated, lead, secti
   intro?: ReactNode;
   footer?: ReactNode;
 }) {
+  const hasToc = sections.length > 0;
+
   return (
     <InfoPageShell eyebrow={eyebrow} title={title} meta={updated} lead={lead} decorated={false}>
-      <div className={styles.legalLayout}>
-        <aside className={styles.legalToc} aria-label="On this page">
-          <h2 className={styles.tocTitle}>On this page</h2>
-          <ol className={styles.tocList}>
-            {sections.map((section,index) => {
-              const id = headingId(section.title);
-              return <li key={section.title}><a href={"#"+id}><span className={styles.tocNumber}>{index+1}</span><span>{section.title}</span></a></li>;
-            })}
-          </ol>
-        </aside>
+      <div
+        className={styles.legalLayout}
+        style={hasToc ? undefined : { gridTemplateColumns: "minmax(0, 1fr)" }}
+      >
+        {hasToc ? (
+          <aside className={styles.legalToc} aria-label="On this page">
+            <h2 className={styles.tocTitle}>On this page</h2>
+            <ol className={styles.tocList}>
+              {sections.map((section,index) => {
+                const id = headingId(section.title);
+                return <li key={section.title}><a href={"#"+id}><span className={styles.tocNumber}>{index+1}</span><span>{section.title}</span></a></li>;
+              })}
+            </ol>
+          </aside>
+        ) : null}
         <article className={styles.legalPaper}>
           {intro ? <div className={styles.legalIntro}>{intro}</div> : null}
           {sections.map((section,index) => {
