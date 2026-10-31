@@ -49,7 +49,7 @@ export function isPrivateOrCommercialPath(path: string): boolean {
     "/pricing",
     "/checkout",
     "/result",
-    "/readings/three-coin/result",
+    "/readings",
     "/history",
   ].some((prefix) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`));
 }

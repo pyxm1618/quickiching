@@ -1,7 +1,11 @@
 import React from "react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QuestionFirst, homeExperienceStageForSession, useQuestionFirstContext } from "./question-first";
 import { patchPublicReadingSession, readPublicReadingSessionState } from "@/lib/public-reading-session";
+
+import { ThreeCoinTool } from "./three-coin-tool";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 const originalWindow = globalThis.window;
 
@@ -31,7 +35,7 @@ describe("QuestionFirst home ritual stage semantics", () => {
     })).toBe("ritual");
   });
 
-  it("renders the same saved question in the confirmation scaffold without freezing it", async () => {
+  it("renders the same saved question in confirmation without freezing it", async () => {
     const { renderToStaticMarkup } = await import("react-dom/server");
     const html = renderToStaticMarkup(
       <QuestionFirst
@@ -40,14 +44,17 @@ describe("QuestionFirst home ritual stage semantics", () => {
         presentation="home-ritual"
         initialSession={{ started: false, question: "Should I take this role?", coreQuestionFrozenAtCast: false }}
       >
-        <div>Casting UI</div>
+        <ThreeCoinTool compactIntro presentation="home-ritual" />
       </QuestionFirst>,
     );
 
     expect(html).toContain('data-experience-stage="question-confirm"');
     expect(html).toContain("Should I take this role?");
-    expect(html).toContain("Start Casting");
-    expect(html).not.toContain("Casting UI");
+    expect(html).toContain("Cast the Coins");
+    expect(html).toContain('data-three-coin-presentation="home-ritual"');
+    expect(html).toContain('data-home-stage="question-confirm"');
+    expect(html).not.toContain("Cast six lines, bottom to top");
+    expect(html).not.toContain("Toss three coins");
   });
 
   it("restores a frozen partial cast directly to ritual with the same locked question", async () => {

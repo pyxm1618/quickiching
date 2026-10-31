@@ -1,0 +1,107 @@
+{
+  "reference": "reference.png",
+  "css_viewport_width": 1024,
+  "expected": {
+    "url": "http://localhost:3217/hexagrams/1-the-creative",
+    "title": "I Ching Hexagram 1: The Creative \u2014 Meaning, Love & Unchanging",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "dpr": 1,
+    "full_page": true,
+    "screenshot_scale": "css"
+  },
+  "regions": [
+    {
+      "name": "hero",
+      "box": [
+        96,
+        65,
+        900,
+        282
+      ],
+      "selector": "[data-basic-identity]"
+    },
+    {
+      "name": "meaning",
+      "box": [
+        96,
+        350,
+        900,
+        243
+      ],
+      "selector": "section:has(> #hexagram-meaning-title)"
+    },
+    {
+      "name": "classical",
+      "box": [
+        96,
+        600,
+        900,
+        266
+      ],
+      "selector": "section:has(> #hexagram-classical-title)"
+    },
+    {
+      "name": "six-lines",
+      "box": [
+        96,
+        875,
+        900,
+        354
+      ],
+      "selector": "section:has(> #hexagram-lines-title)"
+    },
+    {
+      "name": "navigation",
+      "box": [
+        96,
+        1454,
+        900,
+        45
+      ],
+      "selector": "[data-auxiliary-navigation]"
+    },
+    {
+      "name": "cases",
+      "box": [
+        96,
+        1240,
+        516,
+        210
+      ],
+      "selector": "[data-reading-cases]"
+    },
+    {
+      "name": "relationships",
+      "box": [
+        620,
+        1240,
+        376,
+        210
+      ],
+      "selector": "[data-hexagram-relations]"
+    },
+    {
+      "name": "form",
+      "box": [
+        647,
+        135,
+        309,
+        182
+      ],
+      "selector": "[data-basic-identity] > section"
+    },
+    {
+      "name": "number-badge",
+      "box": [
+        125,
+        107,
+        58,
+        86
+      ],
+      "selector": "[data-basic-identity] > div:first-child"
+    }
+  ]
+}

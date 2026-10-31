@@ -59,8 +59,9 @@ describe("UserNavControl Component Render", () => {
     );
     expect(html).toContain("pyxm1618@gmail.com");
     expect(html).toContain("Active Account");
-    expect(html).toContain("My Account &amp; History");
-    expect(html).toContain("Sign Out");
+    expect(html).toContain("My Readings");
+    expect(html).toContain("Settings");
+    expect(html).not.toContain("Sign Out");
   });
 
   it("renders mobile drawer Sign in and Sign up when unauthenticated", () => {
@@ -81,11 +82,12 @@ describe("UserNavControl Component Render", () => {
         initialOpen={true}
       />,
     );
-    expect(html).toContain('href="/zh/account"');
-    expect(html).toContain('href="/zh/history"');
+    expect(html).toContain('href="/zh/my-readings"');
+    expect(html).not.toContain('href="/zh/history"');
     expect(html).toContain("我的账户");
-    expect(html).toContain("起卦记录");
-    expect(html).toContain("退出登录");
+    expect(html).toContain("我的解读");
+    expect(html).toContain("设置");
+    expect(html).not.toContain("退出登录");
     expect(html).not.toMatch(/href="\/account"/);
   });
 
@@ -108,8 +110,9 @@ describe("UserNavControl Component Render", () => {
       />,
     );
     expect(html).toContain("账户已登录");
-    expect(html).toContain("账户与起卦记录");
-    expect(html).toContain('href="/zh/account"');
-    expect(html).toContain("退出登录");
+    expect(html).toContain("我的解读");
+    expect(html).toContain('href="/zh/my-readings"');
+    expect(html).toContain("设置");
+    expect(html).not.toContain("退出登录");
   });
 });

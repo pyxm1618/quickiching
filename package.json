@@ -42,6 +42,7 @@
     "resend": "6.22.0",
     "swr": "^2.3.0",
     "tailwind-merge": "^2.6.0",
+    "three": "^0.186.1",
     "workflow": "4.8.5",
     "zod": "^3.24.1"
   },
@@ -51,6 +52,7 @@
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
+    "@types/three": "^0.186.0",
     "@typescript-eslint/eslint-plugin": "7.18.0",
     "@typescript-eslint/parser": "7.18.0",
     "@workflow/vitest": "4.0.21",

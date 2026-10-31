@@ -1,3 +1,4 @@
+import { AccountModalHost } from "@/components/account/account-modal-host";
 import type { Metadata } from "next";
 import "../../globals.css";
 import { SiteHeader } from "@/components/site-header";
@@ -5,7 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { SITE_ORIGIN } from "@/lib/seo";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
-import { localizedFontVariableClassNames } from "../../fonts";
+import { localizedFontVariableClassNames } from "../../localized-fonts";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
@@ -34,6 +35,7 @@ export default function LocalizedRootLayout({
         <SiteHeader locale="zh-Hans" authEnabled={authEnabled} />
         <main className="flex-1">{children}</main>
         <SiteFooter locale="zh-Hans" />
+        <AccountModalHost locale="zh-Hans" />
         <SiteAnalytics />
       </body>
     </html>

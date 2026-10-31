@@ -1,0 +1,375 @@
+{
+  "coverage": {
+    "total": 7,
+    "pass": 0,
+    "notPass": 7,
+    "blocked": 0,
+    "unreviewed": 0,
+    "rejected": 0
+  },
+  "environment": {
+    "viewport": [
+      1672,
+      941
+    ],
+    "zoom": 1,
+    "dpr": 1,
+    "browser": "Chrome/156.0.8078.48",
+    "os": "macOS Darwin25.6.0",
+    "gpu": "Apple M4 ANGLE Metal WebGL2"
+  },
+  "qaBuildId": "y-AXF6KD3Dm6xJuV4TQp_",
+  "background": "7 exact comparisons against the 1671x941 clean master plus one repeated right-edge column",
+  "states": [
+    {
+      "reference": "ref-01",
+      "status": "NOT PASS",
+      "buildId": "y-AXF6KD3Dm6xJuV4TQp_",
+      "browser": "Chrome/156.0.8078.48",
+      "fixture": {
+        "applicationState": "landing; fresh browser profile",
+        "visualSeed": 1618,
+        "animationTimeMs": 700
+      },
+      "observedScene": null,
+      "backgroundDifferenceBounds": null,
+      "directory": ".artifacts/ritual-qa/final-closeout/accepted-cohort/ref-01",
+      "files": {
+        "reference.png": "cda925a7a26a5545a7c57c53742a60b8aaa2e944c50564d437a391ee36eb0d18",
+        "runtime.png": "a6827f34ebd523d0048de2612c229d4a101c472fc2ed0ab851857996fc42303a",
+        "side-by-side.png": "f9ce156e48e8c656a140e1385c2a4a376ef8032514175ff297fdd03348d121a4",
+        "overlay.png": "60c7e6344841d00f2f88e159f40f78850db61a6ed95b00597909468df3fa6631",
+        "difference.png": "30171af326bad73d3590b94936240aace9e34f5217f3f2e0fe2ae147d54506ed",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26"
+      }
+    },
+    {
+      "reference": "ref-02",
+      "status": "NOT PASS",
+      "buildId": "y-AXF6KD3Dm6xJuV4TQp_",
+      "browser": "Chrome/156.0.8078.48",
+      "fixture": {
+        "kind": "real UI and real algorithm with deterministic crypto inputs",
+        "visualSeed": 1618,
+        "animationTimeMs": 2200,
+        "ambientEffectSampleMs": null,
+        "cssMotion": "completed entrance snapshot"
+      },
+      "observedScene": {
+        "renderer": "three-webgl",
+        "renderDpr": "1",
+        "phase": "hero-exit",
+        "faces": "yang,yang,yang",
+        "visibleFaces": "yang,yang,yang"
+      },
+      "backgroundDifferenceBounds": null,
+      "directory": ".artifacts/ritual-qa/final-closeout/accepted-cohort/ref-02",
+      "files": {
+        "reference.png": "4756ef6912a52a669780a9b331d57d98325c5baf27ecdfa84d971c37affc30c6",
+        "runtime.png": "98f0cacd24f51bc94fb5b78d535b578029b5f0f879b91d47a2eea9b6acb52c76",
+        "side-by-side.png": "96cd839aba8cada8a80809f2e129191e9ff777a8223db4a29ae86f743fa613d0",
+        "overlay.png": "7d7fb3c946df2fb60de00e537134aca392d4bf4491ae1bdb2d3a8df118057cf2",
+        "difference.png": "7d6d3d094d04226d68e785b88717e610648bd7f477ae05e709fba7c31ae00aa0",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26"
+      }
+    },
+    {
+      "reference": "ref-03",
+      "status": "NOT PASS",
+      "buildId": "y-AXF6KD3Dm6xJuV4TQp_",
+      "browser": "Chrome/156.0.8078.48",
+      "fixture": {
+        "kind": "real UI and real algorithm with deterministic crypto inputs",
+        "visualSeed": 1618,
+        "animationTimeMs": 500,
+        "ambientEffectSampleMs": null,
+        "cssMotion": "completed entrance snapshot"
+      },
+      "observedScene": {
+        "renderer": "three-webgl",
+        "renderDpr": "1",
+        "phase": "casting",
+        "faces": "yang,yang,yin",
+        "visibleFaces": "yin,yin,yang"
+      },
+      "backgroundDifferenceBounds": null,
+      "directory": ".artifacts/ritual-qa/final-closeout/accepted-cohort/ref-03",
+      "files": {
+        "reference.png": "be408e368fc9848f534c0d7cde0cb4332b00bb32a799030d4a27d38c0e161f2b",
+        "runtime.png": "d3dc48e4030c7be8d141db20c5394a98944835da38779cb2b432f1b22296ad76",
+        "side-by-side.png": "cb1c458827281108ac476c30d0aca189f330487bcfb1ccd50144c698227e6bf5",
+        "overlay.png": "215075fdc00ea2454a31ddab6788939efc1ce515bcffd0276f0f7c4b0941dfbf",
+        "difference.png": "99cd4746d87e62e65f611d9ce03680a44411dbd2e396d813c343ded31cf87d39",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26"
+      }
+    },
+    {
+      "reference": "ref-04",
+      "status": "NOT PASS",
+      "buildId": "y-AXF6KD3Dm6xJuV4TQp_",
+      "browser": "Chrome/156.0.8078.48",
+      "fixture": {
+        "kind": "real UI and real algorithm with deterministic crypto inputs",
+        "visualSeed": 1618,
+        "animationTimeMs": 2200,
+        "ambientEffectSampleMs": null,
+        "cssMotion": "completed entrance snapshot"
+      },
+      "observedScene": {
+        "renderer": "three-webgl",
+        "renderDpr": "1",
+        "phase": "settled",
+        "faces": "yang,yin,yin",
+        "visibleFaces": "yang,yin,yin"
+      },
+      "backgroundDifferenceBounds": null,
+      "directory": ".artifacts/ritual-qa/final-closeout/accepted-cohort/ref-04",
+      "files": {
+        "reference.png": "819e3dc3fd17acbe0d0fe71de7bbc84abe8924c49c71b00e526ca414cf59c067",
+        "runtime.png": "470f23147704377fa2f7269022dd9d136c7c9df7c39e45c3fea992d95e41c1b6",
+        "side-by-side.png": "00be35524408308a1e4ecb6dc615ee49785c5ae91b1520d8bd870c811170347a",
+        "overlay.png": "8c972066cfef8effc997c29e1753f059e5ae9af8203a30e70f85f66968ce5d35",
+        "difference.png": "6958a94835729f98983dbf9381a5ece1261b9ca71c4584370f6143243b844640",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26"
+      }
+    },
+    {
+      "reference": "ref-05",
+      "status": "NOT PASS",
+      "buildId": "y-AXF6KD3Dm6xJuV4TQp_",
+      "browser": "Chrome/156.0.8078.48",
+      "fixture": {
+        "kind": "real UI and real algorithm with deterministic crypto inputs",
+        "visualSeed": 1621,
+        "animationTimeMs": 2200,
+        "ambientEffectSampleMs": 700,
+        "cssMotion": "completed entrance snapshot"
+      },
+      "observedScene": {
+        "renderer": "three-webgl",
+        "renderDpr": "1",
+        "phase": "progress",
+        "faces": "yang,yang,yin",
+        "visibleFaces": "yang,yang,yin"
+      },
+      "backgroundDifferenceBounds": null,
+      "directory": ".artifacts/ritual-qa/final-closeout/accepted-cohort/ref-05",
+      "files": {
+        "reference.png": "4f4ce803576a5dc8b6a708c1eda184ab44e574aeead24258e24159f5e0399b7a",
+        "runtime.png": "90382843793672f5fc579302bd4ec2f5e72355cccde972c796de195acc67a192",
+        "side-by-side.png": "a41925d5a42ad4bda35fb65cd538c6ef6b17f483c4f8567a242e85efe1575b8f",
+        "overlay.png": "76ea69d4e7aa41d3d5ad28dca49737a62d9601ce78bff8cfd1972bbcb65dbeb3",
+        "difference.png": "5bb47a08b9b0fd6b0e9814b1b31dc5fa6b6320b493e396a9d8ffa36b648497d5",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26"
+      }
+    },
+    {
+      "reference": "ref-06",
+      "status": "NOT PASS",
+      "buildId": "y-AXF6KD3Dm6xJuV4TQp_",
+      "browser": "Chrome/156.0.8078.48",
+      "fixture": {
+        "kind": "real UI and real algorithm with deterministic crypto inputs",
+        "visualSeed": null,
+        "animationTimeMs": 2200,
+        "ambientEffectSampleMs": null,
+        "cssMotion": "completed entrance snapshot"
+      },
+      "observedScene": null,
+      "backgroundDifferenceBounds": null,
+      "directory": ".artifacts/ritual-qa/final-closeout/accepted-cohort/ref-06",
+      "files": {
+        "reference.png": "4da62ce9924c97d460819f87cf8e08ae76b20466c8288b39c6610bab19f3eb7b",
+        "runtime.png": "66f4b15160f68e75a6d929c33917e0ba089c78b2d0c8b24d20482ebb84107e3c",
+        "side-by-side.png": "195a75166d61d3e6258e735983b9f51a1cc69ac35129e596a6dd7b13180e8557",
+        "overlay.png": "a648f6d592d29273141a6f213bb0aa752e39de5d6cc74f87d69af9e5acd86cd0",
+        "difference.png": "64cdfdff991eac9a6675c07a1af120ede5d489b78e1ad7121e5eabde4a76bea6",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26"
+      }
+    },
+    {
+      "reference": "ref-07",
+      "status": "NOT PASS",
+      "buildId": "y-AXF6KD3Dm6xJuV4TQp_",
+      "browser": "Chrome/156.0.8078.48",
+      "fixture": {
+        "kind": "local-only saved-reading fixture; not live authentication/persistence evidence",
+        "visualSeed": null,
+        "animationTimeMs": 2200,
+        "ambientEffectSampleMs": null,
+        "cssMotion": "completed entrance snapshot"
+      },
+      "observedScene": null,
+      "backgroundDifferenceBounds": null,
+      "directory": ".artifacts/ritual-qa/final-closeout/accepted-cohort/ref-07",
+      "files": {
+        "reference.png": "1816243404f2c125f283295b49be89e38f7d49cae49536910db87bb3b8ac3b6d",
+        "runtime.png": "d35c6a24e20bc4e4f0719c5ac84b5ead064ca0c94785660905430ed1fcb7b3b9",
+        "side-by-side.png": "d14528c3837eb35ffbfa021a9c7995828a3da593dbc5ed5b5d8f94e090d52989",
+        "overlay.png": "5bc6ce4250259b1022cbd5441bca91bd7d91ef1022959f6d1495d5c733901425",
+        "difference.png": "5b32d9ec2f07dbf871d370a1a69c3535b82eb1ac7b2ba75d21cb2b8d3742d443",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26"
+      }
+    }
+  ],
+  "motionBoundaryReport": {
+    "browser": "Chrome/156.0.8078.48",
+    "viewport": [
+      1672,
+      941
+    ],
+    "dpr": 1,
+    "originalTotal": 3,
+    "pass": 3,
+    "fail": 0,
+    "unreviewed": 0,
+    "outcomes": [
+      {
+        "mode": "normal",
+        "status": "PASS",
+        "firstResult": {
+          "elapsed": 1826.8999999761581,
+          "view": "result",
+          "phase": "casting",
+          "labelOpacity": 0,
+          "recordEnabled": false
+        },
+        "firstLabel": {
+          "elapsed": 1908.5999999642372,
+          "view": "result",
+          "phase": "casting",
+          "labelOpacity": 0.161912,
+          "recordEnabled": false
+        },
+        "firstAction": {
+          "elapsed": 2259.899999976158,
+          "view": "result",
+          "phase": "settled",
+          "labelOpacity": 1,
+          "recordEnabled": true
+        },
+        "saveFixture": {
+          "requests": 2,
+          "first": "QUESTION_LOCKED",
+          "retry": "saved",
+          "sameCast": true,
+          "liveAccountEvidence": false
+        }
+      },
+      {
+        "mode": "reduced",
+        "status": "PASS",
+        "firstResult": {
+          "elapsed": 316.89999997615814,
+          "view": "result",
+          "phase": "casting",
+          "labelOpacity": 0,
+          "recordEnabled": false
+        },
+        "firstLabel": {
+          "elapsed": 329.69999998807907,
+          "view": "result",
+          "phase": "settled",
+          "labelOpacity": 0.463219,
+          "recordEnabled": false
+        },
+        "firstAction": {
+          "elapsed": 480.89999997615814,
+          "view": "result",
+          "phase": "settled",
+          "labelOpacity": 1,
+          "recordEnabled": true
+        },
+        "saveFixture": {
+          "requests": 2,
+          "first": "QUESTION_LOCKED",
+          "retry": "saved",
+          "sameCast": true,
+          "liveAccountEvidence": false
+        }
+      },
+      {
+        "mode": "animation-suppressed",
+        "coverage": "first-cast cancellation recovery",
+        "status": "PASS",
+        "firstResult": {
+          "elapsed": 1831,
+          "view": "result",
+          "phase": "casting",
+          "labelOpacity": 1,
+          "recordEnabled": false
+        },
+        "firstLabel": {
+          "elapsed": 1831,
+          "view": "result",
+          "phase": "casting",
+          "labelOpacity": 1,
+          "recordEnabled": false
+        },
+        "firstAction": {
+          "elapsed": 2261.699999988079,
+          "view": "result",
+          "phase": "settled",
+          "labelOpacity": 1,
+          "recordEnabled": true
+        }
+      }
+    ],
+    "note": "Observed timing and business boundaries only; image/motion fidelity is a separate human gate."
+  },
+  "finalVerification": {
+    "productionBuild": "PASS",
+    "unitTests": {
+      "files": 134,
+      "pass": 881
+    },
+    "browserRegression": {
+      "total": 16,
+      "pass": 16,
+      "fail": 0,
+      "unreviewed": 0
+    },
+    "postgresSerial": "24 files / 152 tests PASS",
+    "migrationMetadata": "PASS; no migration changes",
+    "localFullCi": "PASS: node scripts/vercel-build.mjs",
+    "remoteGitHubCi": "NOT RUN",
+    "mobileLcp": {
+      "runs": [
+        {
+          "run": 1,
+          "lcpMs": 3899.4197999999997,
+          "reportSha256": "4b680e04ff95fff375daa3f0c9a1e8b2e04d7e7c1b30d7a80ed5bd7a05614f74",
+          "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+          "performanceScore": 0.88,
+          "accessibilityScore": 1,
+          "seoScore": 1
+        },
+        {
+          "run": 2,
+          "lcpMs": 3900.3089500000006,
+          "reportSha256": "768a97c5ed8179f670ebd892f6e0673128db03e742d9c7b4067104d5a2808865",
+          "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+          "performanceScore": 0.88,
+          "accessibilityScore": 1,
+          "seoScore": 1
+        },
+        {
+          "run": 3,
+          "lcpMs": 3898.86285,
+          "reportSha256": "bd52eed9f9edf094dc0a3f3c4912ffc445511df4891ac12e868392e1184b1289",
+          "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+          "performanceScore": 0.88,
+          "accessibilityScore": 1,
+          "seoScore": 1
+        }
+      ],
+      "medianMs": 3899.4197999999997,
+      "budgetMs": 4000,
+      "status": "PASS"
+    },
+    "officialPerformanceGate": "PASS",
+    "ordinaryProductionQaRoute": "404; absent from source and app paths manifest",
+    "strictMotionQa": "NOT PASS",
+    "visualComplete": false
+  }
+}

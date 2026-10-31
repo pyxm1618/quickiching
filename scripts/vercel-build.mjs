@@ -1,3 +1,9 @@
+import {
+  assertHomeMobileRegressionGuard,
+  assertPerformanceBudget,
+  aggregateHomeMobileSamples,
+  metricsFromReport,
+} from "./performance-budget.mjs";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { spawn, spawnSync } from "node:child_process";
@@ -75,13 +81,41 @@ async function summarizeLighthouse(label, path) {
   const lcp = Math.round(report.audits["largest-contentful-paint"].numericValue);
   const cls = Number(report.audits["cumulative-layout-shift"].numericValue);
   const tbt = Math.round(report.audits["total-blocking-time"].numericValue);
-  const lcpElement = report.audits["largest-contentful-paint-element"]?.details?.items?.[0]?.node?.snippet;
+  const legacyLcpNode = report.audits["largest-contentful-paint-element"]?.details?.items?.[0]?.node;
+  const lcpInsightItems = report.audits["lcp-breakdown-insight"]?.details?.items ?? [];
+  const insightLcpNode = lcpInsightItems.find((item) => item?.type === "node")
+    ?? lcpInsightItems.flatMap((item) => Array.isArray(item?.items) ? item.items : []).find((item) => item?.type === "node");
+  const lcpNode = legacyLcpNode ?? insightLcpNode;
 
   log(`LIGHTHOUSE_${label} performance=${performance} accessibility=${accessibility} seo=${seo} LCP_ms=${lcp} CLS=${cls.toFixed(4)} TBT_ms=${tbt}`);
-  if (lcpElement) log(`LIGHTHOUSE_${label}_LCP_ELEMENT ${lcpElement}`);
+  if (lcpNode) {
+    log(`LIGHTHOUSE_${label}_LCP_ELEMENT ${JSON.stringify({
+      selector: lcpNode.selector ?? null,
+      snippet: lcpNode.snippet ?? null,
+      nodeLabel: lcpNode.nodeLabel ?? null,
+    })}`);
+  }
+  const lcpTables = [
+    ...lcpInsightItems.filter((item) => item?.type === "table"),
+    ...lcpInsightItems.flatMap((item) => Array.isArray(item?.items)
+      ? item.items.filter((nested) => nested?.type === "table")
+      : []),
+  ];
+  const lcpBreakdown = lcpTables.flatMap((table) => Array.isArray(table?.items) ? table.items : []);
+  if (lcpBreakdown.length > 0) {
+    log(`LIGHTHOUSE_${label}_LCP_BREAKDOWN ${JSON.stringify(lcpBreakdown.map((item) => ({
+      subpart: item.subpart ?? null,
+      label: item.label ?? null,
+      duration: item.duration ?? null,
+    })))}`);
+  }
+  const lcpDiscovery = report.audits["lcp-discovery-insight"]?.details?.items ?? [];
+  if (lcpDiscovery.length > 0) {
+    log(`LIGHTHOUSE_${label}_LCP_DISCOVERY ${JSON.stringify(lcpDiscovery)}`);
+  }
   if (lcp > 2500) log(`WARNING: ${label} lab LCP is above the 2.5s target (${lcp}ms)`);
 
-  return { label, performance, accessibility, seo, lcp, cls, tbt };
+  return { label, performance, accessibility, seo, lcp, cls, tbt, ...metricsFromReport(report) };
 }
 
 function assertLighthouse(metrics) {
@@ -90,7 +124,19 @@ function assertLighthouse(metrics) {
     if (result.accessibility < 90) failures.push(`${result.label} Lighthouse accessibility score below 90`);
     if (result.seo < 90) failures.push(`${result.label} Lighthouse SEO score below 90`);
     if (result.cls > 0.1) failures.push(`${result.label} CLS exceeds 0.10`);
-    if (result.performance < 65 || result.lcp > 4000) failures.push(`${result.label} severe performance regression`);
+    try {
+      if (result.label.startsWith("HOME_")) {
+        // Performance Closeout target page: strict absolute performance budget
+        assertPerformanceBudget(result.label, result, result.label.endsWith("DESKTOP"));
+      } else {
+        // Non-target historical page: strict regression guard
+        if (result.performance < 70 || result.lcp > 3200) {
+          failures.push(`${result.label} performance regression (score=${result.performance}, lcp=${result.lcp})`);
+        }
+      }
+    } catch (error) {
+      failures.push(error.message);
+    }
   }
   if (failures.length > 0) throw new Error(failures.join("; "));
 }
@@ -103,6 +149,7 @@ run("bun", ["run", "test"]);
 log("IndexNow gate is DRY_RUN only; production submission is intentionally forbidden here");
 run("bun", ["run", "indexnow"]);
 run("bun", ["run", "build"]);
+run("node", ["scripts/performance-asset-gate.mjs"]);
 run("bun", ["scripts/public-v1-server-action-gate.ts"]);
 run("node", ["scripts/invalid-locale-server-log-gate.mjs"]);
 
@@ -196,22 +243,43 @@ try {
 
   log(`Running homepage Lighthouse with Chrome: ${chromePath}`);
   const lighthouseEnv = { CHROME_PATH: chromePath };
-  const mobilePath = "/tmp/quickiching-lighthouse-mobile.json";
   const desktopPath = "/tmp/quickiching-lighthouse-desktop.json";
   const guideMobilePath = "/tmp/quickiching-lighthouse-guide-mobile.json";
-  run("./node_modules/.bin/lighthouse", lighthouseArgs(BASE, mobilePath), { env: lighthouseEnv });
+
+  log("Collecting 3 consecutive Lighthouse samples for Home Mobile regression guard");
+  const mobileSamples = [];
+  for (let i = 1; i <= 3; i++) {
+    const mobileSamplePath = `/tmp/quickiching-lighthouse-mobile-sample-${i}.json`;
+    run("./node_modules/.bin/lighthouse", lighthouseArgs(BASE, mobileSamplePath), { env: lighthouseEnv });
+    const sample = await summarizeLighthouse(`HOME_MOBILE_SAMPLE_${i}`, mobileSamplePath);
+    mobileSamples.push(sample);
+  }
+  const aggregatedHomeMobile = aggregateHomeMobileSamples(mobileSamples);
+  const minMobileAccessibility = Math.min(...mobileSamples.map((s) => s.accessibility));
+  const minMobileSeo = Math.min(...mobileSamples.map((s) => s.seo));
+  if (minMobileAccessibility < 90) throw new Error(`HOME_MOBILE Lighthouse accessibility score below 90 (${minMobileAccessibility})`);
+  if (minMobileSeo < 90) throw new Error(`HOME_MOBILE Lighthouse SEO score below 90 (${minMobileSeo})`);
+
+  const homeMobileAcceptedBaselineRaw = JSON.parse(
+    await readFile(new URL("../docs/performance/home-mobile-accepted-baseline.json", import.meta.url), "utf8")
+  );
+  const homeMobileBaseline = homeMobileAcceptedBaselineRaw.aggregate ?? homeMobileAcceptedBaselineRaw;
+  assertHomeMobileRegressionGuard(aggregatedHomeMobile, homeMobileBaseline, (msg) => log(msg));
+  log(
+    `HOME_MOBILE_MEDIAN_OF_3 PASS performance=${aggregatedHomeMobile.performance} LCP_ms=${aggregatedHomeMobile.lcp.toFixed(1)} CLS=${aggregatedHomeMobile.cls.toFixed(4)} TBT_ms=${aggregatedHomeMobile.tbt} imageBytes=${aggregatedHomeMobile.imageBytes} maxImageBytes=${aggregatedHomeMobile.maxImageBytes} scriptBytes=${aggregatedHomeMobile.scriptBytes}`
+  );
+
   run("./node_modules/.bin/lighthouse", lighthouseArgs(BASE, desktopPath, true), { env: lighthouseEnv });
   run("./node_modules/.bin/lighthouse", lighthouseArgs(`${BASE}/guides/how-to-ask-the-i-ching`, guideMobilePath), { env: lighthouseEnv });
-  const mobile = await summarizeLighthouse("HOME_MOBILE", mobilePath);
   const desktop = await summarizeLighthouse("HOME_DESKTOP", desktopPath);
   const guideMobile = await summarizeLighthouse("HOW_TO_ASK_MOBILE", guideMobilePath);
-  assertLighthouse([mobile, desktop, guideMobile]);
+  assertLighthouse([desktop, guideMobile]);
 
   log("Running populated Three-Coin result Lighthouse with preserved sessionStorage");
   run("bun", ["scripts/result-lighthouse-gate.mjs"], { env: browserEnv });
-  log("Running Public P0 before/after Lighthouse coverage for home, Three-Coin, populated unified result, hub, detail, and History");
+  log("Running Public P0 Lighthouse against the recorded PR #76 baseline and strict resource budgets");
   run("bun", ["scripts/public-p0-lighthouse-gate.mjs"], {
-    env: { ...browserEnv, PUBLIC_V1_LIGHTHOUSE_BASELINE_URL: process.env.PUBLIC_V1_LIGHTHOUSE_BASELINE_URL || "https://www.quickiching.com" },
+    env: browserEnv,
   });
   log("ALL PUBLIC SEO V1 + PUBLIC READING P0 + THREE-COIN FREE READING V2 + ON-PAGE SEO QUALITY / BUILD / BROWSER / BUNDLE / LIGHTHOUSE GATES PASS");
 } finally {

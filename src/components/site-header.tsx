@@ -10,6 +10,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
 import { UserNavControl } from "@/components/auth/user-nav-control";
+import { InfoPageHeader } from "@/components/info-pages/info-page-header";
 
 const NAV_LINK_CLASS =
   "relative min-h-11 inline-flex items-center text-[13px] font-medium text-[var(--ink-2)] transition-colors hover:text-[var(--ink)] after:absolute after:bottom-1 after:left-0 after:h-px after:w-0 after:bg-[var(--cinnabar)] after:transition-all hover:after:w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cinnabar)]";
@@ -22,6 +23,8 @@ const MENU_ITEM_CLASS =
 
 const DRAWER_LINK_CLASS =
   "flex min-h-11 items-center rounded-xl px-4 py-3 text-sm font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.08] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cinnabar)]";
+
+const INFO_PAGE_PATHS = new Set(["/guides/how-to-ask-the-i-ching","/guides/changing-lines","/guides/primary-relating-hexagrams","/help","/privacy","/terms","/acceptable-use"]);
 
 export function SiteHeader({
   locale = "en",
@@ -272,12 +275,17 @@ export function SiteHeader({
     }
   };
 
+  if (INFO_PAGE_PATHS.has(pathname)) {
+    return <InfoPageHeader locale={locale} authEnabled={authEnabled} />;
+  }
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/[0.07] bg-[#09070f]/80 backdrop-blur-[18px]">
       <div className="mx-auto flex min-h-[74px] max-w-[1240px] items-center justify-between gap-x-6 px-5 py-2 sm:px-7">
         {/* Brand Logo - exactly 1 visible product name */}
         <Link
           ref={brandRef}
+          prefetch={false}
           href={isChinese ? "/zh" : "/"}
           className="flex min-h-11 items-center gap-3 font-semibold tracking-[0.02em] text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--cinnabar)]"
         >

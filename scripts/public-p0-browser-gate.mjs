@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import { CLASSICAL_HEXAGRAMS } from "../src/domain/public-reading/classical.ts";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const THREE_COIN_STORAGE_KEY = "quickiching:public-v1:three-coin";
@@ -48,6 +49,9 @@ async function waitForText(page, text, timeout = 15_000) {
 }
 
 async function clickText(page, text) {
+  if (["Cast the Coins", "Record This Cast"].includes(text)) {
+    await page.waitForFunction(wanted => [...document.querySelectorAll("button")].some(node => node.textContent?.trim() === wanted && !node.disabled), {timeout:3000}, text);
+  }
   const clicked = await page.evaluate((wanted) => {
     const node = [...document.querySelectorAll("button")].find((candidate) => candidate.textContent?.trim() === wanted);
     if (!(node instanceof HTMLButtonElement) || node.disabled) return false;
@@ -90,6 +94,7 @@ async function verifyChineseNoChangingLines(page) {
   await openSeededThreeCoinResult(page, "zh-Hans");
   const gate = await page.evaluate(() => ({
     hasSixLines: document.querySelector("[data-completed-six-lines]") !== null,
+    signInAria: document.querySelector(".ritual-gate-signin")?.getAttribute("aria-label"),
     primaryCard: document.querySelector("[data-primary-card]") !== null,
     relatingCard: document.querySelector("[data-relating-card]") !== null,
     text: document.body?.innerText ?? "",
@@ -97,7 +102,8 @@ async function verifyChineseNoChangingLines(page) {
   assert(gate.hasSixLines, "Chinese auth gate must preserve the completed six lines");
   assert.equal(gate.primaryCard, false, "Chinese anonymous gate must not reveal the primary hexagram");
   assert.equal(gate.relatingCard, false, "Chinese anonymous gate must not reveal whether a relating hexagram exists");
-  assert(gate.text.includes("登录、保存并查看本次卦象"), "Chinese completed cast must require sign-in before reveal");
+  assert.equal(gate.signInAria, "登录、保存并查看本次卦象", "Formal Chinese sign-in action must retain its accessible purpose");
+  assert(gate.text.includes("登录、保存并查看"), "Chinese completed cast must require sign-in before reveal");
   await assertNoOverflow(page, "Chinese no-changing completed-cast gate 390px");
   log("Chinese no-changing completed cast remains sealed behind auth-before-reveal PASS");
 }
@@ -175,22 +181,35 @@ async function verifySeoAssets(page) {
     const snapshot = await page.evaluate(() => ({
       canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? "",
       lineAnchors: Array.from({ length: 6 }, (_, index) => document.querySelector(`#line-${index + 1}`) !== null),
-      classicalSourceUrls: [...document.querySelectorAll('a[href]')]
+      classicalSourceUrls: [...document.querySelectorAll('article[data-hexagram-detail] a[href]')]
         .map((node) => node.getAttribute("href") ?? "")
         .filter((href) => href.includes("zh.wikisource.org")),
-      classicalSourceText: [...document.querySelectorAll('article[data-hexagram-detail] [data-seo-exclude]')]
-        .map((node) => node.textContent ?? "")
-        .join(" "),
+      classicalHeading: document.querySelector("#hexagram-classical-title")?.textContent ?? "",
+      classicalSubheadings: [...(document.querySelector("#hexagram-classical-title")?.closest("section")?.querySelectorAll("h3") ?? [])].map((node) => node.textContent?.trim()),
+      classicalSectionSourceUrls: [...(document.querySelector("#hexagram-classical-title")?.closest("section")?.querySelectorAll('a[href]') ?? [])]
+        .map((node) => node.getAttribute("href") ?? "").filter((href) => href.includes("zh.wikisource.org")),
+      lineSourceUrls: Array.from({ length: 6 }, (_, index) => {
+        const label = document.documentElement.lang === "zh-Hans" ? `第${index + 1}爻经典原文来源` : `Source for classical line ${index + 1}`;
+        return document.querySelector(`article[data-hexagram-detail] a[aria-label="${label}"]`)?.getAttribute("href") ?? "";
+      }),
       text: document.body?.innerText ?? "",
     }));
     assert(snapshot.canonical.endsWith(path), `${path}: canonical is not self-referencing`);
     assert(snapshot.lineAnchors.every(Boolean), `${path}: six line anchors are incomplete`);
     assert(snapshot.classicalSourceUrls.length >= 7, `${path}: fixed classical source links are incomplete`);
+    const classical = CLASSICAL_HEXAGRAMS.find((entry) => path.endsWith("/" + entry.slug));
+    assert(classical, `${path}: classical record is missing`);
+    assert(snapshot.classicalSourceUrls.every((href) => href === classical.source.textSourceUrl), `${path}: classical source must match this hexagram's fixed source URL and revision`);
+    assert.deepEqual(snapshot.lineSourceUrls, classical.lines.map((line) => line.source.textSourceUrl), `${path}: six individually labelled classical line sources are incomplete or incorrect`);
     if (path.startsWith("/zh/")) {
       assert(snapshot.text.includes("卦辞") && snapshot.text.includes("大象"), `${path}: Chinese classical text is missing`);
     } else {
-      const sourceText = snapshot.classicalSourceText.toLocaleLowerCase();
-      assert(sourceText.includes("classical source record") && sourceText.includes("fixed records for the six lines"), `${path}: English classical source explanation is missing`);
+      // The approved English knowledge layout replaces the old source-explainer copy.
+      // Assert its semantic sections while keeping the real fixed-source checks above.
+      assert(snapshot.classicalHeading.includes("Classical Text & Modern Interpretation"), `${path}: English classical section heading is missing`);
+      assert.deepEqual(snapshot.classicalSubheadings, ["Judgment", "Image"], `${path}: Judgment/Image source sections are missing`);
+      assert.deepEqual(snapshot.classicalSectionSourceUrls, [classical.source.textSourceUrl, classical.source.textSourceUrl], `${path}: Judgment/Image fixed classical source links are incomplete or incorrect`);
+      assert(!snapshot.text.includes("Classical Line Text"), `${path}: English rendering must not be labelled as classical original text`);
     }
   }
 
@@ -229,7 +248,7 @@ async function verifyQuestionReading(page) {
   }
 
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
-  await waitForText(page, "Your completed cast is preserved");
+  await waitForText(page, "Your six lines are complete");
   await assertQuestionPrivacy(page, question, { requireVisible: false });
 
   const questionState = await page.evaluate(() => ({
@@ -247,7 +266,7 @@ async function verifyQuestionReading(page) {
 
   const sessionBeforeRefresh = JSON.stringify(questionState.session);
   await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "Your completed cast is preserved");
+  await waitForText(page, "Your six lines are complete");
   await assertQuestionPrivacy(page, question, { requireVisible: false });
   const sessionAfterRefresh = await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin"));
   assert.equal(sessionAfterRefresh, sessionBeforeRefresh, "Auth-gate refresh must restore the exact same completed cast and question");
@@ -283,7 +302,7 @@ async function verifyQuestionSkipFreeOnly(page) {
   }
 
   await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
-  await waitForText(page, "Your completed cast is preserved");
+  await waitForText(page, "Your six lines are complete");
   const state = await page.evaluate(() => ({
     session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
     authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
@@ -304,7 +323,8 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   const question = "面对职业选择，我现在最需要看清什么？";
   await seedThreeCoin(page, question);
   await openSeededThreeCoinResult(page, "zh-Hans");
-  await waitForText(page, "本次起卦已经完成");
+  await waitForText(page, "六爻已经完成");
+  await waitForText(page, "保存本次起卦");
   await assertQuestionPrivacy(page, question, { requireVisible: false });
 
   const state = await page.evaluate(() => ({

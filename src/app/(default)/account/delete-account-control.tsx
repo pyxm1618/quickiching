@@ -28,14 +28,14 @@ function clearQuickIChingAccountStorage(): void {
   }
 }
 
-export function DeleteAccountControl({ locale = "en" }: { locale?: "en" | "zh-Hans" }) {
+export function DeleteAccountControl({ locale = "en", presentation }: { locale?: "en" | "zh-Hans"; presentation?: "modal" }) {
   const zh = locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
   const [confirmation, setConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const expectedConfirmation = zh ? "删除账户" : "DELETE";
-  const confirmed = confirmation.trim() === expectedConfirmation;
+  const expectedConfirmation = presentation === "modal" ? "DELETE" : zh ? "删除账户" : "DELETE";
+  const confirmed = confirmation === expectedConfirmation;
 
   async function deleteAccount() {
     if (!confirmed || submitting) return;
@@ -54,23 +54,28 @@ export function DeleteAccountControl({ locale = "en" }: { locale?: "en" | "zh-Ha
   }
 
   return (
-    <div className="rounded-lg border border-[var(--line)] p-4">
-      <h3 className="font-display text-lg font-medium">{t("Delete account", "删除账户")}</h3>
-      <p className="mt-2 text-sm leading-6 text-[var(--ink-3)]">
+    <div className={presentation === "modal" ? "qic-account-delete-form" : "rounded-lg border border-[var(--line)] p-4"}>
+      <h3 className="font-display text-lg font-medium">{t("Delete Account", "删除账户")}</h3>
+      {presentation === "modal" ? <>
+        <p className="qic-account-permanent">{t("This action is permanent and cannot be undone.", "此操作为永久操作，无法撤销。")}</p>
+        <div className="qic-account-deletion-summary"><strong>{t("Deleting your account will permanently delete:", "删除账户将永久删除：")}</strong><ul><li>{t("Stored reading data", "已保存的解读数据")}</li><li>{t("Stored question text", "已保存的问题文本")}</li><li>{t("Generated Deep Reading content", "已生成的深度解读内容")}</li><li>{t("Account profile information", "账户资料")}</li></ul><p>{t("Certain financial and security records may be retained as required by law.", "依法保留必要的财务和安全记录。")}</p></div>
+      </> : <p className="mt-2 text-sm leading-6 text-[var(--ink-3)]">
         {t("This permanently removes stored question text and generated reading content, signs you out, and anonymizes your account. Required financial and security records may be retained without your profile details.", "此操作会永久删除已存储的问题文本和生成的解读内容、退出登录并匿名化账户。依法或为财务与安全审计所需的记录可能在不保留个人资料关联的情况下继续保存。")}
-      </p>
+      </p>}
       <label className="mt-4 block text-sm font-medium" htmlFor="delete-account-confirmation">
-        {zh ? "输入“删除账户”确认" : "Type DELETE to confirm"}
+        {zh ? `输入 ${expectedConfirmation} 确认` : "Type DELETE to confirm"}
       </label>
       <input
         id="delete-account-confirmation"
         value={confirmation}
         onChange={(event) => setConfirmation(event.target.value)}
         autoComplete="off"
+        placeholder={expectedConfirmation}
+        spellCheck={false}
         className="mt-2 w-full rounded-md border border-[var(--line)] bg-transparent px-3 py-2 font-mono text-sm"
       />
       <Button className="mt-3" variant="outline" disabled={!confirmed || submitting} onClick={deleteAccount}>
-        {submitting ? t("Deleting…", "正在删除…") : t("Permanently delete account", "永久删除账户")}
+        {submitting ? t("Deleting…", "正在删除…") : t("Permanently Delete Account", "永久删除账户")}
       </Button>
       {error && <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
     </div>

@@ -1,4 +1,4 @@
-import { Fraunces, IBM_Plex_Mono, Instrument_Sans, Noto_Serif_SC } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -17,13 +17,16 @@ const instrumentSans = Instrument_Sans({
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-plex",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  // The visible ritual counter uses 400; keep its preload to avoid a late font request.
+  weight: ["400"],
   display: "swap",
 });
 
-const notoSerifSC = Noto_Serif_SC({
-  variable: "--font-noto-sc",
-  weight: "variable",
+// Keep existing secondary weights available without preloading three unused faces.
+const ibmPlexMonoSecondary = IBM_Plex_Mono({
+  variable: "--font-plex-secondary",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
   display: "swap",
   preload: false,
 });
@@ -32,9 +35,5 @@ export const fontVariableClassNames = [
   fraunces.variable,
   instrumentSans.variable,
   ibmPlexMono.variable,
-].join(" ");
-
-export const localizedFontVariableClassNames = [
-  fontVariableClassNames,
-  notoSerifSC.variable,
+  ibmPlexMonoSecondary.variable,
 ].join(" ");

@@ -1,0 +1,201 @@
+{
+  "stageDesktop": {
+    "source": "ritual/bg-stage-master-clean.png",
+    "sourceSha256": "d612f60677d97098697c9ea4a04d891c2e0294b4265242c9e56e59a120c7698a",
+    "sourceBytes": 3155707,
+    "url": "/performance/stageDesktop.e37364561615e31f.webp",
+    "sha256": "e37364561615e31fbda9faa41bf0ada630ef3b36c242e0eec683943a5391dd44",
+    "bytes": 369850,
+    "width": 1671,
+    "height": 941,
+    "options": {
+      "lossless": false,
+      "quality": 95,
+      "alphaQuality": 100,
+      "effort": 6
+    }
+  },
+  "stageMobile": {
+    "source": "ritual/bg-stage-mobile-600.webp",
+    "sourceSha256": "285965e6cb8c7840fee2889ab6742c68ad4568a5d6b195627292f95e6ad67450",
+    "sourceBytes": 58754,
+    "url": "/performance/stageMobile.285965e6cb8c7840.webp",
+    "sha256": "285965e6cb8c7840fee2889ab6742c68ad4568a5d6b195627292f95e6ad67450",
+    "bytes": 58754,
+    "width": 337,
+    "height": 600,
+    "options": null
+  },
+  "stagePortrait": {
+    "source": "ritual/bg-stage-portrait-crop.webp",
+    "sourceSha256": "bde3e415eb141bc882eaa828fcd47358fb95cb2f6dfabb8968867ab17059ce8b",
+    "sourceBytes": 464932,
+    "url": "/performance/stagePortrait.bde3e415eb141bc8.webp",
+    "sha256": "bde3e415eb141bc882eaa828fcd47358fb95cb2f6dfabb8968867ab17059ce8b",
+    "bytes": 464932,
+    "width": 529,
+    "height": 941,
+    "options": null
+  },
+  "questionDesktop": {
+    "source": "ritual/question-parchment-crop.png",
+    "sourceSha256": "d616c1d6e5957a79c6af49353661ea95d0f1a78d9ec6f69447a7b06d5a496982",
+    "sourceBytes": 173114,
+    "url": "/performance/questionDesktop.d616c1d6e5957a79.png",
+    "sha256": "d616c1d6e5957a79c6af49353661ea95d0f1a78d9ec6f69447a7b06d5a496982",
+    "bytes": 173114,
+    "width": 646,
+    "height": 184,
+    "options": null
+  },
+  "questionMobile": {
+    "source": "ritual/question-parchment-mobile-crop.webp",
+    "sourceSha256": "aeacbe5208415e492318be165c1af97dadd570ca41c801fb5e28e286b9f85a4b",
+    "sourceBytes": 14504,
+    "url": "/performance/questionMobile.aeacbe5208415e49.webp",
+    "sha256": "aeacbe5208415e492318be165c1af97dadd570ca41c801fb5e28e286b9f85a4b",
+    "bytes": 14504,
+    "width": 400,
+    "height": 184,
+    "options": null
+  },
+  "resultDesktop": {
+    "source": "ritual/hexagram-result-card-blank.png",
+    "sourceSha256": "32ffe8fc6c0a605428581593f2b45505a793a48931a22b8f359b890f8c075c68",
+    "sourceBytes": 3296298,
+    "url": "/performance/resultDesktop.c8b42fcbbe5723fe.webp",
+    "sha256": "c8b42fcbbe5723fefb8fb2157cf2c4ba0a290f860a50ca34448176e863457bfd",
+    "bytes": 628712,
+    "width": 1670,
+    "height": 941,
+    "options": {
+      "lossless": false,
+      "quality": 95,
+      "alphaQuality": 100,
+      "effort": 6
+    }
+  },
+  "resultMobile": {
+    "source": "ritual/hexagram-result-card-mobile.webp",
+    "sourceSha256": "b62092713b0e63f0d57615f1229c1c704df94f2bae72254c9bcce15c8ed68aa5",
+    "sourceBytes": 133010,
+    "url": "/performance/resultMobile.b62092713b0e63f0.webp",
+    "sha256": "b62092713b0e63f0d57615f1229c1c704df94f2bae72254c9bcce15c8ed68aa5",
+    "bytes": 133010,
+    "width": 800,
+    "height": 451,
+    "options": null
+  },
+  "accountCoins": {
+    "source": "account/antique-coins-clean.png",
+    "sourceSha256": "ae7b93ff7aec871d90c5b7c918b0c51d36e03bf06e0e4b09dfb9cd7ed0914d2f",
+    "sourceBytes": 1856344,
+    "url": "/performance/accountCoins.7a4f85ddcc102bdf.webp",
+    "sha256": "7a4f85ddcc102bdf032a7217fedb023801d608b735be334dbaed6f5b6324ed93",
+    "bytes": 288182,
+    "width": 900,
+    "height": 450,
+    "options": {
+      "lossless": true,
+      "quality": 95,
+      "alphaQuality": 100,
+      "effort": 6
+    }
+  },
+  "platformDesktop": {
+    "source": "hexagrams/ritual-platform.png",
+    "sourceSha256": "dd4c11f71fd1267c70d79bf742b181f0caf2ea3a0174f6e5a578e0a49e59def4",
+    "sourceBytes": 2628226,
+    "url": "/performance/platformDesktop.6a80016afcf20338.webp",
+    "sha256": "6a80016afcf203381ff264e6f2362b52b8258c84a41dfe46a81fea12930613bf",
+    "bytes": 582004,
+    "width": 1536,
+    "height": 1024,
+    "options": {
+      "lossless": false,
+      "quality": 95,
+      "alphaQuality": 100,
+      "effort": 6
+    }
+  },
+  "platformMobile": {
+    "source": "hexagrams/ritual-platform.png",
+    "sourceSha256": "dd4c11f71fd1267c70d79bf742b181f0caf2ea3a0174f6e5a578e0a49e59def4",
+    "sourceBytes": 2628226,
+    "url": "/performance/platformMobile.5ee9b24ef7aa3211.webp",
+    "sha256": "5ee9b24ef7aa3211e7f71a2657615e6fb8cb557625ba4a1d9e52de3ad7443767",
+    "bytes": 190848,
+    "width": 800,
+    "height": 533,
+    "options": {
+      "lossless": false,
+      "quality": 95,
+      "alphaQuality": 100,
+      "effort": 6
+    }
+  },
+  "coinFrontDesktop": {
+    "source": "ritual/coin-front-master.png",
+    "sourceSha256": "19688dcc21c79c3e2972f83169b2e119908c158ee87398875704e5d7e0f50a23",
+    "sourceBytes": 6416377,
+    "url": "/performance/coinFrontDesktop.f247842ffde6714b.webp",
+    "sha256": "f247842ffde6714bccd5fd04d88042994daf079c36bc3061c9d721efb02431ec",
+    "bytes": 430796,
+    "width": 1024,
+    "height": 1024,
+    "options": {
+      "lossless": false,
+      "quality": 95,
+      "alphaQuality": 100,
+      "effort": 6
+    }
+  },
+  "coinBackDesktop": {
+    "source": "ritual/coin-back-master.png",
+    "sourceSha256": "f47030b6629e7bd2819e5230734bb664f76966cf64e816544ef4c5af7a254c23",
+    "sourceBytes": 6066257,
+    "url": "/performance/coinBackDesktop.30c2cec3fcce7aae.webp",
+    "sha256": "30c2cec3fcce7aae193a27a38983a5a83d1a77409fa5af89f569709436e61ec9",
+    "bytes": 438788,
+    "width": 1024,
+    "height": 1024,
+    "options": {
+      "lossless": false,
+      "quality": 95,
+      "alphaQuality": 100,
+      "effort": 6
+    }
+  },
+  "coinFrontMobile": {
+    "source": "ritual/coin-front-mobile-512.png",
+    "sourceSha256": "107a76b6ebb362ca39b2d05223bfb3d5a2b459ceab9dfa739f1000bb225ba0c3",
+    "sourceBytes": 414413,
+    "url": "/performance/coinFrontMobile.268fc93706d89c5d.webp",
+    "sha256": "268fc93706d89c5df3903975a9540b492402a9f9772bc60b1ac20cf891ca14c1",
+    "bytes": 305042,
+    "width": 512,
+    "height": 512,
+    "options": {
+      "lossless": true,
+      "quality": 95,
+      "alphaQuality": 100,
+      "effort": 6
+    }
+  },
+  "coinBackMobile": {
+    "source": "ritual/coin-back-mobile-512.png",
+    "sourceSha256": "0b1efeea82e1d509cada9cd4311af3332db4fd29c6f08bc60f7095fa88496fba",
+    "sourceBytes": 397377,
+    "url": "/performance/coinBackMobile.e8de8c6b39c8858b.webp",
+    "sha256": "e8de8c6b39c8858bd4ffb6009dc06aeb6ef3328b5b1d767c7b5f1677de908dfe",
+    "bytes": 283228,
+    "width": 512,
+    "height": 512,
+    "options": {
+      "lossless": true,
+      "quality": 95,
+      "alphaQuality": 100,
+      "effort": 6
+    }
+  }
+}

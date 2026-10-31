@@ -25,14 +25,7 @@ function postRequest(castingId: string, extraHeaders: Record<string, string> = {
       "sec-fetch-site": "same-origin",
       ...extraHeaders,
     },
-    body: JSON.stringify({
-      contextNotes: "The team changed its timeline and I need a clear next step.",
-      options: [],
-      constraints: [],
-      concerns: [],
-      interpretationGoal: "what_do_i_need_to_see_clearly",
-      locale: "en",
-    }),
+    body: JSON.stringify({ locale: "en" }),
   });
 }
 
@@ -117,7 +110,7 @@ describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
     expect(res.status).toBe(402);
   });
 
-  it("rejects insufficient context before calling the reservation service", async () => {
+  it("rejects retired enrichment before calling the reservation service", async () => {
     const req = new Request(`https://www.quickiching.com/api/readings/${castingId}/deep`, {
       method: "POST",
       headers: {
@@ -137,8 +130,16 @@ describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
     });
     const res = await POST(req, { params: Promise.resolve({ castingId }) });
     expect(res.status).toBe(422);
-    await expect(res.json()).resolves.toMatchObject({ error: "CONTEXT_INSUFFICIENT", retryable: false });
+    await expect(res.json()).resolves.toMatchObject({ error: "INVALID_DEEP_READING_REQUEST", retryable: false });
     expect(mocks.requestDeepReading).not.toHaveBeenCalled();
+  });
+
+  it("defaults an empty request body to English without enrichment", async () => {
+    const original = postRequest(castingId);
+    const request = new Request(original.url, { method: "POST", headers: original.headers });
+    const response = await POST(request, { params: Promise.resolve({ castingId }) });
+    expect(response.status).toBe(202);
+    expect(mocks.requestDeepReading).toHaveBeenCalledWith({ userId: "user-1", castingId, locale: "en" });
   });
 
   it("surfaces encrypted-question failures without reserving/retrying", async () => {

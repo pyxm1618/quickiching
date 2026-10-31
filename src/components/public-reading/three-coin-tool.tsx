@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
+import React, { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 import { useRouter } from "next/navigation";
+import { ThreeCoinVisual } from "./three-coin-visual";
+import { RitualCastPresentation } from "./ritual-cast-presentation";
+import { CAST_ACTION_MS, COIN_RESET_MS, COIN_EXIT_MS } from "./three-coin-motion";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
-import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
+import { completedPublicReadingPath, writeCompletedPublicReading } from "@/lib/completed-public-reading";
 import { useQuestionFirstContext } from "@/components/public-reading/question-first";
 import { generateThreeCoinLine, type CoinFace, type ThreeCoinStep } from "@/domain/casting/three-coin/algorithm";
 import { buildPublicReading } from "@/domain/public-reading/reading";
@@ -107,6 +110,8 @@ export function ThreeCoinTool({
   const router = useRouter();
   const homeRitual = presentation === "home-ritual";
   const questionContext = useQuestionFirstContext();
+  const homeStage = questionContext?.homeExperienceStage ?? "ritual";
+  const showRitualControls = !homeRitual || homeStage === "ritual";
   const question = questionProp ?? questionContext?.question;
   const onNewReading = onNewReadingProp ?? (() => questionContext?.restartQuestion(true));
   const zh = dictionary.locale === "zh-Hans";
@@ -120,6 +125,10 @@ export function ThreeCoinTool({
   const [pendingStep, setPendingStep] = useState<ThreeCoinStep | null>(null);
   const [unpersistedCommit, setUnpersistedCommit] = useState<UnpersistedCommit | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [visualResetting,setVisualResetting]=useState(false);
+  const [sceneReady,setSceneReady]=useState(false);
+  const visualReady=!homeRitual||sceneReady;
+  const resetTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null);
   const [soundOn, setSoundOn] = useState(true);
   const holdingRef = useRef(false);
   const ignoreSyntheticClickRef = useRef(false);
@@ -148,6 +157,7 @@ export function ThreeCoinTool({
   useEffect(() => () => {
     if (shakeIntervalRef.current) clearInterval(shakeIntervalRef.current);
     if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     void audioRef.current?.close();
   }, []);
 
@@ -162,15 +172,17 @@ export function ThreeCoinTool({
   const visibleStep = unpersistedCommit?.step ?? pendingStep ?? settledUnrecordedStep ?? revealedSteps.at(-1) ?? null;
   const visibleFaces: readonly [CoinFace, CoinFace, CoinFace] = visibleStep?.coinFaces ?? ["yang", "yang", "yang"];
   const storageBlocked = storageError !== null;
-  const busy = motion === "holding" || motion === "casting" || storageBlocked || !restored;
+  const busy = !visualReady || visualResetting || motion === "holding" || motion === "casting" || storageBlocked || !restored;
   const visualButtonLabel = storageBlocked
     ? t("Browser storage unavailable", "浏览器存储不可用")
+    : !visualReady && !complete
+      ? t("Preparing the ritual…", "正在准备仪式…")
     : motion === "casting"
       ? t("Coins are settling…", "铜钱正在落定…")
       : complete
         ? t("Reading complete", "起卦完成")
         : t("Press & hold to shake · release to cast", "按住摇动 · 松开起爻");
-  const publicReading = useMemo(() => !homeRitual && complete && readingMeta
+  const publicReading = useMemo(() => complete && readingMeta
     ? buildPublicReading({
         id: readingMeta.id,
         createdAt: readingMeta.createdAt,
@@ -179,7 +191,7 @@ export function ThreeCoinTool({
         lineValuesBottomUp: lines,
         evidence: { kind: "three-coin", steps },
       })
-    : null, [complete, homeRitual, question, readingMeta, steps, lines]);
+    : null, [complete, question, readingMeta, steps, lines]);
 
   useEffect(() => {
     if (!shouldNavigateCompletedThreeCoin({
@@ -193,9 +205,16 @@ export function ThreeCoinTool({
       resultNavigationStarted: resultNavigationStartedRef.current,
     })) return;
 
-    resultNavigationStartedRef.current = true;
-    router.push(zh ? "/zh/readings/three-coin/result" : "/readings/three-coin/result");
-  }, [complete, readingMeta, restored, router, storageBlocked, unpersistedCommit, visuallyComplete, zh]);
+    if (!publicReading) return;
+    try { writeCompletedPublicReading(publicReading); } catch (error) { setStorageError(storageErrorCode(error)); return; }
+    const resultPath = completedPublicReadingPath(publicReading.id, zh);
+    if(!homeRitual){resultNavigationStartedRef.current=true;router.push(resultPath);return;}
+    const navigation=setTimeout(()=>{
+      resultNavigationStartedRef.current=true;
+      router.push(resultPath);
+    },window.matchMedia("(prefers-reduced-motion: reduce)").matches?160:COIN_EXIT_MS);
+    return ()=>clearTimeout(navigation);
+  }, [complete, publicReading, readingMeta, restored, router, storageBlocked, unpersistedCommit, visuallyComplete, zh, homeRitual]);
 
   function audio(): AudioContext | null {
     if (!soundOn || typeof window === "undefined") return null;
@@ -246,7 +265,7 @@ export function ThreeCoinTool({
   }
 
   function beginHold() {
-    if (!restored || storageBlocked || complete || motion === "casting" || holdingRef.current) return;
+    if (!visualReady || !restored || storageBlocked || complete || visualResetting || motion === "casting" || holdingRef.current) return;
     if (homeRitual && steps.length > revealedCount) return;
     holdingRef.current = true;
     setPendingStep(null);
@@ -284,7 +303,7 @@ export function ThreeCoinTool({
       tone(360, 0.34, 0.023, 0, "sine");
       tone(720, 0.42, 0.01, 0.03, "sine");
       settleTimerRef.current = null;
-    }, reducedMotion ? 120 : 2200);
+    }, reducedMotion ? (homeRitual ? 320 : 120) : CAST_ACTION_MS);
   }
 
   function persistCast(committedSteps: ThreeCoinStep[], next: ThreeCoinStep) {
@@ -325,7 +344,10 @@ export function ThreeCoinTool({
     })) return;
     const nextRevealedCount = revealedCount + 1;
     setRevealedCount(nextRevealedCount);
-    if (nextRevealedCount < 6) setMotion("idle");
+    if (nextRevealedCount < 6) {
+      setMotion("idle");setVisualResetting(true);
+      resetTimerRef.current=setTimeout(()=>{setVisualResetting(false);resetTimerRef.current=null;},window.matchMedia("(prefers-reduced-motion: reduce)").matches?140:COIN_RESET_MS);
+    }
   }
 
   function retryStorage() {
@@ -355,6 +377,8 @@ export function ThreeCoinTool({
       return;
     }
 
+    if(resetTimerRef.current)clearTimeout(resetTimerRef.current);
+    resetTimerRef.current=null;setVisualResetting(false);
     holdingRef.current = false;
     ignoreSyntheticClickRef.current = false;
     if (shakeIntervalRef.current) clearInterval(shakeIntervalRef.current);
@@ -416,14 +440,61 @@ export function ThreeCoinTool({
       ignoreSyntheticClickRef.current = false;
       return;
     }
-    if (!restored || storageBlocked || holdingRef.current || complete || motion === "casting") return;
+    if (!visualReady || !restored || storageBlocked || visualResetting || holdingRef.current || complete || motion === "casting") return;
     if (homeRitual && steps.length > revealedCount) return;
     beginHold();
     releaseCast();
   }
 
+  if (homeRitual) return (
+    <section data-realm="chamber" data-three-coin-presentation={presentation} data-home-stage={homeStage} aria-labelledby={showRitualControls ? "three-coin-tool-title" : undefined}>
+      <ThreeCoinVisual
+        faces={unpersistedCommit ? revealedSteps.at(-1)?.coinFaces ?? ["yang", "yang", "yang"] : visibleFaces}
+        phase={homeStage === "landing" ? "hero" : homeStage === "question-confirm" ? "hero-exit" : visuallyComplete ? "exit" : visualResetting ? "reset" : motion === "casting" ? "casting" : motion === "settled" ? "settled" : revealedCount > 0 ? "progress" : "ready"}
+        visualSeed={1618 + (visibleStep?.lineIndex ?? 0)}
+        onReady={()=>setSceneReady(true)}
+      />
+      {showRitualControls ? <RitualCastPresentation zh={zh} motion={motion} steps={revealedSteps}
+        visibleStep={unpersistedCommit ? null : visibleStep} complete={visuallyComplete}
+        canRecord={canRecordSettledThreeCoin({homeRitual,motion,storageBlocked,stepCount:steps.length,revealedCount})}
+        resetting={visualResetting} restartDisabled={busy || complete} onRecord={recordSettledLine} onRestart={startNewReading}
+        soundOn={soundOn} onSound={()=>setSoundOn(value=>!value)} error={storageError ? (
+        <div className="mb-6 rounded-[1.2rem] border border-[rgba(239,129,112,0.36)] bg-[rgba(239,129,112,0.08)] px-5 py-4" role="alert" data-three-coin-storage-error={storageError}>
+          <p className="text-sm font-semibold text-[var(--danger)]">{t("This cast cannot safely continue until browser session storage is available.", "浏览器会话存储恢复前，本次起卦不能安全继续。")}</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">
+            {unpersistedCommit
+              ? zh
+                ? `第 ${unpersistedCommit.step.lineIndex + 1} 爻已经得到 ${unpersistedCommit.step.lineValue}，但尚未成功保存。重试只会保存同一个结果，不会重新掷币。`
+                : `Line ${unpersistedCommit.step.lineIndex + 1} was cast as ${unpersistedCommit.step.lineValue}, but it was not sealed. Retrying saves this same cast; it does not toss again.`
+              : t("Quick I Ching could not read or clear the sealed browser session. Your in-memory reading has not been replaced.", "Quick I Ching 无法读取或清除已保存的浏览器会话；当前内存中的卦象没有被替换。")}
+          </p>
+          {!zh ? <p className="mt-2 font-mono text-xs text-[var(--ink-3)]">{storageError}</p> : null}
+          <button type="button" className="sound-toggle mt-3" onClick={retryStorage}>{unpersistedCommit ? t("Retry saving this cast", "重试保存本爻") : t("Retry browser storage", "重试浏览器存储")}</button>
+        </div>
+      ) : null}>
+        <button
+                type="button"
+                className="hold-button after:relative after:z-[2] after:content-[attr(data-visual-label)]"
+                data-holding={motion === "holding"}
+                data-visual-label={visualButtonLabel}
+                aria-label={storageBlocked ? t("Browser session storage unavailable. Resolve the storage error before casting.", "浏览器会话存储不可用，请先解决存储错误。") : complete ? t("Reading complete", "起卦完成") : t("Toss three coins. Press and hold to shake, then release to cast.", "掷三枚铜钱：按住摇动，松开起爻。")}
+                onPointerDown={onPointerDown}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerCancel}
+                onKeyDown={onKeyDown}
+                onKeyUp={onKeyUp}
+                onClick={onAccessibleClick}
+                disabled={!visualReady || !restored || storageBlocked || visualResetting || complete || motion === "casting"}
+              >
+                <span className="sr-only">{t("Toss three coins", "掷三枚铜钱")}</span>
+              </button>
+      </RitualCastPresentation> : null}
+    </section>
+  );
+
   return (
-    <section data-realm="chamber" data-three-coin-presentation={presentation} aria-labelledby="three-coin-tool-title">
+    <section data-realm="chamber" data-three-coin-presentation={presentation} data-home-stage={homeRitual ? homeStage : undefined} aria-labelledby={showRitualControls ? "three-coin-tool-title" : undefined}>
+      {showRitualControls ? <>
       <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="mystic-kicker">{t("Three-Coin Method", "三枚铜钱起卦")}</p>
@@ -467,9 +538,9 @@ export function ThreeCoinTool({
           </div>
 
           <div className="coin-motion-stage" data-motion={motion} aria-label={t("Three-coin casting chamber", "三枚铜钱起卦区")}>
-            <div className="coin-palm" aria-hidden="true" />
-            {visibleFaces.map((face, index) => <CashCoin key={index} face={face} index={index} zh={zh} />)}
-            <div className="coin-energy" aria-hidden="true" />
+            {!homeRitual ? <div className="coin-palm" aria-hidden="true" /> : null}
+            {!homeRitual ? visibleFaces.map((face, index) => <CashCoin key={index} face={face} index={index} zh={zh} />) : null}
+            {!homeRitual ? <div className="coin-energy" aria-hidden="true" /> : null}
             <div className="coin-motion-result" aria-live="polite">
               {!unpersistedCommit && motion !== "casting" && visibleStep ? <><strong>{visibleStep.lineValue} · {lineName(visibleStep.lineValue, zh)}</strong><span>{zh ? `第 ${visibleStep.lineIndex + 1} 爻已落定` : `line ${visibleStep.lineIndex + 1} sealed`}</span></> : null}
             </div>
@@ -517,7 +588,7 @@ export function ThreeCoinTool({
                 onKeyDown={onKeyDown}
                 onKeyUp={onKeyUp}
                 onClick={onAccessibleClick}
-                disabled={!restored || storageBlocked || complete || motion === "casting"}
+                disabled={!visualReady || !restored || storageBlocked || visualResetting || complete || motion === "casting"}
               >
                 <span className="sr-only">{t("Toss three coins", "掷三枚铜钱")}</span>
               </button>
@@ -564,7 +635,7 @@ export function ThreeCoinTool({
           </div>
         </aside>
       </div>
-      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} dictionary={dictionary} localizedContent={localizedContent} /> : null}
+      </> : null}
     </section>
   );
 }

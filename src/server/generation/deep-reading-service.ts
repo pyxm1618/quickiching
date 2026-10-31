@@ -3,9 +3,9 @@ import type { Sql, TransactionSql } from "postgres";
 import type { WorkflowStarter } from "@/server/workflows/workflow-starter";
 import { deterministicFactsSchema } from "@/domain/generation/schemas";
 import {
-  deepReadingContextEnrichmentSchema,
-  deepReadingContextSnapshotSchema,
-  type DeepReadingContextEnrichment,
+  deepReadingRequestSchema,
+  activeDeepReadingContextSnapshotSchema,
+  type ActiveDeepReadingContextSnapshot,
   type DeepReadingContextSnapshot,
 } from "@/domain/generation/deep-reading-contract";
 import { evaluateRisk } from "@/domain/risk/engine";
@@ -47,7 +47,7 @@ export interface DeepReadingService {
   requestDeepReading(options: {
     userId: string;
     castingId: string;
-    enrichment?: unknown;
+    locale?: "en" | "zh-Hans";
   }): Promise<DeepReadingRequestResult>;
 
   getDeepReadingStatus(options: {
@@ -76,16 +76,6 @@ function factsFromSession(session: Row) {
     relatingHexagramNumber: session.relating_hexagram_number == null ? null : Number(session.relating_hexagram_number),
     readingVariant: readingVariant(movingLinePositions ?? []),
   });
-}
-
-function riskText(question: string, context: DeepReadingContextEnrichment): string {
-  return [
-    question,
-    context.contextNotes,
-    ...context.options,
-    ...context.constraints,
-    ...context.concerns,
-  ].filter(Boolean).join("\n");
 }
 
 async function reconcileExpiredDeepReading(
@@ -187,14 +177,16 @@ async function compensateWorkflowStartFailure(
     castingId: string;
     userId: string;
     generationEpoch: number;
+    legacyReadOnly?: boolean;
   },
 ): Promise<boolean> {
   const failedJobs = await transaction`
     update generation_jobs
-    set status = 'failed', structured_error_code = 'WORKFLOW_START_FAILED',
+    set status = 'failed', structured_error_code = ${input.legacyReadOnly ? 'LEGACY_DEEP_READING_READ_ONLY' : 'WORKFLOW_START_FAILED'},
         lease_token = null, lease_expires_at = null, updated_at = clock_timestamp()
     where id = ${input.jobId} and casting_id = ${input.castingId}
-      and generation_epoch = ${input.generationEpoch} and status = 'queued'
+      and generation_epoch = ${input.generationEpoch}
+      and (status = 'queued' or (${input.legacyReadOnly ?? false} and status = 'running'))
     returning id
   ` as Row[];
   if (!failedJobs[0]) return false;
@@ -227,14 +219,14 @@ async function compensateWorkflowStartFailure(
   }
 
   await transaction`
-    update workflow_runs set status = 'failed', error_code = 'WORKFLOW_START_FAILED', updated_at = clock_timestamp()
+    update workflow_runs set status = 'failed', error_code = ${input.legacyReadOnly ? 'LEGACY_DEEP_READING_READ_ONLY' : 'WORKFLOW_START_FAILED'}, updated_at = clock_timestamp()
     where idempotency_key = ${input.idempotencyKey}
   `;
   await transaction`
     insert into audit_events (id, category, action, entity_type, entity_id, user_id, payload, created_at)
     values (
       ${randomUUID()}, 'generation', 'deep_reading_start_failed', 'job', ${input.jobId},
-      ${input.userId}, ${JSON.stringify({ castingId: input.castingId, reservationId: input.reservationId, errorCode: "WORKFLOW_START_FAILED" })}::jsonb,
+      ${input.userId}, ${JSON.stringify({ castingId: input.castingId, reservationId: input.reservationId, errorCode: input.legacyReadOnly ? "LEGACY_DEEP_READING_READ_ONLY" : "WORKFLOW_START_FAILED" })}::jsonb,
       clock_timestamp()
     )
   `;
@@ -261,10 +253,7 @@ export function createDeepReadingService(dependencies: {
   return {
     async requestDeepReading(options): Promise<DeepReadingRequestResult> {
       const { userId, castingId } = options;
-      const submittedEnrichment = options.enrichment === undefined
-        ? null
-        : deepReadingContextEnrichmentSchema.safeParse(options.enrichment);
-      if (submittedEnrichment && !submittedEnrichment.success) throw new Error("CONTEXT_INSUFFICIENT");
+      const request = deepReadingRequestSchema.parse({ locale: options.locale });
 
       const prepared = await sql.begin(async (transaction) => {
         const userRows = await transaction`select id from users where id = ${userId} limit 1` as Row[];
@@ -291,7 +280,6 @@ export function createDeepReadingService(dependencies: {
         const session = sessionRows[0];
         if (!session || String(session.user_id) !== userId || session.deleted_at != null) throw new Error("CASTING_NOT_FOUND");
         if (session.lifecycle !== "revealed") throw new Error("CASTING_NOT_READY");
-        if (session.method !== "three_coin") throw new Error("UNSUPPORTED_CAST_METHOD");
         if (!session.result_hmac) throw new Error("CAST_RESULT_UNAVAILABLE");
         const currentFacts = factsFromSession(session);
         if (!verifyResultIntegrity({
@@ -342,13 +330,33 @@ export function createDeepReadingService(dependencies: {
         }
 
         const activeJobRows = await transaction`
-          select j.id as job_id, j.status as job_status, r.id as res_id
+          select j.id as job_id, j.status as job_status, j.idempotency_key, r.id as res_id
           from generation_jobs j
           left join entitlement_reservations r on r.job_id = j.id and r.status = 'reserved'
           where j.casting_id = ${castingId} and j.kind = 'deep_reading' and j.status in ('queued', 'running')
           limit 1
         ` as Row[];
         if (activeJobRows[0]) {
+          const rows = await transaction`
+            select ciphertext, iv, auth_tag, encryption_key_version
+            from deep_reading_context_snapshots where casting_id = ${castingId} limit 1
+          ` as Row[];
+          if (rows[0]) {
+            const row = rows[0];
+            const stored = decryptDeepReadingContextSnapshot(castingId, {
+              ciphertext: String(row.ciphertext), iv: String(row.iv), authTag: String(row.auth_tag),
+              encryptionKeyVersion: String(row.encryption_key_version),
+            }, env);
+            if (stored.schemaVersion !== "deep-reading-context-v2") {
+              const active = activeJobRows[0];
+              await compensateWorkflowStartFailure(transaction, {
+                jobId: String(active.job_id), reservationId: String(active.res_id ?? ""),
+                idempotencyKey: String(active.idempotency_key), castingId, userId,
+                generationEpoch: Number(session.generation_epoch), legacyReadOnly: true,
+              });
+              return { legacyReadOnly: true as const };
+            }
+          }
           return {
             alreadyActive: true as const,
             jobId: String(activeJobRows[0].job_id),
@@ -361,26 +369,26 @@ export function createDeepReadingService(dependencies: {
           select ciphertext, iv, auth_tag, encryption_key_version, snapshot_hash
           from deep_reading_context_snapshots where casting_id = ${castingId} limit 1
         ` as Row[];
-        let snapshot: DeepReadingContextSnapshot;
+        let snapshot: ActiveDeepReadingContextSnapshot;
         let snapshotHash: string;
         if (storedSnapshotRows[0]) {
           const row = storedSnapshotRows[0];
-          snapshot = decryptDeepReadingContextSnapshot(castingId, {
+          const storedSnapshot = decryptDeepReadingContextSnapshot(castingId, {
             ciphertext: String(row.ciphertext),
             iv: String(row.iv),
             authTag: String(row.auth_tag),
             encryptionKeyVersion: String(row.encryption_key_version),
           }, env);
+          if (storedSnapshot.schemaVersion !== "deep-reading-context-v2") throw new Error("LEGACY_DEEP_READING_READ_ONLY");
+          snapshot = storedSnapshot;
           snapshotHash = calculateDeepReadingContextSnapshotHash(snapshot, env);
           if (snapshotHash !== String(row.snapshot_hash)) throw new Error("DEEP_READING_SNAPSHOT_INTEGRITY_INVALID");
         } else {
-          if (!submittedEnrichment?.success) throw new Error("CONTEXT_INSUFFICIENT");
           const coreQuestionAtCast = decryptQuestionForGeneration(session, env);
           const facts = currentFacts;
-          const context = submittedEnrichment.data;
           const normalizedScene = normalizeScene(String(session.scene));
           if (!normalizedScene) throw new Error("CASTING_SCENE_INVALID");
-          const risk = evaluateRisk(riskText(coreQuestionAtCast, context));
+          const risk = evaluateRisk(coreQuestionAtCast);
           await transaction`
             update casting_sessions set risk_status = ${risk.status}, risk_rule_version = ${risk.ruleVersion}, updated_at = clock_timestamp()
             where id = ${castingId}
@@ -390,12 +398,12 @@ export function createDeepReadingService(dependencies: {
           }
 
           const knowledge = await buildDeepReadingKnowledgeBundle(facts);
-          snapshot = deepReadingContextSnapshotSchema.parse({
-            schemaVersion: "deep-reading-context-v1",
+          snapshot = activeDeepReadingContextSnapshotSchema.parse({
+            schemaVersion: "deep-reading-context-v2",
             coreQuestionAtCast,
-            context,
+            locale: request.locale,
             scene: normalizedScene,
-            castMethod: "three_coin",
+            castMethod: facts.method,
             methodVersion: facts.algorithmVersion,
             facts,
             snapshotAt: new Date().toISOString(),
@@ -415,10 +423,7 @@ export function createDeepReadingService(dependencies: {
           `;
         }
 
-        const refreshedRisk = evaluateRisk(
-          [snapshot.coreQuestionAtCast, snapshot.context.contextNotes, ...snapshot.context.options,
-            ...snapshot.context.constraints, ...snapshot.context.concerns].filter(Boolean).join("\n"),
-        );
+        const refreshedRisk = evaluateRisk(snapshot.coreQuestionAtCast);
         await transaction`
           update casting_sessions set risk_status = ${refreshedRisk.status},
             risk_rule_version = ${refreshedRisk.ruleVersion}, updated_at = clock_timestamp()
@@ -500,6 +505,7 @@ export function createDeepReadingService(dependencies: {
         return { alreadyCompleted: false as const, alreadyActive: false as const, jobId, reservationId, idempotencyKey, epoch };
       });
 
+      if ("legacyReadOnly" in prepared) throw new Error("LEGACY_DEEP_READING_READ_ONLY");
       if ("blockedRisk" in prepared) {
         const blockedRisk = String(prepared.blockedRisk ?? "UNKNOWN");
         throw new Error(`RISK_${blockedRisk.toUpperCase()}`);
