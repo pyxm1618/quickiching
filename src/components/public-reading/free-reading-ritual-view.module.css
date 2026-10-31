@@ -1,0 +1,26 @@
+.page {
+  --ink: #172536;
+  --paper: #f3e8d1;
+  --gold: #d8ad52;
+  --red: #a92f26;
+  width: 100%;
+  overflow: clip;
+  background: linear-gradient(180deg, #efe2c8 0%, #f4ead7 56%, #dfc9a4 100%);
+  color: var(--ink);
+}
+.art,.cardArt{position:absolute;inset:0;z-index:0;display:block;pointer-events:none}
+.art img,.cardArt img{display:block;width:100%;height:100%}
+.art img,.cardArt img{object-fit:fill}
+.hero>.art{position:relative;inset:auto;width:100%;height:100%}
+.hero>.art img{width:100%;height:100%;object-fit:fill}
+.hero,.bottom,.overall,.changing,.transition,.primaryCard,.relatingCard{position:relative;isolation:isolate;overflow:hidden}
+.hero{height:clamp(350px,25.4vw,390px)}
+.bottom{height:clamp(382px,27.9vw,420px)}
+.ctaShade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,transparent 0 31%,rgba(6,17,24,.12) 43%,rgba(7,17,24,.46) 66%,rgba(7,16,23,.22) 100%)}
+.heroCopy,.bottomCopy{position:absolute;z-index:2;color:#fff7e7;text-shadow:0 2px 14px rgba(0,0,0,.42)}
+.heroCopy{top:13%;left:35.5%;width:38%}
+.bottomCopy{top:15%;left:24.5%;width:45%;text-align:center}
+.heroCopy h2,.bottomCopy h2{margin:0;font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:700;line-height:1.05;letter-spacing:-.035em}
+.heroCopy h2{font-size:clamp(2rem,3vw,2.85rem)}
+.bottomCopy h2{font-size:clamp(1.9rem,2.5vw,2.55rem)}
+.heroCopy>p,.bottomCopy>p{margin:15px 0 0;font-family:Georgia,"Times New Roman",serif;font-size:clamp(.92rem,1.15vw,1.08rem);¶»§q«^
