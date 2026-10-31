@@ -253,9 +253,9 @@ async function verifyChineseReading(page, viewport) {
     text: node.textContent ?? "",
   }));
   assert(chineseResult.fingerprint, `${label}: reading fingerprint missing`);
-  assert(chineseResult.text.includes("核心主题"), `${label}: Chinese core interpretation missing`);
-  assert(chineseResult.text.includes("回到现实"), `${label}: Chinese grounded reflection missing`);
-  assert(chineseResult.text.includes("继续反思"), `${label}: Chinese reflection section missing`);
+  assert(chineseResult.text.includes("整体解读"), `${label}: Chinese concise overall reading missing`);
+  assert(chineseResult.text.includes("变化路径"), `${label}: Chinese concise transition missing`);
+  assert.equal(await page.$eval(".shared-reading-content", node => node.hidden), true, `${label}: Free content must stay closed before selection/login`);
   assert(chineseResult.text.includes(CHINESE_QUESTION), `${label}: Chinese question missing from result`);
   for (const forbidden of ["Your I Ching reading", "Save reading", "Changing Lines", "Personalized Interpretation", "Reveal Your Reading"]) {
     assert(!chineseResult.text.includes(forbidden), `${label}: English-only result text leaked into Chinese result: ${forbidden}`);
@@ -263,12 +263,12 @@ async function verifyChineseReading(page, viewport) {
   await assertNoOverflow(page, `${label} result`);
 
   const englishTarget = await page.$eval("header [data-language-switch]", (node) => node.getAttribute("href"));
-  assert.equal(englishTarget, "/methods/mei-hua-yi-shu", `${label}: language switch must target the equivalent English route`);
+  assert.equal(new URL(englishTarget, BASE).pathname, "/readings/result", `${label}: language switch must target the equivalent English route`);
   await openLanguageMenuAndSwitch(page, viewport);
 
-  await page.waitForFunction((path) => location.pathname === path, { timeout: 20_000 }, "/methods/mei-hua-yi-shu");
+  await page.waitForFunction((path) => location.pathname === path, { timeout: 20_000 }, "/readings/result");
   await page.waitForSelector("[data-public-reading-result]", { timeout: 20_000 });
-  await waitForText(page, "Your I Ching reading");
+  await waitForText(page, "Your Question");
 
   const englishResult = await page.$eval("[data-public-reading-result]", (node) => ({
     fingerprint: node.getAttribute("data-reading-fingerprint"),
@@ -281,7 +281,7 @@ async function verifyChineseReading(page, viewport) {
 
   await openLanguageMenuAndSwitch(page, viewport);
 
-  await page.waitForFunction((path) => location.pathname === path, { timeout: 20_000 }, "/zh/methods/mei-hua-yi-shu");
+  await page.waitForFunction((path) => location.pathname === path, { timeout: 20_000 }, "/zh/readings/result");
   await page.waitForSelector("[data-public-reading-result]", { timeout: 20_000 });
   const returnedChineseFingerprint = await page.$eval("[data-public-reading-result]", (node) => node.getAttribute("data-reading-fingerprint"));
   assert.equal(returnedChineseFingerprint, chineseResult.fingerprint, `${label}: returning to Chinese changed reading facts`);

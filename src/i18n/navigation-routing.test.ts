@@ -6,6 +6,15 @@ import { alternateLanguages, currentRouteForPath, languageSwitchTarget } from ".
 import { ROUTE_REGISTRY } from "./routes";
 
 describe("Navigation and multi-language routing contract", () => {
+  it.each(["result", "deep"])("keeps the private %s Reading route equivalent without indexing it", (view) => {
+    const route = currentRouteForPath(`/readings/${view}`)!;
+    expect(currentRouteForPath(`/zh/readings/${view}`)?.id).toBe(route.id);
+    expect(languageSwitchTarget(route.id, "en").href).toBe(`/zh/readings/${view}`);
+    expect(languageSwitchTarget(route.id, "zh-Hans").href).toBe(`/readings/${view}`);
+    expect(route.indexable).toEqual({ en: false, "zh-Hans": false });
+    expect(alternateLanguages(route.id)).toBeUndefined();
+  });
+
   it("maps all 64 hexagram detail pairs (128 total pages) symmetrically", () => {
     expect(CLASSICAL_HEXAGRAMS).toHaveLength(64);
 

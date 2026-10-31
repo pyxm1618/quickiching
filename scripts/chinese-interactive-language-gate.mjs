@@ -488,7 +488,7 @@ async function main() {
       };
       sessionStorage.setItem("quickiching:public-v1:three-coin", JSON.stringify(session));
     });
-    await page.reload({ waitUntil: "networkidle0" });
+    await page.goto(`${BASE}/zh/readings/result?session=gate_tc_reading`, { waitUntil: "networkidle0" });
     await page.waitForSelector("[data-public-reading-result]", { timeout: 10_000 });
     const tcKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
     assert.equal(tcKicker, "三枚铜钱 · 基础解读", `Three-coin kicker mismatch: ${tcKicker}`);
@@ -514,33 +514,17 @@ async function main() {
 
     // 5.b: Yarrow Stalk Method (/zh/methods/yarrow-stalks)
     await page.goto(`${BASE}/zh/methods/yarrow-stalks`, { waitUntil: "networkidle0" });
-    await page.evaluate(() => {
-      const changes = [];
-      for (let i = 0; i < 18; i++) {
-        changes.push({
-          lineIndex: Math.floor(i / 3),
-          changeIndex: i % 3,
-          startingStalks: 49,
-          endingStalks: 28, // 28 / 4 = 7
-          leftGroup: 24,
-          rightGroup: 24,
-          removedFromRight: 1,
-          leftRemainder: 1,
-          rightRemainder: 3,
-          algorithmVersion: "yarrow-v1",
-        });
-      }
-      const session = {
-        schemaVersion: 1,
-        started: true,
-        id: "gate_yarrow_reading",
-        createdAt: new Date().toISOString(),
-        data: { changes },
-      };
-      sessionStorage.setItem("quickiching:public-v1:yarrow-v2", JSON.stringify(session));
-    });
+    // Real existing Yarrow UI supplies valid current evidence and a stable UUID.
+    await page.evaluate(() => sessionStorage.setItem("quickiching:public-v1:yarrow-v2", JSON.stringify({
+      schemaVersion:1, started:true, id:crypto.randomUUID(), createdAt:new Date().toISOString(), data:{changes:[]},
+    })));
     await page.reload({ waitUntil: "networkidle0" });
-    await page.waitForSelector("[data-public-reading-result]", { timeout: 10_000 });
+    for (let count = 1; count <= 18; count++) {
+      const change = await page.waitForSelector("section[aria-labelledby='yarrow-tool-title'] button.mystic-button:not(:disabled)");
+      await change.click();
+      if (count < 18) await page.waitForFunction(expected => document.querySelector("section[aria-labelledby='yarrow-tool-title'] .ritual-progress-badge")?.textContent.startsWith(`${expected} / 18`), {}, count);
+    }
+    await page.waitForSelector("[data-shared-reading-summary]", { timeout: 10_000 });
     const yarrowKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
     assert.equal(yarrowKicker, "蓍草起卦 · 基础解读", `Yarrow kicker mismatch: ${yarrowKicker}`);
     assert(!yarrowKicker.includes("-v1"), "Yarrow kicker leaked -v1");
@@ -563,7 +547,7 @@ async function main() {
       sessionStorage.setItem("quickiching:public-v1:mei-hua-v2", JSON.stringify({
         schemaVersion: 1,
         started: true,
-        id: "gate_mei_hua_reading",
+        id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
         data: {},
       }));

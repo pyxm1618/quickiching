@@ -137,6 +137,14 @@ const HEXAGRAM_ROUTES = HEXAGRAM_INDEXABLE_PATHS.map(pairedHexagramRoute);
 export const ROUTE_REGISTRY: readonly LocalizedRouteDefinition[] = [
   ...EQUIVALENT_ROUTES,
   ...HEXAGRAM_ROUTES,
+  ...(["result", "deep"] as const).map((view) => ({
+    id: `reading-${view}`,
+    paths: { en: `/readings/${view}`, "zh-Hans": `/zh/readings/${view}` },
+    renderable: { en: true, "zh-Hans": true },
+    indexable: { en: false, "zh-Hans": false },
+    hreflangGroup: false,
+    switchable: true,
+  })),
 ];
 
 const ROUTE_BY_ID = new Map(ROUTE_REGISTRY.map((route) => [route.id, route]));
