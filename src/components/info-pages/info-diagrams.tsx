@@ -48,7 +48,7 @@ export function PrimaryRelatingPrimer() {
   return (
     <div className={styles.primaryFlow} aria-label="Primary to relating hexagram example with one changing line">
       <div className={styles.flowColumn}><h3>Primary Hexagram</h3><div className={styles.lineStack}>
-        {topDown.map((value,index)=><HexLine key={"primary-"+index} polarity={linePolarity(value)} changing={value===6||value===9} label={"Primary line "+(6-index)} />)}
+        {topDown.map((value,index)=><HexLine key={"primary-"+index} polarity={linePolarity(value)} changing={value===6} label={"Primary line "+(6-index)} />)}
       </div></div>
       <div className={styles.flowArrow} aria-hidden="true">→</div>
       <div className={styles.flowColumn}><h3>Changing Lines</h3><div className={styles.changeExample}>
@@ -56,7 +56,7 @@ export function PrimaryRelatingPrimer() {
       </div></div>
       <div className={styles.flowArrow} aria-hidden="true">→</div>
       <div className={styles.flowColumn}><h3>Relating Hexagram</h3><div className={styles.lineStack}>
-        {topDown.map((value,index)=><HexLine key={"relating-"+index} polarity={relatingPolarity(value)} changing={value===6||value===9} label={"Relating line "+(6-index)} />)}
+        {topDown.map((value,index)=><HexLine key={"relating-"+index} polarity={relatingPolarity(value)} changing={value===6} label={"Relating line "+(6-index)} />)}
       </div></div>
     </div>
   );
