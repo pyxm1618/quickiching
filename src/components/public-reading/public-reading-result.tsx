@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { SharedReadingSummary, type ReadingChoice } from "./shared-reading-summary";
 import { buildResultSigninHref } from "@/lib/commercial-navigation";
-import { readReadingEntry, readingEntryKey, readingEntryReturnPath, readingEntryFromCallback, readingUserSignedIn } from "@/lib/reading-entry";
+import { readingEntryToRestore, readingEntryKey, readingEntryReturnPath, readingUserSignedIn } from "@/lib/reading-entry";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
@@ -170,7 +170,7 @@ export function PublicReadingResult({
     if (!sharedSummary) return;
     async function restore() {
       try {
-        const pending = readReadingEntry(window.sessionStorage, reading.id) ?? readingEntryFromCallback(window.location, reading.id);
+        const pending = readingEntryToRestore(window.sessionStorage, window.location, reading.id);
         if (!pending) return;
         const signedIn = authenticated === true || await readingUserSignedIn();
         if (active && signedIn) {

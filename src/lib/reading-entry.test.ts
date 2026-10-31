@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readReadingEntry, readingEntryKey, readingEntryReturnPath, readingEntryFromCallback, readingUserSignedIn } from "./reading-entry";
+import { readingEntryToRestore, readReadingEntry, readingEntryKey, readingEntryReturnPath, readingEntryFromCallback, readingUserSignedIn } from "./reading-entry";
 
 describe("reading entry continuation", () => {
   it.each(["free", "deep"] as const)("keeps %s scoped to the exact cast and preserves the current return URL", (choice) => {
@@ -37,5 +37,15 @@ describe("new-tab callback intent", () => {
   });
   it("does not invent an entry from an unknown fragment", () => {
     expect(readingEntryFromCallback({ search: "?session=cast-a", hash: "#unknown" }, "cast-a")).toBeNull();
+  });
+});
+
+describe("explicit return intent", () => {
+  const storage = { getItem: () => "deep" } as unknown as Storage;
+  it("allows View Free Reading to override a previously selected Deep entry", () => {
+    expect(readingEntryToRestore(storage, { search: "?session=cast-a", hash: "#reading-free" }, "cast-a")).toBe("free");
+  });
+  it("rejects another cast's fragment and preserves this cast's own pending choice", () => {
+    expect(readingEntryToRestore(storage, { search: "?session=cast-b", hash: "#reading-free" }, "cast-a")).toBe("deep");
   });
 });

@@ -798,7 +798,7 @@ export function ThreeCoinResultClient({
     const definition = hexagramByNumber(number);
     return <Link href={`${prefix}/hexagrams/${classicalHexagramByNumber(number).slug}`}>{number} · {zh ? definition.chineseName : definition.englishName}</Link>;
   }
-  const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(resultReading!.id)}`;
+  const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(resultReading!.id)}#reading-free`;
   const deepHref = `${prefix}/readings/deep?session=${encodeURIComponent(resultReading!.id)}`;
   return (
     <RitualRevealTransition stage="result">

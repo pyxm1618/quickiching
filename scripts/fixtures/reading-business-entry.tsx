@@ -3,7 +3,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ThreeCoinResultClient } from '../../src/components/three-coin-result/three-coin-result-client';
 const query = new URLSearchParams(location.search);
-const method = query.get('method') ?? 'three_coin';
+const method = query.get('method') ?? query.get('session')?.replace('browser-fixture-','') ?? 'three_coin';
 const question = 'Should I change to a new job?';
 const report = {
  schemaVersion:'deep-reading-v3', readingVariant:'still_hexagram',
@@ -22,7 +22,7 @@ window.fetch = async (url, init) => {
  return Response.json(posted ? {status:'completed',output:query.has('invalid') ? {schemaVersion:'unknown'} : report,availableCredits:0} : {status:'not_started',availableCredits:1});
 };
 createRoot(document.getElementById('root')!).render(<ThreeCoinResultClient
- pageMode={query.get('page') === 'deep' ? 'deep' : 'free'}
+ pageMode={query.get('page') === 'deep' || location.pathname.endsWith('/deep') ? 'deep' : 'free'}
  initialUser={{id:'browser-fixture-owner',email:'fixture@example.com'}} initialCredits={1}
  initialState={{kind:'ready',lineValues:[7,7,7,7,7,7],question}}
  initialCastingView={{castingId:`browser-fixture-${method}`,method:method as any,algorithmVersion:method==='three_coin'?'three-coin-v1':method==='yarrow_stalk'?'yarrow-zhu-xi-digital-v2':'mei-hua-gregorian-current-time-v2',context:question,lineValuesBottomUp:[7,7,7,7,7,7],readingReport:null,owns:true}}

@@ -17,6 +17,10 @@ export function readingEntryFromCallback(location: Pick<Location, "search" | "ha
   return location.hash === "#reading-free" ? "free" : location.hash === "#reading-deep" ? "deep" : null;
 }
 
+export function readingEntryToRestore(storage: Storage, location: Pick<Location, "search" | "hash">, castId: string): ReadingEntryChoice | null {
+  return readingEntryFromCallback(location, castId) ?? readReadingEntry(storage, castId);
+}
+
 export async function readingUserSignedIn(): Promise<boolean> {
   const response = await fetch("/api/user/me", { cache: "no-store" });
   if (!response.ok) throw new Error("READING_AUTH_CHECK_FAILED");

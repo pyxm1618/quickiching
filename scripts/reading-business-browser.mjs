@@ -41,7 +41,8 @@ try {
   const free=await page.evaluate(()=>({ctas:[...document.querySelectorAll('a')].filter(a=>a.textContent==='Get My Deep Reading').length, forms:document.querySelectorAll('textarea').length,overall:!!document.querySelector('[data-overall-reading]')}));
   assert.equal(free.ctas,2); assert.equal(free.forms,0);
   evidence.push({method,free});
-  await page.goto(`${fixtureBase}/?method=${method}&page=deep`,{waitUntil:'networkidle0'});
+  await page.click('[data-reading-choice="deep"]');
+  await page.waitForFunction(()=>location.pathname==='/readings/deep');
   await page.waitForSelector('[data-start-deep-reading]');
   assert.equal(await page.$('[data-public-reading-result]'),null);
   await page.click('[data-start-deep-reading]');
@@ -51,6 +52,10 @@ try {
   assert.equal(deep.forms,0);
   const post=deep.requests.find(item=>item.method==='POST'); assert.deepEqual(JSON.parse(post.body),{locale:'en'});
   evidence.push({method,deep:{sections:true,postBody:JSON.parse(post.body),report:true}});
+  await page.locator('[data-cast-basis] a.mystic-button-secondary').click();
+  await page.waitForSelector('[data-reading-open="free"]',{timeout:5000});
+  assert.equal(new URL(page.url()).pathname,'/readings/result');
+  evidence.push({method,deepToFree:'explicit Free intent overrides previous Deep selection'});
  }
  await page.goto(`${fixtureBase}/?page=deep&invalid=1`,{waitUntil:'networkidle0'});
  await page.waitForSelector('[data-start-deep-reading]'); await page.click('[data-start-deep-reading]');
