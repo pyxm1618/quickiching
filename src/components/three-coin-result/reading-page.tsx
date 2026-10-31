@@ -28,19 +28,23 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
     result.primaryHexagramNumber,
     ...(result.relatingHexagramNumber === null ? [] : [result.relatingHexagramNumber]),
   ]) : undefined;
+  const client = <ThreeCoinResultClient pageMode={pageMode} locale={locale} initialSessionId={sessionId}
+    initialUser={user ? {id:user.id,email:user.email} : null} initialCredits={balance.available}
+    initialInterpretationBundles={initialInterpretationBundles} initialLocalizedContent={initialLocalizedContent}
+    initialCastingView={castingView ? {
+      castingId: castingView.session.id, method: castingView.session.method,
+      algorithmVersion: result?.algorithmVersion, createdAt: castingView.session.createdAt.toISOString(),
+      context: castingView.context, lineValuesBottomUp: result?.lineValues ?? null,
+      readingReport: castingView.reading?.report ?? null, deepSnapshot: castingView.reading?.snapshot ?? null,
+      owns: castingView.owns,
+    } : null} />;
+
+  if (pageMode === "deep") return client;
+
   return <div data-realm="chamber" className="ritual-result-scene">
     <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
     <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
     <div className="ritual-room" aria-hidden="true" />
-    <ThreeCoinResultClient pageMode={pageMode} locale={locale} initialSessionId={sessionId}
-      initialUser={user ? {id:user.id,email:user.email} : null} initialCredits={balance.available}
-      initialInterpretationBundles={initialInterpretationBundles} initialLocalizedContent={initialLocalizedContent}
-      initialCastingView={castingView ? {
-        castingId: castingView.session.id, method: castingView.session.method,
-        algorithmVersion: result?.algorithmVersion, createdAt: castingView.session.createdAt.toISOString(),
-        context: castingView.context, lineValuesBottomUp: result?.lineValues ?? null,
-        readingReport: castingView.reading?.report ?? null, deepSnapshot: castingView.reading?.snapshot ?? null,
-        owns: castingView.owns,
-      } : null} />
+    {client}
   </div>;
 }

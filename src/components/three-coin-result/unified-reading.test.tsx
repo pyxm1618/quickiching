@@ -17,13 +17,17 @@ describe('one reading system with independent pages', () => {
     expect(html).not.toContain('data-start-deep-reading');
     expect(html).not.toContain('data-deep-reading-report');
   });
-  it('Deep uses locked question, deterministic cast basis and a Free link without an enrichment form', () => {
+  it('Deep uses the locked question without duplicating the free hexagram interpretation', () => {
     const html=renderToStaticMarkup(<ThreeCoinResultClient {...props} pageMode="deep"/>);
+    expect(html).toContain('AI Deep Reading');
     expect(html).toContain('Your Question');
     expect(html).toContain(question);
-    expect(html).toContain('Cast Basis');
     expect(html).toContain('View Free Reading');
+    expect(html).toContain('href="/readings/result?session=saved-cast"');
     expect(html).toContain('data-start-deep-reading');
+    expect(html).not.toContain('Cast Basis');
+    expect(html).not.toContain('Primary Hexagram');
+    expect(html).not.toContain('Relating Hexagram');
     expect(html).not.toContain('data-context-enrichment-form');
     expect(html).not.toContain('data-public-reading-result');
     expect(html).not.toContain('<textarea');

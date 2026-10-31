@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { Check, ArrowRight, UserRound } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { classicalHexagramByNumber } from "@/domain/public-reading/classical";
-import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { RitualRevealTransition } from "@/components/public-reading/ritual-reveal-transition";
@@ -31,7 +29,7 @@ import {
 } from "@/lib/three-coin-session";
 import { buildPricingHref, buildResultSigninHref } from "@/lib/commercial-navigation";
 import { evaluateRisk } from "@/domain/risk/engine";
-import { CommercialReadingReportView, LegacyCommercialReadingReportView } from "./commercial-reading-report-view";
+import { AiDeepReadingResult, AiDeepReadingState } from "./ai-deep-reading-result";
 import styles from "./result-page.module.css";
 import { z } from "zod";
 import { readCompletedPublicReading, publicReadingSaveInput, clearCompletedReadingForRestart } from "@/lib/completed-public-reading";
@@ -784,12 +782,48 @@ export function ThreeCoinResultClient({
   }
 
   const prefix = zh ? "/zh" : "";
-  function basisLink(number: number) {
-    const definition = hexagramByNumber(number);
-    return <Link href={`${prefix}/hexagrams/${classicalHexagramByNumber(number).slug}`}>{number} · {zh ? definition.chineseName : definition.englishName}</Link>;
-  }
   const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(castingId!)}`;
   const deepHref = `${prefix}/readings/deep?session=${encodeURIComponent(castingId!)}`;
+  const deepQuestion = deepSnapshot?.coreQuestionAtCast
+    ?? (state.kind === "ready" ? state.question : undefined)
+    ?? initialCastingView?.context
+    ?? "";
+  const deepCreatedAt = initialCastingView?.createdAt
+    ?? (state.kind === "ready" ? state.createdAt : undefined)
+    ?? deepSnapshot?.snapshotAt;
+
+  const deepBody = deepStatus === "completed" && (deepReport || legacyReport) ? (
+    <AiDeepReadingResult
+      report={deepReport ?? legacyReport!}
+      snapshot={deepSnapshot}
+      question={deepQuestion}
+      createdAt={deepCreatedAt}
+      locale={locale}
+      freeHref={freeHref}
+    />
+  ) : (
+    <AiDeepReadingState
+      question={deepQuestion}
+      createdAt={deepCreatedAt}
+      locale={locale}
+      freeHref={freeHref}
+    >
+      {deepStatus === "generating" ? <div role="status" data-deep-reading-state="generating">
+        {t("Reading your locked question and this cast…", "正在解读你锁定的问题与本次卦象…")}
+      </div> : deepRiskBlocked ? <div role="status" data-deep-reading-blocked="risk">{deepRiskMessage}</div>
+      : legacyReadOnly ? <p data-legacy-reading-read-only>{t("This earlier generation is read only and cannot be restarted. Start a new cast to request a new Deep Reading.", "旧版生成仅保留只读，无法重新生成。如需新版深度解读，请重新起卦。")}</p>
+      : !deepQuestion.trim() ? <p data-deep-reading-blocked="missing-question">{t("This historical cast has no locked question. Start a new cast with a question to use Deep Reading.", "这次历史起卦没有锁定的问题。如需深度解读，请带着问题重新起卦。")}</p>
+      : credits <= 0 ? <div>
+        <button type="button" onClick={handleOpenPricing} className="mystic-button">{t("Choose a Deep Reading pack", "选择深度解读次数包")}</button>
+        <p>{t("No generation starts until a credit is available.", "获得次数前不会启动生成。")}</p>
+      </div> : <div>
+        <button type="button" onClick={handleUnlockDeepReading} className="mystic-button" data-start-deep-reading>{deepStatus === "failed" ? t("Retry this reading", "重试本次解读") : t("Get My Deep Reading", "获取我的深度解读")}</button>
+        <p>{t(`${credits} credits available. One reserved per generation; released on failure.`, `可用 ${credits} 次；每次生成预留 1 次，失败释放。`)}</p>
+      </div>}
+      {actionError ? <p role="alert">{actionError}</p> : null}
+    </AiDeepReadingState>
+  );
+
   return (
     <RitualRevealTransition stage="result">
       {pageMode === "free" ? <PublicReadingResult
@@ -803,39 +837,8 @@ export function ThreeCoinResultClient({
         headingLevel="h1"
         deepReadingHref={deepHref}
         newReadingLabel={t("Start a New Reading", "重新起一卦")}
-      /> : (
-        <main className="mx-auto max-w-4xl space-y-6 px-4 py-8" data-deep-reading-page data-clarity-mask="true">
-          <h1 className="font-display text-3xl">{t("AI Deep Reading", "AI 深度解读")}</h1>
-          <section data-core-question-at-cast>
-            <h2>{t("Your Question", "你的问题")}</h2>
-            <p className="whitespace-pre-wrap">{deepSnapshot?.coreQuestionAtCast ?? state.question}</p>
-          </section>
-          <section data-cast-basis>
-            <h2>{t("Cast Basis", "起卦依据")}</h2>
-            <p>{t("Primary Hexagram", "本卦")}: {basisLink(resultReading!.primaryHexagram)}</p>
-            <p>{t("Changing Line(s)", "动爻")}: {resultReading!.changingLines.join(", ") || t("None — Still Hexagram", "无动爻 · 静卦")}</p>
-            <p>{t("Relating Hexagram", "变卦")}: {resultReading!.relatingHexagram ? basisLink(resultReading!.relatingHexagram) : t("None", "无")}</p>
-            <Link href={freeHref} className="mystic-button-secondary">{t("View Free Reading", "查看免费解卦")}</Link>
-          </section>
-          {deepStatus === "completed" && (deepReport || legacyReport) ? <>
-            <Link href={`${prefix}/my-readings`}>{t("Saved to your account history", "已保存到账户历史记录")}</Link>
-            {deepReport ? <CommercialReadingReportView report={deepReport} snapshot={deepSnapshot} locale={locale} /> : null}
-            {legacyReport ? <LegacyCommercialReadingReportView report={legacyReport} locale={locale} /> : null}
-          </> : deepStatus === "generating" ? <div role="status" data-deep-reading-state="generating">
-            {t("Reading your locked question and this cast…", "正在解读你锁定的问题与本次卦象…")}
-          </div> : deepRiskBlocked ? <div role="status" data-deep-reading-blocked="risk">{deepRiskMessage}</div>
-          : legacyReadOnly ? <p data-legacy-reading-read-only>{t("This earlier generation is read only and cannot be restarted. Start a new cast to request a new Deep Reading.", "旧版生成仅保留只读，无法重新生成。如需新版深度解读，请重新起卦。")}</p>
-          : !state.question?.trim() ? <p data-deep-reading-blocked="missing-question">{t("This historical cast has no locked question. Start a new cast with a question to use Deep Reading.", "这次历史起卦没有锁定的问题。如需深度解读，请带着问题重新起卦。")}</p>
-          : credits <= 0 ? <div>
-            <button type="button" onClick={handleOpenPricing} className="mystic-button">{t("Choose a Deep Reading pack", "选择深度解读次数包")}</button>
-            <p>{t("No generation starts until a credit is available.", "获得次数前不会启动生成。")}</p>
-          </div> : <div>
-            <button type="button" onClick={handleUnlockDeepReading} className="mystic-button" data-start-deep-reading>{deepStatus === "failed" ? t("Retry this reading", "重试本次解读") : t("Get My Deep Reading", "获取我的深度解读")}</button>
-            <p>{t(`${credits} credits available. One reserved per generation; released on failure.`, `可用 ${credits} 次；每次生成预留 1 次，失败释放。`)}</p>
-          </div>}
-          {actionError ? <p role="alert">{actionError}</p> : null}
-        </main>
-      )}
+      /> : deepBody}
+
 
       {clearError ? (
         <div

@@ -12,7 +12,7 @@ vi.mock("next/link", () => ({
 }));
 
 import { ThreeCoinResultClient, getResultRevealGate, getTerminalCreditReconciliation, hasRequiredInterpretationBundles } from "./three-coin-result-client";
-import { CommercialReadingReportView } from "./commercial-reading-report-view";
+import { AiDeepReadingResult } from "./ai-deep-reading-result";
 import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
@@ -335,11 +335,14 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         }}
       />,
     );
-    expect(html).toContain('href="/zh/my-readings"');
-    expect(html).not.toContain('href="/my-readings"');
-    expect(html).toContain("已保存到账户历史记录");
-    expect(html).toContain("旧版报告格式");
+    expect(html).not.toContain('href="/zh/my-readings"');
+    expect(html).toContain("AI 深度解读");
+    expect(html).toContain("核心回答");
     expect(html).toContain("测试摘要");
+    expect(html).toContain("查看完整卦象解读");
+    expect(html).toContain('href="/zh/readings/result?session=cast_1"');
+    expect(html).not.toContain("旧版报告格式");
+    expect(html).not.toContain("起卦依据");
     expect(html).not.toContain('data-save-reading');
     expect(html).toContain('data-deep-reading-page');
   });
@@ -397,9 +400,14 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         }}
       />,
     );
-    expect(html).toContain('href="/my-readings"');
+    expect(html).not.toContain('href="/my-readings"');
     expect(html).not.toContain('href="/zh/my-readings"');
-    expect(html).toContain("The saved evidence bundle is unavailable.");
+    expect(html).toContain("AI Deep Reading");
+    expect(html).toContain(mockReport.directAnswer);
+    expect(html).toContain("View the Full Hexagram Interpretation");
+    expect(html).toContain('href="/readings/result?session=cast_1"');
+    expect(html).not.toContain("Cast Basis");
+    expect(html).not.toContain("The saved evidence bundle is unavailable.");
     expect(html).not.toContain("Unresolved evidence reference");
   });
 
@@ -601,24 +609,36 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     };
 
     const htmlEn = renderToStaticMarkup(
-      <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="en" />,
+      <AiDeepReadingResult
+        report={mockReport}
+        snapshot={mockSnapshot}
+        locale="en"
+        question={mockSnapshot.coreQuestionAtCast}
+        createdAt={mockSnapshot.snapshotAt}
+        freeHref="/readings/result?session=cast_test"
+      />,
     );
-    expect(htmlEn).toContain('data-legacy-report');
-    expect(htmlEn).toContain("Previously saved report · read only");
-    for (const heading of ["Direct Answer", "Why", "What Matters Most", "What To Do Next"]) expect(htmlEn).toContain(`>${heading}</h3>`);
+    expect(htmlEn).toContain('data-ai-deep-reading-report');
+    for (const heading of ["Core Answer", "Why This Is the Case", "What This Change Can Bring", "When It’s Worth Taking Action", "What You Should Do Now"]) expect(htmlEn).toContain(heading);
     expect(htmlEn).toContain(mockReport.situationMapping);
     expect(htmlEn).toContain(mockReport.conditionalDirection);
     expect(htmlEn).toContain(mockReport.practicalReflection);
-    expect(htmlEn).toContain('data-evidence-id="primary.judgment"');
-    expect(htmlEn).toContain("困：亨");
+    expect(htmlEn).toContain('href="/readings/result?session=cast_test"');
+    expect(htmlEn).not.toContain('data-evidence-id="primary.judgment"');
     expect(htmlEn).not.toContain(mockSnapshot.context.contextNotes);
 
     const htmlZh = renderToStaticMarkup(
-      <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="zh-Hans" />,
+      <AiDeepReadingResult
+        report={mockReport}
+        snapshot={mockSnapshot}
+        locale="zh-Hans"
+        question={mockSnapshot.coreQuestionAtCast}
+        createdAt={mockSnapshot.snapshotAt}
+        freeHref="/zh/readings/result?session=cast_test"
+      />,
     );
-    expect(htmlZh).toContain("此前保存的报告 · 只读");
-    for (const heading of ["直接回应", "为什么", "最值得关注的事", "接下来怎么做"]) expect(htmlZh).toContain(`>${heading}</h3>`);
-    expect(htmlZh).toContain("解读依据");
+    for (const heading of ["核心回答", "为什么会得出这个判断", "这件事可能带来什么变化", "什么情况下值得行动", "你现在应该做什么"]) expect(htmlZh).toContain(heading);
+    expect(htmlZh).toContain("查看完整卦象解读");
     expect(htmlZh).toContain(mockReport.uncertaintyAndBoundaries);
     expect(htmlZh).toContain(mockReport.disclaimer);
   });
