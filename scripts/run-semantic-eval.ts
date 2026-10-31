@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { buildHexagramResult } from "../src/domain/casting/hexagrams/compute";
 import type { DeterministicFacts } from "../src/domain/generation/schemas";
 import {
@@ -14,10 +15,9 @@ import {
 import type { OutputReviewDecision } from "../src/server/generation/types";
 
 // Load configuration from .env.staging.tmp
-function loadEnv() {
-  const envPath = resolve(process.env.EVAL_ENV_FILE ?? ".env.staging.tmp");
+export function loadSemanticEvalEnv(envPath: string, processEnv: Record<string, string | undefined> = process.env) {
   const content = readFileSync(envPath, "utf-8");
-  const env: Record<string, string> = { ...process.env as Record<string, string> };
+  const env: Record<string, string | undefined> = { ...processEnv };
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
@@ -30,15 +30,11 @@ function loadEnv() {
       env[match[1]] = value;
     }
   }
-  env.AI_ADAPTER_MODE = "ai-sdk";
-  env.AI_GATEWAY_BASE_URL = "https://api.deepseek.com/v1";
-  env.AI_SDK_GATEWAY_BASE_URL = "https://api.deepseek.com/v1";
-  env.AI_MODEL_DEEP_READING = "deepseek-chat";
-  env.AI_MODEL_OUTPUT_REVIEW = "deepseek-chat";
-  env.AI_MAX_OUTPUT_TOKENS = "8000";
-  env.AI_MAX_REVIEW_OUTPUT_TOKENS = "4000";
-  if (process.env.EVAL_KEY) {
-    env.AI_GATEWAY_API_KEY = process.env.EVAL_KEY.trim();
+  if (processEnv.EVAL_KEY) env.AI_GATEWAY_API_KEY = processEnv.EVAL_KEY.trim();
+  for (const name of ["AI_GATEWAY_API_KEY", "AI_MODEL_DEEP_READING", "AI_MODEL_OUTPUT_REVIEW"]) {
+    if (!env[name]?.trim() || /^\[(?:SENSITIVE|REDACTED)\]$/iu.test(env[name]!.trim())) {
+      throw new Error(`SEMANTIC_EVAL_SECRET_UNAVAILABLE: ${name}`);
+    }
   }
   return env;
 }
@@ -147,7 +143,7 @@ const CASES: TestCase[] = [
 ];
 
 async function run() {
-  const env = loadEnv();
+  const env = loadSemanticEvalEnv(resolve(process.env.EVAL_ENV_FILE ?? ".env.staging.tmp"));
   console.log("Loaded environment configuration for AI semantic evaluation.");
   console.log("Model Deep Reading:", env.AI_MODEL_DEEP_READING);
   console.log("Model Output Review:", env.AI_MODEL_OUTPUT_REVIEW);
@@ -424,7 +420,15 @@ async function run() {
   console.log(`\nReviewer negative controls complete. Results written to ${ncOutputPath}`);
 }
 
-run().catch((error) => {
-  console.error("Semantic evaluation failed:", error);
-  process.exit(1);
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  run().catch((error: unknown) => {
+    // SDK errors may contain request headers or private prompt bodies. Report metadata only.
+    const failure = error as { name?: string; statusCode?: number; message?: string };
+    console.error("Semantic evaluation failed:", {
+      name: failure.name ?? "Error",
+      statusCode: failure.statusCode ?? null,
+      ...(failure.message?.startsWith("SEMANTIC_EVAL_SECRET_UNAVAILABLE:") ? { reason: failure.message } : {}),
+    });
+    process.exitCode = 1;
+  });
+}
