@@ -6,6 +6,7 @@
   --deep-gold: #e5b34c;
   --deep-ink: #10294e;
   min-height: 100vh;
+  margin-top: -74px;
   overflow-x: clip;
   background:
     radial-gradient(circle at 12% 28%, rgba(229, 179, 76, 0.12), transparent 25rem),
@@ -16,10 +17,10 @@
 
 .hero {
   position: relative;
-  min-height: 286px;
+  min-height: 250px;
   display: grid;
   place-items: start center;
-  padding: 45px 24px 116px;
+  padding: 82px 24px 58px;
   background-image: url("/ai-deep-reading/hero-background.png");
   background-repeat: no-repeat;
   background-size: cover;
@@ -67,8 +68,8 @@
 .content {
   position: relative;
   z-index: 2;
-  width: min(1320px, calc(100% - 36px));
-  margin: -94px auto 0;
+  width: min(1380px, calc(100% - 48px));
+  margin: -90px auto 0;
 }
 
 .questionPanel,
@@ -83,16 +84,14 @@
 }
 
 .questionPanel {
-  aspect-ratio: 3 / 1;
-  min-height: 190px;
-  max-height: 330px;
-  padding: 58px 13% 40px;
+  height: clamp(170px, 12.5vw, 195px);
+  padding: 46px 13% 28px;
   background-image: url("/ai-deep-reading/question-panel.png");
 }
 
 .ribbon {
   position: absolute;
-  top: 14px;
+  top: -9px;
   left: 50%;
   min-width: 220px;
   transform: translateX(-50%);
@@ -131,16 +130,14 @@
 }
 
 .coreAnswer {
-  aspect-ratio: 3 / 1;
-  min-height: 330px;
-  max-height: 440px;
-  margin-top: -12px;
-  padding: 72px 14% 58px;
+  height: clamp(270px, 24vw, 350px);
+  margin-top: 5px;
+  padding: 60px 14% 48px;
   background-image: url("/ai-deep-reading/core-answer-scroll.png");
 }
 
 .coreAnswer .ribbon {
-  top: 20px;
+  top: -9px;
   min-width: 270px;
   font-size: 1.35rem;
 }
@@ -495,12 +492,9 @@
   }
 
   .content {
-    width: min(960px, calc(100% - 28px));
+    width: min(1020px, calc(100% - 28px));
   }
 
-  .questionPanel {
-    max-height: 320px;
-  }
 
   .sectionIntro {
     padding-left: 23%;
@@ -515,8 +509,8 @@
 
 @media (max-width: 800px) {
   .hero {
-    min-height: 250px;
-    padding: 42px 18px 108px;
+    min-height: 282px;
+    padding: 96px 18px 88px;
     background-position: 51% center;
   }
 
@@ -541,15 +535,14 @@
   }
 
   .questionPanel {
+    height: auto;
     min-height: 184px;
-    max-height: none;
-    aspect-ratio: auto;
     padding: 50px 30px 30px;
     background-position: center;
   }
 
   .ribbon {
-    top: 10px;
+    top: -8px;
     min-width: 172px;
     padding: 7px 20px 8px;
     font-size: 1rem;
@@ -567,16 +560,15 @@
   }
 
   .coreAnswer {
+    height: auto;
     min-height: 365px;
-    max-height: none;
-    aspect-ratio: auto;
-    margin-top: -5px;
+    margin-top: 5px;
     padding: 67px 30px 48px;
     background-position: center;
   }
 
   .coreAnswer .ribbon {
-    top: 13px;
+    top: -8px;
     min-width: 210px;
     font-size: 1.08rem;
   }
