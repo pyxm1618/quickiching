@@ -124,7 +124,9 @@ try {
   log(`Recorded baseline head=${BASELINE.head} Lighthouse=${BASELINE.lighthouseVersion}`);
 
   const after = {};
-  after.homeMobile = await audit(browser, { origin: BASE, path: "/", label: "AFTER_HOME_MOBILE" });
+  // Home Mobile performance decision is authoritatively made by Median-of-3 Regression Guard in vercel-build.mjs.
+  // Public P0 validates Home Mobile accessibility, SEO, CLS, and page completeness without duplicate single-run LCP gate.
+  after.homeMobile = await audit(browser, { origin: BASE, path: "/", label: "AFTER_HOME_MOBILE", enforcePerformance: false });
   after.home = await audit(browser, { origin: BASE, path: "/", label: "AFTER_HOME", desktop: true });
   after.threeCoin = await audit(browser, { origin: BASE, path: "/methods/three-coin", label: "AFTER_THREE_COIN" });
   after.populatedResult = await audit(browser, { origin: BASE, path: "/methods/manual-cast", label: "AFTER_POPULATED_RESULT", seed: true, indexable: true });

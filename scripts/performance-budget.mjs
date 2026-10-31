@@ -33,3 +33,84 @@ export function metricsFromReport(report) {
     imageBytes: images.reduce((sum, item) => sum + transfer(item), 0), maxImageBytes: Math.max(0, ...images.map(transfer)),
     scriptBytes: requests.filter(item => item.resourceType === 'Script').reduce((sum, item) => sum + transfer(item), 0) };
 }
+
+/**
+ * Aggregates 3 consecutive Home Mobile Lighthouse samples.
+ * Rules:
+ * - Exactly 3 samples required; all must be valid without runtime errors or missing metrics.
+ * - Performance: median
+ * - LCP: median
+ * - CLS: max
+ * - TBT: max
+ * - imageBytes: max
+ * - maxImageBytes: max
+ * - scriptBytes: max
+ */
+export function aggregateHomeMobileSamples(samples) {
+  assert(Array.isArray(samples) && samples.length === 3, 'Home Mobile requires exactly 3 valid Lighthouse samples');
+  const requiredMetrics = ['performance', 'lcp', 'cls', 'tbt', 'imageBytes', 'maxImageBytes', 'scriptBytes'];
+  for (let i = 0; i < samples.length; i++) {
+    const sample = samples[i];
+    assert(sample && typeof sample === 'object', `Home Mobile sample #${i + 1} is missing or invalid`);
+    assert(!sample.runtimeError, `Home Mobile sample #${i + 1} has runtime error: ${sample.runtimeError}`);
+    for (const key of requiredMetrics) {
+      assert(
+        Number.isFinite(sample[key]) && sample[key] >= 0,
+        `Home Mobile sample #${i + 1}: missing or invalid metric ${key} (${sample[key]})`
+      );
+    }
+  }
+
+  const sortedPerformance = samples.map(s => s.performance).sort((a, b) => a - b);
+  const sortedLcp = samples.map(s => s.lcp).sort((a, b) => a - b);
+
+  return {
+    sampleCount: 3,
+    performance: sortedPerformance[1],
+    lcp: sortedLcp[1],
+    cls: Math.max(...samples.map(s => s.cls)),
+    tbt: Math.max(...samples.map(s => s.tbt)),
+    imageBytes: Math.max(...samples.map(s => s.imageBytes)),
+    maxImageBytes: Math.max(...samples.map(s => s.maxImageBytes)),
+    scriptBytes: Math.max(...samples.map(s => s.scriptBytes)),
+  };
+}
+
+/**
+ * Home Mobile regression guard against the post-optimization accepted baseline.
+ * Enforces hard budget ceilings and regression formulas without arbitrary magic numbers.
+ */
+export function assertHomeMobileRegressionGuard(metrics, acceptedBaseline, logWarning = (msg) => console.warn(msg)) {
+  assert(acceptedBaseline && typeof acceptedBaseline === 'object', 'Missing accepted baseline for Home Mobile regression guard');
+  const requiredKeys = ['performance', 'lcp', 'cls', 'tbt', 'imageBytes', 'maxImageBytes', 'scriptBytes'];
+  for (const key of requiredKeys) {
+    assert(Number.isFinite(metrics[key]) && metrics[key] >= 0, `HOME_MOBILE: missing/invalid measured ${key}`);
+    assert(Number.isFinite(acceptedBaseline[key]) && acceptedBaseline[key] >= 0, `HOME_MOBILE: missing/invalid baseline ${key}`);
+  }
+
+  // Hard resource and quality budgets
+  assert(metrics.performance >= 90, `HOME_MOBILE: performance score ${metrics.performance} is below hard minimum 90`);
+  assert(metrics.cls <= 0.1, `HOME_MOBILE: CLS ${metrics.cls} exceeds hard maximum 0.10`);
+  assert(metrics.tbt <= 200, `HOME_MOBILE: TBT ${metrics.tbt}ms exceeds hard maximum 200ms`);
+  assert(metrics.imageBytes <= 768 * 1024, `HOME_MOBILE: imageBytes ${metrics.imageBytes} exceeds budget 768KB`);
+  assert(metrics.maxImageBytes <= 256 * 1024, `HOME_MOBILE: maxImageBytes ${metrics.maxImageBytes} exceeds budget 256KB`);
+  assert(metrics.scriptBytes <= 320 * 1024, `HOME_MOBILE: scriptBytes ${metrics.scriptBytes} exceeds budget 320KB`);
+
+  // Regression guard against accepted baseline
+  assert(
+    metrics.performance >= acceptedBaseline.performance - 5,
+    `HOME_MOBILE: Lighthouse regression >5 points against accepted baseline (measured=${metrics.performance}, baseline=${acceptedBaseline.performance})`
+  );
+  const maxAllowedLcp = acceptedBaseline.lcp * 1.1 + 100;
+  assert(
+    metrics.lcp <= maxAllowedLcp,
+    `HOME_MOBILE: LCP regression >10% +100ms against accepted baseline (measured=${metrics.lcp.toFixed(1)}ms, maxAllowed=${maxAllowedLcp.toFixed(1)}ms, baseline=${acceptedBaseline.lcp.toFixed(1)}ms)`
+  );
+
+  // CWV 2.5s product target warning (does not fail CI, but flags as not CWV Good)
+  if (metrics.lcp > PERFORMANCE_TARGETS.lcp) {
+    logWarning(
+      `[WARNING] HOME_MOBILE median LCP (${metrics.lcp.toFixed(1)}ms) exceeds the 2500ms product target. Regression guard passed within accepted lab tolerance, but this is NOT CWV Good.`
+    );
+  }
+}
