@@ -12,7 +12,7 @@ import {
   Hourglass,
   Target,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import React, { type ReactNode } from "react";
 import type {
   DeepReadingContextSnapshot,
   DeepReadingReport,
