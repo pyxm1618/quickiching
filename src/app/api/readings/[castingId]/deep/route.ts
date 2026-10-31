@@ -2,7 +2,7 @@ import { isPaidDeepReadingCapabilityEnabled } from "@/server/generation/deep-rea
 import { createProductionDeepReadingService } from "@/server/generation/deep-reading-composition";
 import { resolveSession } from "@/lib/auth/session";
 import { isStrictSameOriginRequest } from "@/server/http/origin-guard";
-import { deepReadingContextEnrichmentSchema } from "@/domain/generation/deep-reading-contract";
+import { deepReadingRequestSchema } from "@/domain/generation/deep-reading-contract";
 import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
 
 export const runtime = "nodejs";
@@ -55,17 +55,17 @@ export async function POST(
 
   const { castingId } = await context.params;
 
-  let submittedContext: unknown;
+  let submittedRequest: unknown;
   try {
-    submittedContext = JSON.parse(await readRequestBody(request, MAX_REQUEST_BYTES)) as unknown;
+    submittedRequest = JSON.parse((await readRequestBody(request, MAX_REQUEST_BYTES)) || "{}") as unknown;
   } catch (error) {
     if (error instanceof RequestBodyTooLargeError) return json({ error: "REQUEST_BODY_TOO_LARGE" }, 413);
-    return json({ error: "CONTEXT_INSUFFICIENT", retryable: false }, 422);
+    return json({ error: "INVALID_DEEP_READING_REQUEST", retryable: false }, 422);
   }
-  const parsedContext = deepReadingContextEnrichmentSchema.safeParse(submittedContext);
-  if (!parsedContext.success) {
-    console.warn("[DEEP_READING_INPUT_INVALID]", parsedContext.error.issues);
-    return json({ error: "CONTEXT_INSUFFICIENT", retryable: false }, 422);
+  const parsedRequest = deepReadingRequestSchema.safeParse(submittedRequest);
+  if (!parsedRequest.success) {
+    console.warn("[DEEP_READING_INPUT_INVALID]", parsedRequest.error.issues);
+    return json({ error: "INVALID_DEEP_READING_REQUEST", retryable: false }, 422);
   }
 
   try {
@@ -73,7 +73,7 @@ export async function POST(
     const result = await service.requestDeepReading({
       userId: session.user.id,
       castingId,
-      enrichment: parsedContext.data,
+      locale: parsedRequest.data.locale,
     });
 
     return json({
@@ -93,9 +93,10 @@ export async function POST(
     if (message === "CASTING_NOT_READY") {
       return json({ error: "CASTING_NOT_READY", message: "Casting must be revealed before requesting deep reading", retryable: false }, 422);
     }
+    if (message === "LEGACY_DEEP_READING_READ_ONLY") return json({ error: message, retryable: false }, 409);
     if (message === "UNSUPPORTED_CAST_METHOD") return json({ error: message, retryable: false }, 422);
     if (message === "RISK_NEEDS_CLARIFICATION") {
-      return json({ error: "RISK_NEEDS_CLARIFICATION", message: "Clarify the question or context before requesting Deep Reading", retryable: false }, 403);
+      return json({ error: "RISK_NEEDS_CLARIFICATION", message: "Clarify the question before requesting Deep Reading", retryable: false }, 403);
     }
     if (message.startsWith("RISK_")) {
       return json({ error: "RISK_PROHIBITED", message: "This reading is restricted by risk assessment", retryable: false }, 403);
@@ -106,7 +107,7 @@ export async function POST(
     if (["QUESTION_DECRYPT_FAILED", "QUESTION_KEY_UNAVAILABLE", "CORE_QUESTION_REQUIRED"].includes(message)) {
       return json({ error: message, retryable: false }, 422);
     }
-    if (message === "CONTEXT_INSUFFICIENT") return json({ error: message, retryable: false }, 422);
+    if (message === "INVALID_DEEP_READING_REQUEST") return json({ error: message, retryable: false }, 422);
     if (message === "DEEP_READING_RATE_LIMITED") return json({ error: message, retryable: true }, 429);
     return json({ error: "DEEP_READING_FAILED", retryable: true }, 500);
   }

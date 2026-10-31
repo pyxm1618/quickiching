@@ -9,7 +9,7 @@ import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
-import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
+import { completedPublicReadingPath, writeCompletedPublicReading } from "@/lib/completed-public-reading";
 import { useQuestionFirstContext } from "@/components/public-reading/question-first";
 import { generateThreeCoinLine, type CoinFace, type ThreeCoinStep } from "@/domain/casting/three-coin/algorithm";
 import { buildPublicReading } from "@/domain/public-reading/reading";
@@ -182,7 +182,7 @@ export function ThreeCoinTool({
       : complete
         ? t("Reading complete", "起卦完成")
         : t("Press & hold to shake · release to cast", "按住摇动 · 松开起爻");
-  const publicReading = useMemo(() => !homeRitual && complete && readingMeta
+  const publicReading = useMemo(() => complete && readingMeta
     ? buildPublicReading({
         id: readingMeta.id,
         createdAt: readingMeta.createdAt,
@@ -191,7 +191,7 @@ export function ThreeCoinTool({
         lineValuesBottomUp: lines,
         evidence: { kind: "three-coin", steps },
       })
-    : null, [complete, homeRitual, question, readingMeta, steps, lines]);
+    : null, [complete, question, readingMeta, steps, lines]);
 
   useEffect(() => {
     if (!shouldNavigateCompletedThreeCoin({
@@ -205,14 +205,16 @@ export function ThreeCoinTool({
       resultNavigationStarted: resultNavigationStartedRef.current,
     })) return;
 
-    const resultPath=zh ? "/zh/readings/three-coin/result" : "/readings/three-coin/result";
+    if (!publicReading) return;
+    try { writeCompletedPublicReading(publicReading); } catch (error) { setStorageError(storageErrorCode(error)); return; }
+    const resultPath = completedPublicReadingPath(publicReading.id, zh);
     if(!homeRitual){resultNavigationStartedRef.current=true;router.push(resultPath);return;}
     const navigation=setTimeout(()=>{
       resultNavigationStartedRef.current=true;
       router.push(resultPath);
     },window.matchMedia("(prefers-reduced-motion: reduce)").matches?160:COIN_EXIT_MS);
     return ()=>clearTimeout(navigation);
-  }, [complete, readingMeta, restored, router, storageBlocked, unpersistedCommit, visuallyComplete, zh, homeRitual]);
+  }, [complete, publicReading, readingMeta, restored, router, storageBlocked, unpersistedCommit, visuallyComplete, zh, homeRitual]);
 
   function audio(): AudioContext | null {
     if (!soundOn || typeof window === "undefined") return null;
@@ -633,7 +635,6 @@ export function ThreeCoinTool({
           </div>
         </aside>
       </div>
-      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} dictionary={dictionary} localizedContent={localizedContent} /> : null}
       </> : null}
     </section>
   );

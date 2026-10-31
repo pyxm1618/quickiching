@@ -9,6 +9,9 @@ vi.mock("@/lib/auth/session", () => ({
 }));
 
 import { POST } from "./route";
+import { repo } from "@/server/repository";
+import { generateYarrowLine } from "@/domain/casting/yarrow/algorithm";
+import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
 
 const CLIENT_CASTING_ID = "2d0a4f0d-37e8-42bf-9232-9d40518f1e4f";
 
@@ -112,4 +115,35 @@ describe("Save Reading Route (POST /api/readings)", () => {
     expect(body.castingId).toBeDefined();
     expect(typeof body.castingId).toBe("string");
   });
+  it("rejects unsupported methods and client-selected algorithm versions", async () => {
+    for (const input of [{ method: "manual" }, { method: "three_coin", algorithmVersion: "invented-v1" }]) {
+      expect((await POST(createReq({ clientCastingId: CLIENT_CASTING_ID, lineValuesBottomUp: [7,7,7,7,7,7], ...input }))).status).toBe(422);
+    }
+  });
+
+  it("saves yarrow with its own server-known method and version", async () => {
+    const lines = Array.from({ length: 6 }, (_, index) => generateYarrowLine(index as 0, () => 1));
+    const response = await POST(createReq({ clientCastingId: CLIENT_CASTING_ID, method: "yarrow_stalk", lineValuesBottomUp: lines.map(line => line.lineValue), methodCalculation: { changes: lines.flatMap(line => line.changes) } }));
+    expect(response.status).toBe(201);
+    const saved = repo.getCastingSession((await response.json()).castingId);
+    expect(saved).toMatchObject({ method: "yarrow_stalk", algorithmVersion: "yarrow-zhu-xi-digital-v2" });
+  });
+
+  it("recomputes Mei Hua from its instant and rejects conflicting supplied lines", async () => {
+    const methodCalculation = { utcMillis: Date.UTC(2026, 9, 31, 12), ianaTimeZone: "Asia/Shanghai" };
+    const result = meiHuaFromUtc(methodCalculation.utcMillis, methodCalculation.ianaTimeZone);
+    const response = await POST(createReq({ clientCastingId: CLIENT_CASTING_ID, method: "mei_hua_current_time", lineValuesBottomUp: result.lineValuesBottomUp, methodCalculation }));
+    expect(response.status).toBe(201);
+    expect(repo.getCastingSession((await response.json()).castingId)).toMatchObject({ method: "mei_hua_current_time", algorithmVersion: result.algorithmVersion });
+    expect((await POST(createReq({ clientCastingId: CLIENT_CASTING_ID, method: "mei_hua_current_time", lineValuesBottomUp: [7,7,7,7,7,7], methodCalculation }))).status).toBe(422);
+  });
+
+  it("rejects missing, invalid, or inconsistent method evidence", async () => {
+    for (const input of [
+      { method: "yarrow_stalk" },
+      { method: "yarrow_stalk", methodCalculation: { changes: [] } },
+      { method: "mei_hua_current_time", methodCalculation: { utcMillis: 0, ianaTimeZone: "Invalid/Zone" } },
+    ]) expect((await POST(createReq({ clientCastingId: CLIENT_CASTING_ID, lineValuesBottomUp: [7,7,7,7,7,7], ...input }))).status).toBe(422);
+  });
+
 });

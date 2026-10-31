@@ -10,6 +10,8 @@ import { normalizeComposite, normalizeQuestion, fingerprintQuestion } from "@/do
 import { getPostgresClient } from "@/server/db/client";
 import { repo } from "@/server/repository";
 import { evaluateRisk, RISK_RULE_VERSION } from "@/domain/risk/engine";
+import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
+import { ALGORITHM_VERSIONS, type CastingMethod } from "@/domain/casting/types";
 import { normalizeScene } from "@/domain/casting/types";
 import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
 
@@ -36,6 +38,9 @@ const lineValueSchema = z.union([z.literal(6), z.literal(7), z.literal(8), z.lit
 
 const saveReadingSchema = z.object({
   clientCastingId: z.string().uuid(),
+  method: z.enum(["three_coin", "yarrow_stalk", "mei_hua_current_time"]).default("three_coin"),
+  algorithmVersion: z.string().max(80).optional(),
+  methodCalculation: z.unknown().optional(),
   lineValuesBottomUp: z.array(lineValueSchema).length(6),
   question: z.string().trim().max(1000).optional(),
   scene: z.enum(["career", "relationships", "wealth", "timing", "choices", "personal_growth", "other", "general", "decision", "spiritual", "relationship", "growth"]).default("general"),
@@ -55,6 +60,9 @@ type ExistingSavedReading = {
   question_fingerprint: string | null;
   deleted_at: Date | string | null;
   line_values: number[] | null;
+  method: CastingMethod;
+  algorithm_version: string;
+  method_calculation: Record<string, unknown>;
 };
 
 function sameNumberArray(left: readonly number[] | null, right: readonly number[]): boolean {
@@ -66,6 +74,9 @@ function sameNumberArray(left: readonly number[] | null, right: readonly number[
 function matchesStableSave(
   row: ExistingSavedReading,
   input: {
+    method: CastingMethod;
+    algorithmVersion: string;
+    methodCalculation: Record<string, unknown>;
     userId: string;
     scene: string;
     interpretationGoal: string;
@@ -73,12 +84,60 @@ function matchesStableSave(
     lineValuesBottomUp: readonly number[];
   },
 ): boolean {
-  return row.deleted_at == null
+  return row.method === input.method
+    && row.algorithm_version === input.algorithmVersion
+    && JSON.stringify(canonicalJson(row.method_calculation)) === JSON.stringify(canonicalJson(input.methodCalculation))
+    && row.deleted_at == null
     && row.user_id === input.userId
     && normalizeScene(row.scene) === input.scene
     && row.interpretation_goal === input.interpretationGoal
     && input.questionFingerprints.includes(row.question_fingerprint)
     && sameNumberArray(row.line_values, input.lineValuesBottomUp);
+}
+
+
+function canonicalJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalJson);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, canonicalJson(item)]));
+  return value;
+}
+
+const yarrowChangeSchema = z.object({
+  lineIndex: z.number().int().min(0).max(5), changeIndex: z.number().int().min(0).max(2),
+  startingStalks: z.number().int().min(24).max(49), leftGroup: z.number().int().min(1).max(48),
+  rightGroup: z.number().int().min(1).max(48), removedFromRight: z.literal(1),
+  leftRemainder: z.number().int().min(1).max(4), rightRemainder: z.number().int().min(1).max(4),
+  endingStalks: z.number().int().min(24).max(44), algorithmVersion: z.literal(ALGORITHM_VERSIONS.yarrow_stalk),
+}).strict();
+
+function validatedMethodCalculation(input: z.infer<typeof saveReadingSchema>): Record<string, unknown> | null {
+  const version = ALGORITHM_VERSIONS[input.method];
+  if (input.algorithmVersion !== undefined && input.algorithmVersion !== version) return null;
+  if (input.method === "three_coin") return { kind: "three-coin", version };
+  if (input.method === "yarrow_stalk") {
+    const parsed = z.object({ changes: z.array(yarrowChangeSchema).length(18) }).strict().safeParse(input.methodCalculation);
+    if (!parsed.success) return null;
+    const changes = parsed.data.changes;
+    const remainder = (count: number) => count % 4 || 4;
+    for (const [index, change] of changes.entries()) {
+      const expectedStart = index % 3 === 0 ? 49 : changes[index - 1].endingStalks;
+      const removed = change.startingStalks - change.endingStalks;
+      if (change.lineIndex !== Math.floor(index / 3) || change.changeIndex !== index % 3
+        || change.startingStalks !== expectedStart || change.leftGroup + change.rightGroup !== expectedStart
+        || change.leftRemainder !== remainder(change.leftGroup) || change.rightRemainder !== remainder(change.rightGroup - 1)
+        || removed !== 1 + change.leftRemainder + change.rightRemainder
+        || !(index % 3 === 0 ? [5, 9] : [4, 8]).includes(removed)
+        || (index % 3 === 2 && change.endingStalks / 4 !== input.lineValuesBottomUp[Math.floor(index / 3)])) return null;
+    }
+    return { kind: "yarrow-stalks", version, changes };
+  }
+  const parsed = z.object({ utcMillis: z.number().int().min(0).max(253402300799999), ianaTimeZone: z.string().min(1).max(100) }).strict().safeParse(input.methodCalculation);
+  if (!parsed.success) return null;
+  try {
+    const calculated = meiHuaFromUtc(parsed.data.utcMillis, parsed.data.ianaTimeZone);
+    if (!sameNumberArray(calculated.lineValuesBottomUp as number[], input.lineValuesBottomUp)) return null;
+    return calculated.methodCalculation;
+  } catch { return null; }
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -106,7 +165,10 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "INVALID_READING_INPUT" }, 422);
   }
 
-  const { clientCastingId, lineValuesBottomUp, question, scene: sceneInput, interpretationGoal } = parsed.data;
+  const { clientCastingId, lineValuesBottomUp, question, scene: sceneInput, interpretationGoal, method } = parsed.data;
+  const algorithmVersion = ALGORITHM_VERSIONS[method];
+  const methodCalculation = validatedMethodCalculation(parsed.data);
+  if (!methodCalculation) return json({ error: "INVALID_READING_INPUT" }, 422);
   const scene = normalizeScene(sceneInput);
   if (!scene) return json({ error: "INVALID_READING_INPUT" }, 422);
   const questionText = question && question.trim().length > 0 ? question.trim() : null;
@@ -130,7 +192,7 @@ export async function POST(request: Request): Promise<Response> {
     ? evaluateRisk(questionText)
     : { status: "not_checked" as const, ruleVersion: RISK_RULE_VERSION, matchedRuleCodes: [], reasonCode: "core_question_missing" };
 
-  const hexResult = buildHexagramResult({ lineValuesBottomUp, method: "three_coin" });
+  const hexResult = buildHexagramResult({ lineValuesBottomUp, method });
   const movingLinePositions = hexResult.movingLinePositions;
   const readingVariant = movingLinePositions.length === 0
     ? "still_hexagram"
@@ -141,8 +203,8 @@ export async function POST(request: Request): Promise<Response> {
         : "standard";
 
   const facts: DeterministicFacts = {
-    method: "three_coin",
-    algorithmVersion: "three-coin-v1",
+    method,
+    algorithmVersion,
     classicMappingVersion: "king-wen-v1",
     lineValuesBottomUp: [
       lineValuesBottomUp[0],
@@ -164,6 +226,7 @@ export async function POST(request: Request): Promise<Response> {
     try {
       const sql = getPostgresClient();
       const identityInput = {
+        method, algorithmVersion, methodCalculation,
         userId,
         scene,
         interpretationGoal,
@@ -174,7 +237,7 @@ export async function POST(request: Request): Promise<Response> {
       const findExisting = async (): Promise<ExistingSavedReading | null> => {
         const rows = await sql`
           select c.id, c.user_id, c.scene, c.interpretation_goal,
-                 c.question_fingerprint, c.deleted_at, r.line_values
+                 c.question_fingerprint, c.deleted_at, c.method, r.algorithm_version, r.method_calculation, r.line_values
           from casting_sessions c
           left join cast_results r on r.casting_id = c.id
           where c.id = ${clientCastingId}
@@ -215,7 +278,7 @@ export async function POST(request: Request): Promise<Response> {
 
         const lockedExistingRows = await tx`
           select c.id, c.user_id, c.scene, c.interpretation_goal,
-                 c.question_fingerprint, c.deleted_at, r.line_values
+                 c.question_fingerprint, c.deleted_at, c.method, r.algorithm_version, r.method_calculation, r.line_values
           from casting_sessions c
           left join cast_results r on r.casting_id = c.id
           where c.id = ${clientCastingId}
@@ -245,7 +308,7 @@ export async function POST(request: Request): Promise<Response> {
             interpretation_goal, question_fingerprint, fingerprint_key_version,
             generation_epoch, created_at, updated_at
           ) values (
-            ${castingId}, ${userId}, 'three_coin', 'revealed', ${risk.status}, ${risk.ruleVersion}, ${scene},
+            ${castingId}, ${userId}, ${method}, 'revealed', ${risk.status}, ${risk.ruleVersion}, ${scene},
             ${interpretationGoal}, ${fingerprint}, ${fingerprint ? fingerprintKeyVersion : null},
             0, clock_timestamp(), clock_timestamp()
           )
@@ -262,7 +325,7 @@ export async function POST(request: Request): Promise<Response> {
             classic_mapping_version, result_hmac, result_hmac_key_version, created_at
           ) values (
             ${castingId}, ${facts.lineValuesBottomUp}, ${facts.primaryHexagramNumber}, ${facts.movingLinePositions},
-            ${facts.relatingHexagramNumber}, ${JSON.stringify({ kind: "three-coin", version: "three-coin-v1" })},
+            ${facts.relatingHexagramNumber}, ${JSON.stringify(methodCalculation)},
             ${facts.algorithmVersion}, ${facts.classicMappingVersion}, ${resultHmac}, ${resultHmacKeyVersion}, clock_timestamp()
           )
         `;
@@ -343,15 +406,15 @@ export async function POST(request: Request): Promise<Response> {
   const memorySession = repo.createCastingSession({
     userId,
     anonHash: null,
-    method: "three_coin",
+    method,
     scene,
     interpretationGoal: interpretationGoal as any,
-    algorithmVersion: "three-coin-v1",
+    algorithmVersion,
   });
   repo.saveCastResult({
     castingSessionId: memorySession.id,
     lineValues: [...lineValuesBottomUp],
-    methodCalculation: { kind: "three-coin", version: "three-coin-v1" },
+    methodCalculation,
   });
   repo.transitionCasting(memorySession.id, "casting");
   repo.transitionCasting(memorySession.id, "awaiting_reveal");

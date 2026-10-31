@@ -54,7 +54,7 @@ describe("final engineering closeout source contracts", () => {
   it("distinguishes clarification risk copy from high-risk professional-support copy", () => {
     const client = source("./components/three-coin-result/three-coin-result-client.tsx");
     expect(client).toContain('deepRisk.status === "needs_clarification"');
-    expect(client).toContain("Deep Reading needs a clearer question or situation context");
+    expect(client).toContain("Deep Reading needs a clearer locked question");
     expect(client).toContain("qualified professional support");
   });
 
@@ -82,12 +82,14 @@ describe("final engineering closeout source contracts", () => {
     expect(genericResult).not.toContain("data-reading-interpretation-loading");
   });
 
-  it("preloads known result interpretations on server-owned result routes", () => {
-    expect(source("./app/(default)/readings/three-coin/result/page.tsx")).toContain("initialInterpretationBundles");
-    const zhResult = source("./app/(localized)/zh/readings/three-coin/result/page.tsx");
-    expect(zhResult).toContain("initialInterpretationBundles");
-    expect(zhResult).toContain("initialLocalizedContent");
-    expect(zhResult).toContain("zhHansReadingContentFor");
+  it("preloads known result interpretations in the single shared owner-scoped loader", () => {
+    const loader = source("./components/three-coin-result/reading-page.tsx");
+    expect(loader).toContain("initialInterpretationBundles");
+    expect(loader).toContain("initialLocalizedContent");
+    expect(loader).toContain("zhHansReadingContentFor");
+    for (const path of ["./app/(default)/readings/result/page.tsx", "./app/(default)/readings/deep/page.tsx", "./app/(localized)/zh/readings/result/page.tsx", "./app/(localized)/zh/readings/deep/page.tsx"]) {
+      expect(source(path)).toContain("<ReadingPage");
+    }
   });
 
   it("does not mechanically lowercase trusted interpretation prose", () => {

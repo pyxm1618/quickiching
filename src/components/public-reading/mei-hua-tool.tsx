@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
+import { useRouter } from "next/navigation";
+import { completedPublicReadingPath, writeCompletedPublicReading } from "@/lib/completed-public-reading";
 import { useQuestionFirstContext } from "@/components/public-reading/question-first";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
@@ -75,6 +76,8 @@ export function MeiHuaTool({
   readingContent?: LocalizedReadingContent;
   conventionContent?: ConventionContent;
 }) {
+  const router = useRouter();
+  const [handoffError, setHandoffError] = useState("");
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
   const onNewReading = onNewReadingProp ?? (() => questionContext?.restartQuestion(true));
@@ -120,6 +123,16 @@ export function MeiHuaTool({
       })
     : null, [meiHua, question, readingMeta]);
 
+  useEffect(() => {
+    if (!publicReading) return;
+    try {
+      writeCompletedPublicReading(publicReading);
+      router.push(completedPublicReadingPath(publicReading.id, zh));
+    } catch {
+      setHandoffError(zh ? "无法保存结果，请允许浏览器会话存储后重试。" : "Unable to save this result. Enable browser session storage and retry.");
+    }
+  }, [publicReading, router, zh]);
+
   function castCurrentTime() {
     const zone = timeZone.trim();
     if (!validTimeZone(zone)) {
@@ -128,10 +141,14 @@ export function MeiHuaTool({
     }
     if (questionContext?.freezeCoreQuestion() === false) return;
     const next = { utcMillis: Date.now(), ianaTimeZone: zone };
-    const session = writePublicReadingSession(STORAGE_KEY, { cast: next });
-    setReadingMeta({ id: session.id, createdAt: session.createdAt });
-    setError("");
-    setCast(next);
+    try {
+      const session = writePublicReadingSession(STORAGE_KEY, { cast: next });
+      setReadingMeta({ id: session.id, createdAt: session.createdAt });
+      setError("");
+      setCast(next);
+    } catch {
+      setError(zh ? "无法保存起卦时间，请允许浏览器会话存储后重试。" : "Unable to save the casting time. Enable browser session storage and retry.");
+    }
   }
 
   function reset() {
@@ -203,7 +220,15 @@ export function MeiHuaTool({
         </div>
       ) : null}
 
-      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={reset} dictionary={dictionary} localizedContent={readingContent} /> : null}
+      {handoffError ? <div className="mt-4"><p role="alert">{handoffError}</p><button type="button" className="mystic-button-secondary mt-3" onClick={() => {
+        if (!publicReading) return;
+        try {
+          writeCompletedPublicReading(publicReading);
+          router.push(completedPublicReadingPath(publicReading.id, zh));
+        } catch {
+          setHandoffError(zh ? "仍无法保存结果，请检查浏览器会话存储。" : "Unable to save this result. Check browser session storage.");
+        }
+      }}>{zh ? "重新保存" : "Retry saving"}</button></div> : null}
     </section>
   );
 }

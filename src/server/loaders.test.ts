@@ -120,6 +120,18 @@ describe("commercial account loaders", () => {
     expect(query.slice(1)).toContain("user-1");
   });
 
+  it("returns all three supported methods through the same owner-scoped History query", async () => {
+    const methods = ["three_coin", "yarrow_stalk", "mei_hua_current_time"];
+    const sql = vi.fn(async () => methods.map((method, index) => ({...privateRow, id: `cast-${index}`, method})));
+    mocks.getPostgresClient.mockReturnValue(sql);
+    const history = await loadHistory({id: "user-1", email: "user@example.com"});
+    expect(history.map(item => item.method)).toEqual(methods);
+    const query = sql.mock.calls[0] as unknown as [TemplateStringsArray, ...unknown[]];
+    expect(query[0].join("?")).toContain("s.user_id =");
+    expect(query[0].join("?")).not.toContain("s.method = 'three_coin'");
+    expect(query.slice(1)).toContain("user-1");
+  });
+
   it("does not disguise a decryption failure as an untitled reading", async () => {
     mocks.getPostgresClient.mockReturnValue(vi.fn(async () => [privateRow]));
     mocks.decryptQuestionForGeneration.mockImplementation(() => { throw new Error("QUESTION_KEY_UNAVAILABLE"); });

@@ -16,6 +16,7 @@ export type PublicHexagramSummary = {
   upperTrigram: string;
   theme: string;
   coreMeaning: string;
+  shortMeaning: string;
   judgment: string;
   image: string;
   sourceUrl: string;
@@ -36,6 +37,8 @@ export type PublicActiveLine = {
   };
   positionHint: string;
   originalExplanation: string;
+  coreMeaning: string;
+  changeMeaning: string;
   caution: string;
   reflection: string;
   href: string;
@@ -49,6 +52,8 @@ export type PublicStaticReading = {
   supports: readonly [string, string, string];
   cautions: readonly [string, string, string];
   changing: string;
+  overallReading: string;
+  transition: string;
   reflections: readonly [string, string, string];
   synthesis: {
     situation: string;
@@ -57,6 +62,10 @@ export type PublicStaticReading = {
     bottomLine: string;
   };
 };
+
+function shortMeaning(value: string): string {
+  return value.match(/^.*?[.!?。！？](?:\s|$)/u)?.[0].trim() ?? value;
+}
 
 function summaryFor(number: number, interpretation?: HexagramInterpretation): PublicHexagramSummary {
   const classical = classicalHexagramByNumber(number);
@@ -73,6 +82,7 @@ function summaryFor(number: number, interpretation?: HexagramInterpretation): Pu
     upperTrigram: classical.trigrams.upper,
     theme: interpretation?.coreTheme ?? fallback.theme,
     coreMeaning: interpretation?.coreMeaning ?? fallback.summary,
+    shortMeaning: shortMeaning(interpretation?.coreMeaning ?? fallback.summary),
     judgment: classical.judgment,
     image: classical.image,
     sourceUrl: classical.source.textSourceUrl,
@@ -98,6 +108,7 @@ function summaryForLocalized(
     englishName: localized.displayName,
     theme: localized.theme,
     coreMeaning: localized.coreMeaning,
+    shortMeaning: shortMeaning(localized.coreMeaning),
     judgment: localized.judgment,
     image: localized.image,
   };
@@ -139,6 +150,8 @@ function activeLineFor(
         sourceUrl: classicalLine.source.textSourceUrl,
         sourceRevision: classicalLine.source.textSourceRevision,
       },
+      coreMeaning: classicalLine.text,
+      changeMeaning: direction,
       positionHint: phase,
       originalExplanation: fillTemplate(localizedContent.activeLine.originalExplanationTemplate, { position, phase }),
       caution: value === 6 ? localizedContent.activeLine.oldYinCaution : localizedContent.activeLine.oldYangCaution,
@@ -158,6 +171,8 @@ function activeLineFor(
       sourceUrl: classicalLine.source.textSourceUrl,
       sourceRevision: classicalLine.source.textSourceRevision,
     },
+    coreMeaning: lineInterpretation?.meaning ?? classicalLine.text,
+    changeMeaning: lineInterpretation?.changeDynamic ?? direction,
     positionHint: linePositionHint,
     originalExplanation: lineInterpretation?.meaning ?? `${linePositionHint} Read it with the primary hexagram's core meaning: ${primary.coreMeaning}`,
     caution: lineInterpretation?.caution ?? (value === 6
@@ -221,6 +236,12 @@ export function buildStaticReading(
       "Avoid turning a symbolic pattern into medical, legal, financial, or safety advice.",
     ],
     changing,
+    overallReading: localizedContent
+      ? `${primary.shortMeaning} ${changing} ${relating ? `变化方向的主题是「${relating.theme}」。` : "没有动爻，重点仍在本卦的稳定格局。"}`
+      : `${primary.shortMeaning} ${activeLines.length ? `Changing line${activeLines.length === 1 ? "" : "s"} ${activeLines.map(line => line.position).join(", ")} mark the active change.` : "No lines are changing; the primary pattern remains stable."}${relating ? ` The direction of change is toward ${relating.theme}.` : ""}`,
+    transition: localizedContent
+      ? `${direction} ${relating ? `从「${primary.theme}」经本次动爻，转向「${relating.theme}」；这是变化方向，不是确定的结果。` : "没有形成另一变卦，应结合本卦的含义观察。"}`
+      : `${bundles?.primary ? activeLines.length ? bundles.primary.hexagram.transitionTheme : bundles.primary.hexagram.stabilityTheme : direction}${relating ? ` The actual changing lines connect ${primary.theme} with ${relating.theme}; this is an interpretive direction, not a guaranteed outcome.` : " No relating hexagram is formed."}`,
     reflections: localizedMessages?.reflections ?? bundles?.primary?.hexagram.reflectionQuestions ?? [
       "What is already true here, before I add a preferred story?",
       "Which small action would make the next step more observable?",

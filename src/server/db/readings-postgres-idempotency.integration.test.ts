@@ -13,6 +13,10 @@ vi.mock("@/lib/auth/session", () => ({
   },
 }));
 
+import { generateYarrowLine } from "@/domain/casting/yarrow/algorithm";
+import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
+import { getActiveResultIntegrityKey, resultIntegrityHmac } from "@/server/generation/integrity";
+import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { POST as saveReading } from "@/app/api/readings/route";
 import { closeCommercialDatabaseConnection } from "./client";
 
@@ -116,6 +120,36 @@ describe("POST /api/readings Postgres idempotency (integration)", () => {
     vi.unstubAllEnvs();
     await closeCommercialDatabaseConnection();
     await sql.end({ timeout: 5 });
+  });
+
+  it("persists all method identities, verified facts and evidence without cross-method idempotency reuse", async () => {
+    await createUser();
+    const yarrow = Array.from({ length: 6 }, (_, index) => generateYarrowLine(index as 0, () => 1));
+    const instant = { utcMillis: Date.UTC(2026, 9, 31, 12), ianaTimeZone: "Asia/Shanghai" };
+    const meiHua = meiHuaFromUtc(instant.utcMillis, instant.ianaTimeZone);
+    for (const source of [
+      { method: "yarrow_stalk" as const, lineValuesBottomUp: yarrow.map(line => line.lineValue), methodCalculation: { changes: yarrow.flatMap(line => line.changes) } },
+      { method: "mei_hua_current_time" as const, lineValuesBottomUp: meiHua.lineValuesBottomUp, methodCalculation: instant },
+    ]) {
+      const clientCastingId = randomUUID();
+      const input = { clientCastingId, ...source };
+      expect((await saveReading(saveRequest(input))).status).toBe(201);
+      expect((await saveReading(saveRequest(input))).status).toBe(200);
+      const rows = await sql`select c.method, r.* from casting_sessions c join cast_results r on r.casting_id = c.id where c.id = ${clientCastingId}`;
+      const row = rows[0]!;
+      const computed = buildHexagramResult({ method: source.method, lineValuesBottomUp: source.lineValuesBottomUp });
+      expect(row.method).toBe(source.method);
+      expect(row.algorithm_version).toBe(computed.algorithmVersion);
+      expect(row.primary_hexagram_number).toBe(computed.primaryHexagramNumber);
+      expect(row.result_hmac).toBe(resultIntegrityHmac({ ...computed, lineValuesBottomUp: [...computed.lineValuesBottomUp], movingLinePositions: [...computed.movingLinePositions], readingVariant: computed.movingLinePositions.length === 0 ? "still_hexagram" : computed.movingLinePositions.length === 6 ? "all_lines_moving" : computed.movingLinePositions.length > 1 ? "multiple_moving" : "standard" }, getActiveResultIntegrityKey()));
+      expect((await saveReading(saveRequest({ clientCastingId, method: "three_coin", lineValuesBottomUp: source.lineValuesBottomUp }))).status).toBe(409);
+      const legacyId = randomUUID();
+      await sql`insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, generation_epoch, created_at, updated_at)
+        select ${legacyId}, user_id, method, lifecycle, risk_status, scene, interpretation_goal, generation_epoch, created_at, updated_at from casting_sessions where id = ${clientCastingId}`;
+      await sql`insert into cast_results (casting_id, line_values, primary_hexagram_number, moving_line_positions, relating_hexagram_number, method_calculation, algorithm_version, classic_mapping_version, result_hmac, result_hmac_key_version, created_at)
+        select ${legacyId}, line_values, primary_hexagram_number, moving_line_positions, relating_hexagram_number, method_calculation, 'invalid-version', classic_mapping_version, result_hmac, result_hmac_key_version, created_at from cast_results where casting_id = ${clientCastingId}`;
+      expect((await saveReading(saveRequest({ ...input, clientCastingId: legacyId }))).status).toBe(409);
+    }
   });
 
   it("same clientCastingId retry returns existing row, no duplicate", async () => {
