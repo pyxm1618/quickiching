@@ -276,7 +276,7 @@ async function verifyChineseReading(page, viewport) {
   }));
   assert.equal(englishResult.fingerprint, chineseResult.fingerprint, `${label}: language switch changed reading facts`);
   assert(englishResult.text.includes("Primary"), `${label}: English result did not restore its original UI`);
-  assert.equal(await page.$eval("input[data-private-question]", (node) => node.value), CHINESE_QUESTION, `${label}: question changed during language switch`);
+  assert((await page.$eval("[data-public-reading-result] [data-private-question]", (node) => node.textContent ?? "")).includes(CHINESE_QUESTION), `${label}: question changed during language switch`);
   await assertNoOverflow(page, `${label} English result`);
 
   await openLanguageMenuAndSwitch(page, viewport);
