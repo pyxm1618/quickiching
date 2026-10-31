@@ -1,5 +1,7 @@
 # Unified Reading business handoff — PR #76
 
+> Final status update: the user subsequently supplied the authenticated staging account; real generation/reviewer/evidence/persistence/credit-consume acceptance now PASS. Earlier Deferred/BLOCKED entries below are historical. See [real Provider E2E acceptance](2026-10-31-reading-real-provider-e2e.md). Final Visual remains pending.
+
 Starting Head: `483ba7db5f51a72de8eec2b0037105c45ad28941`.
 Branch: `integration/quickiching-ui-redesign`; no main merge, second PR, deployment, database migration, dependency, environment requirement, Header/Footer or global CSS change.
 Final Head is reported in the delivery message (a commit cannot embed its own hash).

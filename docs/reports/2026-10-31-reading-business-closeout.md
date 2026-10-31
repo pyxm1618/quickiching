@@ -1,5 +1,7 @@
 # PR #76 Unified Reading business closeout
 
+> Final status update: the user subsequently supplied the authenticated staging account; real generation/reviewer/evidence/persistence/credit-consume acceptance now PASS. Earlier Deferred/BLOCKED entries below are historical. See [real Provider E2E acceptance](2026-10-31-reading-real-provider-e2e.md). Final Visual remains pending.
+
 Starting Head: 3f02bf3fd901e5ec9eec58008db158bfd5f768e5.
 
 ## Coverage ledger (before edits)
