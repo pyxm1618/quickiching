@@ -1,4 +1,4 @@
-:global(body:has([data-deep-reading-page]) > footer) {
+:global(body):has(.page) > :global(footer) {
   display: none;
 }
 
