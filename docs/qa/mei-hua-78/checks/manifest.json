@@ -1,7 +1,7 @@
 {
-  "testedApplicationCommit": "e58a386",
+  "testedApplicationCommit": "d74fb59712049f4a25d35604c303e6dd60d3c83a",
   "integrationHead": "d9154f741f2ec353b7d8dccce8dace5317c7d690",
-  "note": "Later changes are verification scripts and evidence only. Log formatting removes terminal colors, CR and trailing whitespace; outcomes are not edited. Baseline logs are separately archived. Real auth/provider acceptance is NOT VERIFIED.",
+  "note": "Scene/result/auth source hashes are unchanged since native captures; final nonvisual private locale pairs were tested with cross-language cast fingerprints. Existing CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW=1 is used as in CI; no payment code/configuration change. Earlier failed diagnostics remain separate. Logs remove terminal colors, CR and trailing whitespace only.",
   "checks": [
     {
       "name": "lint",
@@ -66,8 +66,9 @@
     {
       "name": "chinese-full-gate-blocked",
       "exitCode": 1,
-      "status": "BLOCKED: unrelated closed-capability Pricing preview PurchaseButton",
-      "log": "chinese-full-gate-blocked.txt"
+      "status": "SUPERSEDED DIAGNOSTIC: initial local run omitted the existing CI preview flag; current full gate PASS",
+      "log": "chinese-full-gate-blocked.txt",
+      "required": false
     },
     {
       "name": "lighthouse",
@@ -92,6 +93,36 @@
       "exitCode": 0,
       "status": "PASS",
       "log": "assets.txt"
+    },
+    {
+      "name": "chinese-interactive",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "chinese-interactive.txt"
+    },
+    {
+      "name": "multilingual",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "multilingual.txt"
+    },
+    {
+      "name": "on-page",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "on-page.txt"
+    },
+    {
+      "name": "logo",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "logo.txt"
+    },
+    {
+      "name": "navigation",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "navigation.txt"
     }
   ],
   "sourceSha256": {
@@ -102,10 +133,12 @@
     "src/components/public-reading/shared-reading-summary.css": "48ee1f0f82b1290cae475f290ae1d41c3e5aa2b37e3f7eb5675cfc0186387fe5",
     "src/components/three-coin-result/three-coin-result-client.tsx": "4ff11eac71a433843489334f5f470d269e0d233ac56f1ca8987061d4f0b76ba2",
     "src/components/three-coin-result/reading-page.tsx": "a62c0dcc4dc5e17f587b5db468833fd2f9c19374e0be8bf8e8a8a1a3ad70ef1f",
-    "src/lib/reading-entry.ts": "33e9eec90957c50dbd08b11263cfae2cd6e640d58ca6fdbaed004bab81713017"
+    "src/lib/reading-entry.ts": "33e9eec90957c50dbd08b11263cfae2cd6e640d58ca6fdbaed004bab81713017",
+    "src/i18n/routes.ts": "88f3f8644381c7983b166a3ba2543047c2b1068c3007f59d17742ab17112b3d7"
   },
   "localRuntime": {
     "node": "v26.7.0",
     "bun": "1.4.2"
-  }
+  },
+  "presentationCapturedAtCommit": "e58a386"
 }

@@ -1,0 +1,8 @@
+[Multilingual Browser Gate] HTTP redirects, locale 404s, Accept-Language stability, 146-URL sitemap, metadata, and full Chinese canonical route set PASS
+[Multilingual Browser Gate] Launching Chromium at /Applications/Google Chrome.app/Contents/MacOS/Google Chrome (system runner)
+[Multilingual Browser Gate] Browser-rendered English/Chinese/invalid-locale 404 metadata PASS
+[Multilingual Browser Gate] 1440px Chinese Mei Hua PASS
+[Multilingual Browser Gate] 390px Chinese Mei Hua PASS
+[Multilingual Browser Gate] 412px Chinese Mei Hua PASS
+[Multilingual Browser Gate] Desktop, iPhone-width, Android-width Chinese flow and cross-language fact-preservation PASS
+[Multilingual Browser Gate] ALL MULTILINGUAL BROWSER/HTTP GATES PASS

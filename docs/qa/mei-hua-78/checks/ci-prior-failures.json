@@ -1,0 +1,19 @@
+{
+  "note": "Historical workflow failures, before current browser route/fixture corrections; not final-head CI results.",
+  "runs": [
+    {
+      "id": 41200330118,
+      "head": "d9154f741f2ec353b7d8dccce8dace5317c7d690",
+      "conclusion": "failure",
+      "failure": "Chinese interactive Test 5 waited for an inline result on the process route; inherited baseline mismatch.",
+      "url": "https://github.com/pyxm1618/quickiching/actions/runs/41200330118"
+    },
+    {
+      "id": 41209428985,
+      "head": "135d34de21486bcce82b5c0e44f7ece3763ace99",
+      "conclusion": "failure",
+      "failure": "Same inherited Chinese interactive Test 5 route mismatch. Corrected and full Chinese/multilingual checks passed locally with existing CI preview flag.",
+      "url": "https://github.com/pyxm1618/quickiching/actions/runs/41209428985"
+    }
+  ]
+}

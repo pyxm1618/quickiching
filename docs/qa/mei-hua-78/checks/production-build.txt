@@ -1,11 +1,12 @@
 $ next build
-workflows build complete (11 steps, 2 workflows, time 30ms)
+workflows build complete (11 steps, 2 workflows, time 32ms)
    ▲ Next.js 15.5.25
    - Experiments (use with caution):
      ✓ globalNotFound
 
    Creating an optimized production build ...
- ✓ Compiled successfully in 3.6s
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (128kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully in 16.4s
    Skipping linting
    Checking validity of types ...
    Collecting page data ...
@@ -100,7 +101,7 @@ Route (app)                                           Size  First Load JS
   └ other shared chunks (total)                    2.56 kB
 
 
-ƒ Middleware                                       64.7 kB
+ƒ Middleware                                       64.8 kB
 
 ○  (Static)   prerendered as static content
 ●  (SSG)      prerendered as static HTML (uses generateStaticParams)

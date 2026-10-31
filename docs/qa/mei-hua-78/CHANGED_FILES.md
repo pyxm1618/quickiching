@@ -1,6 +1,6 @@
 # Changed files
 
-Compared with the preserved integration head `d9154f7`. Inherited prior backend, domain, Info and homepage work is not counted as this round's change.
+Compared with preserved integration head `d9154f7`: **127 tracked changed files**. Unreviewed = 0. Inherited backend/domain/Info/homepage work is preserved.
 
 - [docs/qa/mei-hua-78/CHANGED_FILES.md](CHANGED_FILES.md)
 - [docs/qa/mei-hua-78/REVIEW.html](REVIEW.html)
@@ -27,30 +27,28 @@ Compared with the preserved integration head `d9154f7`. Inherited prior backend,
 - [docs/qa/mei-hua-78/checks/baseline-2f76336/typecheck.txt](checks/baseline-2f76336/typecheck.txt)
 - [docs/qa/mei-hua-78/checks/baseline-2f76336/ui-and-auth-seam.txt](checks/baseline-2f76336/ui-and-auth-seam.txt)
 - [docs/qa/mei-hua-78/checks/baseline-2f76336/unit-tests.txt](checks/baseline-2f76336/unit-tests.txt)
-- [docs/qa/mei-hua-78/checks/browser.log](checks/browser.log)
 - [docs/qa/mei-hua-78/checks/browser.txt](checks/browser.txt)
 - [docs/qa/mei-hua-78/checks/chinese-full-gate-blocked.txt](checks/chinese-full-gate-blocked.txt)
-- [docs/qa/mei-hua-78/checks/interpretation-bundle.log](checks/interpretation-bundle.log)
+- [docs/qa/mei-hua-78/checks/chinese-interactive.txt](checks/chinese-interactive.txt)
+- [docs/qa/mei-hua-78/checks/ci-prior-failures.json](checks/ci-prior-failures.json)
 - [docs/qa/mei-hua-78/checks/interpretation-bundle.txt](checks/interpretation-bundle.txt)
 - [docs/qa/mei-hua-78/checks/lighthouse.txt](checks/lighthouse.txt)
-- [docs/qa/mei-hua-78/checks/lint.log](checks/lint.log)
 - [docs/qa/mei-hua-78/checks/lint.txt](checks/lint.txt)
+- [docs/qa/mei-hua-78/checks/logo.txt](checks/logo.txt)
 - [docs/qa/mei-hua-78/checks/manifest.json](checks/manifest.json)
 - [docs/qa/mei-hua-78/checks/motion-results.json](checks/motion-results.json)
 - [docs/qa/mei-hua-78/checks/motion.txt](checks/motion.txt)
-- [docs/qa/mei-hua-78/checks/production-build.log](checks/production-build.log)
+- [docs/qa/mei-hua-78/checks/multilingual.txt](checks/multilingual.txt)
+- [docs/qa/mei-hua-78/checks/navigation.txt](checks/navigation.txt)
+- [docs/qa/mei-hua-78/checks/on-page.txt](checks/on-page.txt)
 - [docs/qa/mei-hua-78/checks/production-build.txt](checks/production-build.txt)
-- [docs/qa/mei-hua-78/checks/public-p0.log](checks/public-p0.log)
 - [docs/qa/mei-hua-78/checks/public-p0.txt](checks/public-p0.txt)
 - [docs/qa/mei-hua-78/checks/reading-business.txt](checks/reading-business.txt)
 - [docs/qa/mei-hua-78/checks/scene-results.json](checks/scene-results.json)
 - [docs/qa/mei-hua-78/checks/scene.txt](checks/scene.txt)
-- [docs/qa/mei-hua-78/checks/three-coin.log](checks/three-coin.log)
 - [docs/qa/mei-hua-78/checks/three-coin.txt](checks/three-coin.txt)
-- [docs/qa/mei-hua-78/checks/typecheck.log](checks/typecheck.log)
 - [docs/qa/mei-hua-78/checks/typecheck.txt](checks/typecheck.txt)
 - [docs/qa/mei-hua-78/checks/ui-and-auth-seam.txt](checks/ui-and-auth-seam.txt)
-- [docs/qa/mei-hua-78/checks/unit-tests.log](checks/unit-tests.log)
 - [docs/qa/mei-hua-78/checks/unit-tests.txt](checks/unit-tests.txt)
 - [docs/qa/mei-hua-78/comparisons/comparison.json](comparisons/comparison.json)
 - [docs/qa/mei-hua-78/comparisons/shared-reading-difference.webp](comparisons/shared-reading-difference.webp)
@@ -88,7 +86,7 @@ Compared with the preserved integration head `d9154f7`. Inherited prior backend,
 - [docs/qa/mei-hua-78/screenshots/mobile-step-2.png](screenshots/mobile-step-2.png)
 - [docs/qa/mei-hua-78/screenshots/mobile-step-3.png](screenshots/mobile-step-3.png)
 - [docs/qa/mei-hua-78/screenshots/verification.json](screenshots/verification.json)
-- [docs/superpowers/plans/2026-10-31-mei-hua-78.md](../../../docs/superpowers/plans/2026-10-31-mei-hua-78.md)
+- [docs/superpowers/plans/2026-10-31-mei-hua-78.md](../../superpowers/plans/2026-10-31-mei-hua-78.md)
 - [public/mei-hua/change-orb-mobile.webp](../../../public/mei-hua/change-orb-mobile.webp)
 - [public/mei-hua/change-orb.webp](../../../public/mei-hua/change-orb.webp)
 - [public/mei-hua/moment-card.webp](../../../public/mei-hua/moment-card.webp)
@@ -107,6 +105,7 @@ Compared with the preserved integration head `d9154f7`. Inherited prior backend,
 - [scripts/chinese-interactive-language-gate.mjs](../../../scripts/chinese-interactive-language-gate.mjs)
 - [scripts/fixtures/reading-business-entry.tsx](../../../scripts/fixtures/reading-business-entry.tsx)
 - [scripts/mei-hua-ui-browser-gate.mjs](../../../scripts/mei-hua-ui-browser-gate.mjs)
+- [scripts/multilingual-browser-gate.mjs](../../../scripts/multilingual-browser-gate.mjs)
 - [scripts/public-p0-browser-gate.mjs](../../../scripts/public-p0-browser-gate.mjs)
 - [scripts/reading-business-browser.mjs](../../../scripts/reading-business-browser.mjs)
 - [scripts/result-lighthouse-gate.mjs](../../../scripts/result-lighthouse-gate.mjs)
@@ -126,5 +125,18 @@ Compared with the preserved integration head `d9154f7`. Inherited prior backend,
 - [src/components/three-coin-result/reading-page.tsx](../../../src/components/three-coin-result/reading-page.tsx)
 - [src/components/three-coin-result/three-coin-result-client.test.tsx](../../../src/components/three-coin-result/three-coin-result-client.test.tsx)
 - [src/components/three-coin-result/three-coin-result-client.tsx](../../../src/components/three-coin-result/three-coin-result-client.tsx)
+- [src/i18n/navigation-routing.test.ts](../../../src/i18n/navigation-routing.test.ts)
+- [src/i18n/routes.ts](../../../src/i18n/routes.ts)
 - [src/lib/reading-entry.test.ts](../../../src/lib/reading-entry.test.ts)
 - [src/lib/reading-entry.ts](../../../src/lib/reading-entry.ts)
+
+Preserved local-only logs (8, ignored by `.gitignore:14`, excluded from tracked changes; no deletion):
+
+- `docs/qa/mei-hua-78/checks/browser.log`
+- `docs/qa/mei-hua-78/checks/interpretation-bundle.log`
+- `docs/qa/mei-hua-78/checks/lint.log`
+- `docs/qa/mei-hua-78/checks/production-build.log`
+- `docs/qa/mei-hua-78/checks/public-p0.log`
+- `docs/qa/mei-hua-78/checks/three-coin.log`
+- `docs/qa/mei-hua-78/checks/typecheck.log`
+- `docs/qa/mei-hua-78/checks/unit-tests.log`

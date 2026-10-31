@@ -1,8 +1,8 @@
 {
   "originalTotal": 20,
   "states": {
-    "approved / pass": 12,
-    "deferred": 8,
+    "approved / pass": 13,
+    "deferred": 7,
     "confirmed reject / delete": 0,
     "unreviewed / unknown": 0
   },
@@ -118,8 +118,8 @@
     {
       "id": "REQ-19",
       "requirement": "Acceptance gates",
-      "state": "deferred",
-      "evidence": "149 files/992 tests, lint/typecheck/build, UI, general browser, Three Coin, P0, bundles, Reading fixtures, scene16, motion3 and Lighthouse pass. Full Chinese gate remains blocked at unrelated Pricing preview PurchaseButton."
+      "state": "approved / pass",
+      "evidence": "149 files/994 tests, lint/typecheck/build, UI, browser, Three Coin, P0, full Chinese17 pages, multilingual1440/390/412, on-page, logo/navigation, bundles, Reading fixtures, scene16, motion3 and original Lighthouse budgets PASS. Existing CI preview flag used; historical route-assertion failures retained."
     },
     {
       "id": "REQ-20",

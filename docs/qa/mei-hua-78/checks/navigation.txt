@@ -1,0 +1,12 @@
+[Navigation Audit Gate] Launching Chrome at /Applications/Google Chrome.app/Contents/MacOS/Google Chrome (system)
+[Navigation Audit Gate] Captured screenshot: outputs/navigation-audit/desktop-1440-en.png
+[Navigation Audit Gate] Captured screenshot: outputs/navigation-audit/desktop-1440-zh.png
+[Navigation Audit Gate] Captured screenshot: outputs/navigation-audit/tablet-768-en.png
+[Navigation Audit Gate] Captured screenshot: outputs/navigation-audit/tablet-768-zh.png
+[Navigation Audit Gate] Captured screenshot: outputs/navigation-audit/mobile-390-en.png
+[Navigation Audit Gate] Captured screenshot: outputs/navigation-audit/mobile-390-zh.png
+[Navigation Audit Gate] Captured screenshot: outputs/navigation-audit/mobile-375-en.png
+[Navigation Audit Gate] Captured screenshot: outputs/navigation-audit/mobile-375-zh.png
+[Navigation Audit Gate] Captured screenshot: outputs/navigation-audit/mobile-320-en.png
+[Navigation Audit Gate] Captured screenshot: outputs/navigation-audit/mobile-320-zh.png
+[Navigation Audit Gate] ALL NAVIGATION & MULTI-VIEWPORT AUDIT CHECKS PASS

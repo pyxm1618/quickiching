@@ -1,0 +1,26 @@
+[Chinese Interactive Language Gate] Launching Chromium at /Applications/Google Chrome.app/Contents/MacOS/Google Chrome (system runner)
+[Chinese Interactive Language Gate] Test 1: Desktop User Menu & Navigation -> checking /zh/account & /zh/history parity
+[Chinese Interactive Language Gate] Test 1 NOTE: Auth capability is closed in current server env; UserNavControl parity verified via unit tests and header nav checked.
+[Chinese Interactive Language Gate] Test 2: Local History Page (/zh/history) -> Empty, populated, rename, delete confirmation states
+[Chinese Interactive Language Gate] Test 2 PASS: History page states, buttons, and Three-Coin reading result kicker verified pure Chinese.
+[Chinese Interactive Language Gate] Test 3: /zh/account auth guard -> redirect when Auth is open, 410 when capability is closed
+[Chinese Interactive Language Gate] Test 3 PASS: Closed Auth capability blocks /zh/account with the same 410 boundary as /account.
+[Chinese Interactive Language Gate] Test 4: Pricing Page (/zh/pricing) Real Failure Interceptions & DOM Assertions
+[Chinese Interactive Language Gate] Pricing real button click PASS: 401 unauthenticated redirect
+[Chinese Interactive Language Gate] Pricing real button click PASS: 409 concurrent checkout
+[Chinese Interactive Language Gate] Pricing real button click PASS: 429 rate limit
+[Chinese Interactive Language Gate] Pricing real button click PASS: 503 service unavailable
+[Chinese Interactive Language Gate] Pricing real button click PASS: network failure
+[Chinese Interactive Language Gate] Pricing real button click PASS: invalid checkout URL
+[Chinese Interactive Language Gate] Test 5: Four Casting Methods -> Interactive reading generation, kicker, aria, links
+[Chinese Interactive Language Gate] Method simulation PASS: three-coin complete reading
+[Chinese Interactive Language Gate] Method simulation PASS: yarrow-stalks complete reading
+[Chinese Interactive Language Gate] Method simulation PASS: mei-hua-yi-shu complete reading
+[Chinese Interactive Language Gate] Method simulation PASS: manual-cast complete reading
+[Chinese Interactive Language Gate] Test 6: Three-Coin Result Route (/zh/readings/result) -> empty, ready, and error states
+[Chinese Interactive Language Gate] Three-coin result PASS: empty state
+[Chinese Interactive Language Gate] Three-coin result PASS: completed cast anonymous-summary state
+[Chinese Interactive Language Gate] Three-coin result PASS: error state
+[Chinese Interactive Language Gate] Test 7: Full-site Chinese interactive page language and accessibility purity scan
+[Chinese Interactive Language Gate] Test 7 PASS: All 17 Chinese pages passed purity audit with 0 unauthorized Latin words.
+[Chinese Interactive Language Gate] ALL CHINESE INTERACTIVE LANGUAGE GATES PASSED CLEANLY.
