@@ -170,9 +170,9 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
     expect(html).toContain("data-relating-card");
     expect(html).toContain(primary.hexagram.coreTheme);
     expect(html).toContain(relating.hexagram.coreTheme);
-    expect(html).toContain("data-ritual-result-card");
-    expect([...html.matchAll(/data-line-position="(\d)"/gu)].map(match=>Number(match[1]))).toEqual([6,5,4,3,2,1]);
-    expect(html).toContain('aria-label="1: 9"');
+    expect(html).not.toContain("data-ritual-result-card");
+    expect(html).toContain('data-active-line="1"');
+    expect(html.match(/Get My Deep Reading/g)).toHaveLength(2);
     expect(html).not.toContain("Restoring your sealed reading…");
   });
 });
@@ -188,8 +188,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       "Should I buy bitcoin with my savings?",
       "I want to hurt myself tonight.",
     ])("keeps the free result but offers no purchase or generation for %s", (question) => {
-      const html = renderToStaticMarkup(
-        <ThreeCoinResultClient initialUser={user} initialCredits={credits}
+      const result = <ThreeCoinResultClient initialUser={user} initialCredits={credits}
           initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question }}
           initialCastingView={{
             castingId: "cast_risk",
@@ -197,11 +196,15 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
             lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
             readingReport: null,
             owns: true,
-          }} />,
-      );
+          }} />;
+      const freeHtml = renderToStaticMarkup(result);
+      const html = renderToStaticMarkup(React.cloneElement(result, { pageMode: "deep" }));
+      expect(freeHtml).toContain("data-primary-card");
+      expect(freeHtml).not.toContain("data-start-deep-reading");
+      expect(freeHtml).not.toContain("Choose a Deep Reading pack");
       expect(html).toContain('data-deep-reading-blocked="risk"');
-      expect(html).toContain("data-primary-card");
-      expect(html).toContain("Your free cast interpretation remains available");
+      expect(html).not.toContain("data-primary-card");
+      expect(html).toContain("View Free Reading");
       expect(html).not.toContain("Choose a Deep Reading pack");
       expect(html).not.toContain("Sign in to continue");
       expect(html).not.toContain("data-start-deep-reading");
@@ -215,7 +218,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
   ])("shows risk guidance before the short-question fallback for $question", ({ question, expected }) => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
-        locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
+        pageMode="deep" locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialUser={{ id: "usr_1", email: "test@example.com" }}
         initialCredits={0}
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question }}
@@ -233,7 +236,8 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).toContain(expected);
     expect(html).not.toContain("选择深度解读次数包");
     expect(html).not.toContain("data-start-deep-reading");
-    expect(html).toContain("data-primary-card");
+    expect(html).toContain("查看免费解卦");
+    expect(html).not.toContain("data-primary-card");
   });
 
   it("keeps an anonymous high-risk completed cast behind the auth gate without leaking interpretation", () => {
@@ -292,7 +296,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).toContain("The sealed reading could not be interpreted");
   });
 
-  it("renders completed report banner pointing to /zh/account in Chinese mode", () => {
+  it("renders historical commercial report on independent Chinese Deep page with account history link", () => {
     const mockReading: any = {
       primary: { number: 1, englishName: "The Creative", chineseName: "乾" },
       relating: { number: 9, englishName: "Small Taming", chineseName: "小畜" },
@@ -317,6 +321,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
 
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
+        pageMode="deep"
         locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialUser={{ id: "usr_1", email: "test@example.com" }}
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 9, 7, 7], createdAt: "2026-09-25T10:00:00.000Z" }}
@@ -330,15 +335,16 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         }}
       />,
     );
-    expect(html).toContain('href="/zh/account"');
-    expect(html).not.toContain('href="/account"');
-    expect(html).toContain("查看账户与历史记录 →");
+    expect(html).toContain('href="/zh/my-readings"');
+    expect(html).not.toContain('href="/my-readings"');
+    expect(html).toContain("已保存到账户历史记录");
     expect(html).toContain("旧版报告格式");
     expect(html).toContain("测试摘要");
-    expect(html).toContain('data-save-reading');
+    expect(html).not.toContain('data-save-reading');
+    expect(html).toContain('data-deep-reading-page');
   });
 
-  it("renders completed report banner pointing to /account in English mode", () => {
+  it("renders historical v2 report on independent English Deep page with account history link", () => {
     const mockReading: any = {
       primary: { number: 1, englishName: "The Creative", chineseName: "乾", upper: "qian", lower: "qian" },
       relating: { number: 9, englishName: "Small Taming", chineseName: "小畜", upper: "xun", lower: "qian" },
@@ -378,6 +384,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
 
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
+        pageMode="deep"
         locale="en"
         initialUser={{ id: "usr_1", email: "test@example.com" }}
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 9, 7, 7] }}
@@ -390,9 +397,9 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         }}
       />,
     );
-    expect(html).toContain('href="/account"');
-    expect(html).not.toContain('href="/zh/account"');
-    expect(html).toContain("Restoring the saved evidence bundle");
+    expect(html).toContain('href="/my-readings"');
+    expect(html).not.toContain('href="/zh/my-readings"');
+    expect(html).toContain("The saved evidence bundle is unavailable.");
     expect(html).not.toContain("Unresolved evidence reference");
   });
 
@@ -416,6 +423,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     };
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
+        pageMode="deep"
         locale="en"
         initialUser={{ id: "usr_1", email: "test@example.com" }}
         initialCredits={0}
@@ -426,7 +434,8 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
 
     expect(html).toContain("Choose a Deep Reading pack");
     expect(html).toContain("No generation starts until a credit is available");
-    expect(html).toContain("data-context-enrichment-form");
+    expect(html).not.toContain("data-context-enrichment-form");
+    expect(html).not.toContain("<textarea");
     expect(html).not.toContain("data-start-deep-reading");
   });
 
@@ -451,18 +460,21 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     );
 
     const boundaryPosition = html.indexOf("data-free-cast-boundary");
-    const deepPosition = html.indexOf("data-deep-reading-entry");
+    const deepPosition = html.indexOf('data-deep-reading-cta="top"');
     const freeDetailsPosition = html.indexOf("data-primary-card");
     expect(html).toContain('data-public-reading-result');
-    expect(html).toContain("本次三枚铜钱起卦结果");
-    expect(html).toContain("免费：理解卦象 · 付费：解读卦象与你处境的关系");
+    expect(html).toContain("免费解卦");
+    expect(html.match(/获取我的深度解读/g)).toHaveLength(2);
+    expect(html).toContain('href="/zh/readings/deep?session=cast_public_result"');
+    expect(html).not.toContain("data-context-enrichment-form");
     expect(html).toContain('href="/zh/hexagrams/1-the-creative"');
     expect(boundaryPosition).toBeGreaterThanOrEqual(0);
-    expect(deepPosition).toBeGreaterThan(boundaryPosition);
+    expect(deepPosition).toBeGreaterThanOrEqual(0);
+    expect(boundaryPosition).toBeGreaterThan(deepPosition);
     expect(freeDetailsPosition).toBeGreaterThan(deepPosition);
   });
 
-  it("renders streamlined context form with $2.99 pricing disclosure and expandable details", () => {
+  it("keeps retired context forms, enrichment fields and purchase UI out of localized Free pages", () => {
     const htmlZh = renderToStaticMarkup(
       <ThreeCoinResultClient
         locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
@@ -483,12 +495,9 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       />,
     );
 
-    expect(htmlZh).toContain("个性化深度解读 · $2.99 起");
-    expect(htmlZh).toContain("说明你的具体处境与关键事实");
-    expect(htmlZh).toContain("你最想看清什么？");
-    expect(htmlZh).toContain("+ 补充选项、限制与顾虑（可选）");
-    expect(htmlZh).toContain("选择深度解读次数包 · $2.99 起");
-    expect(htmlZh).not.toContain("登录并继续 · $2.99");
+    expect(htmlZh).toContain("免费解卦");
+    expect(htmlZh.match(/获取我的深度解读/g)).toHaveLength(2);
+    for (const retired of ["说明你的具体处境与关键事实", "你最想看清什么？", "data-context-enrichment-form", "<textarea", "选择深度解读次数包", "data-start-deep-reading"]) expect(htmlZh).not.toContain(retired);
 
     const htmlEn = renderToStaticMarkup(
       <ThreeCoinResultClient
@@ -510,15 +519,12 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       />,
     );
 
-    expect(htmlEn).toContain("Personalized Deep Reading · from $2.99");
-    expect(htmlEn).toContain("Tell us what matters in your situation");
-    expect(htmlEn).toContain("What would you like clarity on?");
-    expect(htmlEn).toContain("+ Add more details (options, constraints, concerns)");
-    expect(htmlEn).toContain("Choose a Deep Reading pack · from $2.99");
-    expect(htmlEn).not.toContain("Sign in to continue · $2.99");
+    expect(htmlEn).toContain("Your Free Reading");
+    expect(htmlEn.match(/Get My Deep Reading/g)).toHaveLength(2);
+    for (const retired of ["Tell us what matters in your situation", "What would you like clarity on?", "data-context-enrichment-form", "<textarea", "Choose a Deep Reading pack", "data-start-deep-reading"]) expect(htmlEn).not.toContain(retired);
   });
 
-  it("renders Why this interpretation summary in completed Deep Reading report", () => {
+  it("preserves historical v2 content and evidence in four read-only report categories", () => {
     const mockReport = {
       schemaVersion: "deep-reading-v2" as const,
       readingVariant: "standard" as const,
@@ -597,16 +603,24 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     const htmlEn = renderToStaticMarkup(
       <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="en" />,
     );
-    expect(htmlEn).toContain('data-why-this-interpretation');
-    expect(htmlEn).toContain("Why this interpretation");
-    expect(htmlEn).toContain("This reading is grounded in your saved question and context, the exact cast (Hexagram 47 (Oppression), changing line 2, moving to Hexagram 45 (Gathering Together)), classical I Ching text included in Quick I Ching, and Quick I Ching&#x27;s structured interpretation material.");
+    expect(htmlEn).toContain('data-legacy-report');
+    expect(htmlEn).toContain("Previously saved report · read only");
+    for (const heading of ["Direct Answer", "Why", "What Matters Most", "What To Do Next"]) expect(htmlEn).toContain(`>${heading}</h3>`);
+    expect(htmlEn).toContain(mockReport.situationMapping);
+    expect(htmlEn).toContain(mockReport.conditionalDirection);
+    expect(htmlEn).toContain(mockReport.practicalReflection);
+    expect(htmlEn).toContain('data-evidence-id="primary.judgment"');
+    expect(htmlEn).toContain("困：亨");
+    expect(htmlEn).not.toContain(mockSnapshot.context.contextNotes);
 
     const htmlZh = renderToStaticMarkup(
       <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="zh-Hans" />,
     );
-    expect(htmlZh).toContain('data-why-this-interpretation');
-    expect(htmlZh).toContain("为什么这样解读");
-    expect(htmlZh).toContain("本报告结合你起卦时保存的问题与现实背景、本次实际卦象（第 47 卦「困」，第 2 爻动，向 第 45 卦「萃」变化）、Quick I Ching 收录的经典文本，以及 Quick I Ching 的结构化解释材料生成。");
+    expect(htmlZh).toContain("此前保存的报告 · 只读");
+    for (const heading of ["直接回应", "为什么", "最值得关注的事", "接下来怎么做"]) expect(htmlZh).toContain(`>${heading}</h3>`);
+    expect(htmlZh).toContain("解读依据");
+    expect(htmlZh).toContain(mockReport.uncertaintyAndBoundaries);
+    expect(htmlZh).toContain(mockReport.disclaimer);
   });
 });
 

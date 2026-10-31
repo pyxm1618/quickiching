@@ -88,10 +88,12 @@ describe("PublicReadingResult changing-line meaning", () => {
     expect(html).not.toContain("Changing Lines: None");
     expect(html).not.toContain(">None</div>");
     expect(html).not.toContain("data-relating-card");
-    expect(html.indexOf("data-primary-overview")).toBeLessThan(html.indexOf("data-deep-reading-entry"));
+    expect(html).toContain("data-primary-card");
+    expect(html).toContain("data-deep-reading-entry");
+    expect(html.indexOf("data-deep-reading-cta=\"top\"")).toBeLessThan(html.indexOf("data-primary-card"));
   });
 
-  it("explains an unchanged Chinese cast and keeps the Deep Reading offer after the cast summary", () => {
+  it("explains an unchanged Chinese cast and localizes the two Deep Reading offers", () => {
     const reading = buildPublicReading({
       id: "static-no-change-zh",
       createdAt: "2026-09-27T00:00:00.000Z",
@@ -113,7 +115,9 @@ describe("PublicReadingResult changing-line meaning", () => {
     expect(html).toContain("本次没有变卦（之卦）");
     expect(html).toContain("六爻均未发生变化，因此本次阅读以本卦为核心。");
     expect(html).not.toContain("动爻：无");
-    expect(html.indexOf("data-primary-overview")).toBeLessThan(html.indexOf("data-deep-reading-entry"));
+    expect(html).toContain("data-primary-card");
+    expect(html).toContain("data-deep-reading-entry");
+    expect(html.indexOf("data-deep-reading-cta=\"top\"")).toBeLessThan(html.indexOf("data-primary-card"));
   });
 
   it("keeps the actual relating hexagram visible when a line changes", () => {

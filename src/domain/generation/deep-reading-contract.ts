@@ -20,7 +20,7 @@ function codePointCount(value: string): number {
   return Array.from(value).length;
 }
 
-export const deepReadingContextEnrichmentSchema = z.object({
+export const legacyDeepReadingContextEnrichmentSchema = z.object({
   contextNotes: boundedText(2000).default(""),
   options: contextList.default([]),
   constraints: contextList.default([]),
@@ -120,10 +120,10 @@ export const deepReadingKnowledgeBundleSchema = z.object({
   evidence: z.array(deepReadingEvidenceSchema).min(1).max(100),
 }).strict();
 
-export const deepReadingContextSnapshotSchema = z.object({
+export const legacyDeepReadingContextSnapshotSchema = z.object({
   schemaVersion: z.literal("deep-reading-context-v1"),
   coreQuestionAtCast: z.string().trim().min(8).max(1000),
-  context: deepReadingContextEnrichmentSchema,
+  context: legacyDeepReadingContextEnrichmentSchema,
   scene: sceneSchema,
   castMethod: z.literal("three_coin"),
   methodVersion: z.string().min(1).max(120),
@@ -138,7 +138,7 @@ export const deepReadingContextSnapshotSchema = z.object({
   knowledge: deepReadingKnowledgeBundleSchema,
 }).strict();
 
-export const readingReportSchema = z.object({
+export const legacyDeepReadingReportSchema = z.object({
   schemaVersion: z.literal("deep-reading-v2"),
   readingVariant: z.enum(["standard", "still_hexagram", "multiple_moving", "all_lines_moving"]),
   directAnswer: z.string().trim().min(80).max(2400),
@@ -154,7 +154,36 @@ export const readingReportSchema = z.object({
   disclaimer: z.string().trim().min(20).max(600),
 }).strict();
 
-export type DeepReadingContextEnrichment = z.infer<typeof deepReadingContextEnrichmentSchema>;
+export const deepReadingRequestSchema = z.object({
+  locale: z.enum(["en", "zh-Hans"]).default("en"),
+}).strict();
+
+export const activeDeepReadingContextSnapshotSchema = legacyDeepReadingContextSnapshotSchema.omit({ context: true, castMethod: true, schemaVersion: true }).extend({
+  schemaVersion: z.literal("deep-reading-context-v2"),
+  castMethod: z.enum(["three_coin", "yarrow_stalk", "mei_hua_current_time"]),
+  locale: z.enum(["en", "zh-Hans"]),
+}).strict();
+
+// Historical snapshots remain decryptable and hash-compatible, but never generate new reports.
+export const deepReadingContextSnapshotSchema = z.union([
+  activeDeepReadingContextSnapshotSchema,
+  legacyDeepReadingContextSnapshotSchema,
+]);
+export type ActiveDeepReadingContextSnapshot = z.infer<typeof activeDeepReadingContextSnapshotSchema>;
+
+export const readingReportSchema = z.object({
+  schemaVersion: z.literal("deep-reading-v3"),
+  readingVariant: z.enum(["standard", "still_hexagram", "multiple_moving", "all_lines_moving"]),
+  directAnswer: z.string().trim().min(80).max(2400),
+  whyThisReading: z.string().trim().min(80).max(3000),
+  whatMattersMost: z.array(z.string().trim().min(20).max(700)).min(1).max(3),
+  whatToDoNext: z.array(z.string().trim().min(20).max(700)).min(1).max(3),
+  uncertaintyAndBoundaries: z.string().trim().min(80).max(2400),
+  interpretiveBasisReferences: z.array(z.object({ evidenceId: z.string().min(1).max(120) }).strict()).min(1).max(20),
+  disclaimer: z.string().trim().min(20).max(600),
+}).strict();
+
+export type LegacyDeepReadingContextEnrichment = z.infer<typeof legacyDeepReadingContextEnrichmentSchema>;
 export type DeepReadingKnowledgeBundle = z.infer<typeof deepReadingKnowledgeBundleSchema>;
 export type DeepReadingContextSnapshot = z.infer<typeof deepReadingContextSnapshotSchema>;
 export type DeepReadingReport = z.infer<typeof readingReportSchema>;

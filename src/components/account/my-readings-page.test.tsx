@@ -12,7 +12,7 @@ describe("My Readings page", () => {
     mocks.history.mockResolvedValue([{ id: "first", question: "Should I change jobs?", createdAt: new Date("2026-10-28"), primaryName: "Qian", hasReading: true }, { id: "second", question: null, createdAt: new Date("2026-10-27"), primaryName: "Kun" }]);
     const html = renderToStaticMarkup(await MyReadingsPage({}));
     expect(html).toContain("Should I change jobs?"); expect(html).toContain("Untitled Reading"); expect(html).toContain("Oct 28, 2026"); expect(html.match(/<a /g)).toHaveLength(2);
-    expect(html).toContain("/readings/three-coin/result?session=first"); expect(html).not.toMatch(/Qian|Kun|Preview|Get Deep Reading|View Deep Reading|Changing Lines/);
+    expect(html).toContain("/readings/result?session=first"); expect(html).not.toMatch(/Qian|Kun|Preview|Get Deep Reading|View Deep Reading|Changing Lines/);
   });
   it("uses Chinese routes without adding an empty-state CTA", async () => {
     mocks.history.mockResolvedValue([]);

@@ -92,16 +92,6 @@ async function insertCastingWithResult(input: {
   `;
 }
 
-function validEnrichment() {
-  return {
-    contextNotes: "The timeline changed and I need to decide what information matters next.",
-    options: [],
-    constraints: [],
-    concerns: [],
-    interpretationGoal: "what_do_i_need_to_see_clearly" as const,
-    locale: "en" as const,
-  };
-}
 
 async function insertPaidCredit(input: { userId: string; available?: number; reserved?: number }): Promise<{
   orderId: string;
@@ -200,7 +190,7 @@ describe("CP5 audit remediation regressions", () => {
       },
     });
 
-    await expect(service.requestDeepReading({ userId, castingId, enrichment: validEnrichment() }))
+    await expect(service.requestDeepReading({ userId, castingId, locale: "en" }))
       .rejects.toThrow("WORKFLOW_START_FAILED");
 
     const jobs = await sql<{ id: string; status: string; structured_error_code: string | null }[]>`
@@ -241,7 +231,7 @@ describe("CP5 audit remediation regressions", () => {
       workflowStarter: {
         startDeepReadingWorkflow: async () => ({ runId: `run-${randomUUID()}`, started: true }),
       },
-    }).requestDeepReading({ userId, castingId: activeCastingId, enrichment: validEnrichment() });
+    }).requestDeepReading({ userId, castingId: activeCastingId, locale: "en" });
     const activeJobs = await sql<{ idempotency_key: string; generation_epoch: number }[]>`
       select idempotency_key, generation_epoch from generation_jobs where id = ${activeRequest.jobId}
     `;
@@ -277,7 +267,7 @@ describe("CP5 audit remediation regressions", () => {
         safetyPass: true,
         factConsistencyPass: true,
         questionRelevancePass: true,
-        contextFidelityPass: true,
+        noInventedUserFacts: true,
         evidenceGroundingPass: true,
         interpretiveCoherencePass: true,
         actionabilityPass: true,
@@ -294,12 +284,12 @@ describe("CP5 audit remediation regressions", () => {
       workflowStarter: {
         startDeepReadingWorkflow: async () => ({ runId: `run-${randomUUID()}`, started: true }),
       },
-    }).requestDeepReading({ userId, castingId: changedCastingId, enrichment: validEnrichment() });
+    }).requestDeepReading({ userId, castingId: changedCastingId, locale: "en" });
     const changedJobs = await sql<{ idempotency_key: string; generation_epoch: number }[]>`
       select idempotency_key, generation_epoch from generation_jobs where id = ${changedRequest.jobId}
     `;
     await sql`
-      update casting_sessions set scene = 'relationships', updated_at = clock_timestamp()
+      update casting_sessions set method = 'yarrow_stalk', updated_at = clock_timestamp()
       where id = ${changedCastingId}
     `;
 
@@ -308,7 +298,7 @@ describe("CP5 audit remediation regressions", () => {
       jobId: changedRequest.jobId,
       idempotencyKey: String(changedJobs[0]!.idempotency_key),
       generationEpoch: Number(changedJobs[0]!.generation_epoch),
-    })).rejects.toThrow("CAST_SCENE_SNAPSHOT_MISMATCH");
+    })).rejects.toThrow("CAST_FACT_SNAPSHOT_MISMATCH");
 
     await handleUnclaimedWorkflowFailureStep({
       castingId: changedCastingId,
@@ -316,12 +306,12 @@ describe("CP5 audit remediation regressions", () => {
       idempotencyKey: String(changedJobs[0]!.idempotency_key),
       generationEpoch: Number(changedJobs[0]!.generation_epoch),
       reservationId: changedRequest.reservationId,
-      errorCode: "CAST_SCENE_SNAPSHOT_MISMATCH",
+      errorCode: "CAST_FACT_SNAPSHOT_MISMATCH",
     });
     const failedJob = await sql<{ status: string; structured_error_code: string }[]>`
       select status, structured_error_code from generation_jobs where id = ${changedRequest.jobId}
     `;
-    expect(failedJob).toEqual([{ status: "failed", structured_error_code: "CAST_SCENE_SNAPSHOT_MISMATCH" }]);
+    expect(failedJob).toEqual([{ status: "failed", structured_error_code: "CAST_FACT_SNAPSHOT_MISMATCH" }]);
     const releasedReservation = await sql<{ status: string }[]>`
       select status from entitlement_reservations where id = ${changedRequest.reservationId}
     `;

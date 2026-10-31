@@ -5,7 +5,6 @@ import type {
   DeterministicFacts,
 } from "@/domain/generation/schemas";
 import type {
-  DeepReadingContextEnrichment,
   DeepReadingKnowledgeBundle,
   DeepReadingReport,
 } from "@/domain/generation/deep-reading-contract";
@@ -63,10 +62,10 @@ export type PreviewResultRecord = {
 export type ProviderInput = {
   castingId: string;
   question: string;
-  scene: Scene;
-  interpretationGoal: InterpretationGoal;
+  scene?: Scene;
+  interpretationGoal?: InterpretationGoal;
   facts: DeterministicFacts;
-  context?: DeepReadingContextEnrichment;
+  locale?: "en" | "zh-Hans";
   knowledge?: DeepReadingKnowledgeBundle;
   deadlineAt?: string;
 };
@@ -93,7 +92,7 @@ export type OutputReviewInput = {
   question?: string;
   scene?: Scene;
   interpretationGoal?: InterpretationGoal;
-  context?: DeepReadingContextEnrichment;
+  locale?: "en" | "zh-Hans";
   knowledge?: DeepReadingKnowledgeBundle;
   deadlineAt?: string;
 };
@@ -105,7 +104,7 @@ export type OutputReviewDecision = {
   safetyPass: boolean;
   factConsistencyPass: boolean;
   questionRelevancePass?: boolean;
-  contextFidelityPass?: boolean;
+  noInventedUserFacts?: boolean;
   evidenceGroundingPass?: boolean;
   interpretiveCoherencePass?: boolean;
   actionabilityPass?: boolean;
@@ -119,7 +118,7 @@ export function reviewDecisionPassed(decision: OutputReviewDecision): boolean {
     && decision.safetyPass === true
     && decision.factConsistencyPass === true
     && decision.questionRelevancePass === true
-    && decision.contextFidelityPass === true
+    && decision.noInventedUserFacts === true
     && decision.evidenceGroundingPass === true
     && decision.interpretiveCoherencePass === true
     && decision.actionabilityPass === true

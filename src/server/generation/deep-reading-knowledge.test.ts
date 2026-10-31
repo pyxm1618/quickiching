@@ -51,14 +51,12 @@ describe("Deep Reading knowledge bundle", () => {
     const knowledge = await buildDeepReadingKnowledgeBundle(castFacts);
 
     const candidateReport = {
-      schemaVersion: "deep-reading-v2",
+      schemaVersion: "deep-reading-v3",
       readingVariant: "still_hexagram",
       directAnswer: "The question about the transition timeline is answered directly here with sufficient length to explain the context and cast clearly.",
-      situationMapping: "The stated situation resembles the pressure in the primary pattern; the stability of the cast keeps focus on current conditions.",
-      keyTensions: ["Wanting swift progression while the underlying situation remains stable and unchanged"],
-      conditionalDirection: "If external conditions remain constant, maintain the present course; if new pressure arises, re-evaluate.",
-      signalsToWatch: ["Observable real-world confirmation before committing additional resources"],
-      practicalReflection: "Focus on what is currently verifiable and operational rather than speculating on transitions.",
+      whyThisReading: "The stated situation resembles the pressure in the primary pattern; the stability of the cast keeps focus on current conditions.",
+      whatMattersMost: ["Wanting swift progression while the underlying situation remains stable and unchanged"],
+      whatToDoNext: ["Observable real-world confirmation before committing additional resources"],
       uncertaintyAndBoundaries: "Distinguish between the observed stability of the cast and speculative changes that have not occurred.",
       interpretiveBasisReferences: [
         { evidenceId: "primary.judgment" },

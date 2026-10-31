@@ -15,14 +15,7 @@ describe("Deep Reading Workflow Orchestration", () => {
         question: "How will my project go?",
         scene: "career",
         interpretationGoal: "what_do_i_need_to_see_clearly",
-        context: {
-          contextNotes: "The timeline changed and I need a clear next step.",
-          options: [],
-          constraints: [],
-          concerns: [],
-          interpretationGoal: "what_do_i_need_to_see_clearly",
-          locale: "en",
-        },
+        locale: "en",
         knowledge: { evidence: [{ id: "primary.judgment" }] } as any,
         facts: {
           method: "three_coin",
@@ -50,7 +43,7 @@ describe("Deep Reading Workflow Orchestration", () => {
       safetyPass: true,
       factConsistencyPass: true,
       questionRelevancePass: true,
-      contextFidelityPass: true,
+      noInventedUserFacts: true,
       evidenceGroundingPass: true,
       interpretiveCoherencePass: true,
       actionabilityPass: true,
@@ -140,7 +133,54 @@ describe("Deep Reading Workflow Orchestration", () => {
       safetyPass: true,
       factConsistencyPass: true,
       questionRelevancePass: false,
-      contextFidelityPass: true,
+      noInventedUserFacts: true,
+      evidenceGroundingPass: true,
+      interpretiveCoherencePass: true,
+      actionabilityPass: true,
+      uncertaintyPass: true,
+      languageConsistencyPass: true,
+    });
+
+    const finalizeSpy = vi.spyOn(steps, "finalizeDeepReadingStep").mockResolvedValue({ success: true });
+    const failureSpy = vi.spyOn(steps, "handleWorkflowFailureStep").mockResolvedValue();
+    const result = await deepReadingWorkflow({
+      castingId: "cast-question-fail",
+      jobId: "job-question-fail",
+      reservationId: "res-question-fail",
+      idempotencyKey: "deep:cast-question-fail:0:job-question-fail",
+      generationEpoch: 0,
+    });
+
+    expect(result).toEqual({ status: "failed", reason: "OUTPUT_REVIEW_FAILED" });
+    expect(finalizeSpy).not.toHaveBeenCalled();
+    expect(failureSpy).toHaveBeenCalledWith(expect.objectContaining({
+      reservationId: "res-question-fail",
+      errorCode: "OUTPUT_REVIEW_FAILED",
+    }));
+  });
+
+  it.each([
+    "After five years at your employer, you should move on.",
+    "Your employer Acme has promised a promotion.",
+    "The offer you received includes a higher salary.",
+  ])("does not finalize unsupported user facts: %s", async (inventedClaim) => {
+    vi.spyOn(steps, "claimJobLeaseStep").mockResolvedValue({
+      leaseToken: "lease-token-question-fail",
+      providerInput: {} as any,
+      inputSnapshotHash: "hash-question-fail",
+    });
+    vi.spyOn(steps, "generateDeepReadingStep").mockResolvedValue({
+      output: { directAnswer: inventedClaim },
+      deterministicFacts: {} as any,
+    });
+    vi.spyOn(steps, "reviewDeepReadingStep").mockResolvedValue({
+      status: "pass",
+      reasonCodes: [],
+      schemaValid: true,
+      safetyPass: true,
+      factConsistencyPass: true,
+      questionRelevancePass: true,
+      noInventedUserFacts: false,
       evidenceGroundingPass: true,
       interpretiveCoherencePass: true,
       actionabilityPass: true,

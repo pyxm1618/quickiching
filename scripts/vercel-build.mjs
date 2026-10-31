@@ -1,4 +1,9 @@
-import { assertPerformanceBudget, metricsFromReport } from "./performance-budget.mjs";
+import {
+  assertHomeMobileRegressionGuard,
+  assertPerformanceBudget,
+  aggregateHomeMobileSamples,
+  metricsFromReport,
+} from "./performance-budget.mjs";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { spawn, spawnSync } from "node:child_process";
@@ -238,16 +243,37 @@ try {
 
   log(`Running homepage Lighthouse with Chrome: ${chromePath}`);
   const lighthouseEnv = { CHROME_PATH: chromePath };
-  const mobilePath = "/tmp/quickiching-lighthouse-mobile.json";
   const desktopPath = "/tmp/quickiching-lighthouse-desktop.json";
   const guideMobilePath = "/tmp/quickiching-lighthouse-guide-mobile.json";
-  run("./node_modules/.bin/lighthouse", lighthouseArgs(BASE, mobilePath), { env: lighthouseEnv });
+
+  log("Collecting 3 consecutive Lighthouse samples for Home Mobile regression guard");
+  const mobileSamples = [];
+  for (let i = 1; i <= 3; i++) {
+    const mobileSamplePath = `/tmp/quickiching-lighthouse-mobile-sample-${i}.json`;
+    run("./node_modules/.bin/lighthouse", lighthouseArgs(BASE, mobileSamplePath), { env: lighthouseEnv });
+    const sample = await summarizeLighthouse(`HOME_MOBILE_SAMPLE_${i}`, mobileSamplePath);
+    mobileSamples.push(sample);
+  }
+  const aggregatedHomeMobile = aggregateHomeMobileSamples(mobileSamples);
+  const minMobileAccessibility = Math.min(...mobileSamples.map((s) => s.accessibility));
+  const minMobileSeo = Math.min(...mobileSamples.map((s) => s.seo));
+  if (minMobileAccessibility < 90) throw new Error(`HOME_MOBILE Lighthouse accessibility score below 90 (${minMobileAccessibility})`);
+  if (minMobileSeo < 90) throw new Error(`HOME_MOBILE Lighthouse SEO score below 90 (${minMobileSeo})`);
+
+  const homeMobileAcceptedBaselineRaw = JSON.parse(
+    await readFile(new URL("../docs/performance/home-mobile-accepted-baseline.json", import.meta.url), "utf8")
+  );
+  const homeMobileBaseline = homeMobileAcceptedBaselineRaw.aggregate ?? homeMobileAcceptedBaselineRaw;
+  assertHomeMobileRegressionGuard(aggregatedHomeMobile, homeMobileBaseline, (msg) => log(msg));
+  log(
+    `HOME_MOBILE_MEDIAN_OF_3 PASS performance=${aggregatedHomeMobile.performance} LCP_ms=${aggregatedHomeMobile.lcp.toFixed(1)} CLS=${aggregatedHomeMobile.cls.toFixed(4)} TBT_ms=${aggregatedHomeMobile.tbt} imageBytes=${aggregatedHomeMobile.imageBytes} maxImageBytes=${aggregatedHomeMobile.maxImageBytes} scriptBytes=${aggregatedHomeMobile.scriptBytes}`
+  );
+
   run("./node_modules/.bin/lighthouse", lighthouseArgs(BASE, desktopPath, true), { env: lighthouseEnv });
   run("./node_modules/.bin/lighthouse", lighthouseArgs(`${BASE}/guides/how-to-ask-the-i-ching`, guideMobilePath), { env: lighthouseEnv });
-  const mobile = await summarizeLighthouse("HOME_MOBILE", mobilePath);
   const desktop = await summarizeLighthouse("HOME_DESKTOP", desktopPath);
   const guideMobile = await summarizeLighthouse("HOW_TO_ASK_MOBILE", guideMobilePath);
-  assertLighthouse([mobile, desktop, guideMobile]);
+  assertLighthouse([desktop, guideMobile]);
 
   log("Running populated Three-Coin result Lighthouse with preserved sessionStorage");
   run("bun", ["scripts/result-lighthouse-gate.mjs"], { env: browserEnv });

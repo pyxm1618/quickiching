@@ -1,10 +1,10 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { buildHexagramResult } from "../src/domain/casting/hexagrams/compute";
 import type { DeterministicFacts } from "../src/domain/generation/schemas";
 import {
   validateDeepReadingEvidence,
-  type DeepReadingContextEnrichment,
   type DeepReadingReport,
 } from "../src/domain/generation/deep-reading-contract";
 import { buildDeepReadingKnowledgeBundle } from "../src/server/generation/deep-reading-knowledge";
@@ -15,10 +15,9 @@ import {
 import type { OutputReviewDecision } from "../src/server/generation/types";
 
 // Load configuration from .env.staging.tmp
-function loadEnv() {
-  const envPath = resolve(process.cwd(), ".env.staging.tmp");
+export function loadSemanticEvalEnv(envPath: string, processEnv: Record<string, string | undefined> = process.env) {
   const content = readFileSync(envPath, "utf-8");
-  const env: Record<string, string> = { ...process.env as Record<string, string> };
+  const env: Record<string, string | undefined> = { ...processEnv };
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
@@ -31,15 +30,11 @@ function loadEnv() {
       env[match[1]] = value;
     }
   }
-  env.AI_ADAPTER_MODE = "ai-sdk";
-  env.AI_GATEWAY_BASE_URL = "https://api.deepseek.com/v1";
-  env.AI_SDK_GATEWAY_BASE_URL = "https://api.deepseek.com/v1";
-  env.AI_MODEL_DEEP_READING = "deepseek-chat";
-  env.AI_MODEL_OUTPUT_REVIEW = "deepseek-chat";
-  env.AI_MAX_OUTPUT_TOKENS = "8000";
-  env.AI_MAX_REVIEW_OUTPUT_TOKENS = "4000";
-  if (process.env.EVAL_KEY) {
-    env.AI_GATEWAY_API_KEY = process.env.EVAL_KEY.trim();
+  if (processEnv.EVAL_KEY) env.AI_GATEWAY_API_KEY = processEnv.EVAL_KEY.trim();
+  for (const name of ["AI_GATEWAY_API_KEY", "AI_MODEL_DEEP_READING", "AI_MODEL_OUTPUT_REVIEW"]) {
+    if (!env[name]?.trim() || /^\[(?:SENSITIVE|REDACTED)\]$/iu.test(env[name]!.trim())) {
+      throw new Error(`SEMANTIC_EVAL_SECRET_UNAVAILABLE: ${name}`);
+    }
   }
   return env;
 }
@@ -70,7 +65,7 @@ export type TestCase = {
   name: string;
   lines: [6 | 7 | 8 | 9, 6 | 7 | 8 | 9, 6 | 7 | 8 | 9, 6 | 7 | 8 | 9, 6 | 7 | 8 | 9, 6 | 7 | 8 | 9];
   question: string;
-  context: DeepReadingContextEnrichment;
+  locale: "en" | "zh-Hans";
   scene?: "general" | "career" | "relationships" | "decision";
 };
 
@@ -80,145 +75,75 @@ const CASES: TestCase[] = [
     name: "Case 1 — 无动爻 (Still Hexagram)",
     lines: [7, 7, 7, 7, 7, 7], // 乾卦，静卦
     question: "Should I initiate a major career pivot to start my own consulting business this quarter?",
-    context: {
-      contextNotes: "I have 10 years of experience in corporate management and built savings for 12 months of runway. No active business partner yet.",
-      options: [],
-      constraints: [],
-      concerns: [],
-      interpretationGoal: "what_do_i_need_to_see_clearly",
-      locale: "en",
-    },
+    locale: "en",
   },
   {
     id: "case-2-single-moving",
     name: "Case 2 — 单动爻 (Single Moving Line)",
     lines: [7, 9, 7, 7, 7, 7], // 乾卦九二变，之同人
     question: "Should I reach out to a former senior mentor for strategic guidance on my new project?",
-    context: {
-      contextNotes: "I drafted the project outline and market research. The mentor is well-connected but very busy, and we haven't spoken in 18 months.",
-      options: [],
-      constraints: [],
-      concerns: [],
-      interpretationGoal: "how_should_i_act",
-      locale: "en",
-    },
+    locale: "en",
   },
   {
     id: "case-3-multiple-moving",
     name: "Case 3 — 多动爻 (Multiple Moving Lines)",
     lines: [7, 9, 7, 9, 7, 7], // 乾卦九二、九四变，之家人
     question: "We have two competing strategic priorities: expand our sales team now or focus entirely on product stability?",
-    context: {
-      contextNotes: "Our runway is 14 months. Customers complain of software bugs, but competitors are aggressively pitching our prospective leads.",
-      options: [],
-      constraints: [],
-      concerns: [],
-      interpretationGoal: "what_should_i_pay_attention_to_next",
-      locale: "en",
-    },
+    locale: "en",
   },
   {
     id: "case-4-all-lines-moving",
     name: "Case 4 — 六爻皆变 (All Lines Moving)",
     lines: [9, 9, 9, 9, 9, 9], // 乾卦六爻皆变，之坤卦
     question: "How should our organization navigate a sudden complete restructuring where the leadership team has been replaced?",
-    context: {
-      contextNotes: "A new board stepped in yesterday. All existing departmental roadmaps have been suspended, and direct managers are waiting for top-down instructions.",
-      options: [],
-      constraints: [],
-      concerns: [],
-      interpretationGoal: "what_is_the_likely_direction",
-      locale: "en",
-    },
+    locale: "en",
   },
   {
     id: "case-5a-same-cast-job",
     name: "Case 5A — 同卦异问之工作 (Hexagram 32 line 4 -> 46)",
     lines: [7, 7, 8, 9, 7, 7], // 恒卦九四变，之升卦
     question: "Should I accept an unexpected job offer from a competing firm with 30% higher compensation?",
-    context: {
-      contextNotes: "I have been in my current role for 4 years. The current work is predictable and secure, but growth has completely stagnated.",
-      options: [],
-      constraints: [],
-      concerns: [],
-      interpretationGoal: "what_do_i_need_to_see_clearly",
-      locale: "en",
-    },
+    locale: "en",
   },
   {
     id: "case-5b-same-cast-relationship",
     name: "Case 5B — 同卦异问之感情 (Hexagram 32 line 4 -> 46)",
     lines: [7, 7, 8, 9, 7, 7], // 恒卦九四变，之升卦
     question: "How should I handle the growing emotional distance with my long-term partner?",
-    context: {
-      contextNotes: "We have been together for 5 years. Recently conversations have become purely logistical, and quality time together has dropped noticeably.",
-      options: [],
-      constraints: [],
-      concerns: [],
-      interpretationGoal: "what_do_i_need_to_see_clearly",
-      locale: "en",
-    },
+    locale: "en",
   },
   {
     id: "case-6a-same-question-kan",
     name: "Case 6A — 同问异卦之坎卦 (Hexagram 29 Still)",
     lines: [8, 7, 7, 8, 7, 7], // 坎卦静卦
     question: "How should I handle being assigned to lead a high-stakes, under-resourced internal project?",
-    context: {
-      contextNotes: "My team lacks senior engineering headcount, deadline is in 60 days, and upper management visibility is very high.",
-      options: [],
-      constraints: [],
-      concerns: [],
-      interpretationGoal: "how_should_i_act",
-      locale: "en",
-    },
+    locale: "en",
   },
   {
     id: "case-6b-same-question-dayou",
     name: "Case 6B — 同问异卦之大有卦 (Hexagram 14 Still)",
     lines: [7, 7, 7, 7, 8, 7], // 大有卦静卦
     question: "How should I handle being assigned to lead a high-stakes, under-resourced internal project?",
-    context: {
-      contextNotes: "My team lacks senior engineering headcount, deadline is in 60 days, and upper management visibility is very high.",
-      options: [],
-      constraints: [],
-      concerns: [],
-      interpretationGoal: "how_should_i_act",
-      locale: "en",
-    },
+    locale: "en",
   },
   {
     id: "case-7-zh-complex",
     name: "Case 7 — 中文复杂现实背景 (Hexagram 47 line 2 -> 45)",
     lines: [7, 9, 8, 7, 8, 7], // 困卦九二变，之萃卦
     question: "公司组织架构调整，我是否应该主动申请调去新成立的跨部门创新团队？",
-    context: {
-      contextNotes: "我目前在老团队已工作三年，熟悉流程但已无上升通道。新团队直接向副总裁汇报，机遇大但政治阻力也不小。",
-      options: ["留在老团队维持现状", "正式提交转组申请", "先私下与新团队负责人喝咖啡摸底"],
-      constraints: ["老部门领导下周开始做年度绩效盘点，一旦提交申请可能影响年终奖金"],
-      concerns: ["新团队业务未定型，如果半年内没有产出可能面临被裁撤风险"],
-      interpretationGoal: "how_should_i_act",
-      locale: "zh-Hans",
-    },
+    locale: "zh-Hans",
   },
   {
     id: "case-8-en-complex",
     name: "Case 8 — 英文复杂现实背景 (Hexagram 60 line 4 -> 19)",
     lines: [8, 8, 7, 9, 7, 8], // 节卦六四变，之临卦
     question: "Should we launch our SaaS platform in the European market next month despite incomplete GDPR documentation?",
-    context: {
-      contextNotes: "We have 15 inbound pilot customers ready in Germany and France. Engineering has implemented data encryption, but legal counsel has not signed off on the cross-border transfer agreements.",
-      options: ["Launch on schedule under beta disclaimer", "Delay launch by 6 weeks for full legal sign-off", "Roll out only to UK pilot users first"],
-      constraints: ["Competitor announced their EU launch for mid-next month", "Marketing budget for Q4 expires if unspent"],
-      concerns: ["Regulatory fines or reputational damage from EU privacy watchdogs if investigated"],
-      interpretationGoal: "what_should_i_pay_attention_to_next",
-      locale: "en",
-    },
+    locale: "en",
   },
 ];
 
 async function run() {
-  const env = loadEnv();
+  const env = loadSemanticEvalEnv(resolve(process.env.EVAL_ENV_FILE ?? ".env.staging.tmp"));
   console.log("Loaded environment configuration for AI semantic evaluation.");
   console.log("Model Deep Reading:", env.AI_MODEL_DEEP_READING);
   console.log("Model Output Review:", env.AI_MODEL_OUTPUT_REVIEW);
@@ -230,7 +155,7 @@ async function run() {
     caseId: string;
     name: string;
     question: string;
-    context: DeepReadingContextEnrichment;
+    locale: "en" | "zh-Hans";
     facts: DeterministicFacts;
     evidenceIdsInBundle: string[];
     report: DeepReadingReport;
@@ -245,7 +170,7 @@ async function run() {
   const runNegativeOnly = process.argv.includes("--nc-only");
 
   if (!runNegativeOnly) {
-    for (const testCase of CASES) {
+    for (const testCase of CASES.filter(item => !process.env.EVAL_CASE || item.id === process.env.EVAL_CASE)) {
     console.log(`\n=== Running ${testCase.name} ===`);
     const facts = makeFacts(testCase.lines);
     const knowledge = await buildDeepReadingKnowledgeBundle(facts);
@@ -254,9 +179,8 @@ async function run() {
       kind: "deep_reading" as const,
       castingId: `test_${testCase.id}`,
       question: testCase.question,
-      context: testCase.context,
+      locale: testCase.locale,
       scene: testCase.scene ?? "general",
-      interpretationGoal: testCase.context.interpretationGoal,
       facts,
       knowledge,
       deadlineAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
@@ -281,9 +205,8 @@ async function run() {
       kind: "deep_reading",
       castingId: `test_${testCase.id}`,
       question: testCase.question,
-      context: testCase.context,
+      locale: testCase.locale,
       scene: testCase.scene ?? "general",
-      interpretationGoal: testCase.context.interpretationGoal,
       facts,
       knowledge,
       output: report,
@@ -295,7 +218,7 @@ async function run() {
       caseId: testCase.id,
       name: testCase.name,
       question: testCase.question,
-      context: testCase.context,
+      locale: testCase.locale,
       facts,
       evidenceIdsInBundle: knowledge.evidence.map((e) => e.id),
       report,
@@ -336,20 +259,20 @@ async function run() {
     const facts = makeFacts(testCase.lines);
     const knowledge = await buildDeepReadingKnowledgeBundle(facts);
     const offTopicReport: DeepReadingReport = {
-      schemaVersion: "deep-reading-v2",
+      schemaVersion: "deep-reading-v3",
       readingVariant: facts.readingVariant,
       directAnswer: "This cast indicates severe tension in your romantic relationship and family home. While you are asking about emotional reconciliation with your partner, the cast shows that unresolved conflict from the past is poisoning your domestic peace and you need to tread very carefully around your spouse's anger.",
-      situationMapping: "Your romantic relationship of five years is under immense pressure because of domestic chores and lack of mutual communication. The Lake trigram underneath Heaven shows you tread on your lover's sensitivity without knowing it.",
-      keyTensions: [
+      whyThisReading: "Your romantic relationship of five years is under immense pressure because of domestic chores and lack of mutual communication. The Lake trigram underneath Heaven shows you tread on your lover's sensitivity without knowing it.",
+      whatMattersMost: [
         "Emotional distance between romantic partners",
         "Domestic arguments over household spending versus personal time",
       ],
-      conditionalDirection: "If you can have an open date night with your partner and listen without becoming defensive, the romantic intimacy may slowly recover; if you continue working late, divorce is inevitable.",
-      signalsToWatch: [
+
+      whatToDoNext: [
         "Whether your spouse initiates physical affection",
         "Whether domestic dinner conversations can proceed without hostile silence",
       ],
-      practicalReflection: "Have an honest talk with your partner tonight about domestic chores before touching anything related to work.",
+
       uncertaintyAndBoundaries: "The reading does not predict whether your partner will file for divorce tomorrow.",
       interpretiveBasisReferences: [
         { evidenceId: "primary.judgment" },
@@ -363,9 +286,8 @@ async function run() {
       kind: "deep_reading",
       castingId: "nc_off_topic",
       question: testCase.question,
-      context: testCase.context,
+      locale: testCase.locale,
       scene: "career",
-      interpretationGoal: testCase.context.interpretationGoal,
       facts,
       knowledge,
       output: offTopicReport,
@@ -391,20 +313,20 @@ async function run() {
     const facts = makeFacts(testCase.lines);
     const knowledge = await buildDeepReadingKnowledgeBundle(facts);
     const inventedFactsReport: DeepReadingReport = {
-      schemaVersion: "deep-reading-v2",
+      schemaVersion: "deep-reading-v3",
       readingVariant: facts.readingVariant,
       directAnswer: "Because your corporate manager has already explicitly promised you an executive promotion with equity grant next month, and because your three signed Fortune 500 corporate clients are already paying you $20,000 monthly retainer, you should immediately quit your day job.",
-      situationMapping: "You already have three signed enterprise clients paying $20,000 monthly retainers and your current VP officially guaranteed your equity vesting before you leave.",
-      keyTensions: [
+      whyThisReading: "You already have three signed enterprise clients paying $20,000 monthly retainers and your current VP officially guaranteed your equity vesting before you leave.",
+      whatMattersMost: [
         "Managing the $20,000 retainer from your first three clients versus corporate VP promise",
         "Hiring five direct reports with the new consulting revenue",
       ],
-      conditionalDirection: "Since your clients already paid non-refundable deposits, your consulting firm is guaranteed to succeed immediately.",
-      signalsToWatch: [
+
+      whatToDoNext: [
         "Wire transfer confirmations from the three signed corporate clients",
         "Written promotion agreement signed by your current corporate VP",
       ],
-      practicalReflection: "Send invoices to your three existing corporate clients today.",
+
       uncertaintyAndBoundaries: "Based entirely on your verified signed client contracts and confirmed VP promotion offer.",
       interpretiveBasisReferences: [
         { evidenceId: "primary.judgment" },
@@ -418,9 +340,8 @@ async function run() {
       kind: "deep_reading",
       castingId: "nc_invented_facts",
       question: testCase.question,
-      context: testCase.context,
+      locale: testCase.locale,
       scene: "career",
-      interpretationGoal: testCase.context.interpretationGoal,
       facts,
       knowledge,
       output: inventedFactsReport,
@@ -428,14 +349,14 @@ async function run() {
     } as any, abortController.signal);
 
     console.log(`NC 2 Reviewer Status: ${reviewDecision.status}`, reviewDecision.reasonCodes);
-    console.log(`NC 2 contextFidelityPass: ${(reviewDecision as any).contextFidelityPass}`);
+    console.log(`NC 2 noInventedUserFacts: ${(reviewDecision as any).noInventedUserFacts}`);
     negativeControls.push({
       controlId: "nc-2-invented-facts",
       description: "Candidate report fabricates signed clients and VP promotion promises not in user context",
       expectedStatus: "fail",
-      expectedFlagFalse: "contextFidelityPass",
+      expectedFlagFalse: "noInventedUserFacts",
       reviewDecision,
-      statusPassedAsExpected: reviewDecision.status === "fail" && (reviewDecision as any).contextFidelityPass === false,
+      statusPassedAsExpected: reviewDecision.status === "fail" && (reviewDecision as any).noInventedUserFacts === false,
     });
   }
 
@@ -446,20 +367,20 @@ async function run() {
     const facts = makeFacts(testCase.lines);
     const knowledge = await buildDeepReadingKnowledgeBundle(facts);
     const unsupportedReport: DeepReadingReport = {
-      schemaVersion: "deep-reading-v2",
+      schemaVersion: "deep-reading-v3",
       readingVariant: facts.readingVariant,
       directAnswer: "Because the Judgment of Qian states 元亨利贞 and the core meaning is initiative, this directly proves that the entire global financial market will crash next week and you are commanded by the hexagram to liquidate all your assets, purchase gold bullion immediately, and avoid speaking to anyone for 12 months.",
-      situationMapping: "The judgment '元亨利贞' structurally proves that your industry is doomed and that you must cease all corporate work to hide underground. The dragons mentioned in Qian mean you will literally meet ancient mystical creatures in the desert.",
-      keyTensions: [
+      whyThisReading: "The judgment '元亨利贞' structurally proves that your industry is doomed and that you must cease all corporate work to hide underground. The dragons mentioned in Qian mean you will literally meet ancient mystical creatures in the desert.",
+      whatMattersMost: [
         "Buying gold bullion versus hiding in a desert cave",
         "Protecting your family from global economic collapse mandated by Qian",
       ],
-      conditionalDirection: "If the market crashes as the Qian judgment demands, hide in the desert; if you stay in the city, the dragons of Qian will punish you.",
-      signalsToWatch: [
+
+      whatToDoNext: [
         "Sightings of flying mystical dragons in the sky over your city",
         "Immediate collapse of all banking institutions",
       ],
-      practicalReflection: "Liquidate your savings into physical gold bullion immediately.",
+
       uncertaintyAndBoundaries: "The cast commands immediate liquidation and cannot be questioned.",
       interpretiveBasisReferences: [
         { evidenceId: "primary.judgment" },
@@ -473,9 +394,8 @@ async function run() {
       kind: "deep_reading",
       castingId: "nc_unsupported_evidence",
       question: testCase.question,
-      context: testCase.context,
+      locale: testCase.locale,
       scene: "career",
-      interpretationGoal: testCase.context.interpretationGoal,
       facts,
       knowledge,
       output: unsupportedReport,
@@ -500,7 +420,15 @@ async function run() {
   console.log(`\nReviewer negative controls complete. Results written to ${ncOutputPath}`);
 }
 
-run().catch((error) => {
-  console.error("Semantic evaluation failed:", error);
-  process.exit(1);
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  run().catch((error: unknown) => {
+    // SDK errors may contain request headers or private prompt bodies. Report metadata only.
+    const failure = error as { name?: string; statusCode?: number; message?: string };
+    console.error("Semantic evaluation failed:", {
+      name: failure.name ?? "Error",
+      statusCode: failure.statusCode ?? null,
+      ...(failure.message?.startsWith("SEMANTIC_EVAL_SECRET_UNAVAILABLE:") ? { reason: failure.message } : {}),
+    });
+    process.exitCode = 1;
+  });
+}
