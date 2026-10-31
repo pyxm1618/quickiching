@@ -13,15 +13,16 @@ export const metadata: Metadata = {
 };
 
 export default function MeiHuaPage() {
-  return (
+  return <>
+    <MeiHuaNumberFlow />
     <article>
       <header className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">{CONTENT.eyebrow}</p>
-        <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{CONTENT.h1}</h1>
+        <h2 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{CONTENT.h1}</h2>
         <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">{CONTENT.introduction}</p>
       </header>
 
-      <section className="mx-auto max-w-6xl px-4 pb-12"><MeiHuaNumberFlow /></section>
+
 
       <section className="mx-auto grid max-w-5xl gap-8 px-4 py-12 md:grid-cols-2">
         <div><h2 className="font-display text-2xl font-medium">Number + moment casting</h2><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">This flow records one question, the number you choose, and the exact moment you confirm the cast. Those inputs are sealed together before any result can be shown.</p><p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">The final traditional rule for combining one user number with the confirmed moment is not yet approved in this codebase. Quick I Ching therefore does not invent a hexagram when that rule is unavailable.</p></div>
@@ -33,5 +34,5 @@ export default function MeiHuaPage() {
         <nav className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm" aria-label="Related Mei Hua guides"><Link href="/hexagrams" className="font-semibold text-[var(--jade)] hover:underline">64 Hexagrams hub</Link><Link href="/guides/changing-lines" className="font-semibold text-[var(--jade)] hover:underline">Changing lines</Link><Link href="/" className="font-semibold text-[var(--jade)] hover:underline">I Ching online home</Link></nav>
       </section>
     </article>
-  );
+  </>;
 }

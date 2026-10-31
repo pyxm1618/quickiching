@@ -28,10 +28,15 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
     result.primaryHexagramNumber,
     ...(result.relatingHexagramNumber === null ? [] : [result.relatingHexagramNumber]),
   ]) : undefined;
-  return <div data-realm="chamber" className="ritual-result-scene">
-    <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
-    <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
-    <div className="ritual-room" aria-hidden="true" />
+  return <div data-realm="chamber" className="ritual-result-scene" data-shared-result-scene={pageMode === "free" ? true : undefined}>
+    {pageMode === "free" ? <>
+      <link rel="preload" as="image" href="/mei-hua/room.webp" media="(min-width:601px)" fetchPriority="high" />
+      <link rel="preload" as="image" href="/mei-hua/room-mobile.webp" media="(max-width:600px)" fetchPriority="high" />
+    </> : <>
+      <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
+      <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
+      <div className="ritual-room" aria-hidden="true" />
+    </>}
     <ThreeCoinResultClient pageMode={pageMode} locale={locale} initialSessionId={sessionId}
       initialUser={user ? {id:user.id,email:user.email} : null} initialCredits={balance.available}
       initialInterpretationBundles={initialInterpretationBundles} initialLocalizedContent={initialLocalizedContent}

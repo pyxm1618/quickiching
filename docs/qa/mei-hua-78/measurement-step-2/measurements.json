@@ -1,0 +1,81 @@
+{
+  "source": "/Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/docs/qa/mei-hua-78/reference-step-2.png",
+  "source_sha256": "410d3955642b087ca63e76c17fca464834316206fcffc32f6d66e699294b9174",
+  "source_size": [
+    1670,
+    942
+  ],
+  "css_mapping": {
+    "assumed_viewport_width": 1670,
+    "css_per_image_pixel": 1.0,
+    "meaning": "实现约定，不证明参考图原始 DPR 或 CSS 视口"
+  },
+  "regions": [
+    {
+      "name": "heading",
+      "kind": "box",
+      "box_type": "element",
+      "box": [
+        570,
+        310,
+        570,
+        95
+      ],
+      "normalized_box": [
+        0.341317,
+        0.329087,
+        0.341317,
+        0.100849
+      ],
+      "boundary_evidence": "Agent 选择的标注范围，非自动识别的真实元素边界",
+      "css_box": [
+        570.0,
+        310.0,
+        570.0,
+        95.0
+      ],
+      "selector": ".mei-choose h2",
+      "dom_comparable": true
+    },
+    {
+      "name": "number",
+      "kind": "box",
+      "box_type": "element",
+      "box": [
+        630,
+        510,
+        420,
+        120
+      ],
+      "normalized_box": [
+        0.377246,
+        0.541401,
+        0.251497,
+        0.127389
+      ],
+      "boundary_evidence": "Agent 选择的标注范围，非自动识别的真实元素边界",
+      "css_box": [
+        630.0,
+        510.0,
+        420.0,
+        120.0
+      ],
+      "selector": ".mei-number-decoration input",
+      "dom_comparable": true
+    }
+  ],
+  "groups": [],
+  "vertical_scans": [],
+  "expected": {
+    "url": "http://127.0.0.1:3078/methods/mei-hua-yi-shu",
+    "viewport": {
+      "width": 1670,
+      "height": 942
+    },
+    "dpr": 1,
+    "full_page": false,
+    "screenshot_scale": "css"
+  },
+  "expected_assets": {},
+  "input_manifest_sha256": "d5c871a5fcefc00f7bb1f5504d28a67f4e6b7df7e47064d76bea25bee1c9d939"
+}

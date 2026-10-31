@@ -1,0 +1,107 @@
+{
+  "source": "/Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/docs/qa/mei-hua-78/reference-shared-reading.png",
+  "source_sha256": "b3d680f4fc734f2a27a62f58da860787aa3c8df654cb51dc9f3310449aa0b71c",
+  "source_size": [
+    1983,
+    793
+  ],
+  "css_mapping": {
+    "assumed_viewport_width": 1983,
+    "css_per_image_pixel": 1.0,
+    "meaning": "实现约定，不证明参考图原始 DPR 或 CSS 视口"
+  },
+  "regions": [
+    {
+      "name": "question",
+      "kind": "box",
+      "box_type": "element",
+      "box": [
+        535,
+        50,
+        900,
+        150
+      ],
+      "normalized_box": [
+        0.269793,
+        0.063052,
+        0.453858,
+        0.189155
+      ],
+      "boundary_evidence": "Agent 选择的标注范围，非自动识别的真实元素边界",
+      "css_box": [
+        535.0,
+        50.0,
+        900.0,
+        150.0
+      ],
+      "selector": ".shared-question",
+      "dom_comparable": true
+    },
+    {
+      "name": "primary",
+      "kind": "box",
+      "box_type": "element",
+      "box": [
+        100,
+        185,
+        710,
+        520
+      ],
+      "normalized_box": [
+        0.050429,
+        0.233291,
+        0.358043,
+        0.655738
+      ],
+      "boundary_evidence": "Agent 选择的标注范围，非自动识别的真实元素边界",
+      "css_box": [
+        100.0,
+        185.0,
+        710.0,
+        520.0
+      ],
+      "selector": ".shared-primary",
+      "dom_comparable": true
+    },
+    {
+      "name": "relating",
+      "kind": "box",
+      "box_type": "element",
+      "box": [
+        1180,
+        195,
+        700,
+        520
+      ],
+      "normalized_box": [
+        0.595058,
+        0.245902,
+        0.353001,
+        0.655738
+      ],
+      "boundary_evidence": "Agent 选择的标注范围，非自动识别的真实元素边界",
+      "css_box": [
+        1180.0,
+        195.0,
+        700.0,
+        520.0
+      ],
+      "selector": ".shared-relating",
+      "dom_comparable": true
+    }
+  ],
+  "groups": [],
+  "vertical_scans": [],
+  "expected": {
+    "url": "http://127.0.0.1:3078/readings/three-coin/result",
+    "viewport": {
+      "width": 1983,
+      "height": 793
+    },
+    "dpr": 1,
+    "full_page": false,
+    "screenshot_scale": "css"
+  },
+  "expected_assets": {},
+  "input_manifest_sha256": "dc351d1883ed9e04607186be35de607b96df64643e7abfc06a3a87d9e617f555"
+}

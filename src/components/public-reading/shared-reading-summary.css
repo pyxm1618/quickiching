@@ -1,0 +1,71 @@
+.shared-reading-summary {position:relative;isolation:isolate;min-height:calc(100svh - 75px);width:100%;padding:30px 0 28px;background:#25160c url('/mei-hua/room.webp') center/cover no-repeat;color:#fff1cd;font-family:Georgia,'Times New Roman',serif;text-align:center;}
+.shared-reading-summary :is(h1,h2,h3,p) {margin:0;font-family:inherit;}
+.shared-question {position:relative;width:56%;min-height:130px;margin:0 auto;padding:20px 8% 25px;background:url('/mei-hua/moment-card.webp') center/100% 100% no-repeat;color:#20170d;}
+.shared-question h1 {font-size:23px;font-weight:400;}.shared-question p {font-size:clamp(20px,2.4vw,42px);line-height:1.2;margin-top:12px;overflow-wrap:anywhere;max-height:4.8em;overflow:auto;}
+.shared-cast-tableau {position:relative;display:grid;grid-template-columns:1fr .48fr 1fr;align-items:center;width:98%;max-width:1983px;margin:-16px auto 0;}
+.shared-stone {position:relative;aspect-ratio:1.5;background-size:100% 100%;background-repeat:no-repeat;}
+.shared-primary {background-image:url('/mei-hua/primary-stone.webp');}
+.shared-relating {background-image:url('/mei-hua/relating-stone.webp');color:#1c1b12;}
+.shared-stone-copy {position:absolute;left:32%;top:17%;width:47%;height:68%;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.shared-relating .shared-stone-copy {left:20%;top:20%;width:46%;}
+.shared-stone h2 {font-size:clamp(14px,1.45vw,29px);font-weight:400;white-space:nowrap;color:inherit;}
+.shared-stone h3 {font-size:clamp(18px,1.9vw,38px);line-height:1.08;font-weight:400;margin:12px 0 4px;}
+.shared-stone p {font-size:clamp(13px,1.2vw,24px);line-height:1.25;}
+.shared-hex-lines {display:flex;flex-direction:column;gap:clamp(5px,.55vw,11px);width:58%;margin:16px auto 10px;}
+.shared-hex-lines>div {display:flex;gap:13%;height:clamp(5px,.7vw,14px);filter:drop-shadow(0 0 4px #fff3b9);}
+.shared-hex-lines i {display:block;flex:1;background:#071d1a;}.shared-hex-lines [data-yang=true] {gap:0;}.shared-hex-lines [data-moving=true] i {background:#b22210;}
+.shared-stone .shared-hex-number {font-size:clamp(12px,1.15vw,23px);}.shared-no-relating {margin-top:30px!important;}
+.shared-change {position:relative;margin:0 -48%;align-self:stretch;display:flex;align-items:center;pointer-events:none;}
+.shared-change img {width:100%;height:auto;display:block;}.shared-change>div {position:absolute;bottom:2%;left:0;width:100%;text-shadow:0 2px 6px #000;}.shared-change h2 {font-size:clamp(15px,1.4vw,28px);font-weight:400;}.shared-change p {font-size:clamp(16px,1.7vw,34px);}
+.shared-reading-entries {position:relative;display:flex;flex-direction:column;align-items:center;gap:16px;margin:0 auto;width:32%;z-index:2;}
+.shared-reading-entries button {font-family:inherit;cursor:pointer;}.shared-deep-entry {width:100%;padding:16px 20px;border:2px solid #ffe7a2;border-radius:999px;background:radial-gradient(ellipse,#fff2ae,#f7b83f);color:#201807;box-shadow:0 0 24px #ffad2b99,inset 0 0 10px #fff0ad;font-size:clamp(24px,2.5vw,48px);line-height:1.15;}.shared-free-entry {font-size:clamp(18px,1.6vw,30px);text-decoration:underline;text-underline-offset:6px;text-shadow:0 1px 5px #000;color:#ffe9ad;background:#211307a8;border-radius:10px;padding:3px 20px;}.shared-reading-entries button:disabled {opacity:.6;cursor:wait;}.shared-reading-summary button:focus-visible {outline:3px solid white;outline-offset:5px;}
+.shared-reading-content {max-width:1180px;margin:auto;padding:32px 24px;}
+.ritual-result-scene .shared-reading-content {padding-top:32px;}
+@media(max-width:600px) {
+ .shared-reading-summary {padding:26px 12px 30px;min-height:calc(100svh - 64px);}
+ .shared-question {width:100%;padding:20px 26px;min-height:112px;}.shared-question h1 {font-size:17px;}.shared-question p {font-size:22px;margin-top:10px;}
+ .shared-cast-tableau {display:flex;flex-direction:column;width:100%;margin-top:10px;}
+ .shared-stone {width:100%;max-width:420px;aspect-ratio:1.5;flex-shrink:0;}
+ .shared-stone-copy {top:17%;height:72%;}.shared-stone h2 {font-size:15px;}.shared-stone h3 {font-size:22px;margin:7px 0 4px;}.shared-stone p {font-size:14px;}.shared-stone .shared-hex-number {font-size:13px;}
+ .shared-hex-lines {gap:6px;margin:10px auto;width:60%;}.shared-hex-lines>div {height:7px;}
+ .shared-change {margin:-5px 0;width:230px;height:105px;align-self:center;flex-shrink:0;}.shared-change>div {bottom:-1px;}.shared-change h2 {font-size:15px;}.shared-change p {font-size:18px;}
+ .shared-relating {margin-top:15px;}.shared-reading-entries {width:80%;gap:14px;margin-top:20px;}.shared-deep-entry {font-size:25px;padding:14px;}.shared-free-entry {font-size:19px;}
+ .shared-reading-content {padding:28px 16px;}
+}
+/* This shared summary owns the result room; the former room is not loaded. */
+.ritual-result-scene:has(.shared-reading-summary)>.ritual-room {background-image:none;}
+@media(min-width:601px) {
+ .shared-reading-summary {--ru:min(calc(100vw / 1983),calc((100svh - 75px) / 793));padding-top:calc(45 * var(--ru));padding-bottom:calc(30 * var(--ru));}
+ .shared-question {width:calc(900 * var(--ru));min-height:calc(150 * var(--ru));padding:calc(20 * var(--ru)) calc(55 * var(--ru));border:4px double #e0a051;border-radius:12px;background:linear-gradient(100deg,#ffedc9,#fff8e8,#ffe5b8);box-shadow:0 0 18px #efaa4a66;}
+ .shared-question h1 {font-size:calc(27 * var(--ru));}.shared-question p {font-size:calc(43 * var(--ru));}
+ .shared-cast-tableau {width:calc(1983 * var(--ru));max-width:100%;margin-top:calc(-15 * var(--ru));}
+ .shared-primary .shared-stone-copy {left:42%;width:43%;}
+ .shared-stone h2 {font-size:calc(27 * var(--ru));}.shared-stone h3 {font-size:calc(35 * var(--ru));}.shared-stone p {font-size:calc(23 * var(--ru));}
+ .shared-hex-lines {width:48%;gap:calc(10 * var(--ru));margin:calc(16 * var(--ru)) auto calc(10 * var(--ru));}.shared-hex-lines>div {height:calc(13 * var(--ru));}
+ .shared-stone .shared-hex-number {font-size:calc(21 * var(--ru));}
+ .shared-change>div {bottom:15%;}.shared-change h2 {font-size:calc(25 * var(--ru));}.shared-change p {font-size:calc(30 * var(--ru));}
+ .shared-reading-entries {width:calc(480 * var(--ru));margin-top:calc(-70 * var(--ru));gap:calc(20 * var(--ru));}
+ .shared-deep-entry {font-size:calc(43 * var(--ru));padding:calc(18 * var(--ru)) 20px;border:4px double #fff0b9;}.shared-free-entry {font-size:calc(27 * var(--ru));}
+}
+@media(max-width:600px) {.shared-question {background:linear-gradient(100deg,#ffedc9,#fff8e8,#ffe5b8);border:3px double #d6a052;border-radius:10px;}.shared-primary .shared-stone-copy {left:39%;width:46%;}.mei-question-summary {background:#f8e4bc;}}
+.shared-stone-copy>* {max-width:100%;}
+.shared-stone h3,.shared-stone p {overflow-wrap:anywhere;}
+/* The inherited reduced-motion rule sets a duration on every element. Restrict
+   these transitions so viewport changes cannot animate overflowing geometry. */
+.shared-reading-summary,.shared-reading-summary * {transition-property:color,background-color,box-shadow;}
+@media(max-width:600px) {
+ .shared-reading-summary {background-image:url('/mei-hua/room-mobile.webp');}
+ .shared-primary {background-image:url('/mei-hua/primary-stone-mobile.webp');}
+ .shared-relating {background-image:url('/mei-hua/relating-stone-mobile.webp');}
+}
+.shared-change picture {display:block;width:100%;min-width:0;}
+.reading-reveal:has(>.shared-reading-summary) {margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;}
+@media(min-width:601px) {
+ .shared-reading-entries {margin-top:calc(-150 * var(--ru));}
+ .shared-change>div {bottom:33%;}
+}
+/* Paint the supplied room while the browser restores its sealed cast. The
+   summary reuses this one background rather than starting a second image. */
+.ritual-result-scene[data-shared-result-scene] {background:#25160c url('/mei-hua/room.webp') center/cover fixed;}
+.ritual-result-scene .shared-reading-summary {background:none;}
+@media(max-width:600px) {.ritual-result-scene[data-shared-result-scene] {background-image:url('/mei-hua/room-mobile.webp');}}

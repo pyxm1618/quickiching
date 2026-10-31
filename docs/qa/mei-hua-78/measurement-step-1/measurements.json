@@ -1,0 +1,81 @@
+{
+  "source": "/Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/docs/qa/mei-hua-78/reference-step-1.png",
+  "source_sha256": "8ee4bceac52e81235dee7167b1aa0c90e1190a7ba4aa207b7e73dcece4898197",
+  "source_size": [
+    1670,
+    942
+  ],
+  "css_mapping": {
+    "assumed_viewport_width": 1670,
+    "css_per_image_pixel": 1.0,
+    "meaning": "实现约定，不证明参考图原始 DPR 或 CSS 视口"
+  },
+  "regions": [
+    {
+      "name": "heading",
+      "kind": "box",
+      "box_type": "element",
+      "box": [
+        546,
+        130,
+        640,
+        170
+      ],
+      "normalized_box": [
+        0.326946,
+        0.138004,
+        0.383234,
+        0.180467
+      ],
+      "boundary_evidence": "Agent 选择的标注范围，非自动识别的真实元素边界",
+      "css_box": [
+        546.0,
+        130.0,
+        640.0,
+        170.0
+      ],
+      "selector": ".mei-heading",
+      "dom_comparable": true
+    },
+    {
+      "name": "scroll",
+      "kind": "box",
+      "box_type": "element",
+      "box": [
+        100,
+        250,
+        1470,
+        470
+      ],
+      "normalized_box": [
+        0.05988,
+        0.265393,
+        0.88024,
+        0.498938
+      ],
+      "boundary_evidence": "Agent 选择的标注范围，非自动识别的真实元素边界",
+      "css_box": [
+        100.0,
+        250.0,
+        1470.0,
+        470.0
+      ],
+      "selector": ".mei-question-scroll",
+      "dom_comparable": true
+    }
+  ],
+  "groups": [],
+  "vertical_scans": [],
+  "expected": {
+    "url": "http://127.0.0.1:3078/methods/mei-hua-yi-shu",
+    "viewport": {
+      "width": 1670,
+      "height": 942
+    },
+    "dpr": 1,
+    "full_page": false,
+    "screenshot_scale": "css"
+  },
+  "expected_assets": {},
+  "input_manifest_sha256": "a2db526027f387256021763d0a79c3ce094b3e5935e39e03e59de35988444a04"
+}

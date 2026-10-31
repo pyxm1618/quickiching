@@ -1,0 +1,37 @@
+[Chinese Interactive Language Gate] Launching Chromium at /Applications/Google Chrome.app/Contents/MacOS/Google Chrome (system runner)
+[Chinese Interactive Language Gate] Test 1: Desktop User Menu & Navigation -> checking /zh/account & /zh/history parity
+[Chinese Interactive Language Gate] Test 1 NOTE: Auth capability is closed in current server env; UserNavControl parity verified via unit tests and header nav checked.
+[Chinese Interactive Language Gate] Test 2: Local History Page (/zh/history) -> Empty, populated, rename, delete confirmation states
+[Chinese Interactive Language Gate] Test 2 PASS: History page states, buttons, and Three-Coin reading result kicker verified pure Chinese.
+[Chinese Interactive Language Gate] Test 3: /zh/account auth guard -> redirect when Auth is open, 410 when capability is closed
+[Chinese Interactive Language Gate] Test 3 PASS: Closed Auth capability blocks /zh/account with the same 410 boundary as /account.
+[Chinese Interactive Language Gate] Test 4: Pricing Page (/zh/pricing) Real Failure Interceptions & DOM Assertions
+206 |                     throw error;
+207 |                 }
+208 |                 if (error.name === 'AbortError') {
+209 |                     throw error;
+210 |                 }
+211 |                 const waitForSelectorError = new (error instanceof TimeoutError ? TimeoutError : Error)(`Waiting for selector \`${selector}\` failed`);
+                                                   ^
+TimeoutError: Waiting for selector `button[data-checkout-button="true"]` failed
+      at waitFor (/private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/common/QueryHandler.js:211:46)
+      at async waitForSelector (/private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:541:40)
+      at async waitForSelector (/private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/api/Page.js:1387:43)
+      at async main (/Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/scripts/chinese-interactive-language-gate.mjs:411:32)
+
+41 |                 break;
+42 |         }
+43 |         this.#args = args;
+44 |         this.#world.taskManager.add(this);
+45 |         if (options.timeout) {
+46 |             this.#timeoutError = new TimeoutError(`Waiting failed: ${options.timeout}ms exceeded`);
+                                      ^
+TimeoutError: Waiting failed: 5000ms exceeded
+      at new WaitTask (/private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/common/WaitTask.js:46:34)
+      at waitForFunction (/private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/api/Realm.js:49:26)
+      at waitFor (/private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/common/QueryHandler.js:176:95)
+      at async waitForSelector (/private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:541:40)
+      at async waitForSelector (/private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/api/Page.js:1387:43)
+      at async main (/Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/scripts/chinese-interactive-language-gate.mjs:411:32)
+
+Bun v1.4.2 (macOS arm64)

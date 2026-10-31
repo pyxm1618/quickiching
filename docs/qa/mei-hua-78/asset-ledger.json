@@ -1,0 +1,184 @@
+{
+  "originalTotal": 13,
+  "states": {
+    "approved": 13,
+    "deferred": 0,
+    "reject": 0,
+    "unknown": 0
+  },
+  "items": [
+    {
+      "sourceEntry": "梅花易数/Hero.png",
+      "sourceSha256": "83f195f31b2b87c1ce7cfb1bd61e34ba80bfd985a96bd37ba29c03528ab20cb4",
+      "output": "/mei-hua/room.webp",
+      "size": [
+        1670,
+        942
+      ],
+      "state": "approved",
+      "evidence": "User supplied final asset; format conversion only",
+      "mobileOutput": "/mei-hua/room-mobile.webp",
+      "mobileTransform": "Hero center crop [500,0,1170,942], no resampling",
+      "runtimeSize": [
+        1670,
+        942
+      ],
+      "runtimeBytes": 282736,
+      "runtimeSha256": "73a5a266519e7545ab1f2632ea7ef452b0ef461c88e57615c4969072959aac06",
+      "desktopTransform": "Same supplied asset; WebP quality 89"
+    },
+    {
+      "sourceEntry": "梅花易数/东方水墨金色梅花卷轴横幅.png",
+      "sourceSha256": "686e98b596d0c26248636b5e1196033f5e1063dfc0757a44c9948ac83e872974",
+      "output": "/mei-hua/moment-card.webp",
+      "size": [
+        2020,
+        778
+      ],
+      "state": "approved",
+      "evidence": "User supplied final asset; format conversion only"
+    },
+    {
+      "sourceEntry": "梅花易数/樱花鎏金魔法数字框.png",
+      "sourceSha256": "f26817d68829a74a9a07b4ee7d2222f0ae41899acb5250733640f28982b8eb0e",
+      "output": "/mei-hua/number-decoration.webp",
+      "size": [
+        2086,
+        754
+      ],
+      "state": "approved",
+      "evidence": "User supplied final asset; format conversion only"
+    },
+    {
+      "sourceEntry": "梅花易数/璀璨金环阴阳灵 orb.png",
+      "sourceSha256": "e5b838042d0d0dc117122038a10a31a43ac8d90cc0461cfc69215130eaf22275",
+      "output": "/mei-hua/change-orb.webp",
+      "size": [
+        1983,
+        793
+      ],
+      "state": "approved",
+      "evidence": "User supplied final asset; format conversion only",
+      "mobileOutput": "/mei-hua/change-orb-mobile.webp",
+      "mobileTransform": "Resize the same supplied asset for its mobile display size; WebP quality 91",
+      "runtimeSize": [
+        1280,
+        512
+      ],
+      "runtimeBytes": 219226,
+      "runtimeSha256": "9cfe4c4081aee38058d13965ed802409455480d94f35046c48fa751a63f2d03b",
+      "desktopTransform": "Same supplied asset; WebP quality 90; resize to width 1280 for displayed orb"
+    },
+    {
+      "sourceEntry": "梅花易数/鎏金樱影玄石牌景.png",
+      "sourceSha256": "3e84bc64259cec825572fd8398f8ae224742365ec08f5d5c55ee27e918a9f64f",
+      "output": "/mei-hua/primary-stone.webp",
+      "size": [
+        1536,
+        1024
+      ],
+      "state": "approved",
+      "evidence": "User supplied final asset; format conversion only",
+      "mobileOutput": "/mei-hua/primary-stone-mobile.webp",
+      "mobileTransform": "Resize the same supplied asset for its mobile display size; WebP quality 91",
+      "runtimeSize": [
+        1536,
+        1024
+      ],
+      "runtimeBytes": 532486,
+      "runtimeSha256": "0e273223f5fb4506b8de1e050e37bf5f2c53b1e3282c07fc9c6c0fb9da5518d8",
+      "desktopTransform": "Same supplied asset; WebP quality 90"
+    },
+    {
+      "sourceEntry": "梅花易数/金辉花石东方碑牌.png",
+      "sourceSha256": "28dd574a3999e9868f2facb9d6b93587c6f20293c5d522fff637e367b944c90d",
+      "output": "/mei-hua/relating-stone.webp",
+      "size": [
+        1536,
+        1024
+      ],
+      "state": "approved",
+      "evidence": "User supplied final asset; format conversion only",
+      "mobileOutput": "/mei-hua/relating-stone-mobile.webp",
+      "mobileTransform": "Resize the same supplied asset for its mobile display size; WebP quality 91",
+      "runtimeSize": [
+        1536,
+        1024
+      ],
+      "runtimeBytes": 526528,
+      "runtimeSha256": "5648b16936f9199180c3be80453065d1fd93481d56ad6e22325e032cab700ee2",
+      "desktopTransform": "Same supplied asset; WebP quality 90"
+    },
+    {
+      "sourceEntry": "梅花易数/古韵花鸟山水卷轴横幅.png",
+      "sourceSha256": "579983fc25742fd2f2942e1532ffc46f3b6ec3eae78118f6864f279fbf3b86d3",
+      "output": "/mei-hua/question-scroll.webp",
+      "size": [
+        2172,
+        724
+      ],
+      "state": "approved",
+      "evidence": "User supplied final asset; format conversion only"
+    },
+    {
+      "sourceEntry": "梅花易数/鎏金花影《Quick I Ching》古籍.png",
+      "sourceSha256": "e788952a83d1b663a8389cfd0a90998e519fdc75a4b4ec9c9c97fe5e9589764c",
+      "output": "/mei-hua/navigation-book.webp",
+      "size": [
+        1536,
+        1024
+      ],
+      "state": "approved",
+      "evidence": "User supplied final asset; format conversion only"
+    },
+    {
+      "sourceEntry": "梅花易数/鎏金花环与梅枝山水装饰框.png",
+      "sourceSha256": "8b219e8a746d63573c209018baeb9310b7b04405baf12fc44375bde748d2d4b6",
+      "output": "/mei-hua/number-ring.webp",
+      "size": [
+        1536,
+        1024
+      ],
+      "state": "approved",
+      "evidence": "User supplied final asset; format conversion only"
+    },
+    {
+      "sourceEntry": "梅花易数/梅花易数 · 问心起卦.png",
+      "state": "approved",
+      "evidence": "Final reference only; not runtime art"
+    },
+    {
+      "sourceEntry": "梅花易数/梅花易数雅境问卦界面.png",
+      "state": "approved",
+      "evidence": "Final reference only; not runtime art"
+    },
+    {
+      "sourceEntry": "梅花易数/古韵占卜数字确认界面.png",
+      "state": "approved",
+      "evidence": "Final reference only; not runtime art"
+    },
+    {
+      "sourceEntry": "梅花易数/东方秘境：双卦灵光占问_interface.png",
+      "state": "approved",
+      "evidence": "Final reference only; not runtime art"
+    }
+  ],
+  "referenceChecks": {
+    "step-1": {
+      "sha256": "8ee4bceac52e81235dee7167b1aa0c90e1190a7ba4aa207b7e73dcece4898197",
+      "matchesSavedOriginalPng": true
+    },
+    "step-2": {
+      "sha256": "410d3955642b087ca63e76c17fca464834316206fcffc32f6d66e699294b9174",
+      "matchesSavedOriginalPng": true
+    },
+    "step-3": {
+      "sha256": "364a9aead37859bc1c59e2c3c8497ca92552e58b4c8d094344ca7e942eec9a1a",
+      "matchesSavedOriginalPng": true
+    },
+    "shared-reading": {
+      "sha256": "b3d680f4fc734f2a27a62f58da860787aa3c8df654cb51dc9f3310449aa0b71c",
+      "matchesSavedOriginalPng": true
+    }
+  }
+}

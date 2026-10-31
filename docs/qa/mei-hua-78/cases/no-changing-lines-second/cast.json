@@ -1,0 +1,23 @@
+{
+  "cast": {
+    "id": "b9b42d9a-4a5a-4c92-b868-b422d843b342",
+    "createdAt": "2026-10-31T07:02:01.726Z",
+    "lines": [
+      8,
+      7,
+      8,
+      7,
+      8,
+      7
+    ],
+    "fingerprint": "public-reading-fingerprint-v1|1|three-coin|three-coin-v1|8,7,8,7,8,7|64||none"
+  },
+  "checks": [
+    "desktop: edit/reset, change-number, click-time seal, immutable reload, no Step 4, algorithm blocker PASS",
+    "mobile: edit/reset, change-number, click-time seal, immutable reload, no Step 4, algorithm blocker PASS",
+    "Three Coin free: anonymous summary \u2192 login callback \u2192 same cast and selected entry PASS (test-only auth seam)",
+    "Three Coin deep: anonymous summary \u2192 login callback \u2192 same cast and selected entry PASS (test-only auth seam)"
+  ],
+  "status": "PASS: real no-changing cast",
+  "primaryScreenshotDisposition": "Not selected for the moving-line screenshot; no-changing behavior is already captured separately. No cast values were altered."
+}

@@ -600,9 +600,9 @@ async function main() {
     log("Method simulation PASS: manual-cast complete reading");
 
     // =========================================================================
-    // Test 6: Result Route (/zh/readings/three-coin/result) States
+    // Test 6: Result Route (/zh/readings/result) States
     // =========================================================================
-    log("Test 6: Three-Coin Result Route (/zh/readings/three-coin/result) -> empty, ready, and error states");
+    log("Test 6: Three-Coin Result Route (/zh/readings/result) -> empty, ready, and error states");
 
     // 6.a: Empty state
     await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0" });
@@ -610,7 +610,7 @@ async function main() {
       sessionStorage.clear();
       localStorage.clear();
     });
-    await page.goto(`${BASE}/zh/readings/three-coin/result`, { waitUntil: "networkidle0" });
+    await page.goto(`${BASE}/zh/readings/result`, { waitUntil: "networkidle0" });
     await page.waitForSelector("h1#empty-reading-title", { timeout: 5000 });
     const emptyResultText = await page.evaluate(() => document.body.innerText || "");
     assert(emptyResultText.includes("没有找到已完成的起卦"), "Result empty state missing Chinese heading");
@@ -619,7 +619,7 @@ async function main() {
     await assertPurity(page, "Three-Coin Result Page Empty State");
     log("Three-coin result PASS: empty state");
 
-    // 6.b: Completed cast / auth-before-reveal state
+    // 6.b: Completed cast / anonymous-summary state
     await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0" });
     await page.evaluate(() => {
       sessionStorage.clear();
@@ -641,24 +641,22 @@ async function main() {
       };
       sessionStorage.setItem("quickiching:public-v1:three-coin", JSON.stringify(session));
     });
-    await page.goto(`${BASE}/zh/readings/three-coin/result`, { waitUntil: "networkidle0" });
-    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 5000 });
+    await page.goto(`${BASE}/zh/readings/result`, { waitUntil: "networkidle0" });
+    await page.waitForSelector("[data-shared-reading-summary]", { timeout: 5000 });
     const completedState = await page.evaluate(() => ({
-      heading: document.querySelector("h1")?.textContent?.trim() ?? "",
-      completionCopy: document.querySelector(".ritual-gate-complete")?.textContent?.trim() ?? "",
-      authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
-      sixLines: document.querySelector("[data-completed-six-lines]") !== null,
-      primaryCard: document.querySelector("[data-primary-card]") !== null,
-      deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
+      heading: document.querySelector(".shared-question h1")?.textContent?.trim(),
+      sixLines: document.querySelectorAll("[data-summary-primary] [data-line-position]").length,
+      authGate: Boolean(document.querySelector("[data-auth-required-before-reveal]")),
+      free: Boolean(document.querySelector('[data-reading-choice="free"]')),
+      deep: Boolean(document.querySelector('[data-reading-choice="deep"]')),
+      contentClosed: document.querySelector(".shared-reading-content")?.hidden,
     }));
-    assert.equal(completedState.heading, "保存本次起卦", `Completed-cast heading mismatch: ${completedState.heading}`);
-    assert.equal(completedState.completionCopy, "六爻已经完成", "The formal gate must confirm six-line completion");
-    assert(completedState.authGate, "Completed Chinese Three-Coin cast must require sign-in before reveal");
-    assert(completedState.sixLines, "Completed Chinese Three-Coin cast must preserve all six lines");
-    assert.equal(completedState.primaryCard, false, "Primary result must remain hidden before sign-in and History save");
-    assert.equal(completedState.deepEntry, false, "Deep Reading must remain hidden before result reveal");
+    assert.equal(completedState.heading, "你的问题");
+    assert.equal(completedState.sixLines, 6);
+    assert.equal(completedState.authGate, false);
+    assert(completedState.free && completedState.deep && completedState.contentClosed, "Both entries must be available; reading content stays behind selection/login");
     await assertPurity(page, "Three-Coin Completed Cast Auth Gate");
-    log("Three-coin result PASS: completed cast auth-before-reveal state");
+    log("Three-coin result PASS: completed cast anonymous-summary state");
 
     // 6.c: Error state (in isolated test tab)
     const errPage = await browser.newPage();
@@ -670,7 +668,7 @@ async function main() {
           },
         });
       });
-      await errPage.goto(`${BASE}/zh/readings/three-coin/result`, { waitUntil: "networkidle0" });
+      await errPage.goto(`${BASE}/zh/readings/result`, { waitUntil: "networkidle0" });
       await errPage.waitForSelector("h1#reading-error-title", { timeout: 5000 });
       const errorResultText = await errPage.evaluate(() => document.body.innerText || "");
       assert(errorResultText.includes("无法恢复这次已落定的起卦结果"), "Result error state missing Chinese heading");

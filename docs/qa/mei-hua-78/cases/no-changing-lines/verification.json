@@ -1,0 +1,85 @@
+{
+  "base": "http://127.0.0.1:3078",
+  "authVerification": "Test-only /api/user/me response and callback navigation; real provider login NOT VERIFIED",
+  "captures": [
+    {
+      "name": "desktop-shared-reading",
+      "url": "http://127.0.0.1:3078/readings/three-coin/result",
+      "viewport": {
+        "width": 1670,
+        "height": 942,
+        "deviceScaleFactor": 1
+      },
+      "fullPage": false,
+      "screenshotScale": "css",
+      "metadata": {
+        "title": "Your Three-Coin Reading | Quick I Ching",
+        "dpr": 1,
+        "scrollWidth": 1670,
+        "clientWidth": 1670,
+        "fonts": "loaded"
+      }
+    },
+    {
+      "name": "desktop-shared-reference",
+      "url": "http://127.0.0.1:3078/readings/three-coin/result",
+      "viewport": {
+        "width": 1983,
+        "height": 793,
+        "deviceScaleFactor": 1
+      },
+      "fullPage": false,
+      "screenshotScale": "css",
+      "metadata": {
+        "title": "Your Three-Coin Reading | Quick I Ching",
+        "dpr": 1,
+        "scrollWidth": 1983,
+        "clientWidth": 1983,
+        "fonts": "loaded"
+      }
+    },
+    {
+      "name": "mobile-shared-reading",
+      "url": "http://127.0.0.1:3078/readings/three-coin/result",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "deviceScaleFactor": 1
+      },
+      "fullPage": false,
+      "clip": {
+        "x": 0,
+        "y": 0,
+        "width": 375,
+        "height": 965
+      },
+      "screenshotScale": "css",
+      "metadata": {
+        "title": "Your Three-Coin Reading | Quick I Ching",
+        "dpr": 1,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "fonts": "loaded"
+      }
+    }
+  ],
+  "checks": [
+    "desktop: edit/reset, change-number, click-time seal, immutable reload, no Step 4, algorithm blocker PASS",
+    "mobile: edit/reset, change-number, click-time seal, immutable reload, no Step 4, algorithm blocker PASS",
+    "Three Coin free: anonymous summary \u2192 login callback \u2192 same cast and selected entry PASS (test-only auth seam)",
+    "Three Coin deep: anonymous summary \u2192 login callback \u2192 same cast and selected entry PASS (test-only auth seam)"
+  ],
+  "realThreeCoin": {
+    "id": "b2d6e243-1b5e-4418-9512-b023dd8cc11e",
+    "createdAt": "2026-10-31T06:53:40.786Z",
+    "lines": [
+      7,
+      8,
+      8,
+      7,
+      7,
+      8
+    ],
+    "fingerprint": "public-reading-fingerprint-v1|1|three-coin|three-coin-v1|7,8,8,7,7,8|17||none"
+  }
+}

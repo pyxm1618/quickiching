@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { CalendarDays, Clock3, MapPin } from "lucide-react";
+import "./mei-hua-scene.css";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import { meiHuaFromUtc, type MeiHuaResult } from "@/domain/casting/mei-hua/algorithm";
 import {
@@ -24,7 +27,7 @@ import {
 const STORAGE_KEY = "quickiching:public-v1:mei-hua-number-time-v1";
 const LEGACY_STORAGE_KEY = "quickiching:public-v1:mei-hua-v2";
 
-type FlowStep = 1 | 2 | 3 | 4 | "reading";
+type FlowStep = 1 | 2 | 3 | "reading";
 
 type StoredNumberTimeCast = {
   mode: "number-time";
@@ -98,8 +101,8 @@ function parseLegacyCast(value: unknown): LegacyStoredCast | null {
 }
 
 function formatDate(utcMillis: number, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric", month: "2-digit", day: "2-digit",
     timeZone,
   }).format(new Date(utcMillis));
 }
@@ -110,7 +113,7 @@ function formatTime(utcMillis: number, timeZone: string): string {
     minute: "2-digit",
     second: "2-digit",
     timeZone,
-    timeZoneName: "short",
+    hour12: false,
   }).format(new Date(utcMillis));
 }
 
@@ -155,7 +158,7 @@ export function MeiHuaNumberFlow() {
           setCast(current.data);
           setSelectedNumber(current.data.input.number);
           setNumberDraft(String(current.data.input.number));
-          setStep(4);
+          setStep("reading");
         } else if (current.question) {
           setStep(2);
         }
@@ -211,8 +214,10 @@ export function MeiHuaNumberFlow() {
       }
       setQuestion(normalized);
       setQuestionDraft(normalized);
-      setSelectedNumber(null);
-      setNumberDraft("");
+      if (normalized !== question) {
+        setSelectedNumber(null);
+        setNumberDraft("");
+      }
       setError("");
       setStep(2);
     } catch (nextError: unknown) {
@@ -223,8 +228,6 @@ export function MeiHuaNumberFlow() {
   }
 
   function changeQuestion() {
-    setSelectedNumber(null);
-    setNumberDraft("");
     setError("");
     setStep(1);
   }
@@ -269,15 +272,10 @@ export function MeiHuaNumberFlow() {
       setQuestion(session.coreQuestionAtCast ?? session.question ?? question);
       setCast(nextCast);
       setError("");
-      setStep(4);
+      setStep("reading");
     } catch {
       setError("This cast could not be locked. No official cast was created.");
     }
-  }
-
-  function viewReading() {
-    if (!publicReading) return;
-    setStep("reading");
   }
 
   function startNewReading() {
@@ -306,137 +304,70 @@ export function MeiHuaNumberFlow() {
     );
   }
 
-  if (step === "reading" && publicReading) {
+  if (step === "reading" && cast) {
     return (
-      <div data-mei-hua-flow data-mei-hua-shared-reading>
-        <PublicReadingResult reading={publicReading} onNewReading={startNewReading} />
+      <div data-mei-hua-flow data-mei-hua-shared-reading data-mei-hua-locked="true">
+        {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} /> : (
+          <section className="mei-scene mei-blocked" data-mei-hua-algorithm-boundary="unverified">
+            <SceneBook />
+            <div className="mei-blocked-copy">
+              <h1>Your Question</h1>
+              <p data-private-question="true" data-clarity-mask="true">{question}</p>
+              <h2>Hexagram calculation is not yet available for this locked cast.</h2>
+              <p>The approved number + time algorithm is unavailable. Your question, number, exact cast time, and timezone are locked.</p>
+              <dl><div><dt>Your Number</dt><dd>{cast.input.number}</dd></div><div><dt>UTC timestamp</dt><dd>{new Date(cast.input.utcMillis).toISOString()}</dd></div><div><dt>Time Zone</dt><dd>{cast.input.ianaTimeZone}</dd></div></dl>
+              <button type="button" className="mei-button" onClick={startNewReading}>New Reading</button>
+            </div>
+          </section>
+        )}
       </div>
     );
   }
 
   return (
-    <section className="mystic-card p-5 sm:p-8" data-mei-hua-flow data-mei-hua-step={step}>
-      {step === 1 ? (
-        <div>
-          <p className="mystic-kicker">Step 1 of 4</p>
-          <h2 className="mt-2 font-display text-3xl font-normal">Ask Your Question</h2>
-          <label htmlFor="mei-hua-question" className="mt-6 block text-sm font-semibold">Your Question</label>
-          <textarea
-            id="mei-hua-question"
-            value={questionDraft}
-            onChange={(event) => setQuestionDraft(event.target.value)}
-            rows={3}
-            maxLength={PUBLIC_QUESTION_MAX_CODE_POINTS}
-            data-private-question="true"
-            data-clarity-mask="true"
-            className="mt-2 min-h-28 w-full resize-y rounded-2xl border border-white/[0.12] bg-white/[0.035] px-4 py-3 text-sm leading-7"
-          />
-          <div className="mt-5">
-            <button type="button" className="mystic-button" onClick={submitQuestion}>Continue</button>
-          </div>
+    <section className={`mei-scene mei-step-${step}`} data-mei-hua-flow data-mei-hua-step={step} aria-label="Mei Hua Yi Shu">
+      <SceneBook />
+      {step !== 1 ? <div className="mei-question-summary" data-private-question="true" data-clarity-mask="true">
+        <span>Your question</span><p>{question}</p><button type="button" onClick={changeQuestion}>✎ Edit</button>
+      </div> : null}
+      {step === 1 ? <form className="mei-ask" onSubmit={(event) => { event.preventDefault(); submitQuestion(); }}>
+        <header className="mei-heading"><h1>Mei Hua Yi Shu</h1><p>One thought. One hexagram. A reflection of what matters now.</p></header>
+        <div className="mei-question-scroll">
+          <label htmlFor="mei-hua-question">What would you like to ask?</label>
+          <textarea id="mei-hua-question" value={questionDraft} onChange={(event) => setQuestionDraft(event.target.value)}
+            rows={2} maxLength={PUBLIC_QUESTION_MAX_CODE_POINTS} placeholder="Enter a specific question that is on your mind..."
+            data-private-question="true" data-clarity-mask="true" />
+          <button type="submit" className="mei-button mei-button-red"><span aria-hidden="true">☯</span>Continue</button>
         </div>
-      ) : null}
-
-      {step === 2 ? (
-        <div>
-          <p className="mystic-kicker">Step 2 of 4</p>
-          <h2 className="mt-2 font-display text-3xl font-normal">Choose a Number</h2>
-          <p className="mt-4 text-sm leading-7" data-private-question="true"><strong>Your Question:</strong> {question}</p>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--ink-2)]">Keep your question in mind and enter the first number that comes to you. Don’t calculate or overthink it.</p>
-          <label htmlFor="mei-hua-number" className="mt-6 block text-sm font-semibold">Your Number</label>
-          <input
-            id="mei-hua-number"
-            type="text"
-            inputMode="numeric"
-            value={numberDraft}
-            onChange={(event) => setNumberDraft(event.target.value)}
-            className="mt-2 min-h-12 w-full max-w-xs rounded-2xl border border-white/[0.12] bg-white/[0.035] px-4 py-2"
-          />
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button type="button" className="mystic-button" onClick={submitNumber}>Continue</button>
-            <button type="button" className="mystic-button-secondary" onClick={changeQuestion}>Change Question</button>
-          </div>
+      </form> : null}
+      {step === 2 ? <form className="mei-choose" onSubmit={(event) => { event.preventDefault(); submitNumber(); }}>
+        <header className="mei-heading"><h1>Mei Hua Yi Shu</h1><p>One thought. One hexagram. A reflection of what matters now.</p></header>
+        <h2>Choose a Number</h2>
+        <p className="mei-number-copy">Keep your question in mind and enter the first number that comes to you. Don’t calculate or overthink it.</p>
+        <div className="mei-number-decoration">
+          <label className="sr-only" htmlFor="mei-hua-number">Your Number</label>
+          <input id="mei-hua-number" type="text" inputMode="numeric" autoComplete="off" value={numberDraft} onChange={(event) => setNumberDraft(event.target.value)} />
         </div>
-      ) : null}
-
-      {step === 3 && selectedNumber !== null ? (
-        <div>
-          <p className="mystic-kicker">Step 3 of 4</p>
-          <h2 className="mt-2 font-display text-3xl font-normal">Confirm Your Number</h2>
-          <p className="mt-4 text-sm leading-7" data-private-question="true"><strong>Your Question:</strong> {question}</p>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2" aria-label="Your Number and This Moment">
-            <div className="mystic-card-soft p-4">
-              <p className="mystic-kicker">Your Number</p>
-              <p className="mt-2 font-display text-3xl">{selectedNumber}</p>
-            </div>
-            <div className="mystic-card-soft p-4">
-              <p className="mystic-kicker">This Moment</p>
-              <dl className="mt-2 space-y-2 text-sm">
-                <div><dt className="font-semibold">Current Date</dt><dd>{formatDate(now, timeZone)}</dd></div>
-                <div><dt className="font-semibold">Local Time</dt><dd>{formatTime(now, timeZone)}</dd></div>
-                <div><dt className="font-semibold">Time Zone</dt><dd>{timeZone}</dd></div>
-              </dl>
-            </div>
-          </div>
-          <p className="mt-4 text-xs leading-6 text-[var(--ink-3)]">The official cast time is recorded only when you click Confirm &amp; Cast.</p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button type="button" className="mystic-button" onClick={confirmAndCast}>Confirm &amp; Cast</button>
-            <button type="button" className="mystic-button-secondary" onClick={changeNumber}>Change Number</button>
-            <button type="button" className="mystic-button-secondary" onClick={changeQuestion}>Change Question</button>
-          </div>
+        <button type="submit" className="mei-button"><span aria-hidden="true">☯</span>Continue</button>
+      </form> : null}
+      {step === 3 && selectedNumber !== null ? <div className="mei-confirm">
+        <h1>Confirm Your Number</h1>
+        <p className="mei-confirm-copy">Once confirmed, this number and this moment will be locked for this reading.</p>
+        <div className="mei-confirm-cards" aria-label="Your Number and This Moment">
+          <section className="mei-number-ring"><h2>Your Number</h2><p>{selectedNumber}</p></section>
+          <section className="mei-moment"><h2>This Moment</h2><dl>
+            <div><dt><CalendarDays aria-hidden="true" />Current Date</dt><dd>{formatDate(now, timeZone)}</dd></div>
+            <div><dt><Clock3 aria-hidden="true" />Local Time</dt><dd>{formatTime(now, timeZone)}</dd></div>
+            <div><dt><MapPin aria-hidden="true" />Time Zone</dt><dd>{timeZone}</dd></div>
+          </dl></section>
         </div>
-      ) : null}
-
-      {step === 4 && cast ? (
-        <div data-mei-hua-locked="true">
-          <p className="mystic-kicker">Step 4 of 4</p>
-          <h2 className="mt-2 font-display text-3xl font-normal">Cast Result</h2>
-          <section className="mt-6">
-            <p className="mystic-kicker">Your Question</p>
-            <p className="mt-2 text-sm leading-7" data-private-question="true">{question}</p>
-          </section>
-
-          <dl className="mt-6 grid gap-4 sm:grid-cols-3">
-            <div className="mystic-card-soft p-4">
-              <dt className="mystic-kicker">Primary Hexagram</dt>
-              <dd className="mt-2 text-lg">{publicReading ? `Hexagram ${publicReading.primaryHexagram}` : "Not calculated"}</dd>
-            </div>
-            <div className="mystic-card-soft p-4">
-              <dt className="mystic-kicker">Changing Line</dt>
-              <dd className="mt-2 text-lg">{publicReading ? (publicReading.changingLines.length ? `Line ${publicReading.changingLines.join(", ")}` : "None") : "Not calculated"}</dd>
-            </div>
-            <div className="mystic-card-soft p-4">
-              <dt className="mystic-kicker">Relating Hexagram</dt>
-              <dd className="mt-2 text-lg">{publicReading ? (publicReading.relatingHexagram ? `Hexagram ${publicReading.relatingHexagram}` : "None") : "Not calculated"}</dd>
-            </div>
-          </dl>
-
-          {!publicReading ? (
-            <div className="mystic-card-soft mt-4 p-5" data-mei-hua-algorithm-boundary="unverified">
-              <p className="font-semibold">Hexagram calculation is not yet available for this locked cast.</p>
-              <p className="mt-2 text-sm leading-7 text-[var(--ink-2)]">The repository does not yet contain an approved one-number + time Mei Hua algorithm. Your question, number, exact cast time, and timezone are sealed, but no hexagram has been fabricated.</p>
-            </div>
-          ) : null}
-
-          <details className="mt-6 text-sm">
-            <summary className="cursor-pointer font-semibold">Cast Details</summary>
-            <dl className="mt-3 grid gap-2 text-[var(--ink-2)]">
-              <div><dt className="font-semibold">Number</dt><dd>{cast.input.number}</dd></div>
-              <div><dt className="font-semibold">Current Date</dt><dd>{formatDate(cast.input.utcMillis, cast.input.ianaTimeZone)}</dd></div>
-              <div><dt className="font-semibold">Local Time</dt><dd>{formatTime(cast.input.utcMillis, cast.input.ianaTimeZone)}</dd></div>
-              <div><dt className="font-semibold">Time Zone</dt><dd>{cast.input.ianaTimeZone}</dd></div>
-            </dl>
-          </details>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button type="button" className="mystic-button" onClick={viewReading} disabled={!publicReading} data-mei-hua-view-reading>
-              View Reading
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {error ? <p role="alert" className="mt-4 text-sm text-[var(--danger)]">{error}</p> : null}
+        <div className="mei-confirm-actions"><button type="button" className="mei-button mei-button-outline" onClick={changeNumber}>Change Number</button><button type="button" className="mei-button" onClick={confirmAndCast}><span aria-hidden="true">☯</span>Confirm &amp; Cast</button></div>
+      </div> : null}
+      {error ? <p role="alert" className="mei-error">{error}</p> : null}
     </section>
   );
+}
+
+function SceneBook() {
+  return <Link href="/" className="mei-scene-book" aria-label="Return to Quick I Ching" title="Return to Quick I Ching"><img src="/mei-hua/navigation-book.webp" alt="Quick I Ching" width="1536" height="1024" /><span>Return to Quick I Ching</span></Link>;
 }

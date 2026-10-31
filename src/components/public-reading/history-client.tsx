@@ -134,7 +134,7 @@ export function HistoryClient({
           </section>
           <section aria-labelledby="history-view-title">
             <h2 id="history-view-title" className="sr-only">{t("Selected saved reading", "当前选中的起卦记录")}</h2>
-            {selectedReading ? <PublicReadingResult reading={selectedReading} onNewReading={() => setSelectedId(null)} dictionary={dictionary} localizedContent={zh ? ZH_HANS_READING_CONTENT : undefined} /> : <div className="mystic-card p-7 text-center text-sm text-[var(--ink-2)]">{t("Select a saved reading to view it.", "请选择一条已保存的起卦记录查看。")}</div>}
+            {selectedReading ? <PublicReadingResult showEntrySummary={false} reading={selectedReading} onNewReading={() => setSelectedId(null)} dictionary={dictionary} localizedContent={zh ? ZH_HANS_READING_CONTENT : undefined} /> : <div className="mystic-card p-7 text-center text-sm text-[var(--ink-2)]">{t("Select a saved reading to view it.", "请选择一条已保存的起卦记录查看。")}</div>}
           </section>
         </div>
       )}

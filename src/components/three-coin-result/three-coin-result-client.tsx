@@ -205,7 +205,7 @@ export function ThreeCoinResultClient({
     castingId,
     persistenceStatus,
   });
-  const revealAllowed = resultRevealGate === "reveal";
+  const revealAllowed = pageMode === "free" || resultRevealGate === "reveal";
   const shouldDeferBrowserInterpretation = revealAllowed
     && !zh
     && initialState === undefined
@@ -375,12 +375,22 @@ export function ThreeCoinResultClient({
         initialCastingView.lineValuesBottomUp &&
         initialCastingView.lineValuesBottomUp.length === 6
       ) {
+        const completed = readCompletedPublicReading(initialCastingView.castingId);
+        const matchingCompleted = completed && completed.question === (initialCastingView.context || undefined)
+          && JSON.stringify(completed.lineValuesBottomUp) === JSON.stringify(initialCastingView.lineValuesBottomUp) ? completed : null;
         if (active) {
+          if (matchingCompleted) setCompletedReading(matchingCompleted);
           setState({
             kind: "ready",
             lineValues: initialCastingView.lineValuesBottomUp,
             question: initialCastingView.context || undefined,
-            createdAt: initialCastingView.createdAt,
+            createdAt: matchingCompleted?.createdAt ?? (() => {
+              const local = readThreeCoinSession();
+              const lines = completedThreeCoinSteps(local?.data?.steps ?? [])?.map(step => step.lineValue);
+              return local?.id === initialCastingView.castingId && local.question === (initialCastingView.context || undefined)
+                && JSON.stringify(lines) === JSON.stringify(initialCastingView.lineValuesBottomUp)
+                ? local.createdAt : initialCastingView.createdAt;
+            })(),
           });
         }
         return;
@@ -452,7 +462,7 @@ export function ThreeCoinResultClient({
 
       if (res.status === 401) {
         setPersistenceStatus("idle");
-        window.location.assign(resultSigninHref());
+        if (showError) window.location.assign(resultSigninHref());
         return null;
       }
       if (!res.ok) {
@@ -460,8 +470,8 @@ export function ThreeCoinResultClient({
         setPersistenceStatus("error");
         if (errorBody.error === "QUESTION_LOCKED") {
           setActionError(t(
-            "This completed cast could not be saved because the existing 72-hour question lock rejected it. The current cast remains unchanged and is not revealed.",
-            "现有 72 小时问题锁拒绝了这次已完成起卦的保存。当前六爻会保持不变，也不会提前揭示结果。",
+            "This completed cast could not be saved because the existing 72-hour question lock rejected it. The current cast remains unchanged.",
+            "现有 72 小时问题锁拒绝了这次已完成起卦的保存。当前六爻会保持不变。",
           ));
         } else if (showError) {
           setActionError(t("Could not save this reading. Please try again.", "保存本次起卦失败，请稍后重试。"));
@@ -489,7 +499,7 @@ export function ThreeCoinResultClient({
     }
   }
 
-  // 2. 登录返回后或已登录完成第六爻后，先幂等保存同一 completed cast；保存成功前绝不 reveal。
+  // 2. 登录返回后幂等保存同一 completed cast；基础卦象无需登录或等待保存。
   useEffect(() => {
     if (!user || castingId || state.kind !== "ready" || !clientCastingId || persistenceStatus !== "idle") return;
     void persistCurrentReading(false);
@@ -774,7 +784,7 @@ export function ThreeCoinResultClient({
     );
   }
 
-  if (waitingForBrowserInterpretation) {
+  if (pageMode === "deep" && waitingForBrowserInterpretation) {
     return <RitualRevealTransition stage="gate"><div className="ritual-save-gate" data-reading-interpretation-loading="true" data-result-reveal-pending="true">
       <section className="ritual-gate-card" role="status" aria-label={t("Preparing your saved reading", "正在准备已保存的起卦结果")}>
         <p className="ritual-gate-complete">{t("Saved to History", "已保存到 History")}</p>
@@ -788,13 +798,14 @@ export function ThreeCoinResultClient({
     const definition = hexagramByNumber(number);
     return <Link href={`${prefix}/hexagrams/${classicalHexagramByNumber(number).slug}`}>{number} · {zh ? definition.chineseName : definition.englishName}</Link>;
   }
-  const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(castingId!)}`;
-  const deepHref = `${prefix}/readings/deep?session=${encodeURIComponent(castingId!)}`;
+  const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(resultReading!.id)}`;
+  const deepHref = `${prefix}/readings/deep?session=${encodeURIComponent(resultReading!.id)}`;
   return (
     <RitualRevealTransition stage="result">
       {pageMode === "free" ? <PublicReadingResult
         presentation="ritual"
         reading={resultReading!}
+        authenticated={Boolean(user)}
         onNewReading={startNewReading}
         dictionary={resultDictionary}
         localizedContent={zh ? initialLocalizedContent : undefined}

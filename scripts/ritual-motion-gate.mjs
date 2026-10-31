@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import puppeteer from 'puppeteer-core';
-const base='http://127.0.0.1:3028',key='quickiching:public-v1:three-coin';
+const base=process.env.PUBLIC_V1_TEST_BASE_URL||'http://127.0.0.1:3028',key='quickiching:public-v1:three-coin';
 const output='.artifacts/ritual-qa/final-closeout/motion';await mkdir(output,{recursive:true});
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1']});
 const outcomes=[];
@@ -22,7 +22,6 @@ async function run(reduced,suppressed=false){
   for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent)==='Decline')await button.click();
   await page.waitForSelector('[data-renderer="three-webgl"]');
   if(suppressed)await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important}'});
-  const room=await page.$eval('.ritual-room',node=>getComputedStyle(node).backgroundImage);
   await page.evaluate(()=>window.__motionCanvas=document.querySelector('.ritual-webgl canvas'));
   await page.locator('[data-private-question]').fill('How should I understand this transition?');
   await page.locator('[data-home-primary-action]').click();
@@ -66,45 +65,18 @@ async function run(reduced,suppressed=false){
    await page.waitForSelector('.hold-button:not(:disabled)');await page.locator('.hold-button').click();
    await page.waitForSelector('[data-record-this-cast]:not(:disabled)');await page.locator('[data-record-this-cast]').click();
   }
-  await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
-  assert.equal(await page.$('[data-ritual-result-card]'),null);
+  await page.waitForSelector('[data-shared-reading-summary]');
+  assert.equal(await page.$('[data-auth-required-before-reveal]'),null);
   assert.equal(await page.evaluate(()=>window.__motionDraws),18);
-  assert.equal(await page.$eval('.ritual-room',node=>getComputedStyle(node).backgroundImage),room);
-  await page.screenshot({path:`${output}/${prefix}-auth-gate.png`});
+  await page.screenshot({path:`${output}/${prefix}-anonymous-summary.png`});
   const completed=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
-  const requests=[];let pending;
-  await page.setRequestInterception(true);
-  page.on('request',request=>{
-   if(new URL(request.url()).pathname==='/api/readings'&&request.method()==='POST'){requests.push(JSON.parse(request.postData()));pending=request;return;}
-   if(request.method()!=='GET'&&request.method()!=='HEAD')return request.abort('blockedbyclient');
-   if(new URL(request.url()).pathname.startsWith('/api/readings/ritual-qa-saved-cast/'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({status:'not_started'})});
-   request.continue();
-  });
-  // Local-only initial-user fixture; no real sign-in or backend persistence is claimed.
-  await page.goto(base+'/ritual-qa-local?view=saving',{waitUntil:'domcontentloaded'});
-  await page.waitForSelector('[data-history-saving]');
-  assert(pending,'The real client must issue the intercepted save');
-  assert.equal(await page.$('[data-ritual-result-card]'),null);
-  await pending.respond({status:409,contentType:'application/json',body:JSON.stringify({error:'QUESTION_LOCKED'})});pending=null;
-  await page.waitForSelector('[data-retry-history-save]');
-  assert.equal(await page.$('[data-ritual-result-card]'),null);
-  await page.locator('[data-retry-history-save]').click();
-  await page.waitForFunction(()=>document.querySelector('[data-history-saving]'));
-  assert(pending,'Retry must issue the same save');assert.deepEqual(requests[0],requests[1]);
-  assert.equal(requests[1].clientCastingId,completed.id);
-  assert.deepEqual(requests[1].lineValuesBottomUp,completed.data.steps.map(step=>step.lineValue));
-  await pending.respond({status:200,contentType:'application/json',body:JSON.stringify({castingId:'ritual-qa-saved-cast'})});
-  await page.waitForSelector('[data-ritual-reveal-stage="gate-exit"]');
-  assert.equal(await page.$('[data-ritual-result-card]'),null,'Result stays concealed throughout gate exit');
-  await page.screenshot({path:`${output}/${prefix}-gate-exit.png`});
-  await page.waitForSelector('[data-ritual-result-card]');
-  assert.equal(await page.$eval('.ritual-result-card',node=>getComputedStyle(node).animationDuration),reduced?'0.14s':'0.42s');
-  await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.ritual-result-card')).opacity)===1);
-  await page.screenshot({path:`${output}/${prefix}-result-entered.png`});
-  assert.equal(await page.$eval('.ritual-room',node=>getComputedStyle(node).backgroundImage),room);
-  const restored=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
-  assert.deepEqual(restored,completed);
-  outcomes.push({mode:prefix,status:'PASS',firstResult,firstLabel,firstAction,saveFixture:{requests:requests.length,first:'QUESTION_LOCKED',retry:'saved',sameCast:true,liveAccountEvidence:false}});
+  assert.equal(await page.$eval('.shared-reading-content',node=>getComputedStyle(node).display),'none');
+  assert(await page.$('[data-reading-choice="free"]'));
+  assert(await page.$('[data-reading-choice="deep"]'));
+  await page.reload({waitUntil:'networkidle0'});
+  await page.waitForSelector('[data-shared-reading-summary]');
+  assert.deepEqual(await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key),completed);
+  outcomes.push({mode:prefix,status:'PASS',firstResult,firstLabel,firstAction,anonymousSummary:true,sameCast:true,note:'Login continuation is separately exercised by mei-hua-ui-browser-gate with named test-only auth responses.'});
  }finally{await context.close();}
 }
 try{for(const [reduced,suppressed] of [[false,false],[true,false],[false,true]]){try{await run(reduced,suppressed);}catch(error){outcomes.push({mode:suppressed?'animation-suppressed':reduced?'reduced':'normal',status:'FAIL',error:String(error),stack:error.stack});process.exitCode=1;}}}

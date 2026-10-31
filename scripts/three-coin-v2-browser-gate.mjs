@@ -5,7 +5,7 @@ import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
-const RESULT_PATH = "/readings/three-coin/result";
+const RESULT_PATH = "/readings/result";
 const HOME_TITLE = "I Ching Online — Free Hexagram Reading | Quick I Ching";
 const HOME_DESCRIPTION = "Use the I Ching online with three coins, yarrow stalks, or Mei Hua Yi Shu. Cast your hexagram, see changing lines, and get a free basic interpretation.";
 const NOT_FOUND_TITLE = "Page Not Found | Quick I Ching";
@@ -270,23 +270,23 @@ async function verifySeededResult(browser, viewport) {
   try {
     await seedCompletedReading(page);
     await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
-    await waitForText(page, "Your six lines are complete");
-    await waitForText(page, "Sign In to Save & Reveal");
+    await page.waitForSelector("[data-shared-reading-summary]");
+
 
     const gateState = await page.evaluate(() => ({
       authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
-      sixLines: document.querySelector("[data-completed-six-lines]") !== null,
-      primaryCard: document.querySelector("[data-primary-card]") !== null,
-      deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
+      sixLines: document.querySelectorAll("[data-summary-primary] [data-line-position]").length === 6,
+      primaryCard: document.querySelector("[data-summary-primary]") !== null,
+      deepEntry: document.querySelector('[data-reading-choice="deep"]') !== null,
     }));
-    assert(gateState.authGate, "Anonymous completed cast must enter auth-before-reveal gate");
+    assert.equal(gateState.authGate, false, "Anonymous users must see the base cast before sign-in");
     assert(gateState.sixLines, "Auth gate must preserve and display the six completed lines");
-    assert.equal(gateState.primaryCard, false, "Auth gate must not reveal the primary hexagram");
-    assert.equal(gateState.deepEntry, false, "Deep Reading must remain downstream of saved result reveal");
+    assert.equal(gateState.primaryCard, true, "Anonymous summary must show the primary hexagram");
+    assert.equal(gateState.deepEntry, true, "Summary must offer Deep Reading");
 
     const beforeRefresh = await resultText(page);
     await page.reload({ waitUntil: "networkidle0" });
-    await waitForText(page, "Your six lines are complete");
+    await page.waitForSelector("[data-shared-reading-summary]");
     assert.equal(await resultText(page), beforeRefresh, "Refresh must reproduce the same anonymous completed-cast gate");
 
     await page.goBack({ waitUntil: "networkidle0" });
@@ -295,10 +295,10 @@ async function verifySeededResult(browser, viewport) {
     const storedAfterBack = await page.evaluate((key) => sessionStorage.getItem(key), STORAGE_KEY);
     assert(storedAfterBack, "Back navigation must preserve the sealed reading");
     await page.goForward({ waitUntil: "networkidle0" });
-    await waitForText(page, "Your six lines are complete");
+    await page.waitForSelector("[data-shared-reading-summary]");
 
     await assertNoHorizontalOverflow(page);
-    log(`${viewport.width}px completed-cast auth gate / refresh / back / forward PASS`);
+    log(`${viewport.width}px completed-cast summary / refresh / back / forward PASS`);
   } finally {
     await context.close();
   }
@@ -379,7 +379,7 @@ try {
   for (const width of [320, 375, 390]) {
     await verifySeededResult(browser, { width, height: 844 });
   }
-  log("ALL THREE-COIN V2 AUTH-BEFORE-REVEAL GATES PASS");
+  log("ALL THREE-COIN V2 ANONYMOUS-SUMMARY GATES PASS");
 } finally {
   await browser.close();
 }

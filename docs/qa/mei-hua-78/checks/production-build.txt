@@ -1,0 +1,103 @@
+$ next build
+workflows build complete (11 steps, 2 workflows, time 26ms)
+   ▲ Next.js 15.5.25
+   - Experiments (use with caution):
+     ✓ globalNotFound
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 4.1s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/167) ...
+   Generating static pages (41/167)
+   Generating static pages (83/167)
+   Generating static pages (125/167)
+ ✓ Generating static pages (167/167)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                           Size  First Load JS
+┌ ○ /                                                328 B         174 kB
+├ ○ /_not-found                                      187 B         107 kB
+├ ƒ /.well-known/workflow/v1/flow                    190 B         103 kB
+├ ƒ /.well-known/workflow/v1/step                    190 B         103 kB
+├ ƒ /.well-known/workflow/v1/webhook/[token]         190 B         103 kB
+├ ○ /acceptable-use                                  190 B         103 kB
+├ ○ /account                                         190 B         103 kB
+├ ƒ /api/account/delete                              190 B         103 kB
+├ ƒ /api/auth/[...all]                               190 B         103 kB
+├ ƒ /api/checkout                                    190 B         103 kB
+├ ƒ /api/health                                      190 B         103 kB
+├ ƒ /api/internal/cp6-staging-diagnostics            190 B         103 kB
+├ ƒ /api/internal/reconcile                          190 B         103 kB
+├ ƒ /api/internal/refunds/[refundId]/decision        190 B         103 kB
+├ ƒ /api/internal/refunds/[refundId]/dispatch        190 B         103 kB
+├ ƒ /api/readings                                    190 B         103 kB
+├ ƒ /api/readings/[castingId]/deep                   190 B         103 kB
+├ ƒ /api/ready                                       190 B         103 kB
+├ ƒ /api/refunds                                     190 B         103 kB
+├ ƒ /api/user/me                                     190 B         103 kB
+├ ƒ /api/webhooks/waffo                              190 B         103 kB
+├ ○ /guides/changing-lines                           211 B         107 kB
+├ ○ /guides/how-to-ask-the-i-ching                   211 B         107 kB
+├ ○ /guides/primary-relating-hexagrams               211 B         107 kB
+├ ○ /help                                            211 B         107 kB
+├ ○ /hexagrams                                     5.61 kB         131 kB
+├ ● /hexagrams/[slug]                                890 B         107 kB
+├   ├ /hexagrams/1-the-creative
+├   ├ /hexagrams/2-the-receptive
+├   ├ /hexagrams/3-difficulty-at-the-beginning
+├   └ [+61 more paths]
+├ ○ /history                                         142 B         165 kB
+├ ○ /icon.png                                          0 B            0 B
+├ ○ /methods/manual-cast                             147 B         160 kB
+├ ○ /methods/mei-hua-yi-shu                        5.47 kB         155 kB
+├ ○ /methods/three-coin                              209 B         174 kB
+├ ○ /methods/yarrow-stalks                           148 B         160 kB
+├ ƒ /my-readings                                   1.13 kB         108 kB
+├ ƒ /pricing                                       2.74 kB         109 kB
+├ ○ /privacy                                         211 B         107 kB
+├ ƒ /readings/three-coin/result                      149 B         184 kB
+├ ○ /robots.txt                                      190 B         103 kB
+├ ƒ /signin                                          133 B         125 kB
+├ ƒ /signup                                          132 B         125 kB
+├ ○ /sitemap.xml                                     190 B         103 kB
+├ ○ /terms                                           211 B         107 kB
+├ ○ /zh                                              328 B         174 kB
+├ ƒ /zh/[...slug]                                    190 B         103 kB
+├ ○ /zh/acceptable-use                               190 B         103 kB
+├ ○ /zh/account                                      190 B         103 kB
+├ ○ /zh/guides/changing-lines                        211 B         107 kB
+├ ○ /zh/guides/how-to-ask-the-i-ching                211 B         107 kB
+├ ○ /zh/guides/primary-relating-hexagrams            211 B         107 kB
+├ ○ /zh/help                                         211 B         107 kB
+├ ○ /zh/hexagrams                                    211 B         107 kB
+├ ● /zh/hexagrams/[slug]                             890 B         107 kB
+├   ├ /zh/hexagrams/1-the-creative
+├   ├ /zh/hexagrams/2-the-receptive
+├   ├ /zh/hexagrams/3-difficulty-at-the-beginning
+├   └ [+61 more paths]
+├ ○ /zh/history                                      142 B         165 kB
+├ ○ /zh/methods/manual-cast                          147 B         160 kB
+├ ○ /zh/methods/mei-hua-yi-shu                     4.36 kB         160 kB
+├ ○ /zh/methods/three-coin                           209 B         174 kB
+├ ○ /zh/methods/yarrow-stalks                        147 B         160 kB
+├ ƒ /zh/my-readings                                1.13 kB         108 kB
+├ ƒ /zh/pricing                                    2.74 kB         109 kB
+├ ○ /zh/privacy                                      211 B         107 kB
+├ ƒ /zh/readings/three-coin/result                   149 B         184 kB
+├ ƒ /zh/signin                                       132 B         125 kB
+├ ƒ /zh/signup                                       132 B         125 kB
+└ ○ /zh/terms                                        211 B         107 kB
++ First Load JS shared by all                       103 kB
+  ├ chunks/1985-249be78b7a3e05e4.js                46.4 kB
+  ├ chunks/4bd1b696-78b9cc744dcf1b6b.js            54.2 kB
+  └ other shared chunks (total)                    2.53 kB
+
+
+ƒ Middleware                                       64.7 kB
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand

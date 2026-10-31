@@ -138,14 +138,14 @@ async function verifyHttpAndSeo() {
     assert(!/name="robots" content="[^"]*noindex/i.test(html), `${path}: indexable page unexpectedly noindex`);
   }
 
-  const noindexPaths = ["/pricing", "/help", "/privacy", "/terms", "/acceptable-use", "/readings/three-coin/result"];
+  const noindexPaths = ["/pricing", "/help", "/privacy", "/terms", "/acceptable-use", "/readings/result"];
   for (const path of noindexPaths) {
     const response = await expectStatus(path, 200);
     const html = await response.text();
     assert(/name="robots" content="[^"]*noindex/i.test(html), `${path}: expected noindex metadata`);
   }
 
-  const resultHtml = await (await expectStatus("/readings/three-coin/result", 200)).text();
+  const resultHtml = await (await expectStatus("/readings/result", 200)).text();
   assert(/name="robots" content="[^"]*noindex[^\"]*follow/i.test(resultHtml), "Result route must emit noindex, follow");
   assert(!resultHtml.includes(HOME_TITLE), "Result route must not inherit homepage title");
   assert(!resultHtml.includes(HOME_DESCRIPTION), "Result route must not inherit homepage description");
@@ -155,7 +155,7 @@ async function verifyHttpAndSeo() {
   const locs = [...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]).sort();
   const expectedLocs = SITEMAP_PATHS.map((path) => new URL(path, "https://www.quickiching.com").toString()).sort();
   assert.deepEqual(locs, expectedLocs, "Sitemap must contain exactly the 73 English and 73 Chinese canonical Public V1 pages");
-  for (const forbidden of ["/pricing", "/signin", "/three-coin-method", "/checkout", "/readings/three-coin/result", "/en", "vercel.app"]) {
+  for (const forbidden of ["/pricing", "/signin", "/three-coin-method", "/checkout", "/readings/result", "/en", "vercel.app"]) {
     assert(!sitemapXml.includes(forbidden), `Sitemap contains forbidden entry: ${forbidden}`);
   }
 
@@ -242,7 +242,7 @@ async function clickButton(page, label) {
     );
   }
   const clicked = await page.evaluate((wanted) => {
-    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === wanted || node.textContent?.trim().startsWith(wanted));
+    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim().replace(/^☯\s*/u, "") === wanted || node.textContent?.trim().replace(/^☯\s*/u, "").startsWith(wanted));
     if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
     button.click();
     return true;
@@ -307,7 +307,7 @@ async function assertNoOverflow(page) {
 }
 
 async function assertBasicResult(page) {
-  await waitForText(page, "Your I Ching reading");
+  await page.waitForSelector("[data-shared-reading-summary], #public-reading-result-title");
   const resultText = await page.$eval("[data-public-reading-result]", (node) => node.textContent || "");
   for (const expected of ["Primary Hexagram", "Core meaning", "Reflect", "Save reading"]) {
     assert(resultText.includes(expected), `Reading result missing: ${expected}`);
@@ -414,7 +414,7 @@ async function finishThreeCoin(page) {
     if (line < 6) await waitForRecordedLines(page,line);
   }
 
-  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
   const sealedBeforeGate = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
   assert(sealedBeforeGate, "Completed Three-Coin reading must remain sealed after result navigation");
   const castLineValues = await page.evaluate((key) => {
@@ -425,16 +425,16 @@ async function finishThreeCoin(page) {
   assert.equal(castLineValues?.length, 6, "Completed Three-Coin reading must preserve all six cast lines");
   assert(castLineValues.every((value) => [6, 7, 8, 9].includes(value)), "Completed Three-Coin reading must preserve valid line values");
 
-  await waitForText(page, "Your six lines are complete");
-  await waitForText(page, "Sign In to Save & Reveal");
-  assert(await page.$("[data-auth-required-before-reveal]"), "Anonymous completed cast must enter auth-before-reveal gate");
-  assert.equal(await page.$("[data-primary-card]"), null, "Primary hexagram must not reveal before authentication and History save");
-  assert.equal(await page.$("[data-deep-reading-entry]"), null, "Deep Reading must remain downstream of the result reveal gate");
-
-  const gateBeforeRefresh = await page.$eval("main", (node) => node.textContent ?? "");
+  await page.waitForSelector("[data-shared-reading-summary]");
+  assert.equal(await page.$("[data-auth-required-before-reveal]"), null, "Basic cast must be visible anonymously");
+  assert(await page.$("[data-summary-primary]"), "Primary hexagram must be in the anonymous summary");
+  assert(await page.$('[data-reading-choice="deep"]'), "Summary must offer Deep Reading");
+  assert(await page.$('[data-reading-choice="free"]'), "Summary must offer Free Reading");
+  assert.equal(await page.$eval(".shared-reading-content", node => getComputedStyle(node).display), "none", "Reading content stays behind selection/login");
+  const fingerprint = await page.$eval("[data-public-reading-result]", node => node.dataset.readingFingerprint);
   await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "Your six lines are complete");
-  assert.equal(await page.$eval("main", (node) => node.textContent ?? ""), gateBeforeRefresh, "Anonymous auth gate must restore the same completed cast after refresh");
+  await page.waitForSelector("[data-shared-reading-summary]");
+  assert.equal(await page.$eval("[data-public-reading-result]", node => node.dataset.readingFingerprint), fingerprint, "Refresh must preserve the cast fingerprint");
   const sealedAfterRefresh = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
   assert.equal(sealedAfterRefresh, sealedBeforeGate, "Auth gate refresh must not alter the completed six-line cast");
 }
@@ -469,7 +469,7 @@ async function finishMeiHua(page) {
   await waitForText(page, "Choose a Number");
 
   await page.type("#mei-hua-number", "17");
-  await clickButton(page, "Change Question");
+  await clickButton(page, "✎ Edit");
   await page.waitForSelector("#mei-hua-question");
   await page.locator("#mei-hua-question").fill(question + " now");
   await clickButton(page, "Continue");
@@ -491,13 +491,9 @@ async function finishMeiHua(page) {
   assert(!("data" in beforeConfirm), "Mei Hua must not create formal cast data before Confirm & Cast");
 
   await clickButton(page, "Confirm & Cast");
-  await waitForText(page, "Cast Result");
-  await waitForText(page, "Primary Hexagram");
-  await waitForText(page, "Changing Line");
-  await waitForText(page, "Relating Hexagram");
-  await waitForText(page, "Not calculated");
+  await waitForText(page, "Hexagram calculation is not yet available for this locked cast.");
   await page.waitForSelector("[data-mei-hua-locked='true']");
-
+  assert.equal(await page.$('[data-mei-hua-step="4"]'), null, "No Mei Hua Step 4 is allowed");
   const sealed = await page.evaluate(() => {
     const raw = sessionStorage.getItem("quickiching:public-v1:mei-hua-number-time-v1");
     return raw ? JSON.parse(raw) : null;
@@ -510,13 +506,12 @@ async function finishMeiHua(page) {
   assert.equal(sealed?.data?.algorithmStatus, "unverified", "Mei Hua must expose the unverified number-time algorithm boundary");
   assert(!sealed?.data?.result, "Mei Hua must not fabricate a result before the number-time algorithm is approved");
 
-  const viewReadingDisabled = await page.$eval("[data-mei-hua-view-reading]", (node) => node.disabled);
-  assert.equal(viewReadingDisabled, true, "View Reading must stay disabled without a legal hexagram result");
+  assert.equal(await page.$("[data-mei-hua-view-reading]"), null, "No second result confirmation page is allowed");
   assert.equal(await page.$$eval("[data-public-reading-result]", (nodes) => nodes.length), 0, "No shared reading may be fabricated");
 
   const sealedSnapshot = JSON.stringify(sealed.data.input);
   await page.reload({ waitUntil: "networkidle0", timeout: 30_000 });
-  await waitForText(page, "Cast Result");
+  await waitForText(page, "Hexagram calculation is not yet available for this locked cast.");
   await page.waitForSelector("[data-mei-hua-locked='true']");
   const restored = await page.evaluate(() => JSON.parse(sessionStorage.getItem("quickiching:public-v1:mei-hua-number-time-v1") || "null"));
   assert.equal(JSON.stringify(restored.data.input), sealedSnapshot, "Refresh must restore the same formal Mei Hua cast");
@@ -554,13 +549,13 @@ async function verifyBrowserFlows() {
     const desktop = { width: 1440, height: 1000 };
     const mobile = { width: 375, height: 812 };
     await runPage(browser, { path: "/", viewport: desktop, flow: verifyThreeCoinTransactionSemantics, label: "Desktop Three Coin → commit/reveal/cancel semantics" });
-    await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → completed cast → auth-before-reveal" });
+    await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → completed cast → anonymous summary" });
     await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → V1 result/reset" });
-    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → four-step locked cast", skipQuestion: false });
+    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → three-step locked cast", skipQuestion: false });
 
-    await runPage(browser, { path: "/", viewport: mobile, flow: finishThreeCoin, label: "375px homepage → Three Coin → auth-before-reveal" });
+    await runPage(browser, { path: "/", viewport: mobile, flow: finishThreeCoin, label: "375px homepage → Three Coin → anonymous summary" });
     await runPage(browser, { path: "/methods/yarrow-stalks", viewport: mobile, flow: (page) => finishYarrow(page, false), label: "375px Yarrow → V1 result" });
-    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → four-step locked cast", skipQuestion: false });
+    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → three-step locked cast", skipQuestion: false });
 
     for (const viewport of [{ width: 320, height: 800 }, { width: 390, height: 844 }]) {
       await runPage(browser, {

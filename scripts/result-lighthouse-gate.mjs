@@ -7,7 +7,7 @@ import { desktopConfig, navigation } from "lighthouse";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
-const RESULT_URL = `${BASE}/readings/three-coin/result`;
+const RESULT_URL = `${BASE}/readings/result`;
 const FIXTURE_STEPS = [
   { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
   { lineIndex: 1, coinFaces: ["yin", "yin", "yin"], lineValue: 6, algorithmVersion: "three-coin-v1" },
@@ -48,7 +48,7 @@ function logMobileDiagnostics(report) {
     if (id === "network-requests") {
       const items = Array.isArray(audit.details?.items) ? audit.details.items : [];
       const relevant = items
-        .filter((item) => ["Font", "Script", "Stylesheet", "Document"].includes(item.resourceType))
+        .filter((item) => ["Font", "Script", "Stylesheet", "Document", "Image"].includes(item.resourceType))
         .map((item) => ({
           url: item.url,
           resourceType: item.resourceType,
@@ -175,6 +175,7 @@ function summarize(label, runnerResult) {
 
   assert(accessibility >= 90, `${label}: accessibility score below 90`);
   assert(cls <= 0.1, `${label}: CLS exceeds 0.10`);
+  log(`${label}_BUDGET_METRICS ${JSON.stringify(metricsFromReport(report))}`);
   assertPerformanceBudget(label, metricsFromReport(report), label === "RESULT_DESKTOP");
   // The product result is intentionally noindex. Its SEO category is recorded but not used as an indexing gate.
   return { performance, accessibility, seo, lcp, cls, tbt };
@@ -204,16 +205,15 @@ async function auditResult(browser, desktop) {
         disableStorageReset: true,
       },
     });
-    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+    await page.waitForSelector("[data-shared-reading-summary]", { timeout: 15_000 });
     const visible = await page.evaluate(() => ({
-      sixLines: document.querySelector("[data-completed-six-lines]") !== null,
-      authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
-      primaryCard: document.querySelector("[data-primary-card]") !== null,
-      text: document.body?.innerText ?? "",
+      sixLines: document.querySelectorAll("[data-summary-primary] [data-line-position]").length === 6,
+      authGate: Boolean(document.querySelector("[data-auth-required-before-reveal]")),
+      summary: Boolean(document.querySelector("[data-shared-reading-summary]")),
+      contentClosed: document.querySelector(".shared-reading-content")?.hidden,
     }));
-    assert(visible.sixLines && visible.authGate, `${desktop ? "desktop" : "mobile"}: Lighthouse audited an empty/incorrect completed-cast gate`);
-    assert.equal(visible.primaryCard, false, `${desktop ? "desktop" : "mobile"}: primary result leaked before authentication and History save`);
-    assert(!visible.text.includes("Fellowship") && !visible.text.includes("Gentle penetration"), `${desktop ? "desktop" : "mobile"}: hexagram identity leaked through the auth gate`);
+    assert(visible.sixLines && visible.summary && visible.contentClosed, "Lighthouse must audit the anonymous cast summary with reading content closed");
+    assert.equal(visible.authGate, false, "No sign-in wall before basic results");
     if (!desktop) await logPageFontDiagnostics(page);
     return summarize(desktop ? "RESULT_DESKTOP" : "RESULT_MOBILE", runnerResult);
   } finally {
@@ -230,7 +230,7 @@ const browser = await puppeteer.launch({
 try {
   await auditResult(browser, false);
   await auditResult(browser, true);
-  log("COMPLETED-CAST AUTH GATE MOBILE + DESKTOP LIGHTHOUSE PASS");
+  log("ANONYMOUS CAST SUMMARY MOBILE + DESKTOP LIGHTHOUSE PASS");
 } finally {
   await browser.close();
 }

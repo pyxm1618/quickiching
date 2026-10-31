@@ -1,0 +1,46 @@
+{
+  "reference": "reference-shared-reading.png",
+  "css_viewport_width": 1983,
+  "expected": {
+    "url": "http://127.0.0.1:3078/readings/three-coin/result",
+    "viewport": {
+      "width": 1983,
+      "height": 793
+    },
+    "dpr": 1,
+    "full_page": false,
+    "screenshot_scale": "css"
+  },
+  "regions": [
+    {
+      "name": "question",
+      "box": [
+        535,
+        50,
+        900,
+        150
+      ],
+      "selector": ".shared-question"
+    },
+    {
+      "name": "primary",
+      "box": [
+        100,
+        185,
+        710,
+        520
+      ],
+      "selector": ".shared-primary"
+    },
+    {
+      "name": "relating",
+      "box": [
+        1180,
+        195,
+        700,
+        520
+      ],
+      "selector": ".shared-relating"
+    }
+  ]
+}

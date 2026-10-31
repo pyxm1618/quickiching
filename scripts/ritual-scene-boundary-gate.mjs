@@ -51,7 +51,7 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
     return originalSet.call(this,name,value);
    };
   },bits,key,storageFailure);
-  await page.goto(base+(zh?'/zh':''),{waitUntil:deferTextures?'domcontentloaded':'networkidle0'});
+  await page.goto(base+(zh?'/zh':'')+'?ritualTime=700',{waitUntil:deferTextures?'domcontentloaded':'networkidle0'});
   if(!fallback && !moduleFailure) {
    if(deferTextures) {
     await page.waitForSelector('.ritual-webgl canvas');
@@ -120,16 +120,16 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
     assert.equal(current.data.steps[line].lineIndex,line,'Authoritative line order stays bottom-up');
     await page.locator('[data-record-this-cast]').click();
    }
-   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+   await page.waitForSelector('[data-shared-reading-summary]');
    assert.equal(await page.evaluate(()=>window.__ritualBitDraws),18,'Six casts require exactly eighteen business bits');
-   for(const selector of ['[data-primary-card]','[data-relating-card]','[data-deep-reading-entry]']) {
-    assert.equal(await page.$(selector),null,'Auth gate must conceal '+selector);
-   }
+   assert(await page.$('[data-summary-primary]'),'Anonymous summary shows the primary cast');
+   assert.equal(await page.$('[data-auth-required-before-reveal]'),null,'No auth before summary');
+   assert.equal(await page.$eval('.shared-reading-content',node=>getComputedStyle(node).display),'none','Reading content stays behind selection/login');
    const completed=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
    assert.equal(completed.id,session.id);
    assert.deepEqual(completed.data.steps,after.data.steps);
    await page.reload({waitUntil:'networkidle0'});
-   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+   await page.waitForSelector('[data-shared-reading-summary]');
    const restored=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
    assert.deepEqual(restored,completed,'Refreshing the gate preserves the same completed cast');
   }

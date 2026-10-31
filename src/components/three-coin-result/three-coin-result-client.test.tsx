@@ -49,7 +49,7 @@ describe("ThreeCoinResultClient Deep Reading credit reconciliation", () => {
   });
 });
 
-describe("ThreeCoinResultClient auth-save-reveal gate", () => {
+describe("ThreeCoinResultClient explicit Deep Reading persistence gate", () => {
   it("requires authentication before reveal", () => {
     expect(getResultRevealGate({ authenticated: false, castingId: null, persistenceStatus: "idle" })).toBe("auth-required");
   });
@@ -65,22 +65,23 @@ describe("ThreeCoinResultClient auth-save-reveal gate", () => {
     expect(getResultRevealGate({ authenticated: false, castingId: "cast_1", persistenceStatus: "saved" })).toBe("auth-required");
   });
 
-  it("renders an anonymous completed cast as an auth gate without leaking the free result", () => {
+  it("renders anonymous basic results and closed Free/Deep entrances", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
         locale="en"
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on?" }}
       />,
     );
-    expect(html).toContain('data-completed-cast-gate="auth-required"');
-    expect(html).toContain("Sign in to save and reveal this reading");
-    expect(html).toContain("data-completed-six-lines");
-    expect(html).not.toContain("data-primary-card");
+    expect(html).not.toContain('data-completed-cast-gate');
+    expect(html).toContain("data-shared-reading-summary");
+    expect(html).toContain('data-reading-open="none"');
+    expect(html).toContain('data-reading-choice="free"');
+    expect(html).toContain('data-reading-choice="deep"');
     expect(html).not.toContain("data-ritual-result-card");
     expect(html).not.toContain("data-deep-reading-entry");
   });
 
-  it("renders a signed-in unsaved completed cast as saving without leaking the free result", () => {
+  it("renders basic results before signed-in account persistence finishes", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
         locale="en"
@@ -88,9 +89,9 @@ describe("ThreeCoinResultClient auth-save-reveal gate", () => {
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on?" }}
       />,
     );
-    expect(html).toContain('data-completed-cast-gate="saving"');
-    expect(html).toContain("data-history-saving");
-    expect(html).not.toContain("data-primary-card");
+    expect(html).not.toContain('data-completed-cast-gate');
+    expect(html).toContain("data-shared-reading-summary");
+    expect(html).toContain('data-reading-open="none"');
     expect(html).not.toContain("data-ritual-result-card");
     expect(html).not.toContain("data-deep-reading-entry");
   });
@@ -240,14 +241,14 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).not.toContain("data-primary-card");
   });
 
-  it("keeps an anonymous high-risk completed cast behind the auth gate without leaking interpretation", () => {
+  it("keeps anonymous high-risk basic results visible and both reading entries closed", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "我是否应该停止服用处方药？" }} />,
     );
-    expect(html).toContain('data-completed-cast-gate="auth-required"');
-    expect(html).toContain("登录、保存并查看本次卦象");
-    expect(html).not.toContain("data-primary-card");
+    expect(html).not.toContain('data-completed-cast-gate');
+    expect(html).toContain("data-shared-reading-summary");
+    expect(html).toContain('data-reading-open="none"');
     expect(html).not.toContain("免费卦象解读仍可完整查看");
   });
 

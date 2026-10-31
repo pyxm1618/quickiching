@@ -1,0 +1,131 @@
+{
+  "originalTotal": 20,
+  "states": {
+    "approved / pass": 11,
+    "deferred": 9,
+    "confirmed reject / delete": 0,
+    "unreviewed / unknown": 0
+  },
+  "items": [
+    {
+      "id": "REQ-01",
+      "requirement": "Final supplied assets",
+      "state": "approved / pass",
+      "evidence": "See verification report and browser/unit artifacts."
+    },
+    {
+      "id": "REQ-02",
+      "requirement": "One background for three states",
+      "state": "approved / pass",
+      "evidence": "See verification report and browser/unit artifacts."
+    },
+    {
+      "id": "REQ-03",
+      "requirement": "Ask Your Question visual",
+      "state": "deferred",
+      "evidence": "Implemented and captured; exact pixel equivalence is not claimed. Compare supplied references and overlays, including typography, ornament, and retained global header differences."
+    },
+    {
+      "id": "REQ-04",
+      "requirement": "Choose a Number visual",
+      "state": "deferred",
+      "evidence": "Implemented and captured; exact pixel equivalence is not claimed. Compare supplied references and overlays, including typography, ornament, and retained global header differences."
+    },
+    {
+      "id": "REQ-05",
+      "requirement": "Confirm Your Number visual",
+      "state": "deferred",
+      "evidence": "Implemented and captured; exact pixel equivalence is not claimed. Compare supplied references and overlays, including typography, ornament, and retained global header differences."
+    },
+    {
+      "id": "REQ-06",
+      "requirement": "Click-time locking and reload",
+      "state": "approved / pass",
+      "evidence": "See verification report and browser/unit artifacts."
+    },
+    {
+      "id": "REQ-07",
+      "requirement": "No Step 4",
+      "state": "approved / pass",
+      "evidence": "See verification report and browser/unit artifacts."
+    },
+    {
+      "id": "REQ-08",
+      "requirement": "Shared existing reading component",
+      "state": "approved / pass",
+      "evidence": "See verification report and browser/unit artifacts."
+    },
+    {
+      "id": "REQ-09",
+      "requirement": "Live cast names and six DOM lines",
+      "state": "approved / pass",
+      "evidence": "Actual browser Three Coin casts, including changing and no-changing cases; names, line positions and related hexagram are computed from sealed values."
+    },
+    {
+      "id": "REQ-10",
+      "requirement": "Reuse Free / Deep content",
+      "state": "approved / pass",
+      "evidence": "See verification report and browser/unit artifacts."
+    },
+    {
+      "id": "REQ-11",
+      "requirement": "Authentication and continuation",
+      "state": "deferred",
+      "evidence": "Anonymous summary and both entry continuations PASS with explicitly named auth test responses. Live provider/account login NOT VERIFIED because local Auth capability is closed."
+    },
+    {
+      "id": "REQ-12",
+      "requirement": "Unapproved Mei Hua algorithm",
+      "state": "deferred",
+      "evidence": "Explicit user scope: algorithm remains unverified; Deep backend remains three_coin only. No domain, backend API or schema change."
+    },
+    {
+      "id": "REQ-13",
+      "requirement": "Mei Hua / Yarrow Deep backend",
+      "state": "deferred",
+      "evidence": "Explicit user scope: algorithm remains unverified; Deep backend remains three_coin only. No domain, backend API or schema change."
+    },
+    {
+      "id": "REQ-14",
+      "requirement": "Scene book navigation",
+      "state": "approved / pass",
+      "evidence": "See verification report and browser/unit artifacts."
+    },
+    {
+      "id": "REQ-15",
+      "requirement": "Pixel fidelity",
+      "state": "deferred",
+      "evidence": "Implemented and captured; exact pixel equivalence is not claimed. Compare supplied references and overlays, including typography, ornament, and retained global header differences."
+    },
+    {
+      "id": "REQ-16",
+      "requirement": "375px responsiveness",
+      "state": "approved / pass",
+      "evidence": "See verification report and browser/unit artifacts."
+    },
+    {
+      "id": "REQ-17",
+      "requirement": "Performance boundaries",
+      "state": "approved / pass",
+      "evidence": "See verification report and browser/unit artifacts."
+    },
+    {
+      "id": "REQ-18",
+      "requirement": "Scope preservation",
+      "state": "approved / pass",
+      "evidence": "See verification report and browser/unit artifacts."
+    },
+    {
+      "id": "REQ-19",
+      "requirement": "Acceptance gates",
+      "state": "deferred",
+      "evidence": "Core gates pass; full Chinese interactive gate stops at unrelated Pricing preview PurchaseButton under local closed commercial capability. No payment/config workaround or threshold reduction."
+    },
+    {
+      "id": "REQ-20",
+      "requirement": "Draft PR delivery",
+      "state": "deferred",
+      "evidence": "Commit/push and final-head CI are recorded by the live Draft PR and final chat report; not assumed green in this pre-push artifact."
+    }
+  ]
+}

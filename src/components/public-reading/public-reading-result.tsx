@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useState } from "react";
+import { SharedReadingSummary, type ReadingChoice } from "./shared-reading-summary";
+import { buildResultSigninHref } from "@/lib/commercial-navigation";
+import { readReadingEntry, readingEntryKey, readingEntryReturnPath, readingEntryFromCallback, readingUserSignedIn } from "@/lib/reading-entry";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
@@ -53,6 +56,8 @@ export function PublicReadingResult({
   headingLevel = "h3",
   newReadingLabel = dictionary.reading.newReading,
   presentation = "default",
+  authenticated,
+  showEntrySummary = true,
 }: {
   reading: PublicReading;
   onNewReading?: () => void;
@@ -66,6 +71,8 @@ export function PublicReadingResult({
   headingLevel?: "h1" | "h3";
   newReadingLabel?: string;
   presentation?: "default" | "ritual";
+  authenticated?: boolean;
+  showEntrySummary?: boolean;
 }) {
   const [bundles, setBundles] = useState<{ primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null }>(initialBundles ?? {});
   const [resolvedLocalizedContent, setResolvedLocalizedContent] = useState<LocalizedReadingContent | undefined>(localizedContent);
@@ -133,8 +140,73 @@ export function PublicReadingResult({
   );
   const isChinese = dictionary.locale === "zh-Hans";
   const ritual = presentation === "ritual";
-  const ResultHeading = headingLevel;
+  const ResultHeading = ritual ? "h2" : headingLevel;
   const ResultDetails = ritual ? "div" : React.Fragment;
+  const sharedSummary = showEntrySummary && reading.method !== "manual";
+  const deepHref = deepReadingHref ?? `${isChinese ? "/zh" : ""}/readings/deep?session=${encodeURIComponent(reading.id)}`;
+  const deepUnavailable = reading.method === "manual"
+    || (!deepReadingHref && !onDeepReading && reading.evidence.kind === "history" && reading.method !== "three-coin");
+  const [entry, setEntry] = useState<ReadingChoice | null>(null);
+  const [entryBusy, setEntryBusy] = useState(false);
+  const [entryError, setEntryError] = useState("");
+  const continueEntry = useCallback((choice: ReadingChoice) => {
+    if (choice === "free") {
+      setEntry(choice);
+      return;
+    }
+    if (deepUnavailable) {
+      setEntryError(isChinese ? "本次起卦缺少深度解读所需的受支持起卦依据。" : "Deep Reading is unavailable because supported casting evidence is missing.");
+      return;
+    }
+    if (onDeepReading) onDeepReading();
+    else {
+      if (!deepReadingHref) writeCompletedPublicReading(reading);
+      window.location.assign(deepHref);
+    }
+  }, [deepHref, deepReadingHref, deepUnavailable, isChinese, onDeepReading, reading]);
+  useEffect(() => {
+    let active = true;
+    setEntry(null);
+    if (!sharedSummary) return;
+    async function restore() {
+      try {
+        const pending = readReadingEntry(window.sessionStorage, reading.id) ?? readingEntryFromCallback(window.location, reading.id);
+        if (!pending) return;
+        const signedIn = authenticated === true || await readingUserSignedIn();
+        if (active && signedIn) {
+          window.sessionStorage.setItem(readingEntryKey(reading.id), pending);
+          continueEntry(pending);
+        }
+      } catch {
+        if (active) setEntryError(isChinese ? "无法恢复解读选择，请重试。" : "Could not restore your reading choice. Please try again.");
+      }
+    }
+    void restore();
+    return () => { active = false; };
+  }, [reading.id, authenticated, isChinese, sharedSummary, continueEntry]);
+  useEffect(() => {
+    if (!entry) return;
+    document.getElementById(`reading-${entry}`)?.scrollIntoView({ block: "start" });
+  }, [entry]);
+
+  async function chooseEntry(choice: ReadingChoice) {
+    setEntryBusy(true);
+    setEntryError("");
+    try {
+      window.sessionStorage.setItem(readingEntryKey(reading.id), choice);
+      const signedIn = authenticated === true || await readingUserSignedIn();
+      if (!signedIn) {
+        window.location.assign(buildResultSigninHref(readingEntryReturnPath(window.location, choice, reading.id), dictionary.locale));
+        return;
+      }
+      continueEntry(choice);
+    } catch {
+      setEntryError(isChinese ? "无法打开解读，请重试。" : "Could not open your reading. Please try again.");
+    } finally {
+      setEntryBusy(false);
+    }
+  }
+
   const movingPositions = reading.changingLines.join(isChinese ? "、" : ", ");
   const hasChangingLines = reading.changingLines.length > 0;
   const localizedHref = (href: string) => isChinese && href.startsWith("/hexagrams/") ? `/zh${href}` : href;
@@ -156,7 +228,6 @@ export function PublicReadingResult({
     }
   }
 
-  const deepHref = deepReadingHref ?? `${isChinese ? "/zh" : ""}/readings/deep?session=${encodeURIComponent(reading.id)}`;
   function prepareDeepReading(event: React.MouseEvent<HTMLAnchorElement>) {
     if (deepReadingHref) return;
     try {
@@ -167,8 +238,6 @@ export function PublicReadingResult({
       setDeepEntryError(true);
     }
   }
-  const deepUnavailable = reading.method === "manual"
-    || (!deepReadingHref && !onDeepReading && reading.evidence.kind === "history" && reading.method !== "three-coin");
   function deepCta(placement: "top" | "bottom") {
     return <section className="mystic-card-soft mt-5 p-5 sm:p-6" data-deep-reading-cta={placement}>
       <h2 className="font-display text-2xl font-normal">{isChinese ? "想知道这个卦象对你的问题意味着什么？" : "Want to know what this means for your question?"}</h2>
@@ -182,6 +251,8 @@ export function PublicReadingResult({
 
   return (
     <section className="reading-reveal" aria-live="polite" aria-labelledby="public-reading-result-title" data-public-reading-result data-reading-fingerprint={readingFingerprint(reading)}>
+      {sharedSummary ? <SharedReadingSummary reading={reading} model={model} zh={isChinese} onChoose={(choice) => { void chooseEntry(choice); }} busy={entryBusy} error={entryError} /> : null}
+      <div id="reading-free" className={sharedSummary ? "shared-reading-content" : undefined} hidden={sharedSummary && !entry} style={sharedSummary && !entry ? { display: "none" } : undefined} data-reading-open={sharedSummary ? entry ?? "none" : "free"}>
       <ResultDetails {...(ritual ? { className: "mx-auto max-w-5xl px-4 py-8" } : {})}>
       <div className="text-center">
         <p className="mystic-kicker">{resolveReadingKicker(reading, dictionary)}</p>
@@ -242,6 +313,7 @@ export function PublicReadingResult({
       </div>
       <p className="mt-7 border-t border-white/[0.08] pt-5 text-xs leading-6 text-[var(--ink-3)]">{dictionary.reading.safety}</p>
       </ResultDetails>
+      </div>
     </section>
   );
 }
