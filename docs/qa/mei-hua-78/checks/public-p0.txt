@@ -1,7 +1,7 @@
 [Public P0 Browser Gate] 140-URL sitemap, English/Chinese hubs, entity metadata/anchors, History noindex, and API closure PASS
 [Public P0 Browser Gate] Question freeze, six authoritative casts, privacy, completed-cast restore, and anonymous-summary PASS
 [Public P0 Browser Gate] Optional question skip, first-line freeze, six-line completion, and anonymous-summary PASS
-[Public P0 Browser Gate] Chinese no-changing completed cast remains sealed behind anonymous-summary PASS
+[Public P0 Browser Gate] Chinese no-changing anonymous summary preserves the stable cast PASS
 [Public P0 Browser Gate] Chinese question binding, same-cast restore source, privacy, and anonymous-summary PASS
 [Public P0 Browser Gate] Partial Three-Coin restart preserves the question while replacing identity and cast facts PASS
 [Public P0 Browser Gate] Partial Yarrow restart preserves the question while replacing identity and change facts PASS

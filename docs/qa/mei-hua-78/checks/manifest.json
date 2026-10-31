@@ -1,0 +1,111 @@
+{
+  "testedApplicationCommit": "e58a386",
+  "integrationHead": "d9154f741f2ec353b7d8dccce8dace5317c7d690",
+  "note": "Later changes are verification scripts and evidence only. Log formatting removes terminal colors, CR and trailing whitespace; outcomes are not edited. Baseline logs are separately archived. Real auth/provider acceptance is NOT VERIFIED.",
+  "checks": [
+    {
+      "name": "lint",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "lint.txt"
+    },
+    {
+      "name": "typecheck",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "typecheck.txt"
+    },
+    {
+      "name": "unit-tests",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "unit-tests.txt"
+    },
+    {
+      "name": "production-build",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "production-build.txt"
+    },
+    {
+      "name": "browser",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "browser.txt"
+    },
+    {
+      "name": "three-coin",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "three-coin.txt"
+    },
+    {
+      "name": "public-p0",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "public-p0.txt"
+    },
+    {
+      "name": "interpretation-bundle",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "interpretation-bundle.txt"
+    },
+    {
+      "name": "reading-business",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "reading-business.txt"
+    },
+    {
+      "name": "ui-and-auth-seam",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "ui-and-auth-seam.txt"
+    },
+    {
+      "name": "chinese-full-gate-blocked",
+      "exitCode": 1,
+      "status": "BLOCKED: unrelated closed-capability Pricing preview PurchaseButton",
+      "log": "chinese-full-gate-blocked.txt"
+    },
+    {
+      "name": "lighthouse",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "lighthouse.txt"
+    },
+    {
+      "name": "scene",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "scene.txt"
+    },
+    {
+      "name": "motion",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "motion.txt"
+    },
+    {
+      "name": "existing-ritual-assets",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "assets.txt"
+    }
+  ],
+  "sourceSha256": {
+    "src/components/public-reading/mei-hua-number-flow.tsx": "52ba24d80c0f74601ec39439ce6e7fde349c73df6fa53817f7ee5c838ac848ef",
+    "src/components/public-reading/mei-hua-scene.css": "a430b049fc7d96652e185b9cc3b83ac07e6bc9aa9c87d90bbfe11ee9e51fd3ef",
+    "src/components/public-reading/public-reading-result.tsx": "dd18b98d21ca32dcd02e5fb1b0ba3d4f34c2ee7f089e567d66a307408f80100f",
+    "src/components/public-reading/shared-reading-summary.tsx": "9ea720f8bdfb11cd1320c79625e10c904dbaf109badc74c887e41382f817b7e4",
+    "src/components/public-reading/shared-reading-summary.css": "48ee1f0f82b1290cae475f290ae1d41c3e5aa2b37e3f7eb5675cfc0186387fe5",
+    "src/components/three-coin-result/three-coin-result-client.tsx": "4ff11eac71a433843489334f5f470d269e0d233ac56f1ca8987061d4f0b76ba2",
+    "src/components/three-coin-result/reading-page.tsx": "a62c0dcc4dc5e17f587b5db468833fd2f9c19374e0be8bf8e8a8a1a3ad70ef1f",
+    "src/lib/reading-entry.ts": "33e9eec90957c50dbd08b11263cfae2cd6e640d58ca6fdbaed004bab81713017"
+  },
+  "localRuntime": {
+    "node": "v26.7.0",
+    "bun": "1.4.2"
+  }
+}

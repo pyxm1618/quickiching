@@ -14,21 +14,21 @@
       "mode": "normal",
       "status": "PASS",
       "firstResult": {
-        "elapsed": 1822.1000000238419,
+        "elapsed": 1830.8999999761581,
         "view": "result",
         "phase": "casting",
         "labelOpacity": 0,
         "recordEnabled": false
       },
       "firstLabel": {
-        "elapsed": 1888.1000000238419,
+        "elapsed": 1895.5,
         "view": "result",
         "phase": "casting",
-        "labelOpacity": 0.162214,
+        "labelOpacity": 0.161192,
         "recordEnabled": false
       },
       "firstAction": {
-        "elapsed": 2088.100000023842,
+        "elapsed": 2079.800000011921,
         "view": "result",
         "phase": "settled",
         "labelOpacity": 1,
@@ -42,21 +42,21 @@
       "mode": "reduced",
       "status": "PASS",
       "firstResult": {
-        "elapsed": 312.69999998807907,
+        "elapsed": 315.5999999642372,
         "view": "result",
         "phase": "casting",
         "labelOpacity": 0,
         "recordEnabled": false
       },
       "firstLabel": {
-        "elapsed": 328.30000001192093,
+        "elapsed": 329.19999998807907,
         "view": "result",
         "phase": "settled",
-        "labelOpacity": 0.464093,
+        "labelOpacity": 0.462434,
         "recordEnabled": false
       },
       "firstAction": {
-        "elapsed": 478.60000002384186,
+        "elapsed": 479.2999999523163,
         "view": "result",
         "phase": "settled",
         "labelOpacity": 1,
@@ -71,21 +71,21 @@
       "coverage": "first-cast cancellation recovery",
       "status": "PASS",
       "firstResult": {
-        "elapsed": 1831.9000000357628,
+        "elapsed": 1829.1000000238419,
         "view": "result",
         "phase": "casting",
         "labelOpacity": 1,
         "recordEnabled": false
       },
       "firstLabel": {
-        "elapsed": 1831.9000000357628,
+        "elapsed": 1829.1000000238419,
         "view": "result",
         "phase": "casting",
         "labelOpacity": 1,
         "recordEnabled": false
       },
       "firstAction": {
-        "elapsed": 2094.900000035763,
+        "elapsed": 2095.2000000476837,
         "view": "result",
         "phase": "settled",
         "labelOpacity": 1,

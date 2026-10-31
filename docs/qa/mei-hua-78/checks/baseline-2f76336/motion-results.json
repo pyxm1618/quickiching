@@ -1,0 +1,97 @@
+{
+  "browser": "Chrome/156.0.8078.48",
+  "viewport": [
+    1672,
+    941
+  ],
+  "dpr": 1,
+  "originalTotal": 3,
+  "pass": 3,
+  "fail": 0,
+  "unreviewed": 0,
+  "outcomes": [
+    {
+      "mode": "normal",
+      "status": "PASS",
+      "firstResult": {
+        "elapsed": 1822.1000000238419,
+        "view": "result",
+        "phase": "casting",
+        "labelOpacity": 0,
+        "recordEnabled": false
+      },
+      "firstLabel": {
+        "elapsed": 1888.1000000238419,
+        "view": "result",
+        "phase": "casting",
+        "labelOpacity": 0.162214,
+        "recordEnabled": false
+      },
+      "firstAction": {
+        "elapsed": 2088.100000023842,
+        "view": "result",
+        "phase": "settled",
+        "labelOpacity": 1,
+        "recordEnabled": true
+      },
+      "anonymousSummary": true,
+      "sameCast": true,
+      "note": "Login continuation is separately exercised by mei-hua-ui-browser-gate with named test-only auth responses."
+    },
+    {
+      "mode": "reduced",
+      "status": "PASS",
+      "firstResult": {
+        "elapsed": 312.69999998807907,
+        "view": "result",
+        "phase": "casting",
+        "labelOpacity": 0,
+        "recordEnabled": false
+      },
+      "firstLabel": {
+        "elapsed": 328.30000001192093,
+        "view": "result",
+        "phase": "settled",
+        "labelOpacity": 0.464093,
+        "recordEnabled": false
+      },
+      "firstAction": {
+        "elapsed": 478.60000002384186,
+        "view": "result",
+        "phase": "settled",
+        "labelOpacity": 1,
+        "recordEnabled": true
+      },
+      "anonymousSummary": true,
+      "sameCast": true,
+      "note": "Login continuation is separately exercised by mei-hua-ui-browser-gate with named test-only auth responses."
+    },
+    {
+      "mode": "animation-suppressed",
+      "coverage": "first-cast cancellation recovery",
+      "status": "PASS",
+      "firstResult": {
+        "elapsed": 1831.9000000357628,
+        "view": "result",
+        "phase": "casting",
+        "labelOpacity": 1,
+        "recordEnabled": false
+      },
+      "firstLabel": {
+        "elapsed": 1831.9000000357628,
+        "view": "result",
+        "phase": "casting",
+        "labelOpacity": 1,
+        "recordEnabled": false
+      },
+      "firstAction": {
+        "elapsed": 2094.900000035763,
+        "view": "result",
+        "phase": "settled",
+        "labelOpacity": 1,
+        "recordEnabled": true
+      }
+    }
+  ],
+  "note": "Observed timing and business boundaries only; image/motion fidelity is a separate human gate."
+}

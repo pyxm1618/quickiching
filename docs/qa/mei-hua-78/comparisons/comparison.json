@@ -1,0 +1,53 @@
+{
+  "kind": "Native-size reference comparison; no fidelity score or pixel PASS asserted",
+  "items": [
+    {
+      "view": "step-1",
+      "reference": "reference-step-1.png",
+      "candidate": "screenshots/desktop-step-1.png",
+      "size": [
+        1670,
+        942
+      ],
+      "resampling": false,
+      "status": "VISUAL_DIFFERENCES_REMAIN",
+      "notes": "Supplied final cutouts and room differ from the composited references. Retained global header, font identity, dynamic question/time/hexagrams and available CTA ornaments prevent an exact pixel equivalence claim."
+    },
+    {
+      "view": "step-2",
+      "reference": "reference-step-2.png",
+      "candidate": "screenshots/desktop-step-2.png",
+      "size": [
+        1670,
+        942
+      ],
+      "resampling": false,
+      "status": "VISUAL_DIFFERENCES_REMAIN",
+      "notes": "Supplied final cutouts and room differ from the composited references. Retained global header, font identity, dynamic question/time/hexagrams and available CTA ornaments prevent an exact pixel equivalence claim."
+    },
+    {
+      "view": "step-3",
+      "reference": "reference-step-3.png",
+      "candidate": "screenshots/desktop-step-3.png",
+      "size": [
+        1670,
+        942
+      ],
+      "resampling": false,
+      "status": "VISUAL_DIFFERENCES_REMAIN",
+      "notes": "Supplied final cutouts and room differ from the composited references. Retained global header, font identity, dynamic question/time/hexagrams and available CTA ornaments prevent an exact pixel equivalence claim."
+    },
+    {
+      "view": "shared-reading",
+      "reference": "reference-shared-reading.png",
+      "candidate": "screenshots/desktop-shared-reference.png",
+      "size": [
+        1983,
+        793
+      ],
+      "resampling": false,
+      "status": "VISUAL_DIFFERENCES_REMAIN",
+      "notes": "Supplied final cutouts and room differ from the composited references. Retained global header, font identity, dynamic question/time/hexagrams and available CTA ornaments prevent an exact pixel equivalence claim."
+    }
+  ]
+}

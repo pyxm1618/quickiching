@@ -9,9 +9,14 @@ import chromium from '@sparticuz/chromium';
 import { resolveChromeExecutable } from './browser-runtime.mjs';
 // Exercise the real components with explicit simulated network responses.
 const directory = await mkdtemp(join(tmpdir(),'qic-reading-browser-'));
-execFileSync('bun',['build','scripts/fixtures/reading-business-entry.tsx','--outdir',directory,'--target','browser','--production'],{stdio:'pipe'});
+execFileSync('bun',['build','scripts/fixtures/reading-business-entry.tsx','--outdir',directory,'--target','browser','--production','--external=/mei-hua/*'],{stdio:'pipe'});
 const server = createServer(async (request,response) => {
   const path = new URL(request.url,'http://localhost').pathname;
+  if (/^\/mei-hua\/[a-z-]+\.webp$/.test(path)) {
+    response.setHeader('Content-Type','image/webp');
+    response.end(await readFile('public'+path));
+    return;
+  }
   const asset = path === '/reading-business-entry.js' || path === '/reading-business-entry.css' ? path.slice(1) : null;
   try {
     response.setHeader('Content-Type',asset?.endsWith('.js') ? 'text/javascript' : asset ? 'text/css' : 'text/html');
@@ -29,7 +34,10 @@ try {
  for(const method of ['three_coin','yarrow_stalk','mei_hua_current_time']) {
   console.log('checking',method);
   await page.goto(`${fixtureBase}/?method=${method}`,{waitUntil:'networkidle0'});
-  await page.waitForSelector('[data-public-reading-result]');
+  await page.waitForSelector('[data-shared-reading-summary]');
+  assert.equal(await page.$eval('.shared-reading-content',node=>getComputedStyle(node).display),'none');
+  await page.click('[data-reading-choice="free"]');
+  await page.waitForSelector('[data-reading-open="free"]');
   const free=await page.evaluate(()=>({ctas:[...document.querySelectorAll('a')].filter(a=>a.textContent==='Get My Deep Reading').length, forms:document.querySelectorAll('textarea').length,overall:!!document.querySelector('[data-overall-reading]')}));
   assert.equal(free.ctas,2); assert.equal(free.forms,0);
   evidence.push({method,free});

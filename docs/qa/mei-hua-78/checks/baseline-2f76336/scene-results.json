@@ -1,0 +1,391 @@
+{
+  "kind": "isolated local business fixture / real algorithm and real renderer; not Pixel or real-account acceptance",
+  "originalTotal": 16,
+  "pass": 16,
+  "fail": 0,
+  "unreviewed": 0,
+  "outcomes": [
+    {
+      "bits": [
+        0,
+        0,
+        0
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yin",
+        "yin",
+        "yin"
+      ],
+      "lineValue": 6,
+      "status": "PASS",
+      "id": "faces-0"
+    },
+    {
+      "bits": [
+        1,
+        0,
+        0
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yang",
+        "yin",
+        "yin"
+      ],
+      "lineValue": 7,
+      "status": "PASS",
+      "id": "faces-1"
+    },
+    {
+      "bits": [
+        0,
+        1,
+        0
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yin",
+        "yang",
+        "yin"
+      ],
+      "lineValue": 7,
+      "status": "PASS",
+      "id": "faces-2"
+    },
+    {
+      "bits": [
+        1,
+        1,
+        0
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yang",
+        "yang",
+        "yin"
+      ],
+      "lineValue": 8,
+      "status": "PASS",
+      "id": "faces-3"
+    },
+    {
+      "bits": [
+        0,
+        0,
+        1
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yin",
+        "yin",
+        "yang"
+      ],
+      "lineValue": 7,
+      "status": "PASS",
+      "id": "faces-4"
+    },
+    {
+      "bits": [
+        1,
+        0,
+        1
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yang",
+        "yin",
+        "yang"
+      ],
+      "lineValue": 8,
+      "status": "PASS",
+      "id": "faces-5"
+    },
+    {
+      "bits": [
+        0,
+        1,
+        1
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yin",
+        "yang",
+        "yang"
+      ],
+      "lineValue": 8,
+      "status": "PASS",
+      "id": "faces-6"
+    },
+    {
+      "bits": [
+        1,
+        1,
+        1
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yang",
+        "yang",
+        "yang"
+      ],
+      "lineValue": 9,
+      "status": "PASS",
+      "id": "faces-7"
+    },
+    {
+      "bits": [
+        1,
+        0,
+        0
+      ],
+      "zh": false,
+      "reduced": true,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yang",
+        "yin",
+        "yin"
+      ],
+      "lineValue": 7,
+      "status": "PASS",
+      "id": "reduced"
+    },
+    {
+      "bits": [
+        0,
+        1,
+        0
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": true,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yin",
+        "yang",
+        "yin"
+      ],
+      "lineValue": 7,
+      "status": "PASS",
+      "id": "fallback"
+    },
+    {
+      "bits": [
+        1,
+        0,
+        1
+      ],
+      "zh": true,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yang",
+        "yin",
+        "yang"
+      ],
+      "lineValue": 8,
+      "status": "PASS",
+      "id": "zh"
+    },
+    {
+      "bits": [
+        1,
+        0,
+        0
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": true,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yang",
+        "yin",
+        "yin"
+      ],
+      "lineValue": 7,
+      "status": "PASS",
+      "id": "storage-retry"
+    },
+    {
+      "bits": [
+        0,
+        0,
+        1
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": true,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": false,
+      "faces": [
+        "yin",
+        "yin",
+        "yang"
+      ],
+      "lineValue": 7,
+      "status": "PASS",
+      "id": "module-fallback"
+    },
+    {
+      "bits": [
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": true,
+      "deferTextures": false,
+      "faces": [
+        "yin",
+        "yang",
+        "yin"
+      ],
+      "lineValue": 7,
+      "status": "PASS",
+      "id": "six-lines-auth"
+    },
+    {
+      "bits": [
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0
+      ],
+      "zh": true,
+      "reduced": true,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": true,
+      "deferTextures": false,
+      "faces": [
+        "yang",
+        "yin",
+        "yang"
+      ],
+      "lineValue": 8,
+      "status": "PASS",
+      "id": "six-lines-auth-zh-reduced"
+    },
+    {
+      "bits": [
+        1,
+        0,
+        1
+      ],
+      "zh": false,
+      "reduced": false,
+      "fallback": false,
+      "moduleFailure": false,
+      "storageFailure": false,
+      "completedFlow": false,
+      "deferTextures": true,
+      "faces": [
+        "yang",
+        "yin",
+        "yang"
+      ],
+      "lineValue": 8,
+      "status": "PASS",
+      "id": "texture-readiness"
+    }
+  ]
+}

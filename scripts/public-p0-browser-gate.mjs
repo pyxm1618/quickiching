@@ -101,11 +101,11 @@ async function verifyChineseNoChangingLines(page) {
   }));
   assert(gate.hasSixLines, "Chinese auth gate must preserve the completed six lines");
   assert.equal(gate.primaryCard, true, "Basic primary hexagram is visible anonymously");
-  assert.equal(gate.relatingCard, false, "Chinese anonymous gate must not reveal whether a relating hexagram exists");
+  assert.equal(gate.relatingCard, false, "A genuine no-changing cast must show no relating six-line hexagram");
   assert.equal(gate.signInAria, undefined, "No pre-result sign-in action is allowed");
   assert(gate.text.includes("你的问题"), "Anonymous Chinese summary must show the question heading");
   await assertNoOverflow(page, "Chinese no-changing completed-cast gate 390px");
-  log("Chinese no-changing completed cast remains sealed behind anonymous-summary PASS");
+  log("Chinese no-changing anonymous summary preserves the stable cast PASS");
 }
 
 async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, question = "") {
@@ -134,7 +134,8 @@ async function openSeededThreeCoinResult(page, locale = "en") {
   }, { timeout: 15_000 });
   await new Promise((resolve) => setTimeout(resolve, 500));
   assert.equal(new URL(page.url()).pathname, methodPath, "Restored completed cast must not auto-navigate to an old result");
-  await page.goto(`${BASE}${resultPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
+  const castId = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key)).id, THREE_COIN_STORAGE_KEY);
+  await page.goto(`${BASE}${resultPath}?session=${encodeURIComponent(castId)}`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector("[data-shared-reading-summary]", { timeout: 15_000 });
 }
 

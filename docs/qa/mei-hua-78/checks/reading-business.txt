@@ -1,0 +1,82 @@
+checking three_coin
+checking yarrow_stalk
+checking mei_hua_current_time
+[
+  {
+    "method": "three_coin",
+    "free": {
+      "ctas": 2,
+      "forms": 0,
+      "overall": true
+    }
+  },
+  {
+    "method": "three_coin",
+    "deep": {
+      "sections": true,
+      "postBody": {
+        "locale": "en"
+      },
+      "report": true
+    }
+  },
+  {
+    "method": "yarrow_stalk",
+    "free": {
+      "ctas": 2,
+      "forms": 0,
+      "overall": true
+    }
+  },
+  {
+    "method": "yarrow_stalk",
+    "deep": {
+      "sections": true,
+      "postBody": {
+        "locale": "en"
+      },
+      "report": true
+    }
+  },
+  {
+    "method": "mei_hua_current_time",
+    "free": {
+      "ctas": 2,
+      "forms": 0,
+      "overall": true
+    }
+  },
+  {
+    "method": "mei_hua_current_time",
+    "deep": {
+      "sections": true,
+      "postBody": {
+        "locale": "en"
+      },
+      "report": true
+    }
+  },
+  {
+    "invalidCompletedOutput": "explicit-error-no-stuck-spinner"
+  },
+  {
+    "actualNextRoute": "/readings/three-coin/result",
+    "emptyState": true,
+    "pageErrors": 0
+  },
+  {
+    "actualNextRoute": "/readings/deep",
+    "emptyState": true,
+    "pageErrors": 0
+  },
+  {
+    "actualNextRoute": "/zh/readings/result",
+    "emptyState": true,
+    "pageErrors": 0
+  },
+  {
+    "actualNextRoute": "/zh/readings/deep",
+    "emptyState": true,
+    "pageErrors": 0
+  }
+]

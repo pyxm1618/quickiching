@@ -1,8 +1,8 @@
 {
   "originalTotal": 20,
   "states": {
-    "approved / pass": 11,
-    "deferred": 9,
+    "approved / pass": 12,
+    "deferred": 8,
     "confirmed reject / delete": 0,
     "unreviewed / unknown": 0
   },
@@ -71,19 +71,19 @@
       "id": "REQ-11",
       "requirement": "Authentication and continuation",
       "state": "deferred",
-      "evidence": "Anonymous summary and both entry continuations PASS with explicitly named auth test responses. Live provider/account login NOT VERIFIED because local Auth capability is closed."
+      "evidence": "Anonymous summary and exact cast/intent callback PASS with named test-only authentication. Free opens; Deep restores its original dedicated route and local closed-auth gate. Real provider round trip NOT VERIFIED."
     },
     {
       "id": "REQ-12",
       "requirement": "Unapproved Mei Hua algorithm",
       "state": "deferred",
-      "evidence": "Explicit user scope: algorithm remains unverified; Deep backend remains three_coin only. No domain, backend API or schema change."
+      "evidence": "The number-time algorithm is byte-for-byte unchanged and unverified; click-time locking/reload and explicit blocked UI pass."
     },
     {
       "id": "REQ-13",
       "requirement": "Mei Hua / Yarrow Deep backend",
-      "state": "deferred",
-      "evidence": "Explicit user scope: algorithm remains unverified; Deep backend remains three_coin only. No domain, backend API or schema change."
+      "state": "approved / pass",
+      "evidence": "No backend change in this round. Inherited d9154f7 already supports Yarrow and legacy current-time Mei Hua; new number-time Mei Hua remains blocked. Live backend acceptance is not claimed."
     },
     {
       "id": "REQ-14",
@@ -107,25 +107,25 @@
       "id": "REQ-17",
       "requirement": "Performance boundaries",
       "state": "approved / pass",
-      "evidence": "See verification report and browser/unit artifacts."
+      "evidence": "Unchanged budgets PASS: mobile 97/LCP2250ms, desktop100/LCP520ms; documented WebP resizing, responsive room, deferred state-specific artwork."
     },
     {
       "id": "REQ-18",
       "requirement": "Scope preservation",
       "state": "approved / pass",
-      "evidence": "See verification report and browser/unit artifacts."
+      "evidence": "Diff against d9154f7 preserves inherited business/backend work. Only common result route metadata continuity was restored to satisfy existing private-result browser gates; no SEO expansion."
     },
     {
       "id": "REQ-19",
       "requirement": "Acceptance gates",
       "state": "deferred",
-      "evidence": "Core gates pass; full Chinese interactive gate stops at unrelated Pricing preview PurchaseButton under local closed commercial capability. No payment/config workaround or threshold reduction."
+      "evidence": "149 files/992 tests, lint/typecheck/build, UI, general browser, Three Coin, P0, bundles, Reading fixtures, scene16, motion3 and Lighthouse pass. Full Chinese gate remains blocked at unrelated Pricing preview PurchaseButton."
     },
     {
       "id": "REQ-20",
       "requirement": "Draft PR delivery",
       "state": "deferred",
-      "evidence": "Commit/push and final-head CI are recorded by the live Draft PR and final chat report; not assumed green in this pre-push artifact."
+      "evidence": "Existing branch/PR retained. Final-head push, Draft state and CI are checked live and reported separately; no merge. CI is not assumed green."
     }
   ]
 }

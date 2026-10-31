@@ -1,0 +1,3 @@
+[Interpretation Bundle Gate] HOMEPAGE_JS resources=18 bytes=758041; V2 catalog prose absent
+[Interpretation Bundle Gate] RESULT_JS resources=19 bytes=804793; shared result loader selected H13/H57 chunks; unrelated H1/H61 chunks absent
+[Interpretation Bundle Gate] INTERPRETATION BUNDLE BOUNDARY PASS

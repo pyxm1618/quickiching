@@ -307,12 +307,14 @@ async function assertNoOverflow(page) {
 }
 
 async function assertBasicResult(page) {
-  await page.waitForSelector("[data-shared-reading-summary], #public-reading-result-title");
-  const resultText = await page.$eval("[data-public-reading-result]", (node) => node.textContent || "");
-  for (const expected of ["Primary Hexagram", "Core meaning", "Reflect", "Save reading"]) {
-    assert(resultText.includes(expected), `Reading result missing: ${expected}`);
+  await page.waitForSelector("[data-shared-reading-summary]");
+  const resultText = await page.$eval("[data-shared-reading-summary]", node => node.textContent || "");
+  for (const expected of ["Your Question", "Primary Hexagram", "Changing Line", "Relating Hexagram", "Deep Reading", "Free Reading"]) {
+    assert(resultText.includes(expected), `Reading summary missing: ${expected}`);
   }
-  assert(resultText.toLocaleLowerCase().includes("changing line"), "Reading result must identify changing lines or state that no lines changed");
+  assert.equal(await page.$('[data-auth-required-before-reveal]'), null);
+  assert.equal(await page.$$eval('[data-summary-primary] [data-line-position]', nodes => nodes.length), 6);
+  assert.equal(await page.$eval('.shared-reading-content', node => getComputedStyle(node).display), 'none');
 }
 
 async function waitForRecordedLines(page,count) {
@@ -456,9 +458,24 @@ async function finishYarrow(page, verifyResume) {
     await waitForText(page, `${change} / 18 changes`);
   }
   await assertBasicResult(page);
-  await clickButton(page, "New reading");
-  await skipOptionalQuestion(page);
-  await waitForText(page, "0 / 18 changes");
+  // Explicit local auth seam: Free now requires login. Reuse the existing restart
+  // action after entry without claiming a real provider/account round trip.
+  const authRequest = request => new URL(request.url()).pathname === '/api/user/me'
+    ? request.respond({status:200,contentType:'application/json',body:JSON.stringify({user:{id:'browser-auth-seam',email:'qa@example.invalid'}})})
+    : request.continue();
+  await page.setRequestInterception(true);
+  page.on('request', authRequest);
+  try {
+    await clickButton(page, 'Free Reading');
+    await page.waitForSelector('[data-reading-open="free"]');
+    await Promise.all([page.waitForNavigation({waitUntil:'networkidle0'}), clickButton(page, 'Start a New Reading')]);
+    await page.waitForSelector('textarea[data-private-question]');
+    await skipOptionalQuestion(page);
+    await waitForText(page, '0 / 18 changes');
+  } finally {
+    page.off('request', authRequest);
+    await page.setRequestInterception(false);
+  }
 }
 
 async function finishMeiHua(page) {
