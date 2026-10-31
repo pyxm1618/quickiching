@@ -122,7 +122,7 @@ mobile: edit/reset, change-number, click-time seal, immutable reload, no Step 4,
     },
     {
       "name": "desktop-shared-reading",
-      "url": "http://127.0.0.1:3078/readings/result?session=9cdb2398-dea6-4c2c-a09f-a1d8c1d580fc",
+      "url": "http://127.0.0.1:3078/readings/result?session=6b706a05-3c42-44ca-b0f9-a9a5564d7331",
       "viewport": {
         "width": 1670,
         "height": 942,
@@ -140,7 +140,7 @@ mobile: edit/reset, change-number, click-time seal, immutable reload, no Step 4,
     },
     {
       "name": "desktop-shared-reference",
-      "url": "http://127.0.0.1:3078/readings/result?session=9cdb2398-dea6-4c2c-a09f-a1d8c1d580fc",
+      "url": "http://127.0.0.1:3078/readings/result?session=6b706a05-3c42-44ca-b0f9-a9a5564d7331",
       "viewport": {
         "width": 1983,
         "height": 793,
@@ -158,7 +158,7 @@ mobile: edit/reset, change-number, click-time seal, immutable reload, no Step 4,
     },
     {
       "name": "mobile-shared-reading",
-      "url": "http://127.0.0.1:3078/readings/result?session=9cdb2398-dea6-4c2c-a09f-a1d8c1d580fc",
+      "url": "http://127.0.0.1:3078/readings/result?session=6b706a05-3c42-44ca-b0f9-a9a5564d7331",
       "viewport": {
         "width": 375,
         "height": 812,
@@ -188,16 +188,16 @@ mobile: edit/reset, change-number, click-time seal, immutable reload, no Step 4,
     "Three Coin deep: anonymous summary → callback with same cast ID and selected destination PASS; provider login NOT VERIFIED (test-only auth seam)"
   ],
   "realThreeCoin": {
-    "id": "9cdb2398-dea6-4c2c-a09f-a1d8c1d580fc",
-    "createdAt": "2026-10-31T10:58:42.690Z",
+    "id": "6b706a05-3c42-44ca-b0f9-a9a5564d7331",
+    "createdAt": "2026-10-31T16:27:24.525Z",
     "lines": [
+      9,
       7,
-      6,
-      7,
-      7,
-      6,
+      8,
+      9,
+      8,
       7
     ],
-    "fingerprint": "public-reading-fingerprint-v1|1|three-coin|three-coin-v1|7,6,7,7,6,7|30|2,5|1"
+    "fingerprint": "public-reading-fingerprint-v1|1|three-coin|three-coin-v1|9,7,8,9,8,7|38|1,4|4"
   }
 }

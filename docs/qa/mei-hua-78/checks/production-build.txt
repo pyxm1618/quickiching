@@ -1,12 +1,11 @@
 $ next build
-workflows build complete (11 steps, 2 workflows, time 32ms)
+workflows build complete (11 steps, 2 workflows, time 27ms)
    ▲ Next.js 15.5.25
    - Experiments (use with caution):
      ✓ globalNotFound
 
    Creating an optimized production build ...
-<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (128kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
- ✓ Compiled successfully in 16.4s
+ ✓ Compiled successfully in 11.8s
    Skipping linting
    Checking validity of types ...
    Collecting page data ...

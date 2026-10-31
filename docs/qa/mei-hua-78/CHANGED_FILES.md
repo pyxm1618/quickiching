@@ -1,6 +1,6 @@
 # Changed files
 
-Compared with preserved integration head `d9154f7`: **127 tracked changed files**. Unreviewed = 0. Inherited backend/domain/Info/homepage work is preserved.
+Compared with preserved integration head `d9154f7`: **128 tracked changed files**. Unreviewed = 0. Inherited backend/domain/Info/homepage work is preserved.
 
 - [docs/qa/mei-hua-78/CHANGED_FILES.md](CHANGED_FILES.md)
 - [docs/qa/mei-hua-78/REVIEW.html](REVIEW.html)
@@ -59,6 +59,7 @@ Compared with preserved integration head `d9154f7`: **127 tracked changed files*
 - [docs/qa/mei-hua-78/comparisons/step-2-overlay.webp](comparisons/step-2-overlay.webp)
 - [docs/qa/mei-hua-78/comparisons/step-3-difference.webp](comparisons/step-3-difference.webp)
 - [docs/qa/mei-hua-78/comparisons/step-3-overlay.webp](comparisons/step-3-overlay.webp)
+- [docs/qa/mei-hua-78/failures/deep-to-free-before-fix.txt](failures/deep-to-free-before-fix.txt)
 - [docs/qa/mei-hua-78/failures/overflow-before-fix.png](failures/overflow-before-fix.png)
 - [docs/qa/mei-hua-78/measurement-shared-reading/annotations.svg](measurement-shared-reading/annotations.svg)
 - [docs/qa/mei-hua-78/measurement-shared-reading/measurements.json](measurement-shared-reading/measurements.json)

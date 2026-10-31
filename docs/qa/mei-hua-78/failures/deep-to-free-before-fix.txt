@@ -1,0 +1,20 @@
+checking three_coin
+file:///private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/common/QueryHandler.js:211
+                const waitForSelectorError = new (error instanceof TimeoutError ? TimeoutError : Error)(`Waiting for selector \`${selector}\` failed`);
+                                             ^
+
+TimeoutError: Waiting for selector `[data-reading-open="free"]` failed
+    at CSSQueryHandler.waitFor (file:///private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/common/QueryHandler.js:211:46)
+    at async CdpFrame.waitForSelector (file:///private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:541:21)
+    at async CdpPage.waitForSelector (file:///private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/api/Page.js:1387:20)
+    at async file:///Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/scripts/reading-business-browser.mjs:56:3 {
+  cause: TimeoutError: Waiting failed: 5000ms exceeded
+      at new WaitTask (file:///private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/common/WaitTask.js:46:34)
+      at IsolatedWorld.waitForFunction (file:///private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/api/Realm.js:49:26)
+      at CSSQueryHandler.waitFor (file:///private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/common/QueryHandler.js:176:95)
+      at async CdpFrame.waitForSelector (file:///private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:541:21)
+      at async CdpPage.waitForSelector (file:///private/tmp/qic-performance-tools/node_modules/puppeteer-core/lib/esm/puppeteer/api/Page.js:1387:20)
+      at async file:///Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/scripts/reading-business-browser.mjs:56:3
+}
+
+Node.js v26.7.0

@@ -2,40 +2,43 @@ $ vitest run
 
  RUN  v3.2.7 /Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching
 
- ✓ src/domain/casting/algorithms.test.ts (16 tests) 328ms
- ✓ src/server/payments/checkout-url-crypto.test.ts (6 tests) 267ms
- ✓ src/lib/crypto/index.test.ts (5 tests) 298ms
- ✓ src/domain/interpretation/v2/interpretation-completeness.test.ts (7 tests) 659ms
-   ✓ Free Reading V2 interpretation catalog > uses authored line and hexagram prose rather than the old shared sentence templates  374ms
+ ✓ src/server/payments/checkout-url-crypto.test.ts (6 tests) 274ms
+ ✓ src/lib/crypto/index.test.ts (5 tests) 335ms
+ ✓ src/domain/public-reading/public-reading.test.ts (5 tests) 289ms
+ ✓ src/lib/auth/session.test.ts (4 tests) 249ms
 stdout | src/app/route-architecture.test.ts > App Router multilingual architecture > permanently redirects English-prefixed paths to unprefixed paths
-workflows build complete (11 steps, 2 workflows, time 83ms)
+workflows build complete (11 steps, 2 workflows, time 186ms)
 
- ✓ src/app/route-architecture.test.ts (8 tests) 871ms
-   ✓ App Router multilingual architecture > permanently redirects English-prefixed paths to unprefixed paths  700ms
- ✓ src/domain/public-reading/public-reading.test.ts (5 tests) 562ms
-   ✓ PublicReading domain contract > maps primary-plus-changing-lines to the same six values as Manual mode A  542ms
- ✓ src/domain/public-reading/knowledge-detail.test.ts (7 tests) 191ms
- ✓ src/lib/auth/session.test.ts (4 tests) 204ms
- ✓ src/domain/generation/deep-reading-contract.test.ts (12 tests) 214ms
- ✓ src/server/generation/preview-service.test.ts (21 tests) 220ms
- ✓ src/server/services/casting-service.test.ts (21 tests) 339ms
- ✓ src/server/generation/integrity.test.ts (4 tests) 129ms
- ✓ src/app/api/auth/route.test.ts (4 tests) 1720ms
-   ✓ Auth route capability gate > returns 400 for malformed JSON instead of an infrastructure 503  1710ms
- ✓ src/server/repositories/memory/privacy-repository.test.ts (4 tests) 238ms
- ✓ src/server/repositories/memory/casting-repository.test.ts (8 tests) 227ms
- ✓ src/i18n/seo-metadata.test.ts (5 tests) 1944ms
-   ✓ multilingual metadata and sitemap integration > drives all nine non-hexagram Chinese SEO pages from the Chinese SEO registry  1741ms
- ✓ src/server/generation/question-crypto.test.ts (5 tests) 294ms
+ ✓ src/app/route-architecture.test.ts (8 tests) 955ms
+   ✓ App Router multilingual architecture > permanently redirects English-prefixed paths to unprefixed paths  747ms
+ ✓ src/domain/casting/algorithms.test.ts (16 tests) 453ms
+ ✓ src/domain/interpretation/v2/interpretation-completeness.test.ts (7 tests) 536ms
+ ✓ src/domain/generation/deep-reading-contract.test.ts (12 tests) 140ms
+ ✓ src/app/api/auth/route.test.ts (4 tests) 1470ms
+   ✓ Auth route capability gate > returns 400 for malformed JSON instead of an infrastructure 503  1462ms
+ ✓ src/server/generation/question-crypto.test.ts (5 tests) 179ms
+ ✓ src/server/repositories/memory/casting-repository.test.ts (8 tests) 111ms
+ ✓ src/server/generation/preview-service.test.ts (21 tests) 253ms
 stderr | src/app/hexagrams-hub.test.tsx > hexagram hub inbound anchors > places every exact Primary in a real Hub-to-detail anchor
 Image with src "/hexagrams/hero.png" is using quality "90" which is not configured in images.qualities. This config will be required starting in Next.js 16.
 Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
 Image with src "/hexagrams/scroll-grid.png" is using quality "90" which is not configured in images.qualities. This config will be required starting in Next.js 16.
 Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
 
- ✓ src/server/repositories/memory/snapshot-boundaries.test.ts (5 tests) 125ms
- ✓ src/app/hexagrams-hub.test.tsx (4 tests) 383ms
- ✓ src/components/public-reading/three-coin-geometry.test.ts (2 tests) 142ms
+ ✓ src/server/repositories/memory/privacy-repository.test.ts (4 tests) 244ms
+ ✓ src/components/public-reading/public-reading-result-concise.test.tsx (17 tests) 149ms
+ ✓ src/i18n/seo-metadata.test.ts (5 tests) 1633ms
+   ✓ multilingual metadata and sitemap integration > drives all nine non-hexagram Chinese SEO pages from the Chinese SEO registry  1487ms
+ ✓ src/domain/public-reading/knowledge-detail.test.ts (7 tests) 139ms
+ ✓ src/app/hexagrams-hub.test.tsx (4 tests) 355ms
+ ✓ src/domain/public-reading/classical-lines.test.ts (5 tests) 59ms
+ ✓ src/server/repository.test.ts (9 tests) 73ms
+ ✓ src/server/services/casting-service.test.ts (21 tests) 153ms
+ ✓ src/server/generation/integrity.test.ts (4 tests) 79ms
+ ✓ src/domain/public-reading/public-reading-completeness.test.ts (4 tests) 83ms
+ ✓ src/server/repositories/memory/snapshot-boundaries.test.ts (5 tests) 137ms
+ ✓ src/content/hexagrams/seo-quality.test.ts (7 tests) 64ms
+ ✓ src/server/repositories/memory/review-repository.test.ts (1 test) 128ms
 stderr | src/app/api/readings/route.test.ts > Save Reading Route (POST /api/readings) > does not expose Zod issue details to the client
 [READING_INPUT_INVALID] [
   {
@@ -67,6 +70,7 @@ stderr | src/app/api/readings/route.test.ts > Save Reading Route (POST /api/read
   }
 ]
 
+ ✓ src/components/public-reading/three-coin-geometry.test.ts (2 tests) 122ms
 stderr | src/app/api/readings/route.test.ts > Save Reading Route (POST /api/readings) > rejects a malformed stable browser casting identity
 [READING_INPUT_INVALID] [
   {
@@ -77,8 +81,8 @@ stderr | src/app/api/readings/route.test.ts > Save Reading Route (POST /api/read
   }
 ]
 
- ✓ src/components/public-reading/public-reading-result-concise.test.tsx (17 tests) 189ms
- ✓ src/server/generation/boundary.test.ts (13 tests) 104ms
+ ✓ src/components/public-reading/history-client.test.tsx (7 tests) 71ms
+ ✓ src/server/generation/boundary.test.ts (13 tests) 161ms
 stderr | src/app/api/readings/route.test.ts > Save Reading Route (POST /api/readings) > rejects unsupported methods and client-selected algorithm versions
 [READING_INPUT_INVALID] [
   {
@@ -90,14 +94,36 @@ stderr | src/app/api/readings/route.test.ts > Save Reading Route (POST /api/read
   }
 ]
 
- ✓ src/domain/public-reading/classical-lines.test.ts (5 tests) 162ms
- ✓ src/app/api/readings/route.test.ts (12 tests) 265ms
- ✓ src/domain/public-reading/public-reading-completeness.test.ts (4 tests) 219ms
- ✓ src/components/public-reading/history-client.test.tsx (7 tests) 95ms
- ✓ src/server/repository.test.ts (9 tests) 125ms
- ✓ src/app/api/checkout/route.test.ts (12 tests) 49ms
- ✓ src/server/repositories/memory/review-repository.test.ts (1 test) 134ms
- ✓ src/server/repositories/memory/composition-root.test.ts (1 test) 83ms
+ ✓ src/app/api/readings/route.test.ts (12 tests) 234ms
+ ✓ src/server/validation/action-schemas.test.ts (8 tests) 74ms
+ ✓ src/content/hexagrams/seo.test.ts (6 tests) 74ms
+ ✓ src/server/payments/waffo-webhook.test.ts (8 tests) 75ms
+ ✓ src/app/api/checkout/route.test.ts (12 tests) 86ms
+ ✓ src/server/capabilities.test.ts (42 tests) 67ms
+ ✓ src/final-engineering-closeout.test.ts (12 tests) 12ms
+ ✓ src/components/three-coin-result/three-coin-result-client.test.tsx (39 tests) 198ms
+ ✓ src/server/payments/checkout-service.test.ts (12 tests) 57ms
+ ✓ src/app/api/internal/cp6-staging-diagnostics/route.test.ts (7 tests) 67ms
+ ✓ src/i18n/helpers.test.ts (6 tests) 8ms
+ ✓ src/components/account/my-readings-page.test.tsx (3 tests) 34ms
+ ✓ src/server/readiness/payment-closeout-env-audit.test.ts (5 tests) 7ms
+ ✓ src/domain/services.test.ts (34 tests) 7ms
+ ✓ src/components/public-reading/question-first.test.tsx (10 tests) 81ms
+stderr | src/components/public-reading/three-coin-fallback.test.tsx > fallback consumes the same authoritative faces > keeps combination 0 in its original order
+Image with src "/performance/coinBackDesktop.30c2cec3fcce7aae.webp" is using quality "95" which is not configured in images.qualities. This config will be required starting in Next.js 16.
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+
+stderr | src/components/public-reading/three-coin-fallback.test.tsx > fallback consumes the same authoritative faces > keeps combination 1 in its original order
+Image with src "/performance/coinFrontDesktop.f247842ffde6714b.webp" is using quality "95" which is not configured in images.qualities. This config will be required starting in Next.js 16.
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+
+ ✓ src/components/public-reading/three-coin-fallback.test.tsx (8 tests) 82ms
+ ✓ src/server/loaders.test.ts (11 tests) 41ms
+ ✓ src/lib/completed-public-reading.test.ts (8 tests) 11ms
+ ✓ src/server/repositories/memory/composition-root.test.ts (1 test) 41ms
+ ✓ src/components/public-reading/three-coin-motion.test.ts (8 tests) 14ms
+ ✓ src/components/public-reading/public-reading-result-kicker.test.ts (8 tests) 237ms
+ ✓ src/components/account/account-views.test.tsx (5 tests) 88ms
 stderr | src/app/api/readings/[castingId]/deep/route.test.ts > Paid Deep Reading Route (/api/readings/[castingId]/deep) > returns 404 for cross-user or soft-deleted requests (NEG-09, NEG-10)
 [DEEP_READING_ROUTE_ERROR] Error: CASTING_NOT_FOUND
     at /Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/src/app/api/readings/[castingId]/deep/route.test.ts:101:48
@@ -153,17 +179,11 @@ stderr | src/app/api/readings/[castingId]/deep/route.test.ts > Paid Deep Reading
     at runSuite (file:///Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)
     at runSuite (file:///Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)
 
- ✓ src/app/api/readings/[castingId]/deep/route.test.ts (17 tests) 98ms
- ✓ src/components/three-coin-result/three-coin-result-client.test.tsx (39 tests) 189ms
- ✓ src/domain/casting/mei-hua/number-time.test.ts (4 tests) 32ms
- ✓ src/content/hexagrams/seo-quality.test.ts (7 tests) 58ms
- ✓ src/middleware.test.ts (16 tests) 55ms
- ✓ src/app/(localized)/zh/pricing/pricing-page.test.tsx (4 tests) 19ms
- ✓ src/server/capabilities.test.ts (42 tests) 120ms
- ✓ src/components/public-reading/shared-reading-summary.test.tsx (4 tests) 17ms
- ✓ src/content/hexagrams/seo.test.ts (6 tests) 95ms
- ✓ src/components/public-reading/public-reading-result-kicker.test.ts (8 tests) 77ms
- ✓ src/components/public-reading/question-first.test.tsx (10 tests) 100ms
+ ✓ src/app/api/readings/[castingId]/deep/route.test.ts (17 tests) 62ms
+ ✓ src/content/hexagrams/zh-Hans.test.ts (8 tests) 62ms
+ ✓ src/middleware.test.ts (16 tests) 61ms
+ ✓ src/i18n/navigation-routing.test.ts (7 tests) 54ms
+ ✓ src/domain/interpretation/v2/build-free-reading.test.ts (7 tests) 18ms
 stderr | src/server/payments/waffo-authority.test.ts > Waffo 0.19.1 authoritative one-time boundary > classifies SDK validation before the refund request as definitely not dispatched
 [WAFFO_CREATE_REFUND_TICKET_ERROR] {
   status: 400,
@@ -201,30 +221,57 @@ stderr | src/server/payments/waffo-authority.test.ts > Waffo 0.19.1 authoritativ
   raw: 'WaffoPancakeError: Conflict'
 }
 
- ✓ src/server/payments/waffo-authority.test.ts (9 tests) 15ms
+ ✓ src/components/three-coin-result/unified-reading.test.tsx (2 tests) 78ms
+ ✓ src/server/payments/waffo-authority.test.ts (9 tests) 11ms
+ ✓ src/components/public-reading/ritual-cast-presentation.test.tsx (5 tests) 27ms
+ ✓ src/server/refunds/operator-auth.test.ts (4 tests) 5ms
+ ✓ src/server/readiness/readiness-service.test.ts (13 tests) 5ms
+ ✓ src/lib/reading-entry.test.ts (14 tests) 7ms
+ ✓ src/server/readiness/cp6-staging-preflight.test.ts (21 tests) 25ms
+ ✓ src/app/api/internal/refunds/[refundId]/dispatch/route.test.ts (3 tests) 29ms
+ ✓ src/app/api/internal/reconcile/route.test.ts (5 tests) 11ms
+ ✓ src/server/workflows/deep-reading-workflow.test.ts (8 tests) 11ms
+ ✓ src/domain/public-reading/history.test.ts (3 tests) 5ms
+ ✓ src/app/(default)/pricing/checkout-return-recovery.test.tsx (2 tests) 38ms
+ ✓ src/components/account/fetch-account-modal.test.ts (3 tests) 39ms
+ ✓ src/lib/public-reading-session.test.ts (5 tests) 6ms
+ ✓ src/domain/casting/mei-hua/number-time.test.ts (4 tests) 25ms
+ ✓ src/server/auth/callback.test.ts (14 tests) 7ms
+ ✓ src/server/repositories/memory/responsibility-boundaries.test.ts (3 tests) 3ms
+ ✓ src/components/hexagram-detail-page.test.tsx (12 tests) 4680ms
+   ✓ static hexagram detail page > keeps all 128 eligible detail bodies in the intended main language while allowing cultural proper nouns  2537ms
+   ✓ static hexagram detail page > keeps the primary keyword present on all 128 server-rendered detail bodies without fixed density bands  767ms
+   ✓ static hexagram detail page > uses the approved knowledge-page structure and only auxiliary sequence navigation for all 64 English pages  444ms
+   ✓ static hexagram detail page > retains the exact fixed source and six individually labelled line links on all 128 detail pages  314ms
+ ✓ src/components/hex/hexagram-lines.test.tsx (3 tests) 8ms
+ ✓ src/server/payments/waffo-adapter.test.ts (13 tests) 49ms
+ ✓ src/server/generation/deep-reading-knowledge.test.ts (5 tests) 36ms
+ ✓ src/server/auth/email.test.ts (2 tests) 4ms
+ ✓ src/app/api/account/delete/route.test.ts (5 tests) 24ms
+ ✓ src/app/api/webhooks/waffo/route.test.ts (9 tests) 28ms
+ ✓ src/domain/public-reading/localized-reading.test.ts (1 test) 3ms
+ ✓ src/lib/indexnow.test.ts (6 tests) 9ms
+ ✓ src/lib/performance-budget.test.ts (10 tests) 55ms
+ ✓ src/components/public-reading/shared-reading-summary.test.tsx (4 tests) 58ms
+ ✓ src/components/auth/user-nav-control.test.tsx (9 tests) 7ms
  ✓ src/content/seo/zh-pages.test.ts (5 tests) 8ms
- ✓ src/server/payments/waffo-webhook.test.ts (8 tests) 89ms
- ✓ src/app/(default)/pricing/checkout-return-recovery.test.tsx (2 tests) 62ms
- ✓ src/content/mei-hua-yi-shu/zh-Hans.test.ts (3 tests) 32ms
- ✓ src/components/auth/user-nav-control.test.tsx (9 tests) 79ms
- ✓ src/server/payments/checkout-service.test.ts (12 tests) 55ms
- ✓ src/components/public-reading/ritual-cast-presentation.test.tsx (5 tests) 70ms
- ✓ src/components/public-reading/three-coin-motion.test.ts (8 tests) 30ms
- ✓ src/server/payments/waffo-adapter.test.ts (13 tests) 19ms
- ✓ src/i18n/navigation-routing.test.ts (7 tests) 37ms
- ✓ src/components/account/account-views.test.tsx (5 tests) 130ms
- ✓ src/content/hexagrams/zh-Hans.test.ts (8 tests) 71ms
- ✓ src/server/generation/deep-reading-knowledge.test.ts (5 tests) 12ms
- ✓ src/components/account/my-readings-page.test.tsx (3 tests) 107ms
- ✓ src/components/three-coin-result/unified-reading.test.tsx (2 tests) 112ms
- ✓ src/app/api/user/me/route.test.ts (6 tests) 8ms
- ✓ src/domain/services.test.ts (34 tests) 75ms
- ✓ src/build/public-v1-manifest-gate.test.ts (1 test) 7ms
- ✓ src/server/readiness/cp6-staging-preflight.test.ts (21 tests) 39ms
- ✓ src/app/(default)/signin/sign-in-form.test.tsx (5 tests) 4ms
- ✓ src/server/ai/index.test.ts (1 test) 6ms
- ✓ src/server/validation/action-schemas.test.ts (8 tests) 79ms
- ✓ src/domain/interpretation/v2/build-free-reading.test.ts (7 tests) 43ms
+ ✓ src/server/readiness/production-schema-release.test.ts (9 tests) 7ms
+ ✓ src/server/refunds/refund-command-service.test.ts (4 tests) 12ms
+ ✓ src/server/config.test.ts (15 tests) 13ms
+ ✓ src/server/account/sign-in-method-loader.test.ts (6 tests) 59ms
+ ✓ src/legacy/commercial/actions.test.ts (2 tests) 7ms
+ ✓ src/app/api/user/me/route.test.ts (6 tests) 7ms
+ ✓ src/server/readiness/waffo-staging-catalog-read.test.ts (3 tests) 5ms
+ ✓ src/components/analytics-consent.test.tsx (4 tests) 3ms
+ ✓ src/domain/public-reading/free-presenter.test.ts (2 tests) 11ms
+ ✓ src/server/payments/outbox-dispatcher.test.ts (2 tests) 5ms
+ ✓ src/build/public-v1-manifest-gate.test.ts (1 test) 11ms
+ ✓ src/server/refunds/refund-reconciliation-service.test.ts (9 tests) 19ms
+ ✓ src/server/generation/semantic-eval-config.test.ts (3 tests) 7ms
+ ✓ src/server/readiness/staging-runtime-diagnostics.test.ts (11 tests) 6ms
+ ✓ src/server/payments/payment-recovery-service.test.ts (6 tests) 9ms
+ ✓ src/server/payments/waffo-authority-order-id.test.ts (2 tests) 11ms
+ ✓ src/server/db/auth-schema.test.ts (2 tests) 11ms
 stderr | src/app/api/ready/route.test.ts > Ready Route (/api/ready) > returns only coarse public readiness state when system is blocked
 [READY_AUDIT] {"status":"not_ready","overall":"blocked","db":{"status":"tables_missing","connected":true,"tablesChecked":true,"missingTables":["audit_events"]},"caps":"auth:false(missing_dependencies,miss:DATABASE_URL,inv:,blk:)"}
 
@@ -241,25 +288,14 @@ stderr | src/app/api/ready/route.test.ts > Ready Route (/api/ready) > returns a 
     at runSuite (file:///Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)
     at runSuite (file:///Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)
 
- ✓ src/app/api/ready/route.test.ts (3 tests) 67ms
- ✓ src/components/hex/hexagram-lines.test.tsx (3 tests) 25ms
- ✓ src/server/refunds/refund-reconciliation-service.test.ts (9 tests) 12ms
+ ✓ src/app/api/ready/route.test.ts (3 tests) 28ms
+ ✓ src/components/auth/auth-form.test.tsx (7 tests) 7ms
+ ✓ src/lib/three-coin-session.test.ts (15 tests) 11ms
+ ✓ src/domain/generation/schemas.test.ts (3 tests) 30ms
+ ✓ src/server/payments/composition.test.ts (3 tests) 10ms
+ ✓ src/server/auth/server.test.ts (4 tests) 4ms
+ ✓ src/app/(default)/pricing/pricing-model.test.ts (2 tests) 2ms
  ✓ src/content/mei-hua-yi-shu/zh-Hans.terminology.test.ts (3 tests) 8ms
- ✓ src/app/api/webhooks/waffo/route.test.ts (9 tests) 31ms
- ✓ src/app/api/internal/cp6-staging-diagnostics/route.test.ts (7 tests) 8ms
-stderr | src/components/public-reading/three-coin-fallback.test.tsx > fallback consumes the same authoritative faces > keeps combination 0 in its original order
-Image with src "/performance/coinBackDesktop.30c2cec3fcce7aae.webp" is using quality "95" which is not configured in images.qualities. This config will be required starting in Next.js 16.
-Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
-
-stderr | src/components/public-reading/three-coin-fallback.test.tsx > fallback consumes the same authoritative faces > keeps combination 1 in its original order
-Image with src "/performance/coinFrontDesktop.f247842ffde6714b.webp" is using quality "95" which is not configured in images.qualities. This config will be required starting in Next.js 16.
-Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
-
- ✓ src/components/public-reading/three-coin-fallback.test.tsx (8 tests) 48ms
- ✓ src/lib/indexnow.test.ts (6 tests) 19ms
- ✓ src/server/refunds/refund-command-service.test.ts (4 tests) 40ms
- ✓ src/i18n/helpers.test.ts (6 tests) 81ms
- ✓ src/lib/performance-budget.test.ts (10 tests) 27ms
 stderr | src/server/audit/audit-service.test.ts > Audit Service Sanitization & Logging > safely records audit events without throwing to callers
 Failed to record audit event: Error: DB_CONNECTION_LOST
     at /Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/src/server/audit/audit-service.test.ts:28:47
@@ -273,86 +309,47 @@ Failed to record audit event: Error: DB_CONNECTION_LOST
     at runSuite (file:///Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)
     at runSuite (file:///Users/milushangdi/.codex/worktrees/qic-mei-hua-78/quickiching/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)
 
- ✓ src/server/audit/audit-service.test.ts (2 tests) 114ms
- ✓ src/server/config.test.ts (15 tests) 61ms
- ✓ src/app/api/internal/refunds/[refundId]/dispatch/route.test.ts (3 tests) 7ms
- ✓ src/server/readiness/payment-closeout-env-audit.test.ts (5 tests) 8ms
- ✓ src/lib/completed-public-reading.test.ts (8 tests) 65ms
- ✓ src/domain/public-reading/free-presenter.test.ts (2 tests) 6ms
- ✓ src/app/api/account/delete/route.test.ts (5 tests) 8ms
- ✓ src/final-engineering-closeout.test.ts (12 tests) 8ms
- ✓ src/components/account/fetch-account-modal.test.ts (3 tests) 14ms
- ✓ src/server/payments/webhook-service.test.ts (4 tests) 61ms
- ✓ src/lib/seo.test.ts (6 tests) 11ms
- ✓ src/server/workflows/deep-reading-workflow.test.ts (8 tests) 9ms
- ✓ src/app/api/internal/reconcile/route.test.ts (5 tests) 19ms
- ✓ src/server/loaders.test.ts (11 tests) 94ms
- ✓ src/lib/reading-entry.test.ts (12 tests) 10ms
- ✓ src/lib/three-coin-session.test.ts (15 tests) 8ms
- ✓ src/app/api/health/route.test.ts (2 tests) 6ms
- ✓ src/server/payments/payment-recovery-service.test.ts (6 tests) 4ms
- ✓ src/server/payments/capability.test.ts (2 tests) 35ms
- ✓ src/server/readiness/staging-runtime-diagnostics.test.ts (11 tests) 5ms
- ✓ src/components/auth/auth-form.test.tsx (7 tests) 37ms
- ✓ src/server/http/origin-guard.test.ts (8 tests) 12ms
- ✓ src/domain/generation/schemas.test.ts (3 tests) 14ms
- ✓ src/server/repositories/memory/entitlement-repository.test.ts (5 tests) 6ms
- ✓ src/legacy/commercial/actions.test.ts (2 tests) 12ms
- ✓ src/server/readiness/readiness-service.test.ts (13 tests) 25ms
- ✓ src/lib/public-reading-session.test.ts (5 tests) 8ms
- ✓ src/server/generation/semantic-eval-config.test.ts (3 tests) 5ms
- ✓ src/server/repositories/memory/responsibility-boundaries.test.ts (3 tests) 3ms
- ✓ src/server/payments/outbox-dispatcher.test.ts (2 tests) 9ms
- ✓ src/server/auth/email.test.ts (2 tests) 4ms
- ✓ src/components/hexagram-detail-page.test.tsx (12 tests) 7036ms
-   ✓ static hexagram detail page > keeps all 128 eligible detail bodies in the intended main language while allowing cultural proper nouns  3546ms
-   ✓ static hexagram detail page > keeps the primary keyword present on all 128 server-rendered detail bodies without fixed density bands  1353ms
-   ✓ static hexagram detail page > uses the approved knowledge-page structure and only auxiliary sequence navigation for all 64 English pages  335ms
-   ✓ static hexagram detail page > retains the exact fixed source and six individually labelled line links on all 128 detail pages  698ms
-   ✓ static hexagram detail page > binds supplied editorial renderings and field-specific interpretations for all 64 English pages  434ms
- ✓ src/server/payments/waffo-product-readiness.test.ts (4 tests) 2ms
- ✓ src/server/readiness/waffo-staging-catalog-read.test.ts (3 tests) 4ms
- ✓ src/server/payments/waffo-authority-order-id.test.ts (2 tests) 15ms
- ✓ src/domain/public-reading/history.test.ts (3 tests) 5ms
- ✓ src/server/workflows/provider-timeout.test.ts (2 tests) 5ms
- ✓ src/server/readiness/production-schema-release.test.ts (9 tests) 10ms
- ✓ src/server/account/sign-in-method-loader.test.ts (6 tests) 3ms
- ✓ src/domain/public-reading/localized-reading.test.ts (1 test) 4ms
- ✓ src/server/auth/request.test.ts (6 tests) 22ms
- ✓ src/lib/analytics.test.ts (9 tests) 3ms
- ✓ src/server/generation/ai-sdk-provider.test.ts (3 tests) 12ms
- ✓ src/server/auth/callback.test.ts (14 tests) 13ms
- ✓ src/app/api/refunds/route.test.ts (1 test) 10ms
- ✓ src/lib/commercial-navigation.test.ts (4 tests) 3ms
- ✓ src/server/reconcile/reconcile-service.test.ts (1 test) 10ms
- ✓ src/domain/public-reading/classical-display.test.ts (2 tests) 6ms
- ✓ src/server/repositories/memory/reading-repository.test.ts (4 tests) 6ms
- ✓ src/domain/interpretation/basic.test.ts (3 tests) 2ms
- ✓ src/server/refunds/operator-auth.test.ts (4 tests) 4ms
- ✓ src/server/auth/server.test.ts (4 tests) 7ms
- ✓ src/app/(default)/pricing/checkout-request-identity.test.ts (5 tests) 6ms
- ✓ src/server/casting-guards.test.ts (4 tests) 4ms
- ✓ src/server/db/client.test.ts (1 test) 6ms
+ ✓ src/server/audit/audit-service.test.ts (2 tests) 7ms
+ ✓ src/server/repositories/memory/entitlement-repository.test.ts (5 tests) 7ms
+ ✓ src/app/(default)/pricing/checkout-request-identity.test.ts (5 tests) 7ms
+ ✓ src/server/actions/action-result.test.ts (2 tests) 9ms
+ ✓ src/content/mei-hua-yi-shu/zh-Hans.test.ts (3 tests) 47ms
+ ✓ src/server/generation/ai-sdk-provider.test.ts (3 tests) 11ms
+ ✓ src/server/db/client.test.ts (1 test) 9ms
+ ✓ src/lib/seo.test.ts (6 tests) 8ms
+ ✓ src/app/api/health/route.test.ts (2 tests) 11ms
+ ✓ src/server/http/origin-guard.test.ts (8 tests) 4ms
+ ✓ src/server/workflows/provider-timeout.test.ts (2 tests) 8ms
+ ✓ src/lib/analytics.test.ts (9 tests) 5ms
+ ✓ src/server/reconcile/reconcile-service.test.ts (1 test) 7ms
+ ✓ src/server/payments/capability.test.ts (2 tests) 14ms
+ ✓ src/app/(localized)/zh/pricing/pricing-page.test.tsx (4 tests) 70ms
+ ✓ src/server/ai/index.test.ts (1 test) 7ms
+ ✓ src/server/casting-guards.test.ts (4 tests) 5ms
  ✓ src/server/refunds/refund-policy.test.ts (5 tests) 3ms
- ✓ src/components/analytics-consent.test.tsx (4 tests) 4ms
- ✓ src/server/auth/login-intent.test.ts (3 tests) 4ms
+ ✓ src/server/db/payment-event-identity.test.ts (2 tests) 1ms
  ✓ src/app/(default)/auth-pages.test.ts (5 tests) 3ms
- ✓ src/components/info-pages/info-diagrams.test.ts (2 tests) 6ms
- ✓ src/server/actions/action-result.test.ts (2 tests) 8ms
- ✓ src/server/payments/environment-contract.test.ts (3 tests) 11ms
- ✓ src/app/(default)/account/refund-request-state.test.ts (3 tests) 3ms
- ✓ src/app/(default)/pricing/pricing-model.test.ts (2 tests) 19ms
- ✓ src/server/repositories/memory/store.test.ts (1 test) 1ms
- ✓ src/server/db/payment-event-identity.test.ts (2 tests) 3ms
- ✓ src/domain/casting/types.test.ts (2 tests) 5ms
- ✓ src/i18n/dictionaries.test.ts (1 test) 4ms
- ✓ src/server/payments/composition.test.ts (3 tests) 14ms
- ✓ src/server/db/payment-closeout-migration.test.ts (3 tests) 3ms
- ✓ src/app/(localized)/zh/account/account-page.test.tsx (2 tests) 3ms
- ✓ src/server/db/auth-schema.test.ts (2 tests) 6ms
+ ✓ src/lib/commercial-navigation.test.ts (4 tests) 3ms
+ ✓ src/app/(default)/signin/sign-in-form.test.tsx (5 tests) 12ms
+ ✓ src/server/db/payment-closeout-migration.test.ts (3 tests) 2ms
+ ✓ src/app/(localized)/zh/account/account-page.test.tsx (2 tests) 6ms
+ ✓ src/i18n/dictionaries.test.ts (1 test) 3ms
+ ✓ src/app/api/refunds/route.test.ts (1 test) 122ms
+ ✓ src/server/payments/environment-contract.test.ts (3 tests) 2ms
+ ✓ src/server/repositories/memory/reading-repository.test.ts (4 tests) 26ms
+ ✓ src/app/(default)/account/refund-request-state.test.ts (3 tests) 4ms
+ ✓ src/server/auth/login-intent.test.ts (3 tests) 4ms
+ ✓ src/server/repositories/memory/store.test.ts (1 test) 4ms
+ ✓ src/server/payments/webhook-service.test.ts (4 tests) 5ms
+ ✓ src/components/info-pages/info-diagrams.test.ts (2 tests) 5ms
+ ✓ src/domain/public-reading/classical-display.test.ts (2 tests) 11ms
+ ✓ src/domain/interpretation/basic.test.ts (3 tests) 6ms
+ ✓ src/domain/casting/types.test.ts (2 tests) 3ms
+ ✓ src/server/auth/request.test.ts (6 tests) 3ms
+ ✓ src/server/payments/waffo-product-readiness.test.ts (4 tests) 4ms
  ✓ src/components/public-reading/three-coin-tool.navigation.test.ts (6 tests) 1ms
 
  Test Files  149 passed (149)
-      Tests  994 passed (994)
-   Start at  00:01:46
-   Duration  12.21s (transform 6.25s, setup 0ms, collect 32.63s, tests 21.18s, environment 55ms, prepare 18.65s)
+      Tests  996 passed (996)
+   Start at  00:25:49
+   Duration  10.76s (transform 6.72s, setup 0ms, collect 28.84s, tests 16.82s, environment 43ms, prepare 14.54s)

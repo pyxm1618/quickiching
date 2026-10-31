@@ -14,6 +14,18 @@
       "conclusion": "failure",
       "failure": "Same inherited Chinese interactive Test 5 route mismatch. Corrected and full Chinese/multilingual checks passed locally with existing CI preview flag.",
       "url": "https://github.com/pyxm1618/quickiching/actions/runs/41209428985"
+    },
+    {
+      "id": 41218397646,
+      "head": "5ebba21fdafc8cefc3351f456f11a50f4e3cd66f",
+      "conclusion": "failure",
+      "url": "https://github.com/pyxm1618/quickiching/actions/runs/41218397646",
+      "failure": "HOW_TO_ASK_MOBILE performance regression",
+      "metrics": {
+        "performance": 73,
+        "lcpMs": 34227.62475
+      },
+      "scope": "Unrelated inherited Guide page; all Chinese/general/ThreeCoin/multilingual/P0/logo/navigation browser checks passed. No Guide code or threshold changed."
     }
   ]
 }

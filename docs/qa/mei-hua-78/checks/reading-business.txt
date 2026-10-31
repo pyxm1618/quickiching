@@ -21,6 +21,10 @@ checking mei_hua_current_time
     }
   },
   {
+    "method": "three_coin",
+    "deepToFree": "explicit Free intent overrides previous Deep selection"
+  },
+  {
     "method": "yarrow_stalk",
     "free": {
       "ctas": 2,
@@ -39,6 +43,10 @@ checking mei_hua_current_time
     }
   },
   {
+    "method": "yarrow_stalk",
+    "deepToFree": "explicit Free intent overrides previous Deep selection"
+  },
+  {
     "method": "mei_hua_current_time",
     "free": {
       "ctas": 2,
@@ -55,6 +63,10 @@ checking mei_hua_current_time
       },
       "report": true
     }
+  },
+  {
+    "method": "mei_hua_current_time",
+    "deepToFree": "explicit Free intent overrides previous Deep selection"
   },
   {
     "invalidCompletedOutput": "explicit-error-no-stuck-spinner"

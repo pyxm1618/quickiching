@@ -1,8 +1,8 @@
 {
   "originalTotal": 20,
   "states": {
-    "approved / pass": 13,
-    "deferred": 7,
+    "approved / pass": 12,
+    "deferred": 8,
     "confirmed reject / delete": 0,
     "unreviewed / unknown": 0
   },
@@ -71,7 +71,7 @@
       "id": "REQ-11",
       "requirement": "Authentication and continuation",
       "state": "deferred",
-      "evidence": "Anonymous summary and exact cast/intent callback PASS with named test-only authentication. Free opens; Deep restores its original dedicated route and local closed-auth gate. Real provider round trip NOT VERIFIED."
+      "evidence": "Anonymous summary and exact cast/intent callback PASS with named test-only authentication. Free opens; Deep restores its original dedicated route and local closed-auth gate. Real provider round trip NOT VERIFIED. Deep-to-Free explicit intent precedence now has a reproduced failure, two unit tests and passing three-method browser regression."
     },
     {
       "id": "REQ-12",
@@ -118,8 +118,8 @@
     {
       "id": "REQ-19",
       "requirement": "Acceptance gates",
-      "state": "approved / pass",
-      "evidence": "149 files/994 tests, lint/typecheck/build, UI, browser, Three Coin, P0, full Chinese17 pages, multilingual1440/390/412, on-page, logo/navigation, bundles, Reading fixtures, scene16, motion3 and original Lighthouse budgets PASS. Existing CI preview flag used; historical route-assertion failures retained."
+      "state": "deferred",
+      "evidence": "149 files/996 tests and all related local gates pass, including fresh screenshots/callbacks, three-method Deep→Free, Chinese/multilingual and unchanged result Lighthouse. CI 5ebba21 passed browser gates but failed inherited HOW_TO_ASK_MOBILE: score73/LCP34228ms. Guide code and thresholds are unchanged; final-head CI separate."
     },
     {
       "id": "REQ-20",
