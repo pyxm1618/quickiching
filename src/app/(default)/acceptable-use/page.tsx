@@ -13,7 +13,6 @@ export default function AcceptableUsePage() {
   return (
     <LegalPageLayout
       title="Acceptable Use"
-      eyebrow="Trust"
       lead="Quick I Ching is built for reflection, not dependence or consequential certainty."
       sections={[]}
       intro={<>

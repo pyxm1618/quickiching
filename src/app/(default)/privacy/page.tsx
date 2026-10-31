@@ -26,5 +26,5 @@ const SECTIONS: readonly LegalSection[] = [
 ];
 
 export default function PrivacyPage() {
-  return <LegalPageLayout title="Privacy Policy" updated="Last updated: October 27, 2026" sections={SECTIONS} footer={<p>See also the <Link href="/terms">Terms of Service</Link> and <Link href="/acceptable-use">Acceptable Use</Link>.</p>} />;
+  return <LegalPageLayout title="Privacy Policy" lead={metadata.description as string} updated="Last updated: October 27, 2026" sections={SECTIONS} footer={<p>See also the <Link href="/terms">Terms of Service</Link> and <Link href="/acceptable-use">Acceptable Use</Link>.</p>} />;
 }

@@ -7,6 +7,7 @@ import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
 import type { LineValue } from "@/domain/casting/types";
 import { InfoPageShell } from "@/components/info-pages/info-page-shell";
 import { ChangingLinesPrimer } from "@/components/info-pages/info-diagrams";
+import { PaperArtwork } from "@/components/info-pages/paper-artwork";
 import styles from "@/components/info-pages/info-pages.module.css";
 
 export const metadata: Metadata = {
@@ -37,20 +38,20 @@ function lineChange(value: LineValue): string {
 export default function ChangingLinesGuidePage() {
   return (
     <InfoPageShell
-      eyebrow="I Ching Guide"
-      title="I Ching Changing Lines"
+      title="Changing Lines"
       lead="Changing lines, also called moving lines, identify the positions where a cast changes polarity when the relating hexagram is calculated. The line values are always read from the bottom of the hexagram upward."
     >
       <section className={styles.guideMain}>
+        <PaperArtwork />
         <h2 className={styles.paperHeading}>The four line values</h2>
-        <ChangingLinesPrimer />
-        <section className={styles.sectionBreak}>
+        <ChangingLinesPrimer>
           <h2 className={styles.paperHeading}>From moving lines to a relating hexagram</h2>
           <p className={styles.paperText}>First preserve the primary hexagram exactly as cast. Then reverse only the changing positions: 6 becomes yang and 9 becomes yin. The six resulting yin/yang positions map to the relating hexagram. Stable 7 and 8 lines keep their original polarity.</p>
-        </section>
+        </ChangingLinesPrimer>
       </section>
 
       <section className={styles.guideSecondary}>
+        <PaperArtwork kind="secondary" />
         <h2 className={styles.paperHeading}>Worked example: 7 / 8 / 9 / 7 / 6 / 8</h2>
         <p className={styles.paperText}>This sequence is shown in the same bottom-to-top order used by Quick I Ching’s casting domain. The example below is calculated by the project’s production hexagram function and King Wen mapping rather than by a separate guide-only lookup.</p>
         <table className={styles.dataTable}>

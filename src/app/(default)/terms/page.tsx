@@ -23,5 +23,5 @@ const SECTIONS: readonly LegalSection[] = [
 ];
 
 export default function TermsPage() {
-  return <LegalPageLayout title="Terms of Service" updated="Last updated: September 27, 2026" sections={SECTIONS} footer={<p>See the <Link href="/privacy">Privacy Policy</Link> for data handling details.</p>} />;
+  return <LegalPageLayout title="Terms of Service" lead={metadata.description as string} updated="Last updated: September 27, 2026" sections={SECTIONS} footer={<p>See the <Link href="/privacy">Privacy Policy</Link> for data handling details.</p>} />;
 }

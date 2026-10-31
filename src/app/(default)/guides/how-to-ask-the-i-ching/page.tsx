@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
 import { InfoPageShell } from "@/components/info-pages/info-page-shell";
+import { PaperArtwork, GuideDecoration } from "@/components/info-pages/paper-artwork";
 import styles from "@/components/info-pages/info-pages.module.css";
 
 export const metadata: Metadata = {
@@ -23,31 +24,34 @@ const QUESTION_EXAMPLES = [
 export default function HowToAskGuidePage() {
   return (
     <InfoPageShell
-      eyebrow="I Ching Guide"
+      variant="question"
       title="How to Ask the I Ching"
       lead="Learning how to ask the I Ching is mostly a question-framing skill: give the reading one clear situation and one core concern, while leaving enough room to notice patterns you may not have considered."
     >
       <section className={styles.guideMain}>
+        <PaperArtwork />
         <h2 className={styles.paperHeading}>Core principles for I Ching questions</h2>
         <p className={styles.paperText}>When you are deciding how to phrase an I Ching question, these five principles keep the inquiry focused without turning the reading into a substitute decision-maker.</p>
         <ul className={styles.principlesGrid}>
-          <li><strong>One situation:</strong> choose the job change, relationship, timing issue, or other situation that needs attention first instead of combining unrelated problems.</li>
-          <li><strong>One core concern:</strong> ask one main thing about that situation. A cast becomes harder to interpret when the question contains several separate decisions.</li>
-          <li><strong>Reflective rather than deterministic:</strong> ask what to understand, notice, or consider instead of demanding certainty about an outcome.</li>
-          <li><strong>Specific enough to focus:</strong> name the real opportunity, transition, conflict, or decision rather than asking a vague question about your whole life.</li>
-          <li><strong>Open enough to interpret:</strong> do not narrow the answer so tightly that only “yes” or “no” can fit. Leave room for conditions, tensions, and change.</li>
+          <li><GuideDecoration kind="coins" /><strong>One situation:</strong> choose the job change, relationship, timing issue, or other situation that needs attention first instead of combining unrelated problems.<p><strong>One core concern:</strong> ask one main thing about that situation. A cast becomes harder to interpret when the question contains several separate decisions.</p></li>
+          <li><GuideDecoration kind="landscape" /><strong>Reflective rather than deterministic:</strong> ask what to understand, notice, or consider instead of demanding certainty about an outcome.</li>
+          <li><GuideDecoration kind="lantern" /><strong>Specific enough to focus:</strong> name the real opportunity, transition, conflict, or decision rather than asking a vague question about your whole life.</li>
+          <li><GuideDecoration kind="books" /><strong>Open enough to interpret:</strong> do not narrow the answer so tightly that only “yes” or “no” can fit. Leave room for conditions, tensions, and change.</li>
         </ul>
       </section>
 
       <section className={styles.guideSecondary}>
+        <PaperArtwork kind="secondary" />
         <h2 className={styles.paperHeading}>Bad → better questions to ask the I Ching</h2>
         <p className={styles.paperText}>There is no single magic wording. The useful distinction is whether your I Ching questions create a focused subject for reflection or ask the hexagram to guarantee facts it cannot establish.</p>
         <div className={styles.questionGrid}>
           {QUESTION_EXAMPLES.map((example) => (
             <section key={example.situation} className={styles.exampleCard}>
               <h3>{example.situation}</h3>
-              <p><strong>Bad:</strong> “{example.bad}”</p>
-              <p><strong>Better:</strong> “{example.better}”</p>
+              <div className={styles.exampleComparison}>
+                <p><strong>Better:</strong> “{example.better}”</p>
+                <p><strong>Bad:</strong> “{example.bad}”</p>
+              </div>
               <p><strong>Why it is better:</strong> {example.why}</p>
             </section>
           ))}
