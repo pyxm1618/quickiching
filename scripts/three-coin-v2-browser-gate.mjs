@@ -384,19 +384,42 @@ async function verifyClearFailure(browser) {
     await seedCompletedReading(page);
     await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
     await waitForText(page, "Your Three-Coin Reading");
-    await page.evaluate((key) => {
+    const removeItemFailureArmed = await page.evaluate((key) => {
       const originalRemoveItem = Storage.prototype.removeItem;
       Object.defineProperty(window, "__restoreThreeCoinRemoveItem", {
         configurable: true,
-        value: () => { Storage.prototype.removeItem = originalRemoveItem; },
+        value: () => {
+          Object.defineProperty(Storage.prototype, "removeItem", {
+            configurable: true,
+            writable: true,
+            value: originalRemoveItem,
+          });
+        },
       });
-      Storage.prototype.removeItem = function removeItem(itemKey) {
-        if (itemKey === key) throw new DOMException("Storage blocked", "SecurityError");
-        return originalRemoveItem.call(this, itemKey);
-      };
+      Object.defineProperty(Storage.prototype, "removeItem", {
+        configurable: true,
+        writable: true,
+        value: function removeItem(itemKey) {
+          if (this === sessionStorage && itemKey === key) {
+            throw new DOMException("Storage blocked", "SecurityError");
+          }
+          return originalRemoveItem.call(this, itemKey);
+        },
+      });
+
+      const before = sessionStorage.getItem(key);
+      let blocked = false;
+      try {
+        sessionStorage.removeItem(key);
+      } catch {
+        blocked = true;
+      }
+      return blocked && before !== null && sessionStorage.getItem(key) === before;
     }, STORAGE_KEY);
+    assert(removeItemFailureArmed, "Browser gate must prove sessionStorage.removeItem failure injection before testing clear fail-fast");
 
     await clickButton(page, "Start a New Reading");
+    await page.waitForSelector('[data-three-coin-clear-error="THREE_COIN_SESSION_CLEAR_FAILED"]', { timeout: 15_000 });
     await waitForText(page, "THREE_COIN_SESSION_CLEAR_FAILED");
     const failureState = await page.evaluate((key) => ({
       pathname: location.pathname,
