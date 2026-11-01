@@ -71,7 +71,7 @@ export function RitualCastPresentation({zh,motion,steps,visibleStep,complete,can
     {[['Open the Home Page','打开首页'],['Enter Your Question','输入问题'],['Throw 3 Coins (Repeat 6 Times)','掷三枚铜钱（重复六次）'],['View the 3 Coins Result','查看掷币结果'],['Repeat 6 Times to Complete All Six Lines','重复六次形成六爻'],['Generate Hexagram and Interpretation','保存后揭示卦象与解读']].map(([en,cn],index)=><li key={en} data-active={index===4} data-done={index<4}><span>{zh?`第 ${index+1} 步`:`Step ${index+1}`}</span><p>{zh?cn:index===2?<>{'Throw 3 Coins'}<br/>{'(Repeat 6 Times)'}</>:index===4?<>{'Repeat 6 Times to'}<br/>{'Complete All Six Lines'}</>:en}</p></li>)}
    </ol>
    <ol className="ritual-six-lines" aria-label={t('Six lines, bottom to top','自下而上的六爻')}>
-    {[5,4,3,2,1,0].map(index=>{const step=steps[index];const yang=step?.lineValue===7||step?.lineValue===9;return <li key={index} data-line-position={index+1} data-state={step?'done':'waiting'} data-just-recorded={index===steps.length-1}>
+    {[0,1,2,3,4,5].map(index=>{const step=steps[index];const yang=step?.lineValue===7||step?.lineValue===9;return <li key={index} data-line-position={index+1} data-state={step?'done':'waiting'} data-just-recorded={index===steps.length-1}>
      <span className="ritual-line-check">{step?<Check size={17}/>:null}</span><span>{zh?`第 ${index+1} 爻`:`No.${index+1}`}</span><span>{zh?step?`爻值 ${step.lineValue}`:'待起':`Line ${index+1}`}</span>
      <span className="ritual-line-symbol" data-yang={yang} data-sealed={Boolean(step)} aria-label={step?`${index+1}: ${step.lineValue}`:t('Not yet cast','尚未起出')}><i/><i/></span>
     </li>;})}
