@@ -47,8 +47,8 @@ try {
    const callbacks=await page.evaluate(()=>[...document.querySelectorAll('[data-auth-reading-intent],[data-auth-reading-alternate-intent]')].map(node=>({intent:node.getAttribute('data-auth-reading-intent')??node.getAttribute('data-auth-reading-alternate-intent'),href:node.getAttribute('href')})));
    assert.equal(callbacks.length,2);
    for(const item of callbacks) {
-    const login=new URL(item.href,location.origin);
-    const callback=new URL(login.searchParams.get('callbackURL'),location.origin);
+    const login=new URL(item.href,fixtureBase);
+    const callback=new URL(login.searchParams.get('callbackURL'),fixtureBase);
     assert.equal(login.pathname,locale==='zh'?'/zh/signin':'/signin');
     assert.equal(callback.searchParams.get('session'),'browser-fixture-cast');
     assert.equal(callback.pathname,item.intent==='deep'?(locale==='zh'?'/zh/readings/deep':'/readings/deep'):(locale==='zh'?'/zh/readings/result':'/readings/result'));
