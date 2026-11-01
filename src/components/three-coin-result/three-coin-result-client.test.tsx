@@ -531,13 +531,13 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     const mockReport = {
       schemaVersion: "deep-reading-v2" as const,
       readingVariant: "standard" as const,
-      directAnswer: "Direct answer text explaining the specific context in relation to the hexagram.",
-      situationMapping: "Situation mapping text with clear ties to the cast facts and user situation.",
+      directAnswer: "Direct answer text explaining the specific context in relation to the hexagram, while keeping the next move conditional on evidence that can actually be observed.",
+      situationMapping: "Situation mapping text with clear ties to the cast facts and user situation, explaining why the present transition calls for measured movement rather than a fixed prediction.",
       keyTensions: ["Tension between current stagnation and coming movement"],
-      conditionalDirection: "If external conditions stabilize, advance cautiously.",
+      conditionalDirection: "If external conditions stabilize and the relevant support becomes observable, advance cautiously with one reversible step before making a larger commitment.",
       signalsToWatch: ["Clear written agreement from the counterpart"],
-      practicalReflection: "Observe before making irreversible financial or career decisions.",
-      uncertaintyAndBoundaries: "Separate what the cast indicates from unknown organizational dynamics.",
+      practicalReflection: "Observe the concrete signals first, record what would count as reliable evidence, and avoid making an irreversible career decision until those conditions are actually present.",
+      uncertaintyAndBoundaries: "Separate what the cast indicates from unknown organizational dynamics, because the reading cannot establish another person’s decision or guarantee an external outcome.",
       interpretiveBasisReferences: [{ evidenceId: "primary.judgment" }],
       disclaimer: "Reflective interpretation only.",
     };
