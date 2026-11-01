@@ -83,6 +83,28 @@ describe("hexagram hub inbound anchors", () => {
     expect(chineseHub).not.toContain("PENDING_RESEARCH");
   });
 
+  it("renders both locales through the single immersive Hub and removes the legacy Grid/CTA surfaces", () => {
+    const englishHub = renderToStaticMarkup(<EnglishHexagramsHubPage />);
+    const chineseHub = renderToStaticMarkup(<ChineseHexagramsHubPage />);
+
+    expect(englishHub).toContain("data-hexagrams-immersive-page");
+    expect(chineseHub).toContain("data-hexagrams-immersive-page");
+    expect(englishHub).toContain('data-hexagrams-locale="en"');
+    expect(chineseHub).toContain('data-hexagrams-locale="zh-Hans"');
+    expect((englishHub.match(/data-wheel-index=/gu) ?? [])).toHaveLength(64);
+    expect((chineseHub.match(/data-wheel-index=/gu) ?? [])).toHaveLength(64);
+    expect((englishHub.match(/data-scroll-hexagram=/gu) ?? [])).toHaveLength(64);
+    expect((chineseHub.match(/data-scroll-hexagram=/gu) ?? [])).toHaveLength(64);
+
+    for (const html of [englishHub, chineseHub]) {
+      expect(html).not.toContain("Open hexagram detail");
+      expect(html).not.toContain("Use the hexagrams in a reading");
+      expect(html).not.toContain("从问题开始起卦");
+      expect(html).not.toMatch(/查看第\s*\d+\s*卦详情/u);
+    }
+    expect(chineseHub).not.toContain("coreMeaning");
+  });
+
   it("keeps each hexagram hub in its own visible language", () => {
     const englishCopy = visibleText(renderToStaticMarkup(<EnglishHexagramsHubPage />));
     const chineseCopy = visibleText(renderToStaticMarkup(<ChineseHexagramsHubPage />));
