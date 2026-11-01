@@ -9,6 +9,17 @@ const assets=JSON.parse(await readFile('docs/performance/pr-76-assets.json','utf
 const state=process.argv[2];
 assert(['02','03','04','05','06','07'].includes(state),'Choose reference state 02–07');
 const output=resolve(process.argv[3]||`.artifacts/ritual-qa/ref-${state}/pass-1`);
+async function waitForProductionRoom(page){
+ await page.waitForSelector('.ritual-room[data-room-ready="true"]',{timeout:15000});
+ await page.evaluate(async()=>{
+  const room=document.querySelector('.ritual-room');
+  if(!room)throw new Error('RITUAL_ROOM_MISSING');
+  const background=getComputedStyle(room).backgroundImage;
+  if(!background.includes('stageDesktop.e37364561615e31f.webp'))throw new Error('PRODUCTION_ROOM_NOT_READY');
+  const image=new Image();image.src='/performance/stageDesktop.e37364561615e31f.webp';await image.decode();
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+ });
+}
 await mkdir(output,{recursive:true});
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1','--window-size=1672,941']});
 try {
@@ -40,6 +51,7 @@ try {
  await page.goto(url,{waitUntil:'networkidle0'});
  for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent)==='Decline')await button.click();
  await page.evaluate(()=>document.fonts.ready);
+ await waitForProductionRoom(page);
  // Layout snapshots sample completed CSS entrances; motion is audited separately in real time.
  await page.addStyleTag({content:'*,*::before,*::after{animation-delay:0s!important;animation-duration:0s!important;transition:none!important;caret-color:transparent!important}'});
  if(state!=='07') {

@@ -4,6 +4,17 @@ import os from 'node:os';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const output=resolve(process.argv[2]||'.artifacts/ritual-qa/ref-01/iteration-01');
+async function waitForProductionRoom(page){
+ await page.waitForSelector('.ritual-room[data-room-ready="true"]',{timeout:15000});
+ await page.evaluate(async()=>{
+  const room=document.querySelector('.ritual-room');
+  if(!room)throw new Error('RITUAL_ROOM_MISSING');
+  const background=getComputedStyle(room).backgroundImage;
+  if(!background.includes('stageDesktop.e37364561615e31f.webp'))throw new Error('PRODUCTION_ROOM_NOT_READY');
+  const image=new Image();image.src='/performance/stageDesktop.e37364561615e31f.webp';await image.decode();
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+ });
+}
 await mkdir(output,{recursive:true});
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--window-size=1672,941','--force-device-scale-factor=1']});
 try {
@@ -14,6 +25,7 @@ try {
  const consentButtons=await page.$$('button');
  for(const button of consentButtons) {if((await button.evaluate(node=>node.textContent))==='Decline') await button.click();}
  await page.evaluate(()=>document.fonts.ready);
+ await waitForProductionRoom(page);
  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
  await page.waitForSelector('[data-renderer="three-webgl"]',{timeout:15000});
  if(await page.$('[data-webgl-fallback="true"]'))throw new Error('Desktop Pixel QA cannot use fallback');
