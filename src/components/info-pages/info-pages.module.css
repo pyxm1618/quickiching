@@ -76,17 +76,8 @@
 
 .guideDecoration {
   display: block; width: 170px; height: 145px; max-width: 100%; margin: 0 auto 8px;
-  background-image: url("/info-pages/decorative/guide-decorations.webp"); background-repeat: no-repeat;
-  background-size: 340px 227px;
+  object-fit: contain;
 }
-
-.coins { background-position: 0 0; background-size: 340px 227px; }
-
-.landscape { background-position: 100% 0; background-size: 340px 227px; }
-
-.lantern { background-position: 0 100%; background-size: 340px 227px; }
-
-.books { background-position: 100% 100%; background-size: 340px 227px; }
 
 .questionGrid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 26px 38px; margin-top: 20px; }
 
