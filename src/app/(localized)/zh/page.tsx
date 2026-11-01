@@ -1,5 +1,6 @@
+import { ritualBrush } from "@/components/public-reading/ritual-font";
 import type { Metadata } from "next";
-import { QuestionFirst } from "@/components/public-reading/question-first";
+import { ThreeCoinRitual } from "@/components/public-reading/three-coin-ritual";
 import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
 import { getDictionary } from "@/i18n/dictionaries";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
@@ -29,22 +30,18 @@ export default function ChineseHomePage() {
   const dictionary = getDictionary("zh-Hans");
 
   return (
-    <article data-seo-primary={SEO.primaryKeyword} data-three-coin-home-experience>
+    <article className={`home-oracle ${ritualBrush.variable}`} data-seo-primary={SEO.primaryKeyword} data-three-coin-home-experience>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBPAGE_STRUCTURED_DATA) }}
       />
-      <QuestionFirst
-        storageKey="quickiching:public-v1:three-coin"
-        legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]}
+      <ThreeCoinRitual
         dictionary={dictionary}
-        deepReadingEligible
-        presentation="home-ritual"
         homeHeading={SEO.finalH1}
         homeDescription="写下一个核心问题，确认后自下而上完成六次起爻。问题只会在第一次真实起爻生成时锁定。"
       >
-        <ThreeCoinTool compactIntro dictionary={dictionary} presentation="home-ritual" />
-      </QuestionFirst>
+        <ThreeCoinTool dictionary={dictionary} />
+      </ThreeCoinRitual>
     </article>
   );
 }

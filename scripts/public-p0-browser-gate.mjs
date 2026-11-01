@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import { CLASSICAL_HEXAGRAMS } from "../src/domain/public-reading/classical.ts";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const THREE_COIN_STORAGE_KEY = "quickiching:public-v1:three-coin";
@@ -48,6 +49,9 @@ async function waitForText(page, text, timeout = 15_000) {
 }
 
 async function clickText(page, text) {
+  if (["Cast the Coins", "Record This Cast", "开始掷币", "记录这一爻"].includes(text)) {
+    await page.waitForFunction(wanted => [...document.querySelectorAll("button")].some(node => node.textContent?.trim() === wanted && !node.disabled), {timeout:15000}, text);
+  }
   const clicked = await page.evaluate((wanted) => {
     const node = [...document.querySelectorAll("button")].find((candidate) => candidate.textContent?.trim() === wanted);
     if (!(node instanceof HTMLButtonElement) || node.disabled) return false;
@@ -75,8 +79,8 @@ async function resetThreeCoin(page) {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate((key) => {
     sessionStorage.removeItem(key);
-    sessionStorage.removeItem("quickiching:question:three-coin:started");
-    sessionStorage.removeItem("quickiching:question:three-coin:question");
+    localStorage.removeItem("quickiching:public-v1:three-coin-completed-backup");
+    sessionStorage.removeItem("quickiching:public-v1:completed-reading");
   }, THREE_COIN_STORAGE_KEY);
 }
 
@@ -90,6 +94,7 @@ async function verifyChineseNoChangingLines(page) {
   await openSeededThreeCoinResult(page, "zh-Hans");
   const gate = await page.evaluate(() => ({
     hasSixLines: document.querySelector("[data-completed-six-lines]") !== null,
+    signInAria: document.querySelector(".ritual-gate-signin")?.getAttribute("aria-label"),
     primaryCard: document.querySelector("[data-primary-card]") !== null,
     relatingCard: document.querySelector("[data-relating-card]") !== null,
     text: document.body?.innerText ?? "",
@@ -97,7 +102,8 @@ async function verifyChineseNoChangingLines(page) {
   assert(gate.hasSixLines, "Chinese auth gate must preserve the completed six lines");
   assert.equal(gate.primaryCard, false, "Chinese anonymous gate must not reveal the primary hexagram");
   assert.equal(gate.relatingCard, false, "Chinese anonymous gate must not reveal whether a relating hexagram exists");
-  assert(gate.text.includes("登录、保存并查看本次卦象"), "Chinese completed cast must require sign-in before reveal");
+  assert.equal(gate.signInAria, "登录、保存并查看本次卦象", "Formal Chinese sign-in action must retain its accessible purpose");
+  assert(gate.text.includes("登录、保存并查看"), "Chinese completed cast must require sign-in before reveal");
   await assertNoOverflow(page, "Chinese no-changing completed-cast gate 390px");
   log("Chinese no-changing completed cast remains sealed behind auth-before-reveal PASS");
 }
@@ -105,6 +111,8 @@ async function verifyChineseNoChangingLines(page) {
 async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, question = "") {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(({ key, id: readingId, createdAt: readingCreatedAt, steps, question: coreQuestionAtCast }) => {
+    localStorage.removeItem("quickiching:public-v1:three-coin-completed-backup");
+    sessionStorage.removeItem("quickiching:public-v1:completed-reading");
     sessionStorage.setItem(key, JSON.stringify({
       schemaVersion: 1,
       id: readingId,
@@ -123,8 +131,8 @@ async function openSeededThreeCoinResult(page, locale = "en") {
   const resultPath = `${prefix}/readings/three-coin/result`;
   await page.goto(`${BASE}${methodPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForFunction(() => {
-    const badge = document.querySelector(".ritual-progress-badge");
-    return badge?.textContent?.trim().startsWith("6 / 6") === true;
+    return document.querySelector('[data-ritual-view="complete"]') !== null
+      && document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 6;
   }, { timeout: 15_000 });
   await new Promise((resolve) => setTimeout(resolve, 500));
   assert.equal(new URL(page.url()).pathname, methodPath, "Restored completed cast must not auto-navigate to an old result");
@@ -163,7 +171,7 @@ async function verifySeoAssets(page) {
   for (const path of HEXAGRAM_PATHS) assert(sitemap.includes(`https://www.quickiching.com${path}`), `Sitemap missing ${path}`);
   assert(sitemap.includes("https://www.quickiching.com/zh/hexagrams"), "Sitemap must include the Chinese Hexagram hub");
   for (const path of CHINESE_HEXAGRAM_PATHS) assert(sitemap.includes(`https://www.quickiching.com${path}`), `Sitemap missing ${path}`);
-  for (const forbidden of ["/history", "/readings/", "/api/", "/trigrams/", "/en/"]) assert(!sitemap.includes(forbidden), `Sitemap contains forbidden path ${forbidden}`);
+  for (const forbidden of ["/my-readings", "/readings/", "/api/", "/trigrams/", "/en/"]) assert(!sitemap.includes(forbidden), `Sitemap contains forbidden path ${forbidden}`);
 
   const hubResponse = await page.goto(`${BASE}/hexagrams`, { waitUntil: "networkidle0", timeout: 30_000 });
   assert.equal(hubResponse?.status(), 200, "Hexagram hub must be reachable");
@@ -175,61 +183,78 @@ async function verifySeoAssets(page) {
     const snapshot = await page.evaluate(() => ({
       canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? "",
       lineAnchors: Array.from({ length: 6 }, (_, index) => document.querySelector(`#line-${index + 1}`) !== null),
-      classicalSourceUrls: [...document.querySelectorAll('a[href]')]
+      classicalSourceUrls: [...document.querySelectorAll('article[data-hexagram-detail] a[href]')]
         .map((node) => node.getAttribute("href") ?? "")
         .filter((href) => href.includes("zh.wikisource.org")),
-      classicalSourceText: [...document.querySelectorAll('article[data-hexagram-detail] [data-seo-exclude]')]
-        .map((node) => node.textContent ?? "")
-        .join(" "),
+      classicalHeading: document.querySelector("#hexagram-classical-title")?.textContent ?? "",
+      classicalSubheadings: [...(document.querySelector("#hexagram-classical-title")?.closest("section")?.querySelectorAll("h3") ?? [])].map((node) => node.textContent?.trim()),
+      classicalSectionSourceUrls: [...(document.querySelector("#hexagram-classical-title")?.closest("section")?.querySelectorAll('a[href]') ?? [])]
+        .map((node) => node.getAttribute("href") ?? "").filter((href) => href.includes("zh.wikisource.org")),
+      lineSourceUrls: Array.from({ length: 6 }, (_, index) => {
+        const label = document.documentElement.lang === "zh-Hans" ? `第${index + 1}爻经典原文来源` : `Source for classical line ${index + 1}`;
+        return document.querySelector(`article[data-hexagram-detail] a[aria-label="${label}"]`)?.getAttribute("href") ?? "";
+      }),
       text: document.body?.innerText ?? "",
     }));
     assert(snapshot.canonical.endsWith(path), `${path}: canonical is not self-referencing`);
     assert(snapshot.lineAnchors.every(Boolean), `${path}: six line anchors are incomplete`);
     assert(snapshot.classicalSourceUrls.length >= 7, `${path}: fixed classical source links are incomplete`);
+    const classical = CLASSICAL_HEXAGRAMS.find((entry) => path.endsWith("/" + entry.slug));
+    assert(classical, `${path}: classical record is missing`);
+    assert(snapshot.classicalSourceUrls.every((href) => href === classical.source.textSourceUrl), `${path}: classical source must match this hexagram's fixed source URL and revision`);
+    assert.deepEqual(snapshot.lineSourceUrls, classical.lines.map((line) => line.source.textSourceUrl), `${path}: six individually labelled classical line sources are incomplete or incorrect`);
     if (path.startsWith("/zh/")) {
       assert(snapshot.text.includes("卦辞") && snapshot.text.includes("大象"), `${path}: Chinese classical text is missing`);
     } else {
-      const sourceText = snapshot.classicalSourceText.toLocaleLowerCase();
-      assert(sourceText.includes("classical source record") && sourceText.includes("fixed records for the six lines"), `${path}: English classical source explanation is missing`);
+      // The approved English knowledge layout replaces the old source-explainer copy.
+      // Assert its semantic sections while keeping the real fixed-source checks above.
+      assert(snapshot.classicalHeading.includes("Classical Text & Modern Interpretation"), `${path}: English classical section heading is missing`);
+      assert.deepEqual(snapshot.classicalSubheadings, ["Judgment", "Image"], `${path}: Judgment/Image source sections are missing`);
+      assert.deepEqual(snapshot.classicalSectionSourceUrls, [classical.source.textSourceUrl, classical.source.textSourceUrl], `${path}: Judgment/Image fixed classical source links are incomplete or incorrect`);
+      assert(!snapshot.text.includes("Classical Line Text"), `${path}: English rendering must not be labelled as classical original text`);
     }
   }
 
-  const historyHtml = await (await fetch(`${BASE}/history/`)).text();
-  assert(/name="robots"[^>]*content="[^"]*noindex[^"]*follow/i.test(historyHtml) || /content="[^"]*noindex[^"]*follow[^\"]*"[^>]*name="robots"/i.test(historyHtml), "History must be noindex, follow");
   const retiredGet = await fetch(`${BASE}/api/personalized-interpretation`);
   assert.equal(retiredGet.status, 404, "Retired free personalized endpoint must be closed");
   const retiredPost = await fetch(`${BASE}/api/personalized-interpretation`, { method: "POST" });
   assert.equal(retiredPost.status, 404, "Retired free personalized endpoint must not accept POST");
   const otherApi = await fetch(`${BASE}/api/not-a-route`);
   assert.equal(otherApi.status, 404, "Unlisted API routes must remain closed");
-  log("140-URL sitemap, English/Chinese hubs, entity metadata/anchors, History noindex, and API closure PASS");
+  log("140-URL sitemap, English/Chinese hubs, entity metadata/anchors, private-route exclusion, and API closure PASS");
 }
 
 
-async function verifyQuestionReading(page) {
-  const question = "What deserves my attention in this transition?";
+async function recordFormalLine(page, count, locale = "en") {
+  await page.waitForSelector('.hold-button:not(:disabled)', { timeout: 15_000 });
+  await clickText(page, locale === "zh-Hans" ? "掷三枚铜钱" : "Toss three coins");
+  await clickText(page, locale === "zh-Hans" ? "记录这一爻" : "Record This Cast");
+  if (count < 6) await page.waitForFunction(expected => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === expected, { timeout: 15_000 }, count);
+}
+
+async function verifyQuestionReading(page, locale = "en") {
+  const zh = locale === "zh-Hans";
+  const prefix = zh ? "/zh" : "";
+  const question = zh ? "这次变化中，我应该先守住什么？" : "What deserves my attention in this transition?";
   await resetThreeCoin(page);
-  await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.evaluate(() => sessionStorage.setItem("quickiching:public-v1:completed-reading", JSON.stringify({
+    schemaVersion: 1,
+    id: "00000000-0000-4000-8000-000000000099",
+    createdAt: "2026-08-19T00:00:00.000Z",
+    method: "three-coin", methodVersion: "three-coin-v1",
+    question: "Earlier completed reading must not replace the new cast",
+    lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+    evidence: { kind: "three-coin", steps: [] },
+  })));
+  await page.goto(`${BASE}${prefix}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector("textarea[data-private-question]");
   await page.type("textarea[data-private-question]", question);
-  await clickText(page, "Continue with question");
+  await clickText(page, zh ? "开始起卦" : "Start Divination");
+  await clickText(page, zh ? "开始掷币" : "Cast the Coins");
+  for (let line = 1; line <= 6; line += 1) await recordFormalLine(page, line, locale);
 
-  const castButtonSelector = 'button[aria-label^="Toss three coins"]';
-  for (let line = 1; line <= 6; line += 1) {
-    await page.waitForSelector(castButtonSelector, { timeout: 15_000 });
-    await page.click(castButtonSelector);
-    if (line === 6) {
-      await page.waitForFunction(
-        () => location.pathname === "/readings/three-coin/result" || Boolean(document.body?.innerText?.includes("6 / 6 lines")),
-        { timeout: 15_000 },
-      );
-    } else {
-      await waitForText(page, `${line} / 6 lines`);
-    }
-  }
-
-  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
-  await waitForText(page, "Your completed cast is preserved");
+  await page.waitForFunction(prefix => location.pathname === `${prefix}/readings/result`, { timeout: 15_000 }, prefix);
+  await waitForText(page, zh ? "六爻已经完成" : "Your six lines are complete");
   await assertQuestionPrivacy(page, question, { requireVisible: false });
 
   const questionState = await page.evaluate(() => ({
@@ -238,20 +263,27 @@ async function verifyQuestionReading(page) {
     primaryCard: document.querySelector("[data-primary-card]") !== null,
     deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
   }));
+  assert.equal(new URL(page.url()).searchParams.get("session"), questionState.session.id, "Completion URL must select this exact formal Three-Coin cast, even when another completed reading exists");
+  const signinHref = await page.$eval('.ritual-gate-signin', node => node.getAttribute("href"));
+  const callback = new URL(signinHref, BASE).searchParams.get("callbackURL");
+  assert.equal(new URL(callback, BASE).searchParams.get("session"), questionState.session.id, "Sign-in callback must preserve this exact cast identity");
+  const lineDescriptions = zh ? { 6: "阴爻，动爻", 7: "阳爻", 8: "阴爻", 9: "阳爻，动爻" } : { 6: "yin, moving", 7: "yang", 8: "yin", 9: "yang, moving" };
+  const expectedLabels = questionState.session.data.steps.map((step, index) => zh ? `第 ${index + 1} 爻：${lineDescriptions[step.lineValue]}` : `Line ${index + 1}: ${lineDescriptions[step.lineValue]}`).reverse();
+  assert.deepEqual(await page.$$eval('[data-completed-six-lines] [role="img"]', nodes => nodes.map(node => node.getAttribute("aria-label"))), expectedLabels, "Result gate must preserve this cast's six lines rather than the previous reading");
   assert.equal(questionState.session.coreQuestionAtCast, question, "The frozen question must be stored with this cast");
   assert.equal(questionState.session.coreQuestionFrozenAtCast, true, "The session must record the first-real-cast question freeze");
   assert.equal(questionState.session.data?.steps?.length, 6, "The completed browser session must preserve all six authoritative steps");
   assert(questionState.authGate, "Anonymous completed cast must enter auth-before-reveal");
-  assert.equal(questionState.primaryCard, false, "Free result must not reveal before sign-in and History save");
+  assert.equal(questionState.primaryCard, false, "Free result must not reveal before sign-in and account persistence");
   assert.equal(questionState.deepEntry, false, "Deep Reading must remain downstream of the result reveal gate");
 
   const sessionBeforeRefresh = JSON.stringify(questionState.session);
   await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "Your completed cast is preserved");
+  await waitForText(page, zh ? "六爻已经完成" : "Your six lines are complete");
   await assertQuestionPrivacy(page, question, { requireVisible: false });
   const sessionAfterRefresh = await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin"));
   assert.equal(sessionAfterRefresh, sessionBeforeRefresh, "Auth-gate refresh must restore the exact same completed cast and question");
-  log("Question freeze, six authoritative casts, privacy, completed-cast restore, and auth-before-reveal PASS");
+  log(`${locale}: current cast selection over stale reading, sign-in callback, six-line facts, privacy and restore PASS`);
 }
 
 
@@ -259,31 +291,18 @@ async function verifyQuestionSkipFreeOnly(page) {
   await resetThreeCoin(page);
   await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
   await clickText(page, "Skip — free reading only");
-  await waitForText(page, "This cast will remain free-only");
-  assert.equal(await page.$('input[data-private-question]'), null, "Skipping must not leave a question field that suggests later binding");
-  await clickText(page, "Start over with a question");
-  await page.waitForSelector("textarea[data-private-question]");
+  await page.waitForSelector('[data-experience-stage="question-confirm"]');
+  await page.click('.ritual-back');
+  await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]');
   await clickText(page, "Skip — free reading only");
-
-  const castButtonSelector = 'button[aria-label^="Toss three coins"]';
-  await page.waitForSelector(castButtonSelector, { timeout: 15_000 });
-  await page.click(castButtonSelector);
-  await waitForText(page, "A question was not set before the first line was cast");
-  await waitForText(page, "1 / 6 lines");
+  await clickText(page, "Cast the Coins");
+  await recordFormalLine(page, 1);
   assert.equal(await page.$('input[data-private-question]'), null, "A skipped question cannot be added after the first line is cast");
   assert.equal(await page.$("button[data-question-restart]"), null, "A frozen free-only cast must not offer late question restart");
+  for (let line = 2; line <= 6; line += 1) await recordFormalLine(page, line);
 
-  for (let line = 2; line <= 6; line += 1) {
-    await page.waitForFunction((selector) => {
-      const button = document.querySelector(selector);
-      return button instanceof HTMLButtonElement && !button.disabled;
-    }, { timeout: 15_000 }, castButtonSelector);
-    await page.click(castButtonSelector);
-    if (line < 6) await waitForText(page, `${line} / 6 lines`);
-  }
-
-  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
-  await waitForText(page, "Your completed cast is preserved");
+  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
+  await waitForText(page, "Your six lines are complete");
   const state = await page.evaluate(() => ({
     session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
     authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
@@ -304,7 +323,8 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   const question = "面对职业选择，我现在最需要看清什么？";
   await seedThreeCoin(page, question);
   await openSeededThreeCoinResult(page, "zh-Hans");
-  await waitForText(page, "本次起卦已经完成");
+  await waitForText(page, "六爻已经完成");
+  await waitForText(page, "保存本次起卦");
   await assertQuestionPrivacy(page, question, { requireVisible: false });
 
   const state = await page.evaluate(() => ({
@@ -314,7 +334,7 @@ async function verifyChineseQuestionAndDeepEntry(page) {
     session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
   }));
   assert(state.authGate, "Chinese anonymous completed cast must enter auth-before-reveal");
-  assert.equal(state.primaryCard, false, "Chinese primary hexagram must remain hidden before History save");
+  assert.equal(state.primaryCard, false, "Chinese primary hexagram must remain hidden before account persistence");
   assert.equal(state.deepEntry, false, "Chinese Deep Reading must remain downstream of saved result reveal");
   assert.equal(state.session.question, question, "Chinese callback source session must preserve the same question");
   assert.equal(state.session.coreQuestionAtCast, question, "Chinese callback source session must preserve the frozen core question");
@@ -353,7 +373,7 @@ async function startManual(page) {
 async function buildManual(page, values) {
   await setManualValues(page, values);
   await clickText(page, "Build reading");
-  await waitForText(page, "Your I Ching reading");
+  await page.waitForSelector("[data-free-reading-ritual]");
 }
 
 async function newManual(page) {
@@ -368,8 +388,8 @@ async function verifyManualAndMovement(page) {
   await buildManual(page, [7, 8, 7, 8, 7, 8]);
   assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 0, "No-moving reading must not render a fabricated relating hexagram");
   assert.equal(await page.$$eval("[data-no-relating-card]", (nodes) => nodes.length), 1, "No-moving reading must explain that there is no relating hexagram");
-  await waitForText(page, "No changing lines");
-  await waitForText(page, "No line changed, so this reading remains centered on the primary hexagram.");
+  assert.equal(await page.$$eval("[data-active-line]", nodes => nodes.length), 0, "A still cast must not show an active changing line");
+  await waitForText(page, "No Relating Hexagram");
   const noChangeText = await page.$eval("[data-public-reading-result]", (node) => node.textContent ?? "");
   assert(!/Changing line\(s\):\s*None/.test(noChangeText), "No-moving reading must not display a bare None");
   await newManual(page);
@@ -377,7 +397,7 @@ async function verifyManualAndMovement(page) {
   assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 1, "Single-moving reading must render one relating card");
   await newManual(page);
   await buildManual(page, [6, 9, 8, 7, 8, 7]);
-  await waitForText(page, "Changing line(s): 1, 2");
+  assert.deepEqual(await page.$$eval("[data-active-line]", nodes => nodes.map(node => Number(node.dataset.activeLine))), [1, 2]);
   assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 1, "Multiple-moving reading must render one relating card");
   await newManual(page);
   await page.focus('[role="tab"][aria-selected="true"]');
@@ -387,7 +407,7 @@ async function verifyManualAndMovement(page) {
   await page.select("#manual-primary-hexagram", "24");
   await page.click('input[type="checkbox"]');
   await clickText(page, "Build reading");
-  await waitForText(page, "Your I Ching reading");
+  await page.waitForSelector("[data-free-reading-ritual]");
   await assertNoOverflow(page, "Manual Cast 390px");
   log("Manual A/B, keyboard tab semantics, no/single/multiple moving lines, shared result, and no randomness UI PASS");
 }
@@ -396,17 +416,21 @@ async function verifyPartialRestart(page) {
   const question = "What remains important if I begin again?";
   await seedThreeCoinSession(page, "partial-reading-before", "2026-08-19T10:00:00.000Z", FIXTURE_STEPS.slice(0, 1), question);
   await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await waitForText(page, "1 / 6 lines");
-  const before = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
-  await clickText(page, "Restart casting");
-  await waitForText(page, "0 / 6 lines");
-  const after = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
-  assert.notEqual(after.id, before.id, "Restart casting must create a fresh reading identity");
-  assert.notEqual(after.createdAt, before.createdAt, "Restart casting must create a fresh timestamp");
-  assert.equal(after.question, question, "Restart casting must preserve the active question");
-  assert.equal("data" in after, false, "Restart casting must discard partial cast facts");
-  assert.equal(await page.$eval("input[data-private-question]", (node) => node.value), question, "Restart casting must preserve the editable question UI");
-  log("Partial Three-Coin restart preserves the question while replacing identity and cast facts PASS");
+  await page.waitForFunction(() => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 1);
+  const before = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
+  await page.click('.ritual-back');
+  await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]');
+  assert.equal(await page.evaluate(key => sessionStorage.getItem(key), THREE_COIN_STORAGE_KEY), null, "Formal restart must clear the old partial cast");
+  await page.type("textarea[data-private-question]", question);
+  await clickText(page, "Start Divination");
+  await clickText(page, "Cast the Coins");
+  await page.waitForSelector('.hold-button:not(:disabled)');
+  const after = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
+  assert.notEqual(after.id, before.id, "Restart must create a fresh reading identity");
+  assert.notEqual(after.createdAt, before.createdAt, "Restart must create a fresh timestamp");
+  assert.equal(after.question, question, "The same question can start a new independent cast");
+  assert.equal("data" in after, false, "Restart must discard partial facts");
+  log("Formal partial restart clears old facts and permits a fresh same-question cast PASS");
 }
 
 async function verifyYarrowPartialRestart(page) {
@@ -433,21 +457,17 @@ async function verifyYarrowPartialRestart(page) {
 }
 
 
-async function verifyHistory(page) {
-  await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.evaluate(() => localStorage.removeItem("quickiching:public-history:v1"));
-  await seedThreeCoin(page, "Same completed cast must wait for account History");
+async function verifyAccountPersistenceBoundary(page) {
+  await seedThreeCoin(page, "Same completed cast must wait for account persistence");
   await openSeededThreeCoinResult(page);
 
   const state = await page.evaluate(() => ({
-    localHistory: JSON.parse(localStorage.getItem("quickiching:public-history:v1") || "[]"),
     authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
     primaryCard: document.querySelector("[data-primary-card]") !== null,
   }));
-  assert(state.authGate, "Anonymous result route must wait for account History persistence");
-  assert.equal(state.primaryCard, false, "Anonymous result route must not reveal before account History persistence");
-  assert.equal(Array.isArray(state.localHistory) ? state.localHistory.length : 0, 0, "New flow must not treat local browser History as the reveal boundary");
-  log("Three-Coin reveal boundary no longer relies on local browser History PASS");
+  assert(state.authGate, "Anonymous result route must wait for account persistence");
+  assert.equal(state.primaryCard, false, "Anonymous result route must not reveal before account persistence");
+  log("Three-Coin reveal boundary requires formal account persistence PASS");
 }
 
 async function verifyResponsiveKeyboard(page) {
@@ -483,6 +503,7 @@ try {
   const page = await context.newPage();
   await verifySeoAssets(page);
   await verifyQuestionReading(page);
+  await verifyQuestionReading(page, "zh-Hans");
   await verifyQuestionSkipFreeOnly(page);
   await page.setViewport({ width: 390, height: 844 });
   await verifyChineseNoChangingLines(page);
@@ -490,10 +511,10 @@ try {
   await verifyPartialRestart(page);
   await verifyYarrowPartialRestart(page);
   await verifyManualAndMovement(page);
-  await verifyHistory(page);
+  await verifyAccountPersistenceBoundary(page);
   await verifyResponsiveKeyboard(page);
   await context.close();
-  log("ALL PUBLIC P0 BROWSER FLOWS PASS (including real keyboard Manual tabs and Three-Coin/Yarrow partial restart; AI activation is separately fail-closed)");
+  log("ALL PUBLIC P0 BROWSER FLOWS PASS (including real keyboard Manual tabs and formal Three-Coin/Yarrow partial restart; AI activation is separately fail-closed)");
 } finally {
   await browser.close();
 }

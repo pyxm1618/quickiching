@@ -15,12 +15,12 @@ describe("Auth request normalization", () => {
   it("normalizes success, new-user, and error callbacks through the same same-origin guard", () => {
     expect(normalizeAuthRequestBody({
       provider: "google",
-      callbackURL: "https://www.quickiching.com/history?from=auth",
-      newUserCallbackURL: "/history?from=new",
+      callbackURL: "https://www.quickiching.com/my-readings?from=auth",
+      newUserCallbackURL: "/my-readings?from=new",
       errorCallbackURL: "/signin?callbackURL=%2Fhistory",
     }, "https://www.quickiching.com")).toMatchObject({
-      callbackURL: "/history?from=auth",
-      newUserCallbackURL: "/history?from=new",
+      callbackURL: "/my-readings?from=auth",
+      newUserCallbackURL: "/my-readings?from=new",
       errorCallbackURL: "/signin?callbackURL=%2Fhistory",
     });
   });

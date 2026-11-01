@@ -5,7 +5,8 @@ import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
-import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
+import { useRouter } from "next/navigation";
+import { completedPublicReadingPath, writeCompletedPublicReading } from "@/lib/completed-public-reading";
 import { useQuestionFirstContext } from "@/components/public-reading/question-first";
 import { generateYarrowChange, type YarrowChange, type YarrowLineResult } from "@/domain/casting/yarrow/algorithm";
 import type { LineValue } from "@/domain/casting/types";
@@ -67,9 +68,10 @@ export function YarrowTool({
   dictionary?: UiDictionary;
   localizedContent?: LocalizedReadingContent;
 }) {
+  const router = useRouter();
+  const [handoffError, setHandoffError] = useState("");
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
-  const onNewReading = onNewReadingProp ?? (() => questionContext?.restartQuestion(true));
   const zh = dictionary.locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
   const [changes, setChanges] = useState<YarrowChange[]>([]);
@@ -110,6 +112,16 @@ export function YarrowTool({
         evidence: { kind: "yarrow-stalks", lines: yarrowLines },
       })
     : null, [complete, question, readingMeta, yarrowLines, lines]);
+  useEffect(() => {
+    if (!publicReading) return;
+    try {
+      writeCompletedPublicReading(publicReading);
+      router.push(completedPublicReadingPath(publicReading.id, zh));
+    } catch {
+      setHandoffError(zh ? "无法保存结果，请允许浏览器会话存储后重试。" : "Unable to save this result. Enable browser session storage and retry.");
+    }
+  }, [publicReading, router, zh]);
+
   const latest = changes.at(-1);
   const currentLine = complete ? 6 : Math.floor(changes.length / 3) + 1;
   const currentChange = complete ? 3 : (changes.length % 3) + 1;
@@ -118,8 +130,9 @@ export function YarrowTool({
     try {
       const session = writePublicReadingSession(STORAGE_KEY, { changes: next });
       setReadingMeta({ id: session.id, createdAt: session.createdAt });
+      setHandoffError("");
     } catch {
-      // The cast stays visible in memory; a later refresh can only resume a durable session.
+      setHandoffError(t("Unable to save this cast. Enable browser session storage and retry.", "无法保存本次起卦，请允许浏览器会话存储后重试。"));
     }
     setChanges(next);
   }
@@ -143,11 +156,6 @@ export function YarrowTool({
     }
     setReadingMeta(null);
     setChanges([]);
-  }
-
-  function startNewReading() {
-    reset(false);
-    onNewReading?.();
   }
 
   return (
@@ -196,7 +204,7 @@ export function YarrowTool({
         <button type="button" onClick={() => reset(true)} disabled={changes.length === 0 || complete} className="mystic-button-secondary">{t("Restart casting", "重新起卦")}</button>
       </div>
 
-      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} dictionary={dictionary} localizedContent={localizedContent} /> : null}
+      {handoffError ? <div className="mt-4"><p role="alert">{handoffError}</p><button type="button" className="mystic-button-secondary mt-3" onClick={() => commitChanges(changes)}>{t("Retry saving", "重新保存")}</button></div> : null}
     </section>
   );
 }

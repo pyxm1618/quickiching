@@ -1,0 +1,21 @@
+{
+  "url": "http://127.0.0.1:3046/?ritualTime=700",
+  "title": "I Ching Online — Free Hexagram Reading | Quick I Ching",
+  "viewport": {
+    "width": 1670,
+    "height": 942
+  },
+  "dpr": 1,
+  "scroll": {
+    "x": 0,
+    "y": 0
+  },
+  "document_height": 1512,
+  "fonts_ready": true,
+  "images_ready": true,
+  "document_overflow_x": false,
+  "captured_at": "2026-10-30T09:25:02.745Z",
+  "fallback": false,
+  "full_page": false,
+  "screenshot_scale": "css"
+}

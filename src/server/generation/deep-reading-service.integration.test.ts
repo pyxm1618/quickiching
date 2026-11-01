@@ -5,6 +5,9 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { databaseSchema } from "@/server/db/schema";
 import { encryptQuestionForStorage } from "./question-crypto";
+import { buildDeepReadingKnowledgeBundle } from "./deep-reading-knowledge";
+import { decryptDeepReadingContextSnapshot, encryptDeepReadingContextSnapshot } from "./deep-reading-snapshot";
+import { calculateDeepReadingContextSnapshotHash } from "./integrity";
 import { resultIntegrityHmac } from "./integrity";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
 import { createDeepReadingService, DeepReadingService } from "./deep-reading-service";
@@ -30,27 +33,17 @@ const castFacts: DeterministicFacts = {
   readingVariant: "still_hexagram",
 };
 
-function validEnrichment() {
-  return {
-    contextNotes: "The team changed its timeline and I need to choose a clear next step.",
-    options: [],
-    constraints: [],
-    concerns: [],
-    interpretationGoal: "what_do_i_need_to_see_clearly" as const,
-    locale: "en" as const,
-  };
-}
 
-async function seedCastFacts(castingId: string, now: string) {
+async function seedCastFacts(castingId: string, now: string, facts = castFacts) {
   const key = { version: "v1", material: "deep-reading-result-fixture-key" };
-  const resultHmac = resultIntegrityHmac(castFacts, key);
+  const resultHmac = resultIntegrityHmac(facts, key);
   await sql`
     insert into cast_results (
       casting_id, line_values, primary_hexagram_number, moving_line_positions, relating_hexagram_number,
       method_calculation, algorithm_version, classic_mapping_version, result_hmac, result_hmac_key_version, created_at
     ) values (
-      ${castingId}, ${castFacts.lineValuesBottomUp}, ${castFacts.primaryHexagramNumber}, ${castFacts.movingLinePositions}, null,
-      '{"coins":[2,2,3]}'::jsonb, ${castFacts.algorithmVersion}, ${castFacts.classicMappingVersion}, ${resultHmac}, 'v1', ${now}
+      ${castingId}, ${facts.lineValuesBottomUp}, ${facts.primaryHexagramNumber}, ${facts.movingLinePositions}, null,
+      '{"coins":[2,2,3]}'::jsonb, ${facts.algorithmVersion}, ${facts.classicMappingVersion}, ${resultHmac}, 'v1', ${now}
     )
   `;
 }
@@ -69,7 +62,7 @@ async function seedQuestionVersion(castingId: string, question: string, now: str
   `;
 }
 
-async function seedDeepReadingCandidateWithCredit(userId: string) {
+async function seedDeepReadingCandidateWithCredit(userId: string, method: DeterministicFacts["method"] = "three_coin") {
   const orderId = randomUUID();
   const batchId = randomUUID();
   const castingId = randomUUID();
@@ -93,9 +86,9 @@ async function seedDeepReadingCandidateWithCredit(userId: string) {
   `;
   await sql`
     insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
-    values (${castingId}, ${userId}, 'three_coin', 'revealed', 'allowed', 'career', 'guidance', ${now}, ${now})
+    values (${castingId}, ${userId}, ${method}, 'revealed', 'allowed', 'career', 'guidance', ${now}, ${now})
   `;
-  await seedCastFacts(castingId, now);
+  await seedCastFacts(castingId, now, { ...castFacts, method });
   await seedQuestionVersion(castingId, "What should I focus on in this transition?", now);
   return { orderId, batchId, castingId };
 }
@@ -105,6 +98,49 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
   const userOneId = "cp5-deep-user-1";
   const userTwoId = "cp5-deep-user-2";
   const userZeroId = "cp5-deep-user-zero";
+
+  it.each(["three_coin", "yarrow_stalk", "mei_hua_current_time"] as const)("derives a sealed %s snapshot with default English and one reservation", async (method) => {
+    const userId = `method-${randomUUID()}`;
+    const { castingId } = await seedDeepReadingCandidateWithCredit(userId, method);
+    const facts = { ...castFacts, method };
+    const result = await deepReadingService.requestDeepReading({ userId, castingId });
+    expect(result.status).toBe("queued");
+    const restored = await deepReadingService.getDeepReadingStatus({ userId, castingId });
+    expect(restored.snapshot).toMatchObject({ schemaVersion: "deep-reading-context-v2", castMethod: method, locale: "en", facts });
+    expect(restored.snapshot).not.toHaveProperty("context");
+    expect(restored.snapshot?.knowledge.evidence.length).toBeGreaterThan(0);
+    const retry = await deepReadingService.requestDeepReading({ userId, castingId, locale: "zh-Hans" });
+    expect(retry.jobId).toBe(result.jobId);
+    expect(retry.creditReservationCreated).toBe(false);
+  });
+
+  it.each(["queued", "running"])("fails legacy %s work and releases the reservation without regenerating", async (status) => {
+    const userId = `legacy-${randomUUID()}`;
+    const { castingId, batchId } = await seedDeepReadingCandidateWithCredit(userId);
+    const requested = { jobId: randomUUID(), reservationId: randomUUID() };
+    const knowledge = await buildDeepReadingKnowledgeBundle(castFacts);
+    const legacy = { schemaVersion: "deep-reading-context-v1" as const, castMethod: "three_coin" as const,
+      coreQuestionAtCast: "What should I focus on in this transition?", scene: "career" as const,
+      methodVersion: castFacts.algorithmVersion, facts: castFacts, snapshotAt: new Date().toISOString(),
+      knowledgeVersion: knowledge.version, knowledge, risk: { status: "allowed" as const, ruleVersion: "risk-v3", reasonCode: "allowed" },
+      context: { contextNotes: "An old background note with sufficient detail for the legacy parser.", options: [], constraints: [], concerns: [], interpretationGoal: "what_do_i_need_to_see_clearly" as const, locale: "en" as const } };
+    const encrypted = encryptDeepReadingContextSnapshot(castingId, legacy, integrationEnv);
+    expect(decryptDeepReadingContextSnapshot(castingId, encrypted, integrationEnv)).toEqual(legacy);
+    const hash = calculateDeepReadingContextSnapshotHash(legacy, integrationEnv);
+    await sql`insert into deep_reading_context_snapshots (casting_id, ciphertext, iv, auth_tag, encryption_key_version, snapshot_hash, created_at)
+      values (${castingId}, ${encrypted.ciphertext}, ${encrypted.iv}, ${encrypted.authTag}, ${encrypted.encryptionKeyVersion}, ${hash}, clock_timestamp())`;
+    await sql`insert into generation_jobs (id, casting_id, kind, status, generation_epoch, idempotency_key, input_snapshot_hash, timeout_at, created_at, updated_at)
+      values (${requested.jobId}, ${castingId}, 'deep_reading', ${status}, 0, ${`legacy:${castingId}`}, ${hash}, clock_timestamp() + interval '5 minutes', clock_timestamp(), clock_timestamp())`;
+    await sql`insert into entitlement_reservations (id, batch_id, user_id, casting_id, job_id, status, lease_token, lease_expires_at, expires_at, created_at, updated_at)
+      values (${requested.reservationId}, ${batchId}, ${userId}, ${castingId}, ${requested.jobId}, 'reserved', ${randomUUID()}, clock_timestamp() + interval '5 minutes', clock_timestamp() + interval '12 months', clock_timestamp(), clock_timestamp())`;
+    await sql`update entitlement_batches set quantity_available = 0, quantity_reserved = 1 where id = ${batchId}`;
+    await expect(deepReadingService.requestDeepReading({ userId, castingId })).rejects.toThrow("LEGACY_DEEP_READING_READ_ONLY");
+    const result = await deepReadingService.getDeepReadingStatus({ userId, castingId });
+    expect(result).toMatchObject({ status: "failed", errorCode: "LEGACY_DEEP_READING_READ_ONLY", availableCredits: 1 });
+    const batches = await sql`select quantity_available, quantity_reserved, quantity_consumed from entitlement_batches where id = ${batchId}`;
+    expect(batches[0]).toMatchObject({ quantity_available: 1, quantity_reserved: 0, quantity_consumed: 0 });
+    await expect(deepReadingService.requestDeepReading({ userId, castingId })).rejects.toThrow("LEGACY_DEEP_READING_READ_ONLY");
+  });
 
   beforeAll(async () => {
     await migrate(db, { migrationsFolder: "drizzle" });
@@ -163,7 +199,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     const result = await deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
-      enrichment: validEnrichment(),
+      locale: "en",
     });
 
     expect(result.status).toBe("queued");
@@ -173,7 +209,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     const retry = await deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
-      enrichment: validEnrichment(),
+      locale: "en",
     });
     expect(retry.status).toBe("queued");
     expect(retry.jobId).toBe(result.jobId);
@@ -184,7 +220,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
       status: "queued",
       snapshot: {
         coreQuestionAtCast: "What should I focus on in this transition?",
-        context: validEnrichment(),
+        locale: "en",
         facts: castFacts,
       },
     });
@@ -216,7 +252,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     const requested = await deepReadingService.requestDeepReading({
       userId,
       castingId,
-      enrichment: validEnrichment(),
+      locale: "en",
     });
     expect(requested.status).toBe("queued");
 
@@ -264,7 +300,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(failingService.requestDeepReading({
       userId,
       castingId,
-      enrichment: validEnrichment(),
+      locale: "en",
     })).rejects.toThrow("WORKFLOW_START_FAILED");
 
     const status = await failingService.getDeepReadingStatus({ userId, castingId });
@@ -288,7 +324,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
   it("does not time out a completed Deep Reading and returns its stored snapshot", async () => {
     const userId = `cp5-completed-${randomUUID()}`;
     const { batchId, castingId } = await seedDeepReadingCandidateWithCredit(userId);
-    const requested = await deepReadingService.requestDeepReading({ userId, castingId, enrichment: validEnrichment() });
+    const requested = await deepReadingService.requestDeepReading({ userId, castingId, locale: "en" });
     await sql`
       update generation_jobs
       set status = 'running', updated_at = clock_timestamp()
@@ -368,11 +404,11 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
-      enrichment: validEnrichment(),
+      locale: "en",
     })).rejects.toThrow("CASTING_NOT_READY");
   });
 
-  it("rejects missing context before snapshot creation or credit reservation", async () => {
+  it("does not reserve without credits when optional locale is omitted", async () => {
     const castingId = randomUUID();
     const now = new Date().toISOString();
 
@@ -386,7 +422,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userZeroId,
       castingId,
-    })).rejects.toThrow("CONTEXT_INSUFFICIENT");
+    })).rejects.toThrow("INSUFFICIENT_CREDITS");
 
     const [snapshots, reservations] = await Promise.all([
       sql`select count(*)::integer as count from deep_reading_context_snapshots where casting_id = ${castingId}` as Promise<Array<{ count: number }>>,
@@ -410,7 +446,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
-      enrichment: validEnrichment(),
+      locale: "en",
     })).rejects.toThrow("RISK_EMERGENCY_BLOCKED");
   });
 
@@ -428,7 +464,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
-      enrichment: validEnrichment(),
+      locale: "en",
     })).rejects.toThrow("CASTING_NOT_FOUND");
   });
 
@@ -447,7 +483,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userZeroId,
       castingId,
-      enrichment: validEnrichment(),
+      locale: "en",
     })).rejects.toThrow("INSUFFICIENT_CREDITS");
   });
 
@@ -480,7 +516,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     await expect(deepReadingService.requestDeepReading({
       userId: userOneId,
       castingId,
-      enrichment: validEnrichment(),
+      locale: "en",
     })).rejects.toThrow("CASTING_NOT_FOUND");
   });
 });

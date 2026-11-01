@@ -25,19 +25,60 @@ function postRequest(castingId: string, extraHeaders: Record<string, string> = {
       "sec-fetch-site": "same-origin",
       ...extraHeaders,
     },
-    body: JSON.stringify({
-      contextNotes: "The team changed its timeline and I need a clear next step.",
-      options: [],
-      constraints: [],
-      concerns: [],
-      interpretationGoal: "what_do_i_need_to_see_clearly",
-      locale: "en",
-    }),
+    body: JSON.stringify({ locale: "en" }),
   });
 }
 
 function getRequest(castingId: string) {
   return new Request(`https://www.quickiching.com/api/readings/${castingId}/deep`, { method: "GET" });
+}
+
+function completedReport() {
+  return {
+    schemaVersion: "deep-reading-v3" as const,
+    readingVariant: "standard" as const,
+    directAnswer: "A clear next step depends on what is confirmed in the current situation and which option remains reversible.",
+    whyThisReading: "This reading points to a focused transition because the active pattern emphasizes deliberate movement and observable evidence.",
+    whatMattersMost: ["Keep the next move reversible while you gather concrete evidence from the situation."],
+    whatToDoNext: ["Choose one small action that tests the direction and review the result before committing further."],
+    uncertaintyAndBoundaries: "The reading cannot establish another person’s future choice, so observable follow-through remains the boundary.",
+    interpretiveBasisReferences: [{ evidenceId: "primary.judgment" }],
+    disclaimer: "Use this reading as reflective guidance rather than a certain prediction or professional advice.",
+  };
+}
+
+function historicalV2Report() {
+  return {
+    schemaVersion: "deep-reading-v2" as const,
+    readingVariant: "standard" as const,
+    directAnswer: "A clear next step depends on what is confirmed in the current situation and which option remains reversible.",
+    situationMapping: "The cast describes an active transition, while the supplied context determines which part of that pattern applies now.",
+    keyTensions: ["Move with purpose while keeping the decision open to new evidence."],
+    conditionalDirection: "If the relevant support is present, a measured next step can test the direction without committing to the full outcome.",
+    signalsToWatch: ["Watch whether the other party follows through on the specific commitment."],
+    practicalReflection: "Write down what would count as reliable evidence, then choose one action that can be reviewed soon.",
+    uncertaintyAndBoundaries: "The cast cannot establish what another person will decide; that remains unknown until observable actions occur.",
+    interpretiveBasisReferences: [{ evidenceId: "primary:judgment" }],
+    disclaimer: "This is conditional reflection and not a certain prediction.",
+  };
+}
+
+function historicalV1Report() {
+  return {
+    schemaVersion: "commercial-reading-v1" as const,
+    readingVariant: "standard" as const,
+    coreSummary: "The situation calls for a measured response that protects room to adjust as new information becomes available.",
+    currentStage: "You are at a decision point where preparation matters more than speed.",
+    primaryHexagramPattern: "The primary pattern emphasizes sustained effort and disciplined timing.",
+    changeMechanism: "Change develops through a narrow opening rather than a sudden reversal.",
+    possibleDirection: "Progress is possible when support becomes visible and repeatable.",
+    obstaclesAndBlindSpots: "The main risk is treating an early signal as if it were a durable commitment.",
+    turningConditions: "Act when the relevant support is concrete enough to verify in practice.",
+    conditionalActionDirection: "Take one reversible step, then reassess before increasing commitment.",
+    uncertaintyAndBoundaries: "The reading cannot guarantee an external outcome or another person’s decision.",
+    interpretiveBasisReferences: [],
+    disclaimer: "Use this for reflection rather than certainty or professional advice.",
+  };
 }
 
 describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
@@ -117,7 +158,7 @@ describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
     expect(res.status).toBe(402);
   });
 
-  it("rejects insufficient context before calling the reservation service", async () => {
+  it("rejects retired enrichment before calling the reservation service", async () => {
     const req = new Request(`https://www.quickiching.com/api/readings/${castingId}/deep`, {
       method: "POST",
       headers: {
@@ -137,8 +178,16 @@ describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
     });
     const res = await POST(req, { params: Promise.resolve({ castingId }) });
     expect(res.status).toBe(422);
-    await expect(res.json()).resolves.toMatchObject({ error: "CONTEXT_INSUFFICIENT", retryable: false });
+    await expect(res.json()).resolves.toMatchObject({ error: "INVALID_DEEP_READING_REQUEST", retryable: false });
     expect(mocks.requestDeepReading).not.toHaveBeenCalled();
+  });
+
+  it("defaults an empty request body to English without enrichment", async () => {
+    const original = postRequest(castingId);
+    const request = new Request(original.url, { method: "POST", headers: original.headers });
+    const response = await POST(request, { params: Promise.resolve({ castingId }) });
+    expect(response.status).toBe(202);
+    expect(mocks.requestDeepReading).toHaveBeenCalledWith({ userId: "user-1", castingId, locale: "en" });
   });
 
   it("surfaces encrypted-question failures without reserving/retrying", async () => {
@@ -148,49 +197,26 @@ describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
     await expect(res.json()).resolves.toEqual({ error: "QUESTION_KEY_UNAVAILABLE", retryable: false });
   });
 
-  it("returns the trusted snapshot when a completed request is replayed", async () => {
-    const snapshot = {
-      schemaVersion: "deep-reading-context-v1",
-      coreQuestionAtCast: "What should I focus on?",
-      context: {
-        contextNotes: "The team changed its timeline and I need a clear next step.",
-        options: [],
-        constraints: [],
-        concerns: [],
-        interpretationGoal: "what_do_i_need_to_see_clearly",
-        locale: "en",
-      },
-      scene: "career",
-      castMethod: "three_coin",
-      methodVersion: "three-coin-v1",
-      facts: {
-        method: "three_coin",
-        algorithmVersion: "three-coin-v1",
-        classicMappingVersion: "king-wen-v1",
-        lineValuesBottomUp: [7, 8, 7, 8, 7, 8],
-        primaryHexagramNumber: 11,
-        movingLinePositions: [],
-        relatingHexagramNumber: null,
-        readingVariant: "still_hexagram",
-      },
-      snapshotAt: "2026-10-23T00:00:00.000Z",
-      knowledgeVersion: "test",
-      risk: { status: "allowed", ruleVersion: "risk-v3", reasonCode: "allowed" },
-      knowledge: { version: "test" },
-    };
+  it("returns a normalized completed presentation without exposing raw report or snapshot", async () => {
+    const output = completedReport();
     mocks.requestDeepReading.mockResolvedValue({
       status: "completed",
       jobId: "job-completed",
       reservationId: "reservation-completed",
-      output: { summary: "done" },
-      snapshot,
+      output,
     });
     const response = await POST(postRequest(castingId), { params: Promise.resolve({ castingId }) });
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
+    const payload = await response.json();
+    expect(payload).toMatchObject({
       status: "completed",
-      snapshot,
+      viewModel: {
+        schemaVersion: "ai-deep-reading-view-v1",
+      },
     });
+    expect(payload.viewModel.coreLead).toContain("clear next step");
+    expect(payload).not.toHaveProperty("output");
+    expect(payload).not.toHaveProperty("snapshot");
   });
 
   it("successfully initiates deep reading request with no-store headers", async () => {
@@ -202,11 +228,30 @@ describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
   });
 
   it("successfully returns deep reading status and completed output", async () => {
-    mocks.getDeepReadingStatus.mockResolvedValue({ status: "completed", output: { summary: "Deep guidance" } });
+    mocks.getDeepReadingStatus.mockResolvedValue({ status: "completed", output: completedReport() });
     const res = await GET(getRequest(castingId), { params: Promise.resolve({ castingId }) });
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
-    await expect(res.json()).resolves.toEqual({ status: "completed", output: { summary: "Deep guidance" } });
+    const payload = await res.json();
+    expect(payload.status).toBe("completed");
+    expect(payload.viewModel.schemaVersion).toBe("ai-deep-reading-view-v1");
+    expect(payload).not.toHaveProperty("output");
+    expect(payload).not.toHaveProperty("snapshot");
+  });
+
+  it.each([
+    ["v2", historicalV2Report()],
+    ["v1", historicalV1Report()],
+  ])("normalizes historical %s reports at the API boundary", async (_version, output) => {
+    mocks.getDeepReadingStatus.mockResolvedValue({ status: "completed", output });
+    const res = await GET(getRequest(castingId), { params: Promise.resolve({ castingId }) });
+    expect(res.status).toBe(200);
+    const payload = await res.json();
+    expect(payload.status).toBe("completed");
+    expect(payload.viewModel.schemaVersion).toBe("ai-deep-reading-view-v1");
+    expect(payload.viewModel.coreLead).toBeTruthy();
+    expect(payload).not.toHaveProperty("output");
+    expect(payload).not.toHaveProperty("snapshot");
   });
 
   it.each(["failed", "timed_out"] as const)("returns authoritative availableCredits for terminal %s status", async (status) => {

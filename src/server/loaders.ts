@@ -21,6 +21,7 @@ export type CastingView = {
     lineValues: number[];
     algorithmVersion: string;
     classicMappingVersion: string;
+    methodCalculation: unknown;
   } | null;
   preview: { status: string; relevanceStatement: string | null } | null;
   reading: { status: string; report: Record<string, unknown> | null; id: string | null; snapshot: DeepReadingContextSnapshot | null } | null;
@@ -43,7 +44,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
         q.iv as question_iv, q.auth_tag as question_auth_tag,
         q.encryption_key_version as question_encryption_key_version,
         r.line_values, r.primary_hexagram_number, r.moving_line_positions,
-        r.relating_hexagram_number, r.algorithm_version, r.classic_mapping_version,
+        r.relating_hexagram_number, r.algorithm_version, r.classic_mapping_version, r.method_calculation,
         d.job_id as reading_job_id, d.output as reading_output,
         ds.ciphertext as snapshot_ciphertext, ds.iv as snapshot_iv, ds.auth_tag as snapshot_auth_tag,
         ds.encryption_key_version as snapshot_encryption_key_version, ds.snapshot_hash
@@ -92,6 +93,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
           lineValues: lineVals,
           algorithmVersion: String(row.algorithm_version ?? "three-coin-v1"),
           classicMappingVersion: String(row.classic_mapping_version ?? "king-wen-v1"),
+          methodCalculation: row.method_calculation,
         }
       : null;
 
@@ -172,6 +174,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
         lineValues: cr.lineValues,
         algorithmVersion: cr.algorithmVersion,
         classicMappingVersion: cr.classicMappingVersion,
+        methodCalculation: cr.methodCalculation,
       }
     : null;
   const preview = canReadResult ? repo.getPreview(castingId) : undefined;
@@ -198,7 +201,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
   };
 }
 
-export async function loadHistory(
+export async function loadMyReadings(
   resolvedUser?: { id: string; email: string } | null,
   locale: "en" | "zh-Hans" = "en",
 ): Promise<
@@ -210,6 +213,7 @@ export async function loadHistory(
     riskStatus: string;
     createdAt: Date;
     primaryName: string | null;
+    question: string | null;
     hasPreview: boolean;
     hasReading: boolean;
   }>
@@ -223,22 +227,34 @@ export async function loadHistory(
     const rows = await sql`
       select
         s.id, s.method, s.scene, s.lifecycle, s.risk_status, s.created_at,
-        c.primary_hexagram_number,
+        c.primary_hexagram_number, c.line_values,
+        q.id as question_version_id, q.ciphertext as question_ciphertext,
+        q.iv as question_iv, q.auth_tag as question_auth_tag,
+        q.encryption_key_version as question_encryption_key_version,
         p.casting_id as preview_id,
         d.casting_id as reading_id
       from casting_sessions s
-      left join cast_results c on c.casting_id = s.id
+      inner join cast_results c on c.casting_id = s.id
+      left join lateral (
+        select * from question_versions where casting_id = s.id
+        order by version_number desc limit 1
+      ) q on true
       left join preview_results p on p.casting_id = s.id
       left join deep_reading_results d on d.casting_id = s.id
       where s.user_id = ${user.id} and s.deleted_at is null
+        and s.lifecycle = 'revealed' and s.method = 'three_coin'
       order by s.created_at desc
-      limit 50
     ` as Array<Record<string, any>>;
 
-    return rows.map((r) => {
+    const { decryptQuestionForGeneration } = await import("@/server/generation/question-crypto");
+    return rows.filter((r) => Array.isArray(r.line_values) && r.line_values.length === 6
+      && r.line_values.every((value: unknown) => typeof value === "number" && [6, 7, 8, 9].includes(value))
+      && Number.isInteger(r.primary_hexagram_number) && r.primary_hexagram_number >= 1 && r.primary_hexagram_number <= 64
+    ).map((r) => {
       const hexNum = r.primary_hexagram_number != null ? Number(r.primary_hexagram_number) : null;
       return {
         id: String(r.id),
+        question: r.question_version_id == null ? null : decryptQuestionForGeneration(r),
         method: String(r.method),
         scene: String(r.scene),
         lifecycle: String(r.lifecycle),
@@ -251,12 +267,15 @@ export async function loadHistory(
     });
   }
 
-  return repo.listCastsForUser(user.id).map((s) => {
+  return repo.listCastsForUser(user.id).filter((s) =>
+    s.method === "three_coin" && repo.canReadRevealedResult(s.id, user.id) && !!repo.getCastResult(s.id)
+  ).map((s) => {
     const cr = repo.getCastResult(s.id);
     const preview = repo.getPreview(s.id);
     const reading = repo.getReadingByCasting(s.id);
     return {
       id: s.id,
+      question: repo.getLatestQuestionContext(s.id) || null,
       method: s.method,
       scene: s.scene,
       lifecycle: s.lifecycle,

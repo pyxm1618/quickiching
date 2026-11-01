@@ -1,0 +1,47 @@
+{
+  "originalTotal": 7,
+  "states": {
+    "approved/pass": 7,
+    "deferred": 0,
+    "confirmedReject": 0,
+    "unreviewedUnknown": 0
+  },
+  "items": [
+    {
+      "item": "Basic Identity",
+      "status": "approved/pass",
+      "evidence": "Real identity and trigram-derived bars; shared component across all 64."
+    },
+    {
+      "item": "What This Hexagram Means",
+      "status": "approved/pass",
+      "evidence": "Four supplied semantic fields consumed; absent Key Energy/Suitable Situations not invented."
+    },
+    {
+      "item": "Classical Text & Modern Interpretation",
+      "status": "approved/pass",
+      "evidence": "All 64 Judgment and Image renderings and their own modern interpretations bound; exact fixed source URLs retained."
+    },
+    {
+      "item": "The Six Lines",
+      "status": "approved/pass",
+      "evidence": "384 line renderings plus full modern meaning/caution bound by position. Actual stage data count is zero; stage column hidden."
+    },
+    {
+      "item": "Hexagram-Specific Reading Cases",
+      "status": "approved/pass",
+      "evidence": "Exactly two actual use-line cases (Qian/Kun), empty case sections omitted elsewhere."
+    },
+    {
+      "item": "Relationships with Other Hexagrams",
+      "status": "approved/pass",
+      "evidence": "120 actual source-supplied structural relations across 64 hexagrams; no relations computed or authored in this UI."
+    },
+    {
+      "item": "Auxiliary Navigation",
+      "status": "approved/pass",
+      "evidence": "Only Previous/Back/Next; boundary links safely disabled; actual navigation tested."
+    }
+  ],
+  "meaningOfPass": "Component binding and safe optional rendering, not full visual acceptance or invented content completeness."
+}

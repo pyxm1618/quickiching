@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { TransactionSql } from "postgres";
 import { getPostgresClient } from "@/server/db/client";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
-import { readingReportSchema, validateDeepReadingEvidence, type DeepReadingContextSnapshot } from "@/domain/generation/deep-reading-contract";
+import { readingReportSchema, validateDeepReadingEvidence, type ActiveDeepReadingContextSnapshot } from "@/domain/generation/deep-reading-contract";
 import { createAiSdkDeepReadingProvider, createAiSdkOutputReviewer, reviewDecisionPassed } from "@/server/generation/ai-sdk-provider";
 import { getServerConfig } from "@/server/config";
 import type { OutputReviewDecision, ProviderGenerationResult, ProviderInput } from "@/server/generation/types";
@@ -13,7 +13,6 @@ import {
 } from "@/server/generation/integrity";
 import { decryptDeepReadingContextSnapshot } from "@/server/generation/deep-reading-snapshot";
 import { evaluateRisk } from "@/domain/risk/engine";
-import type { Scene } from "@/domain/casting/types";
 
 type Row = Record<string, any>;
 const LEASE_DURATION_MS = 5 * 60 * 1000;
@@ -43,15 +42,14 @@ function factsFromSession(session: Row): DeterministicFacts {
   };
 }
 
-function contextRiskText(snapshot: DeepReadingContextSnapshot): string {
-  return [snapshot.coreQuestionAtCast, snapshot.context.contextNotes, ...snapshot.context.options,
-    ...snapshot.context.constraints, ...snapshot.context.concerns].filter(Boolean).join("\n");
+function questionRiskText(snapshot: ActiveDeepReadingContextSnapshot): string {
+  return snapshot.coreQuestionAtCast;
 }
 
 async function loadDeepReadingSnapshot(
   transaction: TransactionSql,
   castingId: string,
-): Promise<{ snapshot: DeepReadingContextSnapshot; snapshotHash: string }> {
+): Promise<{ snapshot: ActiveDeepReadingContextSnapshot; snapshotHash: string }> {
   const rows = await transaction`
     select ciphertext, iv, auth_tag, encryption_key_version, snapshot_hash
     from deep_reading_context_snapshots where casting_id = ${castingId} limit 1
@@ -64,6 +62,7 @@ async function loadDeepReadingSnapshot(
     authTag: String(row.auth_tag),
     encryptionKeyVersion: String(row.encryption_key_version),
   });
+  if (snapshot.schemaVersion !== "deep-reading-context-v2") throw new Error("LEGACY_DEEP_READING_READ_ONLY");
   const snapshotHash = calculateDeepReadingContextSnapshotHash(snapshot);
   if (snapshotHash !== String(row.snapshot_hash)) throw new Error("DEEP_READING_SNAPSHOT_INTEGRITY_INVALID");
   return { snapshot, snapshotHash };
@@ -111,7 +110,6 @@ export async function claimJobLeaseStep(input: {
       throw new Error("CASTING_SESSION_INVALID_OR_DELETED");
     }
     if (session.lifecycle !== "revealed") throw new Error("CASTING_NOT_READY");
-    if (session.method !== "three_coin") throw new Error("UNSUPPORTED_CAST_METHOD");
     if (!session.result_hmac) throw new Error("CAST_RESULT_UNAVAILABLE");
 
     const jobRows = await transaction`
@@ -138,14 +136,13 @@ export async function claimJobLeaseStep(input: {
     if (snapshot.castMethod !== session.method || snapshot.methodVersion !== facts.algorithmVersion) {
       throw new Error("CAST_METHOD_SNAPSHOT_MISMATCH");
     }
-    if (snapshot.scene !== session.scene) throw new Error("CAST_SCENE_SNAPSHOT_MISMATCH");
     if (snapshot.knowledgeVersion !== snapshot.knowledge.version) throw new Error("KNOWLEDGE_SNAPSHOT_VERSION_MISMATCH");
     if (!verifyResultIntegrity({
       facts,
       resultHmac: String(session.result_hmac),
       resultHmacKeyVersion: String(session.result_hmac_key_version),
     })) throw new Error("CAST_RESULT_INTEGRITY_INVALID");
-    const risk = evaluateRisk(contextRiskText(snapshot));
+    const risk = evaluateRisk(questionRiskText(snapshot));
     if (risk.status !== "allowed") throw new Error(`RISK_${risk.status.toUpperCase()}`);
     if (Date.parse(String(job.timeout_at)) <= Date.now()) throw new Error("DEEP_READING_DEADLINE_EXCEEDED");
 
@@ -178,10 +175,8 @@ export async function claimJobLeaseStep(input: {
       providerInput: {
         castingId: input.castingId,
         question: snapshot.coreQuestionAtCast,
-        scene: snapshot.scene as Scene,
-        interpretationGoal: snapshot.context.interpretationGoal as ProviderInput["interpretationGoal"],
         facts,
-        context: snapshot.context,
+        locale: snapshot.locale,
         knowledge: snapshot.knowledge,
         deadlineAt: new Date(job.timeout_at).toISOString(),
       },
@@ -250,9 +245,7 @@ export async function reviewDeepReadingStep(input: {
         output: input.output,
         facts: input.providerInput.facts,
         question: input.providerInput.question,
-        scene: input.providerInput.scene,
-        interpretationGoal: input.providerInput.interpretationGoal,
-        context: input.providerInput.context,
+        locale: input.providerInput.locale,
         knowledge: input.providerInput.knowledge,
         deadlineAt: input.providerInput.deadlineAt,
       },
@@ -295,9 +288,8 @@ export async function finalizeDeepReadingStep(input: {
     ) {
       throw new Error("CAST_FACT_SNAPSHOT_MISMATCH");
     }
-    if (snapshot.scene !== session.scene) throw new Error("CAST_SCENE_SNAPSHOT_MISMATCH");
     if (snapshot.knowledgeVersion !== snapshot.knowledge.version) throw new Error("KNOWLEDGE_SNAPSHOT_VERSION_MISMATCH");
-    if (evaluateRisk(contextRiskText(snapshot)).status !== "allowed") {
+    if (evaluateRisk(questionRiskText(snapshot)).status !== "allowed") {
       throw new Error("RISK_PROHIBITED");
     }
 
@@ -359,8 +351,8 @@ export async function finalizeDeepReadingStep(input: {
     if (!evidence.valid) throw new Error("DEEP_READING_EVIDENCE_INVALID");
     const config = getServerConfig();
     const model = config.aiModelDeepReading ?? "gemini-2.5-pro";
-    const schemaVersion = "deep-reading-v2";
-    const promptVersion = "deep-reading-v2";
+    const schemaVersion = "deep-reading-v3";
+    const promptVersion = "deep-reading-v3";
     const provider = "vercel-ai-gateway";
     const integrity = calculateDeepReadingResultIntegrity({
       castingId: input.castingId,
@@ -374,6 +366,7 @@ export async function finalizeDeepReadingStep(input: {
       model,
     });
 
+    // Preserve the existing DB schema: context_fidelity_pass now records noInventedUserFacts.
     await transaction`
       insert into generation_output_reviews (
         id, job_id, casting_id, kind, status, reason_codes,
@@ -384,9 +377,9 @@ export async function finalizeDeepReadingStep(input: {
       ) values (
         ${randomUUID()}, ${input.jobId}, ${input.castingId}, 'deep_reading',
         ${input.reviewDecision.status}, ${JSON.stringify(input.reviewDecision.reasonCodes)}::jsonb,
-        'reviewer-v2', ${String(input.reviewDecision.schemaValid)},
+        'reviewer-v3', ${String(input.reviewDecision.schemaValid)},
         ${String(input.reviewDecision.safetyPass)}, ${String(input.reviewDecision.factConsistencyPass)},
-        ${String(input.reviewDecision.questionRelevancePass)}, ${String(input.reviewDecision.contextFidelityPass)},
+        ${String(input.reviewDecision.questionRelevancePass)}, ${String(input.reviewDecision.noInventedUserFacts)},
         ${String(input.reviewDecision.evidenceGroundingPass)}, ${String(input.reviewDecision.interpretiveCoherencePass)},
         ${String(input.reviewDecision.actionabilityPass)}, ${String(input.reviewDecision.uncertaintyPass)},
         ${String(input.reviewDecision.languageConsistencyPass)},

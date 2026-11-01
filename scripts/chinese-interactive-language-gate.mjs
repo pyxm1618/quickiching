@@ -77,7 +77,7 @@ async function extractAuditableEntries(page) {
     // 1. 可见文本（过滤 script, style, noscript, template, [hidden], [aria-hidden='true']）
     const clone = document.body.cloneNode(true);
     if (clone instanceof HTMLElement) {
-      clone.querySelectorAll("script, style, noscript, template, [hidden], [aria-hidden='true']").forEach((node) => node.remove());
+      clone.querySelectorAll("script, style, noscript, template, [hidden], [aria-hidden='true'], [data-language-switcher]").forEach((node) => node.remove());
       const visible = (clone.innerText || clone.textContent || "")
         .replace(/\r\n/g, "\n")
         .replace(/\u00a0/g, " ")
@@ -89,7 +89,7 @@ async function extractAuditableEntries(page) {
     const elements = document.querySelectorAll("*");
     const attrs = ["aria-label", "aria-description", "title", "alt", "placeholder"];
     elements.forEach((el) => {
-      if (el.closest("script, style, noscript, template, [hidden], [aria-hidden='true']")) return;
+      if (el.closest("script, style, noscript, template, [hidden], [aria-hidden='true'], [data-language-switcher]")) return;
       for (const attr of attrs) {
         const val = el.getAttribute(attr);
         if (val && val.trim()) {
@@ -220,7 +220,7 @@ async function main() {
     // =========================================================================
     // Test 1: Desktop User Menu Navigation & Localized Href Contract
     // =========================================================================
-    log("Test 1: Desktop User Menu & Navigation -> checking /zh/account & /zh/history parity");
+    log("Test 1: Desktop User Menu & Navigation -> checking My Readings / My Account / Settings parity");
     await page.goto(`${BASE}/zh`, { waitUntil: "networkidle0" });
 
     // Verify all header navigation links retain /zh prefix
@@ -248,123 +248,32 @@ async function main() {
         }));
       });
 
-      const accountLink = menuLinks.find((l) => l.text.includes("我的账户"));
-      assert(accountLink, "Dropdown menu must contain '我的账户'");
+      assert.equal(menuLinks.length, 3, `Desktop user menu must expose exactly 3 formal entries, got: ${menuLinks.length}`);
+
+      const readingsLink = menuLinks.find((l) => l.text.includes("我的解读"));
+      assert(readingsLink, "Dropdown menu must contain '我的解读'");
       assert.equal(
-        accountLink.href,
-        "/zh/account",
-        `Desktop user menu '我的账户' MUST link to '/zh/account', got: ${accountLink.href}`,
+        readingsLink.href,
+        "/zh/my-readings",
+        `Desktop user menu '我的解读' MUST link to '/zh/my-readings', got: ${readingsLink.href}`,
       );
 
-      const historyLink = menuLinks.find((l) => l.text.includes("起卦记录"));
-      assert(historyLink, "Dropdown menu must contain '起卦记录'");
-      assert.equal(
-        historyLink.href,
-        "/zh/history",
-        `Desktop user menu '起卦记录' MUST link to '/zh/history', got: ${historyLink.href}`,
-      );
+      const accountItem = menuLinks.find((l) => l.text.includes("我的账户"));
+      assert(accountItem, "Dropdown menu must contain '我的账户'");
+      assert.equal(accountItem.href, "", "'我的账户' must open the Account modal instead of a second page link");
 
-      const signOutBtn = menuLinks.find((l) => l.text.includes("退出登录"));
-      assert(signOutBtn, "Dropdown menu must contain '退出登录'");
+      const settingsItem = menuLinks.find((l) => l.text.includes("设置"));
+      assert(settingsItem, "Dropdown menu must contain '设置'");
+      assert.equal(settingsItem.href, "", "'设置' must open the Settings modal instead of a standalone page link");
 
       await assertPurity(page, "Desktop Authenticated User Menu Dropdown");
-      log("Test 1 PASS: User menu correctly targets /zh/account and /zh/history with 100% Chinese purity.");
+      log("Test 1 PASS: User menu exposes only 我的解读 / 我的账户 / 设置 with 100% Chinese purity.");
     } else {
       log("Test 1 NOTE: Auth capability is closed in current server env; UserNavControl parity verified via unit tests and header nav checked.");
     }
 
     // Turn off mock user for unauthenticated checks
     mockUser = { user: null };
-
-    // =========================================================================
-    // Test 2: Local History Page Interaction & Purity (/zh/history)
-    // =========================================================================
-    log("Test 2: Local History Page (/zh/history) -> Empty, populated, rename, delete confirmation states");
-    await page.goto(`${BASE}/zh/history`, { waitUntil: "networkidle0" });
-
-    // Empty state
-    const emptyStateText = await page.evaluate(() => document.body.innerText || "");
-    assert(emptyStateText.includes("仅保存在浏览器。"), "History empty state missing '仅保存在浏览器。'");
-    assert(emptyStateText.includes("暂无已保存记录"), "History empty state missing '暂无已保存记录'");
-    assert(emptyStateText.includes("当前浏览器还没有本地起卦记录"), "History empty state missing '当前浏览器还没有本地起卦记录'");
-    await assertPurity(page, "History Page Empty State");
-
-    // Populate a record into localStorage
-    await page.evaluate(() => {
-      const record = {
-        schemaVersion: 1,
-        id: "gate_record_01",
-        title: "求职规划卦",
-        question: "下月跳槽是否适宜？",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        method: "three-coin",
-        methodVersion: "three-coin-v1",
-        lineValuesBottomUp: [7, 7, 7, 9, 7, 7],
-        primaryHexagram: 1,
-        changingLines: [4],
-        relatingHexagram: 9,
-      };
-      localStorage.setItem("quickiching:public-history:v1", JSON.stringify([record]));
-    });
-
-    await page.reload({ waitUntil: "networkidle0" });
-    await page.waitForSelector("[data-history-view='gate_record_01']", { timeout: 10_000 });
-
-    const populatedText = await page.evaluate(() => document.body.innerText || "");
-    const recordMetaText = await page.$eval("[data-history-view='gate_record_01']", (el) => el.textContent || "");
-    assert(recordMetaText.includes("求职规划卦"), "Populated record title missing");
-    assert(recordMetaText.includes("三枚铜钱"), "Casting method must be localized to '三枚铜钱'");
-    assert(!recordMetaText.includes("three-coin"), "Method raw enum 'three-coin' leaked into list item");
-    assert(populatedText.includes("重命名"), "Rename button missing");
-    assert(populatedText.includes("删除"), "Delete button missing");
-
-    // Click "重命名"
-    await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.trim() === "重命名");
-      btn?.click();
-    });
-    await page.waitForFunction(() => Array.from(document.querySelectorAll("button")).some((b) => b.textContent?.includes("保存名称")), { timeout: 5000 });
-    const renameText = await page.evaluate(() => document.body.innerText || "");
-    assert(renameText.includes("重命名记录"), "Rename heading missing");
-    assert(renameText.includes("保存名称"), "Save name button missing");
-    assert(renameText.includes("取消"), "Cancel button missing in rename mode");
-    assert(!renameText.includes("Save name"), "English 'Save name' leaked");
-    assert(!renameText.includes("Rename reading"), "English 'Rename reading' leaked");
-    await assertPurity(page, "History Page Rename State");
-
-    // Cancel rename
-    await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.trim() === "取消");
-      btn?.click();
-    });
-
-    // Click "删除" to trigger confirmation state
-    await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.trim() === "删除");
-      btn?.click();
-    });
-    await page.waitForSelector("[data-history-confirm-delete]", { timeout: 5000 });
-    const confirmDeleteText = await page.evaluate(() => document.body.innerText || "");
-    assert(confirmDeleteText.includes("确认删除"), "Confirm delete button missing");
-    assert(confirmDeleteText.includes("取消"), "Cancel button missing in delete confirmation");
-    assert(!confirmDeleteText.includes("Confirm delete"), "English 'Confirm delete' leaked");
-    assert(!confirmDeleteText.match(/\bCancel\b/), "English 'Cancel' leaked in delete confirmation");
-
-    // Crucial check: verify kicker is pure Chinese and does not leak -v1
-    const resultKicker = await page.evaluate(() => {
-      const kickerEl = document.querySelector("[data-public-reading-result] p.mystic-kicker");
-      return kickerEl?.textContent?.trim() || "";
-    });
-    assert(resultKicker.includes("三枚铜钱 · 基础解读"), `Result kicker should be '三枚铜钱 · 基础解读', got: '${resultKicker}'`);
-    assert(!resultKicker.includes("-v1"), `Result kicker contains '-v1': '${resultKicker}'`);
-    assert(!resultKicker.includes("梅花易数"), `Three-coin result kicker contaminated with '梅花易数': '${resultKicker}'`);
-
-    await assertPurity(page, "History Page Delete Confirmation State");
-
-    // Clear localStorage
-    await page.evaluate(() => localStorage.clear());
-    log("Test 2 PASS: History page states, buttons, and Three-Coin reading result kicker verified pure Chinese.");
 
     // =========================================================================
     // Test 3: Unauthenticated /zh/account Redirect Route Guard
@@ -465,7 +374,7 @@ async function main() {
     // =========================================================================
     // Test 5: Four Casting Methods Interactive Result Generation & Purity
     // =========================================================================
-    log("Test 5: Four Casting Methods -> Interactive reading generation, kicker, aria, links");
+    log("Test 5: Four Casting Methods -> current result handoff, auth gate, and unified manual result");
 
 
     // 5.a: Three-Coin Method (/zh/methods/three-coin)
@@ -482,35 +391,19 @@ async function main() {
       const session = {
         schemaVersion: 1,
         started: true,
-        id: "gate_tc_reading",
+        id: "550e8400-e29b-41d4-a716-446655440101",
         createdAt: new Date().toISOString(),
         data: { steps },
       };
       sessionStorage.setItem("quickiching:public-v1:three-coin", JSON.stringify(session));
     });
     await page.reload({ waitUntil: "networkidle0" });
-    await page.waitForSelector("[data-public-reading-result]", { timeout: 10_000 });
-    const tcKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
-    assert.equal(tcKicker, "三枚铜钱 · 基础解读", `Three-coin kicker mismatch: ${tcKicker}`);
-    assert(!tcKicker.includes("-v1"), "Three-coin kicker leaked -v1");
-
-    // Verify HexagramLines accessibility labels in Three-Coin result
-    const tcLineAria = await page.evaluate(() => {
-      return Array.from(document.querySelectorAll("[data-public-reading-result] [role='img'][aria-label]"))
-        .map((el) => el.getAttribute("aria-label"));
-    });
-    assert(tcLineAria.length >= 6, "Expected at least 6 line aria labels");
-    for (const label of tcLineAria) {
-      assert(label?.startsWith("第"), `Aria label not localized to Chinese: ${label}`);
-      assert(!label?.includes("Line "), `Aria label contains English 'Line ': ${label}`);
-    }
-
-    // Verify detail link has /zh prefix
-    const tcDetailLink = await page.$eval("[data-public-reading-result] [data-primary-card] a[href]", (el) => el.getAttribute("href"));
-    assert(tcDetailLink?.startsWith("/zh/hexagrams/"), `Primary detail link must start with /zh/hexagrams/, got: ${tcDetailLink}`);
-
-    await assertPurity(page, "Three-Coin Complete Reading View");
-    log("Method simulation PASS: three-coin complete reading");
+    assert.equal(new URL(page.url()).pathname, "/zh/methods/three-coin", "A restored completed Three-Coin session must not auto-redirect from the casting page");
+    await page.goto(`${BASE}/zh/readings/result?session=550e8400-e29b-41d4-a716-446655440101`, { waitUntil: "networkidle0" });
+    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+    assert.equal(await page.$("[data-public-reading-result]"), null, "Unsigned Three-Coin result must stay behind the current save/auth gate");
+    await assertPurity(page, "Three-Coin Current Result Auth Gate");
+    log("Method simulation PASS: three-coin current result handoff");
 
     // 5.b: Yarrow Stalk Method (/zh/methods/yarrow-stalks)
     await page.goto(`${BASE}/zh/methods/yarrow-stalks`, { waitUntil: "networkidle0" });
@@ -533,29 +426,18 @@ async function main() {
       const session = {
         schemaVersion: 1,
         started: true,
-        id: "gate_yarrow_reading",
+        id: "550e8400-e29b-41d4-a716-446655440102",
         createdAt: new Date().toISOString(),
         data: { changes },
       };
       sessionStorage.setItem("quickiching:public-v1:yarrow-v2", JSON.stringify(session));
     });
     await page.reload({ waitUntil: "networkidle0" });
-    await page.waitForSelector("[data-public-reading-result]", { timeout: 10_000 });
-    const yarrowKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
-    assert.equal(yarrowKicker, "蓍草起卦 · 基础解读", `Yarrow kicker mismatch: ${yarrowKicker}`);
-    assert(!yarrowKicker.includes("-v1"), "Yarrow kicker leaked -v1");
-
-    const yarrowLineAria = await page.evaluate(() => {
-      return Array.from(document.querySelectorAll("[data-public-reading-result] [role='img'][aria-label]"))
-        .map((el) => el.getAttribute("aria-label"));
-    });
-    assert(yarrowLineAria.length >= 6, "Expected at least 6 line aria labels");
-    for (const label of yarrowLineAria) {
-      assert(label?.startsWith("第"), `Yarrow line aria label not Chinese: ${label}`);
-      assert(!label?.includes("Line "), `Yarrow line aria contains English: ${label}`);
-    }
-    await assertPurity(page, "Yarrow Stalks Complete Reading View");
-    log("Method simulation PASS: yarrow-stalks complete reading");
+    await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 10_000 });
+    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+    assert.equal(await page.$("[data-public-reading-result]"), null, "Unsigned Yarrow result must stay behind the current save/auth gate");
+    await assertPurity(page, "Yarrow Current Result Auth Gate");
+    log("Method simulation PASS: yarrow-stalks current result handoff");
 
     // 5.c: Mei Hua Yi Shu (/zh/methods/mei-hua-yi-shu)
     await page.goto(`${BASE}/zh/methods/mei-hua-yi-shu`, { waitUntil: "networkidle0" });
@@ -563,7 +445,7 @@ async function main() {
       sessionStorage.setItem("quickiching:public-v1:mei-hua-v2", JSON.stringify({
         schemaVersion: 1,
         started: true,
-        id: "gate_mei_hua_reading",
+        id: "550e8400-e29b-41d4-a716-446655440103",
         createdAt: new Date().toISOString(),
         data: {},
       }));
@@ -571,12 +453,11 @@ async function main() {
     await page.reload({ waitUntil: "networkidle0" });
     const castTimeBtn = await page.waitForSelector("section[aria-labelledby='mei-hua-tool-title'] button.mystic-button", { timeout: 5000 });
     await castTimeBtn.click();
-    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])", { timeout: 5000 });
-    const meiHuaKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
-    assert.equal(meiHuaKicker, "梅花易数 · 基础解读", `Mei Hua kicker mismatch: ${meiHuaKicker}`);
-    assert(!meiHuaKicker.includes("-v1"), "Mei Hua kicker leaked -v1");
-    await assertPurity(page, "Mei Hua Complete Reading View");
-    log("Method simulation PASS: mei-hua-yi-shu complete reading");
+    await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 10_000 });
+    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+    assert.equal(await page.$("[data-public-reading-result]"), null, "Unsigned Mei Hua result must stay behind the current save/auth gate");
+    await assertPurity(page, "Mei Hua Current Result Auth Gate");
+    log("Method simulation PASS: mei-hua-yi-shu current result handoff");
 
     // 5.d: Manual Cast (/zh/methods/manual-cast)
     await page.goto(`${BASE}/zh/methods/manual-cast`, { waitUntil: "networkidle0" });
@@ -584,7 +465,7 @@ async function main() {
       sessionStorage.setItem("quickiching:public-v1:manual-cast", JSON.stringify({
         schemaVersion: 1,
         started: true,
-        id: "gate_manual_reading",
+        id: "550e8400-e29b-41d4-a716-446655440104",
         createdAt: new Date().toISOString(),
         data: {},
       }));
@@ -592,10 +473,9 @@ async function main() {
     await page.reload({ waitUntil: "networkidle0" });
     const castManualBtn = await page.waitForSelector("section[aria-labelledby='manual-cast-tool-title'] button:not([role='tab']).mystic-button", { timeout: 5000 });
     await castManualBtn.click();
-    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])", { timeout: 5000 });
-    const manualKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
-    assert.equal(manualKicker, "手动起卦 · 基础解读", `Manual cast kicker mismatch: ${manualKicker}`);
-    assert(!manualKicker.includes("-v1"), "Manual cast kicker leaked -v1");
+    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading]) [data-free-reading-ritual]", { timeout: 5000 });
+    const manualMethod = await page.$eval("[data-free-reading-ritual]", (el) => el.getAttribute("data-reading-method"));
+    assert.equal(manualMethod, "manual", `Manual cast result method mismatch: ${manualMethod}`);
     await assertPurity(page, "Manual Cast Complete Reading View");
     log("Method simulation PASS: manual-cast complete reading");
 
@@ -635,7 +515,7 @@ async function main() {
       const session = {
         schemaVersion: 1,
         started: true,
-        id: "gate_tc_result_ready",
+        id: "550e8400-e29b-41d4-a716-446655440105",
         createdAt: new Date().toISOString(),
         data: { steps },
       };
@@ -645,15 +525,17 @@ async function main() {
     await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 5000 });
     const completedState = await page.evaluate(() => ({
       heading: document.querySelector("h1")?.textContent?.trim() ?? "",
+      completionCopy: document.querySelector(".ritual-gate-complete")?.textContent?.trim() ?? "",
       authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
       sixLines: document.querySelector("[data-completed-six-lines]") !== null,
       primaryCard: document.querySelector("[data-primary-card]") !== null,
       deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
     }));
-    assert(completedState.heading.includes("本次起卦已经完成"), `Completed-cast heading mismatch: ${completedState.heading}`);
+    assert.equal(completedState.heading, "保存本次起卦", `Completed-cast heading mismatch: ${completedState.heading}`);
+    assert.equal(completedState.completionCopy, "六爻已经完成", "The formal gate must confirm six-line completion");
     assert(completedState.authGate, "Completed Chinese Three-Coin cast must require sign-in before reveal");
     assert(completedState.sixLines, "Completed Chinese Three-Coin cast must preserve all six lines");
-    assert.equal(completedState.primaryCard, false, "Primary result must remain hidden before sign-in and History save");
+    assert.equal(completedState.primaryCard, false, "Primary result must remain hidden before sign-in and account persistence");
     assert.equal(completedState.deepEntry, false, "Deep Reading must remain hidden before result reveal");
     await assertPurity(page, "Three-Coin Completed Cast Auth Gate");
     log("Three-coin result PASS: completed cast auth-before-reveal state");
@@ -681,7 +563,7 @@ async function main() {
     }
 
     // =========================================================================
-    // Test 7: Full Chinese Interactive Inventory Purity Audit (17 Pages)
+    // Test 7: Full Chinese Interactive Inventory Purity Audit (16 Pages)
     // =========================================================================
     log("Test 7: Full-site Chinese interactive page language and accessibility purity scan");
     const pathsToAudit = [
@@ -694,7 +576,6 @@ async function main() {
       "/zh/guides/changing-lines",
       "/zh/guides/primary-relating-hexagrams",
       "/zh/hexagrams",
-      "/zh/history",
       "/zh/pricing",
       "/zh/privacy",
       "/zh/terms",

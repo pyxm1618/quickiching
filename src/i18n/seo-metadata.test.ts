@@ -1,8 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import sitemap from "@/app/sitemap";
 import { ZH_INDEXABLE_PAGE_SEO, zhSeoFor } from "@/content/seo/zh-pages";
 import { alternateLanguages, canonicalUrl, sitemapUrlInventory } from "./helpers";
 import { ROUTE_REGISTRY } from "./routes";
+// Next compiles this font loader; real font rendering is verified in browser QA.
+vi.mock("@/components/public-reading/ritual-font", () => ({ ritualBrush: { variable: "ritual-brush-font" } }));
+
 
 describe("multilingual metadata and sitemap integration", () => {
   it("publishes 73 English and 73 Chinese canonical URLs from one registry", () => {

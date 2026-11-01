@@ -1,0 +1,318 @@
+{
+  "url": "http://127.0.0.1:3000/?ritualTime=700",
+  "title": "I Ching Online — Free Hexagram Reading | Quick I Ching",
+  "viewport": {
+    "width": 1670,
+    "height": 942
+  },
+  "dpr": 1,
+  "fontsReady": true,
+  "imagesReady": true,
+  "overflow": false,
+  "fullPage": false,
+  "screenshotScale": "css",
+  "panel": "info",
+  "elements": [
+    {
+      "className": "scene-utility",
+      "text": "EN/中文",
+      "rect": {
+        "x": 1287.25,
+        "y": 23.984375,
+        "width": 348.78125,
+        "height": 66.953125,
+        "top": 23.984375,
+        "right": 1636.03125,
+        "bottom": 90.9375,
+        "left": 1287.25
+      },
+      "font": "19.988px / 23.9856px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "scene-brand",
+      "text": "Quick I Ching",
+      "rect": {
+        "x": 47.96875,
+        "y": 834.078125,
+        "width": 312.1875,
+        "height": 76.953125,
+        "top": 834.078125,
+        "right": 360.15625,
+        "bottom": 911.03125,
+        "left": 47.96875
+      },
+      "font": "37.9773px / 45.5727px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "scene-scroll scene-scroll-hexagrams",
+      "text": "64Hexagrams",
+      "rect": {
+        "x": 1365.203125,
+        "y": 624.1875,
+        "width": 150.90625,
+        "height": 225.859375,
+        "top": 624.1875,
+        "right": 1516.109375,
+        "bottom": 850.046875,
+        "left": 1365.203125
+      },
+      "font": "16px / 16.8px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "scene-scroll scene-scroll-methods",
+      "text": "OtherMethods",
+      "rect": {
+        "x": 1451.140625,
+        "y": 603.203125,
+        "width": 121.921875,
+        "height": 244.84375,
+        "top": 603.203125,
+        "right": 1573.0625,
+        "bottom": 848.046875,
+        "left": 1451.140625
+      },
+      "font": "16px / 16.8px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "scene-scroll scene-scroll-info",
+      "text": "Info",
+      "rect": {
+        "x": 1521.109375,
+        "y": 596.21875,
+        "width": 110.921875,
+        "height": 221.859375,
+        "top": 596.21875,
+        "right": 1632.03125,
+        "bottom": 818.078125,
+        "left": 1521.109375
+      },
+      "font": "16px / 16.8px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "scene-scroll-holder",
+      "text": "",
+      "rect": {
+        "x": 1411.15625,
+        "y": 749.140625,
+        "width": 219.859375,
+        "height": 131.90625,
+        "top": 749.140625,
+        "right": 1631.015625,
+        "bottom": 881.046875,
+        "left": 1411.15625
+      },
+      "font": "16px / 27.2px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "scene-panel scene-info-panel",
+      "text": "GuidesHow to Ask the I ChingChanging LinesPrimary & Relating HexagramsHelp & SupportHelp & SupportContact Supportsupport@quickiching.comLegal & PrivacyPrivacy PolicyTerms of ServiceAcceptable UsePrivacy SettingsFor reflection, not deterministic prediction or professional advice.© 2026 Quick I Ching",
+      "rect": {
+        "x": 133.90625,
+        "y": 253.84375,
+        "width": 1391.15625,
+        "height": 402.75,
+        "top": 253.84375,
+        "right": 1525.0625,
+        "bottom": 656.59375,
+        "left": 133.90625
+      },
+      "font": "16px / 27.2px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Guides",
+      "rect": {
+        "x": 328.78125,
+        "y": 319.796875,
+        "width": 323.796875,
+        "height": 66.953125,
+        "top": 319.796875,
+        "right": 652.578125,
+        "bottom": 386.75,
+        "left": 328.78125
+      },
+      "font": "700 26.9838px / 29.6822px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "How to Ask the I Ching",
+      "rect": {
+        "x": 331.765625,
+        "y": 422.71875,
+        "width": 236.34375,
+        "height": 25.984375,
+        "top": 422.71875,
+        "right": 568.109375,
+        "bottom": 448.703125,
+        "left": 331.765625
+      },
+      "font": "19.988px / 22.9862px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Changing Lines",
+      "rect": {
+        "x": 331.765625,
+        "y": 470.6875,
+        "width": 173.0625,
+        "height": 25.984375,
+        "top": 470.6875,
+        "right": 504.828125,
+        "bottom": 496.671875,
+        "left": 331.765625
+      },
+      "font": "19.988px / 22.9862px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Primary & Relating Hexagrams",
+      "rect": {
+        "x": 331.765625,
+        "y": 518.65625,
+        "width": 299.546875,
+        "height": 25.984375,
+        "top": 518.65625,
+        "right": 631.3125,
+        "bottom": 544.640625,
+        "left": 331.765625
+      },
+      "font": "19.988px / 22.9862px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Help & Support",
+      "rect": {
+        "x": 692.546875,
+        "y": 319.796875,
+        "width": 352.78125,
+        "height": 66.953125,
+        "top": 319.796875,
+        "right": 1045.328125,
+        "bottom": 386.75,
+        "left": 692.546875
+      },
+      "font": "700 26.9838px / 29.6822px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Help & Support",
+      "rect": {
+        "x": 709.53125,
+        "y": 422.71875,
+        "width": 192.59375,
+        "height": 25.984375,
+        "top": 422.71875,
+        "right": 902.125,
+        "bottom": 448.703125,
+        "left": 709.53125
+      },
+      "font": "19.988px / 22.9862px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Contact Supportsupport@quickiching.com",
+      "rect": {
+        "x": 709.53125,
+        "y": 470.6875,
+        "width": 255.78125,
+        "height": 46.34375,
+        "top": 470.6875,
+        "right": 965.3125,
+        "bottom": 517.03125,
+        "left": 709.53125
+      },
+      "font": "19.988px / 22.9862px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Legal & Privacy",
+      "rect": {
+        "x": 1085.296875,
+        "y": 319.796875,
+        "width": 329.796875,
+        "height": 66.953125,
+        "top": 319.796875,
+        "right": 1415.09375,
+        "bottom": 386.75,
+        "left": 1085.296875
+      },
+      "font": "700 26.9838px / 29.6822px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Privacy Policy",
+      "rect": {
+        "x": 1101.28125,
+        "y": 417.71875,
+        "width": 158.875,
+        "height": 25.984375,
+        "top": 417.71875,
+        "right": 1260.15625,
+        "bottom": 443.703125,
+        "left": 1101.28125
+      },
+      "font": "19.988px / 22.9862px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Terms of Service",
+      "rect": {
+        "x": 1101.28125,
+        "y": 455.6875,
+        "width": 178.96875,
+        "height": 25.984375,
+        "top": 455.6875,
+        "right": 1280.25,
+        "bottom": 481.671875,
+        "left": 1101.28125
+      },
+      "font": "19.988px / 22.9862px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Acceptable Use",
+      "rect": {
+        "x": 1101.28125,
+        "y": 493.65625,
+        "width": 169.09375,
+        "height": 25.984375,
+        "top": 493.65625,
+        "right": 1270.375,
+        "bottom": 519.640625,
+        "left": 1101.28125
+      },
+      "font": "19.988px / 22.9862px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "For reflection, not deterministic prediction or professional advice.",
+      "rect": {
+        "x": 333.78125,
+        "y": 586.6875,
+        "width": 991.40625,
+        "height": 20.96875,
+        "top": 586.6875,
+        "right": 1325.1875,
+        "bottom": 607.65625,
+        "left": 333.78125
+      },
+      "font": "14.991px / 20.9874px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "© 2026 Quick I Ching",
+      "rect": {
+        "x": 333.78125,
+        "y": 607.65625,
+        "width": 991.40625,
+        "height": 20.96875,
+        "top": 607.65625,
+        "right": 1325.1875,
+        "bottom": 628.625,
+        "left": 333.78125
+      },
+      "font": "14.991px / 20.9874px \"Times New Roman\", \"Songti SC\", serif"
+    }
+  ],
+  "maximumApprovedGeometryDelta": 0
+}

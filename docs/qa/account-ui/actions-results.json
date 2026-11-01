@@ -1,0 +1,16 @@
+{
+  "fixture_only": true,
+  "refund_failure_status": 404,
+  "refund_success_not_tested_in_browser": true,
+  "delete_actual_endpoint_status": 200,
+  "session_after_delete": null,
+  "target_ledger": {
+    "total": 1,
+    "approved": 1,
+    "deferred": 0,
+    "rejected": 0,
+    "unknown": 0,
+    "target": "isolated account-fixture@example.com only",
+    "executed": 1
+  }
+}

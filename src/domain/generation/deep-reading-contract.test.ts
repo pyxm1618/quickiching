@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  deepReadingContextEnrichmentSchema,
+  legacyDeepReadingContextEnrichmentSchema,
+  deepReadingRequestSchema,
+  activeDeepReadingContextSnapshotSchema,
+  readingReportSchema,
   deepReadingContextSnapshotSchema,
   validateDeepReadingEvidence,
   type DeepReadingKnowledgeBundle,
-  type DeepReadingContextEnrichment,
+  type LegacyDeepReadingContextEnrichment,
   type DeepReadingContextSnapshot,
 } from "./deep-reading-contract";
 import {
@@ -13,7 +16,7 @@ import {
 } from "@/server/generation/deep-reading-snapshot";
 import { calculateDeepReadingContextSnapshotHash } from "@/server/generation/integrity";
 
-const validEnrichment: DeepReadingContextEnrichment = {
+const validEnrichment: LegacyDeepReadingContextEnrichment = {
   contextNotes: "My team has delayed the review twice, and I need to decide what to prepare before Friday.",
   options: ["Ask for a written timeline", "Wait for the scheduled review"],
   constraints: ["I cannot change teams this quarter"],
@@ -100,24 +103,41 @@ const snapshot: DeepReadingContextSnapshot = {
 
 function report(references: Array<{ evidenceId: string; hexagramNumber?: number }>) {
   return {
-    schemaVersion: "deep-reading-v2",
+    schemaVersion: "deep-reading-v3",
     readingVariant: "standard",
     directAnswer: "The cast points toward asking for clarity, while treating the response as something to verify rather than assume.",
-    situationMapping: "The stated delays resemble the pressure in the primary pattern; the changing line makes concrete support the question to check.",
-    keyTensions: ["Seeking clarity while preserving a working relationship"],
-    conditionalDirection: "If a written timeline is offered and followed, it would support a more coordinated interpretation.",
-    signalsToWatch: ["Whether the manager names an owner and a date for the next review"],
-    practicalReflection: "A low-risk next step is to ask what information would make Friday's review useful, then compare the reply with what happens.",
-    uncertaintyAndBoundaries: "The cast cannot establish your manager's intentions or predict the review outcome; those facts remain unknown.",
+    whyThisReading: "The stated delays resemble the pressure in the primary pattern; the changing line makes concrete support the question to check.",
+    whatMattersMost: ["Seeking clarity while preserving a working relationship"],
+    whatToDoNext: ["Ask for a concrete review date before deciding on a larger change."],
+    uncertaintyAndBoundaries: "A low-risk next step is to ask what information would make Friday's review useful, then compare the reply with what happens.",
     interpretiveBasisReferences: references,
     disclaimer: "Use this as reflection, not as a substitute for your own judgment.",
   };
 }
 
 describe("Deep Reading input and evidence contract", () => {
+  it("accepts only locale with an English default and rejects enrichment", () => {
+    expect(deepReadingRequestSchema.parse({})).toEqual({ locale: "en" });
+    expect(deepReadingRequestSchema.safeParse({ contextNotes: "extra facts" }).success).toBe(false);
+    expect(deepReadingRequestSchema.safeParse({ locale: "fr" }).success).toBe(false);
+  });
+  it.each(["three_coin", "yarrow_stalk", "mei_hua_current_time"] as const)("seals %s without enrichment", (method) => {
+    const { context: _legacyContext, ...base } = snapshot;
+    const current = { ...base, schemaVersion: "deep-reading-context-v2", castMethod: method,
+      locale: "en", facts: { ...snapshot.facts, method } };
+    expect(activeDeepReadingContextSnapshotSchema.safeParse(current).success).toBe(true);
+    expect(activeDeepReadingContextSnapshotSchema.safeParse(snapshot).success).toBe(false);
+    expect(activeDeepReadingContextSnapshotSchema.safeParse({ ...current, context: validEnrichment }).success).toBe(false);
+  });
+  it("enforces the v3 sections and one to three practical items", () => {
+    const candidate = report([{ evidenceId: "primary.judgment" }]);
+    expect(readingReportSchema.safeParse(candidate).success).toBe(true);
+    expect(readingReportSchema.safeParse({ ...candidate, whatToDoNext: [] }).success).toBe(false);
+    expect(readingReportSchema.safeParse({ ...candidate, whatMattersMost: Array(4).fill(candidate.whatMattersMost[0]) }).success).toBe(false);
+  });
   it("requires a real core question and enough situation context before generation", () => {
-    expect(deepReadingContextEnrichmentSchema.safeParse(validEnrichment).success).toBe(true);
-    expect(deepReadingContextEnrichmentSchema.safeParse({
+    expect(legacyDeepReadingContextEnrichmentSchema.safeParse(validEnrichment).success).toBe(true);
+    expect(legacyDeepReadingContextEnrichmentSchema.safeParse({
       ...validEnrichment,
       contextNotes: "",
       options: [],

@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import { CLASSICAL_HEXAGRAMS } from "../src/domain/public-reading/classical.ts";
 import { HEXAGRAM_SEO_REGISTRY } from "../src/content/hexagrams/seo.ts";
 import {
   countExactPhrase,
@@ -140,6 +141,8 @@ async function snapshotPage(page, entry) {
       ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute("content") ?? "",
       ogDescription: document.querySelector('meta[property="og:description"]')?.getAttribute("content") ?? "",
       h1: [...root.querySelectorAll("h1")].map((node) => node.textContent?.replace(/\s+/gu, " ").trim() ?? ""),
+      lineHeadings: Array.from({ length: 6 }, (_, index) => root.querySelector(`#line-${index + 1} h3`)?.textContent?.trim() ?? ""),
+      hasKnowledgeSections: Boolean(root.querySelector("[data-basic-identity]")) && ["hexagram-meaning-title", "hexagram-classical-title", "hexagram-lines-title"].every((id) => root.querySelector(`#${id}`)),
       earlyCopy: root.querySelector("[data-seo-early-copy]")?.textContent?.replace(/\s+/gu, " ").trim() ?? "",
       h2: [...root.querySelectorAll("h2")].map((node) => node.textContent?.replace(/\s+/gu, " ").trim() ?? ""),
       h3: [...root.querySelectorAll("h3")].map((node) => node.textContent?.replace(/\s+/gu, " ").trim() ?? ""),
@@ -232,6 +235,10 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     && inboundAnchor.sourcePath === hubPathForLocale(entry.locale)
     && new URL(inboundAnchor.href, CANONICAL_ORIGIN).pathname === pagePath(entry)
     && hasExactPhrase(inboundAnchor.text, entry.primaryKeyword, entry.locale));
+  const isEnglishKnowledgePage = entry.locale === "en";
+  const expectedH1 = entry.finalH1;
+  // EN and ZH share one knowledge-detail presentation. Locale-specific keyword placement
+  // remains where it is a real content requirement; retired reading-intent UI is not revived.
   const placement = {
     titleExact: snapshot.title === entry.finalTitle,
     descriptionExact: snapshot.description === entry.finalDescription,
@@ -239,15 +246,14 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     ogTitle: snapshot.ogTitle === entry.finalTitle,
     ogDescription: snapshot.ogDescription === entry.finalDescription,
     ogUrl: snapshot.ogUrl === expectedCanonical,
-    h1Exact: snapshot.h1.length === 1 && snapshot.h1[0] === entry.finalH1,
+    h1Exact: snapshot.h1.length === 1 && snapshot.h1[0] === expectedH1,
     primaryInTitle: hasExactPhrase(snapshot.title, entry.primaryKeyword, entry.locale),
     primaryInDescription: hasExactPhrase(snapshot.description, entry.primaryKeyword, entry.locale),
     primaryInH1: snapshot.h1.some((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)),
-    primaryInEarlyCopy: hasExactPhrase(snapshot.earlyCopy, entry.primaryKeyword, entry.locale),
-    primaryInH2: snapshot.h2.some((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)),
-    primaryInBreadcrumb: hasExactPhrase(snapshot.breadcrumb, entry.primaryKeyword, entry.locale),
+    ...(!isEnglishKnowledgePage ? { primaryInEarlyCopy: hasExactPhrase(snapshot.earlyCopy, entry.primaryKeyword, entry.locale) } : {}),
+    ...(!isEnglishKnowledgePage ? { primaryInH2: snapshot.h2.some((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)) } : {}),
     primaryInboundAnchor: inboundAnchorValid,
-    secondaryInEarlyCopy: secondaryEarlyMatched.length > 0,
+    ...(!isEnglishKnowledgePage ? { secondaryInEarlyCopy: secondaryEarlyMatched.length > 0 } : {}),
   };
   const structuredGraph = snapshot.jsonLd.flatMap((entryValue) => Array.isArray(entryValue?.["@graph"]) ? entryValue["@graph"] : []);
   const webPage = structuredGraph.find((entryValue) => entryValue?.["@type"] === "WebPage");
@@ -270,14 +276,14 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     hubToHome: siteGraph.hubHomeHref === expectedHomePath,
     hubToDetail: inboundAnchorValid,
     detailToHub: snapshot.detailHubHref === expectedHubPath,
-    detailToHome: snapshot.detailHomeHref === expectedHomePath,
   };
   const modules = {
-    love: entry.locale !== "en" || snapshot.hasLoveModule,
-    unchanging: snapshot.h2.some((value) => hasExactPhrase(value, entry.unchangingKeyword, entry.locale)),
-    relationship: snapshot.hasRelationshipModule === Boolean(entry.relationshipKeyword),
-    special: (entry.specialKeywords ?? []).every((phrase) => hasExactPhrase(bodyText, phrase, entry.locale)),
-    sixKeywordedLineHeadings: snapshot.h3.filter((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)).length >= 6,
+    knowledgeSections: snapshot.hasKnowledgeSections,
+    noLoveModule: !snapshot.hasLoveModule,
+    noRelationshipGuidanceModule: !snapshot.hasRelationshipModule,
+    noSpecialIntentModule: snapshot.specialModules.length === 0,
+    sixLineHeadings: snapshot.lineHeadings.length === 6 && snapshot.lineHeadings.every(Boolean),
+    ...(!isEnglishKnowledgePage ? { sixKeywordedLineHeadings: snapshot.h3.filter((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)).length >= 6 } : {}),
   };
   const repetition = {
     mechanicalPrimaryRepetition: mechanicalPrimaryRepetition(bodyText, entry.primaryKeyword),
@@ -324,6 +330,10 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     keywordPresencePass: quality.primaryPresent,
     languageMostlyCorrect: quality.languageMostlyCorrect,
     languageContamination: quality.contamination,
+    presentationPolicy: "Unified EN/ZH knowledge detail: one IA and presentation, locale-specific copy only; no retired reading-intent modules or detail-to-home CTA",
+    nonApplicablePresentationChecks: isEnglishKnowledgePage
+      ? ["primaryInEarlyCopy", "primaryInH2", "secondaryInEarlyCopy", "detailToHome", "love", "unchanging", "relationship", "special"]
+      : ["primaryInBreadcrumb", "detailToHome", "love", "unchanging", "relationship", "special"],
     placements: placement,
     linkGraph,
     modules,
@@ -356,7 +366,7 @@ async function writeReport(rows) {
   const summary = {
     base: BASE,
     staticBuildDir: STATIC_BUILD_DIR || null,
-    algorithm: "Eligible rendered article copy is measured after excluding navigation, source attribution, legal copy, hidden content, scripts, styles, and explicit data-seo-exclude regions. Fixed keyword-density percentage bands are diagnostic only. Hard gates retain primary-keyword presence and placement, title/description/H1, canonical/hreflang, internal links, main-language validity, required modules, and mechanical stuffing detection.",
+    algorithm: "Eligible rendered article copy is measured after excluding navigation, source attribution, legal copy, hidden content, scripts, styles, and explicit data-seo-exclude regions. Fixed keyword-density percentage bands are diagnostic only. Hard gates retain primary-keyword presence and placement, title/description/H1, canonical/hreflang, internal links, main-language validity, locale-specific presentation modules, and mechanical stuffing detection. English H1 follows the researched finalH1 target and contains the exact Primary; retired reading-intent UI and unrelated keyword slots remain explicitly non-applicable, not passed.",
     total: rows.length,
     records: rows.length === 128,
     english: rows.filter((row) => row.locale === "en").length,
@@ -365,6 +375,7 @@ async function writeReport(rows) {
     fail: rows.filter((row) => row.status === "FAIL").length,
     primaryPlacementComplete: rows.filter((row) => Object.entries(row.placements).filter(([key]) => key.startsWith("primary")).every(([, passed]) => passed)).length,
     secondaryEarlyCoverageComplete: rows.filter((row) => row.placements.secondaryInEarlyCopy).length,
+    secondaryEarlyCoverageApplicable: rows.filter((row) => "secondaryInEarlyCopy" in row.placements).length,
     primaryKeywordPresent: rows.filter((row) => row.keywordPresencePass).length,
     mainLanguageValid: rows.filter((row) => row.languageMostlyCorrect).length,
     linkGraphComplete: rows.filter((row) => Object.values(row.linkGraph).every(Boolean)).length,

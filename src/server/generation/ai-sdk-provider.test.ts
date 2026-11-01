@@ -17,14 +17,7 @@ const input: ProviderInput = {
     relatingHexagramNumber: null,
     readingVariant: "still_hexagram",
   },
-  context: {
-    contextNotes: "I have a stable team but little room to grow in my current role.",
-    options: ["Stay in my current role", "Accept a role at a smaller company"],
-    constraints: ["I need to keep my current income stable"],
-    concerns: ["I am concerned about the smaller company's runway"],
-    interpretationGoal: "what_do_i_need_to_see_clearly",
-    locale: "en",
-  },
+  locale: "en",
   knowledge: {
     version: "fixture-v1",
     primary: {
@@ -75,19 +68,22 @@ describe("paid Deep Reading AI adapter", () => {
     })).toThrow("AI_ADAPTER_CONFIGURATION_UNAVAILABLE");
   });
 
-  it("grounds the report in the frozen question, context, exact cast, and supplied knowledge", () => {
+  it("grounds the report in the frozen question, exact cast, and supplied knowledge", () => {
     const prompt = buildDeepReadingPrompt(input);
     expect(prompt.system).toContain("English");
     expect(prompt.system).toContain("Do not claim that a transition or relating hexagram exists");
     expect(prompt.user).toContain(input.question);
-    expect(prompt.user).toContain("I need to keep my current income stable");
+    expect(prompt.user).not.toContain("contextEnrichment");
+    expect(prompt.user).not.toContain("interpretationGoal");
+    expect(prompt.user).not.toContain("scene");
+    expect(prompt.user).toContain("deep-reading-v3");
     expect(prompt.user).toContain("primary.judgment");
     expect(prompt.user).toContain("No lines change.");
     expect(prompt.user).not.toContain("General I Ching Reading");
   });
 
   it("fails closed when the immutable context bundle is absent", () => {
-    expect(() => buildDeepReadingPrompt({ ...input, context: undefined })).toThrow("DEEP_READING_CONTEXT_UNAVAILABLE");
+    expect(buildDeepReadingPrompt({ ...input, locale: "zh-Hans" }).system).toContain("Simplified Chinese");
     expect(() => buildDeepReadingPrompt({ ...input, knowledge: undefined })).toThrow("DEEP_READING_CONTEXT_UNAVAILABLE");
   });
 });

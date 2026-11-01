@@ -43,7 +43,6 @@ describe("ThreeCoinTool completion navigation", () => {
 describe("ThreeCoinTool visual record boundary", () => {
   it("allows Record This Cast only for a persisted settled line that is not yet in visual progress", () => {
     expect(canRecordSettledThreeCoin({
-      homeRitual: true,
       motion: "settled",
       storageBlocked: false,
       stepCount: 1,
@@ -52,10 +51,9 @@ describe("ThreeCoinTool visual record boundary", () => {
   });
 
   it("does not record while casting, after storage failure, or after the line is already recorded", () => {
-    expect(canRecordSettledThreeCoin({ homeRitual: true, motion: "casting", storageBlocked: false, stepCount: 1, revealedCount: 0 })).toBe(false);
-    expect(canRecordSettledThreeCoin({ homeRitual: true, motion: "settled", storageBlocked: true, stepCount: 1, revealedCount: 0 })).toBe(false);
-    expect(canRecordSettledThreeCoin({ homeRitual: true, motion: "settled", storageBlocked: false, stepCount: 1, revealedCount: 1 })).toBe(false);
-    expect(canRecordSettledThreeCoin({ homeRitual: false, motion: "settled", storageBlocked: false, stepCount: 1, revealedCount: 0 })).toBe(false);
+    expect(canRecordSettledThreeCoin({ motion: "casting", storageBlocked: false, stepCount: 1, revealedCount: 0 })).toBe(false);
+    expect(canRecordSettledThreeCoin({ motion: "settled", storageBlocked: true, stepCount: 1, revealedCount: 0 })).toBe(false);
+    expect(canRecordSettledThreeCoin({ motion: "settled", storageBlocked: false, stepCount: 1, revealedCount: 1 })).toBe(false);
   });
 
   it("does not navigate after the sixth business step until the sixth line is visually recorded", () => {

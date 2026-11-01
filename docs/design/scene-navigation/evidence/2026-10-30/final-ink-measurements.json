@@ -1,0 +1,336 @@
+{
+  "methods": {
+    "heading": {
+      "reference": [
+        718,
+        370,
+        947,
+        394
+      ],
+      "candidate": [
+        718,
+        370,
+        948,
+        394
+      ],
+      "delta": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "title-yarrow": {
+      "reference": [
+        411,
+        593,
+        570,
+        612
+      ],
+      "candidate": [
+        412,
+        593,
+        571,
+        612
+      ],
+      "delta": [
+        1,
+        0,
+        1,
+        0
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "title-mei-hua": {
+      "reference": [
+        746,
+        593,
+        917,
+        611
+      ],
+      "candidate": [
+        746,
+        593,
+        918,
+        611
+      ],
+      "delta": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "title-manual": {
+      "reference": [
+        1094,
+        593,
+        1232,
+        611
+      ],
+      "candidate": [
+        1095,
+        593,
+        1232,
+        611
+      ],
+      "delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "yarrow-description": {
+      "reference": [
+        378,
+        626,
+        603,
+        639
+      ],
+      "candidate": [
+        379,
+        626,
+        603,
+        639
+      ],
+      "delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    }
+  },
+  "info": {
+    "guides-heading": {
+      "reference": [
+        417,
+        344,
+        494,
+        362
+      ],
+      "candidate": [
+        417,
+        343,
+        495,
+        360
+      ],
+      "delta": [
+        0,
+        -1,
+        1,
+        -2
+      ],
+      "maxAbsDelta": 2,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "guide-how": {
+      "reference": [
+        380,
+        427,
+        550,
+        444
+      ],
+      "candidate": [
+        379,
+        427,
+        550,
+        444
+      ],
+      "delta": [
+        -1,
+        0,
+        0,
+        0
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "guide-changing": {
+      "reference": [
+        378,
+        475,
+        492,
+        492
+      ],
+      "candidate": [
+        379,
+        475,
+        492,
+        492
+      ],
+      "delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "guide-primary": {
+      "reference": [
+        379,
+        524,
+        604,
+        541
+      ],
+      "candidate": [
+        379,
+        523,
+        604,
+        540
+      ],
+      "delta": [
+        0,
+        -1,
+        0,
+        -1
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "help": {
+      "reference": [
+        777,
+        427,
+        899,
+        444
+      ],
+      "candidate": [
+        776,
+        428,
+        900,
+        444
+      ],
+      "delta": [
+        -1,
+        1,
+        1,
+        0
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "contact": {
+      "reference": [
+        776,
+        475,
+        905,
+        492
+      ],
+      "candidate": [
+        775,
+        476,
+        903,
+        492
+      ],
+      "delta": [
+        -1,
+        1,
+        -2,
+        0
+      ],
+      "maxAbsDelta": 2,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "privacy": {
+      "reference": [
+        1150,
+        422,
+        1258,
+        440
+      ],
+      "candidate": [
+        1149,
+        422,
+        1259,
+        439
+      ],
+      "delta": [
+        -1,
+        0,
+        1,
+        -1
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "terms": {
+      "reference": [
+        1149,
+        460,
+        1278,
+        473
+      ],
+      "candidate": [
+        1148,
+        460,
+        1278,
+        473
+      ],
+      "delta": [
+        -1,
+        0,
+        0,
+        0
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "acceptable": {
+      "reference": [
+        1149,
+        498,
+        1268,
+        516
+      ],
+      "candidate": [
+        1148,
+        498,
+        1269,
+        515
+      ],
+      "delta": [
+        -1,
+        0,
+        1,
+        -1
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    },
+    "settings": {
+      "reference": [
+        1150,
+        537,
+        1273,
+        554
+      ],
+      "candidate": [
+        1149,
+        536,
+        1274,
+        553
+      ],
+      "delta": [
+        -1,
+        -1,
+        1,
+        -1
+      ],
+      "maxAbsDelta": 1,
+      "kind": "visible dark ink bounds in fixed manually selected patch, not DOM box"
+    }
+  }
+}

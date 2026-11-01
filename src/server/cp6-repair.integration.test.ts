@@ -119,16 +119,6 @@ function service() {
   });
 }
 
-function validEnrichment() {
-  return {
-    contextNotes: "The timeline changed and I need to decide what information matters next.",
-    options: [],
-    constraints: [],
-    concerns: [],
-    interpretationGoal: "what_do_i_need_to_see_clearly" as const,
-    locale: "en" as const,
-  };
-}
 
 async function prepareClaimedReading() {
   const userId = `cp6-final-${randomUUID()}`;
@@ -136,7 +126,7 @@ async function prepareClaimedReading() {
   await insertUser(userId);
   const { batchId } = await insertCredit(userId);
   await insertCasting(userId, castingId);
-  const requested = await service().requestDeepReading({ userId, castingId, enrichment: validEnrichment() });
+  const requested = await service().requestDeepReading({ userId, castingId, locale: "en" });
   const jobRows = await sql<{ idempotency_key: string; generation_epoch: number }[]>`
     select idempotency_key, generation_epoch from generation_jobs where id = ${requested.jobId}
   `;
@@ -179,7 +169,7 @@ async function expectFinalizationFence(
       safetyPass: true,
       factConsistencyPass: true,
       questionRelevancePass: true,
-      contextFidelityPass: true,
+      noInventedUserFacts: true,
       evidenceGroundingPass: true,
       interpretiveCoherencePass: true,
       actionabilityPass: true,
@@ -230,7 +220,7 @@ describe("CP6 repair regressions", () => {
     const { batchId } = await insertCredit(userId, "2 minutes");
     await insertCasting(userId, castingId);
 
-    const requested = await service().requestDeepReading({ userId, castingId, enrichment: validEnrichment() });
+    const requested = await service().requestDeepReading({ userId, castingId, locale: "en" });
     const rows = await sql<{
       reservation_expires_at: Date | string;
       lease_expires_at: Date | string | null;
@@ -271,7 +261,7 @@ describe("CP6 repair regressions", () => {
     const { batchId } = await insertCredit(userId);
     await insertCasting(userId, castingId, { invalidResultHmac: true });
 
-    await expect(service().requestDeepReading({ userId, castingId, enrichment: validEnrichment() }))
+    await expect(service().requestDeepReading({ userId, castingId, locale: "en" }))
       .rejects.toThrow("CAST_RESULT_INTEGRITY_INVALID");
 
     const reservations = await sql<{ count: number }[]>`

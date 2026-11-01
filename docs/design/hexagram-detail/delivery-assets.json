@@ -1,0 +1,706 @@
+{
+  "originalTotal": 38,
+  "states": {
+    "pass": 38,
+    "deferred": 0,
+    "reject": 0,
+    "unknown": 0
+  },
+  "paperEncoder": {
+    "quality": 75,
+    "effort": 6
+  },
+  "encoder": {
+    "sharp": "0.35.4",
+    "libheif": "1.23.2",
+    "options": {
+      "quality": 65,
+      "effort": 6,
+      "chromaSubsampling": "4:4:4"
+    }
+  },
+  "entries": [
+    {
+      "source": "public/hexagram-detail/background/paper-texture.png",
+      "path": "public/hexagram-detail/delivery/paper-627.webp",
+      "width": 627,
+      "name": "paper",
+      "format": "webp",
+      "status": "pass",
+      "sourceSha256": "41e43371a1826c1e8f42fa90072c452a7a36c782e2aa4033657d7e51f2fca5d3",
+      "options": {
+        "quality": 75,
+        "effort": 6
+      },
+      "height": 627,
+      "hasAlpha": false,
+      "bytes": 7894,
+      "sha256": "25ddfc383d6ea0372788d027303bda949e9917eb1695b1cafefe93ae6b0c28cc"
+    },
+    {
+      "source": "public/hexagram-detail/background/paper-texture.png",
+      "path": "public/hexagram-detail/delivery/paper-1254.webp",
+      "width": 1254,
+      "name": "paper",
+      "format": "webp",
+      "status": "pass",
+      "sourceSha256": "41e43371a1826c1e8f42fa90072c452a7a36c782e2aa4033657d7e51f2fca5d3",
+      "options": {
+        "quality": 75,
+        "effort": 6
+      },
+      "height": 1254,
+      "hasAlpha": false,
+      "bytes": 44832,
+      "sha256": "0e810f1f4ae5b760fdf7452232d160ba734fb4f72927eaa903aad94ed64eff50"
+    },
+    {
+      "source": "public/hexagram-detail/background/paper-texture.png",
+      "path": "public/hexagram-detail/delivery/paper-mobile-627.webp",
+      "width": 627,
+      "name": "paper-mobile",
+      "format": "webp",
+      "status": "pass",
+      "sourceSha256": "41e43371a1826c1e8f42fa90072c452a7a36c782e2aa4033657d7e51f2fca5d3",
+      "options": {
+        "quality": 50,
+        "effort": 6
+      },
+      "height": 627,
+      "hasAlpha": false,
+      "bytes": 4038,
+      "sha256": "eb096bd07595f5099f4805affee9f2a9f46de023eb317f45c70816559c10d862"
+    },
+    {
+      "source": "public/hexagram-detail/background/paper-texture.png",
+      "path": "public/hexagram-detail/delivery/paper-mobile-1254.webp",
+      "width": 1254,
+      "name": "paper-mobile",
+      "format": "webp",
+      "status": "pass",
+      "sourceSha256": "41e43371a1826c1e8f42fa90072c452a7a36c782e2aa4033657d7e51f2fca5d3",
+      "options": {
+        "quality": 50,
+        "effort": 6
+      },
+      "height": 1254,
+      "hasAlpha": false,
+      "bytes": 22564,
+      "sha256": "0fcd04d9cfab7d19bececee94712bd7bdc177dbd94f1cefbfe4577a028ca43e1"
+    },
+    {
+      "source": "public/hexagram-detail/background/lantern-scene.png",
+      "path": "public/hexagram-detail/delivery/scene-1024.avif",
+      "width": 1024,
+      "name": "scene",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "c87c94d77cd6ad15cf6dbf9564843fd996606eb31aacbcb884a0fb3137936033",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 1536,
+      "hasAlpha": false,
+      "bytes": 79420,
+      "sha256": "7a4e2d25466190a1fcf399131bf878ed3cce3d3ba2afff61632efc2ef5e948e5"
+    },
+    {
+      "source": "public/hexagram-detail/background/lantern-scene.png",
+      "path": "public/hexagram-detail/delivery/scene-mobile-512.avif",
+      "width": 512,
+      "name": "scene-mobile",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "c87c94d77cd6ad15cf6dbf9564843fd996606eb31aacbcb884a0fb3137936033",
+      "options": {
+        "quality": 30,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 768,
+      "hasAlpha": false,
+      "bytes": 10905,
+      "sha256": "6c1478a9c65714cd16762235661ac3d2f69312a52129dacc410f0dba7686b552"
+    },
+    {
+      "source": "public/hexagram-detail/background/lantern-scene.png",
+      "path": "public/hexagram-detail/delivery/scene-mobile-640.avif",
+      "width": 640,
+      "name": "scene-mobile",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "c87c94d77cd6ad15cf6dbf9564843fd996606eb31aacbcb884a0fb3137936033",
+      "options": {
+        "quality": 30,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 960,
+      "hasAlpha": false,
+      "bytes": 14602,
+      "sha256": "15bd1089d6cafab15a1ee6c70fbf30331d180247e9f3688bfac59bfee214992d"
+    },
+    {
+      "source": "public/hexagram-detail/background/lantern-scene.png",
+      "path": "public/hexagram-detail/delivery/scene-mobile-1024.avif",
+      "width": 1024,
+      "name": "scene-mobile",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "c87c94d77cd6ad15cf6dbf9564843fd996606eb31aacbcb884a0fb3137936033",
+      "options": {
+        "quality": 30,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 1536,
+      "hasAlpha": false,
+      "bytes": 27094,
+      "sha256": "c024843849c7031abfd0bc938d1d9bb3514e698a2c0d832cd11c74516aad27ab"
+    },
+    {
+      "source": "public/hexagram-detail/frame/left-middle-repeat.png",
+      "path": "public/hexagram-detail/delivery/left-repeat-160.webp",
+      "width": 160,
+      "name": "left-repeat",
+      "format": "webp",
+      "status": "pass",
+      "sourceSha256": "f6963b3469498cea14929db6ad5a6fee72f4db953cab961b5acdada033e45649",
+      "options": {
+        "lossless": true,
+        "effort": 6
+      },
+      "visiblePixelEquality": true,
+      "alphaEquality": true,
+      "height": 74,
+      "hasAlpha": true,
+      "bytes": 7132,
+      "sha256": "d8e56530fe148f6c66f2e73ebcd0e6b56336c7dd98b314ce769813ace88ffd7f"
+    },
+    {
+      "source": "public/hexagram-detail/frame/right-middle-repeat.png",
+      "path": "public/hexagram-detail/delivery/right-repeat-162.webp",
+      "width": 162,
+      "name": "right-repeat",
+      "format": "webp",
+      "status": "pass",
+      "sourceSha256": "e01edd03f5c1390ae1ee5eedcb31c162b90c7ca58e9c27d1b3c8c5d61aa74f78",
+      "options": {
+        "lossless": true,
+        "effort": 6
+      },
+      "visiblePixelEquality": true,
+      "alphaEquality": true,
+      "height": 74,
+      "hasAlpha": true,
+      "bytes": 7264,
+      "sha256": "dbf4f848d824b40600c6672d8cf29e1e091e3a995ab77e24f20442411b1d2da3"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/hero-taiji.png",
+      "path": "public/hexagram-detail/delivery/taiji-290.avif",
+      "width": 290,
+      "name": "taiji",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "9d3f402a4f38e583acbe0ee5b89ab84e57e52619c212d39b70e0484be09404b5",
+      "options": {
+        "quality": 30,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 290,
+      "hasAlpha": true,
+      "bytes": 12260,
+      "sha256": "d73df566c74b596a714370d84f590aa202feecbadbadcd2f47727944430b2cc1"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/hero-taiji.png",
+      "path": "public/hexagram-detail/delivery/taiji-360.avif",
+      "width": 360,
+      "name": "taiji",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "9d3f402a4f38e583acbe0ee5b89ab84e57e52619c212d39b70e0484be09404b5",
+      "options": {
+        "quality": 30,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 360,
+      "hasAlpha": true,
+      "bytes": 17108,
+      "sha256": "fc2bbf9d29780ccb7e0d3d63977e4bd8ee1f40bc078a818fae2003d360ed0db7"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/hero-taiji.png",
+      "path": "public/hexagram-detail/delivery/taiji-580.avif",
+      "width": 580,
+      "name": "taiji",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "9d3f402a4f38e583acbe0ee5b89ab84e57e52619c212d39b70e0484be09404b5",
+      "options": {
+        "quality": 30,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 580,
+      "hasAlpha": true,
+      "bytes": 31643,
+      "sha256": "78cc7404b51ad239f3c9ddcb79470ebc2415a284fb6d37b04159349dc98a560d"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/hero-taiji.png",
+      "path": "public/hexagram-detail/delivery/taiji-660.avif",
+      "width": 660,
+      "name": "taiji",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "9d3f402a4f38e583acbe0ee5b89ab84e57e52619c212d39b70e0484be09404b5",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 660,
+      "hasAlpha": true,
+      "bytes": 110026,
+      "sha256": "fc85a4464c78e332a6071a194a7a02ce77bfbc5b07c43b4833a469edccaa6561"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/hero-taiji.png",
+      "path": "public/hexagram-detail/delivery/taiji-720.avif",
+      "width": 720,
+      "name": "taiji",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "9d3f402a4f38e583acbe0ee5b89ab84e57e52619c212d39b70e0484be09404b5",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 720,
+      "hasAlpha": true,
+      "bytes": 126630,
+      "sha256": "ac142e14f19d9d396d782fc22d5d4c33e77c98bf4fbfbd79665d8a041b6a57dc"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/hero-taiji.png",
+      "path": "public/hexagram-detail/delivery/taiji-1320.avif",
+      "width": 1320,
+      "name": "taiji",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "9d3f402a4f38e583acbe0ee5b89ab84e57e52619c212d39b70e0484be09404b5",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 1320,
+      "hasAlpha": true,
+      "bytes": 293979,
+      "sha256": "5262295f11c55edfdbec39b5e991a239d4a1306dfec0c53f64befe7bcfe72e9a"
+    },
+    {
+      "source": "public/hexagram-detail/frame/top-scroll.png",
+      "path": "public/hexagram-detail/delivery/top-scroll-480.avif",
+      "width": 480,
+      "name": "top-scroll",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "e77654c753d6209749140d06cdc1bffd30536a441d34ad8717eed89f5be5ef69",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 92,
+      "hasAlpha": true,
+      "bytes": 9002,
+      "sha256": "abdbaae9d6eea4eaf1a0899dc3bf06e50baaee098cb2d8754a864fecdc26079e"
+    },
+    {
+      "source": "public/hexagram-detail/frame/top-scroll.png",
+      "path": "public/hexagram-detail/delivery/top-scroll-960.avif",
+      "width": 960,
+      "name": "top-scroll",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "e77654c753d6209749140d06cdc1bffd30536a441d34ad8717eed89f5be5ef69",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 183,
+      "hasAlpha": true,
+      "bytes": 23764,
+      "sha256": "22bf450c252d530ded893ae46c65409db659f99493397e849b79ae2bb6d8d616"
+    },
+    {
+      "source": "public/hexagram-detail/frame/top-scroll.png",
+      "path": "public/hexagram-detail/delivery/top-scroll-1557.avif",
+      "width": 1557,
+      "name": "top-scroll",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "e77654c753d6209749140d06cdc1bffd30536a441d34ad8717eed89f5be5ef69",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 297,
+      "hasAlpha": true,
+      "bytes": 36401,
+      "sha256": "3c5878c54b158535fb5a7d4f9e34582aabbacaa9ca84b5ac2328f427ea3975a0"
+    },
+    {
+      "source": "public/hexagram-detail/frame/bottom-scroll.png",
+      "path": "public/hexagram-detail/delivery/bottom-scroll-480.avif",
+      "width": 480,
+      "name": "bottom-scroll",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "476b10522e695c30d1e11e6e26c841d07546dcd2a788eb5c567e5a8c5a721e7f",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 68,
+      "hasAlpha": true,
+      "bytes": 7888,
+      "sha256": "f7e1dc0da322176ed97d3d406ad7e126c15650b4ca9e1934cc5cbdb508ad2fe6"
+    },
+    {
+      "source": "public/hexagram-detail/frame/bottom-scroll.png",
+      "path": "public/hexagram-detail/delivery/bottom-scroll-960.avif",
+      "width": 960,
+      "name": "bottom-scroll",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "476b10522e695c30d1e11e6e26c841d07546dcd2a788eb5c567e5a8c5a721e7f",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 136,
+      "hasAlpha": true,
+      "bytes": 19681,
+      "sha256": "893265b6d93ef737b301e4c584a6211592319ec9f668575387c32616bb1e6cb5"
+    },
+    {
+      "source": "public/hexagram-detail/frame/bottom-scroll.png",
+      "path": "public/hexagram-detail/delivery/bottom-scroll-1575.avif",
+      "width": 1575,
+      "name": "bottom-scroll",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "476b10522e695c30d1e11e6e26c841d07546dcd2a788eb5c567e5a8c5a721e7f",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 223,
+      "hasAlpha": true,
+      "bytes": 31455,
+      "sha256": "f2f2f051d68f87802d02a5b64312d6017b754c1a199929ae562cc18d508a1286"
+    },
+    {
+      "source": "public/hexagram-detail/frame/left-top.png",
+      "path": "public/hexagram-detail/delivery/left-top-160.avif",
+      "width": 160,
+      "name": "left-top",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "bbe18d8e8ec9a4ee4410e54ff6ed7e3e7f0bb888d5e8ec2125e2751912529fe4",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 354,
+      "hasAlpha": true,
+      "bytes": 7488,
+      "sha256": "5f37b3544273f874a7931a32b7c552477550aa5e24073156340bc0f448fd9e50"
+    },
+    {
+      "source": "public/hexagram-detail/frame/left-bottom.png",
+      "path": "public/hexagram-detail/delivery/left-bottom-160.avif",
+      "width": 160,
+      "name": "left-bottom",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "e1d8512808bbc531d2c0d71ea8108dc541d36f3e293ea41c1db68d85b664279b",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 267,
+      "hasAlpha": true,
+      "bytes": 5089,
+      "sha256": "67d19a893c7a4670dcf7abb9676d0b33a05b62a43dc23339c031964ae900ee87"
+    },
+    {
+      "source": "public/hexagram-detail/frame/right-top.png",
+      "path": "public/hexagram-detail/delivery/right-top-162.avif",
+      "width": 162,
+      "name": "right-top",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "36a6e5dfb878a43b518c47182cb91b356d2773b7b821b53f943160f07aa13441",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 354,
+      "hasAlpha": true,
+      "bytes": 7260,
+      "sha256": "07e22f5a6b1e1a7362f31c1936b432615d16438d1eb4e95d7e5539248774bd95"
+    },
+    {
+      "source": "public/hexagram-detail/frame/right-bottom.png",
+      "path": "public/hexagram-detail/delivery/right-bottom-162.avif",
+      "width": 162,
+      "name": "right-bottom",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "541d17ff0e964ec671c77029b80bad353cc982c38106792e6801113ee67e2f3a",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 267,
+      "hasAlpha": true,
+      "bytes": 5493,
+      "sha256": "aa242da3093443d3d974d2469e1f43ece644798dba9f57badec7d124806039c3"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/cherry-branch-top-left.png",
+      "path": "public/hexagram-detail/delivery/cherry-top-24.avif",
+      "width": 24,
+      "name": "cherry-top",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "0d5b0d770a58b05fadf7943568407dee93da232b1caf2652928f58c47e3bbd9d",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 21,
+      "hasAlpha": true,
+      "bytes": 979,
+      "sha256": "42b8ea51f9a2f6683ddec878b5cb5bf3052908a4accde53ecc4a0a4ab98fe24c"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/cherry-branch-top-left.png",
+      "path": "public/hexagram-detail/delivery/cherry-top-48.avif",
+      "width": 48,
+      "name": "cherry-top",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "0d5b0d770a58b05fadf7943568407dee93da232b1caf2652928f58c47e3bbd9d",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 42,
+      "hasAlpha": true,
+      "bytes": 1779,
+      "sha256": "76cd39c270e8d883db16be0852da066f997c8912cf31d3c7ea971bad9137776f"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/cherry-branch-top-left.png",
+      "path": "public/hexagram-detail/delivery/cherry-top-190.avif",
+      "width": 190,
+      "name": "cherry-top",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "0d5b0d770a58b05fadf7943568407dee93da232b1caf2652928f58c47e3bbd9d",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 168,
+      "hasAlpha": true,
+      "bytes": 10348,
+      "sha256": "7e46f81261a12b0aefa475ed02427cede1aa1402efef6702240fe332e2927f3d"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/cherry-branch-top-left.png",
+      "path": "public/hexagram-detail/delivery/cherry-top-380.avif",
+      "width": 380,
+      "name": "cherry-top",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "0d5b0d770a58b05fadf7943568407dee93da232b1caf2652928f58c47e3bbd9d",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 336,
+      "hasAlpha": true,
+      "bytes": 25142,
+      "sha256": "e21b7be9ac17177acc1e38076efeeefdfecc2eb1ae9563a97f6e65a1d7d1d532"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/cherry-branch-bottom-left.png",
+      "path": "public/hexagram-detail/delivery/cherry-bottom-24.avif",
+      "width": 24,
+      "name": "cherry-bottom",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "814162972a99f2771689cc1cd525b3feae0317449d57a96889b674523ebf4cd0",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 21,
+      "hasAlpha": true,
+      "bytes": 941,
+      "sha256": "4efd77bb5e59123ea1a8386c97af5b25a58c836117a673a68e5c7f6af5634651"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/cherry-branch-bottom-left.png",
+      "path": "public/hexagram-detail/delivery/cherry-bottom-48.avif",
+      "width": 48,
+      "name": "cherry-bottom",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "814162972a99f2771689cc1cd525b3feae0317449d57a96889b674523ebf4cd0",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 42,
+      "hasAlpha": true,
+      "bytes": 1890,
+      "sha256": "9dc56b439e4a9f97906f36f4f9fae961757d9e03dd3e94512eb63945477d10ae"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/cherry-branch-bottom-left.png",
+      "path": "public/hexagram-detail/delivery/cherry-bottom-144.avif",
+      "width": 144,
+      "name": "cherry-bottom",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "814162972a99f2771689cc1cd525b3feae0317449d57a96889b674523ebf4cd0",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 127,
+      "hasAlpha": true,
+      "bytes": 7849,
+      "sha256": "965628cfb05b5908d5411b0d6a13e5f3470733e3bf3ff087c161e6c75a5751dc"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/cherry-branch-bottom-left.png",
+      "path": "public/hexagram-detail/delivery/cherry-bottom-288.avif",
+      "width": 288,
+      "name": "cherry-bottom",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "814162972a99f2771689cc1cd525b3feae0317449d57a96889b674523ebf4cd0",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 255,
+      "hasAlpha": true,
+      "bytes": 19303,
+      "sha256": "6b81fb578e64bfaf08a5d9f10a19ac6e1e3851cccb28df93e3ccf580e53f1b2f"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/pine-branch-right.png",
+      "path": "public/hexagram-detail/delivery/pine-40.avif",
+      "width": 40,
+      "name": "pine",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "df38f670759dbcc15876c7bd4a0a35bdc90aad097a6735c6e9bb9aa6f89dd2fd",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 35,
+      "hasAlpha": true,
+      "bytes": 1327,
+      "sha256": "f809a324e48191488a836dd34b9bd7d82d54ecb7f37c017dd00d3e320e34e327"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/pine-branch-right.png",
+      "path": "public/hexagram-detail/delivery/pine-80.avif",
+      "width": 80,
+      "name": "pine",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "df38f670759dbcc15876c7bd4a0a35bdc90aad097a6735c6e9bb9aa6f89dd2fd",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 71,
+      "hasAlpha": true,
+      "bytes": 2875,
+      "sha256": "62b055e8fb51533ea3ce67b0133b2bc22664a52b4ec1d7d6230273092ac3b648"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/ink-landscape.png",
+      "path": "public/hexagram-detail/delivery/landscape-200.avif",
+      "width": 200,
+      "name": "landscape",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "ddd9183298a4c4b46bbd37470b9542c6ad13413e9ac1c18cd8bc784914059a30",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 67,
+      "hasAlpha": true,
+      "bytes": 3173,
+      "sha256": "37c8ef71008042a4ac095c241d33c5b9c8e5d5df8f4413085746aac2a06e6f98"
+    },
+    {
+      "source": "public/hexagram-detail/decorations/ink-landscape.png",
+      "path": "public/hexagram-detail/delivery/landscape-400.avif",
+      "width": 400,
+      "name": "landscape",
+      "format": "avif",
+      "status": "pass",
+      "sourceSha256": "ddd9183298a4c4b46bbd37470b9542c6ad13413e9ac1c18cd8bc784914059a30",
+      "options": {
+        "quality": 65,
+        "effort": 6,
+        "chromaSubsampling": "4:4:4"
+      },
+      "height": 133,
+      "hasAlpha": true,
+      "bytes": 6911,
+      "sha256": "938beee51789fa28e6a1d633405c7ebf114f773ada9e34795fed7a92a2dfa201"
+    }
+  ]
+}

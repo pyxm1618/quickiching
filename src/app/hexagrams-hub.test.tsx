@@ -1,11 +1,16 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { HOME_H1 } from "@/lib/seo";
 import { HEXAGRAM_SEO_REGISTRY } from "@/content/hexagrams/seo";
 import EnglishHexagramsHubPage from "@/app/(default)/hexagrams/page";
 import ChineseHexagramsHubPage from "@/app/(localized)/zh/hexagrams/page";
 import EnglishHomePage from "@/app/(default)/page";
 import ChineseHomePage from "@/app/(localized)/zh/page";
+// Next compiles this font loader; real font rendering is verified in browser QA.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("@/components/public-reading/ritual-font", () => ({ ritualBrush: { variable: "ritual-brush-font" } }));
+
 
 function visibleAnchorText(anchor: string): string {
   return anchor.replace(/<[^>]*>/gu, " ").replace(/\s+/gu, " ").trim();
@@ -62,8 +67,16 @@ describe("hexagram hub inbound anchors", () => {
     const englishHub = renderToStaticMarkup(<EnglishHexagramsHubPage />);
     const chineseHub = renderToStaticMarkup(<ChineseHexagramsHubPage />);
 
-    expect(englishHome).toContain("data-three-coin-home-stage");
-    expect(chineseHome).toContain("data-three-coin-home-stage");
+    expect(englishHome).toContain('data-three-coin-ritual="true"');
+    expect(englishHome).toContain('data-experience-stage="landing"');
+    expect(englishHome).toContain('data-three-coin-presentation="ritual"');
+    expect(englishHome).not.toContain("data-three-coin-home-stage");
+    const heading = englishHome.match(/<h1[^>]*>([\s\S]*?)<\/h1>/u)?.[1].replace(/<[^>]+>/gu, "");
+    expect(heading).toBe(HOME_H1);
+    expect(chineseHome).toContain('data-three-coin-ritual="true"');
+    expect(chineseHome).toContain('data-experience-stage="landing"');
+    expect(chineseHome).toContain('data-three-coin-presentation="ritual"');
+    expect(chineseHome).not.toContain("data-three-coin-home-stage");
     expect(englishHub).toContain('data-seo-home-link="/"');
     expect(chineseHub).toContain('data-seo-home-link="/zh"');
 
@@ -74,6 +87,28 @@ describe("hexagram hub inbound anchors", () => {
   it("removes all pending-research TDH contracts from the Chinese Hub", () => {
     const chineseHub = renderToStaticMarkup(<ChineseHexagramsHubPage />);
     expect(chineseHub).not.toContain("PENDING_RESEARCH");
+  });
+
+  it("renders both locales through the single immersive Hub and removes the legacy Grid/CTA surfaces", () => {
+    const englishHub = renderToStaticMarkup(<EnglishHexagramsHubPage />);
+    const chineseHub = renderToStaticMarkup(<ChineseHexagramsHubPage />);
+
+    expect(englishHub).toContain("data-hexagrams-immersive-page");
+    expect(chineseHub).toContain("data-hexagrams-immersive-page");
+    expect(englishHub).toContain('data-hexagrams-locale="en"');
+    expect(chineseHub).toContain('data-hexagrams-locale="zh-Hans"');
+    expect((englishHub.match(/data-wheel-index=/gu) ?? [])).toHaveLength(64);
+    expect((chineseHub.match(/data-wheel-index=/gu) ?? [])).toHaveLength(64);
+    expect((englishHub.match(/data-scroll-hexagram=/gu) ?? [])).toHaveLength(64);
+    expect((chineseHub.match(/data-scroll-hexagram=/gu) ?? [])).toHaveLength(64);
+
+    for (const html of [englishHub, chineseHub]) {
+      expect(html).not.toContain("Open hexagram detail");
+      expect(html).not.toContain("Use the hexagrams in a reading");
+      expect(html).not.toContain("从问题开始起卦");
+      expect(html).not.toMatch(/查看第\s*\d+\s*卦详情/u);
+    }
+    expect(chineseHub).not.toContain("coreMeaning");
   });
 
   it("keeps each hexagram hub in its own visible language", () => {

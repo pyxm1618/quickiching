@@ -1,0 +1,14 @@
+{
+  "hexagrams": 64,
+  "judgments": 64,
+  "images": 64,
+  "lines": 384,
+  "stages": 0,
+  "cases": 2,
+  "caseHexagrams": [
+    1,
+    2
+  ],
+  "relations": 120,
+  "withRelations": 64
+}

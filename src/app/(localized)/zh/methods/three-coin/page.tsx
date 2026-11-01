@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { QuestionFirst } from "@/components/public-reading/question-first";
-import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
 import { getDictionary } from "@/i18n/dictionaries";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { zhSeoFor } from "@/content/seo/zh-pages";
+import { ThreeCoinRitualClient } from "@/components/public-reading/three-coin-ritual-client";
 
 const SEO = zhSeoFor("three-coin-method");
 const CANONICAL = canonicalUrl(SEO.canonicalUrl);
@@ -32,9 +31,7 @@ export default function ChineseThreeCoinMethodPage() {
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
-        <QuestionFirst storageKey="quickiching:public-v1:three-coin" legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]} dictionary={dictionary} deepReadingEligible>
-          <ThreeCoinTool dictionary={dictionary} />
-        </QuestionFirst>
+        <ThreeCoinRitualClient headingLevel={2} dictionary={dictionary} homeHeading="开始三枚铜钱起卦" homeDescription="写下一个核心问题，确认后使用与首页完全相同的六次起爻流程。" />
       </section>
 
       <section className="mx-auto grid max-w-5xl gap-8 px-4 py-12 md:grid-cols-2">

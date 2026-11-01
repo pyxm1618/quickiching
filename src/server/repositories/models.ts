@@ -86,16 +86,6 @@ export type CastResult = {
   createdAt: Date;
 };
 
-export type QuestionLock = {
-  userId: string;
-  questionFingerprint: string;
-  fingerprintKeyVersion: string;
-  winningCastingId: string;
-  lockedUntil: Date;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 export type Preview = {
   id: string;
   castingSessionId: string;

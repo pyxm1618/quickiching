@@ -1,0 +1,245 @@
+{
+  "base": "http://127.0.0.1:3056",
+  "states": [
+    {
+      "state": "default",
+      "viewport": {
+        "width": 1671,
+        "height": 941
+      },
+      "dpr": 1,
+      "maximumApprovedGeometryDelta": 0
+    },
+    {
+      "state": "methods",
+      "viewport": {
+        "width": 1670,
+        "height": 942
+      },
+      "dpr": 1,
+      "maximumApprovedGeometryDelta": 0
+    }
+  ],
+  "checks": [
+    {
+      "name": "default: exact viewport and DPR",
+      "status": "PASS"
+    },
+    {
+      "name": "default: images and fonts ready",
+      "status": "PASS"
+    },
+    {
+      "name": "default: no horizontal overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved element present (scene-utility)",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved element present (scene-brand)",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved element present (scene-scroll scene-scroll-hexagrams)",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved element present (scene-scroll scene-scroll-methods)",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved element present (scene-scroll scene-scroll-info)",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved element present (scene-scroll-holder)",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved navigation geometry retained",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: exact viewport and DPR",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: images and fonts ready",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: no horizontal overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-utility)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-brand)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-scroll scene-scroll-hexagrams)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-scroll scene-scroll-methods)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-scroll scene-scroll-info)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-scroll-holder)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-panel scene-methods-panel)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved navigation geometry retained",
+      "status": "PASS"
+    },
+    {
+      "name": "info: exact viewport and DPR",
+      "status": "PASS"
+    },
+    {
+      "name": "info: images and fonts ready",
+      "status": "PASS"
+    },
+    {
+      "name": "info: no horizontal overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-utility)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-brand)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-scroll scene-scroll-hexagrams)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-scroll scene-scroll-methods)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-scroll scene-scroll-info)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-scroll-holder)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-panel scene-info-panel)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    }
+  ],
+  "errors": [],
+  "status": "FAIL",
+  "failure": "AssertionError [ERR_ASSERTION]: info: approved navigation geometry retained",
+  "browser": "Chrome/156.0.8078.48"
+}

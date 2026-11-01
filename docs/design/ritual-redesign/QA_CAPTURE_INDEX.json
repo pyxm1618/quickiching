@@ -1,0 +1,219 @@
+{
+  "scope": "Pass 1 Complete Coverage, not strict visual completion",
+  "previousCheckpoint": "3911d3555c6bce582b4a9f5030421e4c0e943687",
+  "coverageCheckpoint": "the Git commit containing this index",
+  "qaBuildId": "ovnaexo_sa8Yer7I0tDQH",
+  "ordinaryBuildId": "2vmrMmzLsG7yAORRaixb4",
+  "coverage": {
+    "total": 7,
+    "pass": 0,
+    "reviewedNotPass": 7,
+    "unreviewed": 0
+  },
+  "environment": {
+    "browser": "Chrome/155.0.8059.85",
+    "viewportCssPx": [
+      1672,
+      941
+    ],
+    "zoom": 1,
+    "dpr": 1,
+    "os": "macOS; Apple M4 / ANGLE Metal"
+  },
+  "verification": {
+    "build": "PASS",
+    "unitTests": 879,
+    "unitFiles": 134,
+    "browserRegression": {
+      "total": 16,
+      "pass": 16,
+      "fail": 0,
+      "unreviewed": 0
+    },
+    "fullCi": "NOT PASS; full CI not rerun for this coverage checkpoint",
+    "visualComplete": false
+  },
+  "performancePatch": "a169a4c6dd8ae58e86d4619b89ea039925997257 NOT INTEGRATED",
+  "states": [
+    {
+      "reference": "ref-01",
+      "foregroundStatus": "NOT PASS",
+      "backgroundStatus": "PASS",
+      "directory": ".artifacts/ritual-qa/seven-state-checkpoint/ref-01",
+      "buildId": "ovnaexo_sa8Yer7I0tDQH",
+      "fixture": {
+        "applicationState": "landing; fresh browser profile",
+        "visualSeed": 1618,
+        "animationTimeMs": 700
+      },
+      "sha256": {
+        "runtime.png": "b2b51bbd496e0d7bed71552d613bb5dd225dca632104cf9eb597db5c602b284c",
+        "reference.png": "cda925a7a26a5545a7c57c53742a60b8aaa2e944c50564d437a391ee36eb0d18",
+        "side-by-side.png": "4693cc7ec29c819088fb38ce6f2c4dfa6ba0d63b05c96182fda5be8f848c8197",
+        "overlay.png": "b97b2ead9cf24a80a035ea5447fcb94f4dc70f6643818d94be9c9c9952e113b4",
+        "difference.png": "4a6d9707c22cc18eae3cc107187dbbbbb261ccd79c9a60e6aab8d0a2185fa858",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26",
+        "background-difference.png": "c64c2af922b6924a0b58fc2ee8ec900286e8daf04b9255b4ff5c0e996fc73a15",
+        "environment.json": "a1c408516dd1e4760d93a503ae5d7c2ee0c19229079b011506db369f05da5187",
+        "comparison.json": "38abd400d428229b337d622ed77d7827712da1545da08a8f7a36f9c4a8d69336",
+        "background-comparison.json": "ff0622b5449128e12831cb7048acf3f32e120211526ca48b2df422bc32f8da7b"
+      }
+    },
+    {
+      "reference": "ref-02",
+      "foregroundStatus": "NOT PASS",
+      "backgroundStatus": "PASS",
+      "directory": ".artifacts/ritual-qa/seven-state-checkpoint/ref-02",
+      "buildId": "ovnaexo_sa8Yer7I0tDQH",
+      "fixture": {
+        "kind": "real UI and real algorithm with deterministic crypto inputs",
+        "visualSeed": 1618,
+        "animationTimeMs": 2200,
+        "ambientEffectSampleMs": null,
+        "cssMotion": "completed entrance snapshot"
+      },
+      "sha256": {
+        "runtime.png": "44c561773140d17650dc30ca9745147da71d95194cbdf4b4680e72deb9b674fd",
+        "reference.png": "4756ef6912a52a669780a9b331d57d98325c5baf27ecdfa84d971c37affc30c6",
+        "side-by-side.png": "b9b9a30887e2e53857a0fdacc3df5db1a8e388ab14077af3993c07342f3e62cb",
+        "overlay.png": "e25b8469f3da1ef155ddb1f8b5059f4889d14c59242b9f7961dee8dbb0ff375c",
+        "difference.png": "c16489a4fe1dc5852cbd10ab553b88e663d4e374f58d317aed9b80f671327a02",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26",
+        "background-difference.png": "c64c2af922b6924a0b58fc2ee8ec900286e8daf04b9255b4ff5c0e996fc73a15",
+        "environment.json": "39bd5bd1e5254e9804e15840b4c964849d1ec5b2fe2c22840b98d9a68ef03239",
+        "comparison.json": "fc9f31b055515649fd079a85d385c9539ef7799320504a452e25d3278f72e314",
+        "background-comparison.json": "296c3fa79e815c8057492339858a151057554bf914f955436fecf05df14db09a"
+      }
+    },
+    {
+      "reference": "ref-03",
+      "foregroundStatus": "NOT PASS",
+      "backgroundStatus": "PASS",
+      "directory": ".artifacts/ritual-qa/seven-state-checkpoint/ref-03",
+      "buildId": "ovnaexo_sa8Yer7I0tDQH",
+      "fixture": {
+        "kind": "real UI and real algorithm with deterministic crypto inputs",
+        "visualSeed": 1618,
+        "animationTimeMs": 500,
+        "ambientEffectSampleMs": null,
+        "cssMotion": "completed entrance snapshot"
+      },
+      "sha256": {
+        "runtime.png": "2d538e6633b12303869a2ec0c982911154090852418faeb783fe53db9e83b87d",
+        "reference.png": "be408e368fc9848f534c0d7cde0cb4332b00bb32a799030d4a27d38c0e161f2b",
+        "side-by-side.png": "3511c8f8e25b1f510b7b39f1662bdaa0d0d384fa00d1f8c89e43c3c7bdba2032",
+        "overlay.png": "79aa58fdcddb95b09cc1589dd7d9fd9324d6feec98ada1e1e22b4feeb46c5812",
+        "difference.png": "308513ccb43581067fed743d5071b5d7c4057e6b3f6272f56df8ef8b0c8babe0",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26",
+        "background-difference.png": "c64c2af922b6924a0b58fc2ee8ec900286e8daf04b9255b4ff5c0e996fc73a15",
+        "environment.json": "31e7f1a0dc6d30125943c5fd650681349f74f7fccf7cc7600175171ef1b7b63c",
+        "comparison.json": "462bf9b55bd4f9a0a0dbfbb265cacbe081a052eefcc5745c4323461d13265704",
+        "background-comparison.json": "b87218ca75ed5ea788e313b23afce252264eec348d0643f8dc772750ec5f49bc"
+      }
+    },
+    {
+      "reference": "ref-04",
+      "foregroundStatus": "NOT PASS",
+      "backgroundStatus": "PASS",
+      "directory": ".artifacts/ritual-qa/seven-state-checkpoint/ref-04",
+      "buildId": "ovnaexo_sa8Yer7I0tDQH",
+      "fixture": {
+        "kind": "real UI and real algorithm with deterministic crypto inputs",
+        "visualSeed": 1618,
+        "animationTimeMs": 2200,
+        "ambientEffectSampleMs": null,
+        "cssMotion": "completed entrance snapshot"
+      },
+      "sha256": {
+        "runtime.png": "551e0d247302ce98cb04b5262cd55f9df94e271266c0589985e76e7a0e8c8c9a",
+        "reference.png": "819e3dc3fd17acbe0d0fe71de7bbc84abe8924c49c71b00e526ca414cf59c067",
+        "side-by-side.png": "e5a757bf15af348eea52a00cbc5330743fd192ec8a3f85b281b78c84c6160d69",
+        "overlay.png": "86439dc19d5400469c9305b176f5bf2107534f12c2be05be8dce69de42c53977",
+        "difference.png": "667552c5df5a98b1fef0036270c324dde4b614b1238096443a91ec8b8a9dc751",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26",
+        "background-difference.png": "c64c2af922b6924a0b58fc2ee8ec900286e8daf04b9255b4ff5c0e996fc73a15",
+        "environment.json": "4ccbb6db6a32bd9fdade18c87b342837f1bf005c1650792c421874924a4c9086",
+        "comparison.json": "243306011823dfc733bc3ea605a37b06225ef0808f5ad34d7952811f1e660235",
+        "background-comparison.json": "cc838b14b28fdbd9305544aae160c3e7fdb2bf4b51d4237e52f27f4785352746"
+      }
+    },
+    {
+      "reference": "ref-05",
+      "foregroundStatus": "NOT PASS",
+      "backgroundStatus": "PASS",
+      "directory": ".artifacts/ritual-qa/seven-state-checkpoint/ref-05",
+      "buildId": "ovnaexo_sa8Yer7I0tDQH",
+      "fixture": {
+        "kind": "real UI and real algorithm with deterministic crypto inputs",
+        "visualSeed": 1621,
+        "animationTimeMs": 2200,
+        "ambientEffectSampleMs": 700,
+        "cssMotion": "completed entrance snapshot"
+      },
+      "sha256": {
+        "runtime.png": "c94fdf57c37a207c3c4bc71074d1effbd343e8a87418a034d23bd3a3a857f57b",
+        "reference.png": "4f4ce803576a5dc8b6a708c1eda184ab44e574aeead24258e24159f5e0399b7a",
+        "side-by-side.png": "2e0a916d3dbf3cf16677c2ccb9f4d9261ad2eb83e381ac824e00070ca7cd6e73",
+        "overlay.png": "4e3ec260fe5fcd3d65af8dc3c78832f5da21c2bdadca30d3093696b365519bca",
+        "difference.png": "0ddda04c7a9044860cb5d588459251612f97258e8b7cb261c67934625807121c",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26",
+        "background-difference.png": "c64c2af922b6924a0b58fc2ee8ec900286e8daf04b9255b4ff5c0e996fc73a15",
+        "environment.json": "42be9bce44daca115a727e24d5c9800b3e104c9248e6071c13de3c11167cf80a",
+        "comparison.json": "9aa8590eaadcce33c9ca84833b590226bac201aa123593eb310b1498bdd84136",
+        "background-comparison.json": "4738873f1ef0cf2c94e9005f855839ffa2571ec8240d1d4f02691c9d6ada36c3"
+      }
+    },
+    {
+      "reference": "ref-06",
+      "foregroundStatus": "NOT PASS",
+      "backgroundStatus": "PASS",
+      "directory": ".artifacts/ritual-qa/seven-state-checkpoint/ref-06",
+      "buildId": "ovnaexo_sa8Yer7I0tDQH",
+      "fixture": {
+        "kind": "real UI and real algorithm with deterministic crypto inputs",
+        "visualSeed": null,
+        "animationTimeMs": 2200,
+        "ambientEffectSampleMs": null,
+        "cssMotion": "completed entrance snapshot"
+      },
+      "sha256": {
+        "runtime.png": "10b76a30098df846830cf19d80ea06fb94f39781bef3f5bcba71d02755f82918",
+        "reference.png": "4da62ce9924c97d460819f87cf8e08ae76b20466c8288b39c6610bab19f3eb7b",
+        "side-by-side.png": "7b89a6d3ca78935de96d7057bd61df1c0cbef5f605094292df84419e9dcc5681",
+        "overlay.png": "f57d1e397512dc1a40b7f1b6720ae30f8e7c8433ce3d78ad7c3e0c6f8c148d7d",
+        "difference.png": "e233f91d6d65e54564697daa1d25fd4be8f919973e997c993bb6dd4681fa9e17",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26",
+        "background-difference.png": "c64c2af922b6924a0b58fc2ee8ec900286e8daf04b9255b4ff5c0e996fc73a15",
+        "environment.json": "9e8f1dfb7f1585fe89ed989c5b6b654a7158d2d8c49fba27f2b2107cb001159d",
+        "comparison.json": "d7936c1ae409995cc71f90b34683e25114beda4540cb3d98588692f4a825d4ab",
+        "background-comparison.json": "8f33b8729b4fc9b45cecf4137ebd558604081035310f7111db3843895469b35b"
+      }
+    },
+    {
+      "reference": "ref-07",
+      "foregroundStatus": "NOT PASS",
+      "backgroundStatus": "PASS",
+      "directory": ".artifacts/ritual-qa/seven-state-checkpoint/ref-07",
+      "buildId": "ovnaexo_sa8Yer7I0tDQH",
+      "fixture": {
+        "kind": "local-only saved-reading fixture; not live authentication/persistence evidence",
+        "visualSeed": null,
+        "animationTimeMs": 2200,
+        "ambientEffectSampleMs": null,
+        "cssMotion": "completed entrance snapshot"
+      },
+      "sha256": {
+        "runtime.png": "f167f31e802d8ca5b01c25875e66a2a95b16dbae1f8326e5b4c2617c1dbbb5d6",
+        "reference.png": "1816243404f2c125f283295b49be89e38f7d49cae49536910db87bb3b8ac3b6d",
+        "side-by-side.png": "c133eaad975e00450d429991b68b7b480d3a96759ef6641b579a9958b55efd91",
+        "overlay.png": "3cb6bd370686f75df56fb4fce6dd4f4ee51d852dfe52b039e8dced80122cda82",
+        "difference.png": "acd2b32b03821d78fd4c9bbfd8414d9724eeb6a1caf3dee446cc52b826b25324",
+        "background-isolated.png": "5d2f05a122ba96489ff8cbbe5fb609eaa35b484097656a5662a6160117da1b26",
+        "background-difference.png": "c64c2af922b6924a0b58fc2ee8ec900286e8daf04b9255b4ff5c0e996fc73a15",
+        "environment.json": "6367133180c30d7175ec1ebfc1c0a8eb8ab3aa0f72365cb6281172ec44911f36",
+        "comparison.json": "8c5d9f2bdcb28f90bb346a5539f58252f6434ef25100805c1116c65376be3038",
+        "background-comparison.json": "36e22645ac40842df75ba331f49adbc87c46cd1edbf2177edc1c0406e4b8217c"
+      }
+    }
+  ]
+}

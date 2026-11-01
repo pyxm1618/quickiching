@@ -74,19 +74,5 @@ export interface CastingRepository {
     status: RiskStatus;
   }): void;
   getRiskDecision(castingSessionId: string): CastingRiskDecision | undefined;
-  acquireQuestionLock(input: {
-    userId: string;
-    fingerprint: string;
-    keyVersion: string;
-    winningCastingId: string;
-    now: Date;
-  }): { won: boolean; winningCastingId: string };
-  revealWithQuestionLock(input: {
-    castingId: string;
-    userId: string;
-    fingerprint: string;
-    keyVersion: string;
-    now: Date;
-  }): { revealed: boolean; duplicate: boolean; winningCastingId?: string };
   evaluateSessionClocks(session: CastingSession, now: Date): { castingExpired: boolean; revealExpired: boolean };
 }

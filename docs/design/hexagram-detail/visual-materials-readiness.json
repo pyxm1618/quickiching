@@ -1,0 +1,105 @@
+{
+  "originalTotal": 15,
+  "states": {
+    "approved/pass": 15,
+    "deferred/waiting-for-source": 0,
+    "confirmedReject": 0,
+    "unreviewedUnknown": 0
+  },
+  "overall": "PRODUCTION SOURCE FILES COMPLETE; runtime placement/visual QA separate",
+  "evidence": "13 approved final ZIP assets plus the two follow-up files supplied by the user. No files regenerated or screenshot-cropped. Runtime visual PASS is not inferred from source-file approval.",
+  "items": [
+    {
+      "path": "public/hexagram-detail/background/paper-texture.png",
+      "sha256": "41e43371a1826c1e8f42fa90072c452a7a36c782e2aa4033657d7e51f2fca5d3",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/frame/right-middle-repeat.png",
+      "sha256": "e01edd03f5c1390ae1ee5eedcb31c162b90c7ca58e9c27d1b3c8c5d61aa74f78",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/frame/left-middle-repeat.png",
+      "sha256": "f6963b3469498cea14929db6ad5a6fee72f4db953cab961b5acdada033e45649",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/frame/right-bottom.png",
+      "sha256": "541d17ff0e964ec671c77029b80bad353cc982c38106792e6801113ee67e2f3a",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/frame/bottom-scroll.png",
+      "sha256": "476b10522e695c30d1e11e6e26c841d07546dcd2a788eb5c567e5a8c5a721e7f",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/frame/left-bottom.png",
+      "sha256": "e1d8512808bbc531d2c0d71ea8108dc541d36f3e293ea41c1db68d85b664279b",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/frame/left-top.png",
+      "sha256": "bbe18d8e8ec9a4ee4410e54ff6ed7e3e7f0bb888d5e8ec2125e2751912529fe4",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/frame/top-scroll.png",
+      "sha256": "e77654c753d6209749140d06cdc1bffd30536a441d34ad8717eed89f5be5ef69",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/frame/right-top.png",
+      "sha256": "36a6e5dfb878a43b518c47182cb91b356d2773b7b821b53f943160f07aa13441",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/decorations/cherry-branch-top-left.png",
+      "sha256": "0d5b0d770a58b05fadf7943568407dee93da232b1caf2652928f58c47e3bbd9d",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/decorations/ink-landscape.png",
+      "sha256": "ddd9183298a4c4b46bbd37470b9542c6ad13413e9ac1c18cd8bc784914059a30",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/decorations/cherry-branch-bottom-left.png",
+      "sha256": "814162972a99f2771689cc1cd525b3feae0317449d57a96889b674523ebf4cd0",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/decorations/pine-branch-right.png",
+      "sha256": "df38f670759dbcc15876c7bd4a0a35bdc90aad097a6735c6e9bb9aa6f89dd2fd",
+      "status": "approved/pass",
+      "evidence": "User-approved final PASS ZIP; byte-identical extraction"
+    },
+    {
+      "path": "public/hexagram-detail/background/lantern-scene.png",
+      "sha256": "c87c94d77cd6ad15cf6dbf9564843fd996606eb31aacbcb884a0fb3137936033",
+      "status": "approved/pass",
+      "source": "/Users/milushangdi/Desktop/\u706f\u5f71\u6c34\u5ead\u591c\u8272\u6726\u80e7.png",
+      "evidence": "User supplied specifically for PR #70; byte-identical copy. RGB 1024x1536 opaque scene background"
+    },
+    {
+      "path": "public/hexagram-detail/decorations/hero-taiji.png",
+      "sha256": "9d3f402a4f38e583acbe0ee5b89ab84e57e52619c212d39b70e0484be09404b5",
+      "status": "approved/pass",
+      "source": "/Users/milushangdi/Desktop/\u58a8\u91d1\u592a\u6781\u4e7e\u5764\u56fe_\u900f\u660e\u8fb9\u7f18\u6e05\u7406_2048.png",
+      "evidence": "User supplied specifically for PR #70; byte-identical copy. RGBA 2048x2048; alpha 0..255, four fully transparent corners; parchment composite inspected"
+    }
+  ]
+}
