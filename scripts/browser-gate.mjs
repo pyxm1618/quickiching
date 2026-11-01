@@ -138,7 +138,18 @@ async function verifyHttpAndSeo() {
     assert(!/name="robots" content="[^"]*noindex/i.test(html), `${path}: indexable page unexpectedly noindex`);
   }
 
-  const noindexPaths = ["/pricing", "/help", "/privacy", "/terms", "/acceptable-use", "/readings/three-coin/result"];
+  const noindexPaths = [
+    "/pricing",
+    "/help",
+    "/privacy",
+    "/terms",
+    "/acceptable-use",
+    "/zh/help",
+    "/zh/privacy",
+    "/zh/terms",
+    "/zh/acceptable-use",
+    "/readings/three-coin/result",
+  ];
   for (const path of noindexPaths) {
     const response = await expectStatus(path, 200);
     const html = await response.text();
