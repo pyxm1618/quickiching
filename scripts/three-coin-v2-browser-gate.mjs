@@ -179,7 +179,7 @@ async function verifyStorageReadFailure(browser) {
     await clickButton(page, "Skip — free reading only");
     await waitForText(page, "This question could not be saved.");
     const state = await page.evaluate(() => ({
-      questionPromptVisible: document.querySelector("[data-question-first] textarea") !== null,
+      questionPromptVisible: document.querySelector("[data-three-coin-ritual] textarea") !== null,
       castControlsVisible: document.querySelector('[data-three-coin-presentation] .hold-button') !== null,
       savedQuestionError: document.body?.innerText.includes("This question could not be saved."),
     }));
@@ -235,7 +235,7 @@ async function verifyStorageWriteFailureRetry(browser) {
       return {
         castValue: match ? Number(match[1]) : null,
         progress: document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===0,
-        storedSteps: Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? null,
+        storedSteps: parsed?.data?.steps ?? null,
         revealCount: [...document.querySelectorAll("a")].filter((node) => node.textContent?.trim() === "Reveal Your Reading").length,
       };
     }, STORAGE_KEY);
@@ -251,7 +251,7 @@ async function verifyStorageWriteFailureRetry(browser) {
       const raw = sessionStorage.getItem(key);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      const steps = Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? [];
+      const steps = parsed?.data?.steps ?? [];
       return steps[0]?.lineValue ?? null;
     }, STORAGE_KEY);
     assert.equal(storedValue, failedState.castValue, "Retry must persist the same cast value rather than rerolling the line");
@@ -355,7 +355,7 @@ async function verifyExplicitReset(browser) {
       const raw = sessionStorage.getItem(key);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? null;
+      return parsed?.data?.steps ?? null;
     }, STORAGE_KEY);
     assert.equal(storedSteps, null, "Start a New Reading must clear the sealed Three-Coin line data");
     log("Explicit reset PASS");

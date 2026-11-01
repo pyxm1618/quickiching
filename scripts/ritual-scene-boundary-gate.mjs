@@ -66,7 +66,7 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
   await page.locator('[data-home-primary-action]').click();
   assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Entering ritual must not manufacture a cast');
   if(deferTextures) {
-   await page.waitForSelector('[data-three-coin-presentation="home-ritual"] .hold-button');
+   await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button');
    assert.equal(await page.$eval('.hold-button',node=>node.disabled),true,'A real cast must wait for its textures');
    await page.$eval('.hold-button',node=>node.click());
    assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Waiting for the renderer must not generate a business result');
@@ -76,8 +76,8 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    await page.waitForSelector('[data-renderer="three-webgl"]');
   }
   if(!fallback && !moduleFailure)assert.equal(await page.evaluate(()=>window.__initialRitualCanvas===document.querySelector('[data-renderer="three-webgl"] canvas')),true,'Home, question and casting must retain one renderer canvas');
-  await page.waitForSelector('[data-three-coin-presentation="home-ritual"] .hold-button:not(:disabled)');
-  await page.locator('[data-three-coin-presentation="home-ritual"] .hold-button').click();
+  await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button:not(:disabled)');
+  await page.locator('[data-three-coin-presentation="ritual"] .hold-button').click();
   if(storageFailure) {
    await page.waitForSelector('[data-three-coin-storage-error]');
    assert.equal(await page.evaluate(()=>window.__ritualBitDraws),3);
@@ -107,8 +107,8 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
   assert.equal(after.id,session.id);
   if(completedFlow) {
    for(let line=1;line<6;line++) {
-    await page.waitForSelector('[data-three-coin-presentation="home-ritual"] .hold-button:not(:disabled)');
-    await page.locator('[data-three-coin-presentation="home-ritual"] .hold-button').click();
+    await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button:not(:disabled)');
+    await page.locator('[data-three-coin-presentation="ritual"] .hold-button').click();
     await page.waitForSelector('[data-record-this-cast]');
     const current=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
     assert.equal(current.id,session.id,'All six casts must stay in one session');

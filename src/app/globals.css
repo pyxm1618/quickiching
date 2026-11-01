@@ -209,80 +209,11 @@ main > article:not(.home-oracle) code { color: var(--gold-2); }
 @keyframes oracle-breathe { 50% { transform: translate(-50%,-50%) scale(1.055); opacity: .78; } }
 @keyframes oracle-spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 
-/* Ritual tool surface. */
-.ritual-wrap { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(280px, .92fr); border: 1px solid rgba(255,255,255,.11); background: linear-gradient(145deg, rgba(255,255,255,.065), rgba(255,255,255,.025)); border-radius: 32px; overflow: hidden; box-shadow: var(--shadow); }
-.ritual-stage { min-height: 650px; padding: 34px; position: relative; background: radial-gradient(circle at 50% 34%, rgba(143,112,255,.19), transparent 35%), linear-gradient(180deg, rgba(255,255,255,.015), rgba(0,0,0,.15)); }
-.ritual-sidebar { padding: 34px; background: rgba(4,3,9,.32); border-left: 1px solid rgba(255,255,255,.08); }
-.ritual-progress { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
-.ritual-progress-badge { border: 1px solid rgba(232,198,122,.3); border-radius: 999px; padding: 8px 12px; color: var(--gold-2); background: rgba(232,198,122,.04); font: 600 11px/1 var(--font-plex), monospace; letter-spacing: .08em; text-transform: uppercase; }
-.ritual-map { display: grid; margin-top: 24px; }
-.ritual-map-step { display: grid; grid-template-columns: 34px 1fr; gap: 12px; padding: 15px 0; border-top: 1px solid rgba(255,255,255,.08); }
-.ritual-map-step:first-child { border-top: 0; }
-.ritual-map-n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.14); color: var(--ink-3); font-size: 10px; }
-.ritual-map-step[data-state="done"] .ritual-map-n { border-color: rgba(137,233,227,.5); color: var(--cyan); background: rgba(137,233,227,.08); }
-.ritual-map-step[data-state="current"] .ritual-map-n { border-color: var(--gold); color: #19120c; background: var(--gold); box-shadow: 0 0 22px rgba(232,198,122,.18); }
-.ritual-map-step h4 { margin: 1px 0 3px; font-size: 13px; font-weight: 650; }
-.ritual-map-step p { margin: 0; color: var(--ink-3); font-size: 11px; line-height: 1.5; }
-.cast-history { margin-top: 24px; border-top: 1px solid rgba(255,255,255,.09); padding-top: 20px; }
-.cast-history ol { display: grid; gap: 8px; margin-top: 12px; }
-.cast-history li { display: grid; grid-template-columns: 1fr auto; gap: 12px; border: 1px solid rgba(255,255,255,.07); border-radius: 12px; background: rgba(255,255,255,.025); padding: 9px 11px; font-size: 11px; color: var(--ink-2); }
-.cast-history strong { color: var(--gold-2); }
-
-/* Motion F: clustered shake -> scatter/fall/spin -> settle. Transform never determines the result. */
-.coin-motion-stage { height: 345px; position: relative; margin-top: 8px; isolation: isolate; }
-.coin-motion-stage::before { content: ""; position: absolute; left: 50%; top: 46%; width: 285px; height: 285px; border-radius: 50%; transform: translate(-50%,-50%); border: 1px solid rgba(143,112,255,.09); box-shadow: 0 0 90px rgba(143,112,255,.09) inset; transition: transform .45s ease, box-shadow .45s ease; }
-.coin-palm { position: absolute; left: 50%; top: 43%; width: 190px; height: 105px; border-radius: 50%; transform: translate(-50%,-50%); background: radial-gradient(ellipse, rgba(232,198,122,.085), rgba(143,112,255,.055) 48%, transparent 72%); filter: blur(.2px); transition: opacity .24s ease, transform .35s ease, filter .35s ease; }
-.ritual-coin-shell { --fx: 0px; --fy: 112px; --rz: 0deg; position: absolute; left: 50%; top: 42%; width: 82px; height: 82px; margin-left: 0; transform: translate(-50%,-50%); perspective: 800px; z-index: 10; }
-.ritual-coin-shell.c1 { --fx: -126px; --fy: 112px; --rz: -12deg; margin-left: -24px; }
-.ritual-coin-shell.c2 { --fx: 0px; --fy: 136px; --rz: 8deg; }
-.ritual-coin-shell.c3 { --fx: 126px; --fy: 108px; --rz: 15deg; margin-left: 24px; }
-.ritual-coin { --end: 0deg; width: 100%; height: 100%; position: relative; transform-style: preserve-3d; filter: drop-shadow(0 17px 15px rgba(0,0,0,.36)); }
-.ritual-coin[data-face="yin"] { --end: 180deg; }
-.ritual-coin-face { position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden; overflow: hidden; display: grid; place-items: center; border: 2px solid #f4d483; background: radial-gradient(circle at 34% 27%, #fff0b6 0 7%, #d8ad55 42%, #966826 76%, #4f3414 100%); box-shadow: inset 0 0 0 4px rgba(72,43,13,.32), inset 0 0 18px rgba(255,239,171,.28), 0 0 22px rgba(232,198,122,.09); color: #2b1b0b; }
-.ritual-coin-face::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; border: 1px solid rgba(57,34,11,.46); box-shadow: inset 0 0 0 1px rgba(255,241,184,.12); }
-.ritual-coin-face.back { transform: rotateY(180deg); background: radial-gradient(circle at 38% 30%, #f2d07c, #b88736 54%, #5f3d16 100%); }
-.ritual-coin-hole { position: absolute; width: 25px; height: 25px; background: #160f0b; border: 2px solid rgba(47,29,10,.7); box-shadow: inset 0 0 7px #000, 0 0 0 1px rgba(255,225,145,.25); z-index: 4; }
-.ritual-coin-char { position: absolute; z-index: 5; font-family: var(--font-noto-sc), "Songti SC", serif; font-size: 14px; font-weight: 800; text-shadow: 0 1px rgba(255,238,166,.28); }
-.ritual-coin-char.top { top: 8px; left: 50%; transform: translateX(-50%); }
-.ritual-coin-char.right { right: 8px; top: 50%; transform: translateY(-50%); }
-.ritual-coin-char.bottom { bottom: 8px; left: 50%; transform: translateX(-50%); }
-.ritual-coin-char.left { left: 8px; top: 50%; transform: translateY(-50%); }
-.ritual-coin-mint { position: absolute; z-index: 5; color: #33210e; font: 800 9px/1 var(--font-plex), monospace; letter-spacing: .08em; }
-.ritual-coin-mint.m1 { top: 15px; }
-.ritual-coin-mint.m2 { bottom: 15px; }
-.coin-motion-stage[data-motion="holding"] .ritual-coin-shell { animation: coin-held-shake .10s linear infinite alternate; }
-.coin-motion-stage[data-motion="holding"] .c1 { animation-delay: .012s; }
-.coin-motion-stage[data-motion="holding"] .c3 { animation-delay: .042s; }
-.coin-motion-stage[data-motion="holding"] .coin-palm { transform: translate(-50%,-50%) scale(1.05); filter: brightness(1.17); }
-.coin-motion-stage[data-motion="holding"]::before { transform: translate(-50%,-50%) scale(1.045); box-shadow: 0 0 90px rgba(143,112,255,.12) inset; }
-.coin-motion-stage[data-motion="casting"] .coin-palm { opacity: 0; transform: translate(-50%,-62%) scale(.92); }
-.coin-motion-stage[data-motion="casting"] .ritual-coin-shell,
-.coin-motion-stage[data-motion="settled"] .ritual-coin-shell { animation: coin-scatter-fall 1.64s cubic-bezier(.17,.67,.18,1) forwards; }
-.coin-motion-stage[data-motion="casting"] .c2, .coin-motion-stage[data-motion="settled"] .c2 { animation-delay: .035s; }
-.coin-motion-stage[data-motion="casting"] .c3, .coin-motion-stage[data-motion="settled"] .c3 { animation-delay: .075s; }
-.coin-motion-stage[data-motion="casting"] .ritual-coin,
-.coin-motion-stage[data-motion="settled"] .ritual-coin { animation: coin-scatter-spin 1.64s cubic-bezier(.2,.67,.18,1) forwards; }
-.coin-motion-stage[data-motion="casting"] .c2 .ritual-coin, .coin-motion-stage[data-motion="settled"] .c2 .ritual-coin { animation-delay: .035s; }
-.coin-motion-stage[data-motion="casting"] .c3 .ritual-coin, .coin-motion-stage[data-motion="settled"] .c3 .ritual-coin { animation-delay: .075s; }
-@keyframes coin-held-shake { from { transform: translate(-50%,-50%) rotate(-3deg) translateX(-4px); } to { transform: translate(-50%,calc(-50% + 3px)) rotate(3deg) translateX(4px); } }
-@keyframes coin-scatter-fall { 0% { transform: translate(-50%,-50%); } 13% { transform: translate(-50%,calc(-50% - 18px)); } 54% { transform: translate(calc(-50% + var(--fx)*.82),calc(-50% + var(--fy)*.82)); } 65% { transform: translate(calc(-50% + var(--fx)*.91),calc(-50% + var(--fy) - 13px)); } 76% { transform: translate(calc(-50% + var(--fx)*.97),calc(-50% + var(--fy) + 2px)); } 88% { transform: translate(calc(-50% + var(--fx)),calc(-50% + var(--fy) - 3px)); } 100% { transform: translate(calc(-50% + var(--fx)),calc(-50% + var(--fy))) rotate(var(--rz)); } }
-@keyframes coin-scatter-spin { 0% { transform: rotateX(60deg) rotateY(0); } 18% { transform: rotateX(180deg) rotateY(360deg) rotateZ(42deg); } 54% { transform: rotateX(530deg) rotateY(820deg) rotateZ(142deg); } 72% { transform: rotateX(650deg) rotateY(990deg) rotateZ(203deg); } 100% { transform: rotateX(720deg) rotateY(calc(1080deg + var(--end))) rotateZ(var(--rz)); } }
-.coin-energy { position: absolute; left: 50%; top: 52%; width: 280px; height: 150px; transform: translate(-50%,20px); opacity: 0; transition: opacity .75s .12s; pointer-events: none; }
-.coin-energy::before, .coin-energy::after { content: ""; position: absolute; height: 1px; background: linear-gradient(90deg,transparent,var(--cyan),transparent); transform-origin: left; filter: drop-shadow(0 0 6px rgba(137,233,227,.42)); }
-.coin-energy::before { left: 29px; top: 46px; width: 232px; transform: rotate(10deg); }
-.coin-energy::after { left: 69px; top: 113px; width: 184px; transform: rotate(-34deg); }
-.coin-motion-stage[data-motion="settled"] .coin-energy { opacity: .42; }
-.coin-motion-result { position: absolute; left: 50%; bottom: 13px; transform: translateX(-50%) translateY(7px); opacity: 0; text-align: center; transition: opacity .45s .18s, transform .45s .18s; white-space: nowrap; }
-.coin-motion-stage[data-motion="settled"] .coin-motion-result { opacity: 1; transform: translateX(-50%) translateY(0); }
-.coin-motion-result strong { color: var(--gold-2); font: 400 19px/1.2 var(--font-display); }
-.coin-motion-result span { margin-left: 7px; color: var(--ink-3); font-size: 8px; letter-spacing: .14em; text-transform: uppercase; }
-.hold-zone { margin-top: 6px; text-align: center; }
 .hold-button { position: relative; overflow: hidden; width: min(100%, 520px); min-height: 54px; border: 1px solid rgba(232,198,122,.36); border-radius: 999px; background: linear-gradient(90deg, rgba(143,112,255,.105), rgba(232,198,122,.045)); color: var(--gold-2); font-weight: 700; letter-spacing: .025em; cursor: pointer; user-select: none; touch-action: none; }
 .hold-button::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, rgba(143,112,255,.24), rgba(232,198,122,.22)); transition: width .08s linear; }
 .hold-button[data-holding="true"]::before { width: 100%; transition: width 1.15s linear; }
 .hold-button span { position: relative; z-index: 2; }
 .hold-button:disabled { cursor: not-allowed; opacity: .42; }
-.hold-hint { margin-top: 8px; color: var(--ink-3); font: italic 12px/1.5 var(--font-display); }
 .sound-toggle { border: 0; background: transparent; color: var(--ink-3); font-size: 11px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .sound-toggle:hover { color: var(--gold-2); }
 
@@ -331,8 +262,6 @@ main > article:not(.home-oracle) code { color: var(--gold-2); }
   .oracle-aura { width: 370px; height: 370px; }
   .oracle-orbit { width: 310px; height: 310px; }
   .oracle-moon { width: 215px; height: 215px; }
-  .ritual-wrap { grid-template-columns: 1fr; }
-  .ritual-sidebar { border-left: 0; border-top: 1px solid rgba(255,255,255,.08); }
   .reading-path { grid-template-columns: 1fr; }
   .change-bridge { grid-template-columns: 1fr 74px 1fr; margin-block: 4px; }
   .change-bridge::before, .change-bridge::after { content: ""; width: 100%; height: 1px; background: rgba(255,255,255,.1); }
@@ -349,15 +278,7 @@ main > article:not(.home-oracle) code { color: var(--gold-2); }
   .oracle-moon { width: 175px; height: 175px; }
   .oracle-crystal { width: 58px; height: 112px; }
   .oracle-card { display: none; }
-  .ritual-stage, .ritual-sidebar, .reading-reveal, .reading-card-a { padding: 22px; }
-  .ritual-stage { min-height: 610px; }
-  .coin-motion-stage { height: 315px; }
-  .ritual-coin-shell { width: 66px; height: 66px; }
-  .ritual-coin-shell.c1 { --fx: -96px; --fy: 105px; margin-left: -20px; }
-  .ritual-coin-shell.c2 { --fy: 126px; }
-  .ritual-coin-shell.c3 { --fx: 96px; --fy: 102px; margin-left: 20px; }
-  .ritual-coin-char { font-size: 11px; }
-  .ritual-coin-hole { width: 20px; height: 20px; }
+  .reading-reveal, .reading-card-a { padding: 22px; }
   .reading-number { font-size: 58px; }
   .reading-card-a { min-height: auto; }
 }

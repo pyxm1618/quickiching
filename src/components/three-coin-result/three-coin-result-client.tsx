@@ -799,7 +799,6 @@ export function ThreeCoinResultClient({
       <RitualRevealTransition stage="gate"><div
         className="ritual-save-gate"
         data-completed-cast-gate={gateState}
-        data-visual-status="in-development"
       >
         <section className="ritual-gate-card" aria-labelledby="completed-cast-title">
           <div className="ritual-gate-complete-mark" aria-hidden="true"><Check /></div>
