@@ -220,7 +220,7 @@ describe("static hexagram detail page", () => {
           expect(html, seo.canonicalUrl).toContain('id="line-' + position + '"');
         }
         if (locale === "en") {
-          expect(html).toContain(">" + knowledge.englishName + "<");
+          expect(html).toContain(">" + seo.finalH1 + "<");
           expect(html).toContain("What This Hexagram Means");
           expect(html).toContain("Classical Text &amp; Modern Interpretation");
           expect(html).toContain("The Six Lines");

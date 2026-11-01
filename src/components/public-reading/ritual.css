@@ -6,6 +6,13 @@
   position: relative; isolation:isolate; height: calc(100svh - 75px); min-height: 650px;
   color: #fff3d4; font-family: Georgia,"Libre Baskerville",serif;
 }
+article:not(.home-oracle) .ritual-canvas {
+  content-visibility: auto;
+  contain-intrinsic-size: 800px;
+}
+article:not(.home-oracle) .ritual-room {
+  position: absolute;
+}
 .ritual-room { position: fixed; inset:0; z-index:-1; pointer-events:none; background:#21160c url('/performance/stageDesktop.e37364561615e31f.webp') center / auto 100% no-repeat; }
 body:has(.ritual-canvas) { background:#21160c; }
 body:has(.ritual-canvas)::before,body:has(.ritual-canvas)::after { display:none; }
@@ -23,7 +30,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-home-heading :is(h1,h2) em { font-size:calc(72 * var(--u));font-weight:700;font-style:normal; }
 .ritual-home-heading p { position:absolute;top:calc(146 * var(--u));left:0;white-space:nowrap;font-size:calc(24 * var(--u));line-height:1.18;margin:calc(17 * var(--u)) 0 0 calc(45 * var(--u));color:#fff8ed; }
 .ritual-question-card { position:absolute;left:calc(200 * var(--u));top:calc(411 * var(--u));width:calc(646 * var(--u));height:calc(184 * var(--u));z-index:2;
-  padding:calc(19 * var(--u)) calc(36 * var(--u));background:url('/performance/questionDesktop.d616c1d6e5957a79.png') center / cover no-repeat;background-origin:border-box;color:#16110b;border:4px double #be8d50;border-radius:14px;
+  padding:calc(19 * var(--u)) calc(36 * var(--u));background:url('/performance/questionDesktop.3b34ef04891180ba.webp') center / cover no-repeat;background-origin:border-box;color:#16110b;border:4px double #be8d50;border-radius:14px;
   transition:left 360ms var(--ritual-enter) 80ms,top 360ms var(--ritual-enter) 80ms,width 360ms var(--ritual-enter) 80ms,height 360ms var(--ritual-enter) 80ms;
 }
 .ritual-question-card label { display:block;font-size:calc(28 * var(--u));font-weight:700;line-height:1.2; }
@@ -146,7 +153,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 [data-ritual-view='result'] .ritual-cast-heading h2 {font:700 calc(64 * var(--u))/1.2 Georgia,serif;margin-top:calc(12 * var(--u));}
 [data-ritual-view='result'] .ritual-cast-heading > p:last-child {font-size:calc(26 * var(--u));margin-top:calc(10 * var(--u));}
 .ritual-face-labels {position:absolute;left:calc(490 * var(--u));top:calc(643 * var(--u));display:flex;gap:calc(130 * var(--u));}
-.ritual-face-labels > span {display:flex;align-items:center;justify-content:center;width:calc(140 * var(--u));height:calc(46 * var(--u));background:url('/performance/questionDesktop.d616c1d6e5957a79.png') center/cover;color:#17100a;font:700 calc(25 * var(--u))/1 Georgia,serif;clip-path:polygon(6% 0,95% 0,100% 20%,98% 83%,93% 100%,5% 100%,0 70%,2% 20%);animation:ritual-ui-enter 180ms var(--ritual-enter) both;}
+.ritual-face-labels > span {display:flex;align-items:center;justify-content:center;width:calc(140 * var(--u));height:calc(46 * var(--u));background:url('/performance/questionDesktop.3b34ef04891180ba.webp') center/cover;color:#17100a;font:700 calc(25 * var(--u))/1 Georgia,serif;clip-path:polygon(6% 0,95% 0,100% 20%,98% 83%,93% 100%,5% 100%,0 70%,2% 20%);animation:ritual-ui-enter 180ms var(--ritual-enter) both;}
 .ritual-record-action {position:absolute;left:calc(615 * var(--u));top:calc(732 * var(--u));width:calc(440 * var(--u));text-align:center;animation:ritual-ui-enter 220ms var(--ritual-enter) both;}
 .ritual-record-action .ritual-gold-button {font-size:calc(28 * var(--u));height:calc(72 * var(--u));}
 .ritual-record-action .ritual-stage-number {margin-top:calc(20 * var(--u));}

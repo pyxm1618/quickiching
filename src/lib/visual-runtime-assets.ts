@@ -3,7 +3,7 @@ export const visualRuntimeAssets = {
   "stageDesktop": "/performance/stageDesktop.e37364561615e31f.webp",
   "stageMobile": "/performance/stageMobile.285965e6cb8c7840.webp",
   "stagePortrait": "/performance/stagePortrait.bde3e415eb141bc8.webp",
-  "questionDesktop": "/performance/questionDesktop.d616c1d6e5957a79.png",
+  "questionDesktop": "/performance/questionDesktop.3b34ef04891180ba.webp",
   "questionMobile": "/performance/questionMobile.aeacbe5208415e49.webp",
   "resultDesktop": "/performance/resultDesktop.c8b42fcbbe5723fe.webp",
   "resultMobile": "/performance/resultMobile.b62092713b0e63f0.webp",

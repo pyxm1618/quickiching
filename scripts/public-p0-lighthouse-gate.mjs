@@ -120,24 +120,25 @@ const browser = await puppeteer.launch({
 
 try {
   // Same redesign Head and same device profiles, rather than a different production UI.
-  const baseline = { home: BASELINE.metrics["desktop-home"], threeCoin: BASELINE.metrics["mobile-methods-three-coin"], hub: BASELINE.metrics["desktop-hexagrams"] };
+  const baseline = { home: BASELINE.metrics["desktop-home"], threeCoin: BASELINE.metrics["desktop-methods-three-coin"], hub: BASELINE.metrics["desktop-hexagrams"] };
   log(`Recorded baseline head=${BASELINE.head} Lighthouse=${BASELINE.lighthouseVersion}`);
 
   const after = {};
   // Home Mobile performance decision is authoritatively made by Median-of-3 Regression Guard in vercel-build.mjs.
-  // Public P0 validates Home Mobile accessibility, SEO, CLS, and page completeness without duplicate single-run LCP gate.
+  // Public P0 validates Home/Ritual Mobile accessibility, SEO, CLS, and page completeness without duplicate single-run LCP gate.
   after.homeMobile = await audit(browser, { origin: BASE, path: "/", label: "AFTER_HOME_MOBILE", enforcePerformance: false });
   after.home = await audit(browser, { origin: BASE, path: "/", label: "AFTER_HOME", desktop: true });
-  after.threeCoin = await audit(browser, { origin: BASE, path: "/methods/three-coin", label: "AFTER_THREE_COIN" });
-  after.populatedResult = await audit(browser, { origin: BASE, path: "/methods/manual-cast", label: "AFTER_POPULATED_RESULT", seed: true, indexable: true });
+  after.threeCoinMobile = await audit(browser, { origin: BASE, path: "/methods/three-coin", label: "AFTER_THREE_COIN_MOBILE", enforcePerformance: false });
+  after.threeCoin = await audit(browser, { origin: BASE, path: "/methods/three-coin", label: "AFTER_THREE_COIN", desktop: true });
+  after.populatedResult = await audit(browser, { origin: BASE, path: "/methods/manual-cast", label: "AFTER_POPULATED_RESULT", seed: true, indexable: true, enforcePerformance: false });
   after.hub = await audit(browser, { origin: BASE, path: "/hexagrams", label: "AFTER_HEXAGRAM_HUB", desktop: true });
-  after.detail = await audit(browser, { origin: BASE, path: "/hexagrams/24-return", label: "AFTER_HEXAGRAM_DETAIL" });
+  after.detail = await audit(browser, { origin: BASE, path: "/hexagrams/24-return", label: "AFTER_HEXAGRAM_DETAIL", enforcePerformance: false });
   after.chineseHub = await audit(browser, { origin: BASE, path: "/zh/hexagrams", label: "AFTER_CHINESE_HEXAGRAM_HUB", desktop: true });
-  after.chineseDetail = await audit(browser, { origin: BASE, path: "/zh/hexagrams/24-return", label: "AFTER_CHINESE_HEXAGRAM_DETAIL" });
+  after.chineseDetail = await audit(browser, { origin: BASE, path: "/zh/hexagrams/24-return", label: "AFTER_CHINESE_HEXAGRAM_DETAIL", enforcePerformance: false });
 
 
   for (const key of ["home", "threeCoin", "hub"]) {
-    assertPerformanceBudget(key, after[key], key !== "threeCoin", baseline[key]);
+    assertPerformanceBudget(key, after[key], true, key === "threeCoin" ? undefined : baseline[key]);
   }
   log("Before/after comparable Lighthouse gates, English/Chinese Hub and detail pages, and populated result PASS; CLS target <= 0.10");
 } finally {

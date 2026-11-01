@@ -1,4 +1,4 @@
-import { AccountModalHost } from "@/components/account/account-modal-host";
+import { AccountModalClient } from "@/components/account/account-modal-client";
 import type { Metadata } from "next";
 import "../../globals.css";
 import { SiteHeader } from "@/components/site-header";
@@ -33,7 +33,7 @@ export default function LocalizedRootLayout({
       <body className="flex min-h-screen flex-col">
         <SiteHeader locale="zh-Hans" authEnabled={authEnabled} />
         <main className="flex-1">{children}</main>
-        <AccountModalHost locale="zh-Hans" />
+        <AccountModalClient locale="zh-Hans" />
         <SiteAnalytics />
       </body>
     </html>
