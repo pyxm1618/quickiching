@@ -6,8 +6,11 @@ import React, { createContext, useContext, useEffect, useState, type ReactNode }
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
-import { patchPublicReadingSession, readPublicReadingSessionState } from "@/lib/public-reading-session";
-import { THREE_COIN_SESSION_STORAGE_KEY } from "@/lib/three-coin-session";
+import {
+  patchThreeCoinQuestionSession,
+  readThreeCoinQuestionState,
+  THREE_COIN_SESSION_STORAGE_KEY,
+} from "@/lib/three-coin-session";
 
 export type ThreeCoinExperienceStage = "landing" | "question-confirm" | "ritual";
 
@@ -90,7 +93,7 @@ export function ThreeCoinRitual({
   }, [presentationStage, experienceStage]);
 
   useEffect(() => {
-    const restored = readPublicReadingSessionState(THREE_COIN_SESSION_STORAGE_KEY);
+    const restored = readThreeCoinQuestionState();
     setQuestionState(restored.question);
     setDraft(restored.question ?? "");
     setCoreQuestionAtCast(restored.coreQuestionAtCast);
@@ -106,7 +109,7 @@ export function ThreeCoinRitual({
     frozenQuestion?: string,
     frozen = coreQuestionFrozenAtCast,
   ): boolean {
-    return patchPublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, {
+    return patchThreeCoinQuestionSession({
       started: nextStarted,
       ...(nextQuestion ? { question: nextQuestion } : {}),
       ...(frozen ? {

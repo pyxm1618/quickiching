@@ -2,13 +2,15 @@ import { ALGORITHM_VERSIONS, type LineValue } from "@/domain/casting/types";
 import type { CoinFace, ThreeCoinStep } from "@/domain/casting/three-coin/algorithm";
 import {
   clearPublicReadingSession,
+  patchPublicReadingSession,
   readPublicReadingSession,
-  restartPublicReadingSession,
+  readPublicReadingSessionState,
   writePublicReadingSession,
   type PublicReadingSession,
 } from "@/lib/public-reading-session";
 
 export const THREE_COIN_SESSION_STORAGE_KEY = "quickiching:public-v1:three-coin";
+const STRICT_THREE_COIN_SESSION = { allowLegacyEnvelope: false } as const;
 
 export type CompletedThreeCoinSteps = readonly [
   ThreeCoinStep,
@@ -79,7 +81,7 @@ function safeLocalStorage(): Storage | null {
 
 export function readThreeCoinSession(): ThreeCoinReadingSession | null {
   try {
-    const session = readPublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, parseThreeCoinSessionData);
+    const session = readPublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, parseThreeCoinSessionData, STRICT_THREE_COIN_SESSION);
     if (session) return session;
 
     const backupRaw = safeLocalStorage()?.getItem(THREE_COIN_BACKUP_STORAGE_KEY);
@@ -89,7 +91,7 @@ export function readThreeCoinSession(): ThreeCoinReadingSession | null {
         if (typeof parsed === "object" && parsed !== null && "data" in parsed) {
           const parsedData = parseThreeCoinSessionData((parsed as { data: unknown }).data);
           if (parsedData && parsedData.steps.length === 6) {
-            return writePublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, parsedData);
+            return writePublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, parsedData, STRICT_THREE_COIN_SESSION);
           }
         }
       } catch {
@@ -111,14 +113,6 @@ export function completedThreeCoinSteps(steps: readonly ThreeCoinStep[]): Comple
   return steps as unknown as CompletedThreeCoinSteps;
 }
 
-export function readThreeCoinSteps(): ThreeCoinStep[] {
-  try {
-    return readThreeCoinSession()?.data?.steps ?? [];
-  } catch {
-    throw new Error("THREE_COIN_SESSION_READ_FAILED");
-  }
-}
-
 export function writeThreeCoinSteps(steps: readonly ThreeCoinStep[]): ThreeCoinReadingSession {
   if (steps.length > 6 || !steps.every((entry, index) => isValidThreeCoinStep(entry, index))) {
     throw new Error("THREE_COIN_SESSION_INVALID_STEPS");
@@ -129,7 +123,7 @@ export function writeThreeCoinSteps(steps: readonly ThreeCoinStep[]): ThreeCoinR
       clearThreeCoinReading();
       throw new Error("THREE_COIN_SESSION_EMPTY");
     }
-    const session = writePublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, { steps: [...steps] });
+    const session = writePublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, { steps: [...steps] }, STRICT_THREE_COIN_SESSION);
     if (steps.length === 6) {
       try {
         safeLocalStorage()?.setItem(THREE_COIN_BACKUP_STORAGE_KEY, JSON.stringify(session));
@@ -158,15 +152,30 @@ export function clearThreeCoinReading(): void {
   }
 }
 
-export function restartThreeCoinReading(): ThreeCoinReadingSession {
-  try {
-    try {
-      safeLocalStorage()?.removeItem(THREE_COIN_BACKUP_STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-    return restartPublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY) as ThreeCoinReadingSession;
-  } catch {
-    throw new Error("THREE_COIN_SESSION_RESTART_FAILED");
-  }
+
+export function readThreeCoinQuestionState(): {
+  started: boolean;
+  question?: string;
+  coreQuestionAtCast?: string;
+  coreQuestionFrozenAtCast: boolean;
+} {
+  return readPublicReadingSessionState(
+    THREE_COIN_SESSION_STORAGE_KEY,
+    [],
+    STRICT_THREE_COIN_SESSION,
+  );
+}
+
+export function patchThreeCoinQuestionSession(patch: {
+  started: boolean;
+  question?: string;
+  coreQuestionAtCast?: string | null;
+  coreQuestionFrozenAtCast?: boolean;
+}): boolean {
+  return patchPublicReadingSession(
+    THREE_COIN_SESSION_STORAGE_KEY,
+    patch,
+    [],
+    STRICT_THREE_COIN_SESSION,
+  );
 }
