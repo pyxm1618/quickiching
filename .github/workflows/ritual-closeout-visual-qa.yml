@@ -19,8 +19,6 @@ jobs:
     name: Three-Coin engineering regression
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      RITUAL_VISUAL_QA: "1"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -54,7 +52,7 @@ jobs:
       - name: Start production server
         shell: bash
         run: |
-          (PORT=3028 HOSTNAME=127.0.0.1 bun run start > /tmp/three-coin-regression-server.log 2>&1 & echo $! > /tmp/three-coin-regression-server.pid)
+          (RITUAL_VISUAL_QA=1 PORT=3028 HOSTNAME=127.0.0.1 bun run start > /tmp/three-coin-regression-server.log 2>&1 & echo $! > /tmp/three-coin-regression-server.pid)
           for i in {1..60}; do
             if curl -fsS http://127.0.0.1:3028/ >/dev/null; then exit 0; fi
             sleep 1
