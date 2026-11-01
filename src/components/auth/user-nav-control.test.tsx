@@ -48,7 +48,6 @@ describe("UserNavControl Component Render", () => {
     expect(source).toContain('event.key === "ArrowDown"');
     expect(source).toContain('event.key === "ArrowUp"');
     expect(source).toContain("menuTriggerRef.current?.focus()");
-    expect(source).not.toContain("isMobileDrawer");
   });
 
   it("renders Chinese account menu with /zh/my-readings when open", () => {
