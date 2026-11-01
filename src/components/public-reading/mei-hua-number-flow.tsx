@@ -102,6 +102,7 @@ function readingFromCast(
 export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" }) {
   const router = useRouter();
   const zh = locale === "zh-Hans";
+  const t = (en: string, cn: string) => zh ? cn : en;
   const [step, setStep] = useState<FlowStep>(1);
   const [question, setQuestion] = useState<string | undefined>();
   const [questionDraft, setQuestionDraft] = useState("");
@@ -129,9 +130,9 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
         setStep(2);
       }
     } catch {
-      setError("Browser session storage is unavailable. No cast has been created.");
+      setError(zh ? "浏览器会话存储不可用，尚未创建正式卦象。" : "Browser session storage is unavailable. No cast has been created.");
     }
-  }, []);
+  }, [zh]);
 
   useEffect(() => {
     if (step !== 3) return;
@@ -163,11 +164,11 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
     try {
       const normalized = normalizePublicQuestion(questionDraft);
       if (!normalized) {
-        setError("Enter one core question before continuing.");
+        setError(t("Enter one core question before continuing.", "请先输入一个核心问题。"));
         return;
       }
       if (!patchPublicReadingSession(STORAGE_KEY, { started: true, question: normalized })) {
-        setError("This question could not be saved.");
+        setError(t("This question could not be saved.", "无法保存这个问题。"));
         return;
       }
       setQuestion(normalized);
@@ -180,8 +181,8 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
       setStep(2);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
-        ? `Keep the question within ${PUBLIC_QUESTION_MAX_CODE_POINTS} Unicode characters.`
-        : "This question could not be saved.");
+        ? t(`Keep the question within ${PUBLIC_QUESTION_MAX_CODE_POINTS} Unicode characters.`, `问题请控制在 ${PUBLIC_QUESTION_MAX_CODE_POINTS} 个 Unicode 字符以内。`)
+        : t("This question could not be saved.", "无法保存这个问题。"));
     }
   }
 
@@ -198,7 +199,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
       setError("");
       setStep(3);
     } catch {
-      setError("Enter a whole number before continuing.");
+      setError(t("Enter a whole number before continuing.", "请输入一个整数后继续。"));
     }
   }
 
@@ -231,7 +232,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
       setError("");
       setStep("reading");
     } catch {
-      setError("This cast could not be locked. No official cast was created.");
+      setError(t("This cast could not be locked. No official cast was created.", "本次起卦无法锁定，尚未创建正式卦象。"));
     }
   }
 
@@ -275,43 +276,43 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   }
 
   return (
-    <section className={`mei-scene mei-step-${step}`} data-mei-hua-flow data-mei-hua-step={step} aria-label="Mei Hua Yi Shu">
+    <section className={`mei-scene mei-step-${step}`} data-mei-hua-flow data-mei-hua-step={step} aria-label={t("Mei Hua Yi Shu", "梅花易数")}>
       <SceneBook />
       {step !== 1 ? <div className="mei-question-summary" data-private-question="true" data-clarity-mask="true">
-        <span>Your question</span><p>{question}</p><button type="button" onClick={changeQuestion}>✎ Edit</button>
+        <span>{t("Your question", "你的问题")}</span><p>{question}</p><button type="button" onClick={changeQuestion}>{t("✎ Edit", "✎ 修改")}</button>
       </div> : null}
       {step === 1 ? <form className="mei-ask" onSubmit={(event) => { event.preventDefault(); submitQuestion(); }}>
-        <header className="mei-heading"><h1>Mei Hua Yi Shu</h1><p>One thought. One hexagram. A reflection of what matters now.</p></header>
+        <header className="mei-heading"><h1>{t("Mei Hua Yi Shu", "梅花易数")}</h1><p>{t("One thought. One hexagram. A reflection of what matters now.", "一念一卦，映照此刻最重要之事。")}</p></header>
         <div className="mei-question-scroll">
-          <label htmlFor="mei-hua-question">What would you like to ask?</label>
+          <label htmlFor="mei-hua-question">{t("What would you like to ask?", "你想问什么？")}</label>
           <textarea id="mei-hua-question" value={questionDraft} onChange={(event) => setQuestionDraft(event.target.value)}
-            rows={2} maxLength={PUBLIC_QUESTION_MAX_CODE_POINTS} placeholder="Enter a specific question that is on your mind..."
+            rows={2} maxLength={PUBLIC_QUESTION_MAX_CODE_POINTS} placeholder={t("Enter a specific question that is on your mind...", "请输入一个此刻真正困扰你的具体问题……")}
             data-private-question="true" data-clarity-mask="true" />
-          <button type="submit" className="mei-button mei-button-red"><span aria-hidden="true">☯</span>Continue</button>
+          <button type="submit" className="mei-button mei-button-red"><span aria-hidden="true">☯</span>{t("Continue", "继续")}</button>
         </div>
       </form> : null}
       {step === 2 ? <form className="mei-choose" onSubmit={(event) => { event.preventDefault(); submitNumber(); }}>
-        <header className="mei-heading"><h1>Mei Hua Yi Shu</h1><p>One thought. One hexagram. A reflection of what matters now.</p></header>
+        <header className="mei-heading"><h1>{t("Mei Hua Yi Shu", "梅花易数")}</h1><p>{t("One thought. One hexagram. A reflection of what matters now.", "一念一卦，映照此刻最重要之事。")}</p></header>
         <h2>Choose a Number</h2>
-        <p className="mei-number-copy">Keep your question in mind and enter the first number that comes to you. Don’t calculate or overthink it.</p>
+        <p className="mei-number-copy">{t("Keep your question in mind and enter the first number that comes to you. Don’t calculate or overthink it.", "心中保持这个问题，输入第一个自然浮现的数字。不要计算，也不要反复推敲。")}</p>
         <div className="mei-number-decoration">
-          <label className="sr-only" htmlFor="mei-hua-number">Your Number</label>
+          <label className="sr-only" htmlFor="mei-hua-number">{t("Your Number", "你的数字")}</label>
           <input id="mei-hua-number" type="text" inputMode="numeric" autoComplete="off" value={numberDraft} onChange={(event) => setNumberDraft(event.target.value)} />
         </div>
-        <button type="submit" className="mei-button"><span aria-hidden="true">☯</span>Continue</button>
+        <button type="submit" className="mei-button"><span aria-hidden="true">☯</span>{t("Continue", "继续")}</button>
       </form> : null}
       {step === 3 && selectedNumber !== null ? <div className="mei-confirm">
         <h1>Confirm Your Number</h1>
-        <p className="mei-confirm-copy">Once confirmed, this number and this moment will be locked for this reading.</p>
-        <div className="mei-confirm-cards" aria-label="Your Number and This Moment">
-          <section className="mei-number-ring"><h2>Your Number</h2><p>{selectedNumber}</p></section>
-          <section className="mei-moment"><h2>This Moment</h2><dl>
-            <div><dt><CalendarDays aria-hidden="true" />Current Date</dt><dd>{formatDate(now, timeZone)}</dd></div>
-            <div><dt><Clock3 aria-hidden="true" />Local Time</dt><dd>{formatTime(now, timeZone)}</dd></div>
-            <div><dt><MapPin aria-hidden="true" />Time Zone</dt><dd>{timeZone}</dd></div>
+        <p className="mei-confirm-copy">{t("Once confirmed, this number and this moment will be locked for this reading.", "确认后，本次起卦的数字与此刻将被锁定。")}</p>
+        <div className="mei-confirm-cards" aria-label={t("Your Number and This Moment", "你的数字与此刻")}>
+          <section className="mei-number-ring"><h2>{t("Your Number", "你的数字")}</h2><p>{selectedNumber}</p></section>
+          <section className="mei-moment"><h2>{t("This Moment", "此刻")}</h2><dl>
+            <div><dt><CalendarDays aria-hidden="true" />{t("Current Date", "当前日期")}</dt><dd>{formatDate(now, timeZone)}</dd></div>
+            <div><dt><Clock3 aria-hidden="true" />{t("Local Time", "当地时间")}</dt><dd>{formatTime(now, timeZone)}</dd></div>
+            <div><dt><MapPin aria-hidden="true" />{t("Time Zone", "时区")}</dt><dd>{timeZone}</dd></div>
           </dl></section>
         </div>
-        <div className="mei-confirm-actions"><button type="button" className="mei-button mei-button-outline" onClick={changeNumber}>Change Number</button><button type="button" className="mei-button" onClick={confirmAndCast}><span aria-hidden="true">☯</span>Confirm &amp; Cast</button></div>
+        <div className="mei-confirm-actions"><button type="button" className="mei-button mei-button-outline" onClick={changeNumber}>{t("Change Number", "更换数字")}</button><button type="button" className="mei-button" onClick={confirmAndCast}><span aria-hidden="true">☯</span>{t("Confirm & Cast", "确认并起卦")}</button></div>
       </div> : null}
       {error ? <p role="alert" className="mei-error">{error}</p> : null}
     </section>
