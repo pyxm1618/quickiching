@@ -173,11 +173,11 @@ async function verifyInvalidResult(browser) {
     const response = await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
     assert.equal(response?.status(), 200, "Product result route should remain HTTP 200 even without a completed browser reading");
     await waitForText(page, "No completed reading found");
-    await waitForText(page, "Complete a six-line Three-Coin reading before opening a result.");
+    await waitForText(page, "Complete a casting method before opening its saved result.");
     const body = await resultText(page);
     assert(!body.includes("Fellowship"), "Invalid result state must not manufacture a reading");
-    const href = await page.$eval('a[href="/#three-coin-reading"]', (node) => node.getAttribute("href"));
-    assert.equal(href, "/#three-coin-reading");
+    const href = await page.$eval('a[href="/"]', (node) => node.getAttribute("href"));
+    assert.equal(href, "/");
     log("Invalid direct result URL PASS");
   } finally {
     await context.close();
