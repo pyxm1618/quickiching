@@ -781,3 +781,57 @@
 @media (max-width:760px) {
   .page::before { content: none; }
 }
+
+/* Group 3 final reference-proportion refinement. */
+@media (min-width:761px) {
+  .page[data-info-kind="question"],
+  .page[data-info-kind="standard"] {
+    padding-top: 50px;
+  }
+  .page[data-info-kind="question"] .heading {
+    min-height: 205px;
+    margin-bottom: 26px;
+  }
+  .page[data-info-kind="standard"] .heading {
+    min-height: 165px;
+    margin-bottom: 26px;
+  }
+  .page[data-info-kind="question"] .title,
+  .page[data-info-kind="standard"] .title,
+  .page[data-info-kind="help"] .title,
+  .page:has(.legalLayout) .title {
+    font-size: clamp(54px,4.9vw,82px);
+  }
+  .titleStroke {
+    width: clamp(300px,40vw,690px);
+    height: 28px;
+    margin-bottom: 10px;
+  }
+
+  /* Draw the approved glowing taiji with CSS so no extra image/font request is added. */
+  .page::before {
+    content: "";
+    width: 220px;
+    height: 220px;
+    top: 18px;
+    left: clamp(110px,13vw,225px);
+    border: 2px solid #e7b553;
+    border-radius: 50%;
+    opacity: .9;
+    transform: rotate(-7deg);
+    background:
+      radial-gradient(circle at 50% 25%, #28170c 0 9%, #f1d48d 10% 24%, #28170c 25% 49%, transparent 50%),
+      radial-gradient(circle at 50% 75%, #f1d48d 0 9%, #28170c 10% 24%, #f1d48d 25% 49%, transparent 50%),
+      linear-gradient(90deg,#f1d48d 0 50%,#28170c 50% 100%);
+    box-shadow:
+      inset 0 0 0 4px #7e491a88,
+      0 0 8px #ffe8a8,
+      0 0 28px #efb144,
+      0 0 64px #b86418;
+    filter: drop-shadow(0 8px 12px #2d120a99);
+  }
+  .page:has(.legalLayout)::before {
+    left: clamp(150px,16vw,270px);
+    top: 14px;
+  }
+}
