@@ -20,9 +20,8 @@ export function InfoPageShell({ eyebrow, title, lead, meta, decorated = true, op
             src="/info-pages/shared/info-page-background.png"
             alt=""
             fill
-            sizes="(max-width: 760px) 1600px, 100vw"
-            priority
-            fetchPriority="high"
+            sizes="100vw"
+            fetchPriority="low"
           />
         </div>
       ) : null}
@@ -33,9 +32,8 @@ export function InfoPageShell({ eyebrow, title, lead, meta, decorated = true, op
             alt=""
             width={1536}
             height={1024}
-            sizes="(max-width: 1600px) 100vw, 1600px"
-            priority
-            fetchPriority="high"
+            sizes="100vw"
+            fetchPriority="low"
           />
         </div>
       ) : <div className={styles.decorations} aria-hidden="true" /> : null}
@@ -50,7 +48,7 @@ export function InfoPageShell({ eyebrow, title, lead, meta, decorated = true, op
                 alt=""
                 fill
                 sizes="(max-width: 760px) 70vw, 29rem"
-                priority
+                fetchPriority="low"
               />
             </span>
           ) : <span className={styles.titleStroke} aria-hidden="true" />}
