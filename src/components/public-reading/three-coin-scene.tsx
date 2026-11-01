@@ -191,10 +191,10 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     const {geometry:coinGeometry}=createCoinGeometry();
     const edgeMaterial=new MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0x78613f,metalness:0.72,roughness:0.58});
     const faceMaterials=textures.map(map=>new MeshStandardMaterial({map,color:0x716553,bumpMap:map,bumpScale:0.0015,metalness:0.64,roughness:0.66,envMapIntensity:0.04,emissive:0x77502d,emissiveMap:map,emissiveIntensity:0.0003}));
-    const haloGeometry=new PlaneGeometry(2.5,2.5);
-    const haloMaterial=new ShaderMaterial({uniforms:{strength:{value:.18}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
+    const haloGeometry=new PlaneGeometry(3.2,3.2);
+    const haloMaterial=new ShaderMaterial({uniforms:{strength:{value:.18},radius:{value:1}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
       vertexShader:`varying vec2 p;void main(){p=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`uniform float strength;varying vec2 p;void main(){float d=(length(p)-1.);float a=exp(-d*d*350.)*(.2+.8*pow(max(0.,dot(normalize(p),normalize(vec2(-1.,1.)))),3.));gl_FragColor=vec4(1.,.6,.15,a*strength);}`,
+      fragmentShader:`uniform float strength;uniform float radius;varying vec2 p;void main(){float d=(length(p)-radius);float a=exp(-d*d*260.)*(.2+.8*pow(max(0.,dot(normalize(p),normalize(vec2(-1.,1.)))),3.));gl_FragColor=vec4(1.,.6,.15,a*strength);}`,
     });
     const coins=Array.from({length:3},()=> {
       const coin=new Group();
@@ -263,7 +263,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         coin.rotation.set(...pose.rotation,pose.rotationOrder);coin.quaternion.premultiply(viewOrientation);
         coin.visible=pose.opacity>0;layerOpacity=Math.max(layerOpacity,pose.opacity);
         const halo=coin.children[0] as Mesh<PlaneGeometry,ShaderMaterial>;
-        halo.material.uniforms.strength.value=input.phase==='settled'?(index===0?1.05:.05):.18;
+        halo.material.uniforms.strength.value=input.phase==='settled'?(index===0?1.35:.05):.18;halo.material.uniforms.radius.value=input.phase==='settled'&&index===0?1.24:1;
         coin.userData.targetFace=input.faces[index];coin.userData.settled=pose.settled;
       });
       container!.style.opacity=String(layerOpacity);
@@ -335,7 +335,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
               positions.setXYZ(i*2+side,rimPoint.x,rimPoint.y,rimPoint.z);uv.setXY(i*2+side,side,i/99);
             }
           }
-          ribbon.material.uniforms.intensity.value=energy*castTrailIntensity(effectTime,index%3)*1.22;
+          ribbon.material.uniforms.intensity.value=energy*castTrailIntensity(effectTime,index%3)*1.05;
         } else {
           const centers=effects.centers[index];
           for(let i=0;i<100;i++) {const point=effects.heroCurves[index].getPoint(i/99);centers[i*3]=point.x+(progressScene?-112:0);centers[i*3+1]=progressScene?770+(point.y-770)*.70:point.y;}
@@ -348,7 +348,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
               uv.setXY(i*2+side,side,i/99);
             }
           }
-          ribbon.material.uniforms.intensity.value=energy*(index<8?.58:.34);
+          ribbon.material.uniforms.intensity.value=energy*(progressScene?(index<8?.38:.22):(index<8?.58:.34));
         }
         positions.needsUpdate=true;uv.needsUpdate=true;
       });
@@ -366,7 +366,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         }
         positions.needsUpdate=true;uv.needsUpdate=true;const age=((effectTime-index*200)%1300)/1000;
         const birth=effectTime-age*1000;
-        mesh.material.uniforms.intensity.value=effectTime<index*200||age<0||age>1||birth>1850?0:energy*.34*Math.sin(age*Math.PI);
+        mesh.material.uniforms.intensity.value=effectTime<index*200||age<0||age>1||birth>1850?0:energy*(progressScene?.46:input.phase==='casting'?.42:.34)*Math.sin(age*Math.PI);
         mesh.material.uniforms.flowTime.value=effectTime/4000;
       });
       effects.glow.position.set((originX-836)*scale,(470.5-(heroScene?650:660))*scale,-5);effects.glow.scale.set(scale,scale*(heroScene?2:1),scale);
