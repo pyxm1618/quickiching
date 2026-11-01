@@ -384,3 +384,22 @@
   font-style: italic;
   font-weight: 500;
 }
+
+/* Group 3 final ornament contrast closeout. */
+.qic-account-paper {
+  background-blend-mode: multiply,normal,normal,normal;
+}
+.qic-account-paper::after {
+  z-index: 1;
+  filter: saturate(1.28) contrast(1.14) drop-shadow(0 0 1px #9c5e1f66);
+}
+.qic-account-heading h1::before,
+.qic-account-heading h1::after {
+  filter: brightness(1.18) saturate(1.32);
+}
+.qic-account-frame {
+  background-size: 270px 126px,270px 126px,auto,auto;
+}
+.qic-my-reading {
+  background-size: auto 100%,auto,100% 100%,auto;
+}
