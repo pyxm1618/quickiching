@@ -180,34 +180,14 @@ try {
   for (const number of [...sampleNumbers, ...randomNumbers]) {
     const en = entryFor(number, "en");
     const zh = entryFor(number, "zh-Hans");
-    for (const [entry, targetPath] of [[en, `/zh/hexagrams/${en.slug}`], [zh, `/hexagrams/${zh.slug}`]]) {
+    for (const entry of [en, zh]) {
       await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
-      if (entry.locale === "en") {
-        // The approved English scroll has local section/sequence navigation, without a site header.
-        assert.equal(await page.$eval("body > header", (node) => node.getBoundingClientRect().height), 0);
-        await assertKeyboardFocus(page, pathFor(entry));
-        continue;
-      }
-      const languageTrigger = await page.$("header [data-language-switcher] button[aria-haspopup='menu']");
-      assert(languageTrigger, `${pathFor(entry)}: language switch trigger missing`);
-      await page.$eval("header [data-language-switcher] button[aria-haspopup=\'menu\']", (node) => node.click());
-      await page.waitForFunction(
-        () => document.querySelector("header [data-language-switcher] button[aria-haspopup='menu']")?.getAttribute("aria-expanded") === "true",
-        { timeout: 3000 },
-      );
-      const target = await page.$eval("header [data-language-switch]", (node) => ({ href: node.getAttribute("href"), equivalent: node.getAttribute("data-equivalent") }));
-      assert.equal(target.href, targetPath, `${pathFor(entry)}: language switch target mismatch`);
-      assert.equal(target.equivalent, "true", `${pathFor(entry)}: language switch is not equivalent`);
-      assert.equal(await page.$$eval("header [data-language-switch]", (nodes) => nodes.length), 1, `${pathFor(entry)}: language switcher count mismatch`);
-      await page.keyboard.press("Escape");
-      await page.waitForFunction(
-        () => document.querySelector("header [data-language-switcher] button[aria-haspopup='menu']")?.getAttribute("aria-expanded") === "false",
-        { timeout: 3000 },
-      );
+      // The approved shared detail scroll supplies local section/sequence navigation and hides the site header in both locales.
+      assert.equal(await page.$eval("body > header", (node) => node.getBoundingClientRect().height), 0, `${pathFor(entry)}: site header must remain hidden on the shared detail scroll`);
       await assertKeyboardFocus(page, pathFor(entry));
     }
   }
-  log("10 sampled Chinese language switches and English scroll keyboard-focus checks PASS");
+  log("20 sampled EN/ZH shared detail scroll header-isolation and keyboard-focus checks PASS");
 
   for (const [path, expectedPrefix] of [["/hexagrams", "/hexagrams/"], ["/zh/hexagrams", "/zh/hexagrams/"]]) {
     await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
