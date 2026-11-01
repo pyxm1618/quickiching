@@ -49,7 +49,7 @@ async function waitForText(page, text, timeout = 15_000) {
 }
 
 async function clickText(page, text) {
-  if (["Cast the Coins", "Record This Cast"].includes(text)) {
+  if (["Cast the Coins", "Record This Cast", "开始掷币", "记录这一爻"].includes(text)) {
     await page.waitForFunction(wanted => [...document.querySelectorAll("button")].some(node => node.textContent?.trim() === wanted && !node.disabled), {timeout:3000}, text);
   }
   const clicked = await page.evaluate((wanted) => {
@@ -225,25 +225,36 @@ async function verifySeoAssets(page) {
 }
 
 
-async function recordFormalLine(page, count) {
+async function recordFormalLine(page, count, locale = "en") {
   await page.waitForSelector('.hold-button:not(:disabled)', { timeout: 15_000 });
-  await clickText(page, "Toss three coins");
-  await clickText(page, "Record This Cast");
+  await clickText(page, locale === "zh-Hans" ? "掷三枚铜钱" : "Toss three coins");
+  await clickText(page, locale === "zh-Hans" ? "记录这一爻" : "Record This Cast");
   if (count < 6) await page.waitForFunction(expected => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === expected, { timeout: 15_000 }, count);
 }
 
-async function verifyQuestionReading(page) {
-  const question = "What deserves my attention in this transition?";
+async function verifyQuestionReading(page, locale = "en") {
+  const zh = locale === "zh-Hans";
+  const prefix = zh ? "/zh" : "";
+  const question = zh ? "这次变化中，我应该先守住什么？" : "What deserves my attention in this transition?";
   await resetThreeCoin(page);
-  await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.evaluate(() => sessionStorage.setItem("quickiching:public-v1:completed-reading", JSON.stringify({
+    schemaVersion: 1,
+    id: "00000000-0000-4000-8000-000000000099",
+    createdAt: "2026-08-19T00:00:00.000Z",
+    method: "three-coin", methodVersion: "three-coin-v1",
+    question: "Earlier completed reading must not replace the new cast",
+    lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+    evidence: { kind: "three-coin", steps: [] },
+  })));
+  await page.goto(`${BASE}${prefix}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector("textarea[data-private-question]");
   await page.type("textarea[data-private-question]", question);
-  await clickText(page, "Start Divination");
-  await clickText(page, "Cast the Coins");
-  for (let line = 1; line <= 6; line += 1) await recordFormalLine(page, line);
+  await clickText(page, zh ? "开始起卦" : "Start Divination");
+  await clickText(page, zh ? "开始掷币" : "Cast the Coins");
+  for (let line = 1; line <= 6; line += 1) await recordFormalLine(page, line, locale);
 
-  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
-  await waitForText(page, "Your six lines are complete");
+  await page.waitForFunction(prefix => location.pathname === `${prefix}/readings/result`, { timeout: 15_000 }, prefix);
+  await waitForText(page, zh ? "六爻已经完成" : "Your six lines are complete");
   await assertQuestionPrivacy(page, question, { requireVisible: false });
 
   const questionState = await page.evaluate(() => ({
@@ -252,6 +263,13 @@ async function verifyQuestionReading(page) {
     primaryCard: document.querySelector("[data-primary-card]") !== null,
     deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
   }));
+  assert.equal(new URL(page.url()).searchParams.get("session"), questionState.session.id, "Completion URL must select this exact formal Three-Coin cast, even when another completed reading exists");
+  const signinHref = await page.$eval('.ritual-gate-signin', node => node.getAttribute("href"));
+  const callback = new URL(signinHref, BASE).searchParams.get("callbackURL");
+  assert.equal(new URL(callback, BASE).searchParams.get("session"), questionState.session.id, "Sign-in callback must preserve this exact cast identity");
+  const lineDescriptions = zh ? { 6: "阴爻，动爻", 7: "阳爻", 8: "阴爻", 9: "阳爻，动爻" } : { 6: "yin, moving", 7: "yang", 8: "yin", 9: "yang, moving" };
+  const expectedLabels = questionState.session.data.steps.map((step, index) => zh ? `第 ${index + 1} 爻：${lineDescriptions[step.lineValue]}` : `Line ${index + 1}: ${lineDescriptions[step.lineValue]}`).reverse();
+  assert.deepEqual(await page.$$eval('[data-completed-six-lines] [role="img"]', nodes => nodes.map(node => node.getAttribute("aria-label"))), expectedLabels, "Result gate must preserve this cast's six lines rather than the previous reading");
   assert.equal(questionState.session.coreQuestionAtCast, question, "The frozen question must be stored with this cast");
   assert.equal(questionState.session.coreQuestionFrozenAtCast, true, "The session must record the first-real-cast question freeze");
   assert.equal(questionState.session.data?.steps?.length, 6, "The completed browser session must preserve all six authoritative steps");
@@ -261,11 +279,11 @@ async function verifyQuestionReading(page) {
 
   const sessionBeforeRefresh = JSON.stringify(questionState.session);
   await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "Your six lines are complete");
+  await waitForText(page, zh ? "六爻已经完成" : "Your six lines are complete");
   await assertQuestionPrivacy(page, question, { requireVisible: false });
   const sessionAfterRefresh = await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin"));
   assert.equal(sessionAfterRefresh, sessionBeforeRefresh, "Auth-gate refresh must restore the exact same completed cast and question");
-  log("Question freeze, six authoritative casts, privacy, completed-cast restore, and auth-before-reveal PASS");
+  log(`${locale}: current cast selection over stale reading, sign-in callback, six-line facts, privacy and restore PASS`);
 }
 
 
@@ -485,6 +503,7 @@ try {
   const page = await context.newPage();
   await verifySeoAssets(page);
   await verifyQuestionReading(page);
+  await verifyQuestionReading(page, "zh-Hans");
   await verifyQuestionSkipFreeOnly(page);
   await page.setViewport({ width: 390, height: 844 });
   await verifyChineseNoChangingLines(page);

@@ -136,7 +136,8 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
       resultNavigationStarted: resultNavigationStartedRef.current,
     })) return;
 
-    const resultPath=zh ? "/zh/readings/three-coin/result" : "/readings/three-coin/result";
+    if (!readingMeta) return;
+    const resultPath = `${zh ? "/zh" : ""}/readings/three-coin/result?session=${encodeURIComponent(readingMeta.id)}`;
     const navigation=setTimeout(()=>{
       resultNavigationStartedRef.current=true;
       router.push(resultPath);

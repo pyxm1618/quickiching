@@ -138,7 +138,7 @@
       "path": "src/components/public-reading/three-coin-tool.tsx",
       "change": "M",
       "state": "approved / pass",
-      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files. Completion carries the exact current formal session id through the existing result compatibility redirect, so the Account shared loader cannot select a stale generic completed reading. The original code reproduced session=null after a new cast; EN and ZH browser regression now verifies URL id, callback id, exact six-line facts and refresh."
     },
     {
       "path": "src/components/public-reading/three-coin-visual.tsx",
@@ -354,7 +354,7 @@
       "path": "scripts/public-p0-browser-gate.mjs",
       "change": "M",
       "state": "approved / pass",
-      "evidence": "Replace retired Three-Coin interactions with formal confirmation, real cast and explicit record. Isolate current completed backup/session fixtures; assert final Account canonical result route and official reset. Preserve Manual movement, Yarrow restart and privacy/auth boundaries."
+      "evidence": "Replace retired Three-Coin interactions with formal confirmation, real cast and explicit record. Isolate current completed backup/session fixtures; assert final Account canonical result route and official reset. Preserve Manual movement, Yarrow restart and privacy/auth boundaries. Both EN and ZH execute a real fresh six-line cast while an earlier generic completed reading exists; assert final cast-id URL, sign-in callback and current line facts."
     },
     {
       "path": "scripts/logo-browser-gate.mjs",
@@ -381,14 +381,14 @@
   },
   "original_total": 62,
   "validation": {
-    "unit": "977 passed",
+    "unit": "977 passed after final handoff runtime fix",
     "postgres": "161 passed, 26 suites, isolated PostgreSQL 16",
     "lint": "0 errors, 2 existing hexagram img warnings",
     "typecheck": "PASS",
     "fixture_build": "PASS",
     "runtime_assets": "14 of 14 PASS",
     "browser": "All functional browser suites passed; final-head Actions and Lighthouse remain release gates.",
-    "production_build": "PASS without local QA route",
+    "production_build": "PASS after final handoff runtime fix",
     "navigation": "117 checks PASS, approved geometry delta 0",
     "chinese_seo": "73/73 PASS",
     "bilingual_browser": "PASS desktop/390/412, session and question preserved",
@@ -398,7 +398,8 @@
     "interpretation_bundle": "PASS: homepage prose absent, result H13/H57 loaded, unrelated H1/H61 absent",
     "brand": "PASS: EN/ZH current scene and Info brand, immersive hidden header, retired footer absent, mobile",
     "result_lighthouse": "Local PASS: mobile performance96 LCP2625 CLS0.053; desktop performance98 LCP980 CLS0.0545; auth-before-reveal asserted on real current result route.",
-    "public_p0_lighthouse": "Local FAIL: AFTER_HOME performance93 <95; AFTER_HOME_MOBILE LCP3536 recorded. Budgets unchanged."
+    "public_p0_lighthouse": "Local FAIL: AFTER_HOME performance93 <95; AFTER_HOME_MOBILE LCP3536 recorded. Budgets unchanged.",
+    "same_cast_handoff": "PASS EN/ZH: real formal cast over stale completed-reading fixture, exact URL/callback id, exact line facts, refresh. Red reproduction: original URL session=null. Minimal runtime fix carries readingMeta.id in existing result URL."
   },
   "source_commits": [
     "6be6522379010aaa4b326d354a850505350a55d8 test: remove obsolete question-lock privacy cases",
