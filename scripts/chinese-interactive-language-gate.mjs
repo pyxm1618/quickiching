@@ -220,7 +220,7 @@ async function main() {
     // =========================================================================
     // Test 1: Desktop User Menu Navigation & Localized Href Contract
     // =========================================================================
-    log("Test 1: Desktop User Menu & Navigation -> checking /zh/account & /zh/history parity");
+    log("Test 1: Desktop User Menu & Navigation -> checking My Readings / My Account / Settings parity");
     await page.goto(`${BASE}/zh`, { waitUntil: "networkidle0" });
 
     // Verify all header navigation links retain /zh prefix
@@ -248,27 +248,26 @@ async function main() {
         }));
       });
 
-      const accountLink = menuLinks.find((l) => l.text.includes("我的账户"));
-      assert(accountLink, "Dropdown menu must contain '我的账户'");
+      assert.equal(menuLinks.length, 3, `Desktop user menu must expose exactly 3 formal entries, got: ${menuLinks.length}`);
+
+      const readingsLink = menuLinks.find((l) => l.text.includes("我的解读"));
+      assert(readingsLink, "Dropdown menu must contain '我的解读'");
       assert.equal(
-        accountLink.href,
-        "/zh/account",
-        `Desktop user menu '我的账户' MUST link to '/zh/account', got: ${accountLink.href}`,
+        readingsLink.href,
+        "/zh/my-readings",
+        `Desktop user menu '我的解读' MUST link to '/zh/my-readings', got: ${readingsLink.href}`,
       );
 
-      const historyLink = menuLinks.find((l) => l.text.includes("起卦记录"));
-      assert(historyLink, "Dropdown menu must contain '起卦记录'");
-      assert.equal(
-        historyLink.href,
-        "/zh/history",
-        `Desktop user menu '起卦记录' MUST link to '/zh/history', got: ${historyLink.href}`,
-      );
+      const accountItem = menuLinks.find((l) => l.text.includes("我的账户"));
+      assert(accountItem, "Dropdown menu must contain '我的账户'");
+      assert.equal(accountItem.href, "", "'我的账户' must open the Account modal instead of a second page link");
 
-      const signOutBtn = menuLinks.find((l) => l.text.includes("退出登录"));
-      assert(signOutBtn, "Dropdown menu must contain '退出登录'");
+      const settingsItem = menuLinks.find((l) => l.text.includes("设置"));
+      assert(settingsItem, "Dropdown menu must contain '设置'");
+      assert.equal(settingsItem.href, "", "'设置' must open the Settings modal instead of a standalone page link");
 
       await assertPurity(page, "Desktop Authenticated User Menu Dropdown");
-      log("Test 1 PASS: User menu correctly targets /zh/account and /zh/history with 100% Chinese purity.");
+      log("Test 1 PASS: User menu exposes only 我的解读 / 我的账户 / 设置 with 100% Chinese purity.");
     } else {
       log("Test 1 NOTE: Auth capability is closed in current server env; UserNavControl parity verified via unit tests and header nav checked.");
     }
@@ -276,95 +275,6 @@ async function main() {
     // Turn off mock user for unauthenticated checks
     mockUser = { user: null };
 
-    // =========================================================================
-    // Test 2: Local History Page Interaction & Purity (/zh/history)
-    // =========================================================================
-    log("Test 2: Local History Page (/zh/history) -> Empty, populated, rename, delete confirmation states");
-    await page.goto(`${BASE}/zh/history`, { waitUntil: "networkidle0" });
-
-    // Empty state
-    const emptyStateText = await page.evaluate(() => document.body.innerText || "");
-    assert(emptyStateText.includes("仅保存在浏览器。"), "History empty state missing '仅保存在浏览器。'");
-    assert(emptyStateText.includes("暂无已保存记录"), "History empty state missing '暂无已保存记录'");
-    assert(emptyStateText.includes("当前浏览器还没有本地起卦记录"), "History empty state missing '当前浏览器还没有本地起卦记录'");
-    await assertPurity(page, "History Page Empty State");
-
-    // Populate a record into localStorage
-    await page.evaluate(() => {
-      const record = {
-        schemaVersion: 1,
-        id: "gate_record_01",
-        title: "求职规划卦",
-        question: "下月跳槽是否适宜？",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        method: "three-coin",
-        methodVersion: "three-coin-v1",
-        lineValuesBottomUp: [7, 7, 7, 9, 7, 7],
-        primaryHexagram: 1,
-        changingLines: [4],
-        relatingHexagram: 9,
-      };
-      localStorage.setItem("quickiching:public-history:v1", JSON.stringify([record]));
-    });
-
-    await page.reload({ waitUntil: "networkidle0" });
-    await page.waitForSelector("[data-history-view='gate_record_01']", { timeout: 10_000 });
-
-    const populatedText = await page.evaluate(() => document.body.innerText || "");
-    const recordMetaText = await page.$eval("[data-history-view='gate_record_01']", (el) => el.textContent || "");
-    assert(recordMetaText.includes("求职规划卦"), "Populated record title missing");
-    assert(recordMetaText.includes("三枚铜钱"), "Casting method must be localized to '三枚铜钱'");
-    assert(!recordMetaText.includes("three-coin"), "Method raw enum 'three-coin' leaked into list item");
-    assert(populatedText.includes("重命名"), "Rename button missing");
-    assert(populatedText.includes("删除"), "Delete button missing");
-
-    // Click "重命名"
-    await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.trim() === "重命名");
-      btn?.click();
-    });
-    await page.waitForFunction(() => Array.from(document.querySelectorAll("button")).some((b) => b.textContent?.includes("保存名称")), { timeout: 5000 });
-    const renameText = await page.evaluate(() => document.body.innerText || "");
-    assert(renameText.includes("重命名记录"), "Rename heading missing");
-    assert(renameText.includes("保存名称"), "Save name button missing");
-    assert(renameText.includes("取消"), "Cancel button missing in rename mode");
-    assert(!renameText.includes("Save name"), "English 'Save name' leaked");
-    assert(!renameText.includes("Rename reading"), "English 'Rename reading' leaked");
-    await assertPurity(page, "History Page Rename State");
-
-    // Cancel rename
-    await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.trim() === "取消");
-      btn?.click();
-    });
-
-    // Click "删除" to trigger confirmation state
-    await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.trim() === "删除");
-      btn?.click();
-    });
-    await page.waitForSelector("[data-history-confirm-delete]", { timeout: 5000 });
-    const confirmDeleteText = await page.evaluate(() => document.body.innerText || "");
-    assert(confirmDeleteText.includes("确认删除"), "Confirm delete button missing");
-    assert(confirmDeleteText.includes("取消"), "Cancel button missing in delete confirmation");
-    assert(!confirmDeleteText.includes("Confirm delete"), "English 'Confirm delete' leaked");
-    assert(!confirmDeleteText.match(/\bCancel\b/), "English 'Cancel' leaked in delete confirmation");
-
-    // Crucial check: verify kicker is pure Chinese and does not leak -v1
-    const resultKicker = await page.evaluate(() => {
-      const kickerEl = document.querySelector("[data-public-reading-result] p.mystic-kicker");
-      return kickerEl?.textContent?.trim() || "";
-    });
-    assert(resultKicker.includes("三枚铜钱 · 基础解读"), `Result kicker should be '三枚铜钱 · 基础解读', got: '${resultKicker}'`);
-    assert(!resultKicker.includes("-v1"), `Result kicker contains '-v1': '${resultKicker}'`);
-    assert(!resultKicker.includes("梅花易数"), `Three-coin result kicker contaminated with '梅花易数': '${resultKicker}'`);
-
-    await assertPurity(page, "History Page Delete Confirmation State");
-
-    // Clear localStorage
-    await page.evaluate(() => localStorage.clear());
-    log("Test 2 PASS: History page states, buttons, and Three-Coin reading result kicker verified pure Chinese.");
 
     // =========================================================================
     // Test 3: Unauthenticated /zh/account Redirect Route Guard
@@ -653,7 +563,7 @@ async function main() {
     assert(completedState.heading.includes("本次起卦已经完成"), `Completed-cast heading mismatch: ${completedState.heading}`);
     assert(completedState.authGate, "Completed Chinese Three-Coin cast must require sign-in before reveal");
     assert(completedState.sixLines, "Completed Chinese Three-Coin cast must preserve all six lines");
-    assert.equal(completedState.primaryCard, false, "Primary result must remain hidden before sign-in and History save");
+    assert.equal(completedState.primaryCard, false, "Primary result must remain hidden before sign-in and account persistence");
     assert.equal(completedState.deepEntry, false, "Deep Reading must remain hidden before result reveal");
     await assertPurity(page, "Three-Coin Completed Cast Auth Gate");
     log("Three-coin result PASS: completed cast auth-before-reveal state");
@@ -681,7 +591,7 @@ async function main() {
     }
 
     // =========================================================================
-    // Test 7: Full Chinese Interactive Inventory Purity Audit (17 Pages)
+    // Test 7: Full Chinese Interactive Inventory Purity Audit (16 Pages)
     // =========================================================================
     log("Test 7: Full-site Chinese interactive page language and accessibility purity scan");
     const pathsToAudit = [
@@ -694,7 +604,6 @@ async function main() {
       "/zh/guides/changing-lines",
       "/zh/guides/primary-relating-hexagrams",
       "/zh/hexagrams",
-      "/zh/history",
       "/zh/pricing",
       "/zh/privacy",
       "/zh/terms",
