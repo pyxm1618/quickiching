@@ -745,3 +745,39 @@
 .title,.paperHeading,.paperSubheading,.exampleCard h3,.flowColumn h3,.primerColumn>h3,.tocTitle,.legalHeading,.helpGroup h2,.helpQuestion h3,.helpSupport h2 {
   font-family: var(--font-fraunces), Georgia, "Times New Roman", serif;
 }
+
+/* Reference taiji glow: CSS-only, no extra runtime asset. */
+@media (min-width:761px) {
+  .page::before {
+    content: "☯";
+    position: absolute;
+    z-index: 0;
+    top: 8px;
+    left: clamp(92px, 12vw, 210px);
+    width: 190px;
+    height: 190px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #f8dda0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 168px;
+    line-height: 1;
+    opacity: .78;
+    transform: rotate(-8deg);
+    text-shadow:
+      0 0 5px #fff0b8,
+      0 0 18px #f6ba45,
+      0 0 42px #d77d17,
+      0 0 76px #8c430c;
+    filter: drop-shadow(0 4px 8px #35160088);
+    pointer-events: none;
+  }
+  .page:has(.legalLayout)::before {
+    left: clamp(150px, 18vw, 300px);
+    top: 6px;
+  }
+}
+@media (max-width:760px) {
+  .page::before { content: none; }
+}
