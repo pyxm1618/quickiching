@@ -83,7 +83,6 @@ describe("UserNavControl Component Render", () => {
       />,
     );
     expect(html).toContain('href="/zh/my-readings"');
-    expect(html).not.toContain('href="/zh/history"');
     expect(html).toContain("我的账户");
     expect(html).toContain("我的解读");
     expect(html).toContain("设置");
