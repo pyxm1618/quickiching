@@ -9,10 +9,12 @@ const assets=JSON.parse(await readFile('docs/performance/pr-76-assets.json','utf
 const state=process.argv[2];
 assert(['02','03','04','05','06','07'].includes(state),'Choose reference state 02–07');
 const output=resolve(process.argv[3]||`.artifacts/ritual-qa/ref-${state}/pass-1`);
+const mobile=process.env.RITUAL_QA_VIEWPORT==='mobile';
+const viewport=mobile?{width:390,height:844}:{width:1672,height:941};
 await mkdir(output,{recursive:true});
-const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1','--window-size=1672,941']});
+const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1',`--window-size=${viewport.width},${viewport.height}`]});
 try {
- const page=await browser.newPage();await page.setViewport({width:1672,height:941,deviceScaleFactor:1});
+ const page=await browser.newPage();await page.setViewport({...viewport,deviceScaleFactor:1});
  await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
  const errors=[];page.on('pageerror',error=>errors.push(String(error)));
  if(state==='07'){
@@ -81,8 +83,8 @@ try {
   background:document.querySelector('.ritual-room')?getComputedStyle(document.querySelector('.ritual-room')).backgroundImage:null,
   runtimeAssets:performance.getEntriesByType('resource').filter(item=>item.name.includes('/ritual/')||item.name.includes('/performance/')).map(item=>item.name),
  }));
- assert.deepEqual(observed.viewport,[1672,941]);assert.equal(observed.dpr,1);assert.equal(observed.zoom,1);assert.equal(observed.reducedMotion,false,'Canonical visual captures use standard motion; Reduced Motion is audited separately');
- assert(observed.background?.includes(assets.stageDesktop.url),'All states must use the same production room');
+ assert.deepEqual(observed.viewport,[viewport.width,viewport.height]);assert.equal(observed.dpr,1);assert.equal(observed.zoom,1);assert.equal(observed.reducedMotion,false,'Visual captures use standard motion; Reduced Motion is audited separately');
+ assert(observed.background?.includes(mobile?assets.stageMobile.url:assets.stageDesktop.url),'All states must use the responsive production room');
  if(['03','04','05'].includes(state)){assert.equal(observed.scene.renderer,'three-webgl','Desktop cannot use fallback');assert.equal(Number(observed.scene.renderDpr),1,'Canonical renderer DPR must stay 1');}
  if(state==='03')assert.equal(observed.scene.phase,'casting','Capture must occur while actual cast is running');
  if(state==='06')for(const selector of ['[data-primary-card]','[data-public-reading-result]','[data-free-reading-ritual]','[data-deep-reading-entry]'])assert.equal(await page.$(selector),null,'Gate must conceal '+selector);
