@@ -32,6 +32,7 @@ import { SealMark } from "@/components/hex/seal-mark";
 const METHOD_META: Record<CastingMethod, { en: string; zh: string }> = {
   three_coin: { en: "Three-Coin Method", zh: "三枚铜钱" },
   yarrow_stalk: { en: "Yarrow Stalk Method", zh: "蓍草" },
+  mei_hua_number_time: { en: "Mei Hua Yi Shu", zh: "梅花易数" },
   mei_hua_current_time: { en: "Mei Hua Yi Shu", zh: "梅花易数" },
 };
 
