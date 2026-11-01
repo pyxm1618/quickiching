@@ -194,7 +194,6 @@ jobs:
 
   perf-smoke:
     name: Ritual desktop Lighthouse smoke
-    if: github.ref != 'refs/heads/feat/mei-hua-number-time-flow'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -279,7 +278,6 @@ jobs:
 
   perf-smoke-mac:
     name: Ritual desktop Lighthouse smoke (Metal)
-    if: github.ref != 'refs/heads/feat/mei-hua-number-time-flow'
     runs-on: macos-15
     timeout-minutes: 12
     steps:
