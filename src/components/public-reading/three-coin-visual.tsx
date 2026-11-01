@@ -25,7 +25,7 @@ export function ThreeCoinVisual(props:ThreeCoinSceneProps) {
     if(startScene)return;
     // The landing hero is presentation-only. Keep Three.js off the initial critical path;
     // the first real interaction or any non-hero phase activates the same formal renderer.
-    if(props.phase!=='hero') {
+    if(props.phase!=='hero' && props.phase!=='hero-exit') {
       setStartScene(true);
       return;
     }
