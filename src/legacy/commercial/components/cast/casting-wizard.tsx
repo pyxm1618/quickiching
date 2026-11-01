@@ -9,12 +9,11 @@ import {
   generateThreeCoinLineAction,
   generateYarrowChangeAction,
   completeYarrowAction,
-  createMeiHuaResultAction,
   revealCastingAction,
   startPreviewAction,
   startDeepReadingAction,
 } from "@/legacy/commercial/actions";
-import { SCENES, INTERPRETATION_GOALS, QUESTION_MIN_CHARS, QUESTION_MAX_CHARS, type CastingMethod } from "@/domain/casting/types";
+import { SCENES, INTERPRETATION_GOALS, QUESTION_MIN_CHARS, QUESTION_MAX_CHARS } from "@/domain/casting/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Label } from "@/components/ui/input";
@@ -29,11 +28,11 @@ import { SealMark } from "@/components/hex/seal-mark";
  * 状态机与动作调用与重构前完全一致。
  */
 
-const METHOD_META: Record<CastingMethod, { en: string; zh: string }> = {
+type LegacyCommercialCastingMethod = "three_coin" | "yarrow_stalk";
+
+const METHOD_META: Record<LegacyCommercialCastingMethod, { en: string; zh: string }> = {
   three_coin: { en: "Three-Coin Method", zh: "三枚铜钱" },
   yarrow_stalk: { en: "Yarrow Stalk Method", zh: "蓍草" },
-  mei_hua_number_time: { en: "Mei Hua Yi Shu", zh: "梅花易数" },
-  mei_hua_current_time: { en: "Mei Hua Yi Shu", zh: "梅花易数" },
 };
 
 const ORDINAL_EN = ["first", "second", "third", "fourth", "fifth", "sixth"] as const;
@@ -74,7 +73,7 @@ function ProgressTicks({ total, done, group = 1 }: { total: number; done: number
   );
 }
 
-export function CastingWizard({ method }: { method: CastingMethod }) {
+export function CastingWizard({ method }: { method: LegacyCommercialCastingMethod }) {
   const [phase, setPhase] = useState<Phase>("input");
   const [castingId, setCastingId] = useState<string | null>(null);
   const [scene, setScene] = useState<string>(SCENES[0]);
@@ -91,9 +90,6 @@ export function CastingWizard({ method }: { method: CastingMethod }) {
   const [coinLines, setCoinLines] = useState<boolean[]>(Array(6).fill(false));
   // Yarrow state (18 changes)
   const [yarrowChanges, setYarrowChanges] = useState<boolean[]>(Array(18).fill(false));
-  // Mei hua
-  const [ianaTimeZone, setIanaTimeZone] = useState<string>("");
-
   const chamber = phase === "input" || phase === "ritual" || phase === "reveal";
 
   // 暗室期间锁定底层页面滚动
@@ -105,15 +101,6 @@ export function CastingWizard({ method }: { method: CastingMethod }) {
       document.body.style.overflow = prev;
     };
   }, [chamber]);
-
-  useEffect(() => {
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (tz) setIanaTimeZone(tz);
-    } catch {
-      setIanaTimeZone("America/New_York");
-    }
-  }, []);
 
   // Resume from sessionStorage
   useEffect(() => {
@@ -218,20 +205,6 @@ export function CastingWizard({ method }: { method: CastingMethod }) {
       setPhase("reveal");
       persist({ phase: "reveal" });
     }
-  }
-
-  async function castMeiHua() {
-    if (!castingId) return;
-    setPending(true);
-    setError(null);
-    const res = await createMeiHuaResultAction({ castingId, ianaTimeZone });
-    setPending(false);
-    if (!res.ok) {
-      setError(res.error.message);
-      return;
-    }
-    setPhase("reveal");
-    persist({ phase: "reveal" });
   }
 
   async function doReveal(e: React.FormEvent) {
@@ -560,33 +533,6 @@ export function CastingWizard({ method }: { method: CastingMethod }) {
               <p className="mt-5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[var(--line-strong)]">
                 49 stalks · three changes per line · 大衍之数五十，其用四十有九
               </p>
-            </div>
-          )}
-
-          {phase === "ritual" && method === "mei_hua_current_time" && (
-            <div className="w-full max-w-md text-center">
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--bronze)]">
-                Current-Time Casting · 时间起卦
-              </p>
-              <p className="mt-4 text-sm leading-relaxed text-[var(--ink-2)]">
-                The hexagram is formed from the current time in your confirmed timezone. The timestamp
-                is taken on the server at the moment you confirm — it cannot be edited afterwards.
-              </p>
-              <div className="mt-6 rounded border border-[var(--line)] bg-[var(--paper-raised)] p-5 text-left">
-                <Label htmlFor="tz">Your timezone (IANA)</Label>
-                <Input
-                  id="tz"
-                  value={ianaTimeZone}
-                  onChange={(e) => setIanaTimeZone(e.target.value)}
-                  placeholder="America/New_York"
-                />
-                <p className="mt-2 font-mono text-[11px] text-[var(--ink-3)]">
-                  Detected automatically · MEI-HUA-V1 · 子时 rollover applies
-                </p>
-              </div>
-              <Button onClick={castMeiHua} disabled={pending} size="lg" className="mt-8">
-                {pending ? "Casting…" : "Cast with the current time"}
-              </Button>
             </div>
           )}
 
