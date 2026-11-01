@@ -79,10 +79,11 @@ async function verifyResult(page) {
     });
   }, FIXTURE_STEPS.map((step) => step.lineValue));
   await clickButton("Build reading");
-  await page.waitForFunction((sentinels) => {
-    const text = document.body?.innerText ?? "";
-    return sentinels.every((sentinel) => text.includes(sentinel));
-  }, { timeout: 15_000 }, [H13_CATALOG_SENTINEL, H57_CATALOG_SENTINEL]);
+  await page.waitForSelector("[data-free-reading-ritual]", { timeout: 15_000 });
+  await page.waitForNetworkIdle({ idleTime: 500, timeout: 15_000 });
+  // Authored prose is a chunk sentinel, not mandatory visible copy in the current concise Free Reading.
+  assert(await page.$('[data-primary-card] a[href="/hexagrams/13-fellowship"]'));
+  assert(await page.$('[data-relating-card] a[href="/hexagrams/57-the-gentle-wind"]'));
   const scripts = await loadedJavascript(page);
   assert(scripts.combined.includes(H13_CATALOG_SENTINEL), "Result did not load the primary H13 interpretation chunk");
   assert(scripts.combined.includes(H57_CATALOG_SENTINEL), "Result did not load the relating H57 interpretation chunk");

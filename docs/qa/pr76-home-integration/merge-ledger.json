@@ -355,13 +355,25 @@
       "change": "M",
       "state": "approved / pass",
       "evidence": "Replace retired Three-Coin interactions with formal confirmation, real cast and explicit record. Isolate current completed backup/session fixtures; assert final Account canonical result route and official reset. Preserve Manual movement, Yarrow restart and privacy/auth boundaries."
+    },
+    {
+      "path": "scripts/logo-browser-gate.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Use approved current SceneNavigation and Info brand assets and actual desktop dimensions; assert retired global footer absent, immersive header hidden, decoded images, EN/ZH and mobile, no console/page errors. Reproduced old footer/mark failure; 12 current route/viewport checks passed."
+    },
+    {
+      "path": "scripts/interpretation-bundle-gate.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Assert authored sentinels in downloaded JS chunks rather than retired visible long prose. Check current H13/H57 card destinations and preserve absence of unrelated H1/H61 chunks. Reproduced old visible-copy timeout; corrected gate passed."
     }
   ],
   "counts": {
-    "approved / pass": 49,
+    "approved / pass": 51,
     "confirmed reject / delete": 10
   },
-  "original_total": 59,
+  "original_total": 61,
   "validation": {
     "unit": "977 passed",
     "postgres": "161 passed, 26 suites, isolated PostgreSQL 16",
@@ -369,13 +381,16 @@
     "typecheck": "PASS",
     "fixture_build": "PASS",
     "runtime_assets": "14 of 14 PASS",
-    "browser": "Formal Three-Coin, real Auth/History, reading business and navigation passed; final full Public P0 and final-head Actions pending",
+    "browser": "All functional browser suites passed; final-head Actions and Lighthouse remain release gates.",
     "production_build": "PASS without local QA route",
     "navigation": "117 checks PASS, approved geometry delta 0",
     "chinese_seo": "73/73 PASS",
     "bilingual_browser": "PASS desktop/390/412, session and question preserved",
     "hexagram_detail": "128/128 EN/ZH desktop/mobile DOM/SEO and hub navigation PASS",
-    "performance": "BLOCKED: prior-head Linux 92 and Metal 89, required >=95. Direct-delivery experiment did not fix cold LCP and was reverted. Thresholds unchanged."
+    "performance": "BLOCKED on 0f9206c: Linux performance 90 (>=95 required), LCP 2095ms; Metal performance 76 (>=95), LCP 2830ms (<=2750). Thresholds unchanged.",
+    "public_p0": "PASS: formal cast/record, skip, EN/ZH, privacy, auth, Manual movement, Yarrow and fresh same-question restart",
+    "interpretation_bundle": "PASS: homepage prose absent, result H13/H57 loaded, unrelated H1/H61 absent",
+    "brand": "PASS: EN/ZH current scene and Info brand, immersive hidden header, retired footer absent, mobile"
   },
   "source_commits": [
     "6be6522379010aaa4b326d354a850505350a55d8 test: remove obsolete question-lock privacy cases",
