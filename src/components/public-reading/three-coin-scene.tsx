@@ -249,6 +249,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       const scale=Math.min(width/1672,height/941)*941/height;
       let layerOpacity=0;
       key.intensity=input.phase==='progress'?.32:input.phase==='settled'?.60:input.phase==='hero'||input.phase==='hero-exit'?.85:1.15;
+      rim.intensity=input.phase==='progress'?2.0:input.phase==='settled'?2.5:input.phase==='hero'||input.phase==='hero-exit'?2.8:3.25;
       fill.intensity=input.phase==='progress'?.05:input.phase==='settled'?.07:input.phase==='hero'||input.phase==='hero-exit'?.12:.16;
       coins.forEach((coin,index)=> {
         const pose=coinPose({phase:input.phase,face:input.faces[index],index,time,seed:input.visualSeed,reducedMotion:reduced.matches});
