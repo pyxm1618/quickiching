@@ -20,6 +20,7 @@ import {
   authErrorMessage,
   maskAuthEmail,
   runAuthRequest,
+  toAbsoluteAuthURL,
 } from "./auth-form";
 
 const authFormPath = path.resolve(process.cwd(), "src/components/auth/auth-form.tsx");
@@ -35,55 +36,19 @@ describe("shared passwordless AuthForm", () => {
     expect(source).not.toMatch(/signUp\.social|signUp\.magicLink|signUpGoogle|signUpMagicLink/);
   });
 
+  it("converts validated same-origin callbacks to absolute URLs for Better Auth", () => {
+    expect(toAbsoluteAuthURL(
+      "/methods/mei-hua-yi-shu?session=cast-1#reading-free",
+      "https://staging.quickiching.com",
+    )).toBe("https://staging.quickiching.com/methods/mei-hua-yi-shu?session=cast-1#reading-free");
+    expect(() => toAbsoluteAuthURL(
+      "https://example.com/escape",
+      "https://staging.quickiching.com",
+    )).toThrow("AUTH_CALLBACK_INVALID");
+  });
+
   it("renders Google first, then email, with no password UI", () => {
     const googleIndex = source.indexOf("copy.continueGoogle") !== -1
       ? source.indexOf("copy.continueGoogle")
       : source.indexOf("Continue with Google");
-    const emailIndex = source.indexOf("copy.continueEmail") !== -1
-      ? source.indexOf("copy.continueEmail")
-      : source.indexOf("Continue with email");
-
-    expect(googleIndex).toBeGreaterThanOrEqual(0);
-    expect(emailIndex).toBeGreaterThan(googleIndex);
-    expect(source).toContain("you@example.com");
-    expect(source).not.toMatch(/type="password"|forgot password|reset password|confirm password/i);
-  });
-
-  it("contains explicit loading, sent, accessibility, and recovery states", () => {
-    expect(source.includes("Connecting to Google…") || source.includes("copy.connectingGoogle")).toBe(true);
-    expect(source.includes("Sending…") || source.includes("copy.sending")).toBe(true);
-    expect(source.includes("Check your email") || source.includes("copy.checkEmail")).toBe(true);
-    expect(source.includes("The link expires in 10 minutes.") || source.includes("copy.expires")).toBe(true);
-    expect(source).toContain('role="alert"');
-    expect(source).toContain('aria-live="polite"');
-    expect(source.includes("Send a new link") || source.includes("copy.sendNewLink")).toBe(true);
-  });
-
-  it("maps internal Magic Link errors without exposing internal codes", () => {
-    const mapped = authErrorMessage("INVALID_TOKEN");
-    expect(mapped).toEqual({
-      message: "This sign-in link is no longer valid. Request a new link and try again.",
-      requestNewLink: true,
-    });
-    expect(mapped?.message).not.toContain("INVALID_TOKEN");
-  });
-
-  it("maps OAuth linking conflicts without exposing an internal error code", () => {
-    const mapped = authErrorMessage("account_not_linked");
-    expect(mapped?.message).toContain("Quick I Ching account");
-    expect(mapped?.message).not.toContain("account_not_linked");
-    expect(mapped?.requestNewLink).toBe(false);
-  });
-
-  it("masks the email shown in the sent state", () => {
-    expect(maskAuthEmail(" User.Name@Example.COM ")).toBe("u***@example.com");
-  });
-
-  it("turns rejected and Better Auth error results into generic request failures", async () => {
-    await expect(runAuthRequest(async () => {
-      throw new Error("provider secret must not escape");
-    })).resolves.toBe(false);
-    await expect(runAuthRequest(async () => ({ error: { code: "SECRET" } }))).resolves.toBe(false);
-    await expect(runAuthRequest(async () => ({ error: null }))).resolves.toBe(true);
-  });
-});
+    const emailIndex = source.indexOf(...[truncated]
