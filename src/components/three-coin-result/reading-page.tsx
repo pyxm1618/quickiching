@@ -1,4 +1,4 @@
-import "@/components/public-reading/ritual.css";
+import "@/components/public-reading/ritual-result.css";
 import { visualRuntimeAssets } from "@/lib/visual-runtime-assets";
 import { getCurrentUser } from "@/lib/auth/session";
 import { loadCastingView, loadEntitlementBalance } from "@/server/loaders";
