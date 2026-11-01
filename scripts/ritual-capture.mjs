@@ -6,12 +6,19 @@ import {resolve} from 'node:path';
 const output=resolve(process.argv[2]||'.artifacts/ritual-qa/ref-01/iteration-01');
 async function waitForProductionRoom(page){
  await page.waitForSelector('.ritual-room[data-room-ready="true"]',{timeout:15000});
+ await page.waitForFunction(()=> {
+  const room=document.querySelector('.ritual-room');
+  if(!room)return false;
+  const art=room.querySelector('.ritual-room-art-primary');
+  if(art instanceof HTMLImageElement)return art.complete&&art.naturalWidth>0&&art.currentSrc.includes('stageDesktop.e37364561615e31f.webp');
+  return getComputedStyle(room).backgroundImage.includes('stageDesktop.e37364561615e31f.webp');
+ },{timeout:15000});
  await page.evaluate(async()=>{
   const room=document.querySelector('.ritual-room');
   if(!room)throw new Error('RITUAL_ROOM_MISSING');
-  const background=getComputedStyle(room).backgroundImage;
-  if(!background.includes('stageDesktop.e37364561615e31f.webp'))throw new Error('PRODUCTION_ROOM_NOT_READY');
-  const image=new Image();image.src='/performance/stageDesktop.e37364561615e31f.webp';await image.decode();
+  const art=room.querySelector('.ritual-room-art-primary');
+  if(art instanceof HTMLImageElement)await art.decode();
+  else {const image=new Image();image.src='/performance/stageDesktop.e37364561615e31f.webp';await image.decode();}
   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
  });
 }

@@ -267,7 +267,32 @@ export function ThreeCoinRitual({
       <link rel="preload" as="image" href="/ritual/decor/gold-cloud-button-2x.png" media="(max-width:800px)" fetchPriority="low" />
       <link rel="preload" as="image" href="/ritual/decor/yin-yang.png" media="(max-width:800px)" fetchPriority="low" />
       <section id="three-coin-reading" data-three-coin-ritual data-experience-stage={experienceStage} data-question-leaving={questionLeaving} className="ritual-canvas">
-        <div ref={roomRef} className="ritual-room" aria-hidden="true" />
+        <div ref={roomRef} className="ritual-room" aria-hidden="true">
+          <picture className="ritual-room-picture">
+            <source media="(max-width:600px) and (max-aspect-ratio:11/20)" srcSet="/performance/stageMobile.285965e6cb8c7840.webp" />
+            <source media="(max-aspect-ratio:11/20)" srcSet="/performance/stagePortrait.bde3e415eb141bc8.webp" />
+            <img
+              className="ritual-room-art ritual-room-art-primary"
+              src="/performance/stageDesktop.e37364561615e31f.webp"
+              alt=""
+              width={1671}
+              height={941}
+              loading="eager"
+              decoding="async"
+              fetchPriority="low"
+            />
+          </picture>
+          <img
+            className="ritual-room-art ritual-room-art-secondary"
+            src="/performance/stageDesktop.e37364561615e31f.webp"
+            alt=""
+            width={1671}
+            height={941}
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
+          />
+        </div>
         {experienceStage !== "ritual" || questionLeaving ? (
           <div className="ritual-question-stage" data-leaving={questionLeaving} inert={questionLeaving}>
             {landing || homeLeaving ? (

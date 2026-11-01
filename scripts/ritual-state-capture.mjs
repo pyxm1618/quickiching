@@ -11,12 +11,19 @@ assert(['02','03','04','05','06','07'].includes(state),'Choose reference state 0
 const output=resolve(process.argv[3]||`.artifacts/ritual-qa/ref-${state}/pass-1`);
 async function waitForProductionRoom(page){
  await page.waitForSelector('.ritual-room[data-room-ready="true"]',{timeout:15000});
+ await page.waitForFunction(()=> {
+  const room=document.querySelector('.ritual-room');
+  if(!room)return false;
+  const art=room.querySelector('.ritual-room-art-primary');
+  if(art instanceof HTMLImageElement)return art.complete&&art.naturalWidth>0&&art.currentSrc.includes('stageDesktop.e37364561615e31f.webp');
+  return getComputedStyle(room).backgroundImage.includes('stageDesktop.e37364561615e31f.webp');
+ },{timeout:15000});
  await page.evaluate(async()=>{
   const room=document.querySelector('.ritual-room');
   if(!room)throw new Error('RITUAL_ROOM_MISSING');
-  const background=getComputedStyle(room).backgroundImage;
-  if(!background.includes('stageDesktop.e37364561615e31f.webp'))throw new Error('PRODUCTION_ROOM_NOT_READY');
-  const image=new Image();image.src='/performance/stageDesktop.e37364561615e31f.webp';await image.decode();
+  const art=room.querySelector('.ritual-room-art-primary');
+  if(art instanceof HTMLImageElement)await art.decode();
+  else {const image=new Image();image.src='/performance/stageDesktop.e37364561615e31f.webp';await image.decode();}
   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
  });
 }
@@ -91,10 +98,11 @@ try {
   businessBitDraws:window.__ritualBitDraws,
   session:JSON.parse(sessionStorage.getItem('quickiching:public-v1:three-coin')||'null'),
   background:document.querySelector('.ritual-room')?getComputedStyle(document.querySelector('.ritual-room')).backgroundImage:null,
+  roomAsset:document.querySelector('.ritual-room-art-primary') instanceof HTMLImageElement?document.querySelector('.ritual-room-art-primary').currentSrc:null,
   runtimeAssets:performance.getEntriesByType('resource').filter(item=>item.name.includes('/ritual/')||item.name.includes('/performance/')).map(item=>item.name),
  }));
  assert.deepEqual(observed.viewport,[1672,941]);assert.equal(observed.dpr,1);assert.equal(observed.zoom,1);assert.equal(observed.reducedMotion,false,'Canonical visual captures use standard motion; Reduced Motion is audited separately');
- assert(observed.background?.includes(assets.stageDesktop.url),'All states must use the same production room');
+ assert(observed.roomAsset?.includes(assets.stageDesktop.url)||observed.background?.includes(assets.stageDesktop.url),'All states must use the same reviewed production room artwork');
  if(['03','04','05'].includes(state)){assert.equal(observed.scene.renderer,'three-webgl','Desktop cannot use fallback');assert.equal(Number(observed.scene.renderDpr),1,'Canonical renderer DPR must stay 1');}
  if(state==='03')assert.equal(observed.scene.phase,'casting','Capture must occur while actual cast is running');
  if(state==='06')for(const selector of ['[data-primary-card]','[data-public-reading-result]','[data-free-reading-ritual]','[data-deep-reading-entry]'])assert.equal(await page.$(selector),null,'Gate must conceal '+selector);
