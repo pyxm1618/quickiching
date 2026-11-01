@@ -516,6 +516,45 @@ async function verifyBrowserFlows() {
   try {
     const desktop = { width: 1440, height: 1000 };
     const mobile = { width: 375, height: 812 };
+    const infoRoutePairs = [
+      ["/guides/how-to-ask-the-i-ching", "/zh/guides/how-to-ask-the-i-ching"],
+      ["/guides/changing-lines", "/zh/guides/changing-lines"],
+      ["/guides/primary-relating-hexagrams", "/zh/guides/primary-relating-hexagrams"],
+      ["/help", "/zh/help"],
+      ["/privacy", "/zh/privacy"],
+      ["/terms", "/zh/terms"],
+      ["/acceptable-use", "/zh/acceptable-use"],
+    ];
+
+    for (const viewport of [desktop, { width: 320, height: 800 }]) {
+      for (const [enPath, zhPath] of infoRoutePairs) {
+        for (const [path, targetPath, targetLang] of [
+          [enPath, zhPath, "zh-Hans"],
+          [zhPath, enPath, "en"],
+        ]) {
+          await runPage(browser, {
+            path,
+            viewport,
+            label: `${viewport.width}px Info ${path}`,
+            skipQuestion: false,
+            flow: async (page) => {
+              await page.waitForSelector('[data-info-page="true"]', { timeout: 5000 });
+              const headerVisible = await page.$eval("body > header", (node) => Boolean(node.getClientRects().length));
+              assert(headerVisible, `${path}: formal Info header is not visible`);
+              assert.equal(await page.$('header button[aria-controls^="nav-drawer-"]'), null, `${path}: legacy/global mobile navigation is still active`);
+              const languageTarget = await page.$eval(
+                `header [data-language-switcher] a[lang="${targetLang}"]`,
+                (node) => node.getAttribute("href"),
+              );
+              assert.equal(languageTarget, targetPath, `${path}: equivalent language target mismatch`);
+              const footerVisible = await page.$eval("body > footer", (node) => Boolean(node.getClientRects().length));
+              assert.equal(footerVisible, false, `${path}: global footer must remain hidden on formal Info pages`);
+            },
+          });
+        }
+      }
+    }
+    log("14 bilingual Info routes × desktop/320px formal shell, locale switch, footer and overflow checks PASS");
     await runPage(browser, { path: "/", viewport: desktop, flow: verifyThreeCoinTransactionSemantics, label: "Desktop Three Coin → commit/reveal/cancel semantics" });
     await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → completed cast → auth-before-reveal" });
     await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → V1 result/reset" });
