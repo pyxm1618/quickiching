@@ -2,7 +2,7 @@
 
 import "./ritual.css";
 import { ArrowRight } from "lucide-react";
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
@@ -76,10 +76,13 @@ export function ThreeCoinRitual({
   const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(() => initialSession?.coreQuestionFrozenAtCast ?? false);
   const [draft, setDraft] = useState(() => initialSession?.question ?? "");
   const [error, setError] = useState("");
-  const [roomReady, setRoomReady] = useState(false);
+  const roomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setRoomReady(true));
+    const room = roomRef.current;
+    const frame = window.requestAnimationFrame(() => {
+      if (room) room.dataset.roomReady = "true";
+    });
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
@@ -264,7 +267,7 @@ export function ThreeCoinRitual({
       <link rel="preload" as="image" href="/ritual/decor/gold-cloud-button-2x.png" media="(max-width:800px)" fetchPriority="low" />
       <link rel="preload" as="image" href="/ritual/decor/yin-yang.png" media="(max-width:800px)" fetchPriority="low" />
       <section id="three-coin-reading" data-three-coin-ritual data-experience-stage={experienceStage} data-question-leaving={questionLeaving} className="ritual-canvas">
-        <div className="ritual-room" data-room-ready={roomReady ? "true" : "false"} aria-hidden="true" />
+        <div ref={roomRef} className="ritual-room" aria-hidden="true" />
         {experienceStage !== "ritual" || questionLeaving ? (
           <div className="ritual-question-stage" data-leaving={questionLeaving} inert={questionLeaving}>
             {landing || homeLeaving ? (
