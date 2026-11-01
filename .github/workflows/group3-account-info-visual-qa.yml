@@ -157,6 +157,7 @@ jobs:
         run: |
           status=0
           [ "${{ steps.unit.outcome }}" = "success" ] || status=1
+          [ "${{ steps.unit.outcome }}" = "success" ] || status=1
           [ "${{ steps.capture.outcome }}" = "success" ] || status=1
           [ "${{ steps.lighthouse_info.outcome }}" = "success" ] || status=1
           [ "${{ steps.lighthouse_account.outcome }}" = "success" ] || status=1
