@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - integration/quickiching-ui-redesign
+  push:
+    branches:
+      - codex/group3-account-info-pixel-closeout
   workflow_dispatch:
 
 permissions:
