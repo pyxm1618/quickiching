@@ -3,6 +3,7 @@
 import React, { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BookOpen, FileText, Globe, Mail, MessageSquare, Settings, ShieldCheck, Sparkles } from "lucide-react";
 import { UserNavControl } from "@/components/auth/user-nav-control";
 import { PrivacySettingsButton } from "@/components/privacy-settings-button";
@@ -13,6 +14,7 @@ type Panel = "methods" | "info";
 
 export function SceneNavigation({ locale = "en", authEnabled = false }: { locale?: ContentLocale; authEnabled?: boolean }) {
   const zh = locale === "zh-Hans";
+  const pathname = usePathname() ?? (zh ? "/zh" : "/");
   const [panel, setPanel] = useState<Panel | null>(null);
   const id = useId();
   const rootRef = useRef<HTMLElement>(null);
@@ -21,7 +23,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
   const panelRef = useRef<HTMLDivElement>(null);
   const focusRequest = useRef<"first" | "last" | null>(null);
   const localize = (path: string) => zh ? `/zh${path === "/" ? "" : path}` : path;
-  const route = currentRouteForPath(zh ? "/zh" : "/");
+  const route = currentRouteForPath(pathname);
   const languageHref = route ? languageSwitchTarget(route.id, locale).href : zh ? "/" : "/zh";
   const triggerFor = (name: Panel) => name === "methods" ? methodsTrigger.current : infoTrigger.current;
 
