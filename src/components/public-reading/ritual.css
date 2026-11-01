@@ -210,7 +210,7 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 .ritual-gate-card h1 {font:700 calc(64 * var(--u))/1.2 Georgia,serif;margin:calc(20 * var(--u)) 0 0;}
 .ritual-gate-description {font:400 calc(28 * var(--u))/1.15 Georgia,serif;margin:calc(8 * var(--u)) 0 0;}
 .ritual-gate-action {margin:calc(34 * var(--u)) auto 0;max-width:calc(650 * var(--u));animation:ritual-ui-enter 180ms var(--ritual-enter,cubic-bezier(.22,1,.36,1)) both;}
-.ritual-gate-signin {display:flex;align-items:center;justify-content:center;gap:calc(22 * var(--u));width:calc(490 * var(--u));height:calc(82 * var(--u));margin:auto;border:2px solid #ffe4a0;border-radius:calc(15 * var(--u));font:400 calc(28 * var(--u))/1 Georgia,serif;color:#fff6d8;background:radial-gradient(ellipse at center,#442000,#241000);box-shadow:0 0 7px #ffda7c,0 0 25px #f8a63f,inset 0 0 12px #9a5517;text-decoration:none;}
+.ritual-gate-signin {display:flex;align-items:center;justify-content:center;gap:calc(22 * var(--u));width:calc(490 * var(--u));height:calc(82 * var(--u));margin:auto;border:2px solid #ffe4a0;border-radius:calc(5 * var(--u));font:400 calc(28 * var(--u))/1 Georgia,serif;color:#fff6d8;background:radial-gradient(ellipse at center,#442000,#241000);box-shadow:0 0 7px #ffda7c,0 0 25px #f8a63f,inset 0 0 12px #9a5517;text-decoration:none;}
 .ritual-gate-signin svg {width:calc(29 * var(--u));height:calc(29 * var(--u));}
 .ritual-gate-action [data-history-saving],.ritual-gate-action p {color:#64411e;}
 .ritual-gate-error p {color:#8a2614!important;}
