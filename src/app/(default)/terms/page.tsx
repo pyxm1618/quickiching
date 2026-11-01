@@ -1,12 +1,13 @@
 
 import type { Metadata } from "next";
+import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
 import { LegalPageLayout, type LegalSection } from "@/components/info-pages/legal-page-layout";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
   description: "Terms for using Quick I Ching casting methods, accounts, reading credits, and Deep Reading.",
-  alternates: { canonical: "/terms" },
+  alternates: { canonical: "/terms", languages: alternateLanguages("terms") },
   robots: { index: false, follow: true },
 };
 

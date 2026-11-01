@@ -1,5 +1,6 @@
 
 import type { Metadata } from "next";
+import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
 import { InfoPageShell } from "@/components/info-pages/info-page-shell";
 import { BookOpen, UserRound, Layers3 } from "lucide-react";
@@ -9,7 +10,7 @@ import styles from "@/components/info-pages/info-pages.module.css";
 export const metadata: Metadata = {
   title: "Help & Support",
   description: "Help for Quick I Ching Public V1 casting methods and browser-session readings.",
-  alternates: { canonical: "/help" },
+  alternates: { canonical: "/help", languages: alternateLanguages("help") },
   robots: { index: false, follow: true },
 };
 

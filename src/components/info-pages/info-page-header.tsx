@@ -18,6 +18,7 @@ export function InfoPageHeader({ locale = "en", authEnabled = false }: {
   const route = currentRouteForPath(pathname);
   const target = route ? languageSwitchTarget(route.id, locale) : { href: locale === "en" ? "/zh" : "/" };
   const homeHref = locale === "zh-Hans" ? "/zh" : "/";
+  const languageLabel = locale === "zh-Hans" ? "语言" : "Language";
   return (
     <header className={styles.infoHeader}>
       <div className={styles.infoHeaderInner}>
@@ -26,7 +27,7 @@ export function InfoPageHeader({ locale = "en", authEnabled = false }: {
           <span>Quick I Ching</span>
         </Link>
         <div className={styles.headerControls}>
-          <nav className={styles.headerLanguages} aria-label="Language">
+          <nav className={styles.headerLanguages} aria-label={languageLabel} data-language-switcher>
             <Globe aria-hidden="true" />
             <Link href={locale === "en" ? pathname : target.href} lang="en" aria-current={locale === "en" ? "page" : undefined}>EN</Link>
             <span>/</span>

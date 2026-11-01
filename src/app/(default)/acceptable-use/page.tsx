@@ -1,11 +1,12 @@
 
 import type { Metadata } from "next";
+import { alternateLanguages } from "@/i18n/helpers";
 import { LegalPageLayout } from "@/components/info-pages/legal-page-layout";
 
 export const metadata: Metadata = {
   title: "Acceptable Use",
   description: "Boundaries for using Quick I Ching responsibly.",
-  alternates: { canonical: "/acceptable-use" },
+  alternates: { canonical: "/acceptable-use", languages: alternateLanguages("acceptable-use") },
   robots: { index: false, follow: true },
 };
 

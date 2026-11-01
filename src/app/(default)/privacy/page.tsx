@@ -1,5 +1,6 @@
 
 import type { Metadata } from "next";
+import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
 import { PrivacySettingsButton } from "@/components/privacy-settings-button";
 import { LegalPageLayout, type LegalSection } from "@/components/info-pages/legal-page-layout";
@@ -8,7 +9,7 @@ import styles from "@/components/info-pages/info-pages.module.css";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: "How Quick I Ching handles browser data, account data, analytics, advertising, technical logs, and support messages.",
-  alternates: { canonical: "/privacy" },
+  alternates: { canonical: "/privacy", languages: alternateLanguages("privacy") },
   robots: { index: false, follow: true },
 };
 

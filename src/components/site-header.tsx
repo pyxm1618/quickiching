@@ -275,7 +275,8 @@ export function SiteHeader({
     }
   };
 
-  if (INFO_PAGE_PATHS.has(pathname)) {
+  const infoPath = pathname.startsWith("/zh/") ? pathname.slice(3) : pathname;
+  if (INFO_PAGE_PATHS.has(infoPath)) {
     return <InfoPageHeader locale={locale} authEnabled={authEnabled} />;
   }
 
