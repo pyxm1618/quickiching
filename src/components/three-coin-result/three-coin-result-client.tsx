@@ -49,8 +49,8 @@ export type ThreeCoinResultClientProps = {
     createdAt?: string;
     context: string;
     lineValuesBottomUp: number[] | null;
-    deepReadingViewModel: AiDeepReadingViewModel | null;
-    deepReadingContext: DeepReadingPresentationContext | null;
+    deepReadingViewModel?: AiDeepReadingViewModel | null;
+    deepReadingContext?: DeepReadingPresentationContext | null;
     owns: boolean;
   } | null;
 };
