@@ -9,7 +9,6 @@ import type {
   Order,
   Preview,
   QualityReview,
-  QuestionLock,
   QuestionVersion,
   Reading,
   Reservation,
@@ -68,7 +67,6 @@ export class MemoryStore {
   readonly castingSteps = new Map<string, CastingStep>();
   readonly castResults = new Map<string, CastResult>();
   readonly castingRiskDecisions = new Map<string, CastingRiskDecision>();
-  readonly questionLocks = new Map<string, QuestionLock>();
   readonly previews = new Map<string, Preview>();
   readonly readings = new Map<string, Reading>();
   readonly reservations = new Map<string, Reservation>();
