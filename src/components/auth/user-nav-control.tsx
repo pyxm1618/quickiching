@@ -17,6 +17,7 @@ export type UserNavControlProps = {
   onItemClick?: () => void;
   locale?: ContentLocale;
   initialOpen?: boolean;
+  appearance?: "standard" | "scene";
 };
 
 type UserState = {
@@ -31,6 +32,7 @@ export function UserNavControl({
   onItemClick,
   locale = "en",
   initialOpen = false,
+  appearance = "standard",
 }: UserNavControlProps) {
   const dictionary = getDictionary(locale);
   const copy = dictionary.userNav;
@@ -185,6 +187,10 @@ export function UserNavControl({
   // 2. 桌面端顶部导航布局
   if (!user && hideUnauthenticated) return null;
 
+  if (!user && appearance === "scene") {
+    return <Link href={signinHref} prefetch={false} className="scene-account-trigger"><User aria-hidden="true" /><span>{isChinese ? "登录" : "Sign In"}</span></Link>;
+  }
+
   if (!user) {
     return (
       <div className="inline-flex items-center gap-2">
@@ -219,8 +225,9 @@ export function UserNavControl({
         aria-expanded={isOpen}
         aria-haspopup="menu"
         aria-label={copy.menuAria.replace("{email}", user.email)}
-        className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.04] py-1 pl-1.5 pr-2.5 transition-all hover:border-[var(--gold)]/40 hover:bg-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)] cursor-pointer"
+        className={appearance === "scene" ? "scene-account-trigger" : "inline-flex min-h-11 items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.04] py-1 pl-1.5 pr-2.5 transition-all hover:border-[var(--gold)]/40 hover:bg-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)] cursor-pointer"}
       >
+        {appearance === "scene" ? <><User aria-hidden="true" /><span>{isChinese ? "账户" : "Account"}</span></> : <>
         <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/20 text-xs font-semibold text-[var(--gold-2)] shadow-sm">
           {initial}
         </div>
@@ -228,6 +235,7 @@ export function UserNavControl({
           {user.email.split("@")[0]}
         </span>
         <ChevronDown className={`h-3.5 w-3.5 text-[var(--ink-3)] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+        </>}
       </button>
 
       {isOpen && (

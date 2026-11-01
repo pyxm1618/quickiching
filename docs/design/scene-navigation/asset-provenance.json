@@ -1,0 +1,471 @@
+{
+  "reviewedSourcePngTotal": 12,
+  "approvedSourcePng": 12,
+  "deferredSourcePng": 0,
+  "confirmedRejectSourcePng": 0,
+  "unreviewedSourcePng": 0,
+  "derivedAssets": 27,
+  "assets": [
+    {
+      "output": "public/navigation/scroll-64-hexagrams-no-text.webp",
+      "source": "/tmp/qic-navigation-reference/scroll-64-hexagrams-no-text.png",
+      "operation": "original approved cutout; lossless WebP, bounded delivery size",
+      "status": "approved",
+      "sha256": "d21cb8c347468d84c1cf4d609c72e2783c0b0c5a064e698233ba9a9d2ef538d0",
+      "dimensions": [
+        450,
+        675
+      ]
+    },
+    {
+      "output": "public/navigation/scroll-other-methods-no-text.webp",
+      "source": "/tmp/qic-navigation-reference/scroll-other-methods-no-text.png",
+      "operation": "original approved cutout; lossless WebP, bounded delivery size",
+      "status": "approved",
+      "sha256": "4858df2f8f7f419c5739f356cae54a10c592361f85689c7e1a7e1150a0b77b6d",
+      "dimensions": [
+        338,
+        675
+      ]
+    },
+    {
+      "output": "public/navigation/scroll-info-no-text.webp",
+      "source": "/tmp/qic-navigation-reference/scroll-info-no-text.png",
+      "operation": "original approved cutout; lossless WebP, bounded delivery size",
+      "status": "approved",
+      "sha256": "925d979ba5311f40fff69e2228f173914c43fb535369118fb1486b91153b9cd5",
+      "dimensions": [
+        338,
+        675
+      ]
+    },
+    {
+      "output": "public/navigation/methods-panel-blank.webp",
+      "source": "/tmp/qic-navigation-reference/methods-panel-blank.png",
+      "operation": "original approved cutout; lossless WebP, bounded delivery size",
+      "status": "approved",
+      "sha256": "7eaddd9b3a9ff5818a49d5ccc1468bc417f6dbc22df0d0b5393a6e3551ac7461",
+      "dimensions": [
+        1880,
+        439
+      ]
+    },
+    {
+      "output": "public/navigation/info-panel-blank.webp",
+      "source": "/tmp/qic-navigation-reference/info-panel-blank.png",
+      "operation": "original approved cutout; lossless WebP, bounded delivery size",
+      "status": "approved",
+      "sha256": "a151c11619c7e5fdc6c2b464619893ade7dcc94d93f5c3a57dd12a5bdd10f408",
+      "dimensions": [
+        2027,
+        678
+      ]
+    },
+    {
+      "output": "public/navigation/method-yarrow.webp",
+      "source": "/tmp/qic-navigation-reference/method-yarrow.png",
+      "operation": "original approved cutout; lossless WebP, bounded delivery size",
+      "status": "approved",
+      "sha256": "b24a274a2173ffb96cd5f68bd4c6d25e923c16149f9fb959d0bb03911db8edff",
+      "dimensions": [
+        458,
+        308
+      ]
+    },
+    {
+      "output": "public/navigation/method-mei-hua.webp",
+      "source": "/tmp/qic-navigation-reference/method-mei-hua.png",
+      "operation": "original approved cutout; lossless WebP, bounded delivery size",
+      "status": "approved",
+      "sha256": "7feea1ddb412b785029e6c0d4d87861affbc4e76c00343173346cbbbeb8d26f4",
+      "dimensions": [
+        441,
+        315
+      ]
+    },
+    {
+      "output": "public/navigation/method-manual.webp",
+      "source": "/tmp/qic-navigation-reference/method-manual.png",
+      "operation": "original approved cutout; lossless WebP, bounded delivery size",
+      "status": "approved",
+      "sha256": "1932d52fce0b0c063ae0e9a1081c37cd8d6c3dbf9a2d06de8992047f5879815e",
+      "dimensions": [
+        453,
+        310
+      ]
+    },
+    {
+      "output": "public/navigation/logo.webp",
+      "source": "/tmp/qic-navigation-reference/Logo.png",
+      "operation": "original approved cutout; lossless WebP, bounded delivery size",
+      "status": "approved",
+      "sha256": "4edde738eecd34826bd0f6d789b8104b760462c6cde4ab562cae2786f1131a70",
+      "dimensions": [
+        180,
+        180
+      ]
+    },
+    {
+      "output": "public/navigation/scroll-holder.webp",
+      "source": "reference-default.png",
+      "operation": "original holder polygon crop; no menu words",
+      "status": "approved",
+      "sha256": "d766eaf46eb369c23cd0e6b4c9011ecda2369f63c52b235bb971092c9d4ab6d9",
+      "polygon": [
+        [
+          1405,
+          706
+        ],
+        [
+          1433,
+          711
+        ],
+        [
+          1540,
+          711
+        ],
+        [
+          1569,
+          709
+        ],
+        [
+          1587,
+          705
+        ],
+        [
+          1597,
+          709
+        ],
+        [
+          1607,
+          712
+        ],
+        [
+          1613,
+          718
+        ],
+        [
+          1609,
+          731
+        ],
+        [
+          1607,
+          758
+        ],
+        [
+          1609,
+          779
+        ],
+        [
+          1618,
+          801
+        ],
+        [
+          1621,
+          815
+        ],
+        [
+          1609,
+          822
+        ],
+        [
+          1593,
+          825
+        ],
+        [
+          1578,
+          831
+        ],
+        [
+          1545,
+          834
+        ],
+        [
+          1480,
+          833
+        ],
+        [
+          1434,
+          826
+        ],
+        [
+          1413,
+          819
+        ],
+        [
+          1411,
+          803
+        ],
+        [
+          1412,
+          755
+        ],
+        [
+          1408,
+          726
+        ]
+      ]
+    },
+    {
+      "output": "public/navigation/info-guides-badge.webp",
+      "source": "reference-info.png",
+      "operation": "heading badge crop with ellipse alpha",
+      "status": "approved",
+      "sha256": "695faa537b2331f2b18eccca4cfb12c1835ae138a282be73bf0224a4ceee48c5",
+      "crop": [
+        330,
+        322,
+        401,
+        389
+      ]
+    },
+    {
+      "output": "public/navigation/info-support-badge.webp",
+      "source": "reference-info.png",
+      "operation": "heading badge crop with ellipse alpha",
+      "status": "approved",
+      "sha256": "d20071407ac05028c8aa3828127017cff542c71c4c7b5479848253d3fa8e449d",
+      "crop": [
+        692,
+        322,
+        760,
+        389
+      ]
+    },
+    {
+      "output": "public/navigation/info-legal-badge.webp",
+      "source": "reference-info.png",
+      "operation": "heading badge crop with ellipse alpha",
+      "status": "approved",
+      "sha256": "3c584eb26a91ddfc0237b8cf200d46008aadb6aa4013125a9e9621b95356f83d",
+      "crop": [
+        1087,
+        322,
+        1158,
+        389
+      ]
+    },
+    {
+      "output": "public/navigation/methods-panel-calibrated.webp",
+      "source": "methods-panel-blank.webp",
+      "operation": "piecewise resize of original blank artwork; no generated pixels",
+      "status": "approved",
+      "sha256": "72bd935b01dc5e1768d8aa913f1b6a6f471a2414bf37e82b9bf6f265f080a7fd",
+      "sourceX": [
+        0,
+        666,
+        1212,
+        1880
+      ],
+      "targetX": [
+        0,
+        718,
+        1242,
+        1880
+      ],
+      "sourceY": [
+        0,
+        53,
+        395,
+        439
+      ],
+      "targetY": [
+        0,
+        52,
+        556,
+        586
+      ]
+    },
+    {
+      "output": "public/navigation/info-panel-calibrated.webp",
+      "source": "info-panel-blank.webp",
+      "operation": "piecewise resize of original blank artwork; no generated pixels",
+      "status": "approved",
+      "sha256": "563906037bbbe2c38852a491c1559fd13f7cf59e2440be12d7b34f4f095eaa80",
+      "sourceX": [
+        0,
+        729,
+        1311,
+        2027
+      ],
+      "targetX": [
+        0,
+        737,
+        1305,
+        2027
+      ],
+      "sourceY": [
+        0,
+        86,
+        250,
+        550,
+        633,
+        678
+      ],
+      "targetY": [
+        0,
+        49,
+        204,
+        472,
+        565,
+        587
+      ]
+    },
+    {
+      "output": "public/navigation/methods-title-rule-left.webp",
+      "source": "reference-methods.png",
+      "operation": "reference crop with ink alpha; no menu words",
+      "status": "approved",
+      "sha256": "78c8049b131e027b1b89e7b40d1afb22768b4353dc1d813e7f4c09e9504f3a9d",
+      "crop": [
+        548,
+        373,
+        705,
+        398
+      ]
+    },
+    {
+      "output": "public/navigation/methods-title-rule-right.webp",
+      "source": "reference-methods.png",
+      "operation": "reference crop with ink alpha; no menu words",
+      "status": "approved",
+      "sha256": "70c16ebd504c5e8a696e5c2f2e7e9a7141be30840067225e1fc5e544311b4be6",
+      "crop": [
+        956,
+        373,
+        1113,
+        398
+      ]
+    },
+    {
+      "output": "public/navigation/info-how-to-ask.webp",
+      "source": "reference-info.png",
+      "operation": "reference crop with ink alpha; no menu words",
+      "status": "approved",
+      "sha256": "97fc0a31aba7d306be981e3e3014f2469f60e84e16850a6dad894f885eb36f51",
+      "crop": [
+        331,
+        418,
+        360,
+        449
+      ]
+    },
+    {
+      "output": "public/navigation/info-changing-lines.webp",
+      "source": "reference-info.png",
+      "operation": "reference crop with ink alpha; no menu words",
+      "status": "approved",
+      "sha256": "74d81f8c76137822905c5562b18f6303f861d8c98717e0799450a90ff2c84af9",
+      "crop": [
+        331,
+        470,
+        360,
+        499
+      ]
+    },
+    {
+      "output": "public/navigation/info-primary-relating.webp",
+      "source": "reference-info.png",
+      "operation": "reference crop with ink alpha; no menu words",
+      "status": "approved",
+      "sha256": "31f8d18f82b8c6b3f26c59a848fffd801610fe24e7c8e591832567dcc4993142",
+      "crop": [
+        331,
+        517,
+        361,
+        548
+      ]
+    },
+    {
+      "output": "public/navigation/info-help.webp",
+      "source": "reference-info.png",
+      "operation": "reference crop with ink alpha; no menu words",
+      "status": "approved",
+      "sha256": "5269c40cdd1e0b54f3abb49a494e047d46b400c7ca35c94e284e289108e6a892",
+      "crop": [
+        708,
+        419,
+        746,
+        454
+      ]
+    },
+    {
+      "output": "public/navigation/info-contact.webp",
+      "source": "reference-info.png",
+      "operation": "reference crop with ink alpha; no menu words",
+      "status": "approved",
+      "sha256": "03cad8fa1661710752e54bf4a64e5988ca703f91e8c96e0d0a19024aeb083c41",
+      "crop": [
+        708,
+        471,
+        746,
+        499
+      ]
+    },
+    {
+      "output": "public/navigation/info-document.webp",
+      "source": "reference-info.png",
+      "operation": "reference crop with ink alpha; no menu words",
+      "status": "approved",
+      "sha256": "9aa0803f40000bdd0ad56a6837c1a915c56177a967dd725842de27aa7e8b32ab",
+      "crop": [
+        1100,
+        416,
+        1127,
+        444
+      ]
+    },
+    {
+      "output": "public/navigation/info-acceptable.webp",
+      "source": "reference-info.png",
+      "operation": "reference crop with ink alpha; no menu words",
+      "status": "approved",
+      "sha256": "8486bf02b5f4ca9a1f210f2cef998724062ada45eab2ca76f9d0e879942af850",
+      "crop": [
+        1100,
+        491,
+        1128,
+        519
+      ]
+    },
+    {
+      "output": "public/navigation/info-settings.webp",
+      "source": "reference-info.png",
+      "operation": "reference crop with ink alpha; no menu words",
+      "status": "approved",
+      "sha256": "1200e637c8623771c59c30ef38af15d3f53a53a29bb478aa996028849ea3151c",
+      "crop": [
+        1098,
+        530,
+        1130,
+        561
+      ]
+    },
+    {
+      "output": "public/navigation/account-symbol-reference.webp",
+      "source": "reference-default.png",
+      "operation": "reference crop with circle alpha; no menu words",
+      "status": "approved",
+      "sha256": "7b444f6be9bec3addc29a14336cc32d08b86ba5494407fbebcf199e6acd1ff68",
+      "crop": [
+        1489,
+        36,
+        1533,
+        80
+      ]
+    },
+    {
+      "output": "public/navigation/logo-reference.webp",
+      "source": "reference-default.png",
+      "operation": "reference crop with logo alpha; no menu words",
+      "status": "approved",
+      "sha256": "63615d036527e8893eb7e6a6fe9b472855a57cb38f60908cbb2cfe819fb46d2b",
+      "crop": [
+        48,
+        833,
+        128,
+        910
+      ]
+    }
+  ]
+}

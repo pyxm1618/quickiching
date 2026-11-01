@@ -1,0 +1,397 @@
+{
+  "base": "http://127.0.0.1:3056",
+  "states": [
+    {
+      "state": "default",
+      "viewport": {
+        "width": 1671,
+        "height": 941
+      },
+      "dpr": 1,
+      "maximumApprovedGeometryDelta": 0
+    },
+    {
+      "state": "methods",
+      "viewport": {
+        "width": 1670,
+        "height": 942
+      },
+      "dpr": 1,
+      "maximumApprovedGeometryDelta": 0
+    },
+    {
+      "state": "info",
+      "viewport": {
+        "width": 1670,
+        "height": 942
+      },
+      "dpr": 1,
+      "maximumApprovedGeometryDelta": 0
+    }
+  ],
+  "checks": [
+    {
+      "name": "default: exact viewport and DPR",
+      "status": "PASS"
+    },
+    {
+      "name": "default: images and fonts ready",
+      "status": "PASS"
+    },
+    {
+      "name": "default: no horizontal overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved element present (scene-utility)",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved element present (scene-brand)",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved element present (scene-scroll scene-scroll-hexagrams)",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved element present (scene-scroll scene-scroll-methods)",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved element present (scene-scroll scene-scroll-info)",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved element present (scene-scroll-holder)",
+      "status": "PASS"
+    },
+    {
+      "name": "default: approved navigation geometry retained",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: exact viewport and DPR",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: images and fonts ready",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: no horizontal overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-utility)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-brand)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-scroll scene-scroll-hexagrams)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-scroll scene-scroll-methods)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-scroll scene-scroll-info)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-scroll-holder)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present (scene-panel scene-methods-panel)",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "methods: approved navigation geometry retained",
+      "status": "PASS"
+    },
+    {
+      "name": "info: exact viewport and DPR",
+      "status": "PASS"
+    },
+    {
+      "name": "info: images and fonts ready",
+      "status": "PASS"
+    },
+    {
+      "name": "info: no horizontal overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-utility)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-brand)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-scroll scene-scroll-hexagrams)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-scroll scene-scroll-methods)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-scroll scene-scroll-info)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-scroll-holder)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present (scene-panel scene-info-panel)",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved element present ()",
+      "status": "PASS"
+    },
+    {
+      "name": "info: approved navigation geometry retained",
+      "status": "PASS"
+    },
+    {
+      "name": "Methods keyboard enters existing Yarrow link",
+      "status": "PASS"
+    },
+    {
+      "name": "Escape returns Methods focus",
+      "status": "PASS"
+    },
+    {
+      "name": "Info keyboard enters existing guide",
+      "status": "PASS"
+    },
+    {
+      "name": "Info End reaches reused Privacy Settings",
+      "status": "PASS"
+    },
+    {
+      "name": "Existing privacy consent control opens",
+      "status": "PASS"
+    },
+    {
+      "name": "en: existing destination /hexagrams",
+      "status": "PASS"
+    },
+    {
+      "name": "en: existing destination /methods/yarrow-stalks",
+      "status": "PASS"
+    },
+    {
+      "name": "en: existing destination /methods/mei-hua-yi-shu",
+      "status": "PASS"
+    },
+    {
+      "name": "en: existing destination /methods/manual-cast",
+      "status": "PASS"
+    },
+    {
+      "name": "en: existing destination /guides/how-to-ask-the-i-ching",
+      "status": "PASS"
+    },
+    {
+      "name": "en: existing destination /guides/changing-lines",
+      "status": "PASS"
+    },
+    {
+      "name": "en: existing destination /guides/primary-relating-hexagrams",
+      "status": "PASS"
+    },
+    {
+      "name": "en: existing destination /help",
+      "status": "PASS"
+    },
+    {
+      "name": "en: existing destination /privacy",
+      "status": "PASS"
+    },
+    {
+      "name": "en: existing destination /terms",
+      "status": "PASS"
+    },
+    {
+      "name": "en: existing destination /acceptable-use",
+      "status": "PASS"
+    },
+    {
+      "name": "en: support email",
+      "status": "PASS"
+    },
+    {
+      "name": "en: no Methods index",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: existing destination /hexagrams",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: existing destination /methods/yarrow-stalks",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: existing destination /methods/mei-hua-yi-shu",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: existing destination /methods/manual-cast",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: existing destination /guides/how-to-ask-the-i-ching",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: existing destination /guides/changing-lines",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: existing destination /guides/primary-relating-hexagrams",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: existing destination /help",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: existing destination /privacy",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: existing destination /terms",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: existing destination /acceptable-use",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: support email",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: no Methods index",
+      "status": "PASS"
+    },
+    {
+      "name": "Existing English language route works",
+      "status": "PASS"
+    },
+    {
+      "name": "Existing Chinese language route works",
+      "status": "PASS"
+    },
+    {
+      "name": "Latest Info page header preserved",
+      "status": "PASS"
+    },
+    {
+      "name": "No browser page errors",
+      "status": "PASS"
+    }
+  ],
+  "errors": [],
+  "status": "PASS",
+  "browser": "Chrome/156.0.8078.48"
+}

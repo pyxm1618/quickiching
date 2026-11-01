@@ -1,0 +1,277 @@
+{
+  "links": [
+    "/",
+    "/zh",
+    "/signin?callbackURL=%2F",
+    "/",
+    "/hexagrams",
+    "/methods/yarrow-stalks",
+    "/methods/mei-hua-yi-shu",
+    "/methods/manual-cast",
+    "/guides/how-to-ask-the-i-ching",
+    "/guides/changing-lines",
+    "/guides/primary-relating-hexagrams",
+    "/help",
+    "mailto:support@quickiching.com",
+    "/privacy",
+    "/terms",
+    "/acceptable-use"
+  ],
+  "elements": [
+    {
+      "className": "scene-utility",
+      "text": "EN/中文Sign In",
+      "rect": {
+        "x": 1287.25,
+        "y": 23.984375,
+        "width": 348.78125,
+        "height": 66.953125,
+        "top": 23.984375,
+        "right": 1636.03125,
+        "bottom": 90.9375,
+        "left": 1287.25
+      },
+      "font": "19.988px / 23.9856px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "scene-brand",
+      "text": "Quick I Ching",
+      "rect": {
+        "x": 47.96875,
+        "y": 834.078125,
+        "width": 312.1875,
+        "height": 76.953125,
+        "top": 834.078125,
+        "right": 360.15625,
+        "bottom": 911.03125,
+        "left": 47.96875
+      },
+      "font": "37.9773px / 45.5727px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "scene-scroll scene-scroll-hexagrams",
+      "text": "64Hexagrams",
+      "rect": {
+        "x": 1363.203125,
+        "y": 578.21875,
+        "width": 150.90625,
+        "height": 225.859375,
+        "top": 578.21875,
+        "right": 1514.109375,
+        "bottom": 804.078125,
+        "left": 1363.203125
+      },
+      "font": "16px / 16.8px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "scene-scroll scene-scroll-methods",
+      "text": "OtherMethods",
+      "rect": {
+        "x": 1449.140625,
+        "y": 557.25,
+        "width": 121.921875,
+        "height": 244.84375,
+        "top": 557.25,
+        "right": 1571.0625,
+        "bottom": 802.09375,
+        "left": 1449.140625
+      },
+      "font": "16px / 16.8px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "scene-scroll scene-scroll-info",
+      "text": "Info",
+      "rect": {
+        "x": 1519.109375,
+        "y": 579.21875,
+        "width": 110.921875,
+        "height": 221.859375,
+        "top": 579.21875,
+        "right": 1630.03125,
+        "bottom": 801.078125,
+        "left": 1519.109375
+      },
+      "font": "16px / 16.8px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "scene-scroll-holder",
+      "text": "",
+      "rect": {
+        "x": 1409.15625,
+        "y": 717.15625,
+        "width": 219.859375,
+        "height": 131.90625,
+        "top": 717.15625,
+        "right": 1629.015625,
+        "bottom": 849.0625,
+        "left": 1409.15625
+      },
+      "font": "16px / 27.2px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "scene-panel scene-methods-panel",
+      "text": "Other MethodsYarrow StalksTraditional 49-stalk methodMei Hua Yi ShuCast from the current timeManual CastEnter a known hexagram\nor six lines",
+      "rect": {
+        "x": 155.90625,
+        "y": 309.8125,
+        "width": 1297.21875,
+        "height": 404.75,
+        "top": 309.8125,
+        "right": 1453.125,
+        "bottom": 714.5625,
+        "left": 155.90625
+      },
+      "font": "16px / 27.2px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Other Methods",
+      "rect": {
+        "x": 213.859375,
+        "y": 362.765625,
+        "width": 1239.265625,
+        "height": 41.1612548828125,
+        "top": 362.765625,
+        "right": 1453.125,
+        "bottom": 403.9268798828125,
+        "left": 213.859375
+      },
+      "font": "700 35.9785px / 39.5763px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Yarrow StalksTraditional 49-stalk method",
+      "rect": {
+        "x": 345.77825927734375,
+        "y": 410.734375,
+        "width": 291.828125,
+        "height": 265.859375,
+        "top": 410.734375,
+        "right": 637.6063842773438,
+        "bottom": 676.59375,
+        "left": 345.77825927734375
+      },
+      "font": "16px / 27.2px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Yarrow Stalks",
+      "rect": {
+        "x": 409.85638427734375,
+        "y": 587.609375,
+        "width": 163.65625,
+        "height": 32.6390380859375,
+        "top": 587.609375,
+        "right": 573.5126342773438,
+        "bottom": 620.2484130859375,
+        "left": 409.85638427734375
+      },
+      "font": "700 26.9838px / 29.6822px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Traditional 49-stalk method",
+      "rect": {
+        "x": 377.73138427734375,
+        "y": 622.2650146484375,
+        "width": 227.921875,
+        "height": 23.546875,
+        "top": 622.2650146484375,
+        "right": 605.6532592773438,
+        "bottom": 645.8118896484375,
+        "left": 377.73138427734375
+      },
+      "font": "20.4877px / 23.5609px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Mei Hua Yi ShuCast from the current time",
+      "rect": {
+        "x": 686.5733642578125,
+        "y": 410.734375,
+        "width": 291.828125,
+        "height": 265.859375,
+        "top": 410.734375,
+        "right": 978.4014892578125,
+        "bottom": 676.59375,
+        "left": 686.5733642578125
+      },
+      "font": "16px / 27.2px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Mei Hua Yi Shu",
+      "rect": {
+        "x": 744.7678833007812,
+        "y": 587.609375,
+        "width": 175.42340087890625,
+        "height": 31.15545654296875,
+        "top": 587.609375,
+        "right": 920.1912841796875,
+        "bottom": 618.7648315429688,
+        "left": 744.7678833007812
+      },
+      "font": "700 26.9838px / 29.6822px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Cast from the current time",
+      "rect": {
+        "x": 724.4171142578125,
+        "y": 622.2650146484375,
+        "width": 216.125,
+        "height": 23.546875,
+        "top": 622.2650146484375,
+        "right": 940.5421142578125,
+        "bottom": 645.8118896484375,
+        "left": 724.4171142578125
+      },
+      "font": "20.4877px / 23.5609px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Manual CastEnter a known hexagram\nor six lines",
+      "rect": {
+        "x": 1017.3743896484375,
+        "y": 410.734375,
+        "width": 291.84375,
+        "height": 265.859375,
+        "top": 410.734375,
+        "right": 1309.2181396484375,
+        "bottom": 676.59375,
+        "left": 1017.3743896484375
+      },
+      "font": "16px / 27.2px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Manual Cast",
+      "rect": {
+        "x": 1093.19287109375,
+        "y": 587.609375,
+        "width": 140.206787109375,
+        "height": 31.15545654296875,
+        "top": 587.609375,
+        "right": 1233.399658203125,
+        "bottom": 618.7648315429688,
+        "left": 1093.19287109375
+      },
+      "font": "700 26.9838px / 29.6822px \"Times New Roman\", \"Songti SC\", serif"
+    },
+    {
+      "className": "",
+      "text": "Enter a known hexagram\nor six lines",
+      "rect": {
+        "x": 1060.6400146484375,
+        "y": 622.2650146484375,
+        "width": 205.296875,
+        "height": 47.09375,
+        "top": 622.2650146484375,
+        "right": 1265.9368896484375,
+        "bottom": 669.3587646484375,
+        "left": 1060.6400146484375
+      },
+      "font": "20.4877px / 23.5609px \"Times New Roman\", \"Songti SC\", serif"
+    }
+  ]
+}

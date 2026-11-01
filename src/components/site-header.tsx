@@ -9,6 +9,8 @@ import { BrandMark } from "@/components/brand-mark";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
+import { SceneNavigation } from "@/components/scene-navigation";
+import "@/components/scene-navigation.css";
 import { UserNavControl } from "@/components/auth/user-nav-control";
 import { InfoPageHeader } from "@/components/info-pages/info-page-header";
 
@@ -26,7 +28,14 @@ const DRAWER_LINK_CLASS =
 
 const INFO_PAGE_PATHS = new Set(["/guides/how-to-ask-the-i-ching","/guides/changing-lines","/guides/primary-relating-hexagrams","/help","/privacy","/terms","/acceptable-use"]);
 
-export function SiteHeader({
+export function SiteHeader(props: { locale?: ContentLocale; authEnabled?: boolean }) {
+  const pathname = usePathname();
+  return pathname === "/" || pathname === "/zh" || pathname === "/zh/"
+    ? <SceneNavigation {...props} />
+    : <StandardSiteHeader {...props} />;
+}
+
+function StandardSiteHeader({
   locale = "en",
   authEnabled = false,
 }: {

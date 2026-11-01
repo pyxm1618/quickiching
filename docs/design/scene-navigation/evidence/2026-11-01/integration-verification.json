@@ -1,0 +1,61 @@
+{
+  "startingHead": "7eb2af6d3d56ec4074f634b5d66b0c6a00caf0ad",
+  "integrationBaseline": "0fbac3470dff473ceaa31df16f937cff1cf3c484",
+  "navigationOriginalHead": "b4063df0f023946830a1387bee435ae5b05868d9",
+  "navigationSourceCommit": "c5d21563646c2773980bb468da8045732bb3c8b5",
+  "buildId": "_b_Aziz11tgm81gzq9oPf",
+  "build": "PASS",
+  "typecheck": "PASS",
+  "lint": {
+    "status": "PASS",
+    "errors": 0,
+    "existingWarnings": 2
+  },
+  "unit": {
+    "files": 146,
+    "passed": 980
+  },
+  "browser": {
+    "status": "PASS",
+    "checks": 91,
+    "states": [
+      {
+        "state": "default",
+        "viewport": {
+          "width": 1671,
+          "height": 941
+        },
+        "dpr": 1,
+        "maximumApprovedGeometryDelta": 0
+      },
+      {
+        "state": "methods",
+        "viewport": {
+          "width": 1670,
+          "height": 942
+        },
+        "dpr": 1,
+        "maximumApprovedGeometryDelta": 0
+      },
+      {
+        "state": "info",
+        "viewport": {
+          "width": 1670,
+          "height": 942
+        },
+        "dpr": 1,
+        "maximumApprovedGeometryDelta": 0
+      }
+    ]
+  },
+  "conflicts": [
+    {
+      "file": "src/components/site-header.tsx",
+      "resolution": "Keep complete latest InfoPageHeader and normalized Chinese path logic; home routes use unchanged SceneNavigation."
+    }
+  ],
+  "approvedRuntimeAndAssetFilesByteIdenticalToSource": 32,
+  "protectedPathChanges": [],
+  "noNewPrOrBranch": true,
+  "noMainMergeOrForcePushOrDeployment": true
+}

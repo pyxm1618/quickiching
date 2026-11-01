@@ -1,0 +1,42 @@
+{
+  "originalStates": 3,
+  "pass": 3,
+  "deferred": 0,
+  "confirmedReject": 0,
+  "unreviewed": 0,
+  "coverage": [
+    {
+      "state": "default",
+      "captureStatus": "PASS",
+      "regions": [
+        "utility",
+        "brand",
+        "scrolls"
+      ],
+      "sourceAndCandidateSameSize": true
+    },
+    {
+      "state": "methods",
+      "captureStatus": "PASS",
+      "regions": [
+        "utility",
+        "brand",
+        "scrolls",
+        "panel"
+      ],
+      "sourceAndCandidateSameSize": true
+    },
+    {
+      "state": "info",
+      "captureStatus": "PASS",
+      "regions": [
+        "utility",
+        "brand",
+        "scrolls",
+        "panel"
+      ],
+      "sourceAndCandidateSameSize": true
+    }
+  ],
+  "passMeaning": "All three states inspected and captured; no automated claim of exact pixel equivalence. Source artwork texture and mandated text differences remain explicitly noted."
+}
