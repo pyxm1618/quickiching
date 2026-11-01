@@ -835,3 +835,26 @@
     top: 14px;
   }
 }
+
+/* Corrected taiji glyph treatment. */
+@media (min-width:761px) {
+  .page::before {
+    content: "☯";
+    display: grid;
+    place-items: center;
+    color: #28160b;
+    font-family: "DejaVu Sans","Segoe UI Symbol","Arial Unicode MS",sans-serif;
+    font-size: 202px;
+    line-height: 1;
+    letter-spacing: 0;
+    background: radial-gradient(circle at 44% 38%,#fff1bd 0%,#e8bd62 46%,#b97024 72%,#5a2b0d 100%);
+    border: 3px solid #d99d39;
+    box-shadow:
+      inset 0 0 0 4px #4e260d88,
+      inset 0 0 28px #fff1aa66,
+      0 0 9px #ffe9aa,
+      0 0 30px #eaa33b,
+      0 0 68px #a85416;
+    text-shadow: 0 1px 0 #f7dd92;
+  }
+}
