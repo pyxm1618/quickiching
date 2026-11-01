@@ -56,7 +56,7 @@ export type ThreeCoinResultClientProps = {
   initialLocalizedContent?: LocalizedReadingContent;
   initialCastingView?: {
     castingId: string;
-    method?: "three_coin" | "yarrow_stalk" | "mei_hua_current_time";
+    method?: "three_coin" | "yarrow_stalk" | "mei_hua_number_time" | "mei_hua_current_time";
     algorithmVersion?: string;
     createdAt?: string;
     context: string;
@@ -189,7 +189,11 @@ export function ThreeCoinResultClient({
     if (state.kind !== "ready") return null;
     const id = clientCastingId ?? castingId;
     if (completedReading) return completedReading;
-    const method: PublicReadingMethod = initialCastingView?.method === "yarrow_stalk" ? "yarrow-stalks" : initialCastingView?.method === "mei_hua_current_time" ? "mei-hua-yi-shu" : "three-coin";
+    const method: PublicReadingMethod = initialCastingView?.method === "yarrow_stalk"
+      ? "yarrow-stalks"
+      : initialCastingView?.method === "mei_hua_number_time" || initialCastingView?.method === "mei_hua_current_time"
+        ? "mei-hua-yi-shu"
+        : "three-coin";
     return buildPublicReading({
       ...(id ? { id } : {}),
       ...(state.createdAt ? { createdAt: state.createdAt } : {}),
