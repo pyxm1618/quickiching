@@ -101,3 +101,14 @@
 .mei-number-ring h2 {left:19.5%;}
 .mei-number-ring p {left:22%;top:26%;}
 @media(max-width:600px) {.mei-number-ring p {top:38%;}}
+
+/* PR #78 reference alignment: desktop scene geometry only. */
+@media(min-width:601px) {
+ .mei-ask .mei-question-scroll {width:88%;max-width:1470px;aspect-ratio:3.128;margin-top:calc(7.8 * var(--scene-unit));}
+ .mei-choose {padding-top:calc(12.6 * var(--scene-unit));}
+ .mei-number-decoration {margin-top:calc(3.37 * var(--scene-unit));}
+ .mei-number-decoration input {left:31%;top:43%;width:38.7%;height:30.5%;}
+ .mei-confirm-cards {width:66.5%;margin-top:calc(8.5 * var(--scene-unit));justify-content:flex-start;}
+ .mei-number-ring {width:46.8%;aspect-ratio:1.625;}
+ .mei-moment {width:62.2%;flex-shrink:0;transform:translateY(calc(.18 * var(--scene-unit)));}
+}
