@@ -459,7 +459,6 @@
 }
 .qic-account-paper::before {
   opacity: .68;
-  filter: contrast(1.18) saturate(.85);
 }
 
 /* Group 3 desktop Account geometry + 320px overlap closeout. */
