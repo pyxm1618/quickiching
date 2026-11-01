@@ -157,6 +157,15 @@ jobs:
           for state in 02 03 04 05 06 07; do
             node scripts/ritual-state-capture.mjs "$state" "$ROOT/ref-$state"
           done
+      - name: Capture seven mobile ritual states
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=.artifacts/ritual-qa/remote/mobile
+          RITUAL_QA_VIEWPORT=mobile node scripts/ritual-capture.mjs "$ROOT/ref-01"
+          for state in 02 03 04 05 06 07; do
+            RITUAL_QA_VIEWPORT=mobile node scripts/ritual-state-capture.mjs "$state" "$ROOT/ref-$state"
+          done
       - name: Generate overlays and differences
         shell: bash
         run: |
