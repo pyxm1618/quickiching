@@ -6,7 +6,7 @@ import { validateAuthCallbackURL } from "@/server/auth/callback";
 
 export const metadata: Metadata = {
   title: "注册 | Quick I Ching",
-  description: "创建 Quick I Ching 账户，用于需要账户的起卦记录与可选深度解读服务。",
+  description: "创建 Quick I Ching 账户，用于“我的解读”与可选深度解读服务。",
   robots: { index: false, follow: false },
 };
 export const dynamic = "force-dynamic";

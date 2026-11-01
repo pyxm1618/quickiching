@@ -18,7 +18,7 @@ export default function ChinesePrivacyPage() {
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">公开的三枚铜钱、蓍草、梅花易数和手动起卦工具不要求账户或付款。起卦进度、可选问题与固定的方法事实可能保存在浏览器会话存储（<code>sessionStorage</code>）中，使当前起卦在页面刷新后仍可恢复。只有当你明确选择保存时，浏览器才会把记录（包括问题）写入仅限本机的本地存储（<code>localStorage</code>）历史；它不属于账户历史或云同步。</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">账户与付费解读数据</h2>
-      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">当商业账户功能已启用且你登录后，Quick I Ching 会保存提供这些功能所需的账户、起卦状态、权益和支付状态。支付由第三方支付合作方 Waffo 安全处理，Quick I Ching 不存储原始银行卡信息。如果问题与账户起卦记录关联，问题文本会以带版本的加密密钥在服务器端加密保存。付费深度解读输出、订单记录与退款处理状态会保存在服务器端，用于交付解读、维护可用次数、处理符合条件的退款并防止重复扣费。</p>
+      <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">当商业账户功能已启用且你登录后，Quick I Ching 会保存提供这些功能所需的账户、起卦状态、权益和支付状态。支付由第三方支付合作方 Waffo 安全处理，Quick I Ching 不存储原始银行卡信息。如果问题与“我的解读”中的账户记录关联，问题文本会以带版本的加密密钥在服务器端加密保存。付费深度解读输出、订单记录与退款处理状态会保存在服务器端，用于交付解读、维护可用次数、处理符合条件的退款并防止重复扣费。</p>
 
       <h2 className="mt-10 font-display text-2xl font-medium">托管与技术日志</h2>
       <p className="mt-4 text-sm leading-7 text-[var(--ink-2)]">与多数网站一样，托管和网络服务商可能处理常规请求信息，例如 IP 地址、浏览器信息、请求网址、时间戳以及安全或可靠性日志。这些记录可用于提供站点服务、防止滥用、诊断故障和履行法律义务。</p>

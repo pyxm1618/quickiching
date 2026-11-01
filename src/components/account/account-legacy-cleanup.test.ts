@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const SRC_ROOT = fileURLToPath(new URL("../../", import.meta.url));
+const SCRIPTS_ROOT = fileURLToPath(new URL("../../../scripts/", import.meta.url));
 const SELF = fileURLToPath(import.meta.url);
 
 function read(relative: string): string {
@@ -39,13 +40,13 @@ describe("Account legacy cleanup guard", () => {
       "saveHistoryRecord",
       "quickiching:public-history",
       "getAccountSummary",
+      "loadHistory",
       "accountAndHistory",
       "Local History",
       "Browser-only history",
       "View history",
       "Saved in this browser",
       "Save reading",
-      "View history",
       "data-save-reading",
       "data-history-",
       "account History",
@@ -57,11 +58,13 @@ describe("Account legacy cleanup guard", () => {
     ];
 
     const offenders: string[] = [];
-    for (const file of sourceFiles(SRC_ROOT)) {
-      if (file === SELF) continue;
-      const content = readFileSync(file, "utf8");
-      for (const token of forbidden) {
-        if (content.includes(token)) offenders.push(`${file.replace(SRC_ROOT, "src/")}: ${token}`);
+    for (const [root, label] of [[SRC_ROOT, "src/"], [SCRIPTS_ROOT, "scripts/"]] as const) {
+      for (const file of sourceFiles(root)) {
+        if (file === SELF) continue;
+        const content = readFileSync(file, "utf8");
+        for (const token of forbidden) {
+          if (content.includes(token)) offenders.push(`${file.replace(root, label)}: ${token}`);
+        }
       }
     }
     expect(offenders).toEqual([]);

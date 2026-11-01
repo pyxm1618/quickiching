@@ -198,7 +198,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
   };
 }
 
-export async function loadHistory(
+export async function loadMyReadings(
   resolvedUser?: { id: string; email: string } | null,
   locale: "en" | "zh-Hans" = "en",
 ): Promise<
