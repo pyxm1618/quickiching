@@ -37,9 +37,9 @@ try {
   await page.waitForSelector('[data-start-deep-reading]');
   assert.equal(await page.$('[data-public-reading-result]'),null);
   await page.click('[data-start-deep-reading]');
-  await page.waitForSelector('[data-deep-reading-report]',{timeout:10000});
+  await page.waitForSelector('[data-ai-deep-reading-report]',{timeout:10000});
   const deep=await page.evaluate(()=>({text:document.body.innerText, requests:window.__requests,forms:document.querySelectorAll('textarea').length}));
-  for (const title of ['Your Question','Cast Basis','Direct Answer','Why','What Matters Most','What To Do Next','View Free Reading']) assert.ok(deep.text.includes(title),title);
+  for (const title of ['Your Question','Core Answer','Why This Is the Case','What This Change Can Bring','When It’s Worth Taking Action','What You Should Do Now','View the Full Hexagram Interpretation']) assert.ok(deep.text.includes(title),title);
   assert.equal(deep.forms,0);
   const post=deep.requests.find(item=>item.method==='POST'); assert.deepEqual(JSON.parse(post.body),{locale:'en'});
   evidence.push({method,deep:{sections:true,postBody:JSON.parse(post.body),report:true}});
