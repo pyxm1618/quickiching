@@ -377,3 +377,10 @@
   .qic-account-outline-button,.qic-account-danger-button { min-width: 132px; margin-left: 42px; }
 }
 
+
+/* Cross-platform title face: use the already-loaded project display font. */
+.qic-account-heading h1 {
+  font-family: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 500;
+}
