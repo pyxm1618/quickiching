@@ -170,6 +170,10 @@ jobs:
               ".artifacts/ritual-qa/remote/ref-$state/runtime.png" \
               ".artifacts/ritual-qa/remote/ref-$state"
           done
+      - name: Capture Free and Deep Reading visual states
+        env:
+          READING_VISUAL_OUTPUT: .artifacts/ritual-qa/remote/readings
+        run: node scripts/reading-business-browser.mjs
       - name: Motion boundary evidence
         shell: bash
         run: |
