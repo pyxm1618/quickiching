@@ -105,7 +105,7 @@ export function PublicReadingResult({
 
   if (isChinese && !resolvedLocalizedContent) {
     return (
-      <section className="reading-reveal" aria-live="polite" data-public-reading-result data-reading-localization-loading>
+      <section aria-live="polite" data-public-reading-result data-reading-localization-loading>
         <p className="mystic-kicker" role={contentError ? "alert" : undefined}>{contentError ? "中文解读加载失败，请刷新后重试。" : "正在加载中文卦象解读…"}</p>
       </section>
     );
@@ -145,7 +145,7 @@ export function PublicReadingResult({
       : <Link href={deepHref} onClick={prepareDeepReading} className="mystic-button">{isChinese ? "获取我的深度解读" : "Get My Deep Reading"}</Link>;
 
   return (
-    <section className="reading-reveal" aria-live="polite" data-public-reading-result data-reading-fingerprint={readingFingerprint(reading)}>
+    <section aria-live="polite" data-public-reading-result data-reading-fingerprint={readingFingerprint(reading)}>
       <h1 id="public-reading-result-title" className="sr-only">{title}</h1>
       <FreeReadingRitualView
         reading={reading}
