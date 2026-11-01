@@ -285,7 +285,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).toContain("The sealed reading could not be interpreted");
   });
 
-  it("renders completed report banner pointing to /zh/account in Chinese mode", () => {
+  it("renders completed report banner pointing to /zh/my-readings in Chinese mode", () => {
     const mockReading: any = {
       primary: { number: 1, englishName: "The Creative", chineseName: "乾" },
       relating: { number: 9, englishName: "Small Taming", chineseName: "小畜" },
@@ -323,15 +323,15 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         }}
       />,
     );
-    expect(html).toContain('href="/zh/account"');
-    expect(html).not.toContain('href="/account"');
+    expect(html).toContain('href="/zh/my-readings"');
+    expect(html).not.toContain('href="/my-readings"');
     expect(html).toContain("查看账户与历史记录 →");
     expect(html).toContain("旧版报告格式");
     expect(html).toContain("测试摘要");
     expect(html).toContain('data-save-reading');
   });
 
-  it("renders completed report banner pointing to /account in English mode", () => {
+  it("renders completed report banner pointing to /my-readings in English mode", () => {
     const mockReading: any = {
       primary: { number: 1, englishName: "The Creative", chineseName: "乾", upper: "qian", lower: "qian" },
       relating: { number: 9, englishName: "Small Taming", chineseName: "小畜", upper: "xun", lower: "qian" },
@@ -383,8 +383,8 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         }}
       />,
     );
-    expect(html).toContain('href="/account"');
-    expect(html).not.toContain('href="/zh/account"');
+    expect(html).toContain('href="/my-readings"');
+    expect(html).not.toContain('href="/zh/my-readings"');
     expect(html).toContain("Restoring the saved evidence bundle");
     expect(html).not.toContain("Unresolved evidence reference");
   });

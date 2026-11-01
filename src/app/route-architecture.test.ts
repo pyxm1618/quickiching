@@ -75,7 +75,7 @@ describe("App Router multilingual architecture", () => {
       "signin",
       "signup",
       "account",
-      "history",
+      "my-readings",
       "pricing",
       "privacy",
       "terms",

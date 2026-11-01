@@ -18,7 +18,7 @@ describe("Public SEO V1 constants", () => {
       "/signup",
       "/account",
       "/pricing",
-      "/history",
+      "/my-readings",
       "/checkout",
       "/result",
       "/readings/three-coin/result",
@@ -59,7 +59,6 @@ describe("Public SEO V1 constants", () => {
     expect(policy.host).toBe("www.quickiching.com");
     expect(JSON.stringify(policy.rules)).not.toContain("/privacy");
     expect(JSON.stringify(policy.rules)).not.toContain("/terms");
-    expect(JSON.stringify(policy.rules)).not.toContain("/history/");
     expect(JSON.stringify(policy.rules)).not.toContain("/readings/");
     expect(JSON.stringify(policy.rules)).toContain("/api/");
   });
