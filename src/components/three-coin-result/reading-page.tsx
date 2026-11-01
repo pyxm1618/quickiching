@@ -5,6 +5,10 @@ import { loadCastingView, loadEntitlementBalance } from "@/server/loaders";
 import { ThreeCoinResultClient } from "./three-coin-result-client";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
+import {
+  normalizeDeepReadingContext,
+  normalizeDeepReadingViewModel,
+} from "@/domain/generation/deep-reading-view-model";
 
 // Both pages and all methods share this owner-scoped loader and client.
 export async function ReadingPage({ searchParams, locale = "en", pageMode = "free" }: {
@@ -28,6 +32,10 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
     result.primaryHexagramNumber,
     ...(result.relatingHexagramNumber === null ? [] : [result.relatingHexagramNumber]),
   ]) : undefined;
+  const initialDeepReadingViewModel = castingView?.reading?.report
+    ? normalizeDeepReadingViewModel(castingView.reading.report, castingView.reading.snapshot)
+    : null;
+  const initialDeepReadingContext = normalizeDeepReadingContext(castingView?.reading?.snapshot);
   const client = <ThreeCoinResultClient pageMode={pageMode} locale={locale} initialSessionId={sessionId}
     initialUser={user ? {id:user.id,email:user.email} : null} initialCredits={balance.available}
     initialInterpretationBundles={initialInterpretationBundles} initialLocalizedContent={initialLocalizedContent}
@@ -35,7 +43,8 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
       castingId: castingView.session.id, method: castingView.session.method,
       algorithmVersion: result?.algorithmVersion, createdAt: castingView.session.createdAt.toISOString(),
       context: castingView.context, lineValuesBottomUp: result?.lineValues ?? null,
-      readingReport: castingView.reading?.report ?? null, deepSnapshot: castingView.reading?.snapshot ?? null,
+      deepReadingViewModel: initialDeepReadingViewModel,
+      deepReadingContext: initialDeepReadingContext,
       owns: castingView.owns,
     } : null} />;
 
