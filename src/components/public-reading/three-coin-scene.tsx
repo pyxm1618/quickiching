@@ -77,7 +77,7 @@ function makeEffects(seed:number) {
     const material=new ShaderMaterial({
       uniforms:{intensity:{value:0}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
       vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`varying vec2 vUv;uniform float intensity;void main(){float d=abs(vUv.x-.5)*2.;float core=exp(-d*d*24.);float halo=exp(-d*d*5.)*.25;float ends=sin(vUv.y*3.14159);vec3 radiance=mix(vec3(1.15,.62,.18),vec3(2.2,1.4,.48),core);gl_FragColor=vec4(radiance,min(.28,(core+halo)*ends*intensity));}`,
+      fragmentShader:`varying vec2 vUv;uniform float intensity;void main(){float d=abs(vUv.x-.5)*2.;float core=exp(-d*d*24.);float halo=exp(-d*d*5.)*.25;float ends=sin(vUv.y*3.14159);vec3 radiance=mix(vec3(1.10,.72,.32),vec3(1.95,1.42,.70),core);gl_FragColor=vec4(radiance,min(.28,(core+halo)*ends*intensity));}`,
     });
     const ribbon=new Mesh(geometry,material);group.add(ribbon);return ribbon;
   });
@@ -109,7 +109,7 @@ function makeEffects(seed:number) {
           float edges=pow(max(0.,sin(clamp(across,0.,1.)*3.14159)),2.);
           float density=smoothstep(.18,.62,wisps(drift+vec2(curl,0.)));
           float a=edges*sin(vUv.y*3.14159)*density*intensity;
-          gl_FragColor=vec4(.91,.73,.53,a);
+          gl_FragColor=vec4(.95,.82,.66,a);
         }`,
     });
     const mesh=new Mesh(geometry,material);group.add(mesh);return mesh;
@@ -189,8 +189,8 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       },undefined,onTextureError));
     }
     const {geometry:coinGeometry}=createCoinGeometry();
-    const edgeMaterial=new MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0x9a6b32,metalness:0.9,roughness:0.42});
-    const faceMaterials=textures.map(map=>new MeshStandardMaterial({map,color:0x715d43,bumpMap:map,bumpScale:0.0015,metalness:0.82,roughness:0.46,envMapIntensity:0.12,emissive:0xb77022,emissiveMap:map,emissiveIntensity:0.003}));
+    const edgeMaterial=new MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0x8d744b,metalness:0.88,roughness:0.46});
+    const faceMaterials=textures.map(map=>new MeshStandardMaterial({map,color:0x796b55,bumpMap:map,bumpScale:0.0015,metalness:0.8,roughness:0.54,envMapIntensity:0.1,emissive:0x9f6a2a,emissiveMap:map,emissiveIntensity:0.0015}));
     const haloGeometry=new PlaneGeometry(2.5,2.5);
     const haloMaterial=new ShaderMaterial({uniforms:{strength:{value:.18}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
       vertexShader:`varying vec2 p;void main(){p=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -327,7 +327,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
             const dx=screen[after*2]-screen[before*2],dy=screen[after*2+1]-screen[before*2+1],length=Math.hypot(dx,dy)||1;
             const depthScale=(camera.position.z-centers[i*3+2])/camera.position.z;
             for(let side=0;side<2;side++) {
-              const offset=(side-.5)*8*scale*depthScale;
+              const offset=(side-.5)*10*scale*depthScale;
               rimPoint.set(centers[i*3]-dy/length*offset,centers[i*3+1]+dx/length*offset,centers[i*3+2]).applyMatrix4(inverseEffects);
               positions.setXYZ(i*2+side,rimPoint.x,rimPoint.y,rimPoint.z);uv.setXY(i*2+side,side,i/99);
             }
@@ -340,12 +340,12 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
             const before=Math.max(0,i-1),after=Math.min(99,i+1),centers=effects.centers[index];
             const dx=centers[after*3]-centers[before*3],dy=centers[after*3+1]-centers[before*3+1],length=Math.hypot(dx,dy)||1;
             for(let side=0;side<2;side++) {
-              const offset=(side-.5)*4;
+              const offset=(side-.5)*7;
               positions.setXYZ(i*2+side,(centers[i*3]-836-dy/length*offset)*scale,(470.5-centers[i*3+1]-dx/length*offset)*scale,0);
               uv.setXY(i*2+side,side,i/99);
             }
           }
-          ribbon.material.uniforms.intensity.value=energy*(index<8?.62:.36);
+          ribbon.material.uniforms.intensity.value=energy*(index<8?.50:.30);
         }
         positions.needsUpdate=true;uv.needsUpdate=true;
       });
@@ -363,7 +363,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         }
         positions.needsUpdate=true;uv.needsUpdate=true;const age=((effectTime-index*200)%1300)/1000;
         const birth=effectTime-age*1000;
-        mesh.material.uniforms.intensity.value=effectTime<index*200||age<0||age>1||birth>1850?0:energy*.22*Math.sin(age*Math.PI);
+        mesh.material.uniforms.intensity.value=effectTime<index*200||age<0||age>1||birth>1850?0:energy*.30*Math.sin(age*Math.PI);
         mesh.material.uniforms.flowTime.value=effectTime/4000;
       });
       effects.glow.position.set((originX-836)*scale,(470.5-(heroScene?650:660))*scale,-5);effects.glow.scale.set(scale,scale*(heroScene?2:1),scale);
