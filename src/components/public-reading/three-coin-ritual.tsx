@@ -46,12 +46,14 @@ export function ThreeCoinRitual({
   dictionary = EN_UI_DICTIONARY,
   homeHeading,
   homeDescription,
+  headingLevel = 1,
   initialSession,
   children,
 }: {
   dictionary?: UiDictionary;
   homeHeading?: string;
   homeDescription?: string;
+  headingLevel?: 1 | 2;
   initialSession?: {
     started?: boolean;
     question?: string;
@@ -60,6 +62,7 @@ export function ThreeCoinRitual({
   };
   children: ReactNode;
 }) {
+  const Heading = headingLevel === 1 ? "h1" : "h2";
   const zh = dictionary.locale === "zh-Hans";
   const [experienceStage, setExperienceStage] = useState<ThreeCoinExperienceStage>(
     () => threeCoinExperienceStageForSession(initialSession),
@@ -263,14 +266,14 @@ export function ThreeCoinRitual({
               <div className="ritual-home-heading" data-leaving={homeLeaving}>
                 <span className="ritual-cloud ritual-home-cloud-left" aria-hidden="true" />
                 <span className="ritual-cloud ritual-home-cloud-right" aria-hidden="true" />
-                <h1><em>{homeTitleFirst}</em>{homeTitleSecond ? <span className="ritual-title-second">{homeTitleSecond}</span> : null}</h1>
+                <Heading><em>{homeTitleFirst}</em>{homeTitleSecond ? <span className="ritual-title-second">{homeTitleSecond}</span> : null}</Heading>
                 <p data-home-hero-copy>{zh ? (homeDescription ?? "在变化之中，重新认识此刻的自己。") : <>Use the I Ching online to rediscover where you are.<br />It is not about predicting the future,<br />but about seeing yourself more clearly in the present.</>}</p>
               </div>
             ) : null}
             {!landing ? (
               <div className="ritual-confirm-heading" data-question-confirm>
                 <span className="ritual-ink" aria-hidden="true" />
-                <h1>{zh ? "此刻，你想问什么？" : <>What Would You Like<br />to Ask?</>}</h1>
+                <Heading>{zh ? "此刻，你想问什么？" : <>What Would You Like<br />to Ask?</>}</Heading>
                 <span className="ritual-cloud" aria-hidden="true" />
                 <p>{zh ? "静下心，写下此刻最想看清的问题。" : "Enter your question with a clear and focused mind."}<br />
                   {zh ? "让三枚铜钱带来易经的启示。" : "Let three coins reveal your guidance from the I Ching."}</p>

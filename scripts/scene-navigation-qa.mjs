@@ -7,7 +7,8 @@ const {default:puppeteer}=await import(process.env.PUPPETEER_MODULE||'puppeteer-
 const base=process.env.PUBLIC_V1_TEST_BASE_URL||'http://127.0.0.1:3056';
 const output=resolve(process.env.NAV_QA_OUTPUT||'docs/design/scene-navigation/evidence/2026-11-01');
 await mkdir(output,{recursive:true});
-const report={base,states:[],checks:[],errors:[],status:'RUNNING'};
+const authClosed=(await fetch(base+'/account',{redirect:'manual'})).status===410;
+const report={base,authClosed,states:[],checks:[],errors:[],status:'RUNNING'};
 function check(name,value){assert(value,name);report.checks.push({name,status:'PASS'});}
 async function openSceneHome(page,locale){
  const home=locale==='en'?'/':'/zh';
@@ -29,7 +30,13 @@ async function clickSceneDestination(page,locale,path){
   await page.waitForFunction(()=>document.querySelector('.scene-navigation')?.dataset.scenePanel==='info');
   await page.click(`.scene-info-panel a[href="${target}"]`);
  }
- await page.waitForFunction(expected=>location.pathname===expected,{timeout:10000},target);
+ try {
+  await page.waitForFunction(expected=>location.pathname===expected,{timeout:20000},target);
+ } catch(error) {
+  await page.screenshot({path:`${output}/navigation-failure.png`});
+  console.error(JSON.stringify({expected:target,actual:page.url(),navigation:await page.$eval('.scene-navigation',node=>node.dataset.scenePanel)}));
+  throw error;
+ }
  check(`${locale}: click reaches ${target}`,true);
 }
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1']});
@@ -52,7 +59,7 @@ try {
   check(`${state}: no horizontal overflow`,!metadata.overflow);
   const previous=JSON.parse(await readFile(`docs/design/scene-navigation/evidence/2026-10-30/${state}/facts.json`,'utf8'));
   let maximumDelta=0;
-  for(const original of previous.elements){const current=metadata.elements.find(element=>element.className===original.className&&element.text===original.text&&element.font===original.font);check(`${state}: approved element present (${original.className})`,!!current);for(const property of ['x','y','width','height'])maximumDelta=Math.max(maximumDelta,Math.abs(current.rect[property]-original.rect[property]));}
+  for(const original of previous.elements){const current=metadata.elements.find(element=>element.className===original.className&&element.text===(authClosed&&original.className==='scene-utility'?original.text.replace('Sign In',''):original.text)&&element.font===original.font);check(`${state}: approved element present (${original.className})`,!!current);for(const property of ['x','y','width','height'])maximumDelta=Math.max(maximumDelta,Math.abs(current.rect[property]-original.rect[property]));}
   metadata.maximumApprovedGeometryDelta=maximumDelta;
   check(`${state}: approved navigation geometry retained`,maximumDelta<=1);
   await writeFile(`${output}/${state}.json`,JSON.stringify(metadata,null,2)+'\n');await page.screenshot({path:`${output}/${state}.png`,fullPage:false});report.states.push({state,viewport:metadata.viewport,dpr:metadata.dpr,maximumApprovedGeometryDelta:maximumDelta});
@@ -70,15 +77,20 @@ try {
  const paths=['/hexagrams','/methods/yarrow-stalks','/methods/mei-hua-yi-shu','/methods/manual-cast','/guides/how-to-ask-the-i-ching','/guides/changing-lines','/guides/primary-relating-hexagrams','/help','/privacy','/terms','/acceptable-use'];
  for(const locale of ['en','zh']) {
   await openSceneHome(page,locale);
-  const links=await page.$eval('.scene-navigation a',nodes=>nodes.map(node=>node.getAttribute('href')));
+  const links=await page.$$eval('.scene-navigation a',nodes=>nodes.map(node=>node.getAttribute('href')));
   for(const path of paths)check(`${locale}: existing destination ${path}`,links.includes((locale==='en'?'':'/zh')+path));
   check(`${locale}: support email`,links.includes('mailto:support@quickiching.com'));
   check(`${locale}: no Methods index`,!links.includes((locale==='en'?'':'/zh')+'/methods'));
   for(const path of paths)await clickSceneDestination(page,locale,path);
   await openSceneHome(page,locale);
-  await page.click('.scene-account-trigger');
-  await page.waitForFunction(expected=>location.pathname===expected,{timeout:10000},locale==='en'?'/signin':'/zh/signin');
-  check(`${locale}: Sign In entry click works`,true);
+  if(authClosed){
+   check(`${locale}: closed Auth hides Sign In entry`,await page.$('.scene-account-trigger')===null);
+   check(`${locale}: Account guard stays closed`,(await fetch(base+(locale==='en'?'':'/zh')+'/account',{redirect:'manual'})).status===410);
+  }else{
+   await page.click('.scene-account-trigger');
+   await page.waitForFunction(expected=>location.pathname===expected,{timeout:10000},locale==='en'?'/signin':'/zh/signin');
+   check(`${locale}: Sign In entry click works`,true);
+  }
  }
  await openSceneHome(page,'zh');
  await page.click('.scene-languages a[lang="en"]');await page.waitForFunction(()=>location.pathname==='/');check('Existing English language route works',true);

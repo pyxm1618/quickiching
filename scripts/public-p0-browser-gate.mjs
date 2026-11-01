@@ -79,8 +79,8 @@ async function resetThreeCoin(page) {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate((key) => {
     sessionStorage.removeItem(key);
-    sessionStorage.removeItem("quickiching:question:three-coin:started");
-    sessionStorage.removeItem("quickiching:question:three-coin:question");
+    localStorage.removeItem("quickiching:public-v1:three-coin-completed-backup");
+    sessionStorage.removeItem("quickiching:public-v1:completed-reading");
   }, THREE_COIN_STORAGE_KEY);
 }
 
@@ -111,6 +111,8 @@ async function verifyChineseNoChangingLines(page) {
 async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, question = "") {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(({ key, id: readingId, createdAt: readingCreatedAt, steps, question: coreQuestionAtCast }) => {
+    localStorage.removeItem("quickiching:public-v1:three-coin-completed-backup");
+    sessionStorage.removeItem("quickiching:public-v1:completed-reading");
     sessionStorage.setItem(key, JSON.stringify({
       schemaVersion: 1,
       id: readingId,
@@ -129,8 +131,8 @@ async function openSeededThreeCoinResult(page, locale = "en") {
   const resultPath = `${prefix}/readings/three-coin/result`;
   await page.goto(`${BASE}${methodPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForFunction(() => {
-    const badge = document.querySelector(".ritual-progress-badge");
-    return badge?.textContent?.trim().startsWith("6 / 6") === true;
+    return document.querySelector('[data-ritual-view="complete"]') !== null
+      && document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 6;
   }, { timeout: 15_000 });
   await new Promise((resolve) => setTimeout(resolve, 500));
   assert.equal(new URL(page.url()).pathname, methodPath, "Restored completed cast must not auto-navigate to an old result");
@@ -223,29 +225,24 @@ async function verifySeoAssets(page) {
 }
 
 
+async function recordFormalLine(page, count) {
+  await page.waitForSelector('.hold-button:not(:disabled)', { timeout: 15_000 });
+  await clickText(page, "Toss three coins");
+  await clickText(page, "Record This Cast");
+  if (count < 6) await page.waitForFunction(expected => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === expected, { timeout: 15_000 }, count);
+}
+
 async function verifyQuestionReading(page) {
   const question = "What deserves my attention in this transition?";
   await resetThreeCoin(page);
   await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector("textarea[data-private-question]");
   await page.type("textarea[data-private-question]", question);
-  await clickText(page, "Continue with question");
+  await clickText(page, "Start Divination");
+  await clickText(page, "Cast the Coins");
+  for (let line = 1; line <= 6; line += 1) await recordFormalLine(page, line);
 
-  const castButtonSelector = 'button[aria-label^="Toss three coins"]';
-  for (let line = 1; line <= 6; line += 1) {
-    await page.waitForSelector(castButtonSelector, { timeout: 15_000 });
-    await page.click(castButtonSelector);
-    if (line === 6) {
-      await page.waitForFunction(
-        () => location.pathname === "/readings/three-coin/result" || Boolean(document.body?.innerText?.includes("6 / 6 lines")),
-        { timeout: 15_000 },
-      );
-    } else {
-      await waitForText(page, `${line} / 6 lines`);
-    }
-  }
-
-  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
   await waitForText(page, "Your six lines are complete");
   await assertQuestionPrivacy(page, question, { requireVisible: false });
 
@@ -276,30 +273,17 @@ async function verifyQuestionSkipFreeOnly(page) {
   await resetThreeCoin(page);
   await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
   await clickText(page, "Skip — free reading only");
-  await waitForText(page, "This cast will remain free-only");
-  assert.equal(await page.$('input[data-private-question]'), null, "Skipping must not leave a question field that suggests later binding");
-  await clickText(page, "Start over with a question");
-  await page.waitForSelector("textarea[data-private-question]");
+  await page.waitForSelector('[data-experience-stage="question-confirm"]');
+  await page.click('.ritual-back');
+  await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]');
   await clickText(page, "Skip — free reading only");
-
-  const castButtonSelector = 'button[aria-label^="Toss three coins"]';
-  await page.waitForSelector(castButtonSelector, { timeout: 15_000 });
-  await page.click(castButtonSelector);
-  await waitForText(page, "A question was not set before the first line was cast");
-  await waitForText(page, "1 / 6 lines");
+  await clickText(page, "Cast the Coins");
+  await recordFormalLine(page, 1);
   assert.equal(await page.$('input[data-private-question]'), null, "A skipped question cannot be added after the first line is cast");
   assert.equal(await page.$("button[data-question-restart]"), null, "A frozen free-only cast must not offer late question restart");
+  for (let line = 2; line <= 6; line += 1) await recordFormalLine(page, line);
 
-  for (let line = 2; line <= 6; line += 1) {
-    await page.waitForFunction((selector) => {
-      const button = document.querySelector(selector);
-      return button instanceof HTMLButtonElement && !button.disabled;
-    }, { timeout: 15_000 }, castButtonSelector);
-    await page.click(castButtonSelector);
-    if (line < 6) await waitForText(page, `${line} / 6 lines`);
-  }
-
-  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
   await waitForText(page, "Your six lines are complete");
   const state = await page.evaluate(() => ({
     session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
@@ -371,7 +355,7 @@ async function startManual(page) {
 async function buildManual(page, values) {
   await setManualValues(page, values);
   await clickText(page, "Build reading");
-  await waitForText(page, "Your I Ching reading");
+  await page.waitForSelector("[data-free-reading-ritual]");
 }
 
 async function newManual(page) {
@@ -386,8 +370,8 @@ async function verifyManualAndMovement(page) {
   await buildManual(page, [7, 8, 7, 8, 7, 8]);
   assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 0, "No-moving reading must not render a fabricated relating hexagram");
   assert.equal(await page.$$eval("[data-no-relating-card]", (nodes) => nodes.length), 1, "No-moving reading must explain that there is no relating hexagram");
-  await waitForText(page, "No changing lines");
-  await waitForText(page, "No line changed, so this reading remains centered on the primary hexagram.");
+  assert.equal(await page.$$eval("[data-active-line]", nodes => nodes.length), 0, "A still cast must not show an active changing line");
+  await waitForText(page, "No Relating Hexagram");
   const noChangeText = await page.$eval("[data-public-reading-result]", (node) => node.textContent ?? "");
   assert(!/Changing line\(s\):\s*None/.test(noChangeText), "No-moving reading must not display a bare None");
   await newManual(page);
@@ -395,7 +379,7 @@ async function verifyManualAndMovement(page) {
   assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 1, "Single-moving reading must render one relating card");
   await newManual(page);
   await buildManual(page, [6, 9, 8, 7, 8, 7]);
-  await waitForText(page, "Changing line(s): 1, 2");
+  assert.deepEqual(await page.$$eval("[data-active-line]", nodes => nodes.map(node => Number(node.dataset.activeLine))), [1, 2]);
   assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 1, "Multiple-moving reading must render one relating card");
   await newManual(page);
   await page.focus('[role="tab"][aria-selected="true"]');
@@ -405,7 +389,7 @@ async function verifyManualAndMovement(page) {
   await page.select("#manual-primary-hexagram", "24");
   await page.click('input[type="checkbox"]');
   await clickText(page, "Build reading");
-  await waitForText(page, "Your I Ching reading");
+  await page.waitForSelector("[data-free-reading-ritual]");
   await assertNoOverflow(page, "Manual Cast 390px");
   log("Manual A/B, keyboard tab semantics, no/single/multiple moving lines, shared result, and no randomness UI PASS");
 }
@@ -414,17 +398,21 @@ async function verifyPartialRestart(page) {
   const question = "What remains important if I begin again?";
   await seedThreeCoinSession(page, "partial-reading-before", "2026-08-19T10:00:00.000Z", FIXTURE_STEPS.slice(0, 1), question);
   await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await waitForText(page, "1 / 6 lines");
-  const before = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
-  await clickText(page, "Restart casting");
-  await waitForText(page, "0 / 6 lines");
-  const after = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
-  assert.notEqual(after.id, before.id, "Restart casting must create a fresh reading identity");
-  assert.notEqual(after.createdAt, before.createdAt, "Restart casting must create a fresh timestamp");
-  assert.equal(after.question, question, "Restart casting must preserve the active question");
-  assert.equal("data" in after, false, "Restart casting must discard partial cast facts");
-  assert.equal(await page.$eval("input[data-private-question]", (node) => node.value), question, "Restart casting must preserve the editable question UI");
-  log("Partial Three-Coin restart preserves the question while replacing identity and cast facts PASS");
+  await page.waitForFunction(() => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 1);
+  const before = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
+  await page.click('.ritual-back');
+  await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]');
+  assert.equal(await page.evaluate(key => sessionStorage.getItem(key), THREE_COIN_STORAGE_KEY), null, "Formal restart must clear the old partial cast");
+  await page.type("textarea[data-private-question]", question);
+  await clickText(page, "Start Divination");
+  await clickText(page, "Cast the Coins");
+  await page.waitForSelector('.hold-button:not(:disabled)');
+  const after = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
+  assert.notEqual(after.id, before.id, "Restart must create a fresh reading identity");
+  assert.notEqual(after.createdAt, before.createdAt, "Restart must create a fresh timestamp");
+  assert.equal(after.question, question, "The same question can start a new independent cast");
+  assert.equal("data" in after, false, "Restart must discard partial facts");
+  log("Formal partial restart clears old facts and permits a fresh same-question cast PASS");
 }
 
 async function verifyYarrowPartialRestart(page) {
@@ -507,7 +495,7 @@ try {
   await verifyAccountPersistenceBoundary(page);
   await verifyResponsiveKeyboard(page);
   await context.close();
-  log("ALL PUBLIC P0 BROWSER FLOWS PASS (including real keyboard Manual tabs and Three-Coin/Yarrow partial restart; AI activation is separately fail-closed)");
+  log("ALL PUBLIC P0 BROWSER FLOWS PASS (including real keyboard Manual tabs and formal Three-Coin/Yarrow partial restart; AI activation is separately fail-closed)");
 } finally {
   await browser.close();
 }

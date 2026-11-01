@@ -32,7 +32,7 @@ export default function ChineseThreeCoinMethodPage() {
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
-        <ThreeCoinRitual dictionary={dictionary} homeHeading="开始三枚铜钱起卦" homeDescription="写下一个核心问题，确认后使用与首页完全相同的六次起爻流程。">
+        <ThreeCoinRitual headingLevel={2} dictionary={dictionary} homeHeading="开始三枚铜钱起卦" homeDescription="写下一个核心问题，确认后使用与首页完全相同的六次起爻流程。">
           <ThreeCoinTool dictionary={dictionary} />
         </ThreeCoinRitual>
       </section>

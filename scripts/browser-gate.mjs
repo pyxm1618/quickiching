@@ -478,7 +478,7 @@ async function finishThreeCoin(page) {
     if (line < 6) await waitForRecordedLines(page,line);
   }
 
-  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
   const sealedBeforeGate = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
   assert(sealedBeforeGate, "Completed Three-Coin reading must remain sealed after result navigation");
   const castLineValues = await page.evaluate((key) => {

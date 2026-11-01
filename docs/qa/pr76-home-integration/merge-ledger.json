@@ -126,7 +126,7 @@
       "path": "src/components/public-reading/three-coin-ritual.tsx",
       "change": "A",
       "state": "approved / pass",
-      "evidence": "Home formal ritual with integration performance preloads matched to CSS assets."
+      "evidence": "Home formal ritual with integration performance preloads matched to CSS assets. Method pages request H2 because the enclosing article already owns H1; Home remains H1. EN/ZH regression tests failed with 2 H1s before the fix and passed afterward. Existing heading styles apply unchanged."
     },
     {
       "path": "src/components/public-reading/three-coin-tool.navigation.test.ts",
@@ -312,7 +312,7 @@
       "path": "scripts/browser-gate.mjs",
       "change": "M",
       "state": "approved / pass",
-      "evidence": "Formal Home marker/result path; decline obstructing consent via real UI before navigation. Reproduced hit-test interception by consent banner at 320px."
+      "evidence": "Formal Home marker/result path; decline obstructing consent via real UI before navigation. Reproduced hit-test interception by consent banner at 320px. Wait for final Account canonical /readings/result after formal Three-Coin compatibility redirect."
     },
     {
       "path": "scripts/homepage-seo-audit.mjs",
@@ -343,21 +343,39 @@
       "change": "M",
       "state": "approved / pass",
       "evidence": "Include new formal ritual file in master-asset restoration guard."
+    },
+    {
+      "path": "scripts/scene-navigation-qa.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Retain original navigation geometry at exact viewports (117 checks, 0px delta). Verify actual closed Auth boundary before omitting Sign In; fix single vs multiple element query and bounded navigation wait diagnostics."
+    },
+    {
+      "path": "scripts/public-p0-browser-gate.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Replace retired Three-Coin interactions with formal confirmation, real cast and explicit record. Isolate current completed backup/session fixtures; assert final Account canonical result route and official reset. Preserve Manual movement, Yarrow restart and privacy/auth boundaries."
     }
   ],
   "counts": {
-    "approved / pass": 47,
+    "approved / pass": 49,
     "confirmed reject / delete": 10
   },
-  "original_total": 57,
+  "original_total": 59,
   "validation": {
-    "unit": "975 passed",
+    "unit": "977 passed",
     "postgres": "161 passed, 26 suites, isolated PostgreSQL 16",
     "lint": "0 errors, 2 existing hexagram img warnings",
     "typecheck": "PASS",
     "fixture_build": "PASS",
     "runtime_assets": "14 of 14 PASS",
-    "browser": "deferred: full reruns and final-head GitHub Actions pending"
+    "browser": "Formal Three-Coin, real Auth/History, reading business and navigation passed; final full Public P0 and final-head Actions pending",
+    "production_build": "PASS without local QA route",
+    "navigation": "117 checks PASS, approved geometry delta 0",
+    "chinese_seo": "73/73 PASS",
+    "bilingual_browser": "PASS desktop/390/412, session and question preserved",
+    "hexagram_detail": "128/128 EN/ZH desktop/mobile DOM/SEO and hub navigation PASS",
+    "performance": "BLOCKED: prior-head Linux 92 and Metal 89, required >=95. Direct-delivery experiment did not fix cold LCP and was reverted. Thresholds unchanged."
   },
   "source_commits": [
     "6be6522379010aaa4b326d354a850505350a55d8 test: remove obsolete question-lock privacy cases",
