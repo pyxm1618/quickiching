@@ -77,7 +77,7 @@ function makeEffects(seed:number) {
     const material=new ShaderMaterial({
       uniforms:{intensity:{value:0}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
       vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`varying vec2 vUv;uniform float intensity;void main(){float d=abs(vUv.x-.5)*2.;float core=exp(-d*d*24.);float halo=exp(-d*d*5.)*.25;float ends=sin(vUv.y*3.14159);vec3 radiance=mix(vec3(1.35,.4,.07),vec3(2.45,1.08,.2),core);gl_FragColor=vec4(radiance,min(.28,(core+halo)*ends*intensity));}`,
+      fragmentShader:`varying vec2 vUv;uniform float intensity;void main(){float d=abs(vUv.x-.5)*2.;float core=exp(-d*d*24.);float halo=exp(-d*d*5.)*.25;float ends=sin(vUv.y*3.14159);vec3 radiance=mix(vec3(1.15,.62,.18),vec3(2.2,1.4,.48),core);gl_FragColor=vec4(radiance,min(.28,(core+halo)*ends*intensity));}`,
     });
     const ribbon=new Mesh(geometry,material);group.add(ribbon);return ribbon;
   });
@@ -146,12 +146,12 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     const camera=new PerspectiveCamera(35,1672/941,1,10000);
     camera.position.z=941/(2*Math.tan(35*Math.PI/360));
     renderer.setClearColor(0,0);renderer.outputColorSpace=SRGBColorSpace;
-    renderer.toneMapping=ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
+    renderer.toneMapping=ACESFilmicToneMapping;renderer.toneMappingExposure=0.9;
     const sceneTarget=new WebGLRenderTarget(1672,941,{type:HalfFloatType});
     const postTarget=new WebGLRenderTarget(1,1,{type:HalfFloatType,depthBuffer:false});
     const composer=new EffectComposer(renderer,postTarget);
     composer.addPass(new TexturePass(sceneTarget.texture));
-    const bloom=new UnrealBloomPass(new Vector2(1672,941),0.6,0.3,1.0);
+    const bloom=new UnrealBloomPass(new Vector2(1672,941),0.5,0.3,1.0);
     composer.addPass(bloom);
     // Preserve the DOM room under transparent pixels; bloom never replaces the room.
     composer.addPass(new ShaderPass({
@@ -189,8 +189,8 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       },undefined,onTextureError));
     }
     const {geometry:coinGeometry}=createCoinGeometry();
-    const edgeMaterial=new MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0x9a6b32,metalness:0.9,roughness:0.36});
-    const faceMaterials=textures.map(map=>new MeshStandardMaterial({map,color:0x715d43,bumpMap:map,bumpScale:0.0015,metalness:0.82,roughness:0.4,envMapIntensity:0.12,emissive:0xb77022,emissiveMap:map,emissiveIntensity:0.003}));
+    const edgeMaterial=new MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0x9a6b32,metalness:0.9,roughness:0.42});
+    const faceMaterials=textures.map(map=>new MeshStandardMaterial({map,color:0x715d43,bumpMap:map,bumpScale:0.0015,metalness:0.82,roughness:0.46,envMapIntensity:0.12,emissive:0xb77022,emissiveMap:map,emissiveIntensity:0.003}));
     const haloGeometry=new PlaneGeometry(2.5,2.5);
     const haloMaterial=new ShaderMaterial({uniforms:{strength:{value:.18}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
       vertexShader:`varying vec2 p;void main(){p=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -249,7 +249,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       const scale=Math.min(width/1672,height/941)*941/height;
       let layerOpacity=0;
       key.intensity=input.phase==='progress'?.32:input.phase==='settled'?.60:input.phase==='hero'||input.phase==='hero-exit'?.85:1.15;
-      rim.intensity=input.phase==='progress'?2.0:input.phase==='settled'?2.5:input.phase==='hero'||input.phase==='hero-exit'?2.8:3.25;
+      rim.intensity=input.phase==='progress'?1.1:input.phase==='settled'?1.9:input.phase==='hero'||input.phase==='hero-exit'?2.3:2.7;
       fill.intensity=input.phase==='progress'?.05:input.phase==='settled'?.07:input.phase==='hero'||input.phase==='hero-exit'?.12:.16;
       coins.forEach((coin,index)=> {
         const pose=coinPose({phase:input.phase,face:input.faces[index],index,time,seed:input.visualSeed,reducedMotion:reduced.matches});
@@ -291,7 +291,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         if(heroScene && i%20>=13 && i%20<18) {
           const anchor=effects.heroCurves[i%effects.heroCurves.length].getPoint(n);
           x=anchor.x+(progressScene?-112:0)+(visualNoise(input.visualSeed,i+400)-.5)*20;
-          y=anchor.y-age*20;
+          y=(progressScene?770+(anchor.y-770)*.70:anchor.y)-age*20;
         }
         const birth=effectTime-age*1900;
         opacities.setX(i,particleCanEmit(birth,input.visualSeed,i)?Math.min(1,age*8,(1-age)*8):0);
@@ -327,7 +327,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
             const dx=screen[after*2]-screen[before*2],dy=screen[after*2+1]-screen[before*2+1],length=Math.hypot(dx,dy)||1;
             const depthScale=(camera.position.z-centers[i*3+2])/camera.position.z;
             for(let side=0;side<2;side++) {
-              const offset=(side-.5)*4*scale*depthScale;
+              const offset=(side-.5)*8*scale*depthScale;
               rimPoint.set(centers[i*3]-dy/length*offset,centers[i*3+1]+dx/length*offset,centers[i*3+2]).applyMatrix4(inverseEffects);
               positions.setXYZ(i*2+side,rimPoint.x,rimPoint.y,rimPoint.z);uv.setXY(i*2+side,side,i/99);
             }
@@ -335,7 +335,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
           ribbon.material.uniforms.intensity.value=energy*castTrailIntensity(effectTime,index%3);
         } else {
           const centers=effects.centers[index];
-          for(let i=0;i<100;i++) {const point=effects.heroCurves[index].getPoint(i/99);centers[i*3]=point.x+(progressScene?-112:0);centers[i*3+1]=progressScene?770+(point.y-770)*.85:point.y;}
+          for(let i=0;i<100;i++) {const point=effects.heroCurves[index].getPoint(i/99);centers[i*3]=point.x+(progressScene?-112:0);centers[i*3+1]=progressScene?770+(point.y-770)*.70:point.y;}
           for(let i=0;i<100;i++) {
             const before=Math.max(0,i-1),after=Math.min(99,i+1),centers=effects.centers[index];
             const dx=centers[after*3]-centers[before*3],dy=centers[after*3+1]-centers[before*3+1],length=Math.hypot(dx,dy)||1;
