@@ -50,7 +50,7 @@ async function waitForText(page, text, timeout = 15_000) {
 
 async function clickText(page, text) {
   if (["Cast the Coins", "Record This Cast", "开始掷币", "记录这一爻"].includes(text)) {
-    await page.waitForFunction(wanted => [...document.querySelectorAll("button")].some(node => node.textContent?.trim() === wanted && !node.disabled), {timeout:3000}, text);
+    await page.waitForFunction(wanted => [...document.querySelectorAll("button")].some(node => node.textContent?.trim() === wanted && !node.disabled), {timeout:15000}, text);
   }
   const clicked = await page.evaluate((wanted) => {
     const node = [...document.querySelectorAll("button")].find((candidate) => candidate.textContent?.trim() === wanted);

@@ -399,7 +399,8 @@
     "brand": "PASS: EN/ZH current scene and Info brand, immersive hidden header, retired footer absent, mobile",
     "result_lighthouse": "Local PASS: mobile performance96 LCP2625 CLS0.053; desktop performance98 LCP980 CLS0.0545; auth-before-reveal asserted on real current result route.",
     "public_p0_lighthouse": "Local FAIL: AFTER_HOME performance93 <95; AFTER_HOME_MOBILE LCP3536 recorded. Budgets unchanged.",
-    "same_cast_handoff": "PASS EN/ZH: real formal cast over stale completed-reading fixture, exact URL/callback id, exact line facts, refresh. Red reproduction: original URL session=null. Minimal runtime fix carries readingMeta.id in existing result URL."
+    "same_cast_handoff": "PASS EN/ZH: real formal cast over stale completed-reading fixture, exact URL/callback id, exact line facts, refresh. Red reproduction: original URL session=null. Minimal runtime fix carries readingMeta.id in existing result URL.",
+    "public_p0_readiness": "Prior-head GitHub Public gate reproduced a 3000ms timeout waiting for Cast the Coins readiness after typing, while canonical/browser suites used longer condition waits. Match the existing 15000ms browser boundary, preserving enabled-button assertions and all product timing."
   },
   "source_commits": [
     "6be6522379010aaa4b326d354a850505350a55d8 test: remove obsolete question-lock privacy cases",
