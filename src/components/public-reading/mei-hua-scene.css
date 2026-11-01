@@ -24,7 +24,7 @@
 .mei-question-summary {position:absolute;right:5%;top:3%;z-index:2;width:35%;min-height:calc(6.6 * var(--scene-unit));padding:14px 65px 14px 24px;background:#f8e4bc url('/mei-hua/moment-card.webp') center/100% 100% no-repeat;color:#271a0e;border:1px solid #d5a158;border-radius:8px;}
 .mei-question-summary span {font-size:calc(1.1 * var(--scene-unit));}
 .mei-question-summary p {font-size:calc(1.25 * var(--scene-unit));line-height:1.4;overflow-wrap:anywhere;margin-top:5px;max-height:6em;overflow:auto;}
-.mei-question-summary button {position:absolute;right:18px;bottom:16px;color:#271a0e;font-size:calc(1.1 * var(--scene-unit));cursor:pointer;}
+.mei-question-summary button {position:absolute;right:18px;bottom:16px;display:inline-flex;align-items:center;justify-content:center;min-width:72px;min-height:32px;padding:5px 8px;color:#271a0e;font-size:calc(1.1 * var(--scene-unit));line-height:1.2;cursor:pointer;}
 .mei-choose {padding-top:calc(7.5 * var(--scene-unit));text-align:center;}
 .mei-choose .mei-heading {text-align:left;width:68%;margin:auto;}
 .mei-choose .mei-heading p {margin:0;max-width:none;font-size:calc(.95 * var(--scene-unit));}
