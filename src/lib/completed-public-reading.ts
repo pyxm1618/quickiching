@@ -11,7 +11,7 @@ const completedSchema = z.object({
   method: z.enum(["three-coin", "yarrow-stalks", "mei-hua-yi-shu"]), methodVersion: z.string().max(80),
   question: z.string().max(1000).optional(),
   lineValuesBottomUp: z.array(z.union([z.literal(6), z.literal(7), z.literal(8), z.literal(9)])).length(6),
-  evidence: z.object({ kind: z.enum(["three-coin", "yarrow-stalks", "mei-hua-yi-shu", "history"]) }).passthrough(),
+  evidence: z.object({ kind: z.enum(["three-coin", "yarrow-stalks", "mei-hua-yi-shu"]) }).passthrough(),
 });
 
 export function completedPublicReadingPath(id: string, zh = false): string {

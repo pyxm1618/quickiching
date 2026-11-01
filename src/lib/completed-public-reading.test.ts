@@ -37,13 +37,11 @@ describe("common completed reading handoff", () => {
       expect(publicReadingSaveInput(completed).algorithmVersion).toBe(completed.methodVersion);
     }
   });
-  it("recovers read-only three-coin browser history without fabricating toss evidence", () => {
-    const values = new Map<string, string>();
-    vi.stubGlobal("window", {sessionStorage: {setItem: (key: string, value: string) => values.set(key,value), getItem: (key: string) => values.get(key) ?? null}});
-    const historical = buildPublicReading({id: reading.id, method: "three-coin", lineValuesBottomUp: [7,7,7,7,7,7], evidence: {kind: "history", originalMethod: "three-coin"}});
-    writeCompletedPublicReading(historical);
-    expect(readCompletedPublicReading(historical.id)).toEqual(historical);
-    expect(publicReadingSaveInput(historical).method).toBe("three_coin");
+  it("uses formal three-coin evidence for account-compatible save input", () => {
+    const coins = Array.from({ length: 6 }, (_, index) => generateThreeCoinLine(index as 0, () => true));
+    const completed = buildPublicReading({ id: reading.id, method: "three-coin", lineValuesBottomUp: coins.map(line => line.lineValue), evidence: { kind: "three-coin", steps: coins } });
+    expect(publicReadingSaveInput(completed).method).toBe("three_coin");
+    expect(completed.evidence.kind).toBe("three-coin");
   });
   it("fails closed on corrupt storage and propagates blocked writes", () => {
     vi.stubGlobal("window", { sessionStorage: { getItem: () => "{broken", setItem: () => { throw new Error("blocked"); } } });
