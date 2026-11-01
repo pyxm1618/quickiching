@@ -7,7 +7,6 @@ describe("locale UI dictionaries", () => {
     const chinese = getDictionary("zh-Hans");
     expect(Object.keys(chinese)).toEqual(Object.keys(english));
     expect(chinese.questionFirst.heading).toContain("反思");
-    expect(chinese.meiHua.castButton).toContain("起卦");
     expect(chinese.reading.primary).toBe("本卦");
     expect(chinese.reading.relating).toBe("变卦（之卦）");
     expect(chinese.reading.noRelating).toBe("本次没有变卦（之卦）");

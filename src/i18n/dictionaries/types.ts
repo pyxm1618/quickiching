@@ -108,26 +108,6 @@ export type UiDictionary = {
     saveError: string;
     useError: string;
   };
-  meiHua: {
-    kicker: string;
-    heading: string;
-    description: string;
-    timezoneLabel: string;
-    castButton: string;
-    timezoneHelp: string;
-    invalidTimezone: string;
-    conventionKicker: string;
-    conventionHeading: string;
-    momentLocked: string;
-    recordedCalculation: string;
-    timezone: string;
-    formulaDate: string;
-    localHour: string;
-    branch: string;
-    trigram: string;
-    changingLine: string;
-    newReading: string;
-  };
   reading: {
     staticKicker: string;
     title: string;
