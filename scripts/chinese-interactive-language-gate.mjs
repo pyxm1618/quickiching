@@ -77,7 +77,7 @@ async function extractAuditableEntries(page) {
     // 1. 可见文本（过滤 script, style, noscript, template, [hidden], [aria-hidden='true']）
     const clone = document.body.cloneNode(true);
     if (clone instanceof HTMLElement) {
-      clone.querySelectorAll("script, style, noscript, template, [hidden], [aria-hidden='true']").forEach((node) => node.remove());
+      clone.querySelectorAll("script, style, noscript, template, [hidden], [aria-hidden='true'], [data-language-switcher]").forEach((node) => node.remove());
       const visible = (clone.innerText || clone.textContent || "")
         .replace(/\r\n/g, "\n")
         .replace(/\u00a0/g, " ")
@@ -89,7 +89,7 @@ async function extractAuditableEntries(page) {
     const elements = document.querySelectorAll("*");
     const attrs = ["aria-label", "aria-description", "title", "alt", "placeholder"];
     elements.forEach((el) => {
-      if (el.closest("script, style, noscript, template, [hidden], [aria-hidden='true']")) return;
+      if (el.closest("script, style, noscript, template, [hidden], [aria-hidden='true'], [data-language-switcher]")) return;
       for (const attr of attrs) {
         const val = el.getAttribute(attr);
         if (val && val.trim()) {
