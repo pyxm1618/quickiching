@@ -211,6 +211,87 @@ try {
   assert(!hasPendingResearch, "Chinese Hub must not contain legacy PENDING_RESEARCH marker");
   log("English and Chinese Hub → 64 detail links, reachable Chinese Hub, and no PENDING_RESEARCH marker PASS");
 
+  for (const [path, locale, expectedPrefix] of [
+    ["/hexagrams", "en", "/hexagrams/"],
+    ["/zh/hexagrams", "zh-Hans", "/zh/hexagrams/"],
+  ]) {
+    const runtimeErrors = [];
+    const onConsole = (message) => {
+      if (message.type() === "error") runtimeErrors.push("console: " + message.text());
+    };
+    const onPageError = (error) => runtimeErrors.push("pageerror: " + error.message);
+    page.on("console", onConsole);
+    page.on("pageerror", onPageError);
+    try {
+      await page.setViewport({ width: 1669, height: 942 });
+      await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
+      await page.waitForSelector("[data-hexagrams-immersive-page]");
+      const desktop = await page.evaluate(() => ({
+        locale: document.querySelector("[data-hexagrams-immersive-page]")?.getAttribute("data-hexagrams-locale") ?? "",
+        scrollCount: document.querySelectorAll("[data-scroll-hexagram]").length,
+        wheelCount: document.querySelectorAll("[data-wheel-index]").length,
+        selected: document.querySelector("[data-wheel-index][aria-current='true']")?.getAttribute("data-wheel-index") ?? "",
+      }));
+      assert.equal(desktop.locale, locale, `${path}: shared Hub locale marker mismatch`);
+      assert.equal(desktop.scrollCount, 64, `${path}: 8×8 selector must expose 64 items`);
+      assert.equal(desktop.wheelCount, 64, `${path}: wheel must expose 64 items`);
+      assert.equal(desktop.selected, "0", `${path}: Hexagram 1 must be initially selected`);
+      await assertNoOverflow(page, `${path} Hub 1669px`);
+
+      await page.$eval('[data-scroll-hexagram="64"]', (node) => node.click());
+      await page.waitForFunction(() => document.querySelector('[data-wheel-index="63"]')?.getAttribute("aria-current") === "true");
+      await page.focus("[data-hexagram-wheel]");
+      await page.keyboard.press("ArrowRight");
+      await page.waitForFunction(() => document.querySelector('[data-wheel-index="0"]')?.getAttribute("aria-current") === "true");
+      await page.keyboard.press("ArrowLeft");
+      await page.waitForFunction(() => document.querySelector('[data-wheel-index="63"]')?.getAttribute("aria-current") === "true");
+      await page.keyboard.press("ArrowRight");
+      await page.waitForFunction(() => document.querySelector('[data-wheel-index="0"]')?.getAttribute("aria-current") === "true");
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const wheelBox = await page.$eval("[data-hexagram-wheel]", (node) => {
+        const rect = node.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      });
+      await page.mouse.move(wheelBox.x + wheelBox.width * 0.55, wheelBox.y + wheelBox.height * 0.55);
+      await page.mouse.wheel({ deltaY: 120 });
+      await page.waitForFunction(() => document.querySelector('[data-wheel-index="1"]')?.getAttribute("aria-current") === "true");
+
+      await page.$eval('[data-scroll-hexagram="1"]', (node) => node.click());
+      await page.waitForFunction(() => document.querySelector('[data-wheel-index="0"]')?.getAttribute("aria-current") === "true");
+      await page.mouse.move(wheelBox.x + wheelBox.width * 0.82, wheelBox.y + wheelBox.height * 0.72);
+      await page.mouse.down();
+      await page.mouse.move(wheelBox.x + wheelBox.width * 0.82 - 150, wheelBox.y + wheelBox.height * 0.72, { steps: 6 });
+      await page.mouse.up();
+      await page.waitForFunction(() => document.querySelector('[data-wheel-index][aria-current="true"]')?.getAttribute("data-wheel-index") !== "0");
+
+      await page.setViewport({ width: 390, height: 844 });
+      await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
+      await page.waitForSelector("[data-hexagram-wheel]");
+      await assertNoOverflow(page, `${path} Hub 390px`);
+      await page.focus("[data-hexagram-wheel]");
+      await page.keyboard.press("ArrowLeft");
+      await page.waitForFunction(() => document.querySelector('[data-wheel-index="63"]')?.getAttribute("aria-current") === "true");
+    } finally {
+      page.off("console", onConsole);
+      page.off("pageerror", onPageError);
+    }
+    assert.deepEqual(runtimeErrors, [], `${path}: Hub console/page errors detected`);
+
+    await page.setViewport({ width: 1669, height: 942 });
+    await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
+    const beforePath = new URL(page.url()).pathname;
+    await page.$eval('[data-wheel-index="1"]', (node) => node.click());
+    await page.waitForFunction(() => document.querySelector('[data-wheel-index="1"]')?.getAttribute("aria-current") === "true");
+    assert.equal(new URL(page.url()).pathname, beforePath, `${path}: adjacent wheel card click must select without navigating`);
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: "load", timeout: 30_000 }),
+      page.$eval('[data-wheel-index="1"]', (node) => node.click()),
+    ]);
+    assert.equal(new URL(page.url()).pathname, expectedPrefix + CLASSICAL_HEXAGRAMS[1].slug, `${path}: current card must navigate to locale detail route`);
+  }
+  log("English and Chinese immersive Hub data, sync, full-cycle keyboard, wheel, drag, mobile, navigation and zero-error checks PASS");
+
   for (const entry of HEXAGRAM_SEO_REGISTRY.filter((candidate) => sampleNumbers.includes(candidate.number))) {
     await page.setViewport({ width: 390, height: 844 });
     await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
