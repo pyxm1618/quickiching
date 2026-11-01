@@ -3,11 +3,25 @@ import { buildPublicReading } from "@/domain/public-reading/reading";
 import { generateYarrowLine } from "@/domain/casting/yarrow/algorithm";
 import { generateThreeCoinLine } from "@/domain/casting/three-coin/algorithm";
 import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
+import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
+import { LEGACY_MEI_HUA_METHOD_VERSION } from "@/domain/public-reading/types";
 import { completedPublicReadingPath, readCompletedPublicReading, publicReadingSaveInput, writeCompletedPublicReading } from "./completed-public-reading";
 
-const calculation = meiHuaFromUtc(Date.UTC(2026, 9, 31), "UTC");
-const reading = buildPublicReading({ id: "2d0a4f0d-37e8-42bf-9232-9d40518f1e4f", method: "mei-hua-yi-shu", lineValuesBottomUp: calculation.lineValuesBottomUp, evidence: { kind: "mei-hua-yi-shu", calculation } });
+const calculation = meiHuaFromNumberAndTime({
+  number: 17,
+  utcMillis: Date.UTC(2026, 9, 31, 12),
+  ianaTimeZone: "UTC",
+});
+const reading = buildPublicReading({
+  id: "2d0a4f0d-37e8-42bf-9232-9d40518f1e4f",
+  method: "mei-hua-yi-shu",
+  methodVersion: calculation.algorithmVersion,
+  lineValuesBottomUp: calculation.lineValuesBottomUp,
+  evidence: { kind: "mei-hua-yi-shu", calculation },
+});
+
 afterEach(() => vi.unstubAllGlobals());
+
 describe("common completed reading handoff", () => {
   it("preserves method evidence and scopes recovery to the requested session", () => {
     const values = new Map<string, string>();
@@ -17,11 +31,33 @@ describe("common completed reading handoff", () => {
     expect(readCompletedPublicReading("another-session")).toBeNull();
     expect(completedPublicReadingPath(reading.id, true)).toBe(`/zh/readings/result?session=${reading.id}`);
   });
-  it("provides the original method and bounded source inputs for saving", () => {
-    expect(publicReadingSaveInput(reading)).toMatchObject({ method: "mei_hua_current_time", clientCastingId: reading.id, methodCalculation: { utcMillis: calculation.methodCalculation.utcMillis, ianaTimeZone: "UTC" } });
+
+  it("saves active Mei Hua as number + moment with only bounded raw source inputs", () => {
+    expect(publicReadingSaveInput(reading)).toMatchObject({
+      method: "mei_hua_number_time",
+      clientCastingId: reading.id,
+      methodCalculation: {
+        number: 17,
+        utcMillis: calculation.methodCalculation.utcMillis,
+        ianaTimeZone: "UTC",
+      },
+    });
     expect(publicReadingSaveInput(reading).methodCalculation).not.toHaveProperty("movingLinePosition");
   });
-  it("hands all three completed methods to the same canonical route with unchanged source evidence", () => {
+
+  it("keeps historical current-time Mei Hua read-only instead of creating a legacy cast", () => {
+    const oldCalculation = meiHuaFromUtc(Date.UTC(2026, 9, 31), "UTC");
+    const oldReading = buildPublicReading({
+      id: reading.id,
+      method: "mei-hua-yi-shu",
+      methodVersion: LEGACY_MEI_HUA_METHOD_VERSION,
+      lineValuesBottomUp: oldCalculation.lineValuesBottomUp,
+      evidence: { kind: "mei-hua-yi-shu", calculation: oldCalculation },
+    });
+    expect(() => publicReadingSaveInput(oldReading)).toThrow("LEGACY_MEI_HUA_READ_ONLY");
+  });
+
+  it("hands all three active methods to the same canonical route with unchanged source evidence", () => {
     const values = new Map<string, string>();
     vi.stubGlobal("window", { sessionStorage: { setItem: (key: string, value: string) => values.set(key, value), getItem: (key: string) => values.get(key) ?? null } });
     const yarrow = Array.from({ length: 6 }, (_, index) => generateYarrowLine(index as 0, () => 1));
@@ -37,6 +73,7 @@ describe("common completed reading handoff", () => {
       expect(publicReadingSaveInput(completed).algorithmVersion).toBe(completed.methodVersion);
     }
   });
+
   it("recovers read-only three-coin browser history without fabricating toss evidence", () => {
     const values = new Map<string, string>();
     vi.stubGlobal("window", {sessionStorage: {setItem: (key: string, value: string) => values.set(key,value), getItem: (key: string) => values.get(key) ?? null}});
@@ -45,26 +82,26 @@ describe("common completed reading handoff", () => {
     expect(readCompletedPublicReading(historical.id)).toEqual(historical);
     expect(publicReadingSaveInput(historical).method).toBe("three_coin");
   });
+
   it("fails closed on corrupt storage and propagates blocked writes", () => {
     vi.stubGlobal("window", { sessionStorage: { getItem: () => "{broken", setItem: () => { throw new Error("blocked"); } } });
     expect(readCompletedPublicReading()).toBeNull();
     expect(() => writeCompletedPublicReading(reading)).toThrow("blocked");
   });
-
 });
 
-import { clearCompletedReadingForRestart } from './completed-public-reading';
-describe('restart preserves other casting methods', () => {
+import { clearCompletedReadingForRestart } from "./completed-public-reading";
+describe("restart preserves other casting methods", () => {
   it.each([
-    ['yarrow-stalks', 'quickiching:public-v1:yarrow-v2', '/methods/yarrow-stalks'],
-    ['mei-hua-yi-shu', 'quickiching:public-v1:mei-hua-v2', '/methods/mei-hua-yi-shu'],
-    ['three-coin', 'quickiching:public-v1:three-coin', '/methods/three-coin'],
-  ] as const)('clears only %s and the common handoff', (method, key, href) => {
-    const values = new Map([[key,'cast'],['unrelated','preserve'],['quickiching:public-v1:completed-reading','handoff']]);
-    vi.stubGlobal('window', {sessionStorage: {removeItem:(item:string)=>values.delete(item)}, localStorage:{removeItem:vi.fn()}});
+    ["yarrow-stalks", "quickiching:public-v1:yarrow-v2", "/methods/yarrow-stalks"],
+    ["mei-hua-yi-shu", "quickiching:public-v1:mei-hua-number-time-v1", "/methods/mei-hua-yi-shu"],
+    ["three-coin", "quickiching:public-v1:three-coin", "/methods/three-coin"],
+  ] as const)("clears only %s and the common handoff", (method, key, href) => {
+    const values = new Map([[key,"cast"],["unrelated","preserve"],["quickiching:public-v1:completed-reading","handoff"]]);
+    vi.stubGlobal("window", {sessionStorage: {removeItem:(item:string)=>values.delete(item)}, localStorage:{removeItem:vi.fn()}});
     expect(clearCompletedReadingForRestart(method, true)).toBe(`/zh${href}`);
     expect(values.has(key)).toBe(false);
-    expect(values.has('quickiching:public-v1:completed-reading')).toBe(false);
-    expect(values.get('unrelated')).toBe('preserve');
+    expect(values.has("quickiching:public-v1:completed-reading")).toBe(false);
+    expect(values.get("unrelated")).toBe("preserve");
   });
 });
