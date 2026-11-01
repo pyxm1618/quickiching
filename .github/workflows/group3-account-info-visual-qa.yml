@@ -1,0 +1,157 @@
+name: Group 3 Account + Info Visual QA
+
+on:
+  pull_request:
+    branches:
+      - integration/quickiching-ui-redesign
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: group3-account-info-visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visual-regression:
+    name: Account + Info build, browser, responsive, Lighthouse
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GROUP3_VISUAL_QA: "1"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install temporary visual fixture
+        run: node scripts/group3-visual-qa-fixture.mjs install
+
+      - name: Diff whitespace hygiene
+        run: git diff --check
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Unit
+        run: bun run test
+
+      - name: Production build
+        run: bun run build
+
+      - name: Existing runtime asset gate
+        run: node scripts/performance-asset-gate.mjs
+
+      - name: Install browser QA tools
+        run: bun add --no-save --cache-dir=/tmp/quickiching-group3-bun-cache puppeteer-core@24 lighthouse@13.4.1
+
+      - name: Resolve Chrome
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          if [ -z "$CHROME" ]; then
+            echo "System Chrome is required" >&2
+            exit 1
+          fi
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+
+      - name: Start production server
+        shell: bash
+        run: |
+          mkdir -p .artifacts/group3-visual-qa
+          (GROUP3_VISUAL_QA=1 PORT=3036 HOSTNAME=127.0.0.1 bun run start > .artifacts/group3-visual-qa/server.log 2>&1 & echo $! > .artifacts/group3-visual-qa/server.pid)
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3036/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat .artifacts/group3-visual-qa/server.log
+          exit 1
+
+      - name: Capture Account + Info desktop / 390 / 320
+        id: capture
+        continue-on-error: true
+        run: node scripts/group3-visual-capture.mjs .artifacts/group3-visual-qa
+
+      - name: Lighthouse - Info
+        id: lighthouse_info
+        continue-on-error: true
+        shell: bash
+        run: |
+          "$PWD/node_modules/.bin/lighthouse" http://127.0.0.1:3036/guides/how-to-ask-the-i-ching             --quiet --preset=desktop             --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"             --only-categories=performance,accessibility,seo             --output=json --output-path=.artifacts/group3-visual-qa/lighthouse-info.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const r=JSON.parse(fs.readFileSync('.artifacts/group3-visual-qa/lighthouse-info.json','utf8'));
+          const metrics={
+            performance:Math.round(r.categories.performance.score*100),
+            accessibility:Math.round(r.categories.accessibility.score*100),
+            seo:Math.round(r.categories.seo.score*100),
+            lcp:Math.round(r.audits['largest-contentful-paint'].numericValue),
+            cls:Number(r.audits['cumulative-layout-shift'].numericValue.toFixed(3)),
+            tbt:Math.round(r.audits['total-blocking-time'].numericValue)
+          };
+          fs.writeFileSync('.artifacts/group3-visual-qa/lighthouse-info-summary.json',JSON.stringify(metrics,null,2));
+          console.log(metrics);
+          if(metrics.performance<95||metrics.lcp>2750) process.exit(1);
+          NODE
+
+      - name: Lighthouse - Account visual fixture
+        id: lighthouse_account
+        continue-on-error: true
+        shell: bash
+        run: |
+          "$PWD/node_modules/.bin/lighthouse" "http://127.0.0.1:3036/group3-visual-qa-local?view=account"             --quiet --preset=desktop             --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"             --only-categories=performance,accessibility             --output=json --output-path=.artifacts/group3-visual-qa/lighthouse-account.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const r=JSON.parse(fs.readFileSync('.artifacts/group3-visual-qa/lighthouse-account.json','utf8'));
+          const metrics={
+            performance:Math.round(r.categories.performance.score*100),
+            accessibility:Math.round(r.categories.accessibility.score*100),
+            lcp:Math.round(r.audits['largest-contentful-paint'].numericValue),
+            cls:Number(r.audits['cumulative-layout-shift'].numericValue.toFixed(3)),
+            tbt:Math.round(r.audits['total-blocking-time'].numericValue)
+          };
+          fs.writeFileSync('.artifacts/group3-visual-qa/lighthouse-account-summary.json',JSON.stringify(metrics,null,2));
+          console.log(metrics);
+          if(metrics.performance<95||metrics.lcp>2750) process.exit(1);
+          NODE
+
+      - name: Remove temporary visual fixture source
+        if: always()
+        run: node scripts/group3-visual-qa-fixture.mjs remove
+
+      - name: Verify fixture cleanup
+        if: always()
+        shell: bash
+        run: |
+          test ! -e "src/app/(default)/group3-visual-qa-local"
+          git diff --check
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: group3-account-info-visual-qa
+          path: .artifacts/group3-visual-qa
+          if-no-files-found: warn
+          retention-days: 5
+
+      - name: Enforce browser and performance gates
+        if: always()
+        shell: bash
+        run: |
+          status=0
+          [ "${{ steps.capture.outcome }}" = "success" ] || status=1
+          [ "${{ steps.lighthouse_info.outcome }}" = "success" ] || status=1
+          [ "${{ steps.lighthouse_account.outcome }}" = "success" ] || status=1
+          exit "$status"
