@@ -148,7 +148,8 @@ async function verifyHttpAndSeo() {
     "/zh/privacy",
     "/zh/terms",
     "/zh/acceptable-use",
-    "/readings/three-coin/result",
+    "/readings/result",
+    "/zh/readings/result",
   ];
   for (const path of noindexPaths) {
     const response = await expectStatus(path, 200);
@@ -156,7 +157,7 @@ async function verifyHttpAndSeo() {
     assert(/name="robots" content="[^"]*noindex/i.test(html), `${path}: expected noindex metadata`);
   }
 
-  const resultHtml = await (await expectStatus("/readings/three-coin/result", 200)).text();
+  const resultHtml = await (await expectStatus("/readings/result", 200)).text();
   assert(/name="robots" content="[^"]*noindex[^\"]*follow/i.test(resultHtml), "Result route must emit noindex, follow");
   assert(!resultHtml.includes(HOME_TITLE), "Result route must not inherit homepage title");
   assert(!resultHtml.includes(HOME_DESCRIPTION), "Result route must not inherit homepage description");
@@ -195,6 +196,15 @@ async function verifyHttpAndSeo() {
     const response = await expectStatus(path, 308);
     const location = new URL(response.headers.get("location"), BASE);
     assert.equal(location.pathname, destination, `${path}: wrong redirect destination`);
+  }
+
+  for (const [path, destination] of [
+    ["/readings/three-coin/result", "/readings/result"],
+    ["/zh/readings/three-coin/result", "/zh/readings/result"],
+  ]) {
+    const response = await expectStatus(path, 307);
+    const location = new URL(response.headers.get("location"), BASE);
+    assert.equal(location.pathname, destination, `${path}: wrong canonical result redirect`);
   }
 
   const castingMethods = await expectStatus("/casting-methods", 308);
@@ -425,7 +435,7 @@ async function finishThreeCoin(page) {
     if (line < 6) await waitForRecordedLines(page,line);
   }
 
-  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
+  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
   const sealedBeforeGate = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
   assert(sealedBeforeGate, "Completed Three-Coin reading must remain sealed after result navigation");
   const castLineValues = await page.evaluate((key) => {
