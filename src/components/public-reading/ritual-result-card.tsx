@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import {Bookmark, RotateCw} from 'lucide-react';
 import type {PublicReading} from '@/domain/public-reading/types';
