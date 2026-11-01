@@ -36,7 +36,7 @@ export default function ChineseHelpPage() {
           <section className={styles.helpGroup}>
             <PaperArtwork kind="legal" />
             <h2><span className={styles.helpIcon} aria-hidden="true"><UserRound /></span><span>账户与记录</span></h2>
-            <section className={styles.helpQuestion}><h3>我的起卦记录保存在哪里？</h3><p>当前起卦或尚未完成的步骤使用浏览器会话存储（<code>sessionStorage</code>）。当你明确选择“保存本次解读”时，历史页最多在当前浏览器的本地存储（<code>localStorage</code>）中保存 50 条记录；这不是云端账户历史。清除站点或会话数据会移除相应本地记录。</p></section>
+            <section className={styles.helpQuestion}><h3>我的解读保存在哪里？</h3><p>当前起卦或尚未完成的步骤可以使用浏览器会话存储（<code>sessionStorage</code>），用于刷新后的临时恢复。登录后的三枚铜钱起卦完成正式账户保存后，可在“我的解读”中查看。系统不再提供独立的浏览器本地历史产品。</p></section>
           </section>
           <section className={styles.helpGroup}>
             <PaperArtwork kind="legal" />

@@ -198,7 +198,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
   };
 }
 
-export async function loadHistory(
+export async function loadMyReadings(
   resolvedUser?: { id: string; email: string } | null,
   locale: "en" | "zh-Hans" = "en",
 ): Promise<
@@ -239,7 +239,7 @@ export async function loadHistory(
       left join preview_results p on p.casting_id = s.id
       left join deep_reading_results d on d.casting_id = s.id
       where s.user_id = ${user.id} and s.deleted_at is null
-        and s.lifecycle = 'revealed'
+        and s.lifecycle = 'revealed' and s.method = 'three_coin'
       order by s.created_at desc
     ` as Array<Record<string, any>>;
 
@@ -265,7 +265,7 @@ export async function loadHistory(
   }
 
   return repo.listCastsForUser(user.id).filter((s) =>
-    repo.canReadRevealedResult(s.id, user.id) && !!repo.getCastResult(s.id)
+    s.method === "three_coin" && repo.canReadRevealedResult(s.id, user.id) && !!repo.getCastResult(s.id)
   ).map((s) => {
     const cr = repo.getCastResult(s.id);
     const preview = repo.getPreview(s.id);

@@ -169,7 +169,7 @@ async function verifySeoAssets(page) {
   for (const path of HEXAGRAM_PATHS) assert(sitemap.includes(`https://www.quickiching.com${path}`), `Sitemap missing ${path}`);
   assert(sitemap.includes("https://www.quickiching.com/zh/hexagrams"), "Sitemap must include the Chinese Hexagram hub");
   for (const path of CHINESE_HEXAGRAM_PATHS) assert(sitemap.includes(`https://www.quickiching.com${path}`), `Sitemap missing ${path}`);
-  for (const forbidden of ["/history", "/readings/", "/api/", "/trigrams/", "/en/"]) assert(!sitemap.includes(forbidden), `Sitemap contains forbidden path ${forbidden}`);
+  for (const forbidden of ["/my-readings", "/readings/", "/api/", "/trigrams/", "/en/"]) assert(!sitemap.includes(forbidden), `Sitemap contains forbidden path ${forbidden}`);
 
   const hubResponse = await page.goto(`${BASE}/hexagrams`, { waitUntil: "networkidle0", timeout: 30_000 });
   assert.equal(hubResponse?.status(), 200, "Hexagram hub must be reachable");
@@ -213,15 +213,13 @@ async function verifySeoAssets(page) {
     }
   }
 
-  const historyHtml = await (await fetch(`${BASE}/history/`)).text();
-  assert(/name="robots"[^>]*content="[^"]*noindex[^"]*follow/i.test(historyHtml) || /content="[^"]*noindex[^"]*follow[^\"]*"[^>]*name="robots"/i.test(historyHtml), "History must be noindex, follow");
   const retiredGet = await fetch(`${BASE}/api/personalized-interpretation`);
   assert.equal(retiredGet.status, 404, "Retired free personalized endpoint must be closed");
   const retiredPost = await fetch(`${BASE}/api/personalized-interpretation`, { method: "POST" });
   assert.equal(retiredPost.status, 404, "Retired free personalized endpoint must not accept POST");
   const otherApi = await fetch(`${BASE}/api/not-a-route`);
   assert.equal(otherApi.status, 404, "Unlisted API routes must remain closed");
-  log("140-URL sitemap, English/Chinese hubs, entity metadata/anchors, History noindex, and API closure PASS");
+  log("140-URL sitemap, English/Chinese hubs, entity metadata/anchors, private-route exclusion, and API closure PASS");
 }
 
 
@@ -261,7 +259,7 @@ async function verifyQuestionReading(page) {
   assert.equal(questionState.session.coreQuestionFrozenAtCast, true, "The session must record the first-real-cast question freeze");
   assert.equal(questionState.session.data?.steps?.length, 6, "The completed browser session must preserve all six authoritative steps");
   assert(questionState.authGate, "Anonymous completed cast must enter auth-before-reveal");
-  assert.equal(questionState.primaryCard, false, "Free result must not reveal before sign-in and History save");
+  assert.equal(questionState.primaryCard, false, "Free result must not reveal before sign-in and account persistence");
   assert.equal(questionState.deepEntry, false, "Deep Reading must remain downstream of the result reveal gate");
 
   const sessionBeforeRefresh = JSON.stringify(questionState.session);
@@ -334,7 +332,7 @@ async function verifyChineseQuestionAndDeepEntry(page) {
     session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
   }));
   assert(state.authGate, "Chinese anonymous completed cast must enter auth-before-reveal");
-  assert.equal(state.primaryCard, false, "Chinese primary hexagram must remain hidden before History save");
+  assert.equal(state.primaryCard, false, "Chinese primary hexagram must remain hidden before account persistence");
   assert.equal(state.deepEntry, false, "Chinese Deep Reading must remain downstream of saved result reveal");
   assert.equal(state.session.question, question, "Chinese callback source session must preserve the same question");
   assert.equal(state.session.coreQuestionAtCast, question, "Chinese callback source session must preserve the frozen core question");
@@ -453,21 +451,17 @@ async function verifyYarrowPartialRestart(page) {
 }
 
 
-async function verifyHistory(page) {
-  await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.evaluate(() => localStorage.removeItem("quickiching:public-history:v1"));
-  await seedThreeCoin(page, "Same completed cast must wait for account History");
+async function verifyAccountPersistenceBoundary(page) {
+  await seedThreeCoin(page, "Same completed cast must wait for account persistence");
   await openSeededThreeCoinResult(page);
 
   const state = await page.evaluate(() => ({
-    localHistory: JSON.parse(localStorage.getItem("quickiching:public-history:v1") || "[]"),
     authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
     primaryCard: document.querySelector("[data-primary-card]") !== null,
   }));
-  assert(state.authGate, "Anonymous result route must wait for account History persistence");
-  assert.equal(state.primaryCard, false, "Anonymous result route must not reveal before account History persistence");
-  assert.equal(Array.isArray(state.localHistory) ? state.localHistory.length : 0, 0, "New flow must not treat local browser History as the reveal boundary");
-  log("Three-Coin reveal boundary no longer relies on local browser History PASS");
+  assert(state.authGate, "Anonymous result route must wait for account persistence");
+  assert.equal(state.primaryCard, false, "Anonymous result route must not reveal before account persistence");
+  log("Three-Coin reveal boundary requires formal account persistence PASS");
 }
 
 async function verifyResponsiveKeyboard(page) {
@@ -510,7 +504,7 @@ try {
   await verifyPartialRestart(page);
   await verifyYarrowPartialRestart(page);
   await verifyManualAndMovement(page);
-  await verifyHistory(page);
+  await verifyAccountPersistenceBoundary(page);
   await verifyResponsiveKeyboard(page);
   await context.close();
   log("ALL PUBLIC P0 BROWSER FLOWS PASS (including real keyboard Manual tabs and Three-Coin/Yarrow partial restart; AI activation is separately fail-closed)");

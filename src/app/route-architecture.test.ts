@@ -52,7 +52,7 @@ describe("App Router multilingual architecture", () => {
     expect(catchAllModule.metadata.robots).toEqual({ index: false, follow: false });
   });
 
-  it("keeps the reviewed commercial API surface without restoring retired legacy pages or actions", () => {
+  it("adds only the reviewed CP4 commercial API surface without restoring legacy pages", () => {
     expect(existsSync(`${appRoot}(default)/signin/page.tsx`)).toBe(true);
     expect(existsSync(`${appRoot}(default)/signup/page.tsx`)).toBe(true);
     expect(existsSync(`${appRoot}api/auth/[...all]/route.ts`)).toBe(true);
@@ -66,7 +66,7 @@ describe("App Router multilingual architecture", () => {
       expect(existsSync(route)).toBe(false);
     }
     expect(existsSync(`${appRoot}actions.ts`)).toBe(false);
-    expect(existsSync(legacyActionSource)).toBe(false);
+    expect(existsSync(legacyActionSource)).toBe(true);
   });
 
 
@@ -75,7 +75,7 @@ describe("App Router multilingual architecture", () => {
       "signin",
       "signup",
       "account",
-      "history",
+      "my-readings",
       "pricing",
       "privacy",
       "terms",

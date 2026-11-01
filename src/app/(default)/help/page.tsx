@@ -65,7 +65,7 @@ export default function HelpPage() {
             </h2>
             <section className={styles.helpQuestion}>
               <h3>Where is my reading saved?</h3>
-              <p>Public V1 uses browser <code>sessionStorage</code> for the current reading or in-progress ritual. If you choose Save reading, the History page stores a maximum of 50 records in this browser’s <code>localStorage</code>; it is not a cloud account history. Clearing site/session data removes local records.</p>
+              <p>The current reading or an in-progress ritual may use browser <code>sessionStorage</code> so it can recover after a refresh. Signed-in Three-Coin readings that complete the formal account save flow appear in My Readings. There is no separate browser-only reading history product.</p>
             </section>
           </section>
           <section className={styles.helpGroup}>
@@ -78,7 +78,7 @@ export default function HelpPage() {
             </h2>
             <section className={styles.helpQuestion}>
               <h3>Can I get a reading for my specific situation?</h3>
-              <p>The complete free reading explains the cast itself and never calls AI. Deep Reading is offered only when Pricing shows it is available, and supports Three-Coin, Yarrow Stalk, and Mei Hua Yi Shu casts. It requires sign-in, a clear core question set before the first toss, enough situation context, and one credit. It connects that frozen question and your context with the exact cast, its actual changing lines and relating hexagram when present, and cited Quick I Ching source material. If you skipped the question, that cast remains free-only; start a new cast to use Deep Reading. High-risk medical, legal, investment, or urgent safety requests are blocked before generation. A delivered report is saved in account history.</p>
+              <p>The complete free reading explains the cast itself and never calls AI. Deep Reading is offered only when Pricing shows it is available, and supports Three-Coin, Yarrow Stalk, and Mei Hua Yi Shu casts. It requires sign-in, a clear core question set before the first toss, enough situation context, and one credit. It connects that frozen question and your context with the exact cast, its actual changing lines and relating hexagram when present, and cited Quick I Ching source material. If you skipped the question, that cast remains free-only; start a new cast to use Deep Reading. High-risk medical, legal, investment, or urgent safety requests are blocked before generation. A delivered report is saved with the account reading and remains available through My Readings.</p>
             </section>
             <section className={styles.helpQuestion}>
               <h3>How do credit packs and refunds work?</h3>

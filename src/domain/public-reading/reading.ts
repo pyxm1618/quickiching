@@ -43,10 +43,6 @@ function makeId(): string {
 }
 
 function assertEvidenceMatchesMethod(method: PublicReadingMethod, evidence: PublicReadingEvidence): void {
-  if (evidence.kind === "history") {
-    if (evidence.originalMethod !== method) throw new Error("PUBLIC_READING_HISTORY_METHOD_MISMATCH");
-    return;
-  }
   if (method !== evidence.kind) throw new Error("PUBLIC_READING_EVIDENCE_METHOD_MISMATCH");
 }
 
