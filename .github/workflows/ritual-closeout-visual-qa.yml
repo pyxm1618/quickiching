@@ -249,9 +249,19 @@ jobs:
           const performance=Math.round(report.categories.performance.score*100);
           const accessibility=Math.round(report.categories.accessibility.score*100);
           const seo=Math.round(report.categories.seo.score*100);
+          const fcp=Math.round(report.audits['first-contentful-paint'].numericValue);
+          const speedIndex=Math.round(report.audits['speed-index'].numericValue);
           const lcp=Math.round(report.audits['largest-contentful-paint'].numericValue);
           const tbt=Math.round(report.audits['total-blocking-time'].numericValue);
-          console.log(JSON.stringify({performance,accessibility,seo,lcp,tbt}));
+          const cls=Number(report.audits['cumulative-layout-shift'].numericValue.toFixed(4));
+          const metricScores={
+            fcp:Math.round(report.audits['first-contentful-paint'].score*100),
+            speedIndex:Math.round(report.audits['speed-index'].score*100),
+            lcp:Math.round(report.audits['largest-contentful-paint'].score*100),
+            tbt:Math.round(report.audits['total-blocking-time'].score*100),
+            cls:Math.round(report.audits['cumulative-layout-shift'].score*100),
+          };
+          console.log(JSON.stringify({performance,accessibility,seo,fcp,speedIndex,lcp,tbt,cls,metricScores}));
           const boot=(report.audits['bootup-time']?.details?.items||[])
             .sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,12)
             .map(item=>({url:item.url,total:Math.round(item.total||0),scripting:Math.round(item.scripting||0),parse:Math.round(item.scriptParseCompile||0)}));
@@ -318,8 +328,18 @@ jobs:
           const performance=Math.round(report.categories.performance.score*100);
           const accessibility=Math.round(report.categories.accessibility.score*100);
           const seo=Math.round(report.categories.seo.score*100);
+          const fcp=Math.round(report.audits['first-contentful-paint'].numericValue);
+          const speedIndex=Math.round(report.audits['speed-index'].numericValue);
           const lcp=Math.round(report.audits['largest-contentful-paint'].numericValue);
           const tbt=Math.round(report.audits['total-blocking-time'].numericValue);
-          console.log(JSON.stringify({performance,accessibility,seo,lcp,tbt}));
+          const cls=Number(report.audits['cumulative-layout-shift'].numericValue.toFixed(4));
+          const metricScores={
+            fcp:Math.round(report.audits['first-contentful-paint'].score*100),
+            speedIndex:Math.round(report.audits['speed-index'].score*100),
+            lcp:Math.round(report.audits['largest-contentful-paint'].score*100),
+            tbt:Math.round(report.audits['total-blocking-time'].score*100),
+            cls:Math.round(report.audits['cumulative-layout-shift'].score*100),
+          };
+          console.log(JSON.stringify({performance,accessibility,seo,fcp,speedIndex,lcp,tbt,cls,metricScores}));
           if(performance<95||lcp>2750) process.exit(1);
           NODE
