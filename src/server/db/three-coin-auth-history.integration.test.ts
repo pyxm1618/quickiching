@@ -126,8 +126,6 @@ describe("Three-Coin real Auth -> save -> account History integration", () => {
       clientCastingId,
       lineValuesBottomUp,
       question: "Should I continue with the current product direction?",
-      scene: "career",
-      interpretationGoal: "what_do_i_need_to_see_clearly",
     };
 
     const first = await saveReading(readingRequest(sessionCookie!, payload));
