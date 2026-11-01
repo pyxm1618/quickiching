@@ -55,7 +55,7 @@ export default function ChineseChangingLinesGuidePage() {
             <section className={styles.exampleCard}><h3>一个动爻</h3><p>变化位置很集中，可以结合该爻的爻位、经典爻辞与本卦整体一起看。</p></section>
             <section className={styles.exampleCard}><h3>多个动爻</h3><p>不要把每一爻拆成互相无关的预言；先看变化集中在哪些位置，再观察它们如何共同改变六爻结构。</p></section>
           </div>
-          <section className={styles.sectionBreak}><h2 className={styles.paperHeading}>动爻的阅读顺序</h2>
+          <section className={styles.sectionBreak}><h2 className={styles.paperHeading}>易经动爻的阅读顺序</h2>
             <ol className={styles.paperOrdered}><li>先确认本卦的核心结构和所问处境。</li><li>标出 6 与 9 所在的动爻位置。</li><li>阅读相关爻位和爻辞，但不要脱离本卦单独断句。</li><li>再查看动爻翻转形成的之卦，理解结构往哪里变化。</li><li>最后回到现实证据和可执行行动，不把象征性变化当作确定结果。</li></ol>
           </section>
           <section className={styles.sectionBreak}><h2 className={styles.paperHeading}>如何克制地理解变化</h2><p className={styles.paperText}>易经动爻说明“哪里发生结构变化”，并不能证明某个未来事件一定发生。关系中的另一方仍有自主选择，工作与财务也受现实条件影响。把动爻当作需要核对的位置，会比把它当成命令更有用。</p></section>
