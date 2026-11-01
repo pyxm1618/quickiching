@@ -10,7 +10,9 @@
 .meta{display:inline-flex;min-height:2.25rem;align-items:center;justify-content:center;margin-top:.25rem;padding:.35rem 1.3rem;border:1px solid rgba(221,173,70,.72);border-radius:999px;background:rgba(73,35,15,.72);box-shadow:inset 0 0 0 1px rgba(255,232,171,.12),0 5px 20px rgba(0,0,0,.22);color:#f6dc9a;font-family:var(--font-display),Georgia,serif;font-size:.92rem}
 .lead{max-width:62rem;margin:.25rem auto 0;color:#f4e7c8;font-family:var(--font-display),Georgia,serif;font-size:clamp(1.05rem,1.8vw,1.35rem);line-height:1.55}
 .guideMain,.guideSecondary,.helpPanel{position:relative;color:#29170b;text-shadow:none;background-position:center;background-repeat:no-repeat;background-size:100% 100%;filter:drop-shadow(0 20px 34px rgba(0,0,0,.34))}
-.guideMain{min-height:29rem;padding:clamp(3.8rem,6vw,6.7rem) clamp(3.4rem,7vw,7.4rem);background-image:url("/info-pages/guide/guide-main-scroll.png")}
+.guideMain{min-height:29rem;overflow:hidden;padding:clamp(3.8rem,6vw,6.7rem) clamp(3.4rem,7vw,7.4rem);background-image:none}
+.guideMainImage{position:absolute;inset:0;z-index:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
+.guideMain>:not(.guideMainImage){position:relative;z-index:1}
 .guideSecondary{margin-top:1rem;min-height:18rem;padding:clamp(3.2rem,5.5vw,5.8rem) clamp(3.4rem,7vw,7.4rem);background-image:url("/info-pages/guide/guide-secondary-scroll.png")}
 .helpPanel{min-height:39rem;padding:clamp(4rem,6vw,6.5rem) clamp(3.4rem,7vw,7.2rem);background-image:url("/info-pages/help/help-main-panel.png")}
 .paperHeading{margin:0 0 .75rem;font-family:var(--font-display),Georgia,serif;font-size:clamp(1.45rem,2.3vw,2rem);font-weight:700;font-style:italic;line-height:1.15;color:#2a1609}
