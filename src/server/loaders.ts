@@ -242,7 +242,8 @@ export async function loadMyReadings(
       left join preview_results p on p.casting_id = s.id
       left join deep_reading_results d on d.casting_id = s.id
       where s.user_id = ${user.id} and s.deleted_at is null
-        and s.lifecycle = 'revealed' and s.method = 'three_coin'
+        and s.lifecycle = 'revealed'
+        and s.method in ('three_coin', 'yarrow_stalk', 'mei_hua_number_time', 'mei_hua_current_time')
       order by s.created_at desc
     ` as Array<Record<string, any>>;
 
@@ -267,8 +268,9 @@ export async function loadMyReadings(
     });
   }
 
+  const historyMethods = new Set(["three_coin", "yarrow_stalk", "mei_hua_number_time", "mei_hua_current_time"]);
   return repo.listCastsForUser(user.id).filter((s) =>
-    s.method === "three_coin" && repo.canReadRevealedResult(s.id, user.id) && !!repo.getCastResult(s.id)
+    historyMethods.has(s.method) && repo.canReadRevealedResult(s.id, user.id) && !!repo.getCastResult(s.id)
   ).map((s) => {
     const cr = repo.getCastResult(s.id);
     const preview = repo.getPreview(s.id);
