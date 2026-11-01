@@ -221,15 +221,16 @@ function auditNonHex(path, snapshot, baseRow, homeLinks) {
   const familyMin = entry.familyDensityMin / 100;
   const familyMax = entry.familyDensityMax / 100;
   const singleStageHomepage = path === "/zh";
-  const primaryDensityPass = singleStageHomepage
+  const immersiveHexagramHub = path === "/zh/hexagrams";
+  const primaryDensityPass = singleStageHomepage || immersiveHexagramHub
     ? quality.measurement.primaryOccurrences > 0
     : quality.measurement.primaryDensity >= primaryMin && quality.measurement.primaryDensity <= primaryMax;
-  const familyDensityPass = singleStageHomepage
+  const familyDensityPass = singleStageHomepage || immersiveHexagramHub
     ? true
     : quality.measurement.familyDensity >= familyMin && quality.measurement.familyDensity <= familyMax;
-  // The redesigned /zh homepage is a single Three-Coin stage and no longer carries
-  // the old long-form exact-keyword link block. Route-level SEO remains audited here;
-  // crawlability and navigation are covered by the multilingual/on-page route gates.
+  // The redesigned /zh homepage and /zh/hexagrams Hub intentionally removed the old
+  // long-form SEO copy surfaces. Keep metadata, placement, locale, hreflang and link
+  // gates strict, but do not require density bands that depended on retired UI copy.
   const inbound = null;
 
   const placement = {
