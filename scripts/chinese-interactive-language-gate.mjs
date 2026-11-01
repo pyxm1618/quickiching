@@ -463,7 +463,7 @@ async function main() {
     // =========================================================================
     // Test 5: Four Casting Methods Interactive Result Generation & Purity
     // =========================================================================
-    log("Test 5: Four Casting Methods -> Interactive reading generation, kicker, aria, links");
+    log("Test 5: Four Casting Methods -> current result handoff, auth gate, and unified manual result");
 
 
     // 5.a: Three-Coin Method (/zh/methods/three-coin)
@@ -480,34 +480,19 @@ async function main() {
       const session = {
         schemaVersion: 1,
         started: true,
-        id: "gate_tc_reading",
+        id: "550e8400-e29b-41d4-a716-446655440101",
         createdAt: new Date().toISOString(),
         data: { steps },
       };
       sessionStorage.setItem("quickiching:public-v1:three-coin", JSON.stringify(session));
     });
     await page.reload({ waitUntil: "networkidle0" });
-    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading]) [data-free-reading-ritual]", { timeout: 10_000 });
-    const tcMethod = await page.$eval("[data-free-reading-ritual]", (el) => el.getAttribute("data-reading-method"));
-    assert.equal(tcMethod, "three-coin", `Three-coin result method mismatch: ${tcMethod}`);
-
-    // Verify HexagramLines accessibility labels in Three-Coin result
-    const tcLineAria = await page.evaluate(() => {
-      return Array.from(document.querySelectorAll("[data-public-reading-result] [role='img'][aria-label]"))
-        .map((el) => el.getAttribute("aria-label"));
-    });
-    assert(tcLineAria.length >= 6, "Expected at least 6 line aria labels");
-    for (const label of tcLineAria) {
-      assert(label?.startsWith("第"), `Aria label not localized to Chinese: ${label}`);
-      assert(!label?.includes("Line "), `Aria label contains English 'Line ': ${label}`);
-    }
-
-    // Verify detail link has /zh prefix
-    const tcDetailLink = await page.$eval("[data-public-reading-result] [data-primary-card] a[href]", (el) => el.getAttribute("href"));
-    assert(tcDetailLink?.startsWith("/zh/hexagrams/"), `Primary detail link must start with /zh/hexagrams/, got: ${tcDetailLink}`);
-
-    await assertPurity(page, "Three-Coin Complete Reading View");
-    log("Method simulation PASS: three-coin complete reading");
+    assert.equal(new URL(page.url()).pathname, "/zh/methods/three-coin", "A restored completed Three-Coin session must not auto-redirect from the casting page");
+    await page.goto(`${BASE}/zh/readings/result?session=550e8400-e29b-41d4-a716-446655440101`, { waitUntil: "networkidle0" });
+    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+    assert.equal(await page.$("[data-public-reading-result]"), null, "Unsigned Three-Coin result must stay behind the current save/auth gate");
+    await assertPurity(page, "Three-Coin Current Result Auth Gate");
+    log("Method simulation PASS: three-coin current result handoff");
 
     // 5.b: Yarrow Stalk Method (/zh/methods/yarrow-stalks)
     await page.goto(`${BASE}/zh/methods/yarrow-stalks`, { waitUntil: "networkidle0" });
@@ -530,28 +515,18 @@ async function main() {
       const session = {
         schemaVersion: 1,
         started: true,
-        id: "gate_yarrow_reading",
+        id: "550e8400-e29b-41d4-a716-446655440102",
         createdAt: new Date().toISOString(),
         data: { changes },
       };
       sessionStorage.setItem("quickiching:public-v1:yarrow-v2", JSON.stringify(session));
     });
     await page.reload({ waitUntil: "networkidle0" });
-    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading]) [data-free-reading-ritual]", { timeout: 10_000 });
-    const yarrowMethod = await page.$eval("[data-free-reading-ritual]", (el) => el.getAttribute("data-reading-method"));
-    assert.equal(yarrowMethod, "yarrow-stalks", `Yarrow result method mismatch: ${yarrowMethod}`);
-
-    const yarrowLineAria = await page.evaluate(() => {
-      return Array.from(document.querySelectorAll("[data-public-reading-result] [role='img'][aria-label]"))
-        .map((el) => el.getAttribute("aria-label"));
-    });
-    assert(yarrowLineAria.length >= 6, "Expected at least 6 line aria labels");
-    for (const label of yarrowLineAria) {
-      assert(label?.startsWith("第"), `Yarrow line aria label not Chinese: ${label}`);
-      assert(!label?.includes("Line "), `Yarrow line aria contains English: ${label}`);
-    }
-    await assertPurity(page, "Yarrow Stalks Complete Reading View");
-    log("Method simulation PASS: yarrow-stalks complete reading");
+    await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 10_000 });
+    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+    assert.equal(await page.$("[data-public-reading-result]"), null, "Unsigned Yarrow result must stay behind the current save/auth gate");
+    await assertPurity(page, "Yarrow Current Result Auth Gate");
+    log("Method simulation PASS: yarrow-stalks current result handoff");
 
     // 5.c: Mei Hua Yi Shu (/zh/methods/mei-hua-yi-shu)
     await page.goto(`${BASE}/zh/methods/mei-hua-yi-shu`, { waitUntil: "networkidle0" });
@@ -559,7 +534,7 @@ async function main() {
       sessionStorage.setItem("quickiching:public-v1:mei-hua-v2", JSON.stringify({
         schemaVersion: 1,
         started: true,
-        id: "gate_mei_hua_reading",
+        id: "550e8400-e29b-41d4-a716-446655440103",
         createdAt: new Date().toISOString(),
         data: {},
       }));
@@ -567,11 +542,11 @@ async function main() {
     await page.reload({ waitUntil: "networkidle0" });
     const castTimeBtn = await page.waitForSelector("section[aria-labelledby='mei-hua-tool-title'] button.mystic-button", { timeout: 5000 });
     await castTimeBtn.click();
-    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading]) [data-free-reading-ritual]", { timeout: 5000 });
-    const meiHuaMethod = await page.$eval("[data-free-reading-ritual]", (el) => el.getAttribute("data-reading-method"));
-    assert.equal(meiHuaMethod, "mei-hua-yi-shu", `Mei Hua result method mismatch: ${meiHuaMethod}`);
-    await assertPurity(page, "Mei Hua Complete Reading View");
-    log("Method simulation PASS: mei-hua-yi-shu complete reading");
+    await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 10_000 });
+    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+    assert.equal(await page.$("[data-public-reading-result]"), null, "Unsigned Mei Hua result must stay behind the current save/auth gate");
+    await assertPurity(page, "Mei Hua Current Result Auth Gate");
+    log("Method simulation PASS: mei-hua-yi-shu current result handoff");
 
     // 5.d: Manual Cast (/zh/methods/manual-cast)
     await page.goto(`${BASE}/zh/methods/manual-cast`, { waitUntil: "networkidle0" });
@@ -579,7 +554,7 @@ async function main() {
       sessionStorage.setItem("quickiching:public-v1:manual-cast", JSON.stringify({
         schemaVersion: 1,
         started: true,
-        id: "gate_manual_reading",
+        id: "550e8400-e29b-41d4-a716-446655440104",
         createdAt: new Date().toISOString(),
         data: {},
       }));
@@ -629,7 +604,7 @@ async function main() {
       const session = {
         schemaVersion: 1,
         started: true,
-        id: "gate_tc_result_ready",
+        id: "550e8400-e29b-41d4-a716-446655440105",
         createdAt: new Date().toISOString(),
         data: { steps },
       };
