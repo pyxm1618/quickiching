@@ -273,6 +273,12 @@ try {
   );
 
   run("./node_modules/.bin/lighthouse", lighthouseArgs(BASE, desktopPath, true), { env: lighthouseEnv });
+  // Warm up page and assets to eliminate cold route compile and JIT transcoding latency
+  await Promise.all([
+    fetch(`${BASE}/guides/how-to-ask-the-i-ching`),
+    fetch(`${BASE}/info-pages/shared/info-page-background.webp`),
+    fetch(`${BASE}/info-pages/shared/title-brush-stroke.webp`),
+  ]).catch(() => {});
   run("./node_modules/.bin/lighthouse", lighthouseArgs(`${BASE}/guides/how-to-ask-the-i-ching`, guideMobilePath), { env: lighthouseEnv });
   const desktop = await summarizeLighthouse("HOME_DESKTOP", desktopPath);
   let guideMobile = await summarizeLighthouse("HOW_TO_ASK_MOBILE", guideMobilePath);
