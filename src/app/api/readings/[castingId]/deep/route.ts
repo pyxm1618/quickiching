@@ -3,6 +3,10 @@ import { createProductionDeepReadingService } from "@/server/generation/deep-rea
 import { resolveSession } from "@/lib/auth/session";
 import { isStrictSameOriginRequest } from "@/server/http/origin-guard";
 import { deepReadingRequestSchema } from "@/domain/generation/deep-reading-contract";
+import {
+  normalizeDeepReadingContext,
+  normalizeDeepReadingViewModel,
+} from "@/domain/generation/deep-reading-view-model";
 import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
 
 export const runtime = "nodejs";
@@ -76,12 +80,20 @@ export async function POST(
       locale: parsedRequest.data.locale,
     });
 
+    const viewModel = result.output === undefined
+      ? null
+      : normalizeDeepReadingViewModel(result.output, result.snapshot);
+    const presentationContext = normalizeDeepReadingContext(result.snapshot);
+    if (result.status === "completed" && !viewModel) {
+      throw new Error("DEEP_READING_REPORT_UNSUPPORTED");
+    }
+
     return json({
       status: result.status,
       jobId: result.jobId,
       reservationId: result.reservationId,
-      ...(result.output !== undefined ? { output: result.output } : {}),
-      ...(result.snapshot !== undefined ? { snapshot: result.snapshot } : {}),
+      ...(viewModel ? { viewModel } : {}),
+      ...(presentationContext ? { context: presentationContext } : {}),
       creditReservationCreated: result.creditReservationCreated,
     }, result.status === "completed" ? 200 : 202);
   } catch (error) {
@@ -130,7 +142,21 @@ export async function GET(
       castingId,
     });
 
-    return json(result, 200);
+    const viewModel = result.output === undefined
+      ? null
+      : normalizeDeepReadingViewModel(result.output, result.snapshot);
+    const presentationContext = normalizeDeepReadingContext(result.snapshot);
+    if (result.status === "completed" && !viewModel) {
+      throw new Error("DEEP_READING_REPORT_UNSUPPORTED");
+    }
+
+    return json({
+      status: result.status,
+      ...(viewModel ? { viewModel } : {}),
+      ...(presentationContext ? { context: presentationContext } : {}),
+      ...(result.errorCode ? { errorCode: result.errorCode } : {}),
+      ...(typeof result.availableCredits === "number" ? { availableCredits: result.availableCredits } : {}),
+    }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "CASTING_NOT_FOUND" || message === "USER_NOT_FOUND" || message === "USER_NOT_FOUND_OR_DELETED") {
