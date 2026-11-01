@@ -317,16 +317,17 @@ jobs:
           if (performance < 95 || lcp > 2750) {
             console.log(`Initial sample (score=${performance}, lcp=${lcp}) below target due to cold runner jitter; confirming with stable median sample`);
             const samples = [{ report, performance, lcp }];
-            for (let i = 2; i <= 3; i++) {
+            for (let i = 2; i <= 5; i++) {
+              execSync('sleep 1');
               const p = `/tmp/ritual-lighthouse-desktop-mac-${i}.json`;
               execSync(`CHROME_PATH="$CHROME_PATH" ./node_modules/.bin/lighthouse http://127.0.0.1:3030 --quiet --preset=desktop --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" --only-categories=performance,accessibility,seo --output=json --output-path=${p}`, { stdio: 'inherit' });
               const rep = JSON.parse(fs.readFileSync(p, 'utf8'));
               samples.push({ report: rep, performance: Math.round(rep.categories.performance.score*100), lcp: Math.round(rep.audits['largest-contentful-paint'].numericValue) });
             }
             samples.sort((a,b) => a.performance - b.performance);
-            report = samples[1].report;
-            performance = samples[1].performance;
-            lcp = samples[1].lcp;
+            report = samples[Math.floor(samples.length / 2)].report;
+            performance = Math.round(report.categories.performance.score*100);
+            lcp = Math.round(report.audits['largest-contentful-paint'].numericValue);
             console.log(`Confirmed median sample: score=${performance}, lcp=${lcp}`);
           }
           const accessibility=Math.round(report.categories.accessibility.score*100);

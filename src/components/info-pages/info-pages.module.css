@@ -370,11 +370,15 @@
   .meta { font-size: 16px; margin-top: 12px; padding-inline: 18px; }
   .guideMain { padding: 35px 9% 50px; min-height: 0; }
   .guideSecondary { padding: 30px 8% 45px; }
+  .guideSecondary>.artwork { display: none; }
   .paperHeading { font-size: 27px; }
   .paperSubheading { font-size: 24px; }
   .paperText,.paperList,.paperOrdered,.exampleCard p,.callout { font-size: 18px; line-height: 1.45; }
   .principlesGrid { grid-template-columns: 1fr; margin-top: 24px; }
-  .principlesGrid li { padding: 20px 0; border-left: 0; border-top: 1px solid #bb803c70; font-size: 18px; line-height: 1.4; }
+  .principlesGrid li {
+    content-visibility: auto; contain-intrinsic-size: 1px 180px;
+    padding: 20px 0; border-left: 0; border-top: 1px solid #bb803c70; font-size: 18px; line-height: 1.4;
+  }
   .principlesGrid li:first-child { border-top: 0; }
   .principlesGrid strong { font-size: 24px; }
   .guideDecoration { width: 140px; height: 125px; }
