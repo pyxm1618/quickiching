@@ -34,6 +34,7 @@ const setControlledValue=async(p,selector,value)=>{
     element.dispatchEvent(new Event('change',{bubbles:true}));
   },value);
   await p.waitForFunction((target,expected)=>document.querySelector(target)?.value===expected,{},selector,value);
+  await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
 };
 async function ready(p){await p.evaluate(async()=>{await document.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));await Promise.all([...document.images].map(i=>i.decode()));});}
 async function capture(p,name,fullPage=false){
