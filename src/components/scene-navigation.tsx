@@ -107,7 +107,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
       </div>
 
       <Link href={localize("/")} className="scene-brand" onClick={() => setPanel(null)}>
-        <Image unoptimized src="/navigation/logo.webp" alt="" width={72} height={72} priority />
+        <Image unoptimized src="/navigation/logo.webp" alt="" width={72} height={72} />
         <span>Quick I Ching</span>
       </Link>
 
