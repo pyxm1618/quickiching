@@ -257,7 +257,7 @@ async function verifyChineseReading(page, viewport) {
   assert(chineseResult.text.includes("回到现实"), `${label}: Chinese grounded reflection missing`);
   assert(chineseResult.text.includes("继续反思"), `${label}: Chinese reflection section missing`);
   assert(chineseResult.text.includes(CHINESE_QUESTION), `${label}: Chinese question missing from result`);
-  for (const forbidden of ["Your I Ching reading", "Save reading", "Changing Lines", "Personalized Interpretation", "Reveal Your Reading"]) {
+  for (const forbidden of ["Your I Ching reading", "Changing Lines", "Personalized Interpretation", "Reveal Your Reading"]) {
     assert(!chineseResult.text.includes(forbidden), `${label}: English-only result text leaked into Chinese result: ${forbidden}`);
   }
   await assertNoOverflow(page, `${label} result`);

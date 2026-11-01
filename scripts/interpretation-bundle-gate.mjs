@@ -54,7 +54,7 @@ async function verifyHomepage(page) {
 }
 
 async function verifyResult(page) {
-  // Three-Coin results are now correctly sealed behind auth + account History persistence.
+  // Three-Coin results are correctly sealed behind authentication + formal account persistence.
   // Use the existing Manual Cast path to exercise the same shared PublicReadingResult bundle loader
   // without bypassing the Three-Coin reveal gate.
   await page.goto(`${BASE}/methods/manual-cast`, { waitUntil: "networkidle0", timeout: 30_000 });

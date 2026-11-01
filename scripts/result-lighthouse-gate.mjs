@@ -211,7 +211,7 @@ async function auditResult(browser, desktop) {
       text: document.body?.innerText ?? "",
     }));
     assert(visible.sixLines && visible.authGate, `${desktop ? "desktop" : "mobile"}: Lighthouse audited an empty/incorrect completed-cast gate`);
-    assert.equal(visible.primaryCard, false, `${desktop ? "desktop" : "mobile"}: primary result leaked before authentication and History save`);
+    assert.equal(visible.primaryCard, false, `${desktop ? "desktop" : "mobile"}: primary result leaked before authentication and account persistence`);
     assert(!visible.text.includes("Fellowship") && !visible.text.includes("Gentle penetration"), `${desktop ? "desktop" : "mobile"}: hexagram identity leaked through the auth gate`);
     if (!desktop) await logPageFontDiagnostics(page);
     return summarize(desktop ? "RESULT_DESKTOP" : "RESULT_MOBILE", runnerResult);

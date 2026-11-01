@@ -298,7 +298,7 @@ async function assertNoOverflow(page) {
 async function assertBasicResult(page) {
   await waitForText(page, "Your I Ching reading");
   const resultText = await page.$eval("[data-public-reading-result]", (node) => node.textContent || "");
-  for (const expected of ["Primary Hexagram", "Core meaning", "Reflect", "Save reading"]) {
+  for (const expected of ["Primary Hexagram", "Core meaning", "Reflect"]) {
     assert(resultText.includes(expected), `Reading result missing: ${expected}`);
   }
   assert(resultText.toLocaleLowerCase().includes("changing line"), "Reading result must identify changing lines or state that no lines changed");
@@ -407,7 +407,7 @@ async function finishThreeCoin(page) {
   await waitForText(page, "Your completed cast is preserved");
   await waitForText(page, "Sign in to save and reveal this reading");
   assert(await page.$("[data-auth-required-before-reveal]"), "Anonymous completed cast must enter auth-before-reveal gate");
-  assert.equal(await page.$("[data-primary-card]"), null, "Primary hexagram must not reveal before authentication and History save");
+  assert.equal(await page.$("[data-primary-card]"), null, "Primary hexagram must not reveal before authentication and account persistence");
   assert.equal(await page.$("[data-deep-reading-entry]"), null, "Deep Reading must remain downstream of the result reveal gate");
 
   const gateBeforeRefresh = await page.$eval("main", (node) => node.textContent ?? "");
