@@ -75,7 +75,7 @@ function Frame({ surface, children, lightweight = false }: { surface: "account" 
     if (dialog && !dialog.open) dialog.showModal();
     return () => { if (dialog?.open) dialog.close(); };
   }, []);
-  return <Scene lightweight={lightweight}><dialog ref={ref} className="qic-account-dialog" data-account-surface={surface}>
+  return <Scene lightweight={lightweight}><dialog ref={ref} open={lightweight || undefined} className="qic-account-dialog" data-account-surface={surface}>
     <div className="qic-account-frame">
       <button className="qic-account-close" aria-label="Close">×</button>
       <AccountHeading title={title} subtitle={subtitle} />
