@@ -842,6 +842,8 @@ export function ThreeCoinResultClient({
         title={t("Your Free Reading", "免费解卦")}
         deepReadingHref={deepHref}
         newReadingLabel={t("Start a New Reading", "重新起一卦")}
+        showRitualReveal={resultReading?.method === "three-coin"}
+        savedReadingHref={zh ? "/zh/my-readings" : "/my-readings"}
       /> : deepBody}
 
 
