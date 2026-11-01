@@ -2,6 +2,14 @@
 .page{position:relative;min-height:100vh;overflow-x:clip;padding:7.25rem 1rem 4rem;color:#f5e5bd;background:linear-gradient(180deg,rgba(18,7,3,.16),rgba(18,7,3,.34)),url("/info-pages/shared/info-page-background.png") center top/cover fixed no-repeat,#160a05;isolation:isolate}
 .page:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,rgba(15,5,2,.18),transparent 18%,transparent 82%,rgba(15,5,2,.18))}
 .decorations{position:absolute;z-index:-1;inset:5.5rem 0 auto;height:min(46rem,72vw);pointer-events:none;opacity:.94;background:url("/info-pages/decorative/guide-decorations.png") center top/min(100rem,100vw) auto no-repeat}
+.pageOptimizedArtwork{background:#160a05}
+.pageBackgroundOptimized{position:fixed;inset:0;z-index:-2;overflow:hidden;pointer-events:none}
+.pageBackgroundOptimized img{object-fit:cover;object-position:center top}
+.pageBackgroundOptimized:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,7,3,.16),rgba(18,7,3,.34))}
+.decorationsOptimized{overflow:hidden;background:none}
+.decorationsOptimized img{position:absolute;top:0;left:50%;width:min(100rem,100vw);height:auto;max-width:none;transform:translateX(-50%)}
+.titleStroke.titleStrokeOptimized{position:relative;overflow:hidden;background:none}
+.titleStrokeOptimized img{object-fit:contain}
 .inner{width:min(94rem,100%);margin:0 auto}
 .heading{position:relative;z-index:1;max-width:70rem;margin:0 auto 2rem;text-align:center;text-shadow:0 3px 20px rgba(0,0,0,.58)}
 .eyebrow{margin:0 0 .45rem;font-size:.7rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#e1bd68}
@@ -14,6 +22,9 @@
 .guideMainImage{position:absolute;inset:0;z-index:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
 .guideMain>:not(.guideMainImage){position:relative;z-index:1}
 .guideSecondary{margin-top:1rem;min-height:18rem;padding:clamp(3.2rem,5.5vw,5.8rem) clamp(3.4rem,7vw,7.4rem);background-image:url("/info-pages/guide/guide-secondary-scroll.png")}
+.guideSecondaryOptimized{overflow:hidden;background-image:none}
+.guideSecondaryImage{position:absolute;inset:0;z-index:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
+.guideSecondaryOptimized>:not(.guideSecondaryImage){position:relative;z-index:1}
 .helpPanel{min-height:39rem;padding:clamp(4rem,6vw,6.5rem) clamp(3.4rem,7vw,7.2rem);background-image:url("/info-pages/help/help-main-panel.png")}
 .paperHeading{margin:0 0 .75rem;font-family:var(--font-display),Georgia,serif;font-size:clamp(1.45rem,2.3vw,2rem);font-weight:700;font-style:italic;line-height:1.15;color:#2a1609}
 .paperSubheading{margin:0 0 .55rem;font-family:var(--font-display),Georgia,serif;font-size:clamp(1.08rem,1.6vw,1.3rem);font-weight:700;line-height:1.25;color:#321b0d}

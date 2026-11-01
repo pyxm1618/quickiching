@@ -27,6 +27,7 @@ export default function HowToAskGuidePage() {
       eyebrow="I Ching Guide"
       title="How to Ask the I Ching"
       lead="Learning how to ask the I Ching is mostly a question-framing skill: give the reading one clear situation and one core concern, while leaving enough room to notice patterns you may not have considered."
+      optimizedArtwork
     >
       <section className={styles.guideMain}>
         <Image
@@ -49,7 +50,14 @@ export default function HowToAskGuidePage() {
         </ul>
       </section>
 
-      <section className={styles.guideSecondary}>
+      <section className={[styles.guideSecondary, styles.guideSecondaryOptimized].join(" ")}>
+        <Image
+          src="/info-pages/guide/guide-secondary-scroll.png"
+          alt=""
+          fill
+          sizes="(max-width: 760px) calc(100vw - 1.1rem), min(94rem, calc(100vw - 2rem))"
+          className={styles.guideSecondaryImage}
+        />
         <h2 className={styles.paperHeading}>Bad → better questions to ask the I Ching</h2>
         <p className={styles.paperText}>There is no single magic wording. The useful distinction is whether your I Ching questions create a focused subject for reflection or ask the hexagram to guarantee facts it cannot establish.</p>
         <div className={styles.questionGrid}>
