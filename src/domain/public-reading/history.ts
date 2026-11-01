@@ -1,7 +1,7 @@
 import { classicalHexagramByNumber } from "./classical";
 import { buildPublicReading } from "./reading";
 import { normalizePublicQuestion } from "./question";
-import { PUBLIC_METHOD_VERSIONS, PUBLIC_READING_METHODS, type PublicReading, type PublicReadingMethod, type PublicLineTuple } from "./types";
+import { PUBLIC_READING_METHODS, isSupportedPublicMethodVersion, type PublicReading, type PublicReadingMethod, type PublicLineTuple } from "./types";
 
 export const HISTORY_SCHEMA_VERSION = 1 as const;
 export const HISTORY_STORAGE_KEY = "quickiching:public-history:v1";
@@ -59,8 +59,7 @@ function isHistoryRecord(value: unknown): value is PublicHistoryRecord {
     && typeof record.updatedAt === "string"
     && typeof method === "string"
     && PUBLIC_READING_METHODS.includes(method as PublicReadingMethod)
-    && method in PUBLIC_METHOD_VERSIONS
-    && record.methodVersion === PUBLIC_METHOD_VERSIONS[method as PublicReadingMethod]
+    && isSupportedPublicMethodVersion(method as PublicReadingMethod, String(record.methodVersion))
     && typeof record.methodVersion === "string"
     && isLineTuple(record.lineValuesBottomUp)
     && typeof primaryHexagram === "number" && Number.isInteger(primaryHexagram) && primaryHexagram >= 1 && primaryHexagram <= 64
