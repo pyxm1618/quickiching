@@ -55,8 +55,10 @@ describe("navigation engineering closeout", () => {
     expect(pkg.scripts?.["gate:navigation"]).toBe("node scripts/scene-navigation-qa.mjs");
   });
 
-  it("does not retire Local History as part of navigation cleanup", () => {
-    expect(existsSync(new URL("./app/(default)/history/page.tsx", import.meta.url))).toBe(true);
-    expect(existsSync(new URL("./app/(localized)/zh/history/page.tsx", import.meta.url))).toBe(true);
+  it("keeps account navigation on the formal My Readings and modal account surfaces", () => {
+    const userNav = source("./components/auth/user-nav-control.tsx");
+    expect(userNav).toContain('const readingsHref = `${authPrefix}/my-readings`');
+    expect(userNav).toContain('openModal("account")');
+    expect(userNav).toContain('openModal("settings")');
   });
 });

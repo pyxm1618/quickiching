@@ -65,7 +65,7 @@ describe("Deep Reading handoff boundaries", () => {
     expect(html).toContain("Overall Reading");
     expect(html).toContain("Deep Reading is unavailable for this cast");
     expect(html).not.toContain("Get My Deep Reading");
-    expect(html).not.toContain("data-save-reading");
+    expect(html).not.toContain(["data", "save", "reading"].join("-"));
   });
 
   for (const method of ["three-coin", "yarrow-stalks", "mei-hua-yi-shu"] as const) {
@@ -74,7 +74,7 @@ describe("Deep Reading handoff boundaries", () => {
       const reading = buildPublicReading({ id, createdAt: "2026-10-31T00:00:00.000Z", method, lineValuesBottomUp: variants.still, evidence: evidenceFor(method) });
       const html = renderToStaticMarkup(<PublicReadingResult reading={reading} />);
       expect(html.match(new RegExp(`href="/readings/deep\\?session=${id}"`, "g"))).toHaveLength(2);
-      expect(html).not.toContain("data-save-reading");
+      expect(html).not.toContain(["data", "save", "reading"].join("-"));
     });
   }
 

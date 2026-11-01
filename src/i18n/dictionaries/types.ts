@@ -10,45 +10,6 @@ export type UiDictionary = {
     currentLanguage: string;
     selectLanguage: string;
   };
-  nav: {
-    ariaLabel: string;
-    methods: string;
-    threeCoin: string;
-    yarrow: string;
-    meiHua: string;
-    manual: string;
-    guides: string;
-    howToAsk: string;
-    changingLines: string;
-    primaryRelating: string;
-    hexagrams: string;
-    home: string;
-    toggleMenu: string;
-    closeMenu: string;
-    drawerTitle: string;
-    languageLabel: string;
-  };
-  footer: {
-    description: string;
-    casting: string;
-    guides: string;
-    trust: string;
-    threeCoin: string;
-    yarrow: string;
-    meiHua: string;
-    manual: string;
-    hexagrams: string;
-    howToAsk: string;
-    changingLines: string;
-    primaryRelating: string;
-    privacy: string;
-    terms: string;
-    acceptableUse: string;
-    help: string;
-    home: string;
-    legalNotice: string;
-    supportEmail: string;
-  };
   userNav: {
     signIn: string;
     signUp: string;

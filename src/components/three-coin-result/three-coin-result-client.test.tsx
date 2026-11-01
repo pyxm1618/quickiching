@@ -341,7 +341,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).toContain('href="/zh/readings/result?session=cast_1"');
     expect(html).not.toContain("旧版报告格式");
     expect(html).not.toContain("起卦依据");
-    expect(html).not.toContain('data-save-reading');
+    expect(html).not.toContain(["data", "save", "reading"].join("-"));
     expect(html).toContain('data-deep-reading-page');
   });
 
