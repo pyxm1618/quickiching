@@ -14,7 +14,7 @@ vi.mock("@/lib/auth/session", () => ({
 }));
 
 import { generateYarrowLine } from "@/domain/casting/yarrow/algorithm";
-import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
+import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
 import { getActiveResultIntegrityKey, resultIntegrityHmac } from "@/server/generation/integrity";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { POST as saveReading } from "@/app/api/readings/route";
@@ -125,11 +125,11 @@ describe("POST /api/readings Postgres idempotency (integration)", () => {
   it("persists all method identities, verified facts and evidence without cross-method idempotency reuse", async () => {
     await createUser();
     const yarrow = Array.from({ length: 6 }, (_, index) => generateYarrowLine(index as 0, () => 1));
-    const instant = { utcMillis: Date.UTC(2026, 9, 31, 12), ianaTimeZone: "Asia/Shanghai" };
-    const meiHua = meiHuaFromUtc(instant.utcMillis, instant.ianaTimeZone);
+    const instant = { number: 29, utcMillis: Date.UTC(2026, 9, 31, 12), ianaTimeZone: "Asia/Shanghai" };
+    const meiHua = meiHuaFromNumberAndTime(instant);
     for (const source of [
       { method: "yarrow_stalk" as const, lineValuesBottomUp: yarrow.map(line => line.lineValue), methodCalculation: { changes: yarrow.flatMap(line => line.changes) } },
-      { method: "mei_hua_current_time" as const, lineValuesBottomUp: meiHua.lineValuesBottomUp, methodCalculation: instant },
+      { method: "mei_hua_number_time" as const, lineValuesBottomUp: meiHua.lineValuesBottomUp, methodCalculation: instant },
     ]) {
       const clientCastingId = randomUUID();
       const input = { clientCastingId, ...source };
