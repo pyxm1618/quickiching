@@ -128,7 +128,7 @@ export function readThreeCoinSession(): ThreeCoinReadingSession | null {
     window.sessionStorage.setItem(THREE_COIN_SESSION_STORAGE_KEY, JSON.stringify(backup));
     return backup;
   } catch (error) {
-    if (error instanceof Error && error.message === "PUBLIC_READING_SESSION_UNAVAILABLE") {
+    if (error instanceof Error && ["PUBLIC_READING_SESSION_UNAVAILABLE", "PUBLIC_READING_SESSION_READ_FAILED"].includes(error.message)) {
       throw new Error("THREE_COIN_SESSION_UNAVAILABLE");
     }
     throw new Error("THREE_COIN_SESSION_READ_FAILED");
