@@ -41,7 +41,7 @@ jobs:
       - name: Production build
         run: bun run build
       - name: Install browser driver
-        run: bun add --no-save --cache-dir=/tmp/quickiching-bun-cache puppeteer-core@24 @sparticuz/chromium
+        run: bun add --no-save --cache-dir=/tmp/quickiching-bun-cache puppeteer-core@24 @sparticuz/chromium lighthouse@13.4.1
       - name: Resolve Chrome
         shell: bash
         run: |
@@ -73,6 +73,10 @@ jobs:
           READING_TEST_BASE_URL: http://127.0.0.1:3028
           READING_VISUAL_OUTPUT: .artifacts/reading-qa
         run: node scripts/reading-business-browser.mjs
+      - name: Completed-result Lighthouse regression
+        env:
+          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3028
+        run: node scripts/result-lighthouse-gate.mjs
       - name: Upload Reading visual QA
         uses: actions/upload-artifact@v4
         with:
