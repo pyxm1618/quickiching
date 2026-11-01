@@ -266,3 +266,114 @@
 }
 .qic-account-purchase-status { text-transform: capitalize; }
 .qic-account-purchase-status[data-paid="true"]::before { content: "✓"; display: inline-grid; place-items: center; width: 17px; height: 17px; margin-right: 9px; border-radius: 50%; background: #995a1a; color: #ffe9c4; font-size: 12px; }
+/* Group 3 pixel closeout: Account visual-only overrides. */
+/* Preserve the approved paper artwork without the visible vertical tile seam that
+   appeared when the tiny texture swatch repeated through tall panels. */
+.qic-account-paper {
+  background:
+    url('/account/paper-landscape.png') right bottom / auto 130px no-repeat,
+    linear-gradient(105deg,rgba(255,235,207,.88) 0%,rgba(244,211,173,.86) 55%,rgba(255,233,201,.90) 100%),
+    url('/account/paper-texture.png') center / 100% 100% no-repeat,
+    #f5d7af;
+}
+.qic-settings-danger {
+  background-image:
+    linear-gradient(#ae3e2326,#ae3e2326),
+    linear-gradient(105deg,rgba(250,214,190,.92),rgba(238,190,160,.92)),
+    url('/account/paper-texture.png');
+  background-position: center,center,center;
+  background-size: auto,auto,100% 100%;
+  background-repeat: no-repeat,no-repeat,no-repeat;
+}
+
+/* The approved dropdown is a tall, framed panel rather than a compact utility menu. */
+.qic-user-menu {
+  width: min(396px,calc(100vw - 24px));
+  padding: 24px 18px 28px;
+  border-radius: 5px;
+  box-shadow: 0 18px 45px #000b,inset 0 0 0 1px #3b260d;
+}
+.qic-user-menu-identity { gap: 20px; padding: 12px 12px 20px; }
+.qic-user-menu-identity > span { width: 62px; height: 62px; font-size: 32px; }
+.qic-user-menu > a,.qic-user-menu > button { min-height: 68px; padding: 12px 22px; font-size: 20px; }
+.qic-user-menu-divider { margin: 2px 8px 16px; }
+
+/* Match the approved title proportions while preserving the existing live text. */
+.qic-account-dialog .qic-account-heading h1 { letter-spacing: -.025em; }
+.qic-account-dialog[data-account-surface="account"] .qic-account-heading h1 { font-size: 74px; transform: none; }
+.qic-account-dialog[data-account-surface="settings"] .qic-account-heading h1 { font-size: 76px; }
+.qic-account-heading h1 > span:not(.qic-account-seal) { filter: saturate(1.08) brightness(1.04); }
+
+/* Strengthen only the CSS glow around the already-optimized runtime coin artwork. */
+.qic-account-credits {
+  background-image:
+    url('/performance/accountCoins.7a4f85ddcc102bdf.webp'),
+    radial-gradient(circle at 67% 58%,#ffd67855 0 9%,#e3982440 18%,transparent 39%),
+    radial-gradient(ellipse at 58% 95%,#7c3b03a6,transparent 72%);
+  background-size: 300px auto,auto,auto;
+  background-position: right 170px bottom 0,center,center;
+}
+
+/* The reference list uses a slimmer visible rail. */
+.qic-account-scroll-region { padding-right: 18px; }
+.qic-account-scroll-rail { right: 2px; width: 10px; }
+.qic-account-scroll-thumb { border-width: 1px; }
+
+/* My Readings title in the approved 1668px reference is materially smaller than
+   the earlier implementation; rows and the six-row viewport stay untouched. */
+.qic-my-readings-page .qic-account-heading h1 { font-size: 80px; }
+.qic-my-readings-page .qic-account-heading { height: 150px; }
+.qic-my-readings-page { background-position: center 42%; }
+
+/* Mobile visual closeout: no page-level overflow, no title collision, and the
+   optimized coin artwork must not obscure live credit text or controls. */
+@media (max-width:700px),(max-height:760px) {
+  .qic-account-dialog[data-account-surface="account"] .qic-account-heading h1 {
+    font-size: clamp(34px,10vw,40px);
+    gap: 7px;
+    transform: none;
+  }
+  .qic-account-dialog[data-account-surface="settings"] .qic-account-heading h1 {
+    font-size: clamp(42px,12vw,50px);
+    gap: 8px;
+  }
+  .qic-account-heading .qic-account-seal {
+    height: 46px;
+    padding: 4px 2px;
+    font-size: 12px;
+  }
+  .qic-account-heading { flex-basis: 104px; padding-inline: 14px; }
+  .qic-account-heading p { margin-top: 4px; line-height: 1.25; }
+  .qic-account-credits {
+    min-height: 206px;
+    background-size: 190px auto,auto,auto;
+    background-position: right -18px bottom -8px,center,center;
+  }
+  .qic-account-credit-row {
+    display: grid;
+    grid-template-columns: 72px minmax(0,1fr);
+    grid-template-areas: "number label" "button button";
+    align-items: center;
+    gap: 10px 12px;
+    margin-top: 14px;
+  }
+  .qic-account-credit-row > strong { grid-area: number; width: 68px; height: 68px; font-size: 50px; position: relative; z-index: 1; }
+  .qic-account-credit-row > span { grid-area: label; max-width: 155px; font-size: 17px; line-height: 1.18; position: relative; z-index: 1; }
+  .qic-account-gold-button { grid-area: button; justify-self: end; margin-left: 0; margin-right: 2px; position: relative; z-index: 1; }
+  .qic-account-purchase-scroll { overflow-x: auto; overflow-y: auto; }
+  .qic-account-purchases table { min-width: 610px; }
+  .qic-my-readings-page .qic-account-heading h1 { font-size: clamp(43px,13vw,52px); }
+  .qic-my-readings-page .qic-account-heading { height: 122px; }
+}
+@media (max-width:340px) {
+  .qic-account-dialog { max-width: calc(100vw - 10px); }
+  .qic-account-frame { padding: 8px; }
+  .qic-account-dialog[data-account-surface="account"] .qic-account-heading h1 { font-size: 33px; }
+  .qic-account-dialog[data-account-surface="settings"] .qic-account-heading h1 { font-size: 40px; }
+  .qic-account-heading .qic-account-seal { height: 42px; font-size: 11px; }
+  .qic-account-close { right: 7px; top: 6px; }
+  .qic-account-paper::after { border-width: 12px; }
+  .qic-account-secondary,.qic-settings-privacy,.qic-settings-actions,.qic-settings-danger { padding-inline: 14px; }
+  .qic-account-outline-button,.qic-account-danger-button { min-width: 132px; margin-left: 42px; }
+}
+
