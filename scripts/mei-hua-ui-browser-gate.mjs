@@ -19,6 +19,17 @@ const button=async(p,text)=>{
   const h=await p.evaluateHandle(t=>[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===t),text);
   await h.asElement().click();await h.dispose();
 };
+const setControlledValue=async(p,selector,value)=>{
+  await p.$eval(selector,(element,nextValue)=>{
+    const prototype=element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const setter=Object.getOwnPropertyDescriptor(prototype,'value')?.set;
+    if(!setter)throw new Error('CONTROLLED_VALUE_SETTER_UNAVAILABLE');
+    setter.call(element,nextValue);
+    element.dispatchEvent(new Event('input',{bubbles:true}));
+    element.dispatchEvent(new Event('change',{bubbles:true}));
+  },value);
+  await p.waitForFunction((target,expected)=>document.querySelector(target)?.value===expected,{},selector,value);
+};
 async function ready(p){await p.evaluate(async()=>{await document.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));await Promise.all([...document.images].map(i=>i.decode()));});}
 async function capture(p,name,fullPage=false){
   await ready(p);
@@ -54,15 +65,15 @@ try {
     await clearMeiSession(p);
     await p.goto(`${BASE}/methods/mei-hua-yi-shu`,{waitUntil:'networkidle0'});
     await p.waitForSelector('#mei-hua-question');await capture(p,`${size}-step-1`);
-    await p.type('#mei-hua-question','Should I change to a new job?');await p.click('.mei-ask button');await p.waitForSelector('#mei-hua-number');
-    await p.type('#mei-hua-number','17');await capture(p,`${size}-step-2`);
+    await setControlledValue(p,'#mei-hua-question','Should I change to a new job?');await p.click('.mei-ask button');await p.waitForSelector('#mei-hua-number');
+    await setControlledValue(p,'#mei-hua-number','17');await capture(p,`${size}-step-2`);
     await p.click('.mei-choose button');await p.waitForSelector('.mei-moment');await capture(p,`${size}-step-3`,size==='mobile');
 
     await button(p,'Change Number');await p.waitForSelector('#mei-hua-number');assert.equal(await p.$eval('#mei-hua-number',e=>e.value),'17');
     await button(p,'✎ Edit');await p.waitForSelector('#mei-hua-question');
-    await p.locator('#mei-hua-question').fill('Should I change to a new job? This year.');
+    await setControlledValue(p,'#mei-hua-question','Should I change to a new job? This year.');
     await p.click('.mei-ask button');await p.waitForSelector('#mei-hua-number');assert.equal(await p.$eval('#mei-hua-number',e=>e.value),'');
-    await p.type('#mei-hua-number','29');await p.click('.mei-choose button');await p.waitForSelector('.mei-moment');
+    await setControlledValue(p,'#mei-hua-number','29');await p.click('.mei-choose button');await p.waitForSelector('.mei-moment');
     assert.equal(await p.evaluate(k=>JSON.parse(sessionStorage.getItem(k)).data,CAST_KEY),undefined);
 
     const before=Date.now();await button(p,'☯Confirm & Cast');await p.waitForSelector('[data-mei-hua-shared-reading]');await p.waitForSelector('[data-shared-reading-summary]');const after=Date.now();
