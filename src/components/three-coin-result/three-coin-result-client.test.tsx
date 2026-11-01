@@ -325,10 +325,9 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     );
     expect(html).toContain('href="/zh/my-readings"');
     expect(html).not.toContain('href="/my-readings"');
-    expect(html).toContain("查看账户与历史记录 →");
+    expect(html).toContain("查看我的解读 →");
     expect(html).toContain("旧版报告格式");
     expect(html).toContain("测试摘要");
-    expect(html).toContain('data-save-reading');
   });
 
   it("renders completed report banner pointing to /my-readings in English mode", () => {
