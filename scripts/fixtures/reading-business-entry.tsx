@@ -5,8 +5,19 @@ import { ThreeCoinResultClient } from '../../src/components/three-coin-result/th
 
 const query = new URLSearchParams(location.search);
 const method = query.get('method') ?? 'three_coin';
-const question = 'Should I change to a new job?';
-const viewModel = {
+const zh = query.get('locale') === 'zh';
+const question = zh ? '我现在是否适合换一份工作？' : 'Should I change to a new job?';
+const viewModel = zh ? {
+  schemaVersion: 'ai-deep-reading-view-v1' as const,
+  coreLead: '先核实新岗位的实际条件，再决定是否行动。',
+  coreDetail: '这次卦象不能证明新岗位一定存在，也不能替你确定离职决定。',
+  whyItems: ['当前结构更强调有依据地推进，而不是只凭一时冲动。'],
+  changeItems: ['没有动爻时，不应把局势解释成已经必然转向另一份工作。'],
+  actionSignals: ['岗位职责、条件和你的核心优先级能够明确对应。'],
+  observeSignals: ['岗位职责、实际条件或对方承诺仍然没有被确认。'],
+  nextSteps: ['先核实具体岗位的职责和条件，再决定下一步。'],
+  disclaimer: '本解读用于反思参考，不构成确定预测。',
+} : {
   schemaVersion: 'ai-deep-reading-view-v1' as const,
   coreLead: 'Consider the change conditionally, after checking the actual role and your priorities.',
   coreDetail: 'This cast does not establish that a new job is available or that leaving now is wise.',
@@ -40,6 +51,7 @@ window.fetch = async (url, init) => {
 };
 
 createRoot(document.getElementById('root')!).render(<ThreeCoinResultClient
+  locale={zh ? 'zh-Hans' : 'en'}
   pageMode={query.get('page') === 'deep' ? 'deep' : 'free'}
   initialUser={{id:'browser-fixture-owner',email:'fixture@example.com'}}
   initialCredits={1}
