@@ -1,7 +1,8 @@
 import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {describe,expect,it,vi} from "vitest";
-vi.mock("next/navigation",()=>({usePathname:()=>"/"}));
+const navigationState=vi.hoisted(()=>({pathname:"/"}));
+vi.mock("next/navigation",()=>({usePathname:()=>navigationState.pathname}));
 vi.mock("next/link",()=>({default:({href,children,prefetch:_prefetch,...props}:any)=><a href={href} {...props}>{children}</a>}));
 vi.mock("next/image",()=>({default:({priority:_priority,unoptimized:_unoptimized,...props}:any)=>React.createElement("img",props)}));
 import {SceneNavigation} from "./scene-navigation";
@@ -15,6 +16,15 @@ describe("approved scene navigation integration",()=>{
   expect(html).not.toMatch(/href="(?:\/zh)?\/methods"/);
   expect(html.match(/hidden=""/g)).toHaveLength(2);
   expect(html).toContain('aria-expanded="false"');
+ });
+ it("switches to the locale-equivalent route outside the homepage",()=>{
+  navigationState.pathname="/hexagrams";
+  const english=renderToStaticMarkup(<SceneNavigation locale="en"/>);
+  expect(english).toContain('href="/zh/hexagrams"');
+  navigationState.pathname="/zh/hexagrams";
+  const chinese=renderToStaticMarkup(<SceneNavigation locale="zh-Hans"/>);
+  expect(chinese).toContain('href="/hexagrams"');
+  navigationState.pathname="/";
  });
  it("keeps the approved live HTML labels and privacy entry",()=>{
   const html=renderToStaticMarkup(<SceneNavigation/>);
