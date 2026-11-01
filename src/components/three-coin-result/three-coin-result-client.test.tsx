@@ -54,7 +54,7 @@ describe("ThreeCoinResultClient auth-save-reveal gate", () => {
     expect(getResultRevealGate({ authenticated: false, castingId: null, persistenceStatus: "idle" })).toBe("auth-required");
   });
 
-  it("keeps a signed-in completed cast behind saving until History persistence succeeds", () => {
+  it("keeps a signed-in completed cast behind saving until account persistence succeeds", () => {
     expect(getResultRevealGate({ authenticated: true, castingId: null, persistenceStatus: "idle" })).toBe("saving");
     expect(getResultRevealGate({ authenticated: true, castingId: null, persistenceStatus: "saving" })).toBe("saving");
     expect(getResultRevealGate({ authenticated: true, castingId: null, persistenceStatus: "error" })).toBe("save-error");
@@ -87,7 +87,7 @@ describe("ThreeCoinResultClient auth-save-reveal gate", () => {
       />,
     );
     expect(html).toContain('data-completed-cast-gate="saving"');
-    expect(html).toContain("data-history-saving");
+    expect(html).toContain("data-account-reading-saving");
     expect(html).not.toContain("data-primary-card");
   });
 });
@@ -104,7 +104,7 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
       method: "three-coin",
       methodVersion: "three-coin-v1",
       lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-      evidence: { kind: "history", originalMethod: "three-coin" },
+      evidence: { kind: "three-coin", steps: [] },
     });
     expect(still.relatingHexagram).toBeNull();
     const primary = await loadHexagramInterpretation(still.primaryHexagram);
@@ -118,7 +118,7 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
       method: "three-coin",
       methodVersion: "three-coin-v1",
       lineValuesBottomUp: [9, 7, 7, 7, 7, 7],
-      evidence: { kind: "history", originalMethod: "three-coin" },
+      evidence: { kind: "three-coin", steps: [] },
     });
     expect(moving.relatingHexagram).not.toBeNull();
     const movingPrimary = await loadHexagramInterpretation(moving.primaryHexagram);
@@ -141,7 +141,7 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
       method: "three-coin",
       methodVersion: "three-coin-v1",
       lineValuesBottomUp: lineValues,
-      evidence: { kind: "history", originalMethod: "three-coin" },
+      evidence: { kind: "three-coin", steps: [] },
     });
     const primary = await loadHexagramInterpretation(current.primaryHexagram);
     const relating = await loadHexagramInterpretation(current.relatingHexagram!);

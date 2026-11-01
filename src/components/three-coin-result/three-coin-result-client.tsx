@@ -219,7 +219,7 @@ export function ThreeCoinResultClient({
       methodVersion: "three-coin-v1",
       question: state.question,
       lineValuesBottomUp: state.lineValues,
-      evidence: { kind: "history", originalMethod: "three-coin" },
+      evidence: { kind: "three-coin", steps: [] },
     });
   }, [castingId, clientCastingId, state]);
   const resultRevealGate = getResultRevealGate({
@@ -806,8 +806,8 @@ export function ThreeCoinResultClient({
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
             {t(
-              "These are the same six sealed lines from your browser session. No hexagram name or interpretation is revealed until this cast is saved to your account History.",
-              "这里保留的是浏览器会话中同一组六条已落定爻。保存到账户历史记录成功之前，不会揭示本卦名称或免费解读。",
+              "These are the same six sealed lines from your browser session. No hexagram name or interpretation is revealed until this cast is saved to My Readings.",
+              "这里保留的是浏览器会话中同一组六条已落定爻。保存到“我的解读”成功之前，不会揭示本卦名称或免费解读。",
             )}
           </p>
           <div className="mx-auto mt-8 w-full max-w-[440px]" data-completed-six-lines>
@@ -821,21 +821,21 @@ export function ThreeCoinResultClient({
               </Link>
             </div>
           ) : persistenceStatus === "error" ? (
-            <div className="mt-8" data-history-save-error role="alert">
+            <div className="mt-8" data-account-reading-save-error role="alert">
               <p className="text-sm leading-7 text-[var(--danger)]">
                 {actionError ?? t(
                   "Saving failed. The same completed cast is still preserved and has not been revealed.",
                   "保存失败。同一份已完成起卦仍然保留，结果尚未揭示。",
                 )}
               </p>
-              <button type="button" className="mystic-button mt-5" onClick={() => void persistCurrentReading(true)} data-retry-history-save>
+              <button type="button" className="mystic-button mt-5" onClick={() => void persistCurrentReading(true)} data-retry-account-reading-save>
                 {t("Retry saving this cast", "重试保存本次起卦")}
               </button>
             </div>
           ) : (
-            <div className="mt-8" role="status" data-history-saving>
+            <div className="mt-8" role="status" data-account-reading-saving>
               <p className="text-sm leading-7 text-[var(--ink-2)]">
-                {t("Saving this completed cast to your account History before reveal…", "正在先把这次已完成起卦保存到账户历史记录…")}
+                {t("Saving this completed cast to My Readings before reveal…", "正在先把这次已完成起卦保存到“我的解读”…")}
               </p>
             </div>
           )}
@@ -852,7 +852,7 @@ export function ThreeCoinResultClient({
         data-result-reveal-pending="true"
       >
         <div className={styles.loadingState} role="status" aria-label={t("Preparing your saved reading", "正在准备已保存的起卦结果")}>
-          <p className="mystic-kicker">{t("Saved to History", "已保存到 History")}</p>
+          <p className="mystic-kicker">{t("Saved to My Readings", "已保存到“我的解读”")}</p>
           <p className="mt-3 font-display text-3xl font-normal text-white">{t("Preparing your reading…", "正在准备结果揭示…")}</p>
         </div>
       </div>
@@ -877,10 +877,10 @@ export function ThreeCoinResultClient({
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--gold)]/30 bg-[rgba(235,178,85,0.06)] px-5 py-3 text-xs text-[var(--ink-2)]">
                 <span className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-[var(--jade)]" />
-                  {t("Saved to your account history", "已保存到账户历史记录")}
+                  {t("Saved to My Readings", "已保存到“我的解读”")}
                 </span>
-                <Link href={zh ? "/zh/account" : "/account"} className="font-semibold text-[var(--gold-2)] hover:underline">
-                  {t("Open account history →", "查看账户与历史记录 →")}
+                <Link href={zh ? "/zh/my-readings" : "/my-readings"} className="font-semibold text-[var(--gold-2)] hover:underline">
+                  {t("Open My Readings →", "查看我的解读 →")}
                 </Link>
               </div>
               {deepReport ? <CommercialReadingReportView report={deepReport} snapshot={deepSnapshot} locale={locale} /> : null}
