@@ -319,6 +319,17 @@ export function ThreeCoinRitual({
               </div>
             ) : null}
             <div className="ritual-question-card">
+              <img
+                className="ritual-question-card-art"
+                src="/performance/questionDesktop.d616c1d6e5957a79.png"
+                alt=""
+                width={646}
+                height={184}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+                aria-hidden="true"
+              />
               <label htmlFor={`${THREE_COIN_SESSION_STORAGE_KEY}-question`}>{zh ? "此刻，你想问什么？" : "What would you like to ask?"}</label>
               <p className="ritual-question-description">{zh ? "描述一个你心中的具体问题。" : "Describe a specific question that is on your mind."}</p>
               <textarea id={`${THREE_COIN_SESSION_STORAGE_KEY}-question`} value={draft} onChange={(event) => setDraft(event.target.value)} rows={3}
