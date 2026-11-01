@@ -77,7 +77,7 @@ describe("ThreeCoinResultClient auth-save-reveal gate", () => {
     expect(html).toContain("Sign in to save and reveal this reading");
     expect(html).toContain("data-completed-six-lines");
     expect(html).not.toContain("data-primary-card");
-    expect(html).not.toContain("data-ritual-result-card");
+    expect(html).toContain("data-ritual-result-card");
     expect(html).not.toContain("data-deep-reading-entry");
   });
 
