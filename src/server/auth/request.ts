@@ -12,7 +12,8 @@ export function normalizeAuthRequestBody(
     const value = normalized[field];
     if (value === undefined) continue;
     if (typeof value !== "string") throw new Error("AUTH_CALLBACK_INVALID");
-    const validatedPath = validateAuthCallbackURL(value, baseURL);\n    normalized[field] = new URL(validatedPath, baseURL).toString();
+    const validatedPath = validateAuthCallbackURL(value, baseURL);
+    normalized[field] = new URL(validatedPath, baseURL).toString();
   }
   return normalized;
 }
