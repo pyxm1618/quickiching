@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
+import Image from "next/image";
 import { InfoPageShell } from "@/components/info-pages/info-page-shell";
 import styles from "@/components/info-pages/info-pages.module.css";
 
@@ -28,6 +29,15 @@ export default function HowToAskGuidePage() {
       lead="Learning how to ask the I Ching is mostly a question-framing skill: give the reading one clear situation and one core concern, while leaving enough room to notice patterns you may not have considered."
     >
       <section className={styles.guideMain}>
+        <Image
+          src="/info-pages/guide/guide-main-scroll.png"
+          alt=""
+          fill
+          priority
+          fetchPriority="high"
+          sizes="(max-width: 760px) calc(100vw - 1.1rem), min(94rem, calc(100vw - 2rem))"
+          className={styles.guideMainImage}
+        />
         <h2 className={styles.paperHeading}>Core principles for I Ching questions</h2>
         <p className={styles.paperText}>When you are deciding how to phrase an I Ching question, these five principles keep the inquiry focused without turning the reading into a substitute decision-maker.</p>
         <ul className={styles.principlesGrid}>
