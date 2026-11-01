@@ -79,3 +79,13 @@
  .shared-hex-lines>div {height:5px;}
  .shared-stone .shared-hex-number {font-size:12px;}
 }
+
+/* PR #78 reference alignment: 1983x793 shared-reading composition. */
+@media(min-width:601px) {
+ .shared-reading-summary {padding-top:calc(55 * var(--ru));}
+ .shared-question {width:calc(994 * var(--ru));min-height:calc(166 * var(--ru));transform:translateX(calc(-7 * var(--ru)));}
+ .shared-cast-tableau {width:calc(1970 * var(--ru));grid-template-columns:785fr 409fr 774fr;}
+ .shared-stone {aspect-ratio:1.365;}
+ .shared-primary {aspect-ratio:1.367;}
+ .shared-relating {aspect-ratio:1.348;transform:translateY(calc(9 * var(--ru)));}
+}
