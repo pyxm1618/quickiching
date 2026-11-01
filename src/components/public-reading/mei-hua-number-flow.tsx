@@ -5,14 +5,13 @@ import Link from "next/link";
 import { CalendarDays, Clock3, MapPin } from "lucide-react";
 import "./mei-hua-scene.css";
 import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
-import { meiHuaFromUtc, type MeiHuaResult } from "@/domain/casting/mei-hua/algorithm";
 import {
-  MEI_HUA_NUMBER_TIME_ALGORITHM_STATUS,
   MEI_HUA_NUMBER_TIME_INPUT_VERSION,
+  meiHuaFromNumberAndTime,
   parseMeiHuaNumber,
-  tryMeiHuaFromNumberAndTime,
   validIanaTimeZone,
   type MeiHuaNumberTimeInput,
+  type MeiHuaNumberTimeResult,
 } from "@/domain/casting/mei-hua/number-time";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
@@ -25,7 +24,6 @@ import {
 } from "@/lib/public-reading-session";
 
 const STORAGE_KEY = "quickiching:public-v1:mei-hua-number-time-v1";
-const LEGACY_STORAGE_KEY = "quickiching:public-v1:mei-hua-v2";
 
 type FlowStep = 1 | 2 | 3 | "reading";
 
@@ -33,13 +31,7 @@ type StoredNumberTimeCast = {
   mode: "number-time";
   inputVersion: typeof MEI_HUA_NUMBER_TIME_INPUT_VERSION;
   input: MeiHuaNumberTimeInput;
-  algorithmStatus: typeof MEI_HUA_NUMBER_TIME_ALGORITHM_STATUS | "complete";
-  result?: MeiHuaResult;
-};
-
-type LegacyStoredCast = {
-  utcMillis: number;
-  ianaTimeZone: string;
+  result: MeiHuaNumberTimeResult;
 };
 
 function detectedTimeZone(): string {
@@ -47,57 +39,30 @@ function detectedTimeZone(): string {
   return validIanaTimeZone(zone) ? zone : "UTC";
 }
 
-function isMeiHuaResult(value: unknown): value is MeiHuaResult {
-  if (!value || typeof value !== "object") return false;
-  const result = value as Partial<MeiHuaResult>;
-  return Array.isArray(result.lineValuesBottomUp)
-    && result.lineValuesBottomUp.length === 6
-    && result.lineValuesBottomUp.every((line) => line === 6 || line === 7 || line === 8 || line === 9)
-    && typeof result.algorithmVersion === "string"
-    && Number.isInteger(result.movingLinePosition);
-}
-
 function parseNumberTimeCast(value: unknown): StoredNumberTimeCast | null {
   if (!value || typeof value !== "object") return null;
-  const candidate = value as {
-    mode?: unknown;
-    inputVersion?: unknown;
-    input?: unknown;
-    algorithmStatus?: unknown;
-    result?: unknown;
-  };
+  const candidate = value as { mode?: unknown; inputVersion?: unknown; input?: unknown };
   if (candidate.mode !== "number-time" || candidate.inputVersion !== MEI_HUA_NUMBER_TIME_INPUT_VERSION) return null;
   if (!candidate.input || typeof candidate.input !== "object") return null;
   const input = candidate.input as Partial<MeiHuaNumberTimeInput>;
-  if (!Number.isSafeInteger(input.number)
-    || !Number.isFinite(input.utcMillis)
-    || typeof input.ianaTimeZone !== "string"
-    || !validIanaTimeZone(input.ianaTimeZone)) return null;
-  if (candidate.algorithmStatus !== "unverified" && candidate.algorithmStatus !== "complete") return null;
-  if (candidate.result !== undefined && !isMeiHuaResult(candidate.result)) return null;
-  return {
-    mode: "number-time",
-    inputVersion: MEI_HUA_NUMBER_TIME_INPUT_VERSION,
-    input: {
+  if (!Number.isSafeInteger(input.number) || Number(input.number) <= 0
+    || !Number.isSafeInteger(input.utcMillis)
+    || typeof input.ianaTimeZone !== "string") return null;
+  try {
+    const sealedInput = {
       number: Number(input.number),
       utcMillis: Number(input.utcMillis),
       ianaTimeZone: input.ianaTimeZone,
-    },
-    algorithmStatus: candidate.algorithmStatus,
-    ...(candidate.result ? { result: candidate.result } : {}),
-  };
-}
-
-function parseLegacyCast(value: unknown): LegacyStoredCast | null {
-  const candidate = value && typeof value === "object" && "cast" in value
-    ? (value as { cast?: unknown }).cast
-    : value;
-  if (!candidate || typeof candidate !== "object") return null;
-  const cast = candidate as Partial<LegacyStoredCast>;
-  if (!Number.isFinite(cast.utcMillis)
-    || typeof cast.ianaTimeZone !== "string"
-    || !validIanaTimeZone(cast.ianaTimeZone)) return null;
-  return { utcMillis: Number(cast.utcMillis), ianaTimeZone: cast.ianaTimeZone };
+    };
+    return {
+      mode: "number-time",
+      inputVersion: MEI_HUA_NUMBER_TIME_INPUT_VERSION,
+      input: sealedInput,
+      result: meiHuaFromNumberAndTime(sealedInput),
+    };
+  } catch {
+    return null;
+  }
 }
 
 function formatDate(utcMillis: number, timeZone: string): string {
@@ -121,8 +86,7 @@ function readingFromCast(
   id: string,
   question: string | undefined,
   cast: StoredNumberTimeCast,
-): PublicReading | null {
-  if (!cast.result) return null;
+): PublicReading {
   return buildPublicReading({
     id,
     createdAt: new Date(cast.input.utcMillis).toISOString(),
@@ -142,47 +106,25 @@ export function MeiHuaNumberFlow() {
   const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
   const [cast, setCast] = useState<StoredNumberTimeCast | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [legacyReading, setLegacyReading] = useState<PublicReading | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState("");
 
   useEffect(() => {
     try {
       const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeCast);
-      if (current) {
-        setSessionId(current.id);
-        const restoredQuestion = current.coreQuestionAtCast ?? current.question;
-        setQuestion(restoredQuestion);
-        setQuestionDraft(restoredQuestion ?? "");
-        if (current.data) {
-          setCast(current.data);
-          setSelectedNumber(current.data.input.number);
-          setNumberDraft(String(current.data.input.number));
-          setStep("reading");
-        } else if (current.question) {
-          setStep(2);
-        }
-        return;
+      if (!current) return;
+      setSessionId(current.id);
+      const restoredQuestion = current.coreQuestionAtCast ?? current.question;
+      setQuestion(restoredQuestion);
+      setQuestionDraft(restoredQuestion ?? "");
+      if (current.data) {
+        setCast(current.data);
+        setSelectedNumber(current.data.input.number);
+        setNumberDraft(String(current.data.input.number));
+        setStep("reading");
+      } else if (current.question) {
+        setStep(2);
       }
-
-      const legacy = readPublicReadingSession(LEGACY_STORAGE_KEY, (value) => {
-        const restored = parseLegacyCast(value);
-        return restored ? { cast: restored } : null;
-      });
-      const legacyCast = legacy?.data?.cast;
-      if (!legacy || !legacyCast) return;
-
-      const legacyQuestion = legacy.coreQuestionAtCast ?? legacy.question;
-      const result = meiHuaFromUtc(legacyCast.utcMillis, legacyCast.ianaTimeZone);
-      setLegacyReading(buildPublicReading({
-        id: legacy.id,
-        createdAt: new Date(legacyCast.utcMillis).toISOString(),
-        method: "mei-hua-yi-shu",
-        methodVersion: result.algorithmVersion,
-        question: legacyQuestion,
-        lineValuesBottomUp: result.lineValuesBottomUp,
-        evidence: { kind: "mei-hua-yi-shu", calculation: result },
-      }));
     } catch {
       setError("Browser session storage is unavailable. No cast has been created.");
     }
@@ -259,13 +201,12 @@ export function MeiHuaNumberFlow() {
     };
 
     try {
-      const result = tryMeiHuaFromNumberAndTime(input);
+      const result = meiHuaFromNumberAndTime(input);
       const nextCast: StoredNumberTimeCast = {
         mode: "number-time",
         inputVersion: MEI_HUA_NUMBER_TIME_INPUT_VERSION,
         input,
-        algorithmStatus: result ? "complete" : MEI_HUA_NUMBER_TIME_ALGORITHM_STATUS,
-        ...(result ? { result } : {}),
+        result,
       };
       const session = writePublicReadingSession(STORAGE_KEY, nextCast);
       setSessionId(session.id);
@@ -281,7 +222,6 @@ export function MeiHuaNumberFlow() {
   function startNewReading() {
     try {
       clearPublicReadingSession(STORAGE_KEY);
-      clearPublicReadingSession(LEGACY_STORAGE_KEY);
     } catch {
       // Reset the in-memory flow even if browser storage is unavailable.
     }
@@ -291,35 +231,14 @@ export function MeiHuaNumberFlow() {
     setSelectedNumber(null);
     setCast(null);
     setSessionId(null);
-    setLegacyReading(null);
     setError("");
     setStep(1);
   }
 
-  if (legacyReading) {
-    return (
-      <div data-mei-hua-flow data-mei-hua-legacy-restored>
-        <PublicReadingResult reading={legacyReading} onNewReading={startNewReading} />
-      </div>
-    );
-  }
-
-  if (step === "reading" && cast) {
+  if (step === "reading" && cast && publicReading) {
     return (
       <div data-mei-hua-flow data-mei-hua-shared-reading data-mei-hua-locked="true">
-        {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} /> : (
-          <section className="mei-scene mei-blocked" data-mei-hua-algorithm-boundary="unverified">
-            <SceneBook />
-            <div className="mei-blocked-copy">
-              <h1>Your Question</h1>
-              <p data-private-question="true" data-clarity-mask="true">{question}</p>
-              <h2>Hexagram calculation is not yet available for this locked cast.</h2>
-              <p>The approved number + time algorithm is unavailable. Your question, number, exact cast time, and timezone are locked.</p>
-              <dl><div><dt>Your Number</dt><dd>{cast.input.number}</dd></div><div><dt>UTC timestamp</dt><dd>{new Date(cast.input.utcMillis).toISOString()}</dd></div><div><dt>Time Zone</dt><dd>{cast.input.ianaTimeZone}</dd></div></dl>
-              <button type="button" className="mei-button" onClick={startNewReading}>New Reading</button>
-            </div>
-          </section>
-        )}
+        <PublicReadingResult reading={publicReading} onNewReading={startNewReading} />
       </div>
     );
   }
