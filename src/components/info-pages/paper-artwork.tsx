@@ -1,6 +1,7 @@
 import styles from "./info-pages.module.css";
 
 export function optimizedInfoAsset(src: string, width = 1920, quality = 90) {
+  if (src.startsWith("runtime/")) return `/info-pages/${src}`;
   return `/_next/image?url=${encodeURIComponent(`/info-pages/${src}`)}&w=${width}&q=${quality}`;
 }
 
@@ -32,6 +33,6 @@ export function PaperArtwork({ kind = "main" }: { kind?: "main" | "secondary" | 
 export function GuideDecoration({ kind }: { kind: "coins" | "landscape" | "lantern" | "books"; }) {
   const regions = { coins: "70 45 610 420", landscape: "700 40 740 450", lantern: "60 510 620 470", books: "810 540 600 430" };
   return <svg aria-hidden="true" className={styles.guideDecoration} viewBox={regions[kind]}>
-    <image href={optimizedInfoAsset("decorative/guide-decorations.png", 1920)} width="1536" height="1024" />
+    <image href={optimizedInfoAsset("runtime/decorative/guide-decorations.webp", 1920)} width="1536" height="1024" />
   </svg>;
 }
