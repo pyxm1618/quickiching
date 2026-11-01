@@ -29,7 +29,6 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-home-heading p { position:absolute;top:calc(146 * var(--u));left:0;white-space:nowrap;font-size:calc(24 * var(--u));line-height:1.18;margin:calc(17 * var(--u)) 0 0 calc(45 * var(--u));color:#fff8ed; }
 .ritual-question-card { position:absolute;left:calc(200 * var(--u));top:calc(411 * var(--u));width:calc(646 * var(--u));height:calc(184 * var(--u));z-index:2;
   padding:calc(19 * var(--u)) calc(36 * var(--u));background:#f1dfbd;background-origin:border-box;color:#16110b;border:4px double #be8d50;border-radius:14px;isolation:isolate;overflow:hidden;
-  transition:left 360ms var(--ritual-enter) 80ms,top 360ms var(--ritual-enter) 80ms,width 360ms var(--ritual-enter) 80ms,height 360ms var(--ritual-enter) 80ms;
 }
 .ritual-question-card-art {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;}
 .ritual-question-card > label,
@@ -60,7 +59,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-cloud {position:absolute;right:calc(55 * var(--u));top:calc(137 * var(--u));width:calc(140 * var(--u));height:calc(55 * var(--u));background-image:none;background-size:contain;background-position:center;}
 .ritual-canvas:has(> .ritual-room[data-room-ready='true']) .ritual-cloud {background-image:url('/ritual/decor/gold-cloud.png');}
 .ritual-divider {width:calc(350 * var(--u));height:calc(35 * var(--u));margin:auto;background-image:url('/ritual/decor/yin-yang-divider.png');background-size:contain;background-position:center;}
-:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card {left:calc(485 * var(--u));top:calc(470 * var(--u));width:calc(688 * var(--u));height:calc(140 * var(--u));padding:calc(23 * var(--u)) calc(34 * var(--u));}
+:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card {transition:left 360ms var(--ritual-enter) 80ms,top 360ms var(--ritual-enter) 80ms,width 360ms var(--ritual-enter) 80ms,height 360ms var(--ritual-enter) 80ms;left:calc(485 * var(--u));top:calc(470 * var(--u));width:calc(688 * var(--u));height:calc(140 * var(--u));padding:calc(23 * var(--u)) calc(34 * var(--u));}
 :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card label,:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-description {display:none;}
 :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) textarea {height:100%;border:0;padding:0;font-size:calc(24 * var(--u));background:transparent;}
 :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-character-count {top:auto;bottom:calc(20 * var(--u));}
