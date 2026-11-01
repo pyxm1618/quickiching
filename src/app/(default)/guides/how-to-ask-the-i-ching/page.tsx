@@ -34,8 +34,7 @@ export default function HowToAskGuidePage() {
           src="/info-pages/guide/guide-main-scroll.png"
           alt=""
           fill
-          priority
-          fetchPriority="high"
+          fetchPriority="low"
           sizes="(max-width: 760px) calc(100vw - 1.1rem), min(94rem, calc(100vw - 2rem))"
           className={styles.guideMainImage}
         />
