@@ -403,3 +403,46 @@
 .qic-my-reading {
   background-size: auto 100%,auto,100% 100%,auto;
 }
+
+/* Group 3 final Account ornament/proportion refinement. */
+@media (min-width:701px) and (min-height:761px) {
+  .qic-user-menu {
+    padding-top: 28px;
+    padding-bottom: 34px;
+    background-size: 100% 48%;
+    background-position: right bottom;
+  }
+  .qic-user-menu-identity { padding-bottom: 24px; }
+  .qic-user-menu > a,.qic-user-menu > button { min-height: 72px; }
+  .qic-account-heading h1::before,
+  .qic-account-heading h1::after {
+    width: 126px;
+    height: 52px;
+    filter: brightness(1.32) saturate(1.42) drop-shadow(0 0 4px #d88b1c66);
+  }
+  .qic-account-heading h1::before { left: 70px; }
+  .qic-account-heading h1::after { right: 54px; }
+  .qic-account-frame {
+    background-blend-mode: screen,screen,normal,normal;
+  }
+}
+
+/* Let the supplied mountain layer remain visible instead of being flattened by
+   the paper blend; no new asset is introduced. */
+.qic-account-paper {
+  background-blend-mode: normal,normal,normal,normal;
+}
+.qic-account-paper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url('/account/paper-landscape.png') right bottom / min(46%,360px) auto no-repeat;
+  opacity: .42;
+  mix-blend-mode: multiply;
+}
+.qic-account-paper > * {
+  position: relative;
+  z-index: 1;
+}
