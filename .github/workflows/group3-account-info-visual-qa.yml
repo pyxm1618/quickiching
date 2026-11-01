@@ -32,6 +32,35 @@ jobs:
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
 
+      - name: Generate optimized Info asset candidates
+        shell: bash
+        run: |
+          python3 -m pip install --quiet pillow
+          mkdir -p .artifacts/group3-visual-qa/optimized-assets/shared
+          mkdir -p .artifacts/group3-visual-qa/optimized-assets/decorative
+          mkdir -p .artifacts/group3-visual-qa/optimized-assets/guide
+          mkdir -p .artifacts/group3-visual-qa/optimized-assets/legal
+          mkdir -p .artifacts/group3-visual-qa/optimized-assets/help
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          files = [
+            ("public/info-pages/shared/info-page-background.png", ".artifacts/group3-visual-qa/optimized-assets/shared/info-page-background.webp", 88),
+            ("public/info-pages/shared/title-brush-stroke.png", ".artifacts/group3-visual-qa/optimized-assets/shared/title-brush-stroke.webp", 90),
+            ("public/info-pages/decorative/guide-decorations.png", ".artifacts/group3-visual-qa/optimized-assets/decorative/guide-decorations.webp", 90),
+            ("public/info-pages/guide/guide-main-scroll.png", ".artifacts/group3-visual-qa/optimized-assets/guide/guide-main-scroll.webp", 90),
+            ("public/info-pages/guide/guide-secondary-scroll.png", ".artifacts/group3-visual-qa/optimized-assets/guide/guide-secondary-scroll.webp", 90),
+            ("public/info-pages/legal/legal-main-paper.png", ".artifacts/group3-visual-qa/optimized-assets/legal/legal-main-paper.webp", 90),
+            ("public/info-pages/legal/legal-toc-panel.png", ".artifacts/group3-visual-qa/optimized-assets/legal/legal-toc-panel.webp", 90),
+            ("public/info-pages/help/help-main-panel.png", ".artifacts/group3-visual-qa/optimized-assets/help/help-main-panel.webp", 90),
+          ]
+          for src, dst, quality in files:
+              im = Image.open(src)
+              Path(dst).parent.mkdir(parents=True, exist_ok=True)
+              im.save(dst, "WEBP", quality=quality, method=6)
+              print(src, Path(src).stat().st_size, "=>", dst, Path(dst).stat().st_size)
+          PY
+
       - name: Install temporary visual fixture
         run: node scripts/group3-visual-qa-fixture.mjs install
 
