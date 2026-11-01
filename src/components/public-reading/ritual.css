@@ -93,6 +93,8 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 
 .ritual-home-cloud-left {left:calc(5 * var(--u));right:auto;top:calc(102 * var(--u));width:calc(68 * var(--u));height:calc(40 * var(--u));opacity:.75;}
 .ritual-home-cloud-right {left:calc(658 * var(--u));right:auto;top:calc(102 * var(--u));width:calc(112 * var(--u));height:calc(54 * var(--u));opacity:.75;}
+.ritual-home-heading .ritual-cloud {background-image:none!important;}
+.ritual-home-heading .ritual-cloud img {object-fit:contain;}
 /* Native production artwork at canonical size, with only its final edge repeated. */
 @media (width:1672px) and (height:941px) {
  .ritual-room[data-room-ready='true'] {background-image:url('/performance/stageDesktop.e37364561615e31f.webp'),url('/performance/stageDesktop.e37364561615e31f.webp');background-size:auto 100%,auto 100%;background-position:left center,right center;}
@@ -102,7 +104,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 }
 
 .ritual-gold-button {position:relative;isolation:isolate;overflow:hidden;}
-.ritual-gold-button::before {content:'';position:absolute;inset:0;z-index:-1;opacity:.13;background-image:url('/ritual/decor/gold-cloud.png'),url('/ritual/decor/gold-cloud.png');background-size:100px 40px;background-position:left center,right center;background-repeat:no-repeat;mix-blend-mode:multiply;}
+.ritual-gold-button::before {content:'';position:absolute;inset:0;z-index:-1;opacity:.13;background-image:url('/ritual/decor/gold-cloud-button-2x.png'),url('/ritual/decor/gold-cloud-button-2x.png');background-size:100px 40px;background-position:left center,right center;background-repeat:no-repeat;mix-blend-mode:multiply;}
 .ritual-gold-button::after {content:'';position:absolute;inset:4px;border:1px solid rgba(255,239,184,.7);border-radius:inherit;pointer-events:none;}
 @media(min-width:801px) {
  [data-experience-stage='landing'] .ritual-gold-button {font-weight:400;font-size:calc(26.2 * var(--u));gap:calc(14 * var(--u));padding-bottom:calc(3 * var(--u));}
@@ -301,7 +303,7 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 .ritual-record-action.ritual-departing-record-action .ritual-gold-button {font-size:calc(28 * var(--u));height:calc(72 * var(--u));}
 :is([data-ritual-view='ready'],[data-ritual-view='casting']) .ritual-cast-heading {animation:ritual-casting-enter 320ms var(--ritual-enter) 120ms both;}
 [data-ritual-view='casting'][data-flight-beat='landing'] .ritual-cast-heading {animation:ritual-heading-exit 180ms var(--ritual-exit) both;}
-.ritual-face-labels > span {animation-delay:60ms;}
+.ritual-face-labels > span {animation-delay:30ms;}
 .ritual-record-action {animation:ritual-record-enter 220ms var(--ritual-enter) 180ms both;}
 [data-resetting='true'] .ritual-cast-heading {animation-delay:120ms;}
 @media(prefers-reduced-motion:reduce) {

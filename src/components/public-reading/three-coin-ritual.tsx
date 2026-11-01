@@ -2,6 +2,7 @@
 
 import "./ritual.css";
 import { ArrowRight } from "lucide-react";
+import Image from "next/image";
 import React, { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
@@ -297,8 +298,12 @@ export function ThreeCoinRitual({
           <div className="ritual-question-stage" data-leaving={questionLeaving} inert={questionLeaving}>
             {landing || homeLeaving ? (
               <div className="ritual-home-heading" data-leaving={homeLeaving}>
-                <span className="ritual-cloud ritual-home-cloud-left" aria-hidden="true" />
-                <span className="ritual-cloud ritual-home-cloud-right" aria-hidden="true" />
+                <span className="ritual-cloud ritual-home-cloud-left" aria-hidden="true">
+                  <Image src="/ritual/decor/gold-cloud.png" alt="" fill sizes="68px" loading="lazy" fetchPriority="low" />
+                </span>
+                <span className="ritual-cloud ritual-home-cloud-right" aria-hidden="true">
+                  <Image src="/ritual/decor/gold-cloud.png" alt="" fill sizes="112px" loading="lazy" fetchPriority="low" />
+                </span>
                 <Heading><em>{homeTitleFirst}</em>{homeTitleSecond ? <span className="ritual-title-second">{homeTitleSecond}</span> : null}</Heading>
                 <p data-home-hero-copy>{zh ? (homeDescription ?? "在变化之中，重新认识此刻的自己。") : <>Use the I Ching online to rediscover where you are.<br />It is not about predicting the future,<br />but about seeing yourself more clearly in the present.</>}</p>
               </div>

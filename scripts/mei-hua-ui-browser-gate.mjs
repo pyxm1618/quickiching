@@ -33,7 +33,21 @@ const setControlledValue=async(p,selector,value)=>{
     element.dispatchEvent(new Event("change",{bubbles:true}));
   },value);
 };
-async function ready(p){await p.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await Promise.all([...document.images].map(i=>i.decode().catch(()=>{})));});}
+async function ready(p){
+  await p.evaluate(async()=>{
+    await document.fonts.ready;
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const visible=[...document.images].filter(image=>{
+      const rect=image.getBoundingClientRect();
+      const style=getComputedStyle(image);
+      return rect.width>0&&rect.height>0&&style.display!=="none"&&style.visibility!=="hidden";
+    });
+    await Promise.all(visible.map(image=>Promise.race([
+      image.decode().catch(()=>{}),
+      new Promise(resolve=>setTimeout(resolve,3000)),
+    ])));
+  });
+}
 async function noOverflow(p,label){
   const overflow=await p.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
   assert.equal(overflow.scroll>overflow.width,false,`${label}: horizontal overflow`);

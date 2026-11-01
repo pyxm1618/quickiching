@@ -6,6 +6,14 @@ const base='http://127.0.0.1:3028',key='quickiching:public-v1:three-coin';
 const output='.artifacts/ritual-qa/final-closeout/motion';await mkdir(output,{recursive:true});
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1']});
 const outcomes=[];
+const REVIEWED_ROOM_ASSET='stageDesktop.e37364561615e31f.webp';
+async function roomArtwork(page){
+ return page.$eval('.ritual-room',node=>{
+  const art=node.querySelector('.ritual-room-art-primary');
+  if(art instanceof HTMLImageElement&&art.currentSrc)return art.currentSrc;
+  return getComputedStyle(node).backgroundImage;
+ });
+}
 async function run(reduced,suppressed=false){
  const context=await browser.createBrowserContext(),page=await context.newPage();
  const prefix=suppressed?'animation-suppressed':reduced?'reduced':'normal';
@@ -23,7 +31,8 @@ async function run(reduced,suppressed=false){
   await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
   await page.waitForSelector('[data-renderer="three-webgl"]');
   if(suppressed)await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important}'});
-  const room=await page.$eval('.ritual-room',node=>getComputedStyle(node).backgroundImage);
+  const room=await roomArtwork(page);
+  assert(room.includes(REVIEWED_ROOM_ASSET),'Landing must use the reviewed production room artwork');
   await page.evaluate(()=>window.__motionCanvas=document.querySelector('.ritual-webgl canvas'));
   await page.locator('[data-private-question]').fill('How should I understand this transition?');
   await page.locator('[data-home-primary-action]').click();
@@ -70,7 +79,7 @@ async function run(reduced,suppressed=false){
   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
   assert.equal(await page.$('[data-public-reading-result]'),null);
   assert.equal(await page.evaluate(()=>window.__motionDraws),18);
-  assert.equal(await page.$eval('.ritual-room',node=>getComputedStyle(node).backgroundImage),room);
+  assert((await roomArtwork(page)).includes(REVIEWED_ROOM_ASSET),'Shared Auth gate must retain the reviewed production room artwork');
   await page.screenshot({path:`${output}/${prefix}-auth-gate.png`});
   const completed=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
   const requests=[];let pending;
@@ -102,7 +111,7 @@ async function run(reduced,suppressed=false){
   await page.waitForSelector('[data-ritual-reveal-stage="result"] [data-public-reading-result]:not([data-reading-localization-loading])');
   await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('[data-public-reading-result]')).opacity)===1);
   await page.screenshot({path:`${output}/${prefix}-result-entered.png`});
-  assert.equal(await page.$eval('.ritual-room',node=>getComputedStyle(node).backgroundImage),room);
+  assert((await roomArtwork(page)).includes(REVIEWED_ROOM_ASSET),'Saved Reading must retain the reviewed production room artwork');
   const restored=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
   assert.deepEqual(restored,completed);
   outcomes.push({mode:prefix,status:'PASS',firstResult,firstLabel,firstAction,saveFixture:{requests:requests.length,first:'SAVE_READING_FAILED',retry:'saved',sameCast:true,liveAccountEvidence:false}});
