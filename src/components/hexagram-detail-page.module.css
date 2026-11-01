@@ -98,7 +98,10 @@
   .pine { top: clamp(520px, 56vw, 680px); width: clamp(128px, 14vw, 144px); }
 }
 @media (min-width: 961px) and (max-width: 1279px) {
-  .numberBadge { width: 58px; margin-left: 7px; }
+  .identity { padding-bottom: 29px; }
+  .identity + .section { margin-top: 3px; }
+  .numberBadge { width: 58px; margin-top: 6px; margin-left: 7px; padding: 7.3px 1px; }
+  .form { transform: translateY(2px); }
 }
 @media (min-width: 1280px) {
   .numberBadge { margin-top: 60px; }
