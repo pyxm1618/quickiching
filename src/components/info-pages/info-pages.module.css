@@ -1,7 +1,7 @@
 .page {
   position: relative; isolation: isolate; min-height: 100vh; padding: 58px 2.4% 64px; color: #fff0cb;
   font-family: "Times New Roman",Georgia,serif;
-  background: #1b0b04 url("/info-pages/shared/info-page-background.png") center top/100vw auto fixed no-repeat;
+  background: #1b0b04 url("/_next/image?url=%2Finfo-pages%2Fshared%2Finfo-page-background.png&w=1920&q=88") center top/100vw auto fixed no-repeat;
 }
 
 .inner { width: min(1550px,100%); margin: auto; container-type: inline-size; }
@@ -15,7 +15,7 @@
 
 .titleStroke {
   display: block; width: clamp(220px,36vw,620px); height: 22px; margin: 0 auto 8px;
-  background: url("/info-pages/shared/title-brush-stroke.png") center 49%/100% auto no-repeat;
+  background: url("/_next/image?url=%2Finfo-pages%2Fshared%2Ftitle-brush-stroke.png&w=1080&q=90") center 49%/100% auto no-repeat;
 }
 
 .lead { max-width: 970px; margin: 0 auto; color: #fff1d7; font-size: 22px; line-height: 1.25; }
@@ -418,7 +418,7 @@
   .helpGroup { padding: 28px 9% 55px; isolation: isolate; }
   .helpGroup:before {
     content: ""; position: absolute; inset: 0; z-index: -1; border: 25px solid transparent;
-    border-image: url("/info-pages/legal/legal-main-paper.png") 65 fill stretch;
+    border-image: url("/_next/image?url=%2Finfo-pages%2Flegal%2Flegal-main-paper.png&w=1920&q=90") 65 fill stretch;
     filter: drop-shadow(0 8px 10px #0005);
   }
   .helpRow+.helpRow { margin-top: 20px; }
