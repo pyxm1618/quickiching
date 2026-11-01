@@ -596,3 +596,22 @@
     padding: 14px 16px 12px;
   }
 }
+
+/* Mobile Settings panels size to content; dialog body owns scrolling. */
+@media (max-width:700px),(max-height:760px) {
+  .qic-settings-privacy,
+  .qic-settings-actions,
+  .qic-settings-danger {
+    flex: none;
+    min-height: max-content;
+    height: auto;
+  }
+  .qic-settings-privacy a {
+    min-height: 82px;
+    align-items: flex-start;
+  }
+  .qic-settings-actions .qic-settings-action-row,
+  .qic-settings-danger .qic-settings-action-row {
+    min-height: max-content;
+  }
+}
