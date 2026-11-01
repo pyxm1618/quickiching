@@ -27,7 +27,11 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
   padding:calc(19 * var(--u)) calc(36 * var(--u));background:#f1dfbd;background-origin:border-box;color:#16110b;border:4px double #be8d50;border-radius:14px;isolation:isolate;overflow:hidden;
   transition:left 360ms var(--ritual-enter) 80ms,top 360ms var(--ritual-enter) 80ms,width 360ms var(--ritual-enter) 80ms,height 360ms var(--ritual-enter) 80ms;
 }
-.ritual-question-card-art {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;pointer-events:none;}
+.ritual-question-card-art {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;}
+.ritual-question-card > label,
+.ritual-question-card > .ritual-question-description,
+.ritual-question-card > textarea {position:relative;z-index:1;}
+.ritual-character-count {z-index:1;}
 .ritual-question-card label { display:block;font-size:calc(28 * var(--u));font-weight:700;line-height:1.2; }
 .ritual-question-description { font-size:calc(18 * var(--u));line-height:1.4;margin:calc(6 * var(--u)) 0 calc(10 * var(--u)); }
 .ritual-question-card textarea { display:block;width:100%;height:calc(63 * var(--u));padding:calc(16 * var(--u));resize:none;border:1px solid #d7ae7a;border-radius:5px;background:rgba(255,244,222,.2);font:400 calc(16 * var(--u))/1.4 Georgia,serif;color:#20150c;outline-offset:3px; }
@@ -100,7 +104,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
  [data-experience-stage='landing'] .ritual-gold-button::after {display:none;}
  [data-experience-stage='landing'] .ritual-gold-button {background:radial-gradient(ellipse at 50% 50%,#ffd26b 0%,#f5b64e 42%,#e99b32 74%,#d98528 100%);box-shadow:inset 0 -4px 8px rgba(255,225,140,.78),0 0 4px rgba(245,194,106,.9),0 0 14px rgba(216,136,46,.85),0 0 28px rgba(137,71,21,.65);}
 }
-.ritual-question-card::before {content:'';position:absolute;inset:5px;border:1px solid #d3a970;border-radius:5px;pointer-events:none;}
+.ritual-question-card::before {content:'';position:absolute;inset:5px;z-index:2;border:1px solid #d3a970;border-radius:5px;pointer-events:none;}
 
 [data-three-coin-presentation="ritual"] > .ritual-webgl {position:fixed;}
 
