@@ -28,9 +28,12 @@ describe("action input schemas", () => {
       .toThrow(expect.objectContaining({ code: "INVALID_ACTION_INPUT", field: "changeIndex" }));
   });
 
-  it("rejects an invalid IANA time zone before Mei Hua calculation", () => {
-    expect(() => parseActionInput(actionSchemas.createMeiHuaResult, { castingId, ianaTimeZone: "Mars/Olympus" }))
-      .toThrow(expect.objectContaining({ code: "INVALID_ACTION_INPUT", field: "ianaTimeZone" }));
+  it("rejects the retired legacy Mei Hua commercial casting method", () => {
+    expect(() => parseActionInput(actionSchemas.createCastingSession, {
+      method: "mei_hua_current_time",
+      scene: "career",
+      interpretationGoal: "what_do_i_need_to_see_clearly",
+    })).toThrow(expect.objectContaining({ code: "INVALID_ACTION_INPUT", field: "method" }));
   });
 
   it("normalizes valid email input and rejects invalid email input", () => {
