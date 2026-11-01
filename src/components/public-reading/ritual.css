@@ -39,7 +39,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-question-card textarea { display:block;width:100%;height:calc(63 * var(--u));padding:calc(16 * var(--u));resize:none;border:1px solid #d7ae7a;border-radius:5px;background:rgba(255,244,222,.2);font:400 calc(16 * var(--u))/1.4 Georgia,serif;color:#20150c;outline-offset:3px; }
 .ritual-question-card textarea::placeholder {color:#a58b6a;opacity:1;}
 .ritual-character-count { position:absolute;right:calc(36 * var(--u));top:calc(59 * var(--u));font-size:calc(18 * var(--u)); }
-.ritual-question-actions { position:absolute;left:calc(311 * var(--u));top:calc(620 * var(--u));width:calc(417 * var(--u));z-index:2;text-align:center;transform:translateZ(0);
+.ritual-question-actions { position:absolute;left:calc(311 * var(--u));top:calc(620 * var(--u));width:calc(417 * var(--u));z-index:2;text-align:center;
   transition:left 360ms var(--ritual-enter) 80ms,top 360ms var(--ritual-enter) 80ms,width 360ms var(--ritual-enter) 80ms; }
 .ritual-gold-button { display:flex;align-items:center;justify-content:center;gap:calc(10 * var(--u));width:100%;height:calc(74 * var(--u));border:2px solid #f3d78d;border-radius:100px;
   font:700 calc(24 * var(--u))/1 Georgia,serif;color:#191003;background:radial-gradient(ellipse at 50% 0%,#fff1bc 0%,#f8d07a 42%,#edb25a 74%,#e9a84c 100%);
