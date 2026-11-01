@@ -2,9 +2,23 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ThreeCoinResultClient } from '../../src/components/three-coin-result/three-coin-result-client';
+import { generateYarrowLine } from '../../src/domain/casting/yarrow/algorithm';
+import { meiHuaFromUtc } from '../../src/domain/casting/mei-hua/algorithm';
 
 const query = new URLSearchParams(location.search);
-const method = query.get('method') ?? 'three_coin';
+const method = (query.get('method') ?? 'three_coin') as 'three_coin' | 'yarrow_stalk' | 'mei_hua_current_time';
+const yarrowLines = Array.from({length:6},(_,index)=>generateYarrowLine(index as 0|1|2|3|4|5,()=>2));
+const meiHua = meiHuaFromUtc(Date.UTC(2026,9,31,12,0,0),'UTC');
+const lineValues = method === 'yarrow_stalk'
+  ? yarrowLines.map(line=>line.lineValue)
+  : method === 'mei_hua_current_time'
+    ? [...meiHua.lineValuesBottomUp]
+    : [7,7,7,7,7,7];
+const methodCalculation = method === 'yarrow_stalk'
+  ? {kind:'yarrow-stalks',version:'yarrow-zhu-xi-digital-v2',changes:yarrowLines.flatMap(line=>line.changes)}
+  : method === 'mei_hua_current_time'
+    ? meiHua.methodCalculation
+    : {kind:'three-coin',version:'three-coin-v1'};
 const zh = query.get('locale') === 'zh';
 const question = zh ? '我现在是否适合换一份工作？' : 'Should I change to a new job?';
 const viewModel = zh ? {
@@ -55,17 +69,18 @@ createRoot(document.getElementById('root')!).render(<ThreeCoinResultClient
   pageMode={query.get('page') === 'deep' ? 'deep' : 'free'}
   initialUser={{id:'browser-fixture-owner',email:'fixture@example.com'}}
   initialCredits={1}
-  initialState={{kind:'ready',lineValues:[7,7,7,7,7,7],question}}
+  initialState={{kind:'ready',lineValues,question}}
   initialCastingView={{
     castingId:'browser-fixture-cast',
-    method:method as any,
+    method,
     algorithmVersion:method==='three_coin'
       ? 'three-coin-v1'
       : method==='yarrow_stalk'
         ? 'yarrow-zhu-xi-digital-v2'
         : 'mei-hua-gregorian-current-time-v2',
     context:question,
-    lineValuesBottomUp:[7,7,7,7,7,7],
+    lineValuesBottomUp:lineValues,
+    methodCalculation,
     owns:true,
   }}
 />);

@@ -41,7 +41,8 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
     initialInterpretationBundles={initialInterpretationBundles} initialLocalizedContent={initialLocalizedContent}
     initialCastingView={castingView ? {
       castingId: castingView.session.id, method: castingView.session.method,
-      algorithmVersion: result?.algorithmVersion, createdAt: castingView.session.createdAt.toISOString(),
+      algorithmVersion: result?.algorithmVersion, methodCalculation: result?.methodCalculation,
+      createdAt: castingView.session.createdAt.toISOString(),
       context: castingView.context, lineValuesBottomUp: result?.lineValues ?? null,
       deepReadingViewModel: initialDeepReadingViewModel,
       deepReadingContext: initialDeepReadingContext,

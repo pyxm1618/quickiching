@@ -26,7 +26,10 @@ import { evaluateRisk } from "@/domain/risk/engine";
 import { AiDeepReadingResult, AiDeepReadingState } from "./ai-deep-reading-result";
 import styles from "./result-page.module.css";
 import { readCompletedPublicReading, publicReadingSaveInput, clearCompletedReadingForRestart } from "@/lib/completed-public-reading";
-import type { PublicReading, PublicReadingMethod } from "@/domain/public-reading/types";
+import type { PublicReading, PublicReadingEvidence, PublicReadingMethod } from "@/domain/public-reading/types";
+import type { LineValue } from "@/domain/casting/types";
+import type { YarrowChange, YarrowLineResult } from "@/domain/casting/yarrow/algorithm";
+import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
 export type ResultState =
   | { kind: "loading" }
   | { kind: "empty" }
@@ -46,6 +49,7 @@ export type ThreeCoinResultClientProps = {
     castingId: string;
     method?: "three_coin" | "yarrow_stalk" | "mei_hua_current_time";
     algorithmVersion?: string;
+    methodCalculation?: unknown;
     createdAt?: string;
     context: string;
     lineValuesBottomUp: number[] | null;
@@ -118,6 +122,55 @@ function currentBrowserReturnPath(): string {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }
 
+function serverBackedReadingEvidence(
+  method: PublicReadingMethod,
+  lineValues: readonly number[],
+  methodCalculation: unknown,
+): PublicReadingEvidence {
+  if (method === "three-coin") return { kind: "three-coin", steps: [] };
+
+  if (method === "yarrow-stalks") {
+    const record = methodCalculation && typeof methodCalculation === "object"
+      ? methodCalculation as Record<string, unknown>
+      : null;
+    const changes = record && Array.isArray(record.changes) ? record.changes as YarrowChange[] : null;
+    if (!changes || changes.length !== 18) throw new Error("YARROW_READING_EVIDENCE_UNAVAILABLE");
+    const lines: YarrowLineResult[] = Array.from({ length: 6 }, (_, rawIndex) => {
+      const lineIndex = rawIndex as 0 | 1 | 2 | 3 | 4 | 5;
+      const lineChanges = changes.filter((change) => change.lineIndex === lineIndex);
+      const lineValue = lineValues[lineIndex] as LineValue;
+      if (lineChanges.length !== 3 || ![6, 7, 8, 9].includes(lineValue)) {
+        throw new Error("YARROW_READING_EVIDENCE_INVALID");
+      }
+      return {
+        lineIndex,
+        lineValue,
+        changes: lineChanges,
+        algorithmVersion: lineChanges[0]?.algorithmVersion ?? "yarrow-zhu-xi-digital-v2",
+      };
+    });
+    return { kind: "yarrow-stalks", lines };
+  }
+
+  if (method === "mei-hua-yi-shu") {
+    const record = methodCalculation && typeof methodCalculation === "object"
+      ? methodCalculation as Record<string, unknown>
+      : null;
+    const utcMillis = record?.utcMillis;
+    const ianaTimeZone = record?.ianaTimeZone;
+    if (typeof utcMillis !== "number" || !Number.isFinite(utcMillis) || typeof ianaTimeZone !== "string") {
+      throw new Error("MEI_HUA_READING_EVIDENCE_UNAVAILABLE");
+    }
+    const calculation = meiHuaFromUtc(utcMillis, ianaTimeZone);
+    if (calculation.lineValuesBottomUp.some((value, index) => value !== lineValues[index])) {
+      throw new Error("MEI_HUA_READING_EVIDENCE_INVALID");
+    }
+    return { kind: "mei-hua-yi-shu", calculation };
+  }
+
+  return { kind: "manual", mode: "line-values" };
+}
+
 
 export function ThreeCoinResultClient({
   initialSessionId,
@@ -181,9 +234,9 @@ export function ThreeCoinResultClient({
       methodVersion: initialCastingView?.algorithmVersion,
       question: state.question,
       lineValuesBottomUp: state.lineValues,
-      evidence: { kind: "three-coin", steps: [] },
+      evidence: serverBackedReadingEvidence(method, state.lineValues, initialCastingView?.methodCalculation),
     });
-  }, [castingId, clientCastingId, state, completedReading, initialCastingView?.method, initialCastingView?.algorithmVersion]);
+  }, [castingId, clientCastingId, state, completedReading, initialCastingView?.method, initialCastingView?.algorithmVersion, initialCastingView?.methodCalculation]);
   const resultRevealGate = getResultRevealGate({
     authenticated: Boolean(user),
     castingId,
