@@ -13,154 +13,10 @@ import {
   Target,
 } from "lucide-react";
 import React, { type ReactNode } from "react";
-import type {
-  DeepReadingContextSnapshot,
-  DeepReadingReport,
-} from "@/domain/generation/deep-reading-contract";
-import type { CommercialReadingReport } from "@/domain/generation/schemas";
+import type { AiDeepReadingViewModel } from "@/domain/generation/deep-reading-view-model";
 import styles from "./ai-deep-reading-result.module.css";
 
 type Locale = "en" | "zh-Hans";
-
-type LegacyDeepReadingV2 = {
-  schemaVersion: "deep-reading-v2";
-  readingVariant: "standard" | "still_hexagram" | "multiple_moving" | "all_lines_moving";
-  directAnswer: string;
-  situationMapping: string;
-  keyTensions: string[];
-  conditionalDirection: string;
-  signalsToWatch: string[];
-  practicalReflection: string;
-  uncertaintyAndBoundaries: string;
-  interpretiveBasisReferences: Array<{ evidenceId: string }>;
-  disclaimer: string;
-};
-
-export type AiDeepReadingReport =
-  | DeepReadingReport
-  | LegacyDeepReadingV2
-  | CommercialReadingReport;
-
-type DisplayModel = {
-  coreLead: string;
-  coreDetail: string;
-  whyItems: string[];
-  changeItems: string[];
-  actionSignals: string[];
-  observeSignals: string[];
-  nextSteps: string[];
-  disclaimer: string;
-};
-
-function compactUnique(items: Array<string | null | undefined>, limit = 3): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const item of items) {
-    const value = item?.replace(/\s+/g, " ").trim();
-    if (!value || seen.has(value)) continue;
-    seen.add(value);
-    result.push(value);
-    if (result.length >= limit) break;
-  }
-  return result;
-}
-
-function sentencePoints(value: string, limit = 3): string[] {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  if (!normalized) return [];
-  const matches = normalized.match(/[^.!?。！？]+(?:[.!?。！？]+|$)/gu) ?? [normalized];
-  return compactUnique(matches, limit);
-}
-
-function splitCoreAnswer(value: string): { lead: string; detail: string } {
-  const paragraphs = value
-    .split(/\n{2,}/u)
-    .map((part) => part.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
-  if (paragraphs.length > 1) {
-    return { lead: paragraphs[0], detail: paragraphs.slice(1).join(" ") };
-  }
-  const sentences = sentencePoints(value, 8);
-  if (sentences.length <= 1) return { lead: value.trim(), detail: "" };
-  return { lead: sentences[0], detail: sentences.slice(1).join(" ") };
-}
-
-function buildDisplayModel(
-  report: AiDeepReadingReport,
-  snapshot: DeepReadingContextSnapshot | null,
-): DisplayModel {
-  if (report.schemaVersion === "deep-reading-v3") {
-    const core = splitCoreAnswer(report.directAnswer);
-    return {
-      coreLead: core.lead,
-      coreDetail: core.detail,
-      whyItems: sentencePoints(report.whyThisReading, 3),
-      changeItems: compactUnique([
-        snapshot?.knowledge.structuralChange,
-        snapshot?.knowledge.relating?.coreMeaning,
-        ...report.whatMattersMost,
-      ], 3),
-      actionSignals: compactUnique(report.whatMattersMost, 3),
-      observeSignals: compactUnique([
-        ...(snapshot?.knowledge.changingLines.map((line) => line.caution) ?? []),
-        ...sentencePoints(report.uncertaintyAndBoundaries, 3),
-      ], 3),
-      nextSteps: compactUnique(report.whatToDoNext, 3),
-      disclaimer: report.disclaimer,
-    };
-  }
-
-  if (report.schemaVersion === "deep-reading-v2") {
-    const core = splitCoreAnswer(report.directAnswer);
-    return {
-      coreLead: core.lead,
-      coreDetail: core.detail,
-      whyItems: sentencePoints(report.situationMapping, 3),
-      changeItems: compactUnique([
-        snapshot?.knowledge.structuralChange,
-        report.conditionalDirection,
-        ...report.keyTensions,
-      ], 3),
-      actionSignals: compactUnique(report.signalsToWatch, 3),
-      observeSignals: compactUnique([
-        ...report.keyTensions,
-        ...sentencePoints(report.uncertaintyAndBoundaries, 2),
-      ], 3),
-      nextSteps: compactUnique([
-        ...sentencePoints(report.practicalReflection, 3),
-        ...sentencePoints(report.conditionalDirection, 2),
-      ], 3),
-      disclaimer: report.disclaimer,
-    };
-  }
-
-  const core = splitCoreAnswer(report.coreSummary);
-  return {
-    coreLead: core.lead,
-    coreDetail: core.detail,
-    whyItems: compactUnique([
-      ...sentencePoints(report.currentStage, 2),
-      ...sentencePoints(report.primaryHexagramPattern, 2),
-    ], 3),
-    changeItems: compactUnique([
-      ...sentencePoints(report.changeMechanism, 2),
-      ...sentencePoints(report.possibleDirection, 2),
-    ], 3),
-    actionSignals: compactUnique([
-      ...sentencePoints(report.turningConditions, 2),
-      ...sentencePoints(report.conditionalActionDirection, 2),
-    ], 3),
-    observeSignals: compactUnique([
-      ...sentencePoints(report.obstaclesAndBlindSpots, 2),
-      ...sentencePoints(report.uncertaintyAndBoundaries, 2),
-    ], 3),
-    nextSteps: compactUnique([
-      ...sentencePoints(report.conditionalActionDirection, 3),
-      ...sentencePoints(report.turningConditions, 2),
-    ], 3),
-    disclaimer: report.disclaimer,
-  };
-}
 
 function formatAskedDate(value: string | undefined, locale: Locale): string {
   if (!value) return "";
@@ -308,26 +164,23 @@ function SectionCard({
 }
 
 export function AiDeepReadingResult({
-  report,
-  snapshot,
+  model,
   question,
   createdAt,
   locale,
   freeHref,
 }: {
-  report: AiDeepReadingReport;
-  snapshot: DeepReadingContextSnapshot | null;
+  model: AiDeepReadingViewModel;
   question: string;
   createdAt?: string;
   locale: Locale;
   freeHref: string;
 }) {
   const t = copy[locale];
-  const model = buildDisplayModel(report, snapshot);
 
   return (
     <DeepReadingFrame question={question} createdAt={createdAt} locale={locale}>
-      <div data-ai-deep-reading-report data-report-schema={report.schemaVersion}>
+      <div data-ai-deep-reading-report data-view-model-schema={model.schemaVersion}>
         <section className={styles.coreAnswer} data-ai-deep-section="core-answer">
           <div className={styles.ribbon}>{t.core}</div>
           <div className={styles.coreCopy}>
