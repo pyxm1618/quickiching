@@ -155,7 +155,7 @@ async function verifyFormalEntryPoints(browser) {
       await page.waitForSelector('[data-three-coin-ritual]');
       await page.waitForSelector('[data-three-coin-presentation="ritual"]');
       assert.equal(await page.$('[data-question-first]'), null, `${path} must not mount the retired generic Three-Coin question UI`);
-      assert.equal(await page.$('[data-three-coin-ritual]').then(nodes => nodes.length), 1, `${path} must mount exactly one formal Three-Coin ritual`);
+      assert.equal(await page.$eval('[data-three-coin-ritual]', nodes => nodes.length), 1, `${path} must mount exactly one formal Three-Coin ritual`);
     } finally {
       await context.close();
     }
