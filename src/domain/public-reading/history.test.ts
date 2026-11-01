@@ -37,6 +37,35 @@ function reading(id: string, question: string, createdAt: string) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("local Public Reading History", () => {
+  it("keeps legacy current-time Mei Hua records readable without treating them as an active method", () => {
+    const storage = installStorage();
+    storage.setItem(HISTORY_STORAGE_KEY, JSON.stringify([{
+      schemaVersion: 1,
+      id: "legacy-mei-hua",
+      title: "Legacy Mei Hua",
+      question: "What should I notice?",
+      createdAt: "2026-08-19T10:00:00.000Z",
+      updatedAt: "2026-08-19T10:00:00.000Z",
+      method: "mei-hua-yi-shu",
+      methodVersion: "mei-hua-gregorian-current-time-v2",
+      lineValuesBottomUp: [7, 8, 7, 9, 7, 7],
+      primaryHexagram: 13,
+      changingLines: [4],
+      relatingHexagram: 37,
+    }]));
+    const records = readHistoryRecords();
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({ id: "legacy-mei-hua", methodVersion: "mei-hua-gregorian-current-time-v2" });
+    expect(publicReadingFromHistory(records[0]!)).toMatchObject({
+      id: "legacy-mei-hua",
+      method: "mei-hua-yi-shu",
+      methodVersion: "mei-hua-gregorian-current-time-v2",
+      primaryHexagram: 13,
+      changingLines: [4],
+      relatingHexagram: 37,
+    });
+  });
+
   it("keeps same facts with different questions as distinct UUID-backed records", () => {
     const storage = installStorage();
     const createdAt = "2026-08-19T10:00:00.000Z";
