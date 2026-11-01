@@ -112,6 +112,23 @@ async function assertNoOverflow(page, label) {
   assert(dimensions.scrollWidth <= dimensions.clientWidth + 1, `${label}: horizontal overflow ${dimensions.scrollWidth} > ${dimensions.clientWidth}`);
 }
 
+async function assertNoTextClipping(page, label) {
+  const clipped = await page.evaluate(() => {
+    const root = document.querySelector("[data-hexagram-detail]");
+    if (!root) return ["detail-root-missing"];
+    return [...root.querySelectorAll("h1, h2, h3, h4, p, blockquote, dt, dd, a")]
+      .filter((node) => {
+        if (!(node instanceof HTMLElement)) return false;
+        const style = getComputedStyle(node);
+        if (style.display === "none" || style.visibility === "hidden" || node.clientWidth === 0 || node.clientHeight === 0) return false;
+        const clipsX = style.overflowX === "hidden" || style.overflowX === "clip";
+        const clipsY = style.overflowY === "hidden" || style.overflowY === "clip";
+        return (clipsX && node.scrollWidth > node.clientWidth + 1) || (clipsY && node.scrollHeight > node.clientHeight + 1);
+      })
+      .map((node) => (node.textContent ?? "").replace(/\s+/gu, " ").trim().slice(0, 100));
+  });
+  assert.deepEqual(clipped, [], label + ': clipped visible text detected');
+}
 async function assertKeyboardFocus(page, label) {
   await page.evaluate(() => {
     document.body.tabIndex = -1;
@@ -150,6 +167,7 @@ try {
     assert([200, 304].includes(response?.status()), `${pathFor(entry)}: expected 200 or 304, got ${response?.status()}`);
     assertSnapshot(entry, await extractSnapshot(page));
     await assertNoOverflow(page, `${pathFor(entry)} 1440px`);
+    await assertNoTextClipping(page, `${pathFor(entry)} 1440px`);
     const desktopH1Fits = await page.$eval("h1", (node) => {
       const rect = node.getBoundingClientRect();
       return rect.left >= -1 && rect.right <= document.documentElement.clientWidth + 1;
@@ -304,6 +322,7 @@ try {
     await page.setViewport({ width: 390, height: 844 });
     await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
     await assertNoOverflow(page, `${pathFor(entry)} 390px`);
+    await assertNoTextClipping(page, `${pathFor(entry)} 390px`);
     const h1Fits = await page.$eval("h1", (node) => {
       const rect = node.getBoundingClientRect();
       return rect.left >= -1 && rect.right <= document.documentElement.clientWidth + 1;
