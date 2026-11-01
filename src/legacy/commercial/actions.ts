@@ -206,20 +206,6 @@ async function completeYarrowActionImpl(unknownInput: unknown): Promise<
   return ok(castingService.completeYarrow(input.castingId));
 }
 
-// ---- 6. Mei Hua: create result from server time + confirmed timezone ----
-async function createMeiHuaResultActionImpl(unknownInput: unknown): Promise<
-  ActionResult<{ completed: true }>
-> {
-  const parsed = parseBoundaryInput(actionSchemas.createMeiHuaResult, unknownInput, "createMeiHuaResultAction");
-  if (isActionFailure(parsed)) return parsed;
-  const input = parsed;
-  const anonHash = await getAnonymousHash();
-  const user = await getCurrentUser();
-  if (!repo.ownsCasting(input.castingId, user?.id ?? null, anonHash))
-    return fail("CASTING_NOT_FOUND", "Casting session not found", false);
-  return ok(castingService.recordMeiHua(input.castingId, input.ianaTimeZone));
-}
-
 // ---- 7. Reveal: dev sign-in + atomic bind + 72h lock (AUTH-003, CAST-004) ----
 async function revealCastingActionImpl(unknownInput: unknown): Promise<ActionResult<{ revealed: boolean; duplicate: boolean; winningCastingId?: string }>> {
   const parsed = parseBoundaryInput(actionSchemas.revealCasting, unknownInput, "revealCastingAction");
@@ -442,7 +428,6 @@ export const submitQuestionAction = withActionErrorBoundary("submitQuestionActio
 export const generateThreeCoinLineAction = withActionErrorBoundary("generateThreeCoinLineAction", generateThreeCoinLineActionImpl);
 export const generateYarrowChangeAction = withActionErrorBoundary("generateYarrowChangeAction", generateYarrowChangeActionImpl);
 export const completeYarrowAction = withActionErrorBoundary("completeYarrowAction", completeYarrowActionImpl);
-export const createMeiHuaResultAction = withActionErrorBoundary("createMeiHuaResultAction", createMeiHuaResultActionImpl);
 export const revealCastingAction = withActionErrorBoundary("revealCastingAction", revealCastingActionImpl);
 export const startPreviewAction = withActionErrorBoundary("startPreviewAction", startPreviewActionImpl);
 export const createCheckoutAction = withActionErrorBoundary("createCheckoutAction", createCheckoutActionImpl);
