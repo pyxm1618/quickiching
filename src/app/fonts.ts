@@ -5,6 +5,7 @@ const fraunces = Fraunces({
   subsets: ["latin"],
   weight: "variable",
   display: "swap",
+  preload: false,
 });
 
 const instrumentSans = Instrument_Sans({
@@ -12,14 +13,16 @@ const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
   weight: "variable",
   display: "swap",
+  preload: false,
 });
 
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-plex",
   subsets: ["latin"],
-  // The visible ritual counter uses 400; keep its preload to avoid a late font request.
+  // Loaded on demand where mono text is actually rendered; the ritual landing itself uses Georgia.
   weight: ["400"],
   display: "swap",
+  preload: false,
 });
 
 // Keep existing secondary weights available without preloading three unused faces.

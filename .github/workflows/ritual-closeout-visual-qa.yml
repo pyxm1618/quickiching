@@ -271,6 +271,11 @@ jobs:
           console.log('LCP_ELEMENT '+JSON.stringify(lcpElement));
           console.log('LCP_BREAKDOWN '+JSON.stringify(lcpBreakdown));
           console.log('LCP_NETWORK '+JSON.stringify(network));
+          const networkTop=(report.audits['network-requests']?.details?.items||[])
+            .filter(item=>(item.transferSize||0)>0)
+            .sort((a,b)=>(b.transferSize||0)-(a.transferSize||0)).slice(0,15)
+            .map(item=>({url:item.url,transferSize:item.transferSize,resourceSize:item.resourceSize,mimeType:item.mimeType,priority:item.priority}));
+          console.log('NETWORK_TOP '+JSON.stringify(networkTop));
           const boot=(report.audits['bootup-time']?.details?.items||[])
             .sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,12)
             .map(item=>({url:item.url,total:Math.round(item.total||0),scripting:Math.round(item.scripting||0),parse:Math.round(item.scriptParseCompile||0)}));
@@ -357,5 +362,10 @@ jobs:
           console.log('LCP_ELEMENT '+JSON.stringify(lcpElement));
           console.log('LCP_BREAKDOWN '+JSON.stringify(lcpBreakdown));
           console.log('LCP_NETWORK '+JSON.stringify(network));
+          const networkTop=(report.audits['network-requests']?.details?.items||[])
+            .filter(item=>(item.transferSize||0)>0)
+            .sort((a,b)=>(b.transferSize||0)-(a.transferSize||0)).slice(0,15)
+            .map(item=>({url:item.url,transferSize:item.transferSize,resourceSize:item.resourceSize,mimeType:item.mimeType,priority:item.priority}));
+          console.log('NETWORK_TOP '+JSON.stringify(networkTop));
           if(performance<95||lcp>2750) process.exit(1);
           NODE
