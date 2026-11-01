@@ -26,6 +26,7 @@ import React from "react";
 import { UserNavControl } from "@/components/auth/user-nav-control";
 import { AccountHeading } from "@/components/account/account-heading";
 import { AccountScrollRegion } from "@/components/account/account-scroll-region";
+import { MyReadingRow, type MyReadingDisplay } from "@/components/account/my-reading-row";
 import { PurchaseView, type AccountModalData } from "@/components/account/purchase-view";
 import { SettingsView } from "@/components/account/settings-view";
 import type { AccountPurchase } from "@/server/account/purchase-loader";
@@ -45,14 +46,14 @@ const account: AccountModalData = {
   signInMethods: ["Google"],
 };
 
-const readingRows = [
-  ["Should I change jobs this year?", "Oct 28, 2026"],
-  ["A new opportunity is coming. Should I take it?", "Oct 26, 2026"],
-  ["How can I improve my relationship with my family?", "Oct 23, 2026"],
-  ["Is this a good time to start my own business?", "Oct 20, 2026"],
-  ["How should I handle this current challenge?", "Oct 16, 2026"],
-  ["Where should I focus my energy now?", "Oct 12, 2026"],
-] as const;
+const readingRows: MyReadingDisplay[] = [
+  { id: "r1", question: "Should I change jobs this year?", createdAt: new Date("2026-10-28T00:00:00Z"), method: "three_coin", primaryHexagramNumber: 24, primaryName: "Return", lineValues: [7,8,6,8,8,8], movingLinePositions: [3], relatingHexagramNumber: 36, relatingName: "Darkening of the Light" },
+  { id: "r2", question: "A new opportunity is coming. Should I take it?", createdAt: new Date("2026-10-26T00:00:00Z"), method: "three_coin", primaryHexagramNumber: 14, primaryName: "Great Possession", lineValues: [7,7,7,7,6,9], movingLinePositions: [5,6], relatingHexagramNumber: 43, relatingName: "Breakthrough" },
+  { id: "r3", question: "How can I improve my relationship with my family?", createdAt: new Date("2026-10-23T00:00:00Z"), method: "three_coin", primaryHexagramNumber: 37, primaryName: "The Family", lineValues: [9,8,7,8,7,7], movingLinePositions: [1], relatingHexagramNumber: 53, relatingName: "Development" },
+  { id: "r4", question: "Is this a good time to start my own business?", createdAt: new Date("2026-10-20T00:00:00Z"), method: "three_coin", primaryHexagramNumber: 1, primaryName: "The Creative", lineValues: [7,7,7,7,7,9], movingLinePositions: [6], relatingHexagramNumber: 43, relatingName: "Breakthrough" },
+  { id: "r5", question: "How should I handle this current challenge?", createdAt: new Date("2026-10-16T00:00:00Z"), method: "three_coin", primaryHexagramNumber: 29, primaryName: "The Abysmal Water", lineValues: [8,7,8,6,7,8], movingLinePositions: [4], relatingHexagramNumber: 47, relatingName: "Oppression" },
+  { id: "r6", question: "Where should I focus my energy now?", createdAt: new Date("2026-10-12T00:00:00Z"), method: "three_coin", primaryHexagramNumber: 53, primaryName: "Development", lineValues: [6,8,7,8,9,7], movingLinePositions: [1,5], relatingHexagramNumber: 22, relatingName: "Grace" },
+];
 
 function Scene({ children, lightweight = false }: { children: React.ReactNode; lightweight?: boolean }) {
   return <main style={{
@@ -94,10 +95,8 @@ export function Group3FixtureClient({ view }: { view: string }) {
     <AccountHeading title="My Readings" subtitle="Return to your past readings and reflections." />
     <section className="qic-my-readings-frame" aria-label="My Readings">
       <AccountScrollRegion className="qic-my-readings-region" scrollClassName="qic-my-readings-scroll" ariaLabel="Readings list">
-        <ol>{readingRows.map(([question,date],index)=><li key={question}>
-          <a className="qic-account-paper qic-my-reading" href={"#reading-"+index}>
-            <span><strong>{question}</strong><time>{date}</time></span><span aria-hidden="true" className="qic-reading-arrow">›</span>
-          </a>
+        <ol>{readingRows.map((reading)=><li key={reading.id}>
+          <MyReadingRow reading={reading} href={"#reading-"+reading.id} />
         </li>)}</ol>
       </AccountScrollRegion>
     </section>
