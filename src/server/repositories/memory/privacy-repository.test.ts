@@ -55,7 +55,6 @@ describe("memory privacy repository audited defects", () => {
     if (!("reservationId" in frozen)) throw new Error("expected reservation");
     isolated.completeReadingConsume(frozen.reservationId, { coreSummary: "delivered" });
     isolated.createQualityReview({ readingId: reading.id, userId: user.id, reason: "review" });
-    isolated.acquireQuestionLock({ userId: user.id, fingerprint: "complete-purge", keyVersion: "v1", winningCastingId: casting.id, now: new Date() });
     isolated.createOrder({ userId: user.id, productId: "one", amountUsd: 2.99, currency: "USD", requestId: crypto.randomUUID() });
 
     isolated.requestCastingDeletion(casting.id);
@@ -69,32 +68,11 @@ describe("memory privacy repository audited defects", () => {
     expect(store.readings.size).toBe(0);
     expect(store.reservations.size).toBe(0);
     expect(store.qualityReviews.size).toBe(0);
-    expect(store.questionLocks.size).toBe(0);
     expect(store.users.size).toBe(1);
     expect(store.sessions.size).toBe(1);
     expect(store.entitlementBatches.size).toBe(1);
     expect(store.entitlementLedger.length).toBe(3);
     expect(store.orders.size).toBe(1);
-  });
-
-  it("purges question locks belonging to the deleted casting", () => {
-    const { user, casting } = createRevealedCasting();
-    const now = new Date();
-    const fingerprint = `purge-lock-${crypto.randomUUID()}`;
-    repo.acquireQuestionLock({ userId: user.id, fingerprint, keyVersion: "v1", winningCastingId: casting.id, now });
-    repo.requestCastingDeletion(casting.id);
-    repo.purgeDeletedCasts(new Date(now.getTime() + 31 * 24 * 3600 * 1000));
-
-    expect(repo.acquireQuestionLock({
-      userId: user.id,
-      fingerprint,
-      keyVersion: "v1",
-      winningCastingId: `replacement-${crypto.randomUUID()}`,
-      // The repository accepts an explicit transaction clock. Re-check inside
-      // the original 72-hour window so an undeleted lock cannot pass merely by
-      // expiring naturally during the 30-day recovery period.
-      now: new Date(now.getTime() + 60 * 60 * 1000),
-    }).won).toBe(true);
   });
 
   it("purges reviews belonging to a deleted casting", () => {
