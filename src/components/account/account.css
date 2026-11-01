@@ -446,3 +446,18 @@
   position: relative;
   z-index: 1;
 }
+
+/* Final Account ornament visibility correction. */
+.qic-account-heading h1::before,
+.qic-account-heading h1::after {
+  opacity: 1;
+  z-index: 0;
+}
+.qic-account-heading h1 > span {
+  position: relative;
+  z-index: 1;
+}
+.qic-account-paper::before {
+  opacity: .68;
+  filter: contrast(1.18) saturate(.85);
+}
