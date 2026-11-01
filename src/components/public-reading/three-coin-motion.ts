@@ -80,7 +80,7 @@ export function coinPose(input:{
     const t=clamp(time/(reducedMotion?140:COIN_RESET_MS));
     if(reducedMotion)return t<.5?{...final,opacity:1-t*2}:{...ready,opacity:(t-.5)*2};
     const eased=smooth(t);
-    return {...ready,x:mix(resultX,originX,eased),y:mix(560,800,eased),diameter:164*(1-.06*Math.sin(t*PI)),
+    return {...ready,x:mix(resultX,originX,eased),y:mix(560,800,eased),diameter:mix(152,164,eased)*(1-.06*Math.sin(t*PI)),
       rotation:initial.map((value,axis)=>mix(finalRotation[axis],value,eased)) as [number,number,number],opacity:1-.15*Math.sin(t*PI)};
   }
   const duration=reducedMotion?280:FLIGHT_DURATIONS[index];
