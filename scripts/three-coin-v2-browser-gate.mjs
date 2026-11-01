@@ -447,7 +447,7 @@ async function verifyExplicitReset(browser) {
     await page.goto(`${BASE}/ritual-qa-local`, { waitUntil: "networkidle0", timeout: 30_000 });
     await waitForText(page, "Start a New Reading");
     await clickButton(page, "Start a New Reading");
-    await page.waitForFunction(() => location.pathname === "/" && location.hash === "#three-coin-reading", { timeout: 15_000 });
+    await page.waitForFunction(() => location.pathname === "/methods/three-coin", { timeout: 15_000 });
     await clickButton(page, "Skip — free reading only");
     await page.waitForSelector('[data-experience-stage="question-confirm"]');
     await page.waitForSelector('[data-home-primary-action]:not(:disabled)', { timeout: 15_000 });
