@@ -25,7 +25,7 @@ for (const method of ["three-coin", "yarrow-stalks", "mei-hua-yi-shu"] as const 
         const primary = await loadHexagramInterpretation(reading.primaryHexagram);
         const relating = reading.relatingHexagram === null ? null : await loadHexagramInterpretation(reading.relatingHexagram);
         const model = buildStaticReading(reading, { primary, relating });
-        const html = renderToStaticMarkup(<PublicReadingResult reading={reading} initialBundles={{ primary, relating }} deepReadingHref="/reading/test/deep" presentation="ritual" />);
+        const html = renderToStaticMarkup(<PublicReadingResult reading={reading} initialBundles={{ primary, relating }} deepReadingHref="/reading/test/deep" />);
         expect(html.match(/Get My Deep Reading/g)).toHaveLength(2);
         expect(html.match(/href="\/reading\/test\/deep"/g)).toHaveLength(2);
         expect(html).toContain("Want to know what this means for your question?");
