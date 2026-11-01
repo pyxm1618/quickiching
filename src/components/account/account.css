@@ -134,9 +134,6 @@
 .qic-user-menu > a:hover, .qic-user-menu > button:hover, .qic-user-menu > a:focus-visible, .qic-user-menu > button:focus-visible { border-color: #ffc969; background: linear-gradient(90deg,#965719aa,#7b4c1c55); box-shadow: 0 0 10px #e99e2466, inset 0 0 12px #e99e2444; }
 .qic-user-menu svg { color: #e8be69; width: 28px; height: 28px; flex-shrink: 0; }
 .qic-user-menu svg:last-child { width: 18px; height: 18px; margin-left: auto; }
-.qic-account-mobile-menu { display: grid; gap: 4px; }
-.qic-account-mobile-menu a, .qic-account-mobile-menu button { min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 10px 16px; text-align: left; }
-.qic-account-mobile-menu svg { width: 20px; height: 20px; }
 .qic-my-readings-page { min-height: calc(100dvh - 80px); padding: 24px max(24px,calc((100vw - 1220px)/2)) 36px; background: url('/performance/stageDesktop.e37364561615e31f.webp') center / cover; color: #fff0d2; }
 .qic-my-readings-page .qic-account-heading { height: 160px; padding-top: 10px; }
 .qic-my-readings-page .qic-account-heading h1 { font-size: 92px; }
