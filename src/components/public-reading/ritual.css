@@ -215,42 +215,16 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 .ritual-gate-action [data-history-saving],.ritual-gate-action p {color:#64411e;}
 .ritual-gate-error p {color:#8a2614!important;}
 .ritual-result-scene [data-public-reading-result] {position:relative;max-width:none;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;}
-.ritual-result-card {position:absolute;left:calc(289 * var(--u));top:calc(87 * var(--u));width:calc(1166 * var(--u));height:calc(657 * var(--u));background:url('/performance/resultDesktop.c8b42fcbbe5723fe.webp') center/100% 100% no-repeat;color:#110d07;animation:ritual-card-enter 420ms cubic-bezier(.22,1,.36,1) both;}
-.ritual-result-title {position:absolute;left:calc(260 * var(--u));top:calc(74 * var(--u));width:calc(650 * var(--u));text-align:center;}
-.ritual-result-title h1 {font:700 calc(52 * var(--u))/1.15 Georgia,serif;margin:0;color:#100d07;}
-.ritual-result-title p {font:400 calc(30 * var(--u))/1.2 Georgia,serif;color:#665741;margin:calc(8 * var(--u)) 0 0;}
-.ritual-result-seal {position:absolute;right:calc(-7 * var(--u));top:calc(-8 * var(--u));width:calc(42 * var(--u));min-height:calc(78 * var(--u));padding:calc(7 * var(--u));border:2px solid #ffe6be;border-radius:calc(15 * var(--u));background:#bd1b0d;color:#ffecd2;font:400 calc(20 * var(--u))/1 Georgia,serif;writing-mode:vertical-rl;}
-.ritual-result-lines {position:absolute;left:calc(169 * var(--u));top:calc(213 * var(--u));width:calc(200 * var(--u));display:flex;flex-direction:column;gap:calc(19 * var(--u));}
-.ritual-result-bar {height:calc(24 * var(--u));display:flex;gap:calc(24 * var(--u));}
-.ritual-result-bar i {background:#100d07;flex:1;border-radius:2px;}
-.ritual-result-bar[data-yang='true'] {gap:0;}
-.ritual-result-copy {position:absolute;left:calc(488 * var(--u));top:calc(210 * var(--u));width:calc(572 * var(--u));max-height:calc(314 * var(--u));overflow:auto;scrollbar-width:thin;scrollbar-color:#b28d54 transparent;}
-.ritual-result-copy h2 {margin:0;font:700 calc(32 * var(--u))/1.2 Georgia,serif;color:#100d07;}
-.ritual-result-copy p {font:400 calc(26 * var(--u))/1.18 Georgia,serif;margin:calc(10 * var(--u)) 0 0;color:#17110a;}
-.ritual-result-copy section+section {border-top:1px solid #bc9d77;margin-top:calc(24 * var(--u));padding-top:calc(19 * var(--u));}
-.ritual-result-actions {position:absolute;left:calc(254 * var(--u));top:calc(546 * var(--u));display:flex;gap:calc(26 * var(--u));}
-.ritual-result-actions button {display:flex;align-items:center;justify-content:center;gap:calc(24 * var(--u));width:calc(306 * var(--u));height:calc(74 * var(--u));border:1px solid #b3773a;border-radius:60px;background:rgba(255,232,201,.7);color:#150f08;font:700 calc(26 * var(--u))/1 Georgia,serif;cursor:pointer;}
-.ritual-result-actions button+button {width:calc(302 * var(--u));background:#301500;color:#fff0cf;border:2px solid #ffe0a0;box-shadow:0 0 16px #d78622,inset 0 0 10px #965217;}
-.ritual-result-actions svg {width:calc(30 * var(--u));height:calc(30 * var(--u));stroke-width:1.7;}
-.ritual-result-details {padding:calc(870 * var(--u)) 24px 48px;max-width:1180px;margin:auto;}
 @keyframes ritual-gate-enter {from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes ritual-card-enter {from{opacity:0;transform:translateY(18px) scale(.975)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce) {
  .ritual-result-scene * {animation-duration:140ms!important;transition-duration:140ms!important;}
  @keyframes ritual-gate-enter {from{opacity:0}to{opacity:1}}
- @keyframes ritual-card-enter {from{opacity:0}to{opacity:1}}
 }
 @media(max-width:800px) {
  .ritual-result-scene {--u:1px;}
- .ritual-gate-card,.ritual-result-card {background-image:url('/performance/resultMobile.b62092713b0e63f0.webp');}
+ .ritual-gate-card {background-image:url('/performance/resultMobile.b62092713b0e63f0.webp');}
  .ritual-gate-card {position:relative;left:auto;top:auto;width:calc(100% - 24px);height:auto;min-height:620px;margin:30px 12px;padding:70px 35px 90px;}
  .ritual-gate-card h1{font-size:38px;}.ritual-gate-description{font-size:22px;}.ritual-gate-complete{font-size:21px;}.ritual-gate-signin{width:100%;font-size:19px;gap:10px;}
- .ritual-result-card{position:relative;inset:auto;width:calc(100% - 20px);height:auto;min-height:900px;margin:20px 10px;padding:65px 35px;}
- .ritual-result-title{position:relative;inset:auto;width:100%;}.ritual-result-title h1{font-size:34px;}.ritual-result-title p{font-size:24px;}.ritual-result-seal{display:none;}
- .ritual-result-lines{position:relative;inset:auto;width:150px;margin:30px auto;gap:12px;}.ritual-result-bar{height:15px;}
- .ritual-result-copy{position:relative;inset:auto;width:100%;max-height:none;overflow:visible;}.ritual-result-copy h2{font-size:26px;}.ritual-result-copy p{font-size:20px;}
- .ritual-result-actions{position:relative;inset:auto;gap:14px;margin-top:24px;flex-direction:column;}.ritual-result-actions button,.ritual-result-actions button+button{width:100%;font-size:23px;}
- .ritual-result-details{padding-top:40px;}
 }
 
 /* Measured resting Question Confirm foreground; the form state stays shared. */
@@ -295,13 +269,6 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
  .ritual-gate-complete-mark::after {left:calc(90 * var(--u));background-position:right center;}
 }
 
-@media(min-width:801px) {
- .ritual-result-back {left:calc(167 * var(--u));}
- .ritual-result-seal {width:calc(36 * var(--u));min-height:calc(74 * var(--u));display:flex;align-items:center;justify-content:center;}
- .ritual-result-lines {gap:calc(18.6 * var(--u));}
- .ritual-result-actions button {font-weight:400;font-size:calc(28 * var(--u));}
-}
-@media(max-width:800px) {.ritual-result-back {position:relative;inset:auto;display:inline-block;margin:16px 20px;font-size:18px;}}
 
 @keyframes ritual-casting-enter {from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes ritual-heading-exit {to{opacity:0;transform:translateY(-8px)}}
