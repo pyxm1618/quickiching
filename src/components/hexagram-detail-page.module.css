@@ -9,7 +9,7 @@
   isolation: isolate;
   max-width: 1440px;
   margin: 0 auto;
-  padding: clamp(65px, 6.35vw, 92px) 28px 68px 96px;
+  padding: clamp(17px, calc(6.35vw - 48px), 44px) 28px 68px 96px;
   background: #160e07;
   color: var(--detail-ink);
   font: 16px/1.45 "Times New Roman", Times, serif;
