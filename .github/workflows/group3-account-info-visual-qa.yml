@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: group3-account-info-visual-${{ github.ref }}
@@ -36,23 +36,20 @@ jobs:
         shell: bash
         run: |
           python3 -m pip install --quiet pillow
-          mkdir -p .artifacts/group3-visual-qa/optimized-assets/shared
-          mkdir -p .artifacts/group3-visual-qa/optimized-assets/decorative
-          mkdir -p .artifacts/group3-visual-qa/optimized-assets/guide
-          mkdir -p .artifacts/group3-visual-qa/optimized-assets/legal
-          mkdir -p .artifacts/group3-visual-qa/optimized-assets/help
+          mkdir -p public/info-pages/runtime/{shared,decorative,guide,legal,help}
+          mkdir -p .artifacts/group3-visual-qa/optimized-assets
           python3 - <<'PY'
           from PIL import Image
           from pathlib import Path
           files = [
-            ("public/info-pages/shared/info-page-background.png", ".artifacts/group3-visual-qa/optimized-assets/shared/info-page-background.webp", 88),
-            ("public/info-pages/shared/title-brush-stroke.png", ".artifacts/group3-visual-qa/optimized-assets/shared/title-brush-stroke.webp", 90),
-            ("public/info-pages/decorative/guide-decorations.png", ".artifacts/group3-visual-qa/optimized-assets/decorative/guide-decorations.webp", 90),
-            ("public/info-pages/guide/guide-main-scroll.png", ".artifacts/group3-visual-qa/optimized-assets/guide/guide-main-scroll.webp", 90),
-            ("public/info-pages/guide/guide-secondary-scroll.png", ".artifacts/group3-visual-qa/optimized-assets/guide/guide-secondary-scroll.webp", 90),
-            ("public/info-pages/legal/legal-main-paper.png", ".artifacts/group3-visual-qa/optimized-assets/legal/legal-main-paper.webp", 90),
-            ("public/info-pages/legal/legal-toc-panel.png", ".artifacts/group3-visual-qa/optimized-assets/legal/legal-toc-panel.webp", 90),
-            ("public/info-pages/help/help-main-panel.png", ".artifacts/group3-visual-qa/optimized-assets/help/help-main-panel.webp", 90),
+            ("public/info-pages/shared/info-page-background.png", "public/info-pages/runtime/shared/info-page-background.webp", 88),
+            ("public/info-pages/shared/title-brush-stroke.png", "public/info-pages/runtime/shared/title-brush-stroke.webp", 90),
+            ("public/info-pages/decorative/guide-decorations.png", "public/info-pages/runtime/decorative/guide-decorations.webp", 90),
+            ("public/info-pages/guide/guide-main-scroll.png", "public/info-pages/runtime/guide/guide-main-scroll.webp", 90),
+            ("public/info-pages/guide/guide-secondary-scroll.png", "public/info-pages/runtime/guide/guide-secondary-scroll.webp", 90),
+            ("public/info-pages/legal/legal-main-paper.png", "public/info-pages/runtime/legal/legal-main-paper.webp", 90),
+            ("public/info-pages/legal/legal-toc-panel.png", "public/info-pages/runtime/legal/legal-toc-panel.webp", 90),
+            ("public/info-pages/help/help-main-panel.png", "public/info-pages/runtime/help/help-main-panel.webp", 90),
           ]
           for src, dst, quality in files:
               im = Image.open(src)
@@ -60,6 +57,33 @@ jobs:
               im.save(dst, "WEBP", quality=quality, method=6)
               print(src, Path(src).stat().st_size, "=>", dst, Path(dst).stat().st_size)
           PY
+
+      - name: Persist optimized Info runtime assets
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/group3-head
+          git clone --quiet --depth=1 --branch "$HEAD_REF" "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/group3-head
+          mkdir -p /tmp/group3-head/public/info-pages/runtime
+          cp -R public/info-pages/runtime/. /tmp/group3-head/public/info-pages/runtime/
+          cd /tmp/group3-head
+          if git diff --quiet -- public/info-pages/runtime && [ -z "$(git ls-files --others --exclude-standard public/info-pages/runtime)" ]; then
+            echo "Optimized Info runtime assets already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/info-pages/runtime
+          git commit -m "perf: add optimized Info runtime assets"
+          git push --quiet origin "HEAD:$HEAD_REF"
+
+      - name: Stage optimized asset evidence
+        run: |
+          cp -R public/info-pages/runtime/. .artifacts/group3-visual-qa/optimized-assets/
 
       - name: Install temporary visual fixture
         run: node scripts/group3-visual-qa-fixture.mjs install
