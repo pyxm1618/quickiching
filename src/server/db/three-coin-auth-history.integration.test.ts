@@ -90,7 +90,7 @@ describe("Three-Coin real Auth -> save -> account History integration", () => {
     await sql.end({ timeout: 5 });
   });
 
-  it("uses a real Better Auth Magic Link session to save the exact cast and read it back from account History", async () => {
+  it("uses real Better Auth to preserve cast idempotency while allowing a new reading for the same question", async () => {
     const email = `three-coin-${randomUUID()}@integration.example`;
     sentLinks.length = 0;
 
@@ -142,41 +142,91 @@ describe("Three-Coin real Auth -> save -> account History integration", () => {
       idempotent: true,
     });
 
+    const repeatedCastingId = randomUUID();
+    const repeatedLineValuesBottomUp = [8, 7, 6, 9, 8, 7];
+    const repeatedPayload = {
+      ...payload,
+      clientCastingId: repeatedCastingId,
+      lineValuesBottomUp: repeatedLineValuesBottomUp,
+    };
+
+    const repeated = await saveReading(readingRequest(sessionCookie!, repeatedPayload));
+    expect(repeated.status).toBe(201);
+    expect(await repeated.json()).toEqual({
+      castingId: repeatedCastingId,
+      idempotent: false,
+    });
+
+    const repeatedRetry = await saveReading(readingRequest(sessionCookie!, repeatedPayload));
+    expect(repeatedRetry.status).toBe(200);
+    expect(await repeatedRetry.json()).toEqual({
+      castingId: repeatedCastingId,
+      idempotent: true,
+    });
+
     const rows = await sql`
-      select c.id, c.user_id, c.method, c.lifecycle, r.line_values
+      select c.id, c.user_id, c.method, c.lifecycle, c.question_fingerprint, r.line_values
       from casting_sessions c
       join cast_results r on r.casting_id = c.id
-      where c.id = ${clientCastingId}
+      where c.id in (${clientCastingId}, ${repeatedCastingId})
+      order by c.id
     ` as Array<{
       id: string;
       user_id: string;
       method: string;
       lifecycle: string;
+      question_fingerprint: string | null;
       line_values: number[];
     }>;
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
+    expect(rows).toHaveLength(2);
+
+    const firstRow = rows.find((row) => row.id === clientCastingId);
+    const repeatedRow = rows.find((row) => row.id === repeatedCastingId);
+    expect(firstRow).toMatchObject({
       id: clientCastingId,
       user_id: resolved!.user.id,
       method: "three_coin",
       lifecycle: "revealed",
     });
-    expect(rows[0]!.line_values).toEqual(lineValuesBottomUp);
+    expect(firstRow!.line_values).toEqual(lineValuesBottomUp);
+    expect(repeatedRow).toMatchObject({
+      id: repeatedCastingId,
+      user_id: resolved!.user.id,
+      method: "three_coin",
+      lifecycle: "revealed",
+    });
+    expect(repeatedRow!.line_values).toEqual(repeatedLineValuesBottomUp);
+    expect(repeatedRow!.question_fingerprint).toBe(firstRow!.question_fingerprint);
+    expect(firstRow!.question_fingerprint).toBeTruthy();
 
     const history = await loadHistory(resolved!.user);
     const saved = history.find((entry) => entry.id === clientCastingId);
+    const repeatedSaved = history.find((entry) => entry.id === repeatedCastingId);
     expect(saved).toMatchObject({
       id: clientCastingId,
       method: "three_coin",
       lifecycle: "revealed",
     });
+    expect(repeatedSaved).toMatchObject({
+      id: repeatedCastingId,
+      method: "three_coin",
+      lifecycle: "revealed",
+    });
     expect(saved?.primaryName).toBeTruthy();
+    expect(repeatedSaved?.primaryName).toBeTruthy();
 
-    const duplicateCount = await sql`
+    const savedCount = await sql`
       select count(*)::integer as count
       from casting_sessions
-      where id = ${clientCastingId}
+      where id in (${clientCastingId}, ${repeatedCastingId})
     ` as Array<{ count: number }>;
-    expect(duplicateCount[0]?.count).toBe(1);
+    expect(savedCount[0]?.count).toBe(2);
+
+    const questionLockCount = await sql`
+      select count(*)::integer as count
+      from question_locks
+      where user_id = ${resolved!.user.id}
+    ` as Array<{ count: number }>;
+    expect(questionLockCount[0]?.count).toBe(0);
   });
 });
