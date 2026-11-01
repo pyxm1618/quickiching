@@ -5,7 +5,6 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
-import chromium from '@sparticuz/chromium';
 import { resolveChromeExecutable } from './browser-runtime.mjs';
 // Exercise the real components with explicit simulated network responses.
 const directory = await mkdtemp(join(tmpdir(),'qic-reading-browser-'));
@@ -20,7 +19,7 @@ const server = createServer(async (request,response) => {
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const fixtureBase = `http://127.0.0.1:${server.address().port}`;
-const {executablePath} = await resolveChromeExecutable(chromium);
+const {executablePath} = await resolveChromeExecutable({ executablePath: async () => { throw new Error("CHROME_PATH_OR_SYSTEM_CHROME_REQUIRED"); } });
 const browser=await puppeteer.launch({executablePath,headless:true});
 const page=await browser.newPage();
 const evidence=[];

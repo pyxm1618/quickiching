@@ -2,7 +2,6 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
 import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE=process.env.PUBLIC_V1_TEST_BASE_URL||"http://127.0.0.1:3078";
@@ -10,7 +9,7 @@ const OUT=process.env.MEI_HUA_QA_OUTPUT||"docs/qa/mei-hua-78/screenshots";
 const CAST_KEY="quickiching:public-v1:mei-hua-number-time-v1";
 const COMPLETED_KEY="quickiching:public-v1:completed-reading";
 await mkdir(OUT,{recursive:true});
-const runtime=await resolveChromeExecutable(chromium);
+const runtime=await resolveChromeExecutable({ executablePath: async () => { throw new Error("CHROME_PATH_OR_SYSTEM_CHROME_REQUIRED"); } });
 const browser=await puppeteer.launch({executablePath:runtime.executablePath,headless:true,args:["--no-sandbox"]});
 const results={base:BASE,authVerification:"Anonymous shared-auth boundary verified; real provider login requires staging acceptance",captures:[],checks:[]};
 
