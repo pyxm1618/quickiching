@@ -9,7 +9,7 @@
   isolation: isolate;
   max-width: 1440px;
   margin: 0 auto;
-  padding: clamp(17px, calc(6.35vw - 48px), 44px) 28px 68px 96px;
+  padding: clamp(65px, 6.35vw, 92px) 28px 68px 96px;
   background: #160e07;
   color: var(--detail-ink);
   font: 16px/1.45 "Times New Roman", Times, serif;
@@ -98,7 +98,7 @@
   .pine { top: clamp(520px, 56vw, 680px); width: clamp(128px, 14vw, 144px); }
 }
 @media (min-width: 961px) and (max-width: 1279px) {
-  .numberBadge { width: 58px; margin-top: 6.5px; margin-left: 7px; padding: 7.3px 1px; }
+  .numberBadge { width: 58px; margin-left: 7px; }
 }
 @media (min-width: 1280px) {
   .numberBadge { margin-top: 60px; }
@@ -164,8 +164,8 @@
 .identity { overflow: hidden; grid-template-columns: 70px minmax(0, 1fr) 309px; padding-right: 40px; }
 .identity .taiji { position: absolute; z-index: 0; top: clamp(-168px, -10.4vw, -104px); right: 12%; width: clamp(360px, 46vw, 660px); aspect-ratio: 1;  pointer-events: none; }
 .identity > * { position: relative; z-index: 1; }
-.pinyin { font-size: clamp(60px, 8vw, 116px); }
-.identity h1 { font-size: clamp(30px, 4vw, 58px); }
+.pinyin { font-size: clamp(60px, 8.8vw, 126px); }
+.identity h1 { font-size: clamp(30px, 4.3vw, 62px); }
 .form { background: #f9e7c7 var(--detail-paper) center / 627px 627px repeat; }
 .classicalEntry { display: grid; grid-template-columns: 143px minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 22px; }
 .classicalEntry p { margin: 0; }
