@@ -8,12 +8,12 @@ export function optimizedInfoAsset(src: string, width = 1920, quality = 90) {
 // the roller caps, corners and mountain foot retain their original proportions.
 export function PaperArtwork({ kind = "main" }: { kind?: "main" | "secondary" | "legal" | "toc" | "helpTop" | "helpBottom"; }) {
   const sources = {
-    main: { src: "guide/guide-main-scroll.png", x: 0, y: 145, width: 2172, height: 405, side: 175, top: 85, bottom: 125 },
-    secondary: { src: "guide/guide-secondary-scroll.png", x: 0, y: 229, width: 2172, height: 285, side: 130, top: 50, bottom: 110 },
-    legal: { src: "legal/legal-main-paper.png", x: 8, y: 10, width: 1668, height: 915, side: 65, top: 65, bottom: 250 },
-    toc: { src: "legal/legal-toc-panel.png", x: 40, y: 45, width: 807, height: 1690, side: 65, top: 90, bottom: 420 },
-    helpTop: { src: "help/help-main-panel.png", x: 15, y: 20, width: 1955, height: 370, side: 105, top: 100, bottom: 120 },
-    helpBottom: { src: "help/help-main-panel.png", x: 15, y: 385, width: 1955, height: 395, side: 105, top: 55, bottom: 145 },
+    main: { src: "runtime/guide/guide-main-scroll.webp", x: 0, y: 145, width: 2172, height: 405, side: 175, top: 85, bottom: 125 },
+    secondary: { src: "runtime/guide/guide-secondary-scroll.webp", x: 0, y: 229, width: 2172, height: 285, side: 130, top: 50, bottom: 110 },
+    legal: { src: "runtime/legal/legal-main-paper.webp", x: 8, y: 10, width: 1668, height: 915, side: 65, top: 65, bottom: 250 },
+    toc: { src: "runtime/legal/legal-toc-panel.webp", x: 40, y: 45, width: 807, height: 1690, side: 65, top: 90, bottom: 420 },
+    helpTop: { src: "runtime/help/help-main-panel.webp", x: 15, y: 20, width: 1955, height: 370, side: 105, top: 100, bottom: 120 },
+    helpBottom: { src: "runtime/help/help-main-panel.webp", x: 15, y: 385, width: 1955, height: 395, side: 105, top: 55, bottom: 145 },
   };
   const s = sources[kind];
   const widths = [s.side, s.width - 2 * s.side, s.side];
