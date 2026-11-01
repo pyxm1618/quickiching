@@ -19,6 +19,11 @@ async function capture({ name, path, width, height, fullPage = false, hover }) {
   const page = await browser.newPage();
   await page.setViewport({ width, height, deviceScaleFactor: 1 });
   await page.goto(base + path, { waitUntil: "networkidle0", timeout: 60000 });
+  await page.evaluate(() => {
+    const decline = [...document.querySelectorAll("button")].find(button => button.textContent?.trim() === "Decline");
+    if (decline instanceof HTMLButtonElement) decline.click();
+  });
+  await new Promise(resolve => setTimeout(resolve, 120));
   await page.evaluate(async () => { if (document.fonts?.ready) await document.fonts.ready; });
   if (hover) {
     const target = await page.$(hover);
