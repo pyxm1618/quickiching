@@ -303,6 +303,7 @@ export function ThreeCoinRitual({
                 width={646}
                 height={184}
                 loading="eager"
+                decoding="async"
                 fetchPriority="high"
                 aria-hidden="true"
               />
