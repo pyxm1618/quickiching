@@ -172,7 +172,7 @@ try {
       }
       const languageTrigger = await page.$("header [data-language-switcher] button[aria-haspopup='menu']");
       assert(languageTrigger, `${pathFor(entry)}: language switch trigger missing`);
-      await languageTrigger.click();
+      await page.$eval("header [data-language-switcher] button[aria-haspopup=\'menu\']", (node) => node.click());
       await page.waitForFunction(
         () => document.querySelector("header [data-language-switcher] button[aria-haspopup='menu']")?.getAttribute("aria-expanded") === "true",
         { timeout: 3000 },
