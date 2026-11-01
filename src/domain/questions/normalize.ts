@@ -1,9 +1,10 @@
 import { createHmac } from "node:crypto";
 import type { InterpretationGoal, Scene } from "../casting/types";
 
-// §10.1 Question normalization + fingerprint for the 72-hour same-question lock (CAST-004).
+// Question normalization + fingerprinting supports stable question identity for persisted
+// metadata and same-cast idempotent retries. It does not block a new cast for the same question.
 // Only case, Unicode compatibility form, whitespace and non-semantic punctuation differences
-// are ignored. Semantic rewrites are explicitly NOT detected in MVP (per PRD §8.5).
+// are ignored; semantic rewrites are intentionally not inferred here.
 
 // Approved non-semantic punctuation removed before fingerprinting.
 const NON_SEMANTIC_PUNCTUATION = /[.,!?;:'"`()\[\]{}\-—–…·•*_=+/\\|@#$%^&]/g;

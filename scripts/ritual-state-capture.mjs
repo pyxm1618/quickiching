@@ -43,6 +43,7 @@ try {
  // Layout snapshots sample completed CSS entrances; motion is audited separately in real time.
  await page.addStyleTag({content:'*,*::before,*::after{animation-delay:0s!important;animation-duration:0s!important;transition:none!important;caret-color:transparent!important}'});
  if(state!=='07') {
+  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
   await page.waitForSelector('[data-renderer="three-webgl"]');
   await page.locator('[data-private-question]').fill('Should I continue on my current path?');
   await page.locator('[data-home-primary-action]').click();
@@ -73,7 +74,7 @@ try {
  const observed=await page.evaluate(()=>({
   viewport:[innerWidth,innerHeight],dpr:devicePixelRatio,zoom:visualViewport.scale,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,
   scene:document.querySelector('[data-renderer]')?{...document.querySelector('[data-renderer]').dataset}:null,
-  stage:document.querySelector('[data-three-coin-home-stage]')?.dataset.experienceStage,
+  stage:document.querySelector('[data-three-coin-ritual]')?.dataset.experienceStage,
   gate:document.querySelector('[data-completed-cast-gate]')?.dataset.completedCastGate,
   businessBitDraws:window.__ritualBitDraws,
   session:JSON.parse(sessionStorage.getItem('quickiching:public-v1:three-coin')||'null'),

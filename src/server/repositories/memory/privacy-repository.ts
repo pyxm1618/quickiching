@@ -69,9 +69,6 @@ export class MemoryPrivacyRepository implements PrivacyRepository {
     for (const [id, preview] of this.store.previews) {
       if (preview.castingSessionId === castingId) this.store.previews.delete(id);
     }
-    for (const [key, lock] of this.store.questionLocks) {
-      if (lock.winningCastingId === castingId) this.store.questionLocks.delete(key);
-    }
       this.store.castResults.delete(castingId);
       this.store.castingRiskDecisions.delete(castingId);
     this.store.castingSessions.delete(castingId);

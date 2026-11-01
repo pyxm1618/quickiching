@@ -1,0 +1,401 @@
+{
+  "starting_head": "60af7c2b21965d1a246747f2a4ca947440dd899f",
+  "source_head": "6be6522379010aaa4b326d354a850505350a55d8",
+  "files": [
+    {
+      "path": ".github/workflows/ritual-closeout-visual-qa.yml",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Retain all existing capture/performance jobs; add Home engineering and real Auth PostgreSQL gates."
+    },
+    {
+      "path": "scripts/ritual-capture.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "scripts/ritual-motion-gate.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Preserve multiple-button consent iteration; Home activation; replace removed lock fixture with save failure."
+    },
+    {
+      "path": "scripts/ritual-scene-boundary-gate.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Keep integration asset manifest/texture assertions and Home deferred renderer and completed auth flow."
+    },
+    {
+      "path": "scripts/ritual-state-capture.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Home activation with canonical formal ritual marker."
+    },
+    {
+      "path": "scripts/test-postgres-serial.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Union of Home Auth/history and Account account-readers integration suites."
+    },
+    {
+      "path": "scripts/three-coin-v2-browser-gate.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/app/(default)/methods/three-coin/page.tsx",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/app/(default)/page.tsx",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Formal Home source behavior with existing integration whitespace only; Home metadata retained."
+    },
+    {
+      "path": "src/app/(localized)/zh/methods/three-coin/page.tsx",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/app/(localized)/zh/page.tsx",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/app/api/readings/route.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Keep starting integration multi-method save and stable idempotency validation; only remove Home obsolete 72-hour lock acquisition/error."
+    },
+    {
+      "path": "src/app/globals.css",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Remove retired Three-Coin CSS; Account already removed obsolete reading CSS."
+    },
+    {
+      "path": "src/app/hexagrams-hub.test.tsx",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Retain integration metadata/hub tests and replace only obsolete Home assertions."
+    },
+    {
+      "path": "src/app/route-architecture.test.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Retain Account route/API checks and assert entire retired commercial runtime absent."
+    },
+    {
+      "path": "src/components/public-reading/question-first.test.tsx",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/components/public-reading/question-first.tsx",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Only shared non-Three-Coin question logic remains; remove entire retired Home branch."
+    },
+    {
+      "path": "src/components/public-reading/ritual.css",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Retain starting integration approved performance assets and styles; formal ritual selector replaces old selector."
+    },
+    {
+      "path": "src/components/public-reading/three-coin-fallback.tsx",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Home lightweight fallback using existing integration optimized desktop/mobile assets."
+    },
+    {
+      "path": "src/components/public-reading/three-coin-ritual.test.tsx",
+      "change": "A",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/components/public-reading/three-coin-ritual.tsx",
+      "change": "A",
+      "state": "approved / pass",
+      "evidence": "Home formal ritual with integration performance preloads matched to CSS assets."
+    },
+    {
+      "path": "src/components/public-reading/three-coin-tool.navigation.test.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/components/public-reading/three-coin-tool.tsx",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/components/public-reading/three-coin-visual.tsx",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/components/three-coin-result/three-coin-result-client.tsx",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Only remove obsolete lock error and in-development marker; preserve all Account Free/Deep, save, retry, reveal, localization logic."
+    },
+    {
+      "path": "src/domain/questions/normalize.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/legacy/commercial/actions.test.ts",
+      "change": "D",
+      "state": "confirmed reject / delete",
+      "evidence": "Home explicitly retires this exact legacy file; already absent in starting Account integration."
+    },
+    {
+      "path": "src/legacy/commercial/actions.ts",
+      "change": "D",
+      "state": "confirmed reject / delete",
+      "evidence": "Home explicitly retires this exact legacy file; already absent in starting Account integration."
+    },
+    {
+      "path": "src/legacy/commercial/components/cast/casting-wizard.tsx",
+      "change": "D",
+      "state": "confirmed reject / delete",
+      "evidence": "Home explicitly retires this exact legacy file; already absent in starting Account integration."
+    },
+    {
+      "path": "src/legacy/commercial/components/cast/delete-cast-button.tsx",
+      "change": "D",
+      "state": "confirmed reject / delete",
+      "evidence": "Home explicitly retires this exact legacy file; already absent in starting Account integration."
+    },
+    {
+      "path": "src/legacy/commercial/components/cast/hexagram-display.tsx",
+      "change": "D",
+      "state": "confirmed reject / delete",
+      "evidence": "Home explicitly retires this exact legacy file; already absent in starting Account integration."
+    },
+    {
+      "path": "src/legacy/commercial/components/pricing-buttons.tsx",
+      "change": "D",
+      "state": "confirmed reject / delete",
+      "evidence": "Home explicitly retires this exact legacy file; already absent in starting Account integration."
+    },
+    {
+      "path": "src/legacy/commercial/routes/cast/[method]/page.tsx",
+      "change": "D",
+      "state": "confirmed reject / delete",
+      "evidence": "git cat-file confirms exact legacy route absent from both starting Account integration and latest Home source."
+    },
+    {
+      "path": "src/legacy/commercial/routes/checkout/simulate/page.tsx",
+      "change": "D",
+      "state": "confirmed reject / delete",
+      "evidence": "Home explicitly retires this exact legacy file; already absent in starting Account integration."
+    },
+    {
+      "path": "src/legacy/commercial/routes/result/[castingId]/page.tsx",
+      "change": "D",
+      "state": "confirmed reject / delete",
+      "evidence": "git cat-file confirms exact legacy route absent from both starting Account integration and latest Home source."
+    },
+    {
+      "path": "src/legacy/commercial/routes/signin/page.tsx",
+      "change": "D",
+      "state": "confirmed reject / delete",
+      "evidence": "Home explicitly retires this exact legacy file; already absent in starting Account integration."
+    },
+    {
+      "path": "src/lib/public-reading-session.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/lib/three-coin-session.test.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/lib/three-coin-session.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/server/db/readings-postgres-idempotency.integration.test.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Retain integration multi-method tests; Home adds repeated-question/concurrent/history-lock bypass regression. All 161 isolated PostgreSQL tests passed."
+    },
+    {
+      "path": "src/server/db/three-coin-auth-history.integration.test.ts",
+      "change": "A",
+      "state": "approved / pass",
+      "evidence": "Use current Account loadMyReadings loader; retain real Better Auth, same cast idempotency and repeated-question assertions."
+    },
+    {
+      "path": "src/server/repositories/casting-repository.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/server/repositories/memory/casting-repository.test.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/server/repositories/memory/casting-repository.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/server/repositories/memory/index.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/server/repositories/memory/privacy-repository.test.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/server/repositories/memory/privacy-repository.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/server/repositories/memory/store.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/server/repositories/models.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/server/repository.test.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "src/server/repository.ts",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Final file exactly equals latest Home source blob; merge contains source commits and retains unrelated integration files."
+    },
+    {
+      "path": "scripts/browser-gate.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Formal Home marker/result path; decline obstructing consent via real UI before navigation. Reproduced hit-test interception by consent banner at 320px."
+    },
+    {
+      "path": "scripts/homepage-seo-audit.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Update retired Home marker to formal ritual marker; all semantic assertions retained."
+    },
+    {
+      "path": "scripts/multilingual-browser-gate.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Update retired Home marker to formal ritual marker; bilingual requirements retained."
+    },
+    {
+      "path": "scripts/ritual-qa-fixture.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Replace removed readingReport prop with current deepReadingViewModel prop; no runtime/Auth/API substitute."
+    },
+    {
+      "path": "scripts/vercel-build.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Public production audit runs public-only subset; authenticated local-only fixture tests remain mandatory in full Three-Coin engineering workflow."
+    },
+    {
+      "path": "scripts/performance-asset-gate.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Include new formal ritual file in master-asset restoration guard."
+    }
+  ],
+  "counts": {
+    "approved / pass": 47,
+    "confirmed reject / delete": 10
+  },
+  "original_total": 57,
+  "validation": {
+    "unit": "975 passed",
+    "postgres": "161 passed, 26 suites, isolated PostgreSQL 16",
+    "lint": "0 errors, 2 existing hexagram img warnings",
+    "typecheck": "PASS",
+    "fixture_build": "PASS",
+    "runtime_assets": "14 of 14 PASS",
+    "browser": "deferred: full reruns and final-head GitHub Actions pending"
+  },
+  "source_commits": [
+    "6be6522379010aaa4b326d354a850505350a55d8 test: remove obsolete question-lock privacy cases",
+    "250754ba9990ddca5427b51f3ebb004972fbacf5 cleanup: remove obsolete question-lock purge path",
+    "596460b59be8f372afa97a0165ba0729e4d1863e test: ignore historical question locks",
+    "7efa38782dc7d728b926334497b7aa79923e464b docs: remove obsolete 72-hour lock contract",
+    "662753e00a721b29d49906cd1559f1a6abad10da test: reveal user-bound cast without question lock",
+    "4529b8c12a8b9c616213a4fea88d9989dfdcd266 test: remove obsolete same-question duplicate behavior",
+    "5e5dc4807a31f553939df3ea109caa5f1494c276 cleanup: remove obsolete memory question-lock enforcement",
+    "204f7c202e6c4afd172a0b68e28f79bb28084a58 cleanup: remove obsolete memory question-lock state",
+    "bec0082f3ad35a71a530a5f6208a93e45b6c0b18 cleanup: stop exporting obsolete memory question-lock type",
+    "bd4ee9f445ee8e5c469410c1037fd83789e1a543 cleanup: remove obsolete memory question-lock model",
+    "f3f670fbbb6e67b182fed29299dcd798354991b4 cleanup: remove obsolete question-lock facade methods",
+    "010a5384088e629aa4f3c6b5a582e11a66a6923c cleanup: remove obsolete question-lock repository API",
+    "7e72f5241f915884f7266011eb476c2c98449ca1 cleanup: remove obsolete question-lock result handling",
+    "6f3eb73be6cd07381217fcec98edf14c53df4a46 test: replace 72-hour lock expectations",
+    "60a3da3ecb425e5384732b0e268a18d8bb46011e test: allow repeated same-question casts",
+    "d58706e60729fb51991a5a9e609c989b20301b31 fix: allow repeated same-question readings",
+    "b4c3fc83c83b625eac4b45f2a53922fa02ee5a81 test: wait for formal Three-Coin confirm readiness",
+    "415b5ad2583338a1e42813a16560f079f98c90c0 test: follow formal reset confirmation flow",
+    "1b51fb4aea56f5970f12afea4bd8973425ae452f test: exercise reset from saved Three-Coin result",
+    "dbff469b2794cc6e4fa936b370ffc5b5bf6c1173 test: prove Three-Coin clear failure injection",
+    "de7c8249d0cf64a900db807909626ab04cc83f8a ci: defer visual jobs during engineering closeout",
+    "e29e6870933aad091ade46ad57c1b91917ff63d4 ci: keep only latest Three-Coin closeout run",
+    "bd9013a9994e9e00f9a7e2aea556cde99431b9cf test: scope ritual fixture env to browser server",
+    "e3bd51e5c91cfaeaae88eef684349c1a05b05d87 test: isolate Three-Coin auth integration environment",
+    "6462120b9f95d67bc8697573b96413da79149e55 perf: keep confirmation stage off the heavy renderer",
+    "c82685220c8083a05ff63e230cbb251c8f9055e0 test: gate Three-Coin real auth and History persistence",
+    "d82830b387a5240f4d1ab868f7d4b47aa0cc39ed test: count formal ritual nodes explicitly",
+    "965715cb3f2255feee9a82ddabeb3c0fe6755e62 fix: preserve Three-Coin storage unavailable contract",
+    "ad8488f92acc714e06e5619df000aba2064f954d test: fix single ritual browser assertion",
+    "ce00ca8295bca015251e0e240d2fc39601d7e349 fix: preserve Three-Coin cast identity on restore",
+    "50cac164ab333b2c7b7ab722d15cf5b09fac1703 refactor: retire Three-Coin legacy session migration",
+    "ea36f3378228ed49fa46cd8d51373524582633bb test: retire old Three-Coin architecture assertions",
+    "2c5141f2bf3f39136586cb768e5056c681e725a5 perf: defer ritual renderer and add engineering regression",
+    "1865328ec44aff86cbe8ea7692b7cc5535a30c78 refactor: remove retired Three-Coin runtime and presentation",
+    "0c64ad736fe26181b807fcf640510641d5712f55 fix: require Three-Coin ritual context",
+    "29ec5c6ef39c5593d3f2473409797bcd4072fb70 fix: close Three-Coin ritual state boundary",
+    "600e28107c1de25341349096adbdaccb6fdf12bf refactor: make Three-Coin ritual the single frontend flow"
+  ]
+}

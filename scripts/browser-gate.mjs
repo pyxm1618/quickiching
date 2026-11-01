@@ -121,7 +121,7 @@ async function verifyHttpAndSeo() {
   assert(homeHtml.includes(`content="${HOME_DESCRIPTION}"`), "Exact homepage description is missing from initial HTML");
   const initialHeadings = [...homeHtml.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gu)].map((match) => match[1].replace(/<[^>]+>/gu, ""));
   assert.deepEqual(initialHeadings, [HOME_H1], "Exact homepage H1 is missing from initial HTML");
-  assert(homeHtml.includes("data-three-coin-home-stage"), "Homepage Three-Coin single-stage scaffold is missing from initial HTML");
+  assert(homeHtml.includes("data-three-coin-ritual"), "Homepage Three-Coin single-stage scaffold is missing from initial HTML");
   assert(!homeHtml.includes('"@type":"FAQPage"'), "Homepage must not keep FAQ structured data after the visible FAQ was removed");
 
   for (const path of INDEXABLE_PATHS) {
@@ -384,7 +384,7 @@ async function waitForRecordedLines(page,count) {
 }
 
 async function skipOptionalQuestion(page) {
-  const homeRitual = await page.$("[data-three-coin-home-stage]") !== null;
+  const formalRitual = await page.$("[data-three-coin-ritual]") !== null;
   const skipped = await page.evaluate(() => {
     const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Skip — free reading only");
     if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
@@ -392,7 +392,7 @@ async function skipOptionalQuestion(page) {
     return true;
   });
   assert(skipped, "Question skip must clearly leave this cast free-only");
-  if (homeRitual) {
+  if (formalRitual) {
     await page.waitForSelector("[data-question-confirm]", { timeout: 5000 });
     await clickButton(page, "Cast the Coins");
     await page.waitForSelector(".hold-button:not(:disabled)");
@@ -478,7 +478,7 @@ async function finishThreeCoin(page) {
     if (line < 6) await waitForRecordedLines(page,line);
   }
 
-  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
+  await page.waitForFunction(() => location.pathname === "/readings/three-coin/result", { timeout: 15_000 });
   const sealedBeforeGate = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
   assert(sealedBeforeGate, "Completed Three-Coin reading must remain sealed after result navigation");
   const castLineValues = await page.evaluate((key) => {
@@ -538,6 +538,9 @@ async function runPage(browser, { path, viewport, flow, label, skipQuestion = tr
   const failures = attachFailureCollectors(page);
   try {
     await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
+    for (const button of await page.$$('[aria-label="Analytics Consent"] button')) {
+      if (await button.evaluate(node => node.textContent?.trim() === "Decline")) await button.click();
+    }
     if (skipQuestion) await skipOptionalQuestion(page);
     await flow(page);
     await assertNoOverflow(page);
@@ -616,7 +619,7 @@ async function verifyBrowserFlows() {
         skipQuestion: false,
         flow: async (page) => {
           await page.waitForFunction((wanted) => document.querySelector("h1")?.textContent === wanted, { timeout: 15_000 }, HOME_H1);
-          assert(await page.$("[data-three-coin-home-stage][data-experience-stage='landing']"), "Single-stage homepage landing is missing");
+          assert(await page.$("[data-three-coin-ritual][data-experience-stage='landing']"), "Single-stage homepage landing is missing");
           const navigation = await page.$(".scene-navigation");
           assert(navigation, "SceneNavigation missing");
           assert.equal(await page.$('[role="dialog"][aria-modal="true"]'), null, "Retired mobile drawer is still mounted");

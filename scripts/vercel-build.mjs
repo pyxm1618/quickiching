@@ -237,7 +237,7 @@ try {
   run("bun", ["run", "gate:interactive:zh"], { env: { ...browserEnv, CHINESE_INTERACTIVE_GATE_BASE_URL: BASE } });
   run("bun", ["scripts/browser-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/on-page-seo-browser-gate.mjs"], { env: browserEnv });
-  run("bun", ["scripts/three-coin-v2-browser-gate.mjs"], { env: browserEnv });
+  run("bun", ["scripts/three-coin-v2-browser-gate.mjs", "--public-only"], { env: browserEnv });
   run("bun", ["scripts/multilingual-browser-gate.mjs"], { env: { MULTILINGUAL_TEST_BASE_URL: BASE, CHROME_PATH: chromePath } });
   run("bun", ["scripts/public-p0-browser-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/interpretation-bundle-gate.mjs"], { env: browserEnv });

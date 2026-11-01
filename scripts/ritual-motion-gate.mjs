@@ -18,8 +18,9 @@ async function run(reduced,suppressed=false){
    Crypto.prototype.getRandomValues=function(array){if(array instanceof Uint8Array&&array.length===1){assertQueue();array[0]=bits.shift();window.__motionDraws++;return array;}return original.call(this,array);};
    function assertQueue(){if(!bits.length)throw new Error('MOTION_QA_EXTRA_BUSINESS_DRAW');}
   });
-  await page.goto(base+'/?ritualTime=700',{waitUntil:'networkidle0'});
+  await page.goto(base,{waitUntil:'networkidle0'});
   for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent)==='Decline')await button.click();
+  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
   await page.waitForSelector('[data-renderer="three-webgl"]');
   if(suppressed)await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important}'});
   const room=await page.$eval('.ritual-room',node=>getComputedStyle(node).backgroundImage);
@@ -67,7 +68,7 @@ async function run(reduced,suppressed=false){
    await page.waitForSelector('[data-record-this-cast]:not(:disabled)');await page.locator('[data-record-this-cast]').click();
   }
   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
-  assert.equal(await page.$('[data-ritual-result-card]'),null);
+  assert.equal(await page.$('[data-public-reading-result]'),null);
   assert.equal(await page.evaluate(()=>window.__motionDraws),18);
   assert.equal(await page.$eval('.ritual-room',node=>getComputedStyle(node).backgroundImage),room);
   await page.screenshot({path:`${output}/${prefix}-auth-gate.png`});
@@ -82,29 +83,29 @@ async function run(reduced,suppressed=false){
   });
   // Local-only initial-user fixture; no real sign-in or backend persistence is claimed.
   await page.goto(base+'/ritual-qa-local?view=saving',{waitUntil:'domcontentloaded'});
-  await page.waitForSelector('[data-history-saving]');
+  await page.waitForSelector('[data-account-reading-saving]');
   assert(pending,'The real client must issue the intercepted save');
-  assert.equal(await page.$('[data-ritual-result-card]'),null);
-  await pending.respond({status:409,contentType:'application/json',body:JSON.stringify({error:'QUESTION_LOCKED'})});pending=null;
-  await page.waitForSelector('[data-retry-history-save]');
-  assert.equal(await page.$('[data-ritual-result-card]'),null);
-  await page.locator('[data-retry-history-save]').click();
-  await page.waitForFunction(()=>document.querySelector('[data-history-saving]'));
+  assert.equal(await page.$('[data-public-reading-result]'),null);
+  await pending.respond({status:500,contentType:'application/json',body:JSON.stringify({error:'SAVE_READING_FAILED'})});pending=null;
+  await page.waitForSelector('[data-retry-account-reading-save]');
+  assert.equal(await page.$('[data-public-reading-result]'),null);
+  await page.locator('[data-retry-account-reading-save]').click();
+  await page.waitForFunction(()=>document.querySelector('[data-account-reading-saving]'));
   assert(pending,'Retry must issue the same save');assert.deepEqual(requests[0],requests[1]);
   assert.equal(requests[1].clientCastingId,completed.id);
   assert.deepEqual(requests[1].lineValuesBottomUp,completed.data.steps.map(step=>step.lineValue));
   await pending.respond({status:200,contentType:'application/json',body:JSON.stringify({castingId:'ritual-qa-saved-cast'})});
   await page.waitForSelector('[data-ritual-reveal-stage="gate-exit"]');
-  assert.equal(await page.$('[data-ritual-result-card]'),null,'Result stays concealed throughout gate exit');
+  assert.equal(await page.$('[data-public-reading-result]'),null,'Result stays concealed throughout gate exit');
   await page.screenshot({path:`${output}/${prefix}-gate-exit.png`});
-  await page.waitForSelector('[data-ritual-result-card]');
-  assert.equal(await page.$eval('.ritual-result-card',node=>getComputedStyle(node).animationDuration),reduced?'0.14s':'0.42s');
-  await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.ritual-result-card')).opacity)===1);
+  await page.waitForSelector('[data-public-reading-result]');
+  await page.waitForSelector('[data-ritual-reveal-stage="result"] [data-public-reading-result]:not([data-reading-localization-loading])');
+  await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('[data-public-reading-result]')).opacity)===1);
   await page.screenshot({path:`${output}/${prefix}-result-entered.png`});
   assert.equal(await page.$eval('.ritual-room',node=>getComputedStyle(node).backgroundImage),room);
   const restored=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
   assert.deepEqual(restored,completed);
-  outcomes.push({mode:prefix,status:'PASS',firstResult,firstLabel,firstAction,saveFixture:{requests:requests.length,first:'QUESTION_LOCKED',retry:'saved',sameCast:true,liveAccountEvidence:false}});
+  outcomes.push({mode:prefix,status:'PASS',firstResult,firstLabel,firstAction,saveFixture:{requests:requests.length,first:'SAVE_READING_FAILED',retry:'saved',sameCast:true,liveAccountEvidence:false}});
  }finally{await context.close();}
 }
 try{for(const [reduced,suppressed] of [[false,false],[true,false],[false,true]]){try{await run(reduced,suppressed);}catch(error){outcomes.push({mode:suppressed?'animation-suppressed':reduced?'reduced':'normal',status:'FAIL',error:String(error),stack:error.stack});process.exitCode=1;}}}

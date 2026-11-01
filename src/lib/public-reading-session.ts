@@ -13,6 +13,8 @@ export type PublicReadingSession<T = unknown> = {
 
 type RawSession = PublicReadingSession<unknown>;
 
+type SessionCompatibility = { allowLegacyEnvelope?: boolean };
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -73,26 +75,32 @@ function legacyEnvelope(value: unknown): RawSession | null {
     schemaVersion: PUBLIC_READING_SESSION_SCHEMA_VERSION,
     id: identity?.id ?? makeReadingId(),
     createdAt: identity?.createdAt ?? new Date().toISOString(),
-    // Legacy casting data was stored separately from the old question-first keys.
-    // Keep it behind the question gate until the user explicitly continues.
+    // Shared compatibility for non-Three-Coin public methods whose pre-envelope data may still exist.
+    // The formal Three-Coin flow explicitly opts out with allowLegacyEnvelope: false.
     started: false,
     ...(isRecord(value) && typeof value.question === "string" && value.question ? { question: value.question } : {}),
     data: value,
   };
 }
 
-function readRawSession(key: string): { raw: unknown; envelope: RawSession | null } {
+function readRawSession(
+  key: string,
+  compatibility: SessionCompatibility = {},
+): { raw: unknown; envelope: RawSession | null } {
   const raw = browserStorage().getItem(key);
   const parsed = parseRaw(raw);
-  return { raw: parsed, envelope: asEnvelope(parsed) ?? legacyEnvelope(parsed) };
+  const envelope = asEnvelope(parsed)
+    ?? (compatibility.allowLegacyEnvelope === false ? null : legacyEnvelope(parsed));
+  return { raw: parsed, envelope };
 }
 
 export function readPublicReadingSession<T>(
   key: string,
   parseData: (value: unknown) => T | null,
+  compatibility: SessionCompatibility = {},
 ): PublicReadingSession<T> | null {
   try {
-    const { envelope } = readRawSession(key);
+    const { envelope } = readRawSession(key, compatibility);
     if (!envelope) return null;
     if (!("data" in envelope)) return envelope as PublicReadingSession<T>;
     const data = parseData(envelope.data);
@@ -106,9 +114,10 @@ export function readPublicReadingSession<T>(
 export function readPublicReadingSessionState(
   key: string,
   legacyKeys: readonly string[] = [],
+  compatibility: SessionCompatibility = {},
 ): { started: boolean; question?: string; coreQuestionAtCast?: string; coreQuestionFrozenAtCast: boolean } {
   try {
-    const current = readRawSession(key).envelope;
+    const current = readRawSession(key, compatibility).envelope;
     let legacyStarted = false;
     let legacyQuestion: string | undefined;
     for (const legacyKey of legacyKeys) {
@@ -137,9 +146,13 @@ export function readPublicReadingSessionState(
   return { started: false, coreQuestionFrozenAtCast: false };
 }
 
-export function writePublicReadingSession<T>(key: string, data: T): PublicReadingSession<T> {
+export function writePublicReadingSession<T>(
+  key: string,
+  data: T,
+  compatibility: SessionCompatibility = {},
+): PublicReadingSession<T> {
   try {
-    const current = readRawSession(key).envelope;
+    const current = readRawSession(key, compatibility).envelope;
     const next: PublicReadingSession<T> = {
       schemaVersion: PUBLIC_READING_SESSION_SCHEMA_VERSION,
       id: current?.id ?? makeReadingId(),
@@ -162,9 +175,10 @@ export function patchPublicReadingSession(
   key: string,
   patch: { started: boolean; question?: string; coreQuestionAtCast?: string | null; coreQuestionFrozenAtCast?: boolean },
   legacyKeys: readonly string[] = [],
+  compatibility: SessionCompatibility = {},
 ): boolean {
   try {
-    const current = readRawSession(key).envelope;
+    const current = readRawSession(key, compatibility).envelope;
     if (!patch.started) {
       browserStorage().removeItem(key);
       for (const legacyKey of legacyKeys) {
@@ -223,9 +237,12 @@ export function clearPublicReadingSession(key: string): void {
   }
 }
 
-export function restartPublicReadingSession(key: string): PublicReadingSession {
+export function restartPublicReadingSession(
+  key: string,
+  compatibility: SessionCompatibility = {},
+): PublicReadingSession {
   try {
-    const current = readRawSession(key).envelope;
+    const current = readRawSession(key, compatibility).envelope;
     const now = Date.now();
     const previousTime = current ? Date.parse(current.createdAt) : Number.NaN;
     const createdAt = new Date(Number.isFinite(previousTime) && previousTime >= now ? previousTime + 1 : now).toISOString();

@@ -344,32 +344,6 @@ export async function POST(request: Request): Promise<Response> {
           `;
         }
 
-        if (fingerprint) {
-          const lockRows = await tx`
-            insert into question_locks (
-              user_id, fingerprint, key_version, winning_casting_id, locked_until, created_at, updated_at
-            ) values (
-              ${userId}, ${fingerprint}, ${fingerprintKeyVersion}, ${castingId},
-              clock_timestamp() + interval '72 hours', clock_timestamp(), clock_timestamp()
-            )
-            on conflict (user_id, fingerprint) do update
-            set key_version = excluded.key_version,
-                winning_casting_id = excluded.winning_casting_id,
-                locked_until = excluded.locked_until,
-                updated_at = clock_timestamp()
-            where question_locks.winning_casting_id = excluded.winning_casting_id
-               or question_locks.locked_until <= clock_timestamp()
-            returning winning_casting_id
-          ` as Array<{ winning_casting_id: string }>;
-          if (!lockRows[0]) {
-            const existingLock = await tx`
-              select winning_casting_id from question_locks
-              where user_id = ${userId} and fingerprint = ${fingerprint} limit 1
-            ` as Array<{ winning_casting_id: string }>;
-            throw new Error(`QUESTION_LOCKED:${String(existingLock[0]?.winning_casting_id ?? "unknown")}`);
-          }
-        }
-
         return { kind: "created" } as const;
       });
 
@@ -393,9 +367,6 @@ export async function POST(request: Request): Promise<Response> {
       return json({ castingId, idempotent: false }, 201);
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
-      if (message.startsWith("QUESTION_LOCKED:")) {
-        return json({ error: "QUESTION_LOCKED", previousCastingId: message.slice("QUESTION_LOCKED:".length) }, 409);
-      }
       console.error("[SAVE_READING_ROUTE_ERROR]", error);
       return json({ error: "SAVE_READING_FAILED" }, 500);
     }

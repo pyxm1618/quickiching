@@ -487,14 +487,9 @@ export function ThreeCoinResultClient({
         return null;
       }
       if (!res.ok) {
-        const errorBody = await res.json().catch(() => ({})) as { error?: string };
+        await res.json().catch(() => ({}));
         setPersistenceStatus("error");
-        if (errorBody.error === "QUESTION_LOCKED") {
-          setActionError(t(
-            "This completed cast could not be saved because the existing 72-hour question lock rejected it. The current cast remains unchanged and is not revealed.",
-            "现有 72 小时问题锁拒绝了这次已完成起卦的保存。当前六爻会保持不变，也不会提前揭示结果。",
-          ));
-        } else if (showError) {
+        if (showError) {
           setActionError(t("Could not save this reading. Please try again.", "保存本次起卦失败，请稍后重试。"));
         }
         return null;
@@ -747,7 +742,6 @@ export function ThreeCoinResultClient({
       <RitualRevealTransition stage="gate"><div
         className="ritual-save-gate"
         data-completed-cast-gate={gateState}
-        data-visual-status="in-development"
       >
         <section className="ritual-gate-card" aria-labelledby="completed-cast-title">
           <div className="ritual-gate-complete-mark" aria-hidden="true"><Check /></div>

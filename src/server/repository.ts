@@ -17,7 +17,6 @@ export type {
   Order,
   Preview,
   QualityReview,
-  QuestionLock,
   QuestionVersion,
   Reading,
   Reservation,

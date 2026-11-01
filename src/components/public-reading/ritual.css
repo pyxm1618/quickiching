@@ -100,7 +100,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 }
 .ritual-question-card::before {content:'';position:absolute;inset:5px;border:1px solid #d3a970;border-radius:5px;pointer-events:none;}
 
-[data-three-coin-presentation="home-ritual"] > .ritual-webgl {position:fixed;}
+[data-three-coin-presentation="ritual"] > .ritual-webgl {position:fixed;}
 
 .ritual-home-heading h1:lang(zh) {max-width:730px;}
 .ritual-home-heading h1:lang(zh) em {font-size:48px;}

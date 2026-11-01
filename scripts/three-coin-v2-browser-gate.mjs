@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
 import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
@@ -105,10 +104,8 @@ async function clickButton(page, label) {
   assert(clicked, `Unable to click enabled button: ${label}`);
 }
 
-async function seedCompletedReading(page) {
-  // Seed a sealed, question-free session using the current envelope format. The completed cast
-  // is already frozen as free-only, so this exercises the current post-cast state without asking
-  // the user to skip a question a second time.
+async function seedCompletedReadingStorage(page) {
+  // Seed a sealed, question-free session using the current envelope format.
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(({ key, steps }) => sessionStorage.setItem(key, JSON.stringify({
     schemaVersion: 1,
@@ -121,6 +118,11 @@ async function seedCompletedReading(page) {
     key: STORAGE_KEY,
     steps: FIXTURE_STEPS,
   });
+}
+
+async function seedCompletedReading(page) {
+  // The anonymous completed cast must first remain concealed behind the formal Auth/Save gate.
+  await seedCompletedReadingStorage(page);
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector('[data-ritual-view="complete"]');
   await page.waitForFunction(()=>document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===6);
@@ -144,6 +146,24 @@ async function assertNoHorizontalOverflow(page) {
 
 async function resultText(page) {
   return page.$eval("main", (node) => node.textContent ?? "");
+}
+
+async function verifyFormalEntryPoints(browser) {
+  for (const path of ["/", "/zh", "/methods/three-coin", "/zh/methods/three-coin"]) {
+    const context = await browser.createBrowserContext();
+    const page = await context.newPage();
+    try {
+      const response = await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
+      assert.equal(response?.status(), 200, `${path} must return HTTP 200`);
+      await page.waitForSelector('[data-three-coin-ritual]');
+      await page.waitForSelector('[data-three-coin-presentation="ritual"]');
+      assert.equal(await page.$('[data-question-first]'), null, `${path} must not mount the retired generic Three-Coin question UI`);
+      assert.equal(await page.evaluate(() => document.querySelectorAll('[data-three-coin-ritual]').length), 1, `${path} must mount exactly one formal Three-Coin ritual`);
+    } finally {
+      await context.close();
+    }
+  }
+  log("EN/ZH Home + /methods/three-coin formal entry points PASS");
 }
 
 async function verifyInvalidResult(browser) {
@@ -179,7 +199,7 @@ async function verifyStorageReadFailure(browser) {
     await clickButton(page, "Skip — free reading only");
     await waitForText(page, "This question could not be saved.");
     const state = await page.evaluate(() => ({
-      questionPromptVisible: document.querySelector("[data-question-first] textarea") !== null,
+      questionPromptVisible: document.querySelector("[data-three-coin-ritual] textarea") !== null,
       castControlsVisible: document.querySelector('[data-three-coin-presentation] .hold-button') !== null,
       savedQuestionError: document.body?.innerText.includes("This question could not be saved."),
     }));
@@ -235,7 +255,7 @@ async function verifyStorageWriteFailureRetry(browser) {
       return {
         castValue: match ? Number(match[1]) : null,
         progress: document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===0,
-        storedSteps: Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? null,
+        storedSteps: parsed?.data?.steps ?? null,
         revealCount: [...document.querySelectorAll("a")].filter((node) => node.textContent?.trim() === "Reveal Your Reading").length,
       };
     }, STORAGE_KEY);
@@ -251,7 +271,7 @@ async function verifyStorageWriteFailureRetry(browser) {
       const raw = sessionStorage.getItem(key);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      const steps = Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? [];
+      const steps = parsed?.data?.steps ?? [];
       return steps[0]?.lineValue ?? null;
     }, STORAGE_KEY);
     assert.equal(storedValue, failedState.castValue, "Retry must persist the same cast value rather than rerolling the line");
@@ -304,33 +324,113 @@ async function verifySeededResult(browser, viewport) {
   }
 }
 
+async function verifyHistorySaveRetry(browser) {
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  const requests = [];
+  let pending = null;
+  try {
+    await seedCompletedReading(page);
+    const completed = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key)), STORAGE_KEY);
+
+    await page.setRequestInterception(true);
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.pathname === "/api/readings" && request.method() === "POST") {
+        requests.push(JSON.parse(request.postData()));
+        pending = request;
+        return;
+      }
+      if (url.pathname.startsWith("/api/readings/browser-gate-saved-cast/") && request.method() === "GET") {
+        return request.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "not_started" }) });
+      }
+      if (request.method() !== "GET" && request.method() !== "HEAD") return request.abort("blockedbyclient");
+      request.continue();
+    });
+
+    await page.goto(`${BASE}/ritual-qa-local?view=saving`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForSelector("[data-account-reading-saving]");
+    assert(pending, "Authenticated save fixture must issue POST /api/readings");
+    assert.equal(await page.$("[data-public-reading-result]"), null, "Result must remain concealed while History save is pending");
+
+    await pending.respond({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "READING_SAVE_FAILED" }) });
+    pending = null;
+    await page.waitForSelector("[data-retry-account-reading-save]");
+    assert.equal(await page.$("[data-public-reading-result]"), null, "Save failure must keep the result concealed");
+
+    await clickButton(page, "Retry saving this cast");
+    await page.waitForSelector("[data-account-reading-saving]");
+    assert(pending, "Retry must issue the same POST /api/readings");
+    assert.deepEqual(requests[1], requests[0], "Retry must reuse the identical saved-cast payload");
+    assert.equal(requests[1].clientCastingId, completed.id, "History save must use the same stable browser casting id");
+    assert.deepEqual(
+      requests[1].lineValuesBottomUp,
+      completed.data.steps.map((step) => step.lineValue),
+      "History save must use the exact completed six lines",
+    );
+
+    await pending.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ castingId: "browser-gate-saved-cast" }) });
+    pending = null;
+    await page.waitForSelector("[data-public-reading-result]", { timeout: 15_000 });
+    const restored = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key)), STORAGE_KEY);
+    assert.deepEqual(restored, completed, "History retry/reveal must not replace or reroll the completed cast");
+    log("History save failure/retry + same-cast reveal PASS");
+  } finally {
+    await context.close();
+  }
+}
+
 async function verifyClearFailure(browser) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
   try {
-    await seedCompletedReading(page);
-    await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
-    await waitForText(page, "Your Three-Coin Reading");
-    await page.evaluate((key) => {
+    await seedCompletedReadingStorage(page);
+    await page.goto(`${BASE}/ritual-qa-local`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])");
+    assert.equal(await page.$eval("#public-reading-result-title", node => node.textContent), "Your Free Reading");
+    const removeItemFailureArmed = await page.evaluate((key) => {
       const originalRemoveItem = Storage.prototype.removeItem;
       Object.defineProperty(window, "__restoreThreeCoinRemoveItem", {
         configurable: true,
-        value: () => { Storage.prototype.removeItem = originalRemoveItem; },
+        value: () => {
+          Object.defineProperty(Storage.prototype, "removeItem", {
+            configurable: true,
+            writable: true,
+            value: originalRemoveItem,
+          });
+        },
       });
-      Storage.prototype.removeItem = function removeItem(itemKey) {
-        if (itemKey === key) throw new DOMException("Storage blocked", "SecurityError");
-        return originalRemoveItem.call(this, itemKey);
-      };
+      Object.defineProperty(Storage.prototype, "removeItem", {
+        configurable: true,
+        writable: true,
+        value: function removeItem(itemKey) {
+          if (this === sessionStorage && itemKey === key) {
+            throw new DOMException("Storage blocked", "SecurityError");
+          }
+          return originalRemoveItem.call(this, itemKey);
+        },
+      });
+
+      const before = sessionStorage.getItem(key);
+      let blocked = false;
+      try {
+        sessionStorage.removeItem(key);
+      } catch {
+        blocked = true;
+      }
+      return blocked && before !== null && sessionStorage.getItem(key) === before;
     }, STORAGE_KEY);
+    assert(removeItemFailureArmed, "Browser gate must prove sessionStorage.removeItem failure injection before testing clear fail-fast");
 
     await clickButton(page, "Start a New Reading");
+    await page.waitForSelector('[data-three-coin-clear-error="THREE_COIN_SESSION_CLEAR_FAILED"]', { timeout: 15_000 });
     await waitForText(page, "THREE_COIN_SESSION_CLEAR_FAILED");
     const failureState = await page.evaluate((key) => ({
       pathname: location.pathname,
       stored: sessionStorage.getItem(key),
-      stillShowsResult: document.body?.innerText.includes("Your Three-Coin Reading"),
+      stillShowsResult: Boolean(document.querySelector("[data-public-reading-result]:not([data-reading-localization-loading])")),
     }), STORAGE_KEY);
-    assert.equal(failureState.pathname, RESULT_PATH, "Clear failure must keep the user on the existing result page");
+    assert.equal(failureState.pathname, "/ritual-qa-local", "Clear failure must keep the user on the existing saved-result page");
     assert(failureState.stored, "Clear failure must preserve the sealed reading");
     assert(failureState.stillShowsResult, "Clear failure must keep the current reading visible");
     log("sessionStorage removeItem fail-fast PASS");
@@ -343,19 +443,22 @@ async function verifyExplicitReset(browser) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
   try {
-    await seedCompletedReading(page);
-    await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await seedCompletedReadingStorage(page);
+    await page.goto(`${BASE}/ritual-qa-local`, { waitUntil: "networkidle0", timeout: 30_000 });
     await waitForText(page, "Start a New Reading");
     await clickButton(page, "Start a New Reading");
     await page.waitForFunction(() => location.pathname === "/" && location.hash === "#three-coin-reading", { timeout: 15_000 });
     await clickButton(page, "Skip — free reading only");
+    await page.waitForSelector('[data-experience-stage="question-confirm"]');
+    await page.waitForSelector('[data-home-primary-action]:not(:disabled)', { timeout: 15_000 });
+    await clickButton(page, "Cast the Coins");
     await page.waitForSelector(".hold-button:not(:disabled)");
     assert.equal(await page.$$eval('.ritual-six-lines li[data-state="done"]',nodes=>nodes.length),0);
     const storedSteps = await page.evaluate((key) => {
       const raw = sessionStorage.getItem(key);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? null;
+      return parsed?.data?.steps ?? null;
     }, STORAGE_KEY);
     assert.equal(storedSteps, null, "Start a New Reading must clear the sealed Three-Coin line data");
     log("Explicit reset PASS");
@@ -365,13 +468,21 @@ async function verifyExplicitReset(browser) {
 }
 
 await verifySeoAnd404();
-const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
+const chromiumProxy = {
+  async executablePath() {
+    const { default: chromium } = await import("@sparticuz/chromium");
+    return chromium.executablePath();
+  },
+};
+const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromiumProxy);
+const serverlessChromium = usingSystemChrome ? null : (await import("@sparticuz/chromium")).default;
 const browser = await puppeteer.launch({
-  args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
+  args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...serverlessChromium.args, "--disable-dev-shm-usage"],
   executablePath,
   headless: true,
 });
 try {
+  await verifyFormalEntryPoints(browser);
   await verifyInvalidResult(browser);
   await verifyStorageReadFailure(browser);
   await verifyStorageWriteFailureRetry(browser);
@@ -379,7 +490,14 @@ try {
   for (const width of [320, 375, 390]) {
     await verifySeededResult(browser, { width, height: 844 });
   }
-  log("ALL THREE-COIN V2 AUTH-BEFORE-REVEAL GATES PASS");
+  if (process.argv.includes("--public-only")) {
+    log("PUBLIC THREE-COIN AUTH-BEFORE-REVEAL GATES PASS; authenticated fixture cases run separately in Three-Coin engineering regression");
+  } else {
+    await verifyHistorySaveRetry(browser);
+    await verifyClearFailure(browser);
+    await verifyExplicitReset(browser);
+    log("ALL THREE-COIN V2 AUTH-BEFORE-REVEAL GATES PASS");
+  }
 } finally {
   await browser.close();
 }

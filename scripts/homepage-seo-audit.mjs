@@ -90,7 +90,7 @@ try {
       label: node.getAttribute("data-visual-label") ?? "",
       generated: getComputedStyle(node, "::before").content,
     }));
-    const homeStages = [...document.querySelectorAll("[data-three-coin-home-stage]")].map((node) => ({
+    const homeStages = [...document.querySelectorAll("[data-three-coin-ritual]")].map((node) => ({
       stage: node.getAttribute("data-experience-stage") ?? "",
       visualStatus: node.getAttribute("data-visual-status") ?? "",
     }));
@@ -108,7 +108,7 @@ try {
       description: document.querySelector('meta[name="description"]')?.getAttribute("content") ?? "",
       h1: [...document.querySelectorAll("h1")].map((node) => node.textContent?.trim() ?? ""),
       bodyText: document.body?.innerText ?? "",
-      heroText: document.querySelector("[data-three-coin-home-stage][data-experience-stage='landing'] [data-home-hero-copy]")?.textContent?.trim() ?? "",
+      heroText: document.querySelector("[data-three-coin-ritual][data-experience-stage='landing'] [data-home-hero-copy]")?.textContent?.trim() ?? "",
       decorativeNodes,
       homeStages,
       headings,

@@ -68,8 +68,6 @@ function createFacade(
     getCastResult: (castingSessionId) => casting.getCastResult(castingSessionId),
     recordRiskCheck: (input) => casting.recordRiskCheck(input),
     getRiskDecision: (castingSessionId) => casting.getRiskDecision(castingSessionId),
-    acquireQuestionLock: (input) => casting.acquireQuestionLock(input),
-    revealWithQuestionLock: (input) => casting.revealWithQuestionLock(input),
     evaluateSessionClocks: (session, now) => casting.evaluateSessionClocks(session, now),
     getOrCreatePreview: (castingSessionId) => reading.getOrCreatePreview(castingSessionId),
     savePreviewSuccess: (castingSessionId, statement) => reading.savePreviewSuccess(castingSessionId, statement),

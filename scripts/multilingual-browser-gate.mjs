@@ -146,7 +146,7 @@ async function verifyHttpBoundaries() {
   }
 
   const zhHomeHtml = await (await expectStatus("/zh", 200)).text();
-  assert(zhHomeHtml.includes("data-three-coin-home-stage"), "Chinese home must expose the localized single-stage Three-Coin experience");
+  assert(zhHomeHtml.includes("data-three-coin-ritual"), "Chinese home must expose the localized single-stage Three-Coin experience");
   assert(!zhHomeHtml.includes('"@type":"FAQPage"'), "Chinese home must not retain FAQ structured data after the visible FAQ was removed");
 
   const chineseHomeHeaderLinks = [...zhHomeHtml.matchAll(/<header\b[\s\S]*?<\/header>/gi)][0]?.[0] ?? "";

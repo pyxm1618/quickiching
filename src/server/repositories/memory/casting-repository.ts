@@ -8,7 +8,7 @@ import type {
   RecordCoinStepInput,
   RecordCoinStepOutcome,
 } from "../casting-repository";
-import type { CastResult, CastingSession, CastingStep, QuestionLock, QuestionVersion } from "../models";
+import type { CastResult, CastingSession, CastingStep, QuestionVersion } from "../models";
 import { cloneForStorage, snapshot } from "./snapshot";
 import { memoryId, repositoryError, type MemoryStore } from "./store";
 
@@ -313,62 +313,6 @@ export class MemoryCastingRepository implements CastingRepository {
     return decision ? snapshot(decision) : undefined;
   }
 
-  acquireQuestionLock(input: {
-    userId: string;
-    fingerprint: string;
-    keyVersion: string;
-    winningCastingId: string;
-    now: Date;
-  }): { won: boolean; winningCastingId: string } {
-    return this.store.withLock(() => {
-      const key = `${input.userId}|${input.fingerprint}`;
-      const existing = this.store.questionLocks.get(key);
-      if (existing && existing.lockedUntil.getTime() > input.now.getTime()) {
-        return { won: false, winningCastingId: existing.winningCastingId };
-      }
-      if (existing) {
-        existing.winningCastingId = input.winningCastingId;
-        existing.lockedUntil = new Date(input.now.getTime() + 72 * HOUR_MS);
-        existing.updatedAt = new Date(input.now);
-        return { won: true, winningCastingId: input.winningCastingId };
-      }
-      this.store.questionLocks.set(key, this.newQuestionLock(input));
-      return { won: true, winningCastingId: input.winningCastingId };
-    });
-  }
-
-  revealWithQuestionLock(input: {
-    castingId: string;
-    userId: string;
-    fingerprint: string;
-    keyVersion: string;
-    now: Date;
-  }): { revealed: boolean; duplicate: boolean; winningCastingId?: string } {
-    return this.store.withLock(() => {
-      const session = this.store.castingSessions.get(input.castingId);
-      if (!session) throw repositoryError("CASTING_NOT_FOUND");
-      if (session.lifecycle === "revealed" && session.userId === input.userId) return { revealed: true, duplicate: false };
-      if (session.lifecycle !== "awaiting_reveal") throw repositoryError("CASTING_NOT_REVEALABLE");
-      const key = `${input.userId}|${input.fingerprint}`;
-      const existing = this.store.questionLocks.get(key);
-      if (existing && existing.lockedUntil.getTime() > input.now.getTime()) {
-        session.lifecycle = "discarded_duplicate";
-        session.duplicateOfCastingId = existing.winningCastingId;
-        session.updatedAt = new Date(input.now);
-        return { revealed: false, duplicate: true, winningCastingId: existing.winningCastingId };
-      }
-      this.store.questionLocks.set(key, this.newQuestionLock({ ...input, winningCastingId: input.castingId }));
-      session.userId = input.userId;
-      session.anonymousSessionHash = null;
-      session.questionFingerprint = input.fingerprint;
-      session.fingerprintKeyVersion = input.keyVersion;
-      session.revealedAt = new Date(input.now);
-      session.lifecycle = "revealed";
-      session.updatedAt = new Date(input.now);
-      return { revealed: true, duplicate: false };
-    });
-  }
-
   evaluateSessionClocks(session: CastingSession, now: Date) {
     return evaluateClocks({
       firstIrreversibleStepAt: session.firstIrreversibleStepAt,
@@ -377,24 +321,6 @@ export class MemoryCastingRepository implements CastingRepository {
       revealExpiresAt: session.revealExpiresAt,
       now,
     });
-  }
-
-  private newQuestionLock(input: {
-    userId: string;
-    fingerprint: string;
-    keyVersion: string;
-    winningCastingId: string;
-    now: Date;
-  }): QuestionLock {
-    return {
-      userId: input.userId,
-      questionFingerprint: input.fingerprint,
-      fingerprintKeyVersion: input.keyVersion,
-      winningCastingId: input.winningCastingId,
-      lockedUntil: new Date(input.now.getTime() + 72 * HOUR_MS),
-      createdAt: new Date(input.now),
-      updatedAt: new Date(input.now),
-    };
   }
 
   private buildCastResult(
