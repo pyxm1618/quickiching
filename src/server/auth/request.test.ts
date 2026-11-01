@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { normalizeAuthRequestBody } from "./request";
 
 describe("Auth request normalization", () => {
-  it("canonicalizes email input and reduces same-origin callbacks to paths", () => {
+  it("canonicalizes email input and preserves validated same-origin callbacks as absolute URLs", () => {
     expect(normalizeAuthRequestBody({
       email: " User@Example.COM ",
       callbackURL: "https://www.quickiching.com/signin?intent=abc",
     }, "https://www.quickiching.com")).toEqual({
       email: "user@example.com",
-      callbackURL: "/signin?intent=abc",
+      callbackURL: "https://www.quickiching.com/signin?intent=abc",
     });
   });
 
@@ -19,9 +19,9 @@ describe("Auth request normalization", () => {
       newUserCallbackURL: "/my-readings?from=new",
       errorCallbackURL: "/signin?callbackURL=%2Fhistory",
     }, "https://www.quickiching.com")).toMatchObject({
-      callbackURL: "/my-readings?from=auth",
-      newUserCallbackURL: "/my-readings?from=new",
-      errorCallbackURL: "/signin?callbackURL=%2Fhistory",
+      callbackURL: "https://www.quickiching.com/my-readings?from=auth",
+      newUserCallbackURL: "https://www.quickiching.com/my-readings?from=new",
+      errorCallbackURL: "https://www.quickiching.com/signin?callbackURL=%2Fhistory",
     });
   });
 

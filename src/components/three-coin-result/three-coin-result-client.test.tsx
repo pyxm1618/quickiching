@@ -259,12 +259,12 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).toContain("没有找到已完成的起卦");
   });
 
-  it("renders empty state pointing to /#three-coin-reading in English mode", () => {
+  it("renders the shared empty state pointing to the reading entry in English mode", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient locale="en" initialState={{ kind: "empty" }} />,
     );
     expect(html).toContain('href="/"');
-    expect(html).toContain("Start a Three-Coin Reading");
+    expect(html).toContain("Start a New Reading");
     expect(html).toContain("No completed reading found");
   });
 
