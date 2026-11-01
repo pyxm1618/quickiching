@@ -30,9 +30,9 @@ const WORKED_RELATING = hexagramByNumber(WORKED_EXAMPLE.relatingHexagramNumber);
 
 export default function ChineseChangingLinesGuidePage() {
   return (
-    <InfoPageShell title={SEO.finalH1} lead={<span data-seo-early-copy>易经动爻指六爻中实际发生阴阳翻转的位置。三枚铜钱和蓍草法常用 6、7、8、9 表示四种爻值，其中 6 与 9 会变化，7 与 8 保持稳定。把动爻翻转后，才得到之卦（也常称变卦）。</span>}>
+    <InfoPageShell title={SEO.finalH1}
+      seoPrimary={SEO.primaryKeyword} lead={<span data-seo-early-copy>易经动爻指六爻中实际发生阴阳翻转的位置。三枚铜钱和蓍草法常用 6、7、8、9 表示四种爻值，其中 6 与 9 会变化，7 与 8 保持稳定。把动爻翻转后，才得到之卦（也常称变卦）。</span>}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "WebPage", name: SEO.finalH1, description: SEO.finalDescription, url: CANONICAL, inLanguage: "zh-Hans" }) }} />
-      <article data-seo-primary={SEO.primaryKeyword}>
         <section className={styles.guideMain}>
           <PaperArtwork />
           <h2 className={styles.paperHeading}>易经动爻的四种爻值</h2>
@@ -61,7 +61,6 @@ export default function ChineseChangingLinesGuidePage() {
           <section className={styles.sectionBreak}><h2 className={styles.paperHeading}>如何克制地理解变化</h2><p className={styles.paperText}>易经动爻说明“哪里发生结构变化”，并不能证明某个未来事件一定发生。关系中的另一方仍有自主选择，工作与财务也受现实条件影响。把动爻当作需要核对的位置，会比把它当成命令更有用。</p></section>
           <nav className={styles.relatedNav} aria-label="相关动爻页面"><Link href="/zh/guides/primary-relating-hexagrams">继续了解本卦与之卦</Link><Link href="/zh/methods/three-coin">三枚铜钱起卦</Link><Link href="/zh/methods/yarrow-stalks">蓍草起卦</Link></nav>
         </section>
-      </article>
     </InfoPageShell>
   );
 }

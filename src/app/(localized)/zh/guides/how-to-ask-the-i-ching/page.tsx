@@ -27,10 +27,10 @@ export default function ChineseHowToAskGuidePage() {
     <InfoPageShell
       variant="question"
       title={SEO.finalH1}
+      seoPrimary={SEO.primaryKeyword}
       lead={<span data-seo-early-copy>如果你在想易经怎么问，重点不是找到一句“最灵”的措辞，而是把现实处境、你真正需要判断的事情和可观察的时间范围说清楚。本站建议一次只处理一个核心问题，并把卦象作为反思框架，不把决定交给一句吉凶。</span>}
     >
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "WebPage", name: SEO.finalH1, description: SEO.finalDescription, url: CANONICAL, inLanguage: "zh-Hans" }) }} />
-      <article data-seo-primary={SEO.primaryKeyword}>
         <section className={styles.guideMain}>
           <PaperArtwork />
           <h2 className={styles.paperHeading}>易经怎么问：先抓住四个原则</h2>
@@ -57,7 +57,6 @@ export default function ChineseHowToAskGuidePage() {
             <Link href="/zh">易经在线起卦</Link><Link href="/zh/methods/three-coin">三枚铜钱起卦</Link><Link href="/zh/guides/changing-lines">起卦后了解动爻</Link>
           </nav>
         </section>
-      </article>
     </InfoPageShell>
   );
 }

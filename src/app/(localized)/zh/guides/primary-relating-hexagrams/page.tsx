@@ -28,10 +28,10 @@ export default function ChinesePrimaryRelatingGuidePage() {
   return (
     <InfoPageShell
       title={SEO.finalH1}
+      seoPrimary={SEO.primaryKeyword}
       lead={<span data-seo-early-copy>理解本卦变卦时，先把它们看成同一次起卦里的两个六爻结构：本卦是最初得到的六爻，动爻是真正发生阴阳翻转的位置，翻转后的结构在本站统一称为之卦，并注明它也常被称为变卦。</span>}
     >
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "WebPage", name: SEO.finalH1, description: SEO.finalDescription, url: CANONICAL, inLanguage: "zh-Hans" }) }} />
-      <article data-seo-primary={SEO.primaryKeyword}>
         <section className={styles.guideMain}>
           <PaperArtwork />
           <PrimaryRelatingPrimer locale="zh-Hans" descriptions={[
@@ -55,7 +55,6 @@ export default function ChinesePrimaryRelatingGuidePage() {
           </section>
           <nav className={styles.relatedNav} aria-label="相关卦象指南"><Link href="/zh/guides/changing-lines">易经动爻说明</Link><Link href="/zh/hexagrams">易经六十四卦</Link><Link href="/zh/methods/three-coin">开始三枚铜钱起卦</Link></nav>
         </section>
-      </article>
     </InfoPageShell>
   );
 }
