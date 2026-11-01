@@ -105,31 +105,20 @@ describe("Navigation and multi-language routing contract", () => {
     }
   });
 
-  it("ensures Chinese navigation labels contain natural simplified Chinese and no fake English labels", () => {
-    const nav = ZH_HANS_UI_DICTIONARY.nav;
-    expect(nav.meiHua).toBe("梅花易数");
-    expect(nav.hexagrams).toBe("易经卦库");
-    expect(nav.home).toBe("中文首页");
-    expect(nav.drawerTitle).toBe("菜单");
-    expect(nav.languageLabel).toBe("语言");
+  it("keeps shared bilingual language and account copy localized after retiring old nav/footer dictionaries", () => {
+    expect("nav" in ZH_HANS_UI_DICTIONARY).toBe(false);
+    expect("footer" in ZH_HANS_UI_DICTIONARY).toBe(false);
+    expect("nav" in EN_UI_DICTIONARY).toBe(false);
+    expect("footer" in EN_UI_DICTIONARY).toBe(false);
 
-    // Must not contain "英文 xxx" in Chinese primary nav
-    expect(nav.meiHua.includes("英文")).toBe(false);
-    expect(nav.hexagrams.includes("英文")).toBe(false);
+    expect(ZH_HANS_UI_DICTIONARY.language.currentLanguage).toBe("简体中文");
+    expect(ZH_HANS_UI_DICTIONARY.language.selectLanguage).toBe("选择语言");
+    expect(ZH_HANS_UI_DICTIONARY.userNav.account).toBe("我的账户");
+    expect(ZH_HANS_UI_DICTIONARY.userNav.history).toBe("起卦记录");
 
-    // English dictionary checks
-    expect(EN_UI_DICTIONARY.nav.methods).toBe("Methods");
-    expect(EN_UI_DICTIONARY.nav.guides).toBe("Guides");
-    expect(EN_UI_DICTIONARY.nav.hexagrams).toBe("64 Hexagrams");
+    expect(EN_UI_DICTIONARY.language.currentLanguage).toBe("English");
+    expect(EN_UI_DICTIONARY.language.selectLanguage).toBe("Select language");
+    expect(EN_UI_DICTIONARY.userNav.account).toBe("My Account");
   });
 
-  it("ensures Chinese footer labels are fully localized", () => {
-    const footer = ZH_HANS_UI_DICTIONARY.footer;
-    expect(footer.meiHua).toBe("梅花易数起卦");
-    expect(footer.hexagrams).toBe("简体中文易经卦库");
-    expect(footer.privacy).toBe("隐私政策");
-    expect(footer.terms).toBe("服务条款");
-    expect(footer.acceptableUse).toBe("使用规范");
-    expect(footer.help).toBe("帮助支持");
-  });
 });
