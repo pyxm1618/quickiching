@@ -12,7 +12,6 @@ import "@/components/account/account.css";
 
 export type UserNavControlProps = {
   initialUser?: { id: string; email: string } | null;
-  hideUnauthenticated?: boolean;
   onItemClick?: () => void;
   locale?: ContentLocale;
   initialOpen?: boolean;
@@ -26,7 +25,6 @@ type UserState = {
 
 export function UserNavControl({
   initialUser,
-  hideUnauthenticated = false,
   onItemClick,
   locale = "en",
   initialOpen = false,
@@ -117,9 +115,6 @@ export function UserNavControl({
   const settingsLabel = isChinese ? "设置" : "Settings";
 
   if (loading) {
-    if (hideUnauthenticated) {
-      return <div className="h-11 w-11 shrink-0" aria-hidden="true" />;
-    }
     return (
       <div className="inline-flex min-h-11 w-[9.75rem] items-center rounded-lg" aria-hidden="true">
         <div className="h-8 w-full animate-pulse rounded-lg bg-white/[0.06]" />
@@ -128,8 +123,6 @@ export function UserNavControl({
   }
 
   // Desktop/top navigation layout.
-  if (!user && hideUnauthenticated) return null;
-
   if (!user && appearance === "scene") {
     return <Link href={signinHref} prefetch={false} className="scene-account-trigger"><User aria-hidden="true" /><span>{isChinese ? "登录" : "Sign In"}</span></Link>;
   }
