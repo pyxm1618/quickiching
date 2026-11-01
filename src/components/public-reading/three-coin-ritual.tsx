@@ -3,7 +3,6 @@
 import "./ritual.css";
 import { ArrowRight } from "lucide-react";
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import Image from "next/image";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
@@ -252,6 +251,7 @@ export function ThreeCoinRitual({
 
   return (
     <ThreeCoinRitualContext.Provider value={context}>
+      <link rel="preload" as="image" href="/performance/questionDesktop.d616c1d6e5957a79.png" media="(min-width:471px)" fetchPriority="high" />
       <link rel="preload" as="image" href="/performance/questionMobile.aeacbe5208415e49.webp" media="(max-width:470px)" fetchPriority="high" />
       <link rel="preload" as="image" href="/performance/stagePortrait.bde3e415eb141bc8.webp" media="(min-width:601px) and (max-aspect-ratio:11/20)" fetchPriority="high" />
       <link rel="preload" as="image" href="/performance/stageMobile.285965e6cb8c7840.webp" media="(max-width:600px) and (max-aspect-ratio:11/20)" fetchPriority="low" />
@@ -280,15 +280,15 @@ export function ThreeCoinRitual({
               </div>
             ) : null}
             <div className="ritual-question-card">
-              <Image
+              <img
                 className="ritual-question-card-art"
                 src="/performance/questionDesktop.d616c1d6e5957a79.png"
                 alt=""
                 width={646}
                 height={184}
-                sizes="(max-width: 470px) 32px, 646px"
-                quality={90}
-                priority
+                loading="eager"
+                decoding="sync"
+                fetchPriority="high"
                 aria-hidden="true"
               />
               <label htmlFor={`${THREE_COIN_SESSION_STORAGE_KEY}-question`}>{zh ? "此刻，你想问什么？" : "What would you like to ask?"}</label>
