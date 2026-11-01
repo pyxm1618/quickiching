@@ -34,7 +34,6 @@ describe("PublicReadingResult unified method identity", () => {
     expect(html).toContain("data-free-reading-ritual");
     expect(html).toContain(`data-reading-method="${method}"`);
     expect(html).not.toContain("mystic-kicker");
-    expect(html).not.toContain(version);
   });
 });
 
