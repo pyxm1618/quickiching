@@ -1,77 +1,61 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { PublicReadingResult, resolveReadingKicker } from "./public-reading-result";
+import { PublicReadingResult } from "./public-reading-result";
 import { ZH_HANS_UI_DICTIONARY } from "@/i18n/dictionaries/zh-Hans";
-import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import { buildPublicReading } from "@/domain/public-reading/reading";
-import type { PublicReading, PublicReadingMethod } from "@/domain/public-reading/types";
+import type { PublicReadingEvidence, PublicReadingMethod } from "@/domain/public-reading/types";
+import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
 import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: any) => React.createElement("a", { href, ...props }, children),
 }));
 
-function mockReading(
-  method: PublicReadingMethod,
-  version: string,
-  lineValuesBottomUp: PublicReading["lineValuesBottomUp"] = [7, 8, 9, 6, 7, 8],
-  question = "测试问题",
-): PublicReading {
-  const base = buildPublicReading({
-    id: `test-${method}`,
-    createdAt: "2026-09-23T12:00:00.000Z",
-    method: "manual",
-    methodVersion: "manual-cast-v1",
-    question,
-    lineValuesBottomUp,
-    evidence: { kind: "manual", mode: "line-values" },
-  });
-  return { ...base, method, methodVersion: version };
+function evidenceFor(method: PublicReadingMethod): PublicReadingEvidence {
+  if (method === "three-coin") return { kind: "three-coin", steps: [] };
+  if (method === "yarrow-stalks") return { kind: "yarrow-stalks", lines: [] };
+  if (method === "mei-hua-yi-shu") return { kind: "mei-hua-yi-shu", calculation: meiHuaFromUtc(Date.UTC(2026, 9, 31), "UTC") };
+  return { kind: "manual", mode: "line-values" };
 }
 
-describe("PublicReadingResult Kicker Method Perception", () => {
-  it("resolves Three-Coin Chinese kicker accurately without internal version numbers", () => {
-    const reading = mockReading("three-coin", "three-coin-v1");
-    const kicker = resolveReadingKicker(reading, ZH_HANS_UI_DICTIONARY);
-    expect(kicker).toBe("三枚铜钱 · 基础解读");
-    expect(kicker).not.toContain("-v1");
-    expect(kicker).not.toContain("梅花易数");
+function mockReading(method: PublicReadingMethod, version: string) {
+  return buildPublicReading({
+    id: `test-${method}`,
+    createdAt: "2026-09-23T12:00:00.000Z",
+    method,
+    methodVersion: version,
+    question: "测试问题",
+    lineValuesBottomUp: [7, 8, 9, 6, 7, 8],
+    evidence: evidenceFor(method),
   });
+}
 
-  it("resolves Yarrow Chinese kicker accurately without internal version numbers", () => {
-    const reading = mockReading("yarrow-stalks", "yarrow-v1");
-    const kicker = resolveReadingKicker(reading, ZH_HANS_UI_DICTIONARY);
-    expect(kicker).toBe("蓍草起卦 · 基础解读");
-    expect(kicker).not.toContain("-v1");
-    expect(kicker).not.toContain("梅花易数");
-  });
-
-  it("resolves Mei Hua Chinese kicker accurately without internal version numbers", () => {
-    const reading = mockReading("mei-hua-yi-shu", "mei-hua-v1");
-    const kicker = resolveReadingKicker(reading, ZH_HANS_UI_DICTIONARY);
-    expect(kicker).toBe("梅花易数 · 基础解读");
-    expect(kicker).not.toContain("-v1");
-  });
-
-  it("resolves Manual Cast Chinese kicker accurately without internal version numbers", () => {
-    const reading = mockReading("manual", "manual-v1");
-    const kicker = resolveReadingKicker(reading, ZH_HANS_UI_DICTIONARY);
-    expect(kicker).toBe("手动起卦 · 基础解读");
-    expect(kicker).not.toContain("-v1");
-    expect(kicker).not.toContain("梅花易数");
-  });
-
-  it("preserves English static kicker contract for English dictionary", () => {
-    const reading = mockReading("three-coin", "three-coin-v1");
-    const kicker = resolveReadingKicker(reading, EN_UI_DICTIONARY);
-    expect(kicker).toBe("Static reading · three-coin-v1");
+describe("PublicReadingResult unified method identity", () => {
+  it.each([
+    ["three-coin", "three-coin-v1"],
+    ["yarrow-stalks", "yarrow-v1"],
+    ["mei-hua-yi-shu", "mei-hua-v1"],
+    ["manual", "manual-v1"],
+  ] as const)("renders %s through the same current Free Reading DOM", (method, version) => {
+    const html = renderToStaticMarkup(React.createElement(PublicReadingResult, { reading: mockReading(method, version) }));
+    expect(html).toContain("data-free-reading-ritual");
+    expect(html).toContain(`data-reading-method="${method}"`);
+    expect(html).not.toContain("mystic-kicker");
   });
 });
 
 describe("PublicReadingResult changing-line meaning", () => {
-  it("explains an unchanged English cast without a bare None or fabricated relating hexagram", () => {
-    const reading = mockReading("three-coin", "three-coin-v1", [7, 7, 7, 7, 7, 7], "What should I notice?");
+  it("renders an unchanged English cast without fabricating a relating hexagram", () => {
+    const reading = buildPublicReading({
+      id: "static-no-change-en",
+      createdAt: "2026-09-27T00:00:00.000Z",
+      method: "three-coin",
+      methodVersion: "three-coin-v1",
+      question: "What should I notice?",
+      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+      evidence: evidenceFor("three-coin"),
+    });
     const html = renderToStaticMarkup(
       React.createElement(
         PublicReadingResult,
@@ -81,16 +65,24 @@ describe("PublicReadingResult changing-line meaning", () => {
     );
 
     expect(html).toContain("No changing lines");
-    expect(html).toContain("No relating hexagram");
-    expect(html).toContain("No line changed, so this reading remains centered on the primary hexagram.");
-    expect(html).not.toContain("Changing Lines: None");
-    expect(html).not.toContain(">None</div>");
+    expect(html).toContain("No Relating Hexagram");
+    expect(html).toContain("data-no-relating-card");
     expect(html).not.toContain("data-relating-card");
-    expect(html.indexOf("data-primary-overview")).toBeLessThan(html.indexOf("data-deep-reading-entry"));
+    expect(html).toContain("data-primary-card");
+    expect(html).toContain("data-deep-reading-entry");
+    expect(html.indexOf("data-deep-reading-cta=\"top\"")).toBeLessThan(html.indexOf("data-primary-card"));
   });
 
-  it("explains an unchanged Chinese cast and keeps the Deep Reading offer after the cast summary", () => {
-    const reading = mockReading("three-coin", "three-coin-v1", [7, 7, 7, 7, 7, 7], "我该留意什么？");
+  it("renders an unchanged Chinese cast in the current unified result UI", () => {
+    const reading = buildPublicReading({
+      id: "static-no-change-zh",
+      createdAt: "2026-09-27T00:00:00.000Z",
+      method: "three-coin",
+      methodVersion: "three-coin-v1",
+      question: "我该留意什么？",
+      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+      evidence: evidenceFor("three-coin"),
+    });
     const html = renderToStaticMarkup(
       React.createElement(
         PublicReadingResult,
@@ -100,17 +92,26 @@ describe("PublicReadingResult changing-line meaning", () => {
     );
 
     expect(html).toContain("无动爻");
-    expect(html).toContain("本次没有变卦（之卦）");
-    expect(html).toContain("六爻均未发生变化，因此本次阅读以本卦为核心。");
-    expect(html).not.toContain("动爻：无");
-    expect(html.indexOf("data-primary-overview")).toBeLessThan(html.indexOf("data-deep-reading-entry"));
+    expect(html).toContain("没有之卦");
+    expect(html).toContain("data-no-relating-card");
+    expect(html).toContain("data-primary-card");
+    expect(html).toContain("data-deep-reading-entry");
+    expect(html.indexOf("data-deep-reading-cta=\"top\"")).toBeLessThan(html.indexOf("data-primary-card"));
   });
 
   it("keeps the actual relating hexagram visible when a line changes", () => {
-    const reading = mockReading("three-coin", "three-coin-v1", [7, 7, 9, 7, 7, 7], "");
+    const reading = buildPublicReading({
+      id: "static-change-en",
+      createdAt: "2026-09-27T00:00:00.000Z",
+      method: "three-coin",
+      methodVersion: "three-coin-v1",
+      lineValuesBottomUp: [7, 7, 9, 7, 7, 7],
+      evidence: evidenceFor("three-coin"),
+    });
     const html = renderToStaticMarkup(React.createElement(PublicReadingResult, { reading }));
 
-    expect(html).toContain("Changing line(s): 3");
+    expect(html).toContain("Changing Line(s)");
+    expect(html).toContain("Line 3");
     expect(html).toContain("data-relating-card");
     expect(html).toContain("Relating Hexagram");
   });
