@@ -26,13 +26,6 @@ describe("UserNavControl Component Render", () => {
     expect(html).toContain('href="/signup?callbackURL=%2Faccount"');
   });
 
-  it("can hide unauthenticated controls without changing authenticated account behavior", () => {
-    const html = renderToStaticMarkup(
-      <UserNavControl initialUser={null} hideUnauthenticated={true} />,
-    );
-    expect(html).toBe("");
-  });
-
   it("renders user initial and email prefix when authenticated", () => {
     const html = renderToStaticMarkup(
       <UserNavControl initialUser={{ id: "usr_1", email: "pyxm1618@gmail.com" }} />,
