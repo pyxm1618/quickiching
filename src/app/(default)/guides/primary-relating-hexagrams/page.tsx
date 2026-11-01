@@ -10,10 +10,10 @@ import { PaperArtwork } from "@/components/info-pages/paper-artwork";
 import styles from "@/components/info-pages/info-pages.module.css";
 
 export const metadata: Metadata = {
-  title: "Primary and Relating Hexagrams — I Ching Reading Guide",
+  title: "Primary and Relating Hexagrams — Guide",
   description: "Understand the difference between a primary hexagram, changing lines, and a relating hexagram in an I Ching reading.",
   alternates: { canonical: "/guides/primary-relating-hexagrams", languages: alternateLanguages("guides-primary-relating") },
-  openGraph: { title: "Primary and Relating Hexagrams — I Ching Reading Guide", description: "Learn how primary and relating hexagrams connect through changing lines.", url: "/guides/primary-relating-hexagrams", type: "article" },
+  openGraph: { title: "Primary and Relating Hexagrams — Guide", description: "Learn how primary and relating hexagrams connect through changing lines.", url: "/guides/primary-relating-hexagrams", type: "article" },
 };
 
 const STRUCTURE_EXAMPLE = buildHexagramResult({ lineValuesBottomUp: [7, 8, 9, 7, 6, 8], method: "three_coin" });
@@ -24,7 +24,7 @@ const STRUCTURE_RELATING = hexagramByNumber(STRUCTURE_EXAMPLE.relatingHexagramNu
 export default function PrimaryRelatingGuidePage() {
   return (
     <InfoPageShell
-      title="Primary & Relating Hexagrams"
+      title="Primary and Relating Hexagrams"
       lead="Primary and relating hexagrams are two structures connected by the changing lines in one cast. The primary hexagram is always present; a separate relating hexagram exists only when at least one line actually changes."
     >
       <section className={styles.guideMain}>

@@ -1,6 +1,6 @@
 export const EN_MEI_HUA_CONTENT = {
   metadata: {
-    title: "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting",
+    title: "Mei Hua Yi Shu — Free Online Casting",
     description: "Use Mei Hua Yi Shu online with Quick I Ching's documented current-time convention. See the trigrams, changing line, hexagrams, and a free basic interpretation.",
   },
   eyebrow: "Plum Blossom Divination · Current Time",

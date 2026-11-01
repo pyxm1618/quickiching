@@ -5,10 +5,10 @@ import { ThreeCoinRitual } from "@/components/public-reading/three-coin-ritual";
 import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
 
 export const metadata: Metadata = {
-  title: "I Ching Three-Coin Method — Free Coin Toss Reading",
+  title: "I Ching Three-Coin Method — Free Online Cast",
   description: "Use the I Ching three-coin method online. Toss six lines from bottom to top, identify changing lines, and read the primary and relating hexagrams for free.",
   alternates: { canonical: "/methods/three-coin", languages: alternateLanguages("three-coin-method") },
-  openGraph: { title: "I Ching Three-Coin Method — Free Coin Toss Reading", description: "Cast a complete free three-coin I Ching reading online.", url: "/methods/three-coin", type: "website" },
+  openGraph: { title: "I Ching Three-Coin Method — Free Online Cast", description: "Cast a complete free three-coin I Ching reading online.", url: "/methods/three-coin", type: "website" },
 };
 
 export default function ThreeCoinMethodPage() {
