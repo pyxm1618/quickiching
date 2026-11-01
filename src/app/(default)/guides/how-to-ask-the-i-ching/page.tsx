@@ -7,10 +7,10 @@ import { PaperArtwork, GuideDecoration } from "@/components/info-pages/paper-art
 import styles from "@/components/info-pages/info-pages.module.css";
 
 export const metadata: Metadata = {
-  title: "How to Ask the I Ching — Practical Question Guide",
+  title: "How to Ask the I Ching — Question Guide",
   description: "Learn how to frame a clear I Ching question for reflection without forcing a yes/no prediction or handing over your decision-making.",
   alternates: { canonical: "/guides/how-to-ask-the-i-ching", languages: alternateLanguages("guides-how-to-ask") },
-  openGraph: { title: "How to Ask the I Ching — Practical Question Guide", description: "A practical guide to asking one clear, reflective I Ching question.", url: "/guides/how-to-ask-the-i-ching", type: "article" },
+  openGraph: { title: "How to Ask the I Ching — Question Guide", description: "A practical guide to asking one clear, reflective I Ching question.", url: "/guides/how-to-ask-the-i-ching", type: "article" },
 };
 
 const QUESTION_EXAMPLES = [

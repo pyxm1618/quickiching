@@ -5,10 +5,10 @@ import { QuestionFirst } from "@/components/public-reading/question-first";
 import { YarrowTool } from "@/components/public-reading/yarrow-tool";
 
 export const metadata: Metadata = {
-  title: "I Ching Yarrow Stalk Method — Free Online Casting",
+  title: "I Ching Yarrow Stalk Method — Online Cast",
   description: "Use the I Ching yarrow stalk method online with 49-stalk arithmetic, 18 recorded changes, changing lines, and a free basic hexagram interpretation.",
   alternates: { canonical: "/methods/yarrow-stalks", languages: alternateLanguages("yarrow-stalks-method") },
-  openGraph: { title: "I Ching Yarrow Stalk Method — Free Online Casting", description: "Complete a free 49-stalk yarrow I Ching casting online.", url: "/methods/yarrow-stalks", type: "website" },
+  openGraph: { title: "I Ching Yarrow Stalk Method — Online Cast", description: "Complete a free 49-stalk yarrow I Ching casting online.", url: "/methods/yarrow-stalks", type: "website" },
 };
 
 export default function YarrowStalksPage() {
