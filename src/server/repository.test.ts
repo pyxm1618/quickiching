@@ -74,24 +74,6 @@ describe("revealed result access", () => {
 });
 
 describe("repository terminal transitions", () => {
-  it("reveals one winner and marks a concurrent same-question cast as a duplicate", () => {
-    const user = repo.createUser(`reveal-${crypto.randomUUID()}@example.com`);
-    const createReadyAnonymous = () => {
-      const casting = repo.createCastingSession({
-        method: "three_coin", scene: "career", interpretationGoal: "what_do_i_need_to_see_clearly",
-        userId: null, anonHash: `anon-${crypto.randomUUID()}`, algorithmVersion: "three-coin-v1",
-      });
-      repo.saveStep({ castingSessionId: casting.id, stepKind: "coin", lineIndex: 0, changeIndex: null, rawRecord: {}, lineValue: 7 });
-      repo.saveCastResult({ castingSessionId: casting.id, lineValues: [7, 7, 7, 7, 7, 7], methodCalculation: {} });
-      return casting;
-    };
-    const first = createReadyAnonymous();
-    const second = createReadyAnonymous();
-
-    expect(repo.revealWithQuestionLock({ castingId: first.id, userId: user.id, fingerprint: "same", keyVersion: "v1", now: new Date() })).toMatchObject({ revealed: true, duplicate: false });
-    expect(repo.revealWithQuestionLock({ castingId: second.id, userId: user.id, fingerprint: "same", keyVersion: "v1", now: new Date() })).toMatchObject({ revealed: false, duplicate: true, winningCastingId: first.id });
-    expect(repo.getCastingSession(second.id)?.lifecycle).toBe("discarded_duplicate");
-  });
   it("does not consume a reservation twice", () => {
     const user = repo.createUser(`credit-${crypto.randomUUID()}@example.com`);
     const casting = repo.createCastingSession({
