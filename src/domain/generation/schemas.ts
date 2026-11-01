@@ -3,7 +3,7 @@ import { z } from "zod";
 const lineValueSchema = z.union([z.literal(6), z.literal(7), z.literal(8), z.literal(9)]);
 
 export const deterministicFactsSchema = z.object({
-  method: z.enum(["three_coin", "yarrow_stalk", "mei_hua_current_time"]),
+  method: z.enum(["three_coin", "yarrow_stalk", "mei_hua_number_time", "mei_hua_current_time"]),
   algorithmVersion: z.string().min(1).max(120),
   classicMappingVersion: z.string().min(1).max(120),
   lineValuesBottomUp: z.tuple([
