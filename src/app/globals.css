@@ -286,24 +286,6 @@ main > article:not(.home-oracle) code { color: var(--gold-2); }
 .sound-toggle { border: 0; background: transparent; color: var(--ink-3); font-size: 11px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .sound-toggle:hover { color: var(--gold-2); }
 
-/* Reading result: Primary -> Changing -> Relating, as one connected object. */
-.reading-reveal { margin-top: 46px; padding: 34px; border: 1px solid rgba(255,255,255,.11); border-radius: 32px; background: radial-gradient(circle at 22% 17%, rgba(143,112,255,.11), transparent 25rem), radial-gradient(circle at 80% 60%, rgba(137,233,227,.07), transparent 26rem), rgba(255,255,255,.022); box-shadow: var(--shadow); }
-.reading-path { display: grid; grid-template-columns: minmax(0,1fr) 108px minmax(0,1fr); gap: 18px; align-items: center; margin-top: 28px; }
-.reading-card-a { min-height: 520px; border: 1px solid rgba(255,255,255,.12); border-radius: 28px; padding: 30px; background: linear-gradient(155deg, rgba(255,255,255,.07), rgba(255,255,255,.026)); position: relative; overflow: hidden; }
-.reading-card-a::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(120deg, transparent, rgba(255,255,255,.03), transparent); transform: translateX(-100%); animation: reading-sheen 7s infinite; }
-@keyframes reading-sheen { 40%,100% { transform: translateX(100%); } }
-.reading-number { color: rgba(232,198,122,.95); font: 400 72px/1 var(--font-display); letter-spacing: -.06em; }
-.reading-title { margin-top: 8px; font: 400 30px/1.08 var(--font-display); }
-.reading-cn { color: var(--gold); font-family: var(--font-noto-sc), "Songti SC", serif; font-size: 19px; }
-.reading-theme { margin-top: 20px; color: var(--cyan); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
-.reading-copy { margin-top: 12px; color: var(--ink-2); font-size: 13px; line-height: 1.75; }
-.change-bridge { text-align: center; display: grid; place-items: center; gap: 12px; }
-.change-orb { width: 70px; height: 70px; border-radius: 50%; border: 1px solid rgba(137,233,227,.45); display: grid; place-items: center; color: var(--cyan); box-shadow: 0 0 35px rgba(137,233,227,.12); position: relative; font: 500 12px/1 var(--font-plex), monospace; }
-.change-orb::before { content: ""; position: absolute; inset: -9px; border: 1px dashed rgba(232,198,122,.28); border-radius: 50%; animation: bridge-spin 12s linear infinite; }
-@keyframes bridge-spin { to { transform: rotate(360deg); } }
-.change-bridge small { color: var(--ink-3); font-size: 9px; letter-spacing: .15em; text-transform: uppercase; }
-.change-detail { width: min(100%, 820px); margin: 26px auto 0; border-top: 1px solid rgba(255,255,255,.09); border-bottom: 1px solid rgba(255,255,255,.09); padding: 22px 0; text-align: center; color: var(--ink-2); font-size: 13px; line-height: 1.7; }
-
 /* Home supporting sections. */
 .method-card-a { min-height: 260px; border: 1px solid rgba(255,255,255,.1); border-radius: 26px; padding: 27px; background: rgba(255,255,255,.035); transition: transform .35s ease, border-color .35s ease, background .35s ease; position: relative; overflow: hidden; }
 .method-card-a:hover { transform: translateY(-6px); border-color: rgba(232,198,122,.28); background: rgba(255,255,255,.055); }
@@ -333,9 +315,6 @@ main > article:not(.home-oracle) code { color: var(--gold-2); }
   .oracle-moon { width: 215px; height: 215px; }
   .ritual-wrap { grid-template-columns: 1fr; }
   .ritual-sidebar { border-left: 0; border-top: 1px solid rgba(255,255,255,.08); }
-  .reading-path { grid-template-columns: 1fr; }
-  .change-bridge { grid-template-columns: 1fr 74px 1fr; margin-block: 4px; }
-  .change-bridge::before, .change-bridge::after { content: ""; width: 100%; height: 1px; background: rgba(255,255,255,.1); }
   .how-strip { grid-template-columns: 1fr; }
   .how-strip article { border-right: 0; border-bottom: 1px solid var(--line); }
   .how-strip article:last-child { border-bottom: 0; }
@@ -349,7 +328,7 @@ main > article:not(.home-oracle) code { color: var(--gold-2); }
   .oracle-moon { width: 175px; height: 175px; }
   .oracle-crystal { width: 58px; height: 112px; }
   .oracle-card { display: none; }
-  .ritual-stage, .ritual-sidebar, .reading-reveal, .reading-card-a { padding: 22px; }
+  .ritual-stage, .ritual-sidebar { padding: 22px; }
   .ritual-stage { min-height: 610px; }
   .coin-motion-stage { height: 315px; }
   .ritual-coin-shell { width: 66px; height: 66px; }
@@ -358,8 +337,6 @@ main > article:not(.home-oracle) code { color: var(--gold-2); }
   .ritual-coin-shell.c3 { --fx: 96px; --fy: 102px; margin-left: 20px; }
   .ritual-coin-char { font-size: 11px; }
   .ritual-coin-hole { width: 20px; height: 20px; }
-  .reading-number { font-size: 58px; }
-  .reading-card-a { min-height: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
