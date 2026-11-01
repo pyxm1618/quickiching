@@ -47,6 +47,40 @@ function completedReport() {
   };
 }
 
+function historicalV2Report() {
+  return {
+    schemaVersion: "deep-reading-v2" as const,
+    readingVariant: "standard" as const,
+    directAnswer: "A clear next step depends on what is confirmed in the current situation and which option remains reversible.",
+    situationMapping: "The cast describes an active transition, while the supplied context determines which part of that pattern applies now.",
+    keyTensions: ["Move with purpose while keeping the decision open to new evidence."],
+    conditionalDirection: "If the relevant support is present, a measured next step can test the direction without committing to the full outcome.",
+    signalsToWatch: ["Watch whether the other party follows through on the specific commitment."],
+    practicalReflection: "Write down what would count as reliable evidence, then choose one action that can be reviewed soon.",
+    uncertaintyAndBoundaries: "The cast cannot establish what another person will decide; that remains unknown until observable actions occur.",
+    interpretiveBasisReferences: [{ evidenceId: "primary:judgment" }],
+    disclaimer: "This is conditional reflection and not a certain prediction.",
+  };
+}
+
+function historicalV1Report() {
+  return {
+    schemaVersion: "commercial-reading-v1" as const,
+    readingVariant: "standard" as const,
+    coreSummary: "The situation calls for a measured response that protects room to adjust as new information becomes available.",
+    currentStage: "You are at a decision point where preparation matters more than speed.",
+    primaryHexagramPattern: "The primary pattern emphasizes sustained effort and disciplined timing.",
+    changeMechanism: "Change develops through a narrow opening rather than a sudden reversal.",
+    possibleDirection: "Progress is possible when support becomes visible and repeatable.",
+    obstaclesAndBlindSpots: "The main risk is treating an early signal as if it were a durable commitment.",
+    turningConditions: "Act when the relevant support is concrete enough to verify in practice.",
+    conditionalActionDirection: "Take one reversible step, then reassess before increasing commitment.",
+    uncertaintyAndBoundaries: "The reading cannot guarantee an external outcome or another person’s decision.",
+    interpretiveBasisReferences: [],
+    disclaimer: "Use this for reflection rather than certainty or professional advice.",
+  };
+}
+
 describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
   const castingId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -201,6 +235,21 @@ describe("Paid Deep Reading Route (/api/readings/[castingId]/deep)", () => {
     const payload = await res.json();
     expect(payload.status).toBe("completed");
     expect(payload.viewModel.schemaVersion).toBe("ai-deep-reading-view-v1");
+    expect(payload).not.toHaveProperty("output");
+    expect(payload).not.toHaveProperty("snapshot");
+  });
+
+  it.each([
+    ["v2", historicalV2Report()],
+    ["v1", historicalV1Report()],
+  ])("normalizes historical %s reports at the API boundary", async (_version, output) => {
+    mocks.getDeepReadingStatus.mockResolvedValue({ status: "completed", output });
+    const res = await GET(getRequest(castingId), { params: Promise.resolve({ castingId }) });
+    expect(res.status).toBe(200);
+    const payload = await res.json();
+    expect(payload.status).toBe("completed");
+    expect(payload.viewModel.schemaVersion).toBe("ai-deep-reading-view-v1");
+    expect(payload.viewModel.coreLead).toBeTruthy();
     expect(payload).not.toHaveProperty("output");
     expect(payload).not.toHaveProperty("snapshot");
   });
