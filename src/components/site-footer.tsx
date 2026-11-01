@@ -29,7 +29,6 @@ export function SiteFooter({ locale = "en" }: { locale?: ContentLocale }) {
               <li><Link href={zh("/methods/yarrow-stalks")} className={LINK}>{dictionary.footer.yarrow}</Link></li>
               <li><Link href={zh("/methods/mei-hua-yi-shu")} className={LINK}>{dictionary.footer.meiHua}</Link></li>
               <li><Link href={zh("/methods/manual-cast")} className={LINK}>{dictionary.footer.manual}</Link></li>
-              <li><Link href={zh("/history")} className={LINK}>{dictionary.footer.localHistory}</Link></li>
             </ul>
           </div>
           <div>
@@ -77,7 +76,6 @@ export function SiteFooter({ locale = "en" }: { locale?: ContentLocale }) {
             <li><Link href="/methods/yarrow-stalks" className={LINK}>{dictionary.footer.yarrow}</Link></li>
             <li><Link href="/methods/mei-hua-yi-shu" className={LINK}>{dictionary.footer.meiHua}</Link></li>
             <li><Link href="/methods/manual-cast" className={LINK}>{dictionary.footer.manual}</Link></li>
-            <li><Link href="/history" className={LINK}>{dictionary.footer.localHistory}</Link></li>
           </ul>
         </div>
         <div>

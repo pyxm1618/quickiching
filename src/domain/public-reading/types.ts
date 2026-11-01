@@ -41,10 +41,6 @@ export type PublicReadingEvidence =
       mode: "line-values" | "primary-changing";
       primaryHexagramNumber?: number;
       changingLines?: readonly number[];
-    }
-  | {
-      kind: "history";
-      originalMethod: PublicReadingMethod;
     };
 
 export type PublicReading = {

@@ -9,7 +9,6 @@ import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-inte
 import type { HexagramInterpretationBundle } from "@/domain/interpretation/v2/types";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import { buildStaticReading } from "@/domain/public-reading/static-reading";
-import { saveHistoryRecord } from "@/domain/public-reading/history";
 import { readingFingerprint } from "@/domain/public-reading/reading";
 import type { PublicReading } from "@/domain/public-reading/types";
 
@@ -62,10 +61,6 @@ export function PublicReadingResult({
 }) {
   const [bundles, setBundles] = useState<{ primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null }>(initialBundles ?? {});
   const [resolvedLocalizedContent, setResolvedLocalizedContent] = useState<LocalizedReadingContent | undefined>(localizedContent);
-  const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
-  useEffect(() => {
-    setSaveState("idle");
-  }, [reading.id, reading.question]);
   useEffect(() => {
     if (localizedContent) {
       setResolvedLocalizedContent(localizedContent);
@@ -138,14 +133,6 @@ export function PublicReadingResult({
     );
   }
 
-  function save() {
-    try {
-      saveHistoryRecord(reading);
-      setSaveState("saved");
-    } catch {
-      setSaveState("error");
-    }
-  }
 
   return (
     <section className="reading-reveal" aria-live="polite" aria-labelledby="public-reading-result-title" data-public-reading-result data-reading-fingerprint={readingFingerprint(reading)}>
@@ -299,10 +286,7 @@ export function PublicReadingResult({
 
 
       <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-white/[0.08] pt-6">
-        <button type="button" onClick={save} className="mystic-button" data-save-reading>{saveState === "saved" ? dictionary.reading.saved : dictionary.reading.save}</button>
         {onNewReading ? <button type="button" onClick={onNewReading} className="mystic-button-secondary">{newReadingLabel}</button> : null}
-        <Link href={isChinese ? "/zh/history" : "/history"} className="mystic-button-secondary">{dictionary.reading.history}</Link>
-        {saveState === "error" ? <span role="status" className="text-sm text-[var(--danger)]">{dictionary.reading.saveError}</span> : null}
       </div>
 
       <p className="mt-7 border-t border-white/[0.08] pt-5 text-xs leading-6 text-[var(--ink-3)]">{dictionary.reading.safety}</p>

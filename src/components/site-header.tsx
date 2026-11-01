@@ -443,9 +443,6 @@ export function SiteHeader({
               <Link href="/zh/hexagrams" aria-current={isCurrentPath("/zh/hexagrams") ? "page" : undefined} className={linkClassName(NAV_LINK_CLASS, "/zh/hexagrams")}>
                 {dictionary.nav.hexagrams}
               </Link>
-              <Link href="/zh/history" aria-current={isCurrentPath("/zh/history") ? "page" : undefined} className={linkClassName(NAV_LINK_CLASS, "/zh/history")}>
-                {dictionary.nav.history}
-              </Link>
             </>) : (
             <>
               {/* Methods Dropdown */}
@@ -599,9 +596,6 @@ export function SiteHeader({
               <Link href="/hexagrams" aria-current={isCurrentPath("/hexagrams") ? "page" : undefined} className={linkClassName(NAV_LINK_CLASS, "/hexagrams")}>
                 {dictionary.nav.hexagrams}
               </Link>
-              <Link href="/history" aria-current={isCurrentPath("/history") ? "page" : undefined} className={linkClassName(NAV_LINK_CLASS, "/history")}>
-                {dictionary.nav.history}
-              </Link>
             </>
           )}
 
@@ -746,7 +740,7 @@ export function SiteHeader({
                   </Link>
                 </div>
 
-                {/* Reference & History Group */}
+                {/* Reference Group */}
                 <div className="space-y-1">
                   <p className="px-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">
                     参考
@@ -758,14 +752,6 @@ export function SiteHeader({
                     className={linkClassName(DRAWER_LINK_CLASS, "/zh/hexagrams")}
                   >
                     {dictionary.nav.hexagrams}
-                  </Link>
-                  <Link
-                    href="/zh/history"
-                    aria-current={isCurrentPath("/zh/history") ? "page" : undefined}
-                    onClick={() => closeDrawer()}
-                    className={linkClassName(DRAWER_LINK_CLASS, "/zh/history")}
-                  >
-                    {dictionary.nav.history}
                   </Link>
                 </div>
               </>
@@ -841,7 +827,7 @@ export function SiteHeader({
                   </Link>
                 </div>
 
-                {/* Reference & History Group */}
+                {/* Reference Group */}
                 <div className="space-y-1">
                   <p className="px-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">
                     Reference
@@ -853,14 +839,6 @@ export function SiteHeader({
                     className={linkClassName(DRAWER_LINK_CLASS, "/hexagrams")}
                   >
                     {dictionary.nav.hexagrams}
-                  </Link>
-                  <Link
-                    href="/history"
-                    aria-current={isCurrentPath("/history") ? "page" : undefined}
-                    onClick={() => closeDrawer()}
-                    className={linkClassName(DRAWER_LINK_CLASS, "/history")}
-                  >
-                    {dictionary.nav.history}
                   </Link>
                 </div>
               </>

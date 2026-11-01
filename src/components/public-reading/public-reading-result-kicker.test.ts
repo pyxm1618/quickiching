@@ -5,23 +5,29 @@ import { PublicReadingResult, resolveReadingKicker } from "./public-reading-resu
 import { ZH_HANS_UI_DICTIONARY } from "@/i18n/dictionaries/zh-Hans";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import { buildPublicReading } from "@/domain/public-reading/reading";
-import type { PublicReadingMethod } from "@/domain/public-reading/types";
+import type { PublicReading, PublicReadingMethod } from "@/domain/public-reading/types";
 import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: any) => React.createElement("a", { href, ...props }, children),
 }));
 
-function mockReading(method: PublicReadingMethod, version: string) {
-  return buildPublicReading({
+function mockReading(
+  method: PublicReadingMethod,
+  version: string,
+  lineValuesBottomUp: PublicReading["lineValuesBottomUp"] = [7, 8, 9, 6, 7, 8],
+  question = "测试问题",
+): PublicReading {
+  const base = buildPublicReading({
     id: `test-${method}`,
     createdAt: "2026-09-23T12:00:00.000Z",
-    method,
-    methodVersion: version,
-    question: "测试问题",
-    lineValuesBottomUp: [7, 8, 9, 6, 7, 8],
-    evidence: { kind: "history", originalMethod: method },
+    method: "manual",
+    methodVersion: "manual-cast-v1",
+    question,
+    lineValuesBottomUp,
+    evidence: { kind: "manual", mode: "line-values" },
   });
+  return { ...base, method, methodVersion: version };
 }
 
 describe("PublicReadingResult Kicker Method Perception", () => {
@@ -65,15 +71,7 @@ describe("PublicReadingResult Kicker Method Perception", () => {
 
 describe("PublicReadingResult changing-line meaning", () => {
   it("explains an unchanged English cast without a bare None or fabricated relating hexagram", () => {
-    const reading = buildPublicReading({
-      id: "static-no-change-en",
-      createdAt: "2026-09-27T00:00:00.000Z",
-      method: "three-coin",
-      methodVersion: "three-coin-v1",
-      question: "What should I notice?",
-      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-      evidence: { kind: "history", originalMethod: "three-coin" },
-    });
+    const reading = mockReading("three-coin", "three-coin-v1", [7, 7, 7, 7, 7, 7], "What should I notice?");
     const html = renderToStaticMarkup(
       React.createElement(
         PublicReadingResult,
@@ -92,15 +90,7 @@ describe("PublicReadingResult changing-line meaning", () => {
   });
 
   it("explains an unchanged Chinese cast and keeps the Deep Reading offer after the cast summary", () => {
-    const reading = buildPublicReading({
-      id: "static-no-change-zh",
-      createdAt: "2026-09-27T00:00:00.000Z",
-      method: "three-coin",
-      methodVersion: "three-coin-v1",
-      question: "我该留意什么？",
-      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-      evidence: { kind: "history", originalMethod: "three-coin" },
-    });
+    const reading = mockReading("three-coin", "three-coin-v1", [7, 7, 7, 7, 7, 7], "我该留意什么？");
     const html = renderToStaticMarkup(
       React.createElement(
         PublicReadingResult,
@@ -117,14 +107,7 @@ describe("PublicReadingResult changing-line meaning", () => {
   });
 
   it("keeps the actual relating hexagram visible when a line changes", () => {
-    const reading = buildPublicReading({
-      id: "static-change-en",
-      createdAt: "2026-09-27T00:00:00.000Z",
-      method: "three-coin",
-      methodVersion: "three-coin-v1",
-      lineValuesBottomUp: [7, 7, 9, 7, 7, 7],
-      evidence: { kind: "history", originalMethod: "three-coin" },
-    });
+    const reading = mockReading("three-coin", "three-coin-v1", [7, 7, 9, 7, 7, 7], "");
     const html = renderToStaticMarkup(React.createElement(PublicReadingResult, { reading }));
 
     expect(html).toContain("Changing line(s): 3");

@@ -87,6 +87,7 @@ describe("UserNavControl Component Render", () => {
     expect(html).toContain("我的账户");
     expect(html).toContain("我的解读");
     expect(html).toContain("设置");
+    expect(html.match(/role="menuitem"/g)).toHaveLength(3);
     expect(html).not.toContain("退出登录");
     expect(html).not.toMatch(/href="\/account"/);
   });

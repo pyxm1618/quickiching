@@ -22,7 +22,6 @@ export type UiDictionary = {
     changingLines: string;
     primaryRelating: string;
     hexagrams: string;
-    history: string;
     home: string;
     toggleMenu: string;
     closeMenu: string;
@@ -38,7 +37,6 @@ export type UiDictionary = {
     yarrow: string;
     meiHua: string;
     manual: string;
-    localHistory: string;
     hexagrams: string;
     howToAsk: string;
     changingLines: string;
@@ -55,11 +53,9 @@ export type UiDictionary = {
     signIn: string;
     signUp: string;
     activeAccount: string;
-    accountAndHistory: string;
     signOut: string;
     signedInAs: string;
     account: string;
-    history: string;
     menuAria: string;
   };
   auth: {
@@ -165,11 +161,7 @@ export type UiDictionary = {
     bottomLine: string;
     reflect: string;
     threeQuestions: string;
-    save: string;
-    saved: string;
-    history: string;
     newReading: string;
-    saveError: string;
     aiDisabledNotice: string;
     safety: string;
     englishHexagramDetails: string;

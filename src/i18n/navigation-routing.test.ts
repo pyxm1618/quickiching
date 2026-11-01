@@ -89,7 +89,7 @@ describe("Navigation and multi-language routing contract", () => {
     expect(seoRoutes.every((route) => route.paths["zh-Hans"]?.startsWith("/zh") === true)).toBe(true);
     expect(seoRoutes.every((route) => route.hreflangGroup && route.switchable)).toBe(true);
 
-    const standaloneRoutes = ["/history", "/privacy", "/terms", "/acceptable-use", "/help"];
+    const standaloneRoutes = ["/privacy", "/terms", "/acceptable-use", "/help"];
     for (const path of standaloneRoutes) expect(currentRouteForPath(path)).toBeUndefined();
   });
 
