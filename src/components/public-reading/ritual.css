@@ -239,6 +239,7 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
  .ritual-confirm-heading .ritual-divider::after {right:0;background-position:right center;}
  :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card {border-radius:3px;border-width:2px;}
  :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-gold-button::after {display:none;}
+ :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-gold-button {box-shadow:inset 0 -3px 5px rgba(255,242,201,.78),0 0 3px rgba(255,224,145,.72),0 0 10px rgba(237,157,48,.62),0 0 18px rgba(177,101,26,.5);}
  :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-taichi {width:calc(54 * var(--u));height:calc(54 * var(--u));}
 }
 
@@ -250,6 +251,7 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 @media(min-width:801px) {
  [data-ritual-view='result'] .ritual-cast-heading {top:calc(123 * var(--u));}
  .ritual-record-action .ritual-gold-button::after {display:none;}
+ .ritual-record-action .ritual-gold-button {box-shadow:inset 0 -3px 5px rgba(255,242,201,.78),0 0 3px rgba(255,224,145,.72),0 0 10px rgba(237,157,48,.62),0 0 18px rgba(177,101,26,.5);}
 }
 
 @keyframes ritual-line-enter {from{opacity:0;transform:scaleX(.92)}to{opacity:1;transform:scaleX(1)}}
