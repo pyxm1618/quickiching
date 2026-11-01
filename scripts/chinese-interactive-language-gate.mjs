@@ -351,20 +351,18 @@ async function main() {
     assert(!confirmDeleteText.includes("Confirm delete"), "English 'Confirm delete' leaked");
     assert(!confirmDeleteText.match(/\bCancel\b/), "English 'Cancel' leaked in delete confirmation");
 
-    // Crucial check: verify kicker is pure Chinese and does not leak -v1
-    const resultKicker = await page.evaluate(() => {
-      const kickerEl = document.querySelector("[data-public-reading-result] p.mystic-kicker");
-      return kickerEl?.textContent?.trim() || "";
-    });
-    assert(resultKicker.includes("三枚铜钱 · 基础解读"), `Result kicker should be '三枚铜钱 · 基础解读', got: '${resultKicker}'`);
-    assert(!resultKicker.includes("-v1"), `Result kicker contains '-v1': '${resultKicker}'`);
-    assert(!resultKicker.includes("梅花易数"), `Three-coin result kicker contaminated with '梅花易数': '${resultKicker}'`);
+    // Verify the selected saved reading uses the current unified result UI and method identity.
+    const historyReadingMethod = await page.$eval(
+      "[data-public-reading-result] [data-free-reading-ritual]",
+      (el) => el.getAttribute("data-reading-method"),
+    );
+    assert.equal(historyReadingMethod, "three-coin", `History result method mismatch: ${historyReadingMethod}`);
 
     await assertPurity(page, "History Page Delete Confirmation State");
 
     // Clear localStorage
     await page.evaluate(() => localStorage.clear());
-    log("Test 2 PASS: History page states, buttons, and Three-Coin reading result kicker verified pure Chinese.");
+    log("Test 2 PASS: History page states, buttons, and unified Three-Coin result verified pure Chinese.");
 
     // =========================================================================
     // Test 3: Unauthenticated /zh/account Redirect Route Guard
@@ -489,10 +487,9 @@ async function main() {
       sessionStorage.setItem("quickiching:public-v1:three-coin", JSON.stringify(session));
     });
     await page.reload({ waitUntil: "networkidle0" });
-    await page.waitForSelector("[data-public-reading-result]", { timeout: 10_000 });
-    const tcKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
-    assert.equal(tcKicker, "三枚铜钱 · 基础解读", `Three-coin kicker mismatch: ${tcKicker}`);
-    assert(!tcKicker.includes("-v1"), "Three-coin kicker leaked -v1");
+    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading]) [data-free-reading-ritual]", { timeout: 10_000 });
+    const tcMethod = await page.$eval("[data-free-reading-ritual]", (el) => el.getAttribute("data-reading-method"));
+    assert.equal(tcMethod, "three-coin", `Three-coin result method mismatch: ${tcMethod}`);
 
     // Verify HexagramLines accessibility labels in Three-Coin result
     const tcLineAria = await page.evaluate(() => {
@@ -540,10 +537,9 @@ async function main() {
       sessionStorage.setItem("quickiching:public-v1:yarrow-v2", JSON.stringify(session));
     });
     await page.reload({ waitUntil: "networkidle0" });
-    await page.waitForSelector("[data-public-reading-result]", { timeout: 10_000 });
-    const yarrowKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
-    assert.equal(yarrowKicker, "蓍草起卦 · 基础解读", `Yarrow kicker mismatch: ${yarrowKicker}`);
-    assert(!yarrowKicker.includes("-v1"), "Yarrow kicker leaked -v1");
+    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading]) [data-free-reading-ritual]", { timeout: 10_000 });
+    const yarrowMethod = await page.$eval("[data-free-reading-ritual]", (el) => el.getAttribute("data-reading-method"));
+    assert.equal(yarrowMethod, "yarrow-stalks", `Yarrow result method mismatch: ${yarrowMethod}`);
 
     const yarrowLineAria = await page.evaluate(() => {
       return Array.from(document.querySelectorAll("[data-public-reading-result] [role='img'][aria-label]"))
@@ -571,10 +567,9 @@ async function main() {
     await page.reload({ waitUntil: "networkidle0" });
     const castTimeBtn = await page.waitForSelector("section[aria-labelledby='mei-hua-tool-title'] button.mystic-button", { timeout: 5000 });
     await castTimeBtn.click();
-    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])", { timeout: 5000 });
-    const meiHuaKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
-    assert.equal(meiHuaKicker, "梅花易数 · 基础解读", `Mei Hua kicker mismatch: ${meiHuaKicker}`);
-    assert(!meiHuaKicker.includes("-v1"), "Mei Hua kicker leaked -v1");
+    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading]) [data-free-reading-ritual]", { timeout: 5000 });
+    const meiHuaMethod = await page.$eval("[data-free-reading-ritual]", (el) => el.getAttribute("data-reading-method"));
+    assert.equal(meiHuaMethod, "mei-hua-yi-shu", `Mei Hua result method mismatch: ${meiHuaMethod}`);
     await assertPurity(page, "Mei Hua Complete Reading View");
     log("Method simulation PASS: mei-hua-yi-shu complete reading");
 
@@ -592,10 +587,9 @@ async function main() {
     await page.reload({ waitUntil: "networkidle0" });
     const castManualBtn = await page.waitForSelector("section[aria-labelledby='manual-cast-tool-title'] button:not([role='tab']).mystic-button", { timeout: 5000 });
     await castManualBtn.click();
-    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading])", { timeout: 5000 });
-    const manualKicker = await page.$eval("[data-public-reading-result] p.mystic-kicker", (el) => el.textContent?.trim() || "");
-    assert.equal(manualKicker, "手动起卦 · 基础解读", `Manual cast kicker mismatch: ${manualKicker}`);
-    assert(!manualKicker.includes("-v1"), "Manual cast kicker leaked -v1");
+    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading]) [data-free-reading-ritual]", { timeout: 5000 });
+    const manualMethod = await page.$eval("[data-free-reading-ritual]", (el) => el.getAttribute("data-reading-method"));
+    assert.equal(manualMethod, "manual", `Manual cast result method mismatch: ${manualMethod}`);
     await assertPurity(page, "Manual Cast Complete Reading View");
     log("Method simulation PASS: manual-cast complete reading");
 
