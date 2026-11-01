@@ -64,7 +64,7 @@ async function capture({ name, path, width, height, fullPage = false, hover }) {
 
 const accountDesktop = [
   ["user-menu-desktop","/group3-visual-qa-local?view=user-menu","[data-user-nav-dropdown] a"],
-  ["my-readings-desktop","/group3-visual-qa-local?view=my-readings"],
+  ["my-readings-desktop","/group3-visual-qa-local?view=my-readings",".qic-my-readings-scroll li:nth-child(2) .qic-my-reading"],
   ["my-account-desktop","/group3-visual-qa-local?view=account"],
   ["settings-desktop","/group3-visual-qa-local?view=settings"],
   ["refund-desktop","/group3-visual-qa-local?view=refund"],
