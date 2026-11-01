@@ -14,6 +14,7 @@ try {
  const consentButtons=await page.$$('button');
  for(const button of consentButtons) {if((await button.evaluate(node=>node.textContent))==='Decline') await button.click();}
  await page.evaluate(()=>document.fonts.ready);
+ await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
  await page.waitForSelector('[data-renderer="three-webgl"]',{timeout:15000});
  if(await page.$('[data-webgl-fallback="true"]'))throw new Error('Desktop Pixel QA cannot use fallback');
  const cdp=await page.createCDPSession();await cdp.send('DOM.enable');await cdp.send('CSS.enable');

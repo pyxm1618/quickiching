@@ -14,6 +14,56 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+
+  engineering-regression:
+    name: Three-Coin engineering regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Full unit suite
+        run: bun run test
+      - name: Production build
+        run: bun run build
+      - name: Install browser driver
+        run: bun add --no-save --cache-dir=/tmp/quickiching-bun-cache puppeteer-core@24
+      - name: Resolve Chrome
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          if [ -z "$CHROME" ]; then
+            echo "System Chrome is required for Three-Coin browser regression" >&2
+            exit 1
+          fi
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+      - name: Start production server
+        shell: bash
+        run: |
+          (PORT=3031 HOSTNAME=127.0.0.1 bun run start > /tmp/three-coin-regression-server.log 2>&1 & echo $! > /tmp/three-coin-regression-server.pid)
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3031/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/three-coin-regression-server.log
+          exit 1
+      - name: Three-Coin browser regression
+        env:
+          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3031
+        run: |
+          node scripts/three-coin-v2-browser-gate.mjs
+          node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth
+
   capture:
     name: Canonical ritual capture
     runs-on: macos-15

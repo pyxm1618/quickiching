@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
 import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
@@ -144,6 +143,24 @@ async function assertNoHorizontalOverflow(page) {
 
 async function resultText(page) {
   return page.$eval("main", (node) => node.textContent ?? "");
+}
+
+async function verifyFormalEntryPoints(browser) {
+  for (const path of ["/", "/zh", "/methods/three-coin", "/zh/methods/three-coin"]) {
+    const context = await browser.createBrowserContext();
+    const page = await context.newPage();
+    try {
+      const response = await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
+      assert.equal(response?.status(), 200, `${path} must return HTTP 200`);
+      await page.waitForSelector('[data-three-coin-ritual]');
+      await page.waitForSelector('[data-three-coin-presentation="ritual"]');
+      assert.equal(await page.$('[data-question-first]'), null, `${path} must not mount the retired generic Three-Coin question UI`);
+      assert.equal(await page.$('[data-three-coin-ritual]').then(nodes => nodes.length), 1, `${path} must mount exactly one formal Three-Coin ritual`);
+    } finally {
+      await context.close();
+    }
+  }
+  log("EN/ZH Home + /methods/three-coin formal entry points PASS");
 }
 
 async function verifyInvalidResult(browser) {
@@ -304,6 +321,62 @@ async function verifySeededResult(browser, viewport) {
   }
 }
 
+async function verifyHistorySaveRetry(browser) {
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  const requests = [];
+  let pending = null;
+  try {
+    await seedCompletedReading(page);
+    const completed = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key)), STORAGE_KEY);
+
+    await page.setRequestInterception(true);
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.pathname === "/api/readings" && request.method() === "POST") {
+        requests.push(JSON.parse(request.postData()));
+        pending = request;
+        return;
+      }
+      if (url.pathname.startsWith("/api/readings/browser-gate-saved-cast/") && request.method() === "GET") {
+        return request.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "not_started" }) });
+      }
+      if (request.method() !== "GET" && request.method() !== "HEAD") return request.abort("blockedbyclient");
+      request.continue();
+    });
+
+    await page.goto(`${BASE}/ritual-qa-local?view=saving`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForSelector("[data-history-saving]");
+    assert(pending, "Authenticated save fixture must issue POST /api/readings");
+    assert.equal(await page.$("[data-ritual-result-card]"), null, "Result must remain concealed while History save is pending");
+
+    await pending.respond({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "READING_SAVE_FAILED" }) });
+    pending = null;
+    await page.waitForSelector("[data-retry-history-save]");
+    assert.equal(await page.$("[data-ritual-result-card]"), null, "Save failure must keep the result concealed");
+
+    await clickButton(page, "Retry saving this cast");
+    await page.waitForSelector("[data-history-saving]");
+    assert(pending, "Retry must issue the same POST /api/readings");
+    assert.deepEqual(requests[1], requests[0], "Retry must reuse the identical saved-cast payload");
+    assert.equal(requests[1].clientCastingId, completed.id, "History save must use the same stable browser casting id");
+    assert.deepEqual(
+      requests[1].lineValuesBottomUp,
+      completed.data.steps.map((step) => step.lineValue),
+      "History save must use the exact completed six lines",
+    );
+
+    await pending.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ castingId: "browser-gate-saved-cast" }) });
+    pending = null;
+    await page.waitForSelector("[data-ritual-result-card]", { timeout: 15_000 });
+    const restored = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key)), STORAGE_KEY);
+    assert.deepEqual(restored, completed, "History retry/reveal must not replace or reroll the completed cast");
+    log("History save failure/retry + same-cast reveal PASS");
+  } finally {
+    await context.close();
+  }
+}
+
 async function verifyClearFailure(browser) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
@@ -365,13 +438,21 @@ async function verifyExplicitReset(browser) {
 }
 
 await verifySeoAnd404();
-const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
+const chromiumProxy = {
+  async executablePath() {
+    const { default: chromium } = await import("@sparticuz/chromium");
+    return chromium.executablePath();
+  },
+};
+const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromiumProxy);
+const serverlessChromium = usingSystemChrome ? null : (await import("@sparticuz/chromium")).default;
 const browser = await puppeteer.launch({
-  args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...chromium.args, "--disable-dev-shm-usage"],
+  args: usingSystemChrome ? ["--no-sandbox", "--disable-dev-shm-usage"] : [...serverlessChromium.args, "--disable-dev-shm-usage"],
   executablePath,
   headless: true,
 });
 try {
+  await verifyFormalEntryPoints(browser);
   await verifyInvalidResult(browser);
   await verifyStorageReadFailure(browser);
   await verifyStorageWriteFailureRetry(browser);
@@ -379,6 +460,9 @@ try {
   for (const width of [320, 375, 390]) {
     await verifySeededResult(browser, { width, height: 844 });
   }
+  await verifyHistorySaveRetry(browser);
+  await verifyClearFailure(browser);
+  await verifyExplicitReset(browser);
   log("ALL THREE-COIN V2 AUTH-BEFORE-REVEAL GATES PASS");
 } finally {
   await browser.close();

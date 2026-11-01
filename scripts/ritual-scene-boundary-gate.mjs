@@ -51,6 +51,11 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    };
   },bits,key,storageFailure);
   await page.goto(base+(zh?'/zh':''),{waitUntil:deferTextures?'domcontentloaded':'networkidle0'});
+  await page.waitForSelector('[data-renderer="deferred-fallback"]');
+  assert.equal(await page.$('[data-renderer="three-webgl"]'),null,'Landing must not eagerly boot the heavy Three.js renderer');
+  await page.locator('[data-private-question]').fill(zh?'测试：如何理解当前变化？':'QA fixture: how should I understand this transition?');
+  await page.locator('[data-home-primary-action]').click();
+  assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Home action must not create line one');
   if(!fallback && !moduleFailure) {
    if(deferTextures) {
     await page.waitForSelector('.ritual-webgl canvas');
@@ -60,9 +65,6 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    } else await page.waitForSelector('[data-renderer="three-webgl"]');
    await page.evaluate(()=>{window.__initialRitualCanvas=document.querySelector('.ritual-webgl canvas');});
   }
-  await page.locator('[data-private-question]').fill(zh?'测试：如何理解当前变化？':'QA fixture: how should I understand this transition?');
-  await page.locator('[data-home-primary-action]').click();
-  assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Home action must not create line one');
   await page.locator('[data-home-primary-action]').click();
   assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Entering ritual must not manufacture a cast');
   if(deferTextures) {

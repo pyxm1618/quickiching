@@ -42,6 +42,7 @@ try {
  // Layout snapshots sample completed CSS entrances; motion is audited separately in real time.
  await page.addStyleTag({content:'*,*::before,*::after{animation-delay:0s!important;animation-duration:0s!important;transition:none!important;caret-color:transparent!important}'});
  if(state!=='07') {
+  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
   await page.waitForSelector('[data-renderer="three-webgl"]');
   await page.locator('[data-private-question]').fill('Should I continue on my current path?');
   await page.locator('[data-home-primary-action]').click();

@@ -19,7 +19,8 @@ async function run(reduced,suppressed=false){
    function assertQueue(){if(!bits.length)throw new Error('MOTION_QA_EXTRA_BUSINESS_DRAW');}
   });
   await page.goto(base,{waitUntil:'networkidle0'});
-  for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent)==='Decline')await button.click();
+  for(const button of await page.$('button'))if(await button.evaluate(node=>node.textContent)==='Decline')await button.click();
+  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
   await page.waitForSelector('[data-renderer="three-webgl"]');
   if(suppressed)await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important}'});
   const room=await page.$eval('.ritual-room',node=>getComputedStyle(node).backgroundImage);
