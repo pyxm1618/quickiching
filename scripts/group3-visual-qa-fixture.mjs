@@ -64,13 +64,19 @@ function Scene({ children }: { children: React.ReactNode }) {
 function Frame({ surface, children }: { surface: "account" | "settings"; children: React.ReactNode }) {
   const title = surface === "account" ? "My Account" : "Settings";
   const subtitle = surface === "account" ? "Manage your account and reading credits." : "Manage your privacy and account controls.";
-  return <Scene><div className="qic-account-dialog" data-account-surface={surface}>
+  const ref = React.useRef<HTMLDialogElement>(null);
+  React.useEffect(() => {
+    const dialog = ref.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    return () => { if (dialog?.open) dialog.close(); };
+  }, []);
+  return <Scene><dialog ref={ref} className="qic-account-dialog" data-account-surface={surface}>
     <div className="qic-account-frame">
       <button className="qic-account-close" aria-label="Close">×</button>
       <AccountHeading title={title} subtitle={subtitle} />
       <div className="qic-account-body">{children}</div>
     </div>
-  </div></Scene>;
+  </dialog></Scene>;
 }
 
 export function Group3FixtureClient({ view }: { view: string }) {
