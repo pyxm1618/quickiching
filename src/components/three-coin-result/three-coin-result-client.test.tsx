@@ -77,7 +77,7 @@ describe("ThreeCoinResultClient auth-save-reveal gate", () => {
     expect(html).toContain("Sign in to save and reveal this reading");
     expect(html).toContain("data-completed-six-lines");
     expect(html).not.toContain("data-primary-card");
-    expect(html).toContain("data-ritual-result-card");
+    expect(html).not.toContain("data-ritual-result-card");
     expect(html).not.toContain("data-deep-reading-entry");
   });
 
@@ -170,7 +170,7 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
     expect(html).toContain("data-relating-card");
     expect(html).toContain(primary.hexagram.coreTheme);
     expect(html).toContain(relating.hexagram.coreTheme);
-    expect(html).not.toContain("data-ritual-result-card");
+    expect(html).toContain("data-ritual-result-card");
     expect(html).toContain('data-active-line="1"');
     expect(html.match(/Get My Deep Reading/g)).toHaveLength(2);
     expect(html).not.toContain("Restoring your sealed reading…");
