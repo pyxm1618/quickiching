@@ -242,7 +242,7 @@ try {
   run("bun", ["scripts/public-p0-browser-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/interpretation-bundle-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/logo-browser-gate.mjs"], { env: browserEnv });
-  run("bun", ["scripts/navigation-audit-gate.mjs"], { env: browserEnv });
+  run("bun", ["run", "gate:navigation"], { env: browserEnv });
 
   log(`Running homepage Lighthouse with Chrome: ${chromePath}`);
   const lighthouseEnv = { CHROME_PATH: chromePath };
