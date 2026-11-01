@@ -94,7 +94,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
   return (
     <header ref={rootRef} className="scene-navigation" data-scene-panel={panel ?? "closed"} aria-label={zh ? "主导航" : "Main navigation"}>
       <div className="scene-utility" onClick={() => setPanel(null)}>
-        <div className="scene-languages" aria-label={zh ? "选择语言" : "Select language"}>
+        <div className="scene-languages" data-language-switcher aria-label={zh ? "选择语言" : "Select language"}>
           <Globe aria-hidden="true" />
           <Link href={zh ? languageHref : "/"} hrefLang="en" lang="en" aria-current={!zh ? "page" : undefined} onClick={() => setPanel(null)}>EN</Link>
           <span aria-hidden="true">/</span>
