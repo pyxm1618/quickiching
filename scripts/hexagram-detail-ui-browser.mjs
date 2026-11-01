@@ -143,11 +143,46 @@ try {
     assert.equal(actualPath, expectedPath);
     report.navigation.push({ label, path: actualPath, status: "PASS" });
   }
-  // Styles remain scoped: the Chinese page still has its original visible site header.
-  await page.goto(new URL("/zh/hexagrams/1-the-creative", base).href, { waitUntil: "networkidle0" });
-  assert.equal(await page.$('[data-basic-identity]'), null);
-  assert.ok(await page.$eval("body > header", (element) => element.getBoundingClientRect().height > 0));
-  report.chineseStyleIsolation = "PASS";
+  // Chinese uses the same detail presentation and IA; only copy/data are localized.
+  report.chineseUnifiedChecks = [];
+  for (const viewport of [{ width: 1024, height: 900 }, { width: 390, height: 844 }, { width: 320, height: 812 }]) {
+    await page.setViewport({ ...viewport, deviceScaleFactor: 1 });
+    for (const number of [1, 2, 62, 64]) {
+      const entry = CLASSICAL_HEXAGRAMS[number - 1];
+      const response = await page.goto(new URL("/zh/hexagrams/" + entry.slug, base).href, { waitUntil: "networkidle0" });
+      assert.equal(response.status(), 200);
+      await page.waitForSelector("[data-basic-identity]");
+      const state = await page.evaluate(() => {
+        const article = document.querySelector("[data-hexagram-detail]");
+        const clipped = [...article.querySelectorAll("h1, h2, h3, h4, p")].filter((element) => {
+          const style = getComputedStyle(element);
+          return element.scrollWidth > element.clientWidth + 1 || (["hidden", "clip"].includes(style.overflowY) && element.scrollHeight > element.clientHeight + 1);
+        }).map((element) => element.textContent.slice(0, 70));
+        return {
+          locale: article.getAttribute("data-locale"),
+          h1Count: article.querySelectorAll("h1").length,
+          lineCount: article.querySelectorAll("[data-basic-identity] [data-hexagram-line]").length,
+          anchors: Array.from({ length: 6 }, (_, index) => article.querySelector("#line-" + (index + 1)) !== null),
+          classicalFields: [...article.querySelectorAll("[data-classical-field]")].map((node) => node.getAttribute("data-classical-field")),
+          oldPresentationCount: article.querySelectorAll(".mystic-card, .mystic-card-soft, #zh-scene-module, #zh-reality-check-title, #zh-unchanging-title, #hexagram-classical-lines-title").length,
+          auxiliaryLinks: [...article.querySelectorAll("[data-auxiliary-navigation] a")].map((node) => node.getAttribute("href")),
+          documentWidth: document.documentElement.scrollWidth,
+          viewportWidth: innerWidth,
+          clipped,
+        };
+      });
+      assert.equal(state.locale, "zh-Hans");
+      assert.equal(state.h1Count, 1);
+      assert.equal(state.lineCount, 6);
+      assert.ok(state.anchors.every(Boolean));
+      assert.deepEqual(state.classicalFields, ["judgment", "image"]);
+      assert.equal(state.oldPresentationCount, 0);
+      assert.equal(state.documentWidth, state.viewportWidth);
+      assert.deepEqual(state.clipped, []);
+      assert.ok(state.auxiliaryLinks.includes("/zh/hexagrams"));
+      report.chineseUnifiedChecks.push({ number, viewport, ...state, status: "PASS" });
+    }
+  }
   for (const asset of sourceLedger.assets) {
     const response = await page.goto(new URL(asset.path.replace(/^public/, ""), base).href);
     assert.equal(response.status(), 200, asset.path);

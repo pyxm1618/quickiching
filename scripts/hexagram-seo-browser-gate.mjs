@@ -88,11 +88,8 @@ function assertSnapshot(entry, snapshot) {
   const hrefs = new Set(snapshot.internalHrefs);
   const previous = CLASSICAL_HEXAGRAMS.find((candidate) => candidate.slug === entry.slug)?.number;
   assert(hrefs.has(entry.locale === "zh-Hans" ? "/zh/hexagrams" : "/hexagrams"), `${path}: locale hub link missing`);
-  if (entry.locale === "zh-Hans") {
-    assert(hrefs.has("/zh/methods/mei-hua-yi-shu"), `${path}: locale reading CTA missing`);
-  } else {
-    assert(!hrefs.has("/methods/manual-cast"), `${path}: knowledge detail must not contain a reading CTA`);
-  }
+  assert(!hrefs.has("/methods/manual-cast"), `${path}: knowledge detail must not contain a reading CTA`);
+  assert(!hrefs.has("/zh/methods/mei-hua-yi-shu"), `${path}: retired Chinese detail CTA still present`);
   assert(![...hrefs].some((href) => /\/hexagrams\/\d+(?:$|\/)/u.test(href)), `${path}: numeric hexagram alias link found`);
   assert(![...hrefs].some((href) => /\/line-[1-6](?:$|\/)/u.test(href)), `${path}: separate line URL found`);
   if (previous > 1) {
@@ -144,11 +141,21 @@ const browser = await puppeteer.launch({
 
 try {
   const page = await browser.newPage();
+  const detailPageErrors = [];
+  page.on("pageerror", (error) => detailPageErrors.push(String(error)));
   await page.setViewport({ width: 1440, height: 1000 });
   for (const entry of HEXAGRAM_SEO_REGISTRY) {
+    const desktopErrorStart = detailPageErrors.length;
     const response = await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
     assert([200, 304].includes(response?.status()), `${pathFor(entry)}: expected 200 or 304, got ${response?.status()}`);
     assertSnapshot(entry, await extractSnapshot(page));
+    await assertNoOverflow(page, `${pathFor(entry)} 1440px`);
+    const desktopH1Fits = await page.$eval("h1", (node) => {
+      const rect = node.getBoundingClientRect();
+      return rect.left >= -1 && rect.right <= document.documentElement.clientWidth + 1;
+    });
+    assert(desktopH1Fits, `${pathFor(entry)} 1440px: H1 exceeds viewport`);
+    assert.deepEqual(detailPageErrors.slice(desktopErrorStart), [], `${pathFor(entry)} 1440px: runtime page errors`);
   }
   log("128/128 production detail DOM, exact metadata and locale-specific H1, canonical, hreflang, JSON-LD, line anchors, internal links, and no-alias checks PASS");
 
@@ -292,7 +299,8 @@ try {
   }
   log("English and Chinese immersive Hub data, sync, full-cycle keyboard, wheel, drag, mobile, navigation and zero-error checks PASS");
 
-  for (const entry of HEXAGRAM_SEO_REGISTRY.filter((candidate) => sampleNumbers.includes(candidate.number))) {
+  for (const entry of HEXAGRAM_SEO_REGISTRY) {
+    const mobileErrorStart = detailPageErrors.length;
     await page.setViewport({ width: 390, height: 844 });
     await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
     await assertNoOverflow(page, `${pathFor(entry)} 390px`);
@@ -301,8 +309,9 @@ try {
       return rect.left >= -1 && rect.right <= document.documentElement.clientWidth + 1;
     });
     assert(h1Fits, `${pathFor(entry)} 390px: H1 exceeds viewport`);
+    assert.deepEqual(detailPageErrors.slice(mobileErrorStart), [], `${pathFor(entry)} 390px: runtime page errors`);
   }
-  log("Sample mobile-width detail readability and overflow checks PASS");
+  log("128/128 mobile-width detail readability, overflow and runtime-error checks PASS");
 } finally {
   await browser.close();
 }

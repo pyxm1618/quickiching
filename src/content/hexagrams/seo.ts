@@ -4209,7 +4209,7 @@ export const HEXAGRAM_SEO_REGISTRY: readonly HexagramSeoEntry[] = LEGACY_HEXAGRA
       familyDensityMax: 0.05,
       exactPrimaryStandard: HARD_DENSITY_STANDARD,
       brandMentionsInBodyMax: 0,
-      requiredContent: "English entity intro; unique meaning; page-specific love meaning; six #line-1…#line-6 sections; unchanging meaning; approved relationship/special modules only; source URLs; home and hub links.",
+      requiredContent: "Basic Identity; What This Hexagram Means; Classical Text & Modern Interpretation; six #line-1…#line-6 sections; optional data-backed reading cases; optional data-backed structural relationships; source URLs; Previous/Hub/Next navigation.",
       specialSerpModule: [...research.specialKeywords, relationshipKeyword].filter(Boolean).join("; ") || "None beyond the workbook-approved shared modules.",
       researchEvidence: `Global Exact Primary ${research.globalExactVolume}; US ${research.usVolume}; US KD ${research.usKd}; secondary ${research.secondaryGlobal}; other core ${research.otherCoreGlobal}; meaning ${research.meaningGlobal}; love ${research.loveGlobal}; unchanging ${research.unchangingGlobal}; relationship ${research.relationshipGlobal}.`,
       sourceNotes: `English FINAL GLOBAL EXACT workbook SHA-256 ${EN_GLOBAL_EXACT_SOURCE_SHA256}; exact_match=true country records only.`,
@@ -4234,8 +4234,9 @@ export const HEXAGRAM_SEO_REGISTRY: readonly HexagramSeoEntry[] = LEGACY_HEXAGRA
     loveKeyword: null,
     unchangingKeyword: workbookPhrase(entry.secondaryVariantFamily, "无动爻", `${entry.primaryKeyword}无动爻`),
     relationshipKeyword: null,
+    requiredContent: "基本信息；本卦含义；经典文本与现代解读；六个 #line-1…#line-6 同页章节；有正式数据时显示特殊用爻与结构关系；前后卦与六十四卦 Hub 导航。",
     specialKeywords: [],
-    recommendedModules: ["meaning", "unchanging", "six-lines"],
+    recommendedModules: ["meaning", "six-lines"],
   };
 });
 

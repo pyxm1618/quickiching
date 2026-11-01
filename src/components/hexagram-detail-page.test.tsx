@@ -183,29 +183,59 @@ describe("static hexagram detail page", () => {
     expect(failures).toEqual([]);
   }, 15_000);
 
-  it("uses the approved knowledge-page structure and only auxiliary sequence navigation for all 64 English pages", async () => {
+  it("uses one shared knowledge-page structure for all 128 EN/ZH pages", async () => {
     for (let number = 1; number <= 64; number += 1) {
       const knowledge = await loadPublicHexagramKnowledge(number);
-      const html = renderToStaticMarkup(<HexagramDetailPageView locale="en" knowledge={knowledge} seo={hexagramSeoFor(number, "en")} previous={number > 1 ? CLASSICAL_HEXAGRAMS[number - 2] : null} next={number < 64 ? CLASSICAL_HEXAGRAMS[number] : null} />);
-      expect(html).toContain("data-basic-identity");
-      expect(html).toContain(">" + knowledge.englishName + "<");
-      expect(html).toContain("What This Hexagram Means");
-      expect(html).toContain("Classical Text &amp; Modern Interpretation");
-      expect(html).toContain("The Six Lines");
-      expect(html).toContain("Modern Meaning");
-      expect(html).not.toContain("Classical Line Text");
-      expect(html.includes("data-reading-cases")).toBe(knowledge.detail.specialReadingCases.length > 0);
-      expect(html.includes("data-hexagram-relations")).toBe(knowledge.detail.relationships.length > 0);
-      expect(html).not.toContain("data-love-module");
-      expect(html).not.toContain("data-seo-home-link");
-      expect(html).not.toContain("Start a Reading");
-      const navigation = html.match(/<nav[^>]*data-auxiliary-navigation[^>]*>([\s\S]*?)<\/nav>/u)?.[1] ?? "";
-      expect(navigation).toContain('href="/hexagrams"');
-      expect(navigation).toContain("Previous");
-      expect(navigation).toContain("Next");
-      expect((navigation.match(/<a\b/gu) ?? []).length).toBe(number === 1 || number === 64 ? 2 : 3);
-      for (const line of knowledge.lines) {
-        expect(html).toContain(line.meaning.replaceAll("&", "&amp;").replaceAll("'", "&#x27;").replaceAll('"', "&quot;"));
+      for (const locale of ["en", "zh-Hans"] as const) {
+        const seo = hexagramSeoFor(number, locale);
+        const html = renderToStaticMarkup(
+          <HexagramDetailPageView
+            locale={locale}
+            knowledge={knowledge}
+            seo={seo}
+            content={locale === "zh-Hans" ? zhHansHexagramContent(number) : undefined}
+            previous={number > 1 ? CLASSICAL_HEXAGRAMS[number - 2] : null}
+            next={number < 64 ? CLASSICAL_HEXAGRAMS[number] : null}
+          />,
+        );
+        expect(html, seo.canonicalUrl).toContain("data-basic-identity");
+        expect(html, seo.canonicalUrl).toContain('id="hexagram-meaning-title"');
+        expect(html, seo.canonicalUrl).toContain('id="hexagram-classical-title"');
+        expect(html, seo.canonicalUrl).toContain('id="hexagram-lines-title"');
+        expect(html, seo.canonicalUrl).toContain('data-classical-field="judgment"');
+        expect(html, seo.canonicalUrl).toContain('data-classical-field="image"');
+        expect(html.includes("data-reading-cases"), seo.canonicalUrl).toBe(knowledge.detail.specialReadingCases.length > 0);
+        expect(html.includes("data-hexagram-relations"), seo.canonicalUrl).toBe(knowledge.detail.relationships.length > 0);
+        expect(html, seo.canonicalUrl).not.toContain("mystic-card");
+        expect(html, seo.canonicalUrl).not.toContain("zh-scene-module");
+        expect(html, seo.canonicalUrl).not.toContain("zh-reality-check-title");
+        expect(html, seo.canonicalUrl).not.toContain("zh-unchanging-title");
+        expect(html, seo.canonicalUrl).not.toContain("hexagram-classical-lines-title");
+        expect(html, seo.canonicalUrl).not.toContain("data-seo-home-link");
+        expect(html, seo.canonicalUrl).not.toContain("Start a Reading");
+        const navigation = html.match(/<nav[^>]*data-auxiliary-navigation[^>]*>([\s\S]*?)<\/nav>/u)?.[1] ?? "";
+        expect(navigation, seo.canonicalUrl).toContain('href="' + (locale === "zh-Hans" ? "/zh/hexagrams" : "/hexagrams") + '"');
+        expect((navigation.match(/<a\b/gu) ?? []).length, seo.canonicalUrl).toBe(number === 1 || number === 64 ? 2 : 3);
+        for (let position = 1; position <= 6; position += 1) {
+          expect(html, seo.canonicalUrl).toContain('id="line-' + position + '"');
+        }
+        if (locale === "en") {
+          expect(html).toContain(">" + knowledge.englishName + "<");
+          expect(html).toContain("What This Hexagram Means");
+          expect(html).toContain("Classical Text &amp; Modern Interpretation");
+          expect(html).toContain("The Six Lines");
+          expect(html).toContain("Modern Meaning");
+          expect(html).not.toContain("Classical Line Text");
+          for (const line of knowledge.lines) {
+            expect(html).toContain(line.meaning.replaceAll("&", "&amp;").replaceAll("'", "&#x27;").replaceAll('"', "&quot;"));
+          }
+        } else {
+          expect(html).toContain(">" + seo.finalH1 + "<");
+          expect(html).toContain("经典文本与现代解读");
+          expect(html).toContain("六条爻辞与现代含义");
+          expect(html).toContain("经典爻辞");
+          expect(html).toContain("现代含义");
+        }
       }
     }
   });
@@ -226,8 +256,9 @@ describe("static hexagram detail page", () => {
       );
       expect(html, seo.canonicalUrl).toContain(`${seo.primaryKeyword}初爻`);
       expect(html, seo.canonicalUrl).toContain(`${seo.primaryKeyword}上爻`);
-      expect(html, seo.canonicalUrl).toContain(`data-seo-home-link="/zh"`);
+      expect(html, seo.canonicalUrl).not.toContain("data-seo-home-link");
       expect(html, seo.canonicalUrl).toContain(`data-seo-hub-link="/zh/hexagrams"`);
+      expect(html, seo.canonicalUrl).toContain("data-basic-identity");
     }
   });
 
