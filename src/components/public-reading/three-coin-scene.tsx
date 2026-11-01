@@ -77,7 +77,7 @@ function makeEffects(seed:number) {
     const material=new ShaderMaterial({
       uniforms:{intensity:{value:0}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
       vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`varying vec2 vUv;uniform float intensity;void main(){float d=abs(vUv.x-.5)*2.;float core=exp(-d*d*24.);float halo=exp(-d*d*5.)*.25;float ends=sin(vUv.y*3.14159);vec3 radiance=mix(vec3(1.10,.72,.32),vec3(1.95,1.42,.70),core);gl_FragColor=vec4(radiance,min(.28,(core+halo)*ends*intensity));}`,
+      fragmentShader:`varying vec2 vUv;uniform float intensity;void main(){float d=abs(vUv.x-.5)*2.;float core=exp(-d*d*24.);float halo=exp(-d*d*5.)*.30;float ends=sin(vUv.y*3.14159);vec3 radiance=mix(vec3(1.10,.72,.32),vec3(1.95,1.42,.70),core);gl_FragColor=vec4(radiance,min(.32,(core+halo)*ends*intensity));}`,
     });
     const ribbon=new Mesh(geometry,material);group.add(ribbon);return ribbon;
   });
@@ -189,8 +189,8 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       },undefined,onTextureError));
     }
     const {geometry:coinGeometry}=createCoinGeometry();
-    const edgeMaterial=new MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0x876f4a,metalness:0.76,roughness:0.54});
-    const faceMaterials=textures.map(map=>new MeshStandardMaterial({map,color:0x81745e,bumpMap:map,bumpScale:0.0015,metalness:0.68,roughness:0.62,envMapIntensity:0.06,emissive:0x8f632f,emissiveMap:map,emissiveIntensity:0.0005}));
+    const edgeMaterial=new MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0x78613f,metalness:0.72,roughness:0.58});
+    const faceMaterials=textures.map(map=>new MeshStandardMaterial({map,color:0x716553,bumpMap:map,bumpScale:0.0015,metalness:0.64,roughness:0.66,envMapIntensity:0.04,emissive:0x77502d,emissiveMap:map,emissiveIntensity:0.0003}));
     const haloGeometry=new PlaneGeometry(2.5,2.5);
     const haloMaterial=new ShaderMaterial({uniforms:{strength:{value:.18}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
       vertexShader:`varying vec2 p;void main(){p=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -248,9 +248,9 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       const time=input.phase==='hero'?700:fixedTime===null?performance.now()-start:Number(fixedTime);
       const scale=Math.min(width/1672,height/941)*941/height;
       let layerOpacity=0;
-      key.intensity=input.phase==='progress'?.27:input.phase==='settled'?.48:input.phase==='hero'||input.phase==='hero-exit'?.74:.88;
-      rim.intensity=input.phase==='progress'?.85:input.phase==='settled'?1.45:input.phase==='hero'||input.phase==='hero-exit'?1.85:2.05;
-      fill.intensity=input.phase==='progress'?.04:input.phase==='settled'?.06:input.phase==='hero'||input.phase==='hero-exit'?.10:.12;
+      key.intensity=input.phase==='progress'?.22:input.phase==='settled'?.42:input.phase==='hero'||input.phase==='hero-exit'?.70:.84;
+      rim.intensity=input.phase==='progress'?.72:input.phase==='settled'?1.25:input.phase==='hero'||input.phase==='hero-exit'?1.75:1.95;
+      fill.intensity=input.phase==='progress'?.035:input.phase==='settled'?.05:input.phase==='hero'||input.phase==='hero-exit'?.09:.11;
       coins.forEach((coin,index)=> {
         const pose=coinPose({phase:input.phase,face:input.faces[index],index,time,seed:input.visualSeed,reducedMotion:reduced.matches});
         const physicalDiameter=190;
@@ -263,7 +263,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         coin.rotation.set(...pose.rotation,pose.rotationOrder);coin.quaternion.premultiply(viewOrientation);
         coin.visible=pose.opacity>0;layerOpacity=Math.max(layerOpacity,pose.opacity);
         const halo=coin.children[0] as Mesh<PlaneGeometry,ShaderMaterial>;
-        halo.material.uniforms.strength.value=input.phase==='settled'?(index===0?.85:.06):.18;
+        halo.material.uniforms.strength.value=input.phase==='settled'?(index===0?1.05:.05):.18;
         coin.userData.targetFace=input.faces[index];coin.userData.settled=pose.settled;
       });
       container!.style.opacity=String(layerOpacity);
@@ -299,7 +299,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       }
       position.needsUpdate=true;opacities.needsUpdate=true;sizes.needsUpdate=true;
       const particleMaterial=effects.points.material as ShaderMaterial;
-      particleMaterial.uniforms.intensity.value=energy*1.08;particleMaterial.uniforms.dpr.value=renderDpr;
+      particleMaterial.uniforms.intensity.value=energy*1.18;particleMaterial.uniforms.dpr.value=renderDpr;
       if(input.phase==='casting') {
         camera.updateMatrixWorld();effects.group.updateMatrixWorld(true);inverseEffects.copy(effects.group.matrixWorld).invert();
         for(let coinIndex=0;coinIndex<3;coinIndex++)for(let sample=0;sample<100;sample++) {
@@ -343,12 +343,12 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
             const before=Math.max(0,i-1),after=Math.min(99,i+1),centers=effects.centers[index];
             const dx=centers[after*3]-centers[before*3],dy=centers[after*3+1]-centers[before*3+1],length=Math.hypot(dx,dy)||1;
             for(let side=0;side<2;side++) {
-              const offset=(side-.5)*7;
+              const offset=(side-.5)*8.5;
               positions.setXYZ(i*2+side,(centers[i*3]-836-dy/length*offset)*scale,(470.5-centers[i*3+1]-dx/length*offset)*scale,0);
               uv.setXY(i*2+side,side,i/99);
             }
           }
-          ribbon.material.uniforms.intensity.value=energy*(index<8?.50:.30);
+          ribbon.material.uniforms.intensity.value=energy*(index<8?.58:.34);
         }
         positions.needsUpdate=true;uv.needsUpdate=true;
       });
@@ -366,7 +366,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         }
         positions.needsUpdate=true;uv.needsUpdate=true;const age=((effectTime-index*200)%1300)/1000;
         const birth=effectTime-age*1000;
-        mesh.material.uniforms.intensity.value=effectTime<index*200||age<0||age>1||birth>1850?0:energy*.30*Math.sin(age*Math.PI);
+        mesh.material.uniforms.intensity.value=effectTime<index*200||age<0||age>1||birth>1850?0:energy*.34*Math.sin(age*Math.PI);
         mesh.material.uniforms.flowTime.value=effectTime/4000;
       });
       effects.glow.position.set((originX-836)*scale,(470.5-(heroScene?650:660))*scale,-5);effects.glow.scale.set(scale,scale*(heroScene?2:1),scale);
