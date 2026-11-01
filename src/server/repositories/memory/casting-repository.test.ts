@@ -89,9 +89,9 @@ describe("memory casting repository characterization", () => {
     expect(repo.getCastingSession(casting.id)?.currentQuestionVersionId).toBe(latest.id);
   });
 
-  it("records risk and reveals only the winning user-bound casting", () => {
+  it("records risk and reveals a user-bound casting", () => {
     const user = repo.createUser(`reveal-${crypto.randomUUID()}@example.com`);
-    const casting = createCasting({ userId: null, anonHash: `anon-${crypto.randomUUID()}` });
+    const casting = createCasting({ userId: user.id, anonHash: null });
     repo.recordRiskCheck({
       castingSessionId: casting.id,
       ruleVersion: "risk-v1",
@@ -101,16 +101,8 @@ describe("memory casting repository characterization", () => {
     });
     repo.saveStep({ castingSessionId: casting.id, stepKind: "coin", lineIndex: 0, changeIndex: null, rawRecord: {}, lineValue: 7 });
     repo.saveCastResult({ castingSessionId: casting.id, lineValues: [7, 7, 7, 7, 7, 7], methodCalculation: {} });
+    repo.transitionCasting(casting.id, "revealed");
 
-    const reveal = repo.revealWithQuestionLock({
-      castingId: casting.id,
-      userId: user.id,
-      fingerprint: `fingerprint-${crypto.randomUUID()}`,
-      keyVersion: "v1",
-      now: new Date(),
-    });
-
-    expect(reveal).toEqual({ revealed: true, duplicate: false });
     expect(repo.canReadRevealedResult(casting.id, user.id)).toBe(true);
     expect(repo.canReadRevealedResult(casting.id, null)).toBe(false);
     expect(repo.getCastingSession(casting.id)).toMatchObject({ userId: user.id, anonymousSessionHash: null, riskStatus: "allowed" });

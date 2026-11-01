@@ -3,7 +3,6 @@ import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import "../globals.css";
 import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { HOME_DESCRIPTION, HOME_TITLE, SITE_ORIGIN } from "@/lib/seo";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
@@ -31,7 +30,6 @@ export default function DefaultRootLayout({ children }: { children: React.ReactN
       <body className="flex min-h-screen flex-col">
         <SiteHeader locale="en" authEnabled={authEnabled} />
         <main className="flex-1">{children}</main>
-        <SiteFooter locale="en" />
         <AccountModalHost locale="en" />
         <SiteAnalytics />
       </body>

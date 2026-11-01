@@ -90,7 +90,7 @@ try {
       label: node.getAttribute("data-visual-label") ?? "",
       generated: getComputedStyle(node, "::before").content,
     }));
-    const homeStages = [...document.querySelectorAll("[data-three-coin-home-stage]")].map((node) => ({
+    const homeStages = [...document.querySelectorAll("[data-three-coin-ritual]")].map((node) => ({
       stage: node.getAttribute("data-experience-stage") ?? "",
       visualStatus: node.getAttribute("data-visual-status") ?? "",
     }));
@@ -108,7 +108,7 @@ try {
       description: document.querySelector('meta[name="description"]')?.getAttribute("content") ?? "",
       h1: [...document.querySelectorAll("h1")].map((node) => node.textContent?.trim() ?? ""),
       bodyText: document.body?.innerText ?? "",
-      heroText: document.querySelector("[data-three-coin-home-stage][data-experience-stage='landing'] [data-home-hero-copy]")?.textContent?.trim() ?? "",
+      heroText: document.querySelector("[data-three-coin-ritual][data-experience-stage='landing'] [data-home-hero-copy]")?.textContent?.trim() ?? "",
       decorativeNodes,
       homeStages,
       headings,
@@ -153,7 +153,7 @@ try {
     } else {
       assert.equal(snapshot.homeStages.length, 1, "Homepage must expose one Three-Coin single-stage experience");
       assert.equal(snapshot.homeStages[0].stage, "landing", "Homepage initial experience stage must be landing");
-      assert.equal(snapshot.homeStages[0].visualStatus, "in-development", "The Phase 3/4 presentation must expose its explicit implementation status");
+      assert.equal(snapshot.homeStages[0].visualStatus, "", "Formal Three-Coin ritual must not restore the retired in-development marker");
     }
     assert(!snapshot.headings.some((heading) => /^Line \d(?: sealed| awaiting cast)?$/i.test(heading)), "Three-Coin UI status leaked into the heading tree");
     assert(

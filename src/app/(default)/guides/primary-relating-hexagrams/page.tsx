@@ -6,6 +6,7 @@ import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
 import { InfoPageShell } from "@/components/info-pages/info-page-shell";
 import { PrimaryRelatingPrimer } from "@/components/info-pages/info-diagrams";
+import { PaperArtwork } from "@/components/info-pages/paper-artwork";
 import styles from "@/components/info-pages/info-pages.module.css";
 
 export const metadata: Metadata = {
@@ -23,20 +24,20 @@ const STRUCTURE_RELATING = hexagramByNumber(STRUCTURE_EXAMPLE.relatingHexagramNu
 export default function PrimaryRelatingGuidePage() {
   return (
     <InfoPageShell
-      eyebrow="I Ching Guide"
-      title="Primary and Relating Hexagrams"
+      title="Primary & Relating Hexagrams"
       lead="Primary and relating hexagrams are two structures connected by the changing lines in one cast. The primary hexagram is always present; a separate relating hexagram exists only when at least one line actually changes."
     >
       <section className={styles.guideMain}>
-        <div className={styles.primaryIntroGrid}>
-          <section><h2 className={styles.paperSubheading}>Primary hexagram: the original structure</h2><p className={styles.paperText}>The primary hexagram is the six-line yin/yang pattern exactly as it was cast, before any moving line is reversed. It is the reading’s starting structure and should be understood first rather than treated as a temporary result that is immediately replaced.</p></section>
-          <section><h2 className={styles.paperSubheading}>Changing lines: the connection between the two</h2><p className={styles.paperText}>Changing lines identify the exact positions where the primary structure transforms. Old yin (6) changes to yang; old yang (9) changes to yin. Stable values 7 and 8 stay as they are. These actual moving positions—not a second random cast—are what connect the primary and relating hexagrams.</p></section>
-          <section><h2 className={styles.paperSubheading}>Relating hexagram: the structure after the actual flips</h2><p className={styles.paperText}>The relating hexagram is produced by reversing every changing position and preserving every stable position. It gives a second structural perspective on the movement contained in the original cast. Quick I Ching does not present an I Ching relating hexagram as a fixed or guaranteed future state.</p></section>
-        </div>
-        <PrimaryRelatingPrimer />
+        <PaperArtwork />
+        <PrimaryRelatingPrimer descriptions={[
+<div key="0"><h2 className={styles.paperSubheading}>Primary hexagram: the original structure</h2><p className={styles.paperText}>The primary hexagram is the six-line yin/yang pattern exactly as it was cast, before any moving line is reversed. It is the reading’s starting structure and should be understood first rather than treated as a temporary result that is immediately replaced.</p></div>,
+<div key="1"><h2 className={styles.paperSubheading}>Changing lines: the connection between the two</h2><p className={styles.paperText}>Changing lines identify the exact positions where the primary structure transforms. Old yin (6) changes to yang; old yang (9) changes to yin. Stable values 7 and 8 stay as they are. These actual moving positions—not a second random cast—are what connect the primary and relating hexagrams.</p></div>,
+<div key="2"><h2 className={styles.paperSubheading}>Relating hexagram: the structure after the actual flips</h2><p className={styles.paperText}>The relating hexagram is produced by reversing every changing position and preserving every stable position. It gives a second structural perspective on the movement contained in the original cast. Quick I Ching does not present an I Ching relating hexagram as a fixed or guaranteed future state.</p></div>
+        ]} />
       </section>
 
       <section className={styles.guideSecondary}>
+        <PaperArtwork kind="secondary" />
         <h2 className={styles.paperHeading}>Structure example</h2>
         <p className={styles.paperText}>Using the bottom-to-top line values <strong>7 / 8 / 9 / 7 / 6 / 8</strong>, the project’s production domain calculation produces this relationship:</p>
         <div className={styles.questionGrid}>

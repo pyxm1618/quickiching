@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CalendarDays, Clock3, MapPin } from "lucide-react";
 import "./mei-hua-scene.css";
-import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
+import { completedPublicReadingPath, writeCompletedPublicReading } from "@/lib/completed-public-reading";
 import {
   MEI_HUA_NUMBER_TIME_INPUT_VERSION,
   meiHuaFromNumberAndTime,
@@ -98,7 +99,9 @@ function readingFromCast(
   });
 }
 
-export function MeiHuaNumberFlow() {
+export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" }) {
+  const router = useRouter();
+  const zh = locale === "zh-Hans";
   const [step, setStep] = useState<FlowStep>(1);
   const [question, setQuestion] = useState<string | undefined>();
   const [questionDraft, setQuestionDraft] = useState("");
@@ -142,6 +145,19 @@ export function MeiHuaNumberFlow() {
     () => cast && sessionId ? readingFromCast(sessionId, question, cast) : null,
     [cast, question, sessionId],
   );
+
+  useEffect(() => {
+    if (step !== "reading" || !publicReading) return;
+    try {
+      writeCompletedPublicReading(publicReading);
+      setError("");
+      router.push(completedPublicReadingPath(publicReading.id, zh));
+    } catch {
+      setError(zh
+        ? "无法保存本次已完成起卦；同一个数字、时刻和卦象仍会保留，可以重试。"
+        : "Unable to hand off this completed cast. The same number, moment, and cast are preserved for retry.");
+    }
+  }, [publicReading, router, step, zh]);
 
   function submitQuestion() {
     try {
@@ -237,9 +253,24 @@ export function MeiHuaNumberFlow() {
 
   if (step === "reading" && cast && publicReading) {
     return (
-      <div data-mei-hua-flow data-mei-hua-shared-reading data-mei-hua-locked="true">
-        <PublicReadingResult reading={publicReading} onNewReading={startNewReading} />
-      </div>
+      <section className="mei-scene mei-step-3" data-mei-hua-flow data-mei-hua-locked="true" aria-live="polite">
+        <SceneBook />
+        <div className="mei-confirm">
+          <h1>{zh ? "起卦已完成" : "Casting Complete"}</h1>
+          <p className="mei-confirm-copy">{error || (zh
+            ? "正在进入统一解卦流程；同一个 cast 会继续用于登录、保存、免费解读和深度解读。"
+            : "Opening the shared Reading flow. The same cast continues through sign-in, save, Free Reading, and Deep Reading.")}</p>
+          {error ? <button type="button" className="mei-button" onClick={() => {
+            try {
+              writeCompletedPublicReading(publicReading);
+              setError("");
+              router.push(completedPublicReadingPath(publicReading.id, zh));
+            } catch {
+              setError(zh ? "仍无法保存本次已完成起卦；没有重新起卦，请稍后重试。" : "The completed cast still could not be handed off. No recast occurred; retry when browser session storage is available.");
+            }
+          }}>{zh ? "重试进入解卦" : "Retry Reading Handoff"}</button> : null}
+        </div>
+      </section>
     );
   }
 

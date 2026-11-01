@@ -10,10 +10,85 @@ permissions:
   contents: read
 
 concurrency:
-  group: ritual-closeout-visual-qa-${{ github.sha }}
-  cancel-in-progress: false
+  group: ritual-closeout-visual-qa-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+
+  engineering-regression:
+    name: Three-Coin engineering regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Full unit suite
+        run: bun run test
+      - name: Install local-only authenticated result fixture
+        run: node scripts/ritual-qa-fixture.mjs install
+      - name: Production build
+        run: bun run build
+      - name: Install browser driver
+        run: bun add --no-save --cache-dir=/tmp/quickiching-bun-cache puppeteer-core@24
+      - name: Resolve Chrome
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          if [ -z "$CHROME" ]; then
+            echo "System Chrome is required for Three-Coin browser regression" >&2
+            exit 1
+          fi
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+      - name: Start production server
+        shell: bash
+        run: |
+          (RITUAL_VISUAL_QA=1 PORT=3028 HOSTNAME=127.0.0.1 bun run start > /tmp/three-coin-regression-server.log 2>&1 & echo $! > /tmp/three-coin-regression-server.pid)
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3028/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/three-coin-regression-server.log
+          exit 1
+      - name: Three-Coin browser regression
+        env:
+          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3028
+        run: |
+          node scripts/three-coin-v2-browser-gate.mjs
+          node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth
+
+  postgres-auth-history:
+    name: Three-Coin Better Auth + PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install PostgreSQL tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-client
+          PG_BINDIR="$(pg_config --bindir)"
+          echo "$PG_BINDIR" >> "$GITHUB_PATH"
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Run real Auth + PostgreSQL serial integration
+        run: node scripts/test-postgres-serial.mjs
+
   capture:
     name: Canonical ritual capture
     runs-on: macos-15

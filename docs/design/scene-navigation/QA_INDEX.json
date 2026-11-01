@@ -1,0 +1,28 @@
+{
+  "baseline": "b4063df0f023946830a1387bee435ae5b05868d9",
+  "worktree": "/Users/milushangdi/.codex/worktrees/qic-nav-visual-closeout/quickiching",
+  "buildId": "GefoyGYf3oNrHyPLPqq15",
+  "statesReviewed": 3,
+  "unreviewed": 0,
+  "captureConditions": "PASS",
+  "pageErrors": [],
+  "selectedTextPatches": 15,
+  "selectedTextMaxAbsoluteEdgeDeviationPx": 2,
+  "handlerRouteStateAriaContract": {
+    "status": "PASS",
+    "basis": "Recovered original navigation source plus prior delivered utility close handler",
+    "hrefHandlersStateAndAria": "unchanged",
+    "presentation": "Guide labels wrapped in spans, original decorative images selected, CSS calibrated"
+  },
+  "filesSha256": {
+    "src/components/scene-navigation.tsx": "3f958f0a2c3aa74a7dfead08b45c7e6dc03ce3578a93987237fddd1294522035",
+    "src/components/scene-navigation.css": "b623c04ab73783c34b3458f031e9322d8b9d4937e29c311c538bfbd167dc7f56",
+    "src/components/site-header.tsx": "462382de4afc4dbee082516889ab38266a403e85dc72d7903cb70e79e1cec2a7",
+    "src/components/auth/user-nav-control.tsx": "96626d49d1255eedd9d1914583a250ac1ec7093597a2e30e9fdf7cfad715e07a",
+    "src/components/privacy-settings-button.tsx": "777120430f3bed0a353ef67d74e816f965edd3447eed9834a21e0ade8da7b48f"
+  },
+  "strictWholeImagePixelIdentity": "NOT CLAIMED: different supplied artwork versions and preserved non-navigation scene",
+  "sourceAssets": 12,
+  "derivedAssets": 27,
+  "deployment": "No commit, push, merge or deployment"
+}

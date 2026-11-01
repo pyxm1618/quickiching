@@ -2,9 +2,13 @@ import "@/components/public-reading/ritual.css";
 import { visualRuntimeAssets } from "@/lib/visual-runtime-assets";
 import { getCurrentUser } from "@/lib/auth/session";
 import { loadCastingView, loadEntitlementBalance } from "@/server/loaders";
-import { ThreeCoinResultClient } from "./three-coin-result-client";
+import { ReadingResultClient } from "@/components/reading-result/reading-result-client";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
+import {
+  normalizeDeepReadingContext,
+  normalizeDeepReadingViewModel,
+} from "@/domain/generation/deep-reading-view-model";
 
 // Both pages and all methods share this owner-scoped loader and client.
 export async function ReadingPage({ searchParams, locale = "en", pageMode = "free" }: {
@@ -28,24 +32,29 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
     result.primaryHexagramNumber,
     ...(result.relatingHexagramNumber === null ? [] : [result.relatingHexagramNumber]),
   ]) : undefined;
-  return <div data-realm="chamber" className="ritual-result-scene" data-shared-result-scene={pageMode === "free" ? true : undefined}>
-    {pageMode === "free" ? <>
-      <link rel="preload" as="image" href="/mei-hua/room.webp" media="(min-width:601px)" fetchPriority="high" />
-      <link rel="preload" as="image" href="/mei-hua/room-mobile.webp" media="(max-width:600px)" fetchPriority="high" />
-    </> : <>
-      <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
-      <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
-      <div className="ritual-room" aria-hidden="true" />
-    </>}
-    <ThreeCoinResultClient pageMode={pageMode} locale={locale} initialSessionId={sessionId}
-      initialUser={user ? {id:user.id,email:user.email} : null} initialCredits={balance.available}
-      initialInterpretationBundles={initialInterpretationBundles} initialLocalizedContent={initialLocalizedContent}
-      initialCastingView={castingView ? {
-        castingId: castingView.session.id, method: castingView.session.method,
-        algorithmVersion: result?.algorithmVersion, createdAt: castingView.session.createdAt.toISOString(),
-        context: castingView.context, lineValuesBottomUp: result?.lineValues ?? null,
-        readingReport: castingView.reading?.report ?? null, deepSnapshot: castingView.reading?.snapshot ?? null,
-        owns: castingView.owns,
-      } : null} />
+  const initialDeepReadingViewModel = castingView?.reading?.report
+    ? normalizeDeepReadingViewModel(castingView.reading.report, castingView.reading.snapshot)
+    : null;
+  const initialDeepReadingContext = normalizeDeepReadingContext(castingView?.reading?.snapshot);
+  const client = <ReadingResultClient pageMode={pageMode} locale={locale} initialSessionId={sessionId}
+    initialUser={user ? {id:user.id,email:user.email} : null} initialCredits={balance.available}
+    initialInterpretationBundles={initialInterpretationBundles} initialLocalizedContent={initialLocalizedContent}
+    initialCastingView={castingView ? {
+      castingId: castingView.session.id, method: castingView.session.method,
+      algorithmVersion: result?.algorithmVersion, methodCalculation: result?.methodCalculation,
+      createdAt: castingView.session.createdAt.toISOString(),
+      context: castingView.context, lineValuesBottomUp: result?.lineValues ?? null,
+      deepReadingViewModel: initialDeepReadingViewModel,
+      deepReadingContext: initialDeepReadingContext,
+      owns: castingView.owns,
+    } : null} />;
+
+  if (pageMode === "deep") return client;
+
+  return <div data-realm="chamber" className="ritual-result-scene">
+    <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
+    <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
+    <div className="ritual-room" aria-hidden="true" />
+    {client}
   </div>;
 }

@@ -1,62 +1,34 @@
 
 import type { ReactNode } from "react";
-import Image from "next/image";
 import styles from "./info-pages.module.css";
 
-export function InfoPageShell({ eyebrow, title, lead, meta, decorated = true, optimizedArtwork = false, children }: {
-  eyebrow: string;
+export function InfoPageShell({ title, lead, meta, variant = "standard", seoPrimary, children }: {
   title: string;
   lead?: ReactNode;
   meta?: ReactNode;
-  decorated?: boolean;
-  optimizedArtwork?: boolean;
+  variant?: "question" | "standard" | "help" | "legal";
+  seoPrimary?: string;
   children: ReactNode;
 }) {
+  const content = (
+    <>
+      <header className={styles.heading}>
+        <h1 className={styles.title}>{title}</h1>
+        <span className={styles.titleStroke} aria-hidden="true" />
+        {lead ? <div className={styles.lead}>{lead}</div> : null}
+        {meta ? <div className={styles.meta}>{meta}</div> : null}
+      </header>
+      {children}
+    </>
+  );
+
   return (
-    <div className={[styles.page, optimizedArtwork ? styles.pageOptimizedArtwork : ""].filter(Boolean).join(" ")} data-info-page="true">
-      {optimizedArtwork ? (
-        <div className={styles.pageBackgroundOptimized} aria-hidden="true">
-          <Image
-            src="/info-pages/shared/info-page-background.png"
-            alt=""
-            fill
-            sizes="100vw"
-            fetchPriority="low"
-          />
-        </div>
-      ) : null}
-      {decorated ? optimizedArtwork ? (
-        <div className={[styles.decorations, styles.decorationsOptimized].join(" ")} aria-hidden="true">
-          <Image
-            src="/info-pages/decorative/guide-decorations.png"
-            alt=""
-            width={1536}
-            height={1024}
-            sizes="100vw"
-            fetchPriority="low"
-          />
-        </div>
-      ) : <div className={styles.decorations} aria-hidden="true" /> : null}
-      <div className={styles.inner}>
-        <header className={styles.heading}>
-          <p className={styles.eyebrow}>{eyebrow}</p>
-          <h1 className={styles.title}>{title}</h1>
-          {optimizedArtwork ? (
-            <span className={[styles.titleStroke, styles.titleStrokeOptimized].join(" ")} aria-hidden="true">
-              <Image
-                src="/info-pages/shared/title-brush-stroke.png"
-                alt=""
-                fill
-                sizes="(max-width: 760px) 70vw, 29rem"
-                fetchPriority="low"
-              />
-            </span>
-          ) : <span className={styles.titleStroke} aria-hidden="true" />}
-          {meta ? <div className={styles.meta}>{meta}</div> : null}
-          {lead ? <div className={styles.lead}>{lead}</div> : null}
-        </header>
-        {children}
-      </div>
+    <div className={styles.page} data-info-page="true" data-info-kind={variant}>
+      {seoPrimary ? (
+        <article className={styles.inner} data-seo-primary={seoPrimary}>{content}</article>
+      ) : (
+        <div className={styles.inner}>{content}</div>
+      )}
     </div>
   );
 }

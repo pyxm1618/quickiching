@@ -51,7 +51,12 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
     return originalSet.call(this,name,value);
    };
   },bits,key,storageFailure);
-  await page.goto(base+(zh?'/zh':'')+'?ritualTime=700',{waitUntil:deferTextures?'domcontentloaded':'networkidle0'});
+  await page.goto(base+(zh?'/zh':''),{waitUntil:deferTextures?'domcontentloaded':'networkidle0'});
+  await page.waitForSelector('[data-renderer="deferred-fallback"]');
+  assert.equal(await page.$('[data-renderer="three-webgl"]'),null,'Landing must not eagerly boot the heavy Three.js renderer');
+  await page.locator('[data-private-question]').fill(zh?'测试：如何理解当前变化？':'QA fixture: how should I understand this transition?');
+  await page.locator('[data-home-primary-action]').click();
+  assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Home action must not create line one');
   if(!fallback && !moduleFailure) {
    if(deferTextures) {
     await page.waitForSelector('.ritual-webgl canvas');
@@ -61,13 +66,10 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    } else await page.waitForSelector('[data-renderer="three-webgl"]');
    await page.evaluate(()=>{window.__initialRitualCanvas=document.querySelector('.ritual-webgl canvas');});
   }
-  await page.locator('[data-private-question]').fill(zh?'测试：如何理解当前变化？':'QA fixture: how should I understand this transition?');
-  await page.locator('[data-home-primary-action]').click();
-  assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Home action must not create line one');
   await page.locator('[data-home-primary-action]').click();
   assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Entering ritual must not manufacture a cast');
   if(deferTextures) {
-   await page.waitForSelector('[data-three-coin-presentation="home-ritual"] .hold-button');
+   await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button');
    assert.equal(await page.$eval('.hold-button',node=>node.disabled),true,'A real cast must wait for its textures');
    await page.$eval('.hold-button',node=>node.click());
    assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Waiting for the renderer must not generate a business result');
@@ -77,8 +79,8 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    await page.waitForSelector('[data-renderer="three-webgl"]');
   }
   if(!fallback && !moduleFailure)assert.equal(await page.evaluate(()=>window.__initialRitualCanvas===document.querySelector('[data-renderer="three-webgl"] canvas')),true,'Home, question and casting must retain one renderer canvas');
-  await page.waitForSelector('[data-three-coin-presentation="home-ritual"] .hold-button:not(:disabled)');
-  await page.locator('[data-three-coin-presentation="home-ritual"] .hold-button').click();
+  await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button:not(:disabled)');
+  await page.locator('[data-three-coin-presentation="ritual"] .hold-button').click();
   if(storageFailure) {
    await page.waitForSelector('[data-three-coin-storage-error]');
    assert.equal(await page.evaluate(()=>window.__ritualBitDraws),3);
@@ -109,8 +111,8 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
   assert.equal(after.id,session.id);
   if(completedFlow) {
    for(let line=1;line<6;line++) {
-    await page.waitForSelector('[data-three-coin-presentation="home-ritual"] .hold-button:not(:disabled)');
-    await page.locator('[data-three-coin-presentation="home-ritual"] .hold-button').click();
+    await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button:not(:disabled)');
+    await page.locator('[data-three-coin-presentation="ritual"] .hold-button').click();
     await page.waitForSelector('[data-record-this-cast]');
     const current=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
     assert.equal(current.id,session.id,'All six casts must stay in one session');
@@ -120,16 +122,16 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
     assert.equal(current.data.steps[line].lineIndex,line,'Authoritative line order stays bottom-up');
     await page.locator('[data-record-this-cast]').click();
    }
-   await page.waitForSelector('[data-shared-reading-summary]');
+   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
    assert.equal(await page.evaluate(()=>window.__ritualBitDraws),18,'Six casts require exactly eighteen business bits');
-   assert(await page.$('[data-summary-primary]'),'Anonymous summary shows the primary cast');
-   assert.equal(await page.$('[data-auth-required-before-reveal]'),null,'No auth before summary');
-   assert.equal(await page.$eval('.shared-reading-content',node=>getComputedStyle(node).display),'none','Reading content stays behind selection/login');
+   for(const selector of ['[data-primary-card]','[data-relating-card]','[data-deep-reading-entry]']) {
+    assert.equal(await page.$(selector),null,'Auth gate must conceal '+selector);
+   }
    const completed=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
    assert.equal(completed.id,session.id);
    assert.deepEqual(completed.data.steps,after.data.steps);
    await page.reload({waitUntil:'networkidle0'});
-   await page.waitForSelector('[data-shared-reading-summary]');
+   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
    const restored=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
    assert.deepEqual(restored,completed,'Refreshing the gate preserves the same completed cast');
   }

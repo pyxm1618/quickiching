@@ -22,7 +22,7 @@ export default function ChineseMeiHuaPage() {
 
   return (
     <>
-      <MeiHuaNumberFlow />
+      <MeiHuaNumberFlow locale="zh-Hans" />
       <article data-seo-primary={seo.primaryKeyword}>
       <header className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
         <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--bronze)]">{content.eyebrow}</p>

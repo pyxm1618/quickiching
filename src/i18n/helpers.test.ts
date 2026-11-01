@@ -107,6 +107,31 @@ describe("multilingual locale registry", () => {
     expect(routeForPath("/fr")?.id).toBeUndefined();
   });
 
+  it("pairs noindex Info pages for language switching without adding them to the sitemap", () => {
+    const pairs = [
+      ["help", "/help", "/zh/help"],
+      ["privacy", "/privacy", "/zh/privacy"],
+      ["terms", "/terms", "/zh/terms"],
+      ["acceptable-use", "/acceptable-use", "/zh/acceptable-use"],
+    ] as const;
+    for (const [id, en, zh] of pairs) {
+      expect(localizedRoute(id)).toMatchObject({
+        paths: { en, "zh-Hans": zh },
+        renderable: { en: true, "zh-Hans": true },
+        indexable: { en: false, "zh-Hans": false },
+        hreflangGroup: true,
+        switchable: true,
+      });
+      expect(routeForPath(en)?.id).toBe(id);
+      expect(routeForPath(zh)?.id).toBe(id);
+      expect(languageSwitchTarget(id, "en")).toEqual({ href: zh, label: "简体中文", equivalent: true });
+      expect(languageSwitchTarget(id, "zh-Hans")).toEqual({ href: en, label: "English", equivalent: true });
+      expect(alternateLanguages(id)).toEqual({ en: canonicalUrl(en), "zh-Hans": canonicalUrl(zh), "x-default": canonicalUrl(en) });
+      expect(indexablePathInventory()).not.toContain(en);
+      expect(indexablePathInventory()).not.toContain(zh);
+    }
+  });
+
   it("derives a unique sitemap inventory from the registry", () => {
     expect(ENGLISH_INDEXABLE_PATHS).toHaveLength(73);
     expect(ENGLISH_INDEXABLE_PATHS.filter((path) => path.startsWith("/hexagrams/")).length).toBe(64);

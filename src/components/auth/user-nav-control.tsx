@@ -12,11 +12,10 @@ import "@/components/account/account.css";
 
 export type UserNavControlProps = {
   initialUser?: { id: string; email: string } | null;
-  isMobileDrawer?: boolean;
-  hideUnauthenticated?: boolean;
   onItemClick?: () => void;
   locale?: ContentLocale;
   initialOpen?: boolean;
+  appearance?: "standard" | "scene";
 };
 
 type UserState = {
@@ -26,11 +25,10 @@ type UserState = {
 
 export function UserNavControl({
   initialUser,
-  isMobileDrawer = false,
-  hideUnauthenticated = false,
   onItemClick,
   locale = "en",
   initialOpen = false,
+  appearance = "standard",
 }: UserNavControlProps) {
   const dictionary = getDictionary(locale);
   const copy = dictionary.userNav;
@@ -117,73 +115,17 @@ export function UserNavControl({
   const settingsLabel = isChinese ? "设置" : "Settings";
 
   if (loading) {
-    if (hideUnauthenticated && !isMobileDrawer) {
-      return <div className="h-11 w-11 shrink-0" aria-hidden="true" />;
-    }
     return (
-      <div
-        className={isMobileDrawer
-          ? "mt-2 h-[4.25rem] border-t border-white/[0.08] pt-3"
-          : "inline-flex min-h-11 w-[9.75rem] items-center rounded-lg"}
-        aria-hidden="true"
-      >
-        <div className={isMobileDrawer ? "h-11 w-full animate-pulse rounded-xl bg-white/[0.06]" : "h-8 w-full animate-pulse rounded-lg bg-white/[0.06]"} />
+      <div className="inline-flex min-h-11 w-[9.75rem] items-center rounded-lg" aria-hidden="true">
+        <div className="h-8 w-full animate-pulse rounded-lg bg-white/[0.06]" />
       </div>
     );
   }
 
-  // 1. 移动端抽屉布局
-  if (isMobileDrawer) {
-    if (!user) {
-      return (
-        <div className="mt-2 border-t border-white/[0.08] pt-3">
-          <div className="grid grid-cols-2 gap-2">
-            <Link
-              href={signinHref}
-              prefetch={false}
-              onClick={onItemClick}
-              className="flex min-h-11 items-center justify-center rounded-xl border border-white/[0.12] px-4 py-2.5 text-sm font-medium text-[var(--ink-2)] transition-colors hover:border-[var(--gold)]/40 hover:bg-white/[0.06] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)]"
-            >
-              {copy.signIn}
-            </Link>
-            <Link
-              href={signupHref}
-              prefetch={false}
-              onClick={onItemClick}
-              className="flex min-h-11 items-center justify-center rounded-xl border border-[var(--gold)]/35 bg-[var(--gold)]/12 px-4 py-2.5 text-sm font-semibold text-[var(--gold-2)] transition-colors hover:bg-[var(--gold)]/18 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)]"
-            >
-              {copy.signUp}
-            </Link>
-          </div>
-        </div>
-      );
-    }
-
-    const initial = user.email.charAt(0).toUpperCase();
-
-    return (
-      <div className="border-t border-white/[0.08] pt-4 mt-3">
-        <div className="flex items-center gap-3 px-2 mb-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/15 text-sm font-semibold text-[var(--gold-2)] shadow-sm">
-            {initial}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium text-[var(--ink)]">{user.email}</p>
-            <p className="text-[10px] text-[var(--jade)]">{copy.activeAccount}</p>
-          </div>
-        </div>
-
-        <div className="qic-account-mobile-menu">
-          <Link href={readingsHref} prefetch={false} onClick={onItemClick}><FileText aria-hidden="true" />{readingsLabel}</Link>
-          <button onClick={() => openModal("account")}><User aria-hidden="true" />{accountLabel}</button>
-          <button onClick={() => openModal("settings")}><Settings aria-hidden="true" />{settingsLabel}</button>
-        </div>
-      </div>
-    );
+  // Desktop/top navigation layout.
+  if (!user && appearance === "scene") {
+    return <Link href={signinHref} prefetch={false} className="scene-account-trigger"><User aria-hidden="true" /><span>{isChinese ? "登录" : "Sign In"}</span></Link>;
   }
-
-  // 2. 桌面端顶部导航布局
-  if (!user && hideUnauthenticated) return null;
 
   if (!user) {
     return (
@@ -219,8 +161,9 @@ export function UserNavControl({
         aria-expanded={isOpen}
         aria-haspopup="menu"
         aria-label={copy.menuAria.replace("{email}", user.email)}
-        className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.04] py-1 pl-1.5 pr-2.5 transition-all hover:border-[var(--gold)]/40 hover:bg-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)] cursor-pointer"
+        className={appearance === "scene" ? "scene-account-trigger" : "inline-flex min-h-11 items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.04] py-1 pl-1.5 pr-2.5 transition-all hover:border-[var(--gold)]/40 hover:bg-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)] cursor-pointer"}
       >
+        {appearance === "scene" ? <><User aria-hidden="true" /><span>{isChinese ? "账户" : "Account"}</span></> : <>
         <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/20 text-xs font-semibold text-[var(--gold-2)] shadow-sm">
           {initial}
         </div>
@@ -228,6 +171,7 @@ export function UserNavControl({
           {user.email.split("@")[0]}
         </span>
         <ChevronDown className={`h-3.5 w-3.5 text-[var(--ink-3)] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+        </>}
       </button>
 
       {isOpen && (

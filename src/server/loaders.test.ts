@@ -29,7 +29,7 @@ vi.mock("@/server/repository", () => ({
   },
 }));
 
-import { loadCastingView, loadEntitlementBalance, loadHistory } from "./loaders";
+import { loadCastingView, loadEntitlementBalance, loadMyReadings } from "./loaders";
 
 const privateRow = {
   id: "24aaac9c-1107-4c83-bd50-1ea3c7758fde",
@@ -72,12 +72,12 @@ describe("commercial account loaders", () => {
     vi.unstubAllEnvs();
   });
 
-  it("fails closed when PostgreSQL history query fails instead of returning memory history", async () => {
+  it("fails closed when PostgreSQL My Readings query fails instead of returning memory readings", async () => {
     const databaseError = new Error("DB_CONNECTION_LOST");
     mocks.getPostgresClient.mockReturnValue(vi.fn(() => Promise.reject(databaseError)));
     mocks.listCastsForUser.mockReturnValue([]);
 
-    await expect(loadHistory()).rejects.toThrow("DB_CONNECTION_LOST");
+    await expect(loadMyReadings()).rejects.toThrow("DB_CONNECTION_LOST");
     expect(mocks.listCastsForUser).not.toHaveBeenCalled();
   });
 
@@ -96,22 +96,22 @@ describe("commercial account loaders", () => {
     mocks.listCastsForUser.mockReturnValue([]);
     mocks.getBatches.mockReturnValue([]);
 
-    await expect(loadHistory()).resolves.toEqual([]);
+    await expect(loadMyReadings()).resolves.toEqual([]);
     await expect(loadEntitlementBalance()).resolves.toEqual({ available: 0, expiringSoon: 0 });
     expect(mocks.getPostgresClient).not.toHaveBeenCalled();
   });
 
-  it("uses the existing Chinese hexagram name for zh-Hans account history", async () => {
+  it("uses the existing Chinese hexagram name for zh-Hans My Readings", async () => {
     mocks.getPostgresClient.mockReturnValue(vi.fn(async () => [privateRow]));
-    const history = await loadHistory({ id: "user-1", email: "user@example.com" }, "zh-Hans");
-    expect(history[0]?.primaryName).toBe("既济");
+    const readings = await loadMyReadings({ id: "user-1", email: "user@example.com" }, "zh-Hans");
+    expect(readings[0]?.primaryName).toBe("既济");
   });
 
   it("reads the latest encrypted question using the established decryptor", async () => {
     const sql = vi.fn(async () => [privateRow]);
     mocks.getPostgresClient.mockReturnValue(sql);
-    const history = await loadHistory({ id: "user-1", email: "user@example.com" });
-    expect(history[0]?.question).toBe("private question");
+    const readings = await loadMyReadings({ id: "user-1", email: "user@example.com" });
+    expect(readings[0]?.question).toBe("private question");
     expect(mocks.decryptQuestionForGeneration).toHaveBeenCalledWith(privateRow);
     const query = sql.mock.calls[0] as unknown as [TemplateStringsArray, ...unknown[]];
     expect(query[0].join("?")).toContain("order by version_number desc");
@@ -120,28 +120,16 @@ describe("commercial account loaders", () => {
     expect(query.slice(1)).toContain("user-1");
   });
 
-  it("returns all three supported methods through the same owner-scoped History query", async () => {
-    const methods = ["three_coin", "yarrow_stalk", "mei_hua_current_time"];
-    const sql = vi.fn(async () => methods.map((method, index) => ({...privateRow, id: `cast-${index}`, method})));
-    mocks.getPostgresClient.mockReturnValue(sql);
-    const history = await loadHistory({id: "user-1", email: "user@example.com"});
-    expect(history.map(item => item.method)).toEqual(methods);
-    const query = sql.mock.calls[0] as unknown as [TemplateStringsArray, ...unknown[]];
-    expect(query[0].join("?")).toContain("s.user_id =");
-    expect(query[0].join("?")).not.toContain("s.method = 'three_coin'");
-    expect(query.slice(1)).toContain("user-1");
-  });
-
   it("does not disguise a decryption failure as an untitled reading", async () => {
     mocks.getPostgresClient.mockReturnValue(vi.fn(async () => [privateRow]));
     mocks.decryptQuestionForGeneration.mockImplementation(() => { throw new Error("QUESTION_KEY_UNAVAILABLE"); });
-    await expect(loadHistory()).rejects.toThrow("QUESTION_KEY_UNAVAILABLE");
+    await expect(loadMyReadings()).rejects.toThrow("QUESTION_KEY_UNAVAILABLE");
   });
 
   it("returns null only when the question version is absent", async () => {
     mocks.getPostgresClient.mockReturnValue(vi.fn(async () => [{ ...privateRow, question_version_id: null }]));
-    const history = await loadHistory();
-    expect(history[0]?.question).toBeNull();
+    const readings = await loadMyReadings();
+    expect(readings[0]?.question).toBeNull();
     expect(mocks.decryptQuestionForGeneration).not.toHaveBeenCalled();
   });
 

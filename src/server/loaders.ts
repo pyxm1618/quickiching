@@ -21,6 +21,7 @@ export type CastingView = {
     lineValues: number[];
     algorithmVersion: string;
     classicMappingVersion: string;
+    methodCalculation: unknown;
   } | null;
   preview: { status: string; relevanceStatement: string | null } | null;
   reading: { status: string; report: Record<string, unknown> | null; id: string | null; snapshot: DeepReadingContextSnapshot | null } | null;
@@ -43,7 +44,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
         q.iv as question_iv, q.auth_tag as question_auth_tag,
         q.encryption_key_version as question_encryption_key_version,
         r.line_values, r.primary_hexagram_number, r.moving_line_positions,
-        r.relating_hexagram_number, r.algorithm_version, r.classic_mapping_version,
+        r.relating_hexagram_number, r.algorithm_version, r.classic_mapping_version, r.method_calculation,
         d.job_id as reading_job_id, d.output as reading_output,
         ds.ciphertext as snapshot_ciphertext, ds.iv as snapshot_iv, ds.auth_tag as snapshot_auth_tag,
         ds.encryption_key_version as snapshot_encryption_key_version, ds.snapshot_hash
@@ -92,6 +93,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
           lineValues: lineVals,
           algorithmVersion: String(row.algorithm_version ?? "three-coin-v1"),
           classicMappingVersion: String(row.classic_mapping_version ?? "king-wen-v1"),
+          methodCalculation: row.method_calculation,
         }
       : null;
 
@@ -172,6 +174,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
         lineValues: cr.lineValues,
         algorithmVersion: cr.algorithmVersion,
         classicMappingVersion: cr.classicMappingVersion,
+        methodCalculation: cr.methodCalculation,
       }
     : null;
   const preview = canReadResult ? repo.getPreview(castingId) : undefined;
@@ -198,7 +201,7 @@ export async function loadCastingView(castingId: string): Promise<CastingView | 
   };
 }
 
-export async function loadHistory(
+export async function loadMyReadings(
   resolvedUser?: { id: string; email: string } | null,
   locale: "en" | "zh-Hans" = "en",
 ): Promise<
@@ -239,7 +242,7 @@ export async function loadHistory(
       left join preview_results p on p.casting_id = s.id
       left join deep_reading_results d on d.casting_id = s.id
       where s.user_id = ${user.id} and s.deleted_at is null
-        and s.lifecycle = 'revealed'
+        and s.lifecycle = 'revealed' and s.method = 'three_coin'
       order by s.created_at desc
     ` as Array<Record<string, any>>;
 
@@ -265,7 +268,7 @@ export async function loadHistory(
   }
 
   return repo.listCastsForUser(user.id).filter((s) =>
-    repo.canReadRevealedResult(s.id, user.id) && !!repo.getCastResult(s.id)
+    s.method === "three_coin" && repo.canReadRevealedResult(s.id, user.id) && !!repo.getCastResult(s.id)
   ).map((s) => {
     const cr = repo.getCastResult(s.id);
     const preview = repo.getPreview(s.id);

@@ -3,7 +3,7 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { loadHistory } from "@/server/loaders";
+import { loadMyReadings } from "@/server/loaders";
 import { loadSignInMethods } from "./sign-in-method-loader";
 import { encryptQuestionForStorage } from "@/server/generation/question-crypto";
 import { closeAuthDatabaseConnection } from "@/server/db/client";
@@ -39,12 +39,12 @@ describe("Account read-only data integration", () => {
   });
   afterAll(async () => { vi.unstubAllEnvs(); await closeAuthDatabaseConnection(); await sql.end({ timeout: 5 }); });
   it("returns all 55 valid owner readings with latest decrypted question, excluding drafts, incomplete results and the other user", async () => {
-    const history = await loadHistory(owner);
-    expect(history).toHaveLength(55);
-    expect(history.find(row => row.id === latestId)?.question).toBe("Latest private question");
-    expect(history.find(row => row.id === castingIds[1])?.question).toBeNull();
-    for (const excluded of castingIds.slice(55)) expect(history.some(row => row.id === excluded)).toBe(false);
-    expect(await loadHistory(null)).toEqual([]);
+    const readings = await loadMyReadings(owner);
+    expect(readings).toHaveLength(55);
+    expect(readings.find(row => row.id === latestId)?.question).toBe("Latest private question");
+    expect(readings.find(row => row.id === castingIds[1])?.question).toBeNull();
+    for (const excluded of castingIds.slice(55)) expect(readings.some(row => row.id === excluded)).toBe(false);
+    expect(await loadMyReadings(null)).toEqual([]);
   });
   it("reads Google and actual no-account-row Magic Link representation without writing", async () => {
     expect(await loadSignInMethods(owner)).toEqual(["Google"]);

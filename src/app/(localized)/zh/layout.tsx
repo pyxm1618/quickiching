@@ -2,7 +2,6 @@ import { AccountModalHost } from "@/components/account/account-modal-host";
 import type { Metadata } from "next";
 import "../../globals.css";
 import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { SITE_ORIGIN } from "@/lib/seo";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
@@ -34,7 +33,6 @@ export default function LocalizedRootLayout({
       <body className="flex min-h-screen flex-col">
         <SiteHeader locale="zh-Hans" authEnabled={authEnabled} />
         <main className="flex-1">{children}</main>
-        <SiteFooter locale="zh-Hans" />
         <AccountModalHost locale="zh-Hans" />
         <SiteAnalytics />
       </body>

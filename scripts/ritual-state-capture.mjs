@@ -43,6 +43,7 @@ try {
  // Layout snapshots sample completed CSS entrances; motion is audited separately in real time.
  await page.addStyleTag({content:'*,*::before,*::after{animation-delay:0s!important;animation-duration:0s!important;transition:none!important;caret-color:transparent!important}'});
  if(state!=='07') {
+  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
   await page.waitForSelector('[data-renderer="three-webgl"]');
   await page.locator('[data-private-question]').fill('Should I continue on my current path?');
   await page.locator('[data-home-primary-action]').click();
@@ -67,13 +68,13 @@ try {
     if(state==='06')await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
    }
   }
- } else await page.waitForSelector('[data-ritual-result-card]');
+ } else await page.waitForSelector('[data-public-reading-result] [data-free-reading-ritual]');
  await page.addStyleTag({content:'*,*::before,*::after{animation-delay:0s!important;animation-duration:0s!important;transition:none!important;caret-color:transparent!important}'});
  await page.screenshot({path:output+'/runtime.png'});
  const observed=await page.evaluate(()=>({
   viewport:[innerWidth,innerHeight],dpr:devicePixelRatio,zoom:visualViewport.scale,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,
   scene:document.querySelector('[data-renderer]')?{...document.querySelector('[data-renderer]').dataset}:null,
-  stage:document.querySelector('[data-three-coin-home-stage]')?.dataset.experienceStage,
+  stage:document.querySelector('[data-three-coin-ritual]')?.dataset.experienceStage,
   gate:document.querySelector('[data-completed-cast-gate]')?.dataset.completedCastGate,
   businessBitDraws:window.__ritualBitDraws,
   session:JSON.parse(sessionStorage.getItem('quickiching:public-v1:three-coin')||'null'),
@@ -84,7 +85,7 @@ try {
  assert(observed.background?.includes(assets.stageDesktop.url),'All states must use the same production room');
  if(['03','04','05'].includes(state)){assert.equal(observed.scene.renderer,'three-webgl','Desktop cannot use fallback');assert.equal(Number(observed.scene.renderDpr),1,'Canonical renderer DPR must stay 1');}
  if(state==='03')assert.equal(observed.scene.phase,'casting','Capture must occur while actual cast is running');
- if(state==='06')for(const selector of ['[data-primary-card]','[data-ritual-result-card]','[data-deep-reading-entry]'])assert.equal(await page.$(selector),null,'Gate must conceal '+selector);
+ if(state==='06')for(const selector of ['[data-primary-card]','[data-public-reading-result]','[data-free-reading-ritual]','[data-deep-reading-entry]'])assert.equal(await page.$(selector),null,'Gate must conceal '+selector);
  assert.equal(observed.businessBitDraws,{'02':0,'03':3,'04':3,'05':12,'06':18,'07':0}[state],'The fixture must use exactly the expected authoritative draws');
  if(errors.length)throw new Error(errors.join('\n'));
  await page.addStyleTag({content:'.ritual-question-stage,.ritual-webgl,.ritual-question-context,.ritual-cast-ui,.ritual-save-gate,[data-public-reading-result],body>header,body>header *{opacity:0!important;backdrop-filter:none!important}'});

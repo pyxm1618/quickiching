@@ -66,10 +66,10 @@ with sync_playwright() as p:
  page.screenshot(path=str(root/'delete-disabled-desktop.png'))
  page.get_by_role('button',name='← Back to Settings').click();assert page.get_by_role('button',name='Sign Out',exact=True).count()==1
  page.keyboard.press('Escape');assert page.locator('dialog[open]').count()==0
- # Mobile drawer opens Settings after closing, preserving modal body lock.
+ # Mobile uses the same formal account menu; no legacy navigation drawer fixture.
  page.set_viewport_size({'width':390,'height':844})
- page.locator('button[id^="drawer-trig-"]').click()
- page.locator('.qic-account-mobile-menu').get_by_role('button',name='Settings',exact=True).click()
+ page.locator('[data-user-nav-menu-button]:visible').first.click()
+ page.get_by_role('menuitem',name='Settings',exact=True).click()
  page.get_by_role('heading',name='Settings',exact=True).wait_for()
  assert page.locator('body').evaluate('(e)=>getComputedStyle(e).overflow')=='hidden'
  page.get_by_role('button',name='Delete Account',exact=True).click()

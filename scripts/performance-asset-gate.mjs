@@ -19,7 +19,7 @@ for (const asset of assets) {
 }
 const runtimeSources = await Promise.all([
   'src/components/public-reading/ritual.css', 'src/components/account/account.css',
-  'src/components/public-reading/question-first.tsx', 'src/components/public-reading/three-coin-scene.tsx',
+  'src/components/public-reading/question-first.tsx', 'src/components/public-reading/three-coin-ritual.tsx', 'src/components/public-reading/three-coin-scene.tsx',
   'src/components/public-reading/three-coin-fallback.tsx', 'src/app/(default)/hexagrams/hexagrams-experience.tsx',
 ].map(path => readFile(path, 'utf8')));
 for (const name of ['stageDesktop', 'accountCoins', 'platformDesktop', 'resultDesktop', 'coinFrontDesktop', 'coinBackDesktop']) {

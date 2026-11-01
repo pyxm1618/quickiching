@@ -23,15 +23,24 @@ export function ThreeCoinVisual(props:ThreeCoinSceneProps) {
   const [startScene,setStartScene]=useState(false);
   useEffect(()=>{
     if(startScene)return;
-    // Landing and question-confirm are form states; the Three.js scene is decorative there.
-    // Starting it before the user enters the casting chamber can monopolize the main thread
-    // and delay the confirmation controls. Canonical visual QA pins ritualTime and keeps the
-    // original eager scene so pixel captures remain comparable.
-    const visualQaPinned=new URLSearchParams(window.location.search).has('ritualTime');
-    if((props.phase==='hero'||props.phase==='hero-exit')&&!visualQaPinned)return;
-    let second=0;
-    const first=requestAnimationFrame(()=>{second=requestAnimationFrame(()=>setStartScene(true));});
-    return ()=>{cancelAnimationFrame(first);cancelAnimationFrame(second);};
+    // The landing hero is presentation-only. Keep Three.js off the initial critical path;
+    // the first real interaction or any non-hero phase activates the same formal renderer.
+    if(props.phase!=='hero' && props.phase!=='hero-exit') {
+      setStartScene(true);
+      return;
+    }
+    let cancelled=false;
+    const activate=()=>{if(!cancelled)setStartScene(true);};
+    const events=['pointerdown','keydown','touchstart','scroll'] as const;
+    events.forEach(event=>window.addEventListener(event,activate,{once:true,passive:true}));
+    return ()=>{
+      cancelled=true;
+      events.forEach(event=>window.removeEventListener(event,activate));
+    };
   },[props.phase,startScene]);
-  return <SceneLoadBoundary {...props}>{startScene?<Scene {...props} />:null}</SceneLoadBoundary>;
+  return <SceneLoadBoundary {...props}>
+    {startScene
+      ? <Scene {...props} />
+      : <div className="ritual-webgl" data-renderer="deferred-fallback"><ThreeCoinFallback faces={props.faces} lightweight /></div>}
+  </SceneLoadBoundary>;
 }

@@ -5,10 +5,18 @@ import { PublicReadingResult } from "./public-reading-result";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { buildStaticReading } from "@/domain/public-reading/static-reading";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
-import type { PublicReadingMethod } from "@/domain/public-reading/types";
+import type { PublicReadingEvidence, PublicReadingMethod } from "@/domain/public-reading/types";
+import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
 import type { LineValue } from "@/domain/casting/types";
 
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: React.ComponentProps<"a">) => <a href={href} {...props}>{children}</a> }));
+
+function evidenceFor(method: PublicReadingMethod): PublicReadingEvidence {
+  if (method === "three-coin") return { kind: "three-coin", steps: [] };
+  if (method === "yarrow-stalks") return { kind: "yarrow-stalks", lines: [] };
+  if (method === "mei-hua-yi-shu") return { kind: "mei-hua-yi-shu", calculation: meiHuaFromUtc(Date.UTC(2026, 9, 31), "UTC") };
+  return { kind: "manual", mode: "line-values" };
+}
 
 const variants = {
   still: [7, 7, 7, 7, 7, 7],
@@ -21,15 +29,17 @@ for (const method of ["three-coin", "yarrow-stalks", "mei-hua-yi-shu"] as const 
   describe(`concise Free reading: ${method}`, () => {
     for (const [variant, lines] of Object.entries(variants)) {
       it(`renders ${variant} cast with actual changes and two dedicated deep links`, async () => {
-        const reading = buildPublicReading({ id: `${method}-${variant}`, createdAt: "2026-10-31T00:00:00.000Z", method, methodVersion: "test", lineValuesBottomUp: lines, evidence: { kind: "history", originalMethod: method } });
+        const reading = buildPublicReading({ id: `${method}-${variant}`, createdAt: "2026-10-31T00:00:00.000Z", method, methodVersion: "test", lineValuesBottomUp: lines, evidence: evidenceFor(method) });
         const primary = await loadHexagramInterpretation(reading.primaryHexagram);
         const relating = reading.relatingHexagram === null ? null : await loadHexagramInterpretation(reading.relatingHexagram);
         const model = buildStaticReading(reading, { primary, relating });
-        const html = renderToStaticMarkup(<PublicReadingResult reading={reading} initialBundles={{ primary, relating }} deepReadingHref="/reading/test/deep" presentation={variant === "all" ? "ritual" : "default"} />);
+        const html = renderToStaticMarkup(<PublicReadingResult reading={reading} initialBundles={{ primary, relating }} deepReadingHref="/reading/test/deep" />);
         expect(html.match(/Get My Deep Reading/g)).toHaveLength(2);
         expect(html.match(/href="\/reading\/test\/deep"/g)).toHaveLength(2);
         expect(html).toContain("Want to know what this means for your question?");
-        const sections = ["data-deep-reading-cta=\"top\"", "data-overall-reading", "data-primary-card", "data-changing-lines", relating ? "data-relating-card" : "data-no-relating-card", "data-reading-transition", "data-deep-reading-cta=\"bottom\""];
+        expect(html).toContain("data-free-reading-ritual");
+        expect(html).toContain("/free-reading/runtime/hero-mobile.jpg");
+        const sections = ["data-deep-reading-cta=\"top\"", "data-overall-reading", "data-primary-card", relating ? "data-relating-card" : "data-no-relating-card", "data-changing-lines", "data-reading-transition", "data-deep-reading-cta=\"bottom\""];
         for (let index = 1; index < sections.length; index++) expect(html.indexOf(sections[index - 1])).toBeLessThan(html.indexOf(sections[index]));
         expect(html).toContain(`href="${model.primary.href}"`);
         expect(html).toContain(model.primary.shortMeaning.replaceAll("&", "&amp;").replaceAll("'", "&#x27;"));
@@ -49,23 +59,27 @@ for (const method of ["three-coin", "yarrow-stalks", "mei-hua-yi-shu"] as const 
 
 
 describe("Deep Reading handoff boundaries", () => {
-  for (const method of ["manual", "yarrow-stalks", "mei-hua-yi-shu"] as const) {
-    it(`retains Free reading and explains unavailable browser history for ${method}`, () => {
-      const reading = buildPublicReading({ id: `history-${method}`, createdAt: "2026-10-31T00:00:00.000Z", method, lineValuesBottomUp: variants.still, evidence: { kind: "history", originalMethod: method } });
+  it("keeps manual casts on Free Reading without a Deep Reading action", () => {
+    const reading = buildPublicReading({ id: "manual-cast", createdAt: "2026-10-31T00:00:00.000Z", method: "manual", lineValuesBottomUp: variants.still, evidence: evidenceFor("manual") });
+    const html = renderToStaticMarkup(<PublicReadingResult reading={reading} />);
+    expect(html).toContain("Overall Reading");
+    expect(html).toContain("Deep Reading is unavailable for this cast");
+    expect(html).not.toContain("Get My Deep Reading");
+    expect(html).not.toContain(["data", "save", "reading"].join("-"));
+  });
+
+  for (const method of ["three-coin", "yarrow-stalks", "mei-hua-yi-shu"] as const) {
+    it(`links supported ${method} casts to the canonical Deep Reading route`, () => {
+      const id = `saved-${method}`;
+      const reading = buildPublicReading({ id, createdAt: "2026-10-31T00:00:00.000Z", method, lineValuesBottomUp: variants.still, evidence: evidenceFor(method) });
       const html = renderToStaticMarkup(<PublicReadingResult reading={reading} />);
-      expect(html).toContain("Overall Reading");
-      expect(html).toContain("Deep Reading is unavailable for this cast");
-      expect(html).not.toContain("Get My Deep Reading");
-      expect(html).toContain("data-save-reading");
+      expect(html.match(new RegExp(`href="/readings/deep\\?session=${id}"`, "g"))).toHaveLength(2);
+      expect(html).not.toContain(["data", "save", "reading"].join("-"));
     });
   }
-  it("links recoverable three-coin history to the canonical deep route", () => {
-    const reading = buildPublicReading({ id: "history-coins", createdAt: "2026-10-31T00:00:00.000Z", method: "three-coin", lineValuesBottomUp: variants.still, evidence: { kind: "history", originalMethod: "three-coin" } });
-    const html = renderToStaticMarkup(<PublicReadingResult reading={reading} />);
-    expect(html.match(/href="\/readings\/deep\?session=history-coins"/g)).toHaveLength(2);
-  });
+
   it("offers two callback buttons for a caller-managed supported cast", () => {
-    const reading = buildPublicReading({ method: "yarrow-stalks", lineValuesBottomUp: variants.still, evidence: { kind: "history", originalMethod: "yarrow-stalks" } });
+    const reading = buildPublicReading({ method: "yarrow-stalks", lineValuesBottomUp: variants.still, evidence: evidenceFor("yarrow-stalks") });
     const html = renderToStaticMarkup(<PublicReadingResult reading={reading} onDeepReading={() => undefined} />);
     expect(html.match(/Get My Deep Reading/g)).toHaveLength(2);
     expect(html).not.toContain("Deep Reading is unavailable");

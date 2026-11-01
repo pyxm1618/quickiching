@@ -5,19 +5,30 @@ import React, { useEffect, useMemo, useRef, useState, type CSSProperties, type P
 import Link from "next/link";
 import Image from "next/image";
 import { UserNavControl } from "@/components/auth/user-nav-control";
+import type { ContentLocale } from "@/i18n/config";
 import { TRIGRAM_BITS, type Trigram } from "@/domain/casting/hexagrams/king-wen";
 import styles from "./hexagrams.module.css";
 
 type HexagramItem = {
   number: number;
-  englishName: string;
+  name: string;
   slug: string;
   lower: Trigram;
   upper: Trigram;
   primaryKeyword: string;
 };
 
-type Props = { hexagrams: HexagramItem[]; authEnabled: boolean };
+type Props = {
+  hexagrams: HexagramItem[];
+  authEnabled: boolean;
+  locale: ContentLocale;
+  title: string;
+  description: string;
+  detailRoutePrefix: string;
+  languageSwitchHref: string;
+  seoPrimaryKeyword?: string;
+  sectionHeading: string;
+};
 type CssVars = CSSProperties & Record<string, string | number>;
 
 const GRID_CORNERS = {
@@ -55,13 +66,13 @@ function linesFor(lower: Trigram, upper: Trigram): boolean[] {
   ];
 }
 
-function HexagramGlyph({ item, compact = false }: { item: HexagramItem; compact?: boolean }) {
+function HexagramGlyph({ item, compact = false, locale }: { item: HexagramItem; compact?: boolean; locale: ContentLocale }) {
   const lines = useMemo(() => linesFor(item.lower, item.upper), [item.lower, item.upper]);
   return (
     <span
       className={compact ? styles.glyphCompact : styles.glyph}
       role="img"
-      aria-label={"Six-line figure for Hexagram " + item.number + ": " + item.englishName}
+      aria-label={locale === "zh-Hans" ? "第 " + item.number + " 卦 " + item.name + " 的六爻卦象" : "Six-line figure for Hexagram " + item.number + ": " + item.name}
     >
       {lines.map((yang, index) => (
         <span key={index} className={styles.line} aria-hidden="true">
@@ -110,9 +121,44 @@ function wheelStyle(offset: number): CssVars {
   };
 }
 
-export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
+export function HexagramsExperience({
+  hexagrams,
+  authEnabled,
+  locale,
+  title,
+  description,
+  detailRoutePrefix,
+  languageSwitchHref,
+  seoPrimaryKeyword,
+  sectionHeading,
+}: Props) {
   const [selectedHexagram, setSelectedHexagram] = useState<HexagramItem>(() => hexagrams[0]);
   const selectedIndex = Math.max(0, hexagrams.findIndex((item) => item.number === selectedHexagram.number));
+  const isChinese = locale === "zh-Hans";
+  const homeHref = isChinese ? "/zh" : "/";
+  const ui = isChinese
+    ? {
+        currentLanguage: "中文",
+        pageControls: "页面控制",
+        switchLanguage: "切换语言",
+        gridLabel: "按文王卦序排列的易经六十四卦",
+        wheelLabel: "六十四卦轮盘",
+        wheelInstructions: "拖动或滚动浏览全部六十四卦",
+        select: (item: HexagramItem) => "选择第 " + item.number + " 卦：" + item.name,
+        open: (item: HexagramItem) => "打开第 " + item.number + " 卦：" + item.name,
+        homeText: "易经在线起卦",
+      }
+    : {
+        currentLanguage: "EN",
+        pageControls: "Page controls",
+        switchLanguage: "Switch language",
+        gridLabel: "All 64 hexagrams in King Wen order",
+        wheelLabel: "Rotating 64-hexagram wheel",
+        wheelInstructions: "Drag or scroll horizontally to rotate through all 64 hexagrams",
+        select: (item: HexagramItem) => "Select Hexagram " + item.number + ": " + item.name,
+        open: (item: HexagramItem) => "Open Hexagram " + item.number + ": " + item.name,
+        homeText: "I Ching online tool",
+      };
   const wheelRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ pointerId: number; startX: number; lastX: number; moved: boolean } | null>(null);
   const suppressClickUntilRef = useRef(0);
@@ -130,7 +176,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
       const item = hexagrams[index];
       if (!item) return;
       if (target.getAttribute("aria-current") === "true") {
-        window.location.assign("/hexagrams/" + item.slug);
+        window.location.assign(detailRoutePrefix + item.slug);
         return;
       }
       setSelectedHexagram(item);
@@ -138,7 +184,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
 
     wheel.addEventListener("click", handleClick);
     return () => wheel.removeEventListener("click", handleClick);
-  }, [hexagrams]);
+  }, [detailRoutePrefix, hexagrams]);
 
   useEffect(() => {
     const body = document.body;
@@ -227,7 +273,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
   };
 
   return (
-    <article className={styles.scene} data-hexagrams-immersive-page aria-labelledby="hexagrams-title">
+    <article className={styles.scene} data-hexagrams-immersive-page data-hexagrams-locale={locale} data-seo-primary={seoPrimaryKeyword} aria-labelledby="hexagrams-title">
       <Image
         src="/hexagrams/hero.png"
         alt=""
@@ -240,17 +286,26 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
       />
       <div className={styles.sceneShade} aria-hidden="true" />
 
-      <div className={styles.chrome} aria-label="Page controls">
-        <Link href="/zh/hexagrams" className={styles.languageControl} aria-label="Switch language">EN</Link>
-        {authEnabled && <UserNavControl locale="en" />}
+      <div className={styles.chrome} aria-label={ui.pageControls}>
+        <Link
+          href={languageSwitchHref}
+          className={styles.languageControl}
+          aria-label={ui.switchLanguage}
+          data-language-switch={languageSwitchHref}
+          data-equivalent="true"
+        >
+          {ui.currentLanguage}
+        </Link>
+        {authEnabled && <UserNavControl locale={locale} />}
       </div>
 
       <header className={styles.titleBlock}>
-        <h1 id="hexagrams-title">64 I Ching Hexagrams</h1>
-        <p>Browse all 64 hexagrams and open any one to explore its meaning.</p>
+        <h1 id="hexagrams-title">{title}</h1>
+        <p data-seo-early-copy>{description}</p>
       </header>
 
-      <section className={styles.scrollStage} aria-label="All 64 hexagrams in King Wen order">
+      <section className={styles.scrollStage} aria-label={ui.gridLabel}>
+        <h2 className={styles.srOnly}>{sectionHeading}</h2>
         <Image
           src="/hexagrams/scroll-grid.png"
           alt=""
@@ -271,13 +326,14 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
                 <button
                   type="button"
                   className={styles.scrollCell + (selected ? " " + styles.scrollCellSelected : "")}
+                  data-scroll-hexagram={item.number}
                   aria-pressed={selected}
-                  aria-label={"Select Hexagram " + item.number + ": " + item.englishName}
+                  aria-label={ui.select(item)}
                   onClick={() => setSelectedHexagram(item)}
                 >
                   <span className={styles.scrollNumber}>{String(item.number).padStart(2, "0")}</span>
-                  <HexagramGlyph item={item} compact />
-                  <span className={styles.scrollName}>{item.englishName}</span>
+                  <HexagramGlyph item={item} compact locale={locale} />
+                  <span className={styles.scrollName}>{item.name}</span>
                 </button>
               </li>
             );
@@ -285,7 +341,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
         </ol>
       </section>
 
-      <section className={styles.wheelStage} aria-label="Rotating 64-hexagram wheel">
+      <section className={styles.wheelStage} aria-label={ui.wheelLabel}>
         <img
           src={visualRuntimeAssets.platformDesktop}
           srcSet={`${visualRuntimeAssets.platformMobile} 800w, ${visualRuntimeAssets.platformDesktop} 1536w`}
@@ -300,8 +356,9 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
         <div
           ref={wheelRef}
           className={styles.wheelInteraction}
+          data-hexagram-wheel
           role="group"
-          aria-label="Drag or scroll horizontally to rotate through all 64 hexagrams"
+          aria-label={ui.wheelInstructions}
           tabIndex={0}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -327,7 +384,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
                 styles.wheelCard +
                 (selected ? " " + styles.wheelCardSelected : "") +
                 (nearby ? "" : " " + styles.wheelCardFar);
-              const href = "/hexagrams/" + item.slug;
+              const href = detailRoutePrefix + item.slug;
               return (
                 <React.Fragment key={item.number}>
                   <Link
@@ -345,7 +402,7 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
                     style={wheelStyle(offset)}
                     data-wheel-index={index}
                     aria-current={selected ? "true" : undefined}
-                    aria-label={(selected ? "Open Hexagram " : "Select Hexagram ") + item.number + ": " + item.englishName}
+                    aria-label={selected ? ui.open(item) : ui.select(item)}
                     tabIndex={nearby ? 0 : -1}
                   >
                     <img
@@ -358,8 +415,8 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
                     />
                     <span className={styles.cardContent}>
                       <span className={styles.cardNumber}>{String(item.number).padStart(2, "0")}</span>
-                      <HexagramGlyph item={item} />
-                      <span className={styles.cardName}>{item.englishName}</span>
+                      <HexagramGlyph item={item} locale={locale} />
+                      <span className={styles.cardName}>{item.name}</span>
                     </span>
                   </button>
                 </React.Fragment>
@@ -369,8 +426,8 @@ export function HexagramsExperience({ hexagrams, authEnabled }: Props) {
         </div>
       </section>
 
-      <Link href="/" data-seo-home-link="/" tabIndex={-1} aria-hidden="true" className={styles.srOnly}>
-        I Ching online tool
+      <Link href={homeHref} data-seo-home-link={homeHref} tabIndex={-1} aria-hidden="true" className={styles.srOnly}>
+        {ui.homeText}
       </Link>
     </article>
   );

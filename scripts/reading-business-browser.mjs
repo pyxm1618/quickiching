@@ -9,14 +9,9 @@ import chromium from '@sparticuz/chromium';
 import { resolveChromeExecutable } from './browser-runtime.mjs';
 // Exercise the real components with explicit simulated network responses.
 const directory = await mkdtemp(join(tmpdir(),'qic-reading-browser-'));
-execFileSync('bun',['build','scripts/fixtures/reading-business-entry.tsx','--outdir',directory,'--target','browser','--production','--external=/mei-hua/*'],{stdio:'pipe'});
+execFileSync('bun',['scripts/fixtures/build-reading-business-fixture.mjs',directory],{stdio:'pipe'});
 const server = createServer(async (request,response) => {
   const path = new URL(request.url,'http://localhost').pathname;
-  if (/^\/mei-hua\/[a-z-]+\.webp$/.test(path)) {
-    response.setHeader('Content-Type','image/webp');
-    response.end(await readFile('public'+path));
-    return;
-  }
   const asset = path === '/reading-business-entry.js' || path === '/reading-business-entry.css' ? path.slice(1) : null;
   try {
     response.setHeader('Content-Type',asset?.endsWith('.js') ? 'text/javascript' : asset ? 'text/css' : 'text/html');
@@ -31,31 +26,37 @@ const page=await browser.newPage();
 const evidence=[];
 page.on("pageerror", error=>console.log("PAGE_ERROR",error.message));
 try {
- for(const method of ['three_coin','yarrow_stalk','mei_hua_number_time']) {
-  console.log('checking',method);
-  await page.goto(`${fixtureBase}/?method=${method}`,{waitUntil:'networkidle0'});
-  await page.waitForSelector('[data-shared-reading-summary]');
-  assert.equal(await page.$eval('.shared-reading-content',node=>getComputedStyle(node).display),'none');
-  await page.click('[data-reading-choice="free"]');
-  await page.waitForSelector('[data-reading-open="free"]');
-  const free=await page.evaluate(()=>({ctas:[...document.querySelectorAll('a')].filter(a=>a.textContent==='Get My Deep Reading').length, forms:document.querySelectorAll('textarea').length,overall:!!document.querySelector('[data-overall-reading]')}));
-  assert.equal(free.ctas,2); assert.equal(free.forms,0);
-  evidence.push({method,free});
-  await page.click('[data-reading-choice="deep"]');
-  await page.waitForFunction(()=>location.pathname==='/readings/deep');
-  await page.waitForSelector('[data-start-deep-reading]');
-  assert.equal(await page.$('[data-public-reading-result]'),null);
-  await page.click('[data-start-deep-reading]');
-  await page.waitForSelector('[data-deep-reading-report]',{timeout:10000});
-  const deep=await page.evaluate(()=>({text:document.body.textContent, requests:window.__requests,forms:document.querySelectorAll('textarea').length}));
-  for (const title of ['Your Question','Cast Basis','Direct Answer','Why','What Matters Most','What To Do Next','View Free Reading']) assert.ok(deep.text.includes(title),title);
-  assert.equal(deep.forms,0);
-  const post=deep.requests.find(item=>item.method==='POST'); assert.deepEqual(JSON.parse(post.body),{locale:'en'});
-  evidence.push({method,deep:{sections:true,postBody:JSON.parse(post.body),report:true}});
-  await page.$eval('[data-cast-basis] a.mystic-button-secondary', element=>element.click());
-  await page.waitForSelector('[data-reading-open="free"]',{timeout:5000});
-  assert.equal(new URL(page.url()).pathname,'/readings/result');
-  evidence.push({method,deepToFree:'explicit Free intent overrides previous Deep selection'});
+ for(const locale of ['en','zh']) {
+  for(const method of ['three_coin','yarrow_stalk','mei_hua_current_time']) {
+   console.log('checking',locale,method);
+   await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}`,{waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-public-reading-result] [data-free-reading-ritual]');
+   const free=await page.evaluate(()=>({
+    ctas:document.querySelectorAll('[data-deep-reading-cta]').length,
+    forms:document.querySelectorAll('textarea').length,
+    overall:!!document.querySelector('[data-overall-reading]'),
+    method:document.querySelector('[data-free-reading-ritual]')?.getAttribute('data-reading-method'),
+    text:document.body.innerText,
+   }));
+   assert.equal(free.ctas,2); assert.equal(free.forms,0); assert.equal(free.overall,true);
+   assert.equal(free.method,method==='three_coin'?'three-coin':method==='yarrow_stalk'?'yarrow-stalks':'mei-hua-yi-shu');
+   assert.ok(free.text.includes(locale==='zh'?'整体解读':'Overall Reading'));
+   evidence.push({locale,method,free:{ctas:free.ctas,forms:free.forms,overall:free.overall,method:free.method}});
+   await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&page=deep`,{waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-start-deep-reading]');
+   assert.equal(await page.$('[data-public-reading-result]'),null);
+   await page.click('[data-start-deep-reading]');
+   await page.waitForSelector('[data-ai-deep-reading-report]',{timeout:10000});
+   const deep=await page.evaluate(()=>({text:document.body.innerText, requests:window.__requests,forms:document.querySelectorAll('textarea').length}));
+   const titles=locale==='zh'
+    ? ['你的问题','核心回答','为什么会得出这个判断','这件事可能带来什么变化','什么情况下值得行动','你现在应该做什么','查看完整卦象解读']
+    : ['Your Question','Core Answer','Why This Is the Case','What This Change Can Bring','When It’s Worth Taking Action','What You Should Do Now','View the Full Hexagram Interpretation'];
+   for (const title of titles) assert.ok(deep.text.includes(title),title);
+   assert.equal(deep.forms,0);
+   const post=deep.requests.find(item=>item.method==='POST');
+   assert.deepEqual(JSON.parse(post.body),{locale:locale==='zh'?'zh-Hans':'en'});
+   evidence.push({locale,method,deep:{sections:true,postBody:JSON.parse(post.body),report:true}});
+  }
  }
  await page.goto(`${fixtureBase}/?page=deep&invalid=1`,{waitUntil:'networkidle0'});
  await page.waitForSelector('[data-start-deep-reading]'); await page.click('[data-start-deep-reading]');

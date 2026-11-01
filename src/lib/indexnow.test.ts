@@ -49,7 +49,7 @@ describe("IndexNow Public V1 generation", () => {
     expect(() => normalizeIndexNowLiveUrl("/pricing")).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
     expect(() => normalizeIndexNowLiveUrl("/three-coin-method")).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
     expect(() => normalizeIndexNowLiveUrl("/account")).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
-    expect(() => normalizeIndexNowLiveUrl("/history")).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
+    expect(() => normalizeIndexNowLiveUrl("/my-readings")).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
     expect(() => normalizeIndexNowLiveUrl(THREE_COIN_RESULT_PATH)).toThrow("INDEXNOW_NON_INDEXABLE_PATH");
     expect(() => normalizeIndexNowLiveUrl("/methods/three-coin?utm_source=test")).toThrow("INDEXNOW_QUERY_URL_FORBIDDEN");
   });

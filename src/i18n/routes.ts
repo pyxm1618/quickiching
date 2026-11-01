@@ -110,6 +110,20 @@ const EQUIVALENT_ROUTES: readonly LocalizedRouteDefinition[] = [
   switchable: true,
 }));
 
+const NON_INDEXABLE_INFO_ROUTES: readonly LocalizedRouteDefinition[] = [
+  ["help", "/help", "/zh/help"],
+  ["privacy", "/privacy", "/zh/privacy"],
+  ["terms", "/terms", "/zh/terms"],
+  ["acceptable-use", "/acceptable-use", "/zh/acceptable-use"],
+].map(([id, en, zh]) => ({
+  id,
+  paths: { en, "zh-Hans": zh },
+  renderable: { en: true, "zh-Hans": true },
+  indexable: { en: false, "zh-Hans": false },
+  hreflangGroup: true,
+  switchable: true,
+}));
+
 const NAMED_ENGLISH_ROUTES: Record<string, string> = {
   "three-coin-method": "/methods/three-coin",
   "yarrow-stalks-method": "/methods/yarrow-stalks",
@@ -136,15 +150,8 @@ const HEXAGRAM_ROUTES = HEXAGRAM_INDEXABLE_PATHS.map(pairedHexagramRoute);
 
 export const ROUTE_REGISTRY: readonly LocalizedRouteDefinition[] = [
   ...EQUIVALENT_ROUTES,
+  ...NON_INDEXABLE_INFO_ROUTES,
   ...HEXAGRAM_ROUTES,
-  ...(["result", "deep"] as const).map((view) => ({
-    id: `reading-${view}`,
-    paths: { en: `/readings/${view}`, "zh-Hans": `/zh/readings/${view}` },
-    renderable: { en: true, "zh-Hans": true },
-    indexable: { en: false, "zh-Hans": false },
-    hreflangGroup: false,
-    switchable: true,
-  })),
 ];
 
 const ROUTE_BY_ID = new Map(ROUTE_REGISTRY.map((route) => [route.id, route]));

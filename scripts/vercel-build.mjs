@@ -224,6 +224,9 @@ try {
     env: { ...browserEnv, SEO_AUDIT_LABEL: "AFTER", SEO_AUDIT_ASSERT: "1" },
   });
 
+  log("Running Reading result business acceptance before unrelated browser suites");
+  run("node", ["scripts/reading-business-browser.mjs"], { env: { ...browserEnv, READING_TEST_BASE_URL: BASE } });
+
   log("Running real Chromium E2E and on-page SEO acceptance");
   run("bun", ["run", "seo:registry"]);
   run("bun", ["run", "seo:quality"], {
@@ -234,12 +237,12 @@ try {
   run("bun", ["run", "gate:interactive:zh"], { env: { ...browserEnv, CHINESE_INTERACTIVE_GATE_BASE_URL: BASE } });
   run("bun", ["scripts/browser-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/on-page-seo-browser-gate.mjs"], { env: browserEnv });
-  run("bun", ["scripts/three-coin-v2-browser-gate.mjs"], { env: browserEnv });
+  run("bun", ["scripts/three-coin-v2-browser-gate.mjs", "--public-only"], { env: browserEnv });
   run("bun", ["scripts/multilingual-browser-gate.mjs"], { env: { MULTILINGUAL_TEST_BASE_URL: BASE, CHROME_PATH: chromePath } });
   run("bun", ["scripts/public-p0-browser-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/interpretation-bundle-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/logo-browser-gate.mjs"], { env: browserEnv });
-  run("bun", ["scripts/navigation-audit-gate.mjs"], { env: browserEnv });
+  run("bun", ["run", "gate:navigation"], { env: browserEnv });
 
   log(`Running homepage Lighthouse with Chrome: ${chromePath}`);
   const lighthouseEnv = { CHROME_PATH: chromePath };

@@ -121,7 +121,7 @@ async function verifyHttpAndSeo() {
   assert(homeHtml.includes(`content="${HOME_DESCRIPTION}"`), "Exact homepage description is missing from initial HTML");
   const initialHeadings = [...homeHtml.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gu)].map((match) => match[1].replace(/<[^>]+>/gu, ""));
   assert.deepEqual(initialHeadings, [HOME_H1], "Exact homepage H1 is missing from initial HTML");
-  assert(homeHtml.includes("data-three-coin-home-stage"), "Homepage Three-Coin single-stage scaffold is missing from initial HTML");
+  assert(homeHtml.includes("data-three-coin-ritual"), "Homepage Three-Coin single-stage scaffold is missing from initial HTML");
   assert(!homeHtml.includes('"@type":"FAQPage"'), "Homepage must not keep FAQ structured data after the visible FAQ was removed");
 
   for (const path of INDEXABLE_PATHS) {
@@ -138,7 +138,19 @@ async function verifyHttpAndSeo() {
     assert(!/name="robots" content="[^"]*noindex/i.test(html), `${path}: indexable page unexpectedly noindex`);
   }
 
-  const noindexPaths = ["/pricing", "/help", "/privacy", "/terms", "/acceptable-use", "/readings/result"];
+  const noindexPaths = [
+    "/pricing",
+    "/help",
+    "/privacy",
+    "/terms",
+    "/acceptable-use",
+    "/zh/help",
+    "/zh/privacy",
+    "/zh/terms",
+    "/zh/acceptable-use",
+    "/readings/result",
+    "/zh/readings/result",
+  ];
   for (const path of noindexPaths) {
     const response = await expectStatus(path, 200);
     const html = await response.text();
@@ -155,7 +167,7 @@ async function verifyHttpAndSeo() {
   const locs = [...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]).sort();
   const expectedLocs = SITEMAP_PATHS.map((path) => new URL(path, "https://www.quickiching.com").toString()).sort();
   assert.deepEqual(locs, expectedLocs, "Sitemap must contain exactly the 73 English and 73 Chinese canonical Public V1 pages");
-  for (const forbidden of ["/pricing", "/signin", "/three-coin-method", "/checkout", "/readings/result", "/en", "vercel.app"]) {
+  for (const forbidden of ["/pricing", "/signin", "/three-coin-method", "/checkout", "/readings/three-coin/result", "/en", "vercel.app"]) {
     assert(!sitemapXml.includes(forbidden), `Sitemap contains forbidden entry: ${forbidden}`);
   }
 
@@ -184,6 +196,15 @@ async function verifyHttpAndSeo() {
     const response = await expectStatus(path, 308);
     const location = new URL(response.headers.get("location"), BASE);
     assert.equal(location.pathname, destination, `${path}: wrong redirect destination`);
+  }
+
+  for (const [path, destination] of [
+    ["/readings/three-coin/result", "/readings/result"],
+    ["/zh/readings/three-coin/result", "/zh/readings/result"],
+  ]) {
+    const response = await expectStatus(path, 307);
+    const location = new URL(response.headers.get("location"), BASE);
+    assert.equal(location.pathname, destination, `${path}: wrong canonical result redirect`);
   }
 
   const castingMethods = await expectStatus("/casting-methods", 308);
@@ -242,7 +263,7 @@ async function clickButton(page, label) {
     );
   }
   const clicked = await page.evaluate((wanted) => {
-    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim().replace(/^☯\s*/u, "") === wanted || node.textContent?.trim().replace(/^☯\s*/u, "").startsWith(wanted));
+    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === wanted || node.textContent?.trim().startsWith(wanted));
     if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
     button.click();
     return true;
@@ -306,15 +327,56 @@ async function assertNoOverflow(page) {
   assert(overflow.scrollWidth <= overflow.clientWidth + 1, `Horizontal overflow: ${overflow.scrollWidth} > ${overflow.clientWidth}`);
 }
 
-async function assertBasicResult(page) {
-  await page.waitForSelector("[data-shared-reading-summary]");
-  const resultText = await page.$eval("[data-shared-reading-summary]", node => node.textContent || "");
-  for (const expected of ["Your Question", "Primary Hexagram", "Changing Line", "Relating Hexagram", "Deep Reading", "Free Reading"]) {
-    assert(resultText.includes(expected), `Reading summary missing: ${expected}`);
+async function assertCompletedMethodHandoff(page, expectedMethod) {
+  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+  assert.equal(await page.$("[data-public-reading-result]"), null, `${expectedMethod}: unsigned completed cast must remain behind the save/auth gate`);
+
+  const completed = await page.evaluate((storageKey) => {
+    const raw = sessionStorage.getItem(storageKey);
+    if (!raw) return null;
+    const reading = JSON.parse(raw);
+    return {
+      raw,
+      id: reading?.id ?? null,
+      method: reading?.method ?? null,
+      methodVersion: reading?.methodVersion ?? null,
+      lineValuesBottomUp: reading?.lineValuesBottomUp ?? null,
+      evidenceKind: reading?.evidence?.kind ?? null,
+      yarrowLineCount: Array.isArray(reading?.evidence?.lines) ? reading.evidence.lines.length : null,
+      yarrowChangesPerLine: Array.isArray(reading?.evidence?.lines)
+        ? reading.evidence.lines.map((line) => Array.isArray(line?.changes) ? line.changes.length : null)
+        : null,
+      meiHuaConventionId: reading?.evidence?.calculation?.methodCalculation?.conventionId ?? null,
+      meiHuaUtcMillis: reading?.evidence?.calculation?.methodCalculation?.utcMillis ?? null,
+      meiHuaTimeZone: reading?.evidence?.calculation?.methodCalculation?.ianaTimeZone ?? null,
+    };
+  }, "quickiching:public-v1:completed-reading");
+
+  assert(completed, `${expectedMethod}: completed-reading handoff was not persisted`);
+  assert.equal(completed.method, expectedMethod, `${expectedMethod}: completed-reading method mismatch`);
+  assert.equal(completed.evidenceKind, expectedMethod, `${expectedMethod}: completed-reading evidence mismatch`);
+  assert.equal(completed.lineValuesBottomUp?.length, 6, `${expectedMethod}: completed-reading must preserve all six lines`);
+  assert(completed.lineValuesBottomUp.every((value) => [6, 7, 8, 9].includes(value)), `${expectedMethod}: completed-reading contains an invalid line value`);
+
+  const currentUrl = new URL(page.url());
+  assert.equal(currentUrl.searchParams.get("session"), completed.id, `${expectedMethod}: result URL must preserve the exact completed-reading id`);
+
+  if (expectedMethod === "yarrow-stalks") {
+    assert.equal(completed.yarrowLineCount, 6, "Yarrow completed-reading must preserve six evidence lines");
+    assert.deepEqual(completed.yarrowChangesPerLine, [3, 3, 3, 3, 3, 3], "Yarrow completed-reading must preserve all 18 changes");
+  } else if (expectedMethod === "mei-hua-yi-shu") {
+    assert.equal(completed.methodVersion, "mei-hua-gregorian-current-time-v2", "Mei Hua completed-reading algorithm version mismatch");
+    assert.equal(completed.meiHuaConventionId, "quickiching-gregorian-current-time-v2", "Mei Hua completed-reading public convention mismatch");
+    assert(Number.isFinite(completed.meiHuaUtcMillis), "Mei Hua completed-reading must preserve the exact UTC casting moment");
+    assert.equal(completed.meiHuaTimeZone, "Asia/Singapore", "Mei Hua completed-reading must preserve the chosen IANA timezone");
   }
-  assert.equal(await page.$('[data-auth-required-before-reveal]'), null);
-  assert.equal(await page.$$eval('[data-summary-primary] [data-line-position]', nodes => nodes.length), 6);
-  assert.equal(await page.$eval('.shared-reading-content', node => getComputedStyle(node).display), 'none');
+
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+  const preservedRaw = await page.evaluate((storageKey) => sessionStorage.getItem(storageKey), "quickiching:public-v1:completed-reading");
+  assert.equal(preservedRaw, completed.raw, `${expectedMethod}: refresh must preserve the exact completed cast before authentication`);
+  assert.equal(await page.$("[data-public-reading-result]"), null, `${expectedMethod}: refresh must not reveal before authentication`);
 }
 
 async function waitForRecordedLines(page,count) {
@@ -322,7 +384,7 @@ async function waitForRecordedLines(page,count) {
 }
 
 async function skipOptionalQuestion(page) {
-  const homeRitual = await page.$("[data-three-coin-home-stage]") !== null;
+  const formalRitual = await page.$("[data-three-coin-ritual]") !== null;
   const skipped = await page.evaluate(() => {
     const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Skip — free reading only");
     if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
@@ -330,7 +392,7 @@ async function skipOptionalQuestion(page) {
     return true;
   });
   assert(skipped, "Question skip must clearly leave this cast free-only");
-  if (homeRitual) {
+  if (formalRitual) {
     await page.waitForSelector("[data-question-confirm]", { timeout: 5000 });
     await clickButton(page, "Cast the Coins");
     await page.waitForSelector(".hold-button:not(:disabled)");
@@ -427,16 +489,16 @@ async function finishThreeCoin(page) {
   assert.equal(castLineValues?.length, 6, "Completed Three-Coin reading must preserve all six cast lines");
   assert(castLineValues.every((value) => [6, 7, 8, 9].includes(value)), "Completed Three-Coin reading must preserve valid line values");
 
-  await page.waitForSelector("[data-shared-reading-summary]");
-  assert.equal(await page.$("[data-auth-required-before-reveal]"), null, "Basic cast must be visible anonymously");
-  assert(await page.$("[data-summary-primary]"), "Primary hexagram must be in the anonymous summary");
-  assert(await page.$('[data-reading-choice="deep"]'), "Summary must offer Deep Reading");
-  assert(await page.$('[data-reading-choice="free"]'), "Summary must offer Free Reading");
-  assert.equal(await page.$eval(".shared-reading-content", node => getComputedStyle(node).display), "none", "Reading content stays behind selection/login");
-  const fingerprint = await page.$eval("[data-public-reading-result]", node => node.dataset.readingFingerprint);
+  await waitForText(page, "Your six lines are complete");
+  await waitForText(page, "Sign In to Save & Reveal");
+  assert(await page.$("[data-auth-required-before-reveal]"), "Anonymous completed cast must enter auth-before-reveal gate");
+  assert.equal(await page.$("[data-primary-card]"), null, "Primary hexagram must not reveal before authentication and account persistence");
+  assert.equal(await page.$("[data-deep-reading-entry]"), null, "Deep Reading must remain downstream of the result reveal gate");
+
+  const gateBeforeRefresh = await page.$eval("main", (node) => node.textContent ?? "");
   await page.reload({ waitUntil: "networkidle0" });
-  await page.waitForSelector("[data-shared-reading-summary]");
-  assert.equal(await page.$eval("[data-public-reading-result]", node => node.dataset.readingFingerprint), fingerprint, "Refresh must preserve the cast fingerprint");
+  await waitForText(page, "Your six lines are complete");
+  assert.equal(await page.$eval("main", (node) => node.textContent ?? ""), gateBeforeRefresh, "Anonymous auth gate must restore the same completed cast after refresh");
   const sealedAfterRefresh = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
   assert.equal(sealedAfterRefresh, sealedBeforeGate, "Auth gate refresh must not alter the completed six-line cast");
 }
@@ -457,82 +519,16 @@ async function finishYarrow(page, verifyResume) {
     await clickButton(page, "Perform change");
     await waitForText(page, `${change} / 18 changes`);
   }
-  await assertBasicResult(page);
-  // Explicit local auth seam: Free now requires login. Reuse the existing restart
-  // action after entry without claiming a real provider/account round trip.
-  const authRequest = request => new URL(request.url()).pathname === '/api/user/me'
-    ? request.respond({status:200,contentType:'application/json',body:JSON.stringify({user:{id:'browser-auth-seam',email:'qa@example.invalid'}})})
-    : request.continue();
-  await page.setRequestInterception(true);
-  page.on('request', authRequest);
-  try {
-    await clickButton(page, 'Free Reading');
-    await page.waitForSelector('[data-reading-open="free"]');
-    await Promise.all([page.waitForNavigation({waitUntil:'networkidle0'}), clickButton(page, 'Start a New Reading')]);
-    await page.waitForSelector('textarea[data-private-question]');
-    await skipOptionalQuestion(page);
-    await waitForText(page, '0 / 18 changes');
-  } finally {
-    page.off('request', authRequest);
-    await page.setRequestInterception(false);
-  }
+  await assertCompletedMethodHandoff(page, "yarrow-stalks");
 }
 
 async function finishMeiHua(page) {
-  const question = "What should I understand about this decision?";
-  await page.waitForSelector("#mei-hua-question");
-  await page.type("#mei-hua-question", question);
-  await clickButton(page, "Continue");
-  await waitForText(page, "Choose a Number");
-
-  await page.type("#mei-hua-number", "17");
-  await clickButton(page, "✎ Edit");
-  await page.waitForSelector("#mei-hua-question");
-  await page.locator("#mei-hua-question").fill(question + " now");
-  await clickButton(page, "Continue");
-  await waitForText(page, "Choose a Number");
-  assert.equal(await page.$eval("#mei-hua-number", (node) => node.value), "", "Changing the question must clear the unconfirmed number");
-
-  await page.type("#mei-hua-number", "17");
-  await clickButton(page, "Continue");
-  await waitForText(page, "Confirm Your Number");
-  await waitForText(page, "Current Date");
-  await waitForText(page, "Local Time");
-  await waitForText(page, "Time Zone");
-
-  const beforeConfirm = await page.evaluate(() => {
-    const raw = sessionStorage.getItem("quickiching:public-v1:mei-hua-number-time-v1");
-    return raw ? JSON.parse(raw) : null;
-  });
-  assert(beforeConfirm, "Mei Hua question session must exist before confirmation");
-  assert(!("data" in beforeConfirm), "Mei Hua must not create formal cast data before Confirm & Cast");
-
-  await clickButton(page, "Confirm & Cast");
-  await waitForText(page, "Hexagram calculation is not yet available for this locked cast.");
-  await page.waitForSelector("[data-mei-hua-locked='true']");
-  assert.equal(await page.$('[data-mei-hua-step="4"]'), null, "No Mei Hua Step 4 is allowed");
-  const sealed = await page.evaluate(() => {
-    const raw = sessionStorage.getItem("quickiching:public-v1:mei-hua-number-time-v1");
-    return raw ? JSON.parse(raw) : null;
-  });
-  assert.equal(sealed?.coreQuestionFrozenAtCast, true, "Mei Hua question must freeze at Confirm & Cast");
-  assert.equal(sealed?.coreQuestionAtCast, question + " now", "Mei Hua must freeze the edited question");
-  assert.equal(sealed?.data?.input?.number, 17, "Mei Hua must seal the confirmed number");
-  assert(Number.isFinite(sealed?.data?.input?.utcMillis), "Mei Hua must seal an exact UTC timestamp");
-  assert.equal(typeof sealed?.data?.input?.ianaTimeZone, "string", "Mei Hua must seal the IANA timezone");
-  assert.equal(sealed?.data?.algorithmStatus, "unverified", "Mei Hua must expose the unverified number-time algorithm boundary");
-  assert(!sealed?.data?.result, "Mei Hua must not fabricate a result before the number-time algorithm is approved");
-
-  assert.equal(await page.$("[data-mei-hua-view-reading]"), null, "No second result confirmation page is allowed");
-  assert.equal(await page.$$eval("[data-public-reading-result]", (nodes) => nodes.length), 0, "No shared reading may be fabricated");
-
-  const sealedSnapshot = JSON.stringify(sealed.data.input);
-  await page.reload({ waitUntil: "networkidle0", timeout: 30_000 });
-  await waitForText(page, "Hexagram calculation is not yet available for this locked cast.");
-  await page.waitForSelector("[data-mei-hua-locked='true']");
-  const restored = await page.evaluate(() => JSON.parse(sessionStorage.getItem("quickiching:public-v1:mei-hua-number-time-v1") || "null"));
-  assert.equal(JSON.stringify(restored.data.input), sealedSnapshot, "Refresh must restore the same formal Mei Hua cast");
-  assert.equal(await page.$$eval("#mei-hua-question, #mei-hua-number", (nodes) => nodes.length), 0, "A formal Mei Hua cast must not become editable after refresh");
+  await page.waitForSelector("#mei-hua-timezone");
+  const labelExists = await page.evaluate(() => Boolean(document.querySelector('label[for="mei-hua-timezone"]')));
+  assert(labelExists, "Mei Hua timezone input is missing its label");
+  await page.locator("#mei-hua-timezone").fill("Asia/Singapore");
+  await clickButton(page, "Cast current time");
+  await assertCompletedMethodHandoff(page, "mei-hua-yi-shu");
 }
 
 async function runPage(browser, { path, viewport, flow, label, skipQuestion = true }) {
@@ -542,6 +538,9 @@ async function runPage(browser, { path, viewport, flow, label, skipQuestion = tr
   const failures = attachFailureCollectors(page);
   try {
     await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
+    for (const button of await page.$$('[aria-label="Analytics Consent"] button')) {
+      if (await button.evaluate(node => node.textContent?.trim() === "Decline")) await button.click();
+    }
     if (skipQuestion) await skipOptionalQuestion(page);
     await flow(page);
     await assertNoOverflow(page);
@@ -565,47 +564,74 @@ async function verifyBrowserFlows() {
   try {
     const desktop = { width: 1440, height: 1000 };
     const mobile = { width: 375, height: 812 };
-    await runPage(browser, { path: "/", viewport: desktop, flow: verifyThreeCoinTransactionSemantics, label: "Desktop Three Coin → commit/reveal/cancel semantics" });
-    await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → completed cast → anonymous summary" });
-    await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → V1 result/reset" });
-    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → three-step locked cast", skipQuestion: false });
+    const infoRoutePairs = [
+      ["/guides/how-to-ask-the-i-ching", "/zh/guides/how-to-ask-the-i-ching"],
+      ["/guides/changing-lines", "/zh/guides/changing-lines"],
+      ["/guides/primary-relating-hexagrams", "/zh/guides/primary-relating-hexagrams"],
+      ["/help", "/zh/help"],
+      ["/privacy", "/zh/privacy"],
+      ["/terms", "/zh/terms"],
+      ["/acceptable-use", "/zh/acceptable-use"],
+    ];
 
-    await runPage(browser, { path: "/", viewport: mobile, flow: finishThreeCoin, label: "375px homepage → Three Coin → anonymous summary" });
-    await runPage(browser, { path: "/methods/yarrow-stalks", viewport: mobile, flow: (page) => finishYarrow(page, false), label: "375px Yarrow → V1 result" });
-    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → three-step locked cast", skipQuestion: false });
+    for (const viewport of [desktop, { width: 320, height: 800 }]) {
+      for (const [enPath, zhPath] of infoRoutePairs) {
+        for (const [path, targetPath, targetLang] of [
+          [enPath, zhPath, "zh-Hans"],
+          [zhPath, enPath, "en"],
+        ]) {
+          await runPage(browser, {
+            path,
+            viewport,
+            label: `${viewport.width}px Info ${path}`,
+            skipQuestion: false,
+            flow: async (page) => {
+              await page.waitForSelector('[data-info-page="true"]', { timeout: 5000 });
+              const headerVisible = await page.$eval("body > header", (node) => Boolean(node.getClientRects().length));
+              assert(headerVisible, `${path}: formal Info header is not visible`);
+              assert.equal(await page.$(".scene-navigation"), null, `${path}: SceneNavigation must not replace the approved Info page header`);
+              const languageTarget = await page.$eval(
+                `header [data-language-switcher] a[lang="${targetLang}"]`,
+                (node) => node.getAttribute("href"),
+              );
+              assert.equal(languageTarget, targetPath, `${path}: equivalent language target mismatch`);
+              assert.equal(await page.$("body > footer"), null, `${path}: retired global footer is still mounted`);
+            },
+          });
+        }
+      }
+    }
+    log("14 bilingual Info routes × desktop/320px formal shell, locale switch, no-footer and overflow checks PASS");
+    await runPage(browser, { path: "/", viewport: desktop, flow: verifyThreeCoinTransactionSemantics, label: "Desktop Three Coin → commit/reveal/cancel semantics" });
+    await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → completed cast → auth-before-reveal" });
+    await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → unified result auth handoff" });
+    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → unified result auth handoff" });
+
+    await runPage(browser, { path: "/", viewport: mobile, flow: finishThreeCoin, label: "375px homepage → Three Coin → auth-before-reveal" });
+    await runPage(browser, { path: "/methods/yarrow-stalks", viewport: mobile, flow: (page) => finishYarrow(page, false), label: "375px Yarrow → unified result auth handoff" });
+    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → unified result auth handoff" });
 
     for (const viewport of [{ width: 320, height: 800 }, { width: 390, height: 844 }]) {
       await runPage(browser, {
         path: "/",
         viewport,
-        label: `${viewport.width}px navigation/single-stage/footer`,
+        label: `${viewport.width}px scene-navigation/single-stage`,
         skipQuestion: false,
         flow: async (page) => {
           await page.waitForFunction((wanted) => document.querySelector("h1")?.textContent === wanted, { timeout: 15_000 }, HOME_H1);
-          assert(await page.$("[data-three-coin-home-stage][data-experience-stage='landing']"), "Single-stage homepage landing is missing");
-          const mobileTrigger = await page.$('header button[aria-controls^="nav-drawer-"]');
-          assert(mobileTrigger, "Mobile navigation trigger missing");
-          const triggerVisible = await page.$eval(
-            'header button[aria-controls^="nav-drawer-"]',
-            (node) => Boolean(node.getClientRects().length && getComputedStyle(node).display !== "none"),
-          );
-          assert(triggerVisible, "Mobile navigation trigger not visible");
-          await mobileTrigger.click();
-          await page.waitForSelector('[role="dialog"][aria-modal="true"]', { timeout: 5000 });
-          const drawerNavigation = await page.$eval(
-            '[role="dialog"][aria-modal="true"] nav',
-            (node) => ({
-              visible: Boolean(node.getClientRects().length),
-              links: [...node.querySelectorAll("a[href]")].filter((link) => link.getClientRects().length).length,
-            }),
-          );
-          assert(drawerNavigation.visible, "Mobile drawer navigation not visible");
-          assert(drawerNavigation.links > 0, "Mobile drawer navigation links missing");
+          assert(await page.$("[data-three-coin-ritual][data-experience-stage='landing']"), "Single-stage homepage landing is missing");
+          const navigation = await page.$(".scene-navigation");
+          assert(navigation, "SceneNavigation missing");
+          assert.equal(await page.$('[role="dialog"][aria-modal="true"]'), null, "Retired mobile drawer is still mounted");
+          const methodsTrigger = await page.$(".scene-scroll-methods");
+          assert(methodsTrigger, "Other Methods trigger missing");
+          await methodsTrigger.click();
+          await page.waitForFunction(() => document.querySelector(".scene-navigation")?.getAttribute("data-scene-panel") === "methods", { timeout: 5000 });
+          assert(await page.$(".scene-methods-panel:not([hidden])"), "Other Methods scene panel did not open");
           await page.keyboard.press("Escape");
-          await page.waitForFunction(() => !document.querySelector('[role="dialog"][aria-modal="true"]'), { timeout: 5000 });
+          await page.waitForFunction(() => document.querySelector(".scene-navigation")?.getAttribute("data-scene-panel") === "closed", { timeout: 5000 });
           assert.equal(await page.$("summary"), null, "Single-stage homepage must not retain the old FAQ accordion");
-          const footerVisible = await page.$eval("footer", (node) => Boolean(node.getClientRects().length));
-          assert(footerVisible, "Footer not visible");
+          assert.equal(await page.$("body > footer"), null, "Retired global footer is still mounted");
         },
       });
     }

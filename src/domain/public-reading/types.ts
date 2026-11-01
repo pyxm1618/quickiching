@@ -24,9 +24,7 @@ export const PUBLIC_METHOD_VERSIONS: Record<PublicReadingMethod, string> = {
 };
 
 export function isSupportedPublicMethodVersion(method: PublicReadingMethod, version: string): boolean {
-  if (method === "mei-hua-yi-shu") {
-    return version === PUBLIC_METHOD_VERSIONS[method] || version === LEGACY_MEI_HUA_METHOD_VERSION;
-  }
+  if (method === "mei-hua-yi-shu") return version === PUBLIC_METHOD_VERSIONS[method] || version === LEGACY_MEI_HUA_METHOD_VERSION;
   return version === PUBLIC_METHOD_VERSIONS[method];
 }
 
@@ -50,10 +48,6 @@ export type PublicReadingEvidence =
       mode: "line-values" | "primary-changing";
       primaryHexagramNumber?: number;
       changingLines?: readonly number[];
-    }
-  | {
-      kind: "history";
-      originalMethod: PublicReadingMethod;
     };
 
 export type PublicReading = {

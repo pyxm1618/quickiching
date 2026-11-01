@@ -1,12 +1,13 @@
 
 import type { Metadata } from "next";
+import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
 import { LegalPageLayout, type LegalSection } from "@/components/info-pages/legal-page-layout";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
   description: "Terms for using Quick I Ching casting methods, accounts, reading credits, and Deep Reading.",
-  alternates: { canonical: "/terms" },
+  alternates: { canonical: "/terms", languages: alternateLanguages("terms") },
   robots: { index: false, follow: true },
 };
 
@@ -23,5 +24,5 @@ const SECTIONS: readonly LegalSection[] = [
 ];
 
 export default function TermsPage() {
-  return <LegalPageLayout title="Terms of Service" updated="Last updated: September 27, 2026" sections={SECTIONS} footer={<p>See the <Link href="/privacy">Privacy Policy</Link> for data handling details.</p>} />;
+  return <LegalPageLayout title="Terms of Service" lead={metadata.description as string} updated="Last updated: September 27, 2026" sections={SECTIONS} footer={<p>See the <Link href="/privacy">Privacy Policy</Link> for data handling details.</p>} />;
 }

@@ -12,7 +12,6 @@ export function RefundRequestControl(props: {
   orderStatus: string;
   existingRefund: ExistingRefund | null;
   locale?: "en" | "zh-Hans";
-  presentation?: "modal";
   onRecorded?: () => void;
 }) {
   const zh = props.locale === "zh-Hans";
@@ -71,13 +70,7 @@ export function RefundRequestControl(props: {
   }
 
   return (
-    <div className={props.presentation === "modal" ? "qic-account-refund-form" : "mt-3 rounded-md border border-[var(--line)] p-3"}>
-      {props.presentation !== "modal" && <>
-      <p className="text-sm font-medium">{t("Request a refund", "申请退款")}</p>
-      <p className="mt-1 text-xs leading-5 text-[var(--ink-3)]">
-        {t("Requests must be submitted within 7 days. Submission starts review only; it does not issue a refund automatically.", "退款申请须在购买后 7 天内提交。提交只会进入审核流程，不会自动发出退款。")}
-      </p>
-      </>}
+    <div className="qic-account-refund-form">
       <label className="mt-3 block text-xs font-medium" htmlFor={`refund-reason-${props.orderId}`}>
         {t("Reason", "退款原因")}
       </label>

@@ -12,10 +12,11 @@ vi.mock("next/link", () => ({
 }));
 
 import { ThreeCoinResultClient, getResultRevealGate, getTerminalCreditReconciliation, hasRequiredInterpretationBundles } from "./three-coin-result-client";
-import { CommercialReadingReportView } from "./commercial-reading-report-view";
+import { AiDeepReadingResult } from "./ai-deep-reading-result";
 import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
+import { normalizeDeepReadingViewModel } from "@/domain/generation/deep-reading-view-model";
 
 const ZH_TEST_READING_CONTENT = zhHansReadingContentFor([1, 9]);
 
@@ -49,12 +50,12 @@ describe("ThreeCoinResultClient Deep Reading credit reconciliation", () => {
   });
 });
 
-describe("ThreeCoinResultClient explicit Deep Reading persistence gate", () => {
+describe("ThreeCoinResultClient auth-save-reveal gate", () => {
   it("requires authentication before reveal", () => {
     expect(getResultRevealGate({ authenticated: false, castingId: null, persistenceStatus: "idle" })).toBe("auth-required");
   });
 
-  it("keeps a signed-in completed cast behind saving until History persistence succeeds", () => {
+  it("keeps a signed-in completed cast behind saving until account persistence succeeds", () => {
     expect(getResultRevealGate({ authenticated: true, castingId: null, persistenceStatus: "idle" })).toBe("saving");
     expect(getResultRevealGate({ authenticated: true, castingId: null, persistenceStatus: "saving" })).toBe("saving");
     expect(getResultRevealGate({ authenticated: true, castingId: null, persistenceStatus: "error" })).toBe("save-error");
@@ -65,23 +66,22 @@ describe("ThreeCoinResultClient explicit Deep Reading persistence gate", () => {
     expect(getResultRevealGate({ authenticated: false, castingId: "cast_1", persistenceStatus: "saved" })).toBe("auth-required");
   });
 
-  it("renders anonymous basic results and closed Free/Deep entrances", () => {
+  it("renders an anonymous completed cast as an auth gate without leaking the free result", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
         locale="en"
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on?" }}
       />,
     );
-    expect(html).not.toContain('data-completed-cast-gate');
-    expect(html).toContain("data-shared-reading-summary");
-    expect(html).toContain('data-reading-open="none"');
-    expect(html).toContain('data-reading-choice="free"');
-    expect(html).toContain('data-reading-choice="deep"');
+    expect(html).toContain('data-completed-cast-gate="auth-required"');
+    expect(html).toContain("Sign in to save and reveal this reading");
+    expect(html).toContain("data-completed-six-lines");
+    expect(html).not.toContain("data-primary-card");
     expect(html).not.toContain("data-ritual-result-card");
     expect(html).not.toContain("data-deep-reading-entry");
   });
 
-  it("renders basic results before signed-in account persistence finishes", () => {
+  it("renders a signed-in unsaved completed cast as saving without leaking the free result", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
         locale="en"
@@ -89,9 +89,9 @@ describe("ThreeCoinResultClient explicit Deep Reading persistence gate", () => {
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on?" }}
       />,
     );
-    expect(html).not.toContain('data-completed-cast-gate');
-    expect(html).toContain("data-shared-reading-summary");
-    expect(html).toContain('data-reading-open="none"');
+    expect(html).toContain('data-completed-cast-gate="saving"');
+    expect(html).toContain("data-account-reading-saving");
+    expect(html).not.toContain("data-primary-card");
     expect(html).not.toContain("data-ritual-result-card");
     expect(html).not.toContain("data-deep-reading-entry");
   });
@@ -109,7 +109,7 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
       method: "three-coin",
       methodVersion: "three-coin-v1",
       lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-      evidence: { kind: "history", originalMethod: "three-coin" },
+      evidence: { kind: "three-coin", steps: [] },
     });
     expect(still.relatingHexagram).toBeNull();
     const primary = await loadHexagramInterpretation(still.primaryHexagram);
@@ -123,7 +123,7 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
       method: "three-coin",
       methodVersion: "three-coin-v1",
       lineValuesBottomUp: [9, 7, 7, 7, 7, 7],
-      evidence: { kind: "history", originalMethod: "three-coin" },
+      evidence: { kind: "three-coin", steps: [] },
     });
     expect(moving.relatingHexagram).not.toBeNull();
     const movingPrimary = await loadHexagramInterpretation(moving.primaryHexagram);
@@ -146,7 +146,7 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
       method: "three-coin",
       methodVersion: "three-coin-v1",
       lineValuesBottomUp: lineValues,
-      evidence: { kind: "history", originalMethod: "three-coin" },
+      evidence: { kind: "three-coin", steps: [] },
     });
     const primary = await loadHexagramInterpretation(current.primaryHexagram);
     const relating = await loadHexagramInterpretation(current.relatingHexagram!);
@@ -161,7 +161,6 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
           castingId: "cast_saved",
           context: "",
           lineValuesBottomUp: lineValues,
-          readingReport: null,
           owns: true,
         }}
       />,
@@ -195,7 +194,6 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
             castingId: "cast_risk",
             context: question,
             lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-            readingReport: null,
             owns: true,
           }} />;
       const freeHtml = renderToStaticMarkup(result);
@@ -227,7 +225,6 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           castingId: "cast_risk_zh",
           context: question,
           lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-          readingReport: null,
           owns: true,
         }}
       />,
@@ -241,14 +238,14 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).not.toContain("data-primary-card");
   });
 
-  it("keeps anonymous high-risk basic results visible and both reading entries closed", () => {
+  it("keeps an anonymous high-risk completed cast behind the auth gate without leaking interpretation", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "我是否应该停止服用处方药？" }} />,
     );
-    expect(html).not.toContain('data-completed-cast-gate');
-    expect(html).toContain("data-shared-reading-summary");
-    expect(html).toContain('data-reading-open="none"');
+    expect(html).toContain('data-completed-cast-gate="auth-required"');
+    expect(html).toContain("登录、保存并查看本次卦象");
+    expect(html).not.toContain("data-primary-card");
     expect(html).not.toContain("免费卦象解读仍可完整查看");
   });
 
@@ -331,17 +328,20 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           createdAt: "2026-09-25T10:00:00.000Z",
           context: "事业测试",
           lineValuesBottomUp: [7, 7, 7, 9, 7, 7],
-          readingReport: mockReport,
+          deepReadingViewModel: normalizeDeepReadingViewModel(mockReport),
           owns: true,
         }}
       />,
     );
-    expect(html).toContain('href="/zh/my-readings"');
-    expect(html).not.toContain('href="/my-readings"');
-    expect(html).toContain("已保存到账户历史记录");
-    expect(html).toContain("旧版报告格式");
+    expect(html).not.toContain('href="/zh/my-readings"');
+    expect(html).toContain("AI 深度解读");
+    expect(html).toContain("核心回答");
     expect(html).toContain("测试摘要");
-    expect(html).not.toContain('data-save-reading');
+    expect(html).toContain("查看完整卦象解读");
+    expect(html).toContain('href="/zh/readings/result?session=cast_1"');
+    expect(html).not.toContain("旧版报告格式");
+    expect(html).not.toContain("起卦依据");
+    expect(html).not.toContain(["data", "save", "reading"].join("-"));
     expect(html).toContain('data-deep-reading-page');
   });
 
@@ -393,14 +393,19 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           castingId: "cast_1",
           context: "Career test",
           lineValuesBottomUp: [7, 7, 7, 9, 7, 7],
-          readingReport: mockReport,
+          deepReadingViewModel: normalizeDeepReadingViewModel(mockReport),
           owns: true,
         }}
       />,
     );
-    expect(html).toContain('href="/my-readings"');
+    expect(html).not.toContain('href="/my-readings"');
     expect(html).not.toContain('href="/zh/my-readings"');
-    expect(html).toContain("The saved evidence bundle is unavailable.");
+    expect(html).toContain("AI Deep Reading");
+    expect(html).toContain(mockReport.directAnswer);
+    expect(html).toContain("View the Full Hexagram Interpretation");
+    expect(html).toContain('href="/readings/result?session=cast_1"');
+    expect(html).not.toContain("Cast Basis");
+    expect(html).not.toContain("The saved evidence bundle is unavailable.");
     expect(html).not.toContain("Unresolved evidence reference");
   });
 
@@ -429,7 +434,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         initialUser={{ id: "usr_1", email: "test@example.com" }}
         initialCredits={0}
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on now?" }}
-        initialCastingView={{ castingId: "cast_1", context: "Career test", lineValuesBottomUp: [7, 7, 7, 7, 7, 7], readingReport: null, owns: true }}
+        initialCastingView={{ castingId: "cast_1", context: "Career test", lineValuesBottomUp: [7, 7, 7, 7, 7, 7], owns: true }}
       />,
     );
 
@@ -454,7 +459,6 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           castingId: "cast_public_result",
           context: "这次变化中我应该先看清什么？",
           lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-          readingReport: null,
           owns: true,
         }}
       />,
@@ -490,7 +494,6 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           castingId: "cast_pricing_test",
           context: "我的核心问题是否能够解决？",
           lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-          readingReport: null,
           owns: true,
         }}
       />,
@@ -514,7 +517,6 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           castingId: "cast_pricing_test_en",
           context: "How should I approach this transition?",
           lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-          readingReport: null,
           owns: true,
         }}
       />,
@@ -529,13 +531,13 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     const mockReport = {
       schemaVersion: "deep-reading-v2" as const,
       readingVariant: "standard" as const,
-      directAnswer: "Direct answer text explaining the specific context in relation to the hexagram.",
-      situationMapping: "Situation mapping text with clear ties to the cast facts and user situation.",
+      directAnswer: "Direct answer text explaining the specific context in relation to the hexagram, while keeping the next move conditional on evidence that can actually be observed.",
+      situationMapping: "Situation mapping text with clear ties to the cast facts and user situation, explaining why the present transition calls for measured movement rather than a fixed prediction.",
       keyTensions: ["Tension between current stagnation and coming movement"],
-      conditionalDirection: "If external conditions stabilize, advance cautiously.",
+      conditionalDirection: "If external conditions stabilize and the relevant support becomes observable, advance cautiously with one reversible step before making a larger commitment.",
       signalsToWatch: ["Clear written agreement from the counterpart"],
-      practicalReflection: "Observe before making irreversible financial or career decisions.",
-      uncertaintyAndBoundaries: "Separate what the cast indicates from unknown organizational dynamics.",
+      practicalReflection: "Observe the concrete signals first, record what would count as reliable evidence, and avoid making an irreversible career decision until those conditions are actually present.",
+      uncertaintyAndBoundaries: "Separate what the cast indicates from unknown organizational dynamics, because the reading cannot establish another person’s decision or guarantee an external outcome.",
       interpretiveBasisReferences: [{ evidenceId: "primary.judgment" }],
       disclaimer: "Reflective interpretation only.",
     };
@@ -602,24 +604,34 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     };
 
     const htmlEn = renderToStaticMarkup(
-      <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="en" />,
+      <AiDeepReadingResult
+        model={normalizeDeepReadingViewModel(mockReport, mockSnapshot)!}
+        locale="en"
+        question={mockSnapshot.coreQuestionAtCast}
+        createdAt={mockSnapshot.snapshotAt}
+        freeHref="/readings/result?session=cast_test"
+      />,
     );
-    expect(htmlEn).toContain('data-legacy-report');
-    expect(htmlEn).toContain("Previously saved report · read only");
-    for (const heading of ["Direct Answer", "Why", "What Matters Most", "What To Do Next"]) expect(htmlEn).toContain(`>${heading}</h3>`);
+    expect(htmlEn).toContain('data-ai-deep-reading-report');
+    for (const heading of ["Core Answer", "Why This Is the Case", "What This Change Can Bring", "When It’s Worth Taking Action", "What You Should Do Now"]) expect(htmlEn).toContain(heading);
     expect(htmlEn).toContain(mockReport.situationMapping);
     expect(htmlEn).toContain(mockReport.conditionalDirection);
     expect(htmlEn).toContain(mockReport.practicalReflection);
-    expect(htmlEn).toContain('data-evidence-id="primary.judgment"');
-    expect(htmlEn).toContain("困：亨");
+    expect(htmlEn).toContain('href="/readings/result?session=cast_test"');
+    expect(htmlEn).not.toContain('data-evidence-id="primary.judgment"');
     expect(htmlEn).not.toContain(mockSnapshot.context.contextNotes);
 
     const htmlZh = renderToStaticMarkup(
-      <CommercialReadingReportView report={mockReport} snapshot={mockSnapshot} locale="zh-Hans" />,
+      <AiDeepReadingResult
+        model={normalizeDeepReadingViewModel(mockReport, mockSnapshot)!}
+        locale="zh-Hans"
+        question={mockSnapshot.coreQuestionAtCast}
+        createdAt={mockSnapshot.snapshotAt}
+        freeHref="/zh/readings/result?session=cast_test"
+      />,
     );
-    expect(htmlZh).toContain("此前保存的报告 · 只读");
-    for (const heading of ["直接回应", "为什么", "最值得关注的事", "接下来怎么做"]) expect(htmlZh).toContain(`>${heading}</h3>`);
-    expect(htmlZh).toContain("解读依据");
+    for (const heading of ["核心回答", "为什么会得出这个判断", "这件事可能带来什么变化", "什么情况下值得行动", "你现在应该做什么"]) expect(htmlZh).toContain(heading);
+    expect(htmlZh).toContain("查看完整卦象解读");
     expect(htmlZh).toContain(mockReport.uncertaintyAndBoundaries);
     expect(htmlZh).toContain(mockReport.disclaimer);
   });
@@ -628,7 +640,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
 
 describe("Deep Reading polling contract", () => {
   it("uses recursive timeout polling rather than an overlapping interval loop", () => {
-    const source = readFileSync(new URL("./three-coin-result-client.tsx", import.meta.url), "utf8");
+    const source = readFileSync(new URL("../reading-result/reading-result-client.tsx", import.meta.url), "utf8");
     expect(source).toContain("pollInFlightRef");
     expect(source).toContain('document.visibilityState === "hidden"');
     expect(source).toContain("setTimeout(() => { void poll(); }, delay)");
@@ -636,7 +648,7 @@ describe("Deep Reading polling contract", () => {
   });
 
   it("does not guess the post-reservation credit balance on the client", () => {
-    const source = readFileSync(new URL("./three-coin-result-client.tsx", import.meta.url), "utf8");
+    const source = readFileSync(new URL("../reading-result/reading-result-client.tsx", import.meta.url), "utf8");
     expect(source).not.toContain("setCredits((prev) => Math.max(0, prev - 1))");
     expect(source).toContain("setCredits(data.availableCredits)");
   });

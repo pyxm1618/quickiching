@@ -27,7 +27,7 @@ export function PurchaseView({ account, selectedPurchase, onSelectPurchase, zh, 
     <h2>{t("Request a Refund", "申请退款")}</h2>
     <p className="qic-account-rule">{t("Requests must be submitted within 7 days. Submission starts review only; it does not issue a refund automatically.", "退款申请须在购买后 7 天内提交。提交只会进入审核流程，不会自动发出退款。")}</p>
     <dl className="qic-refund-purchase"><dt>{t("Purchase Date", "购买日期")}</dt><dd>{purchaseDate(selectedPurchase.paidAt ?? selectedPurchase.createdAt, zh)}</dd><dt>{t("Pack", "套餐")}</dt><dd>{purchasePack(selectedPurchase, zh)}</dd><dt>{t("Amount", "金额")}</dt><dd>US${(selectedPurchase.amountMinor / 100).toFixed(2)}</dd></dl>
-    <RefundRequestControl key={selectedPurchase.id} orderId={selectedPurchase.id} orderStatus={selectedPurchase.status} existingRefund={selectedPurchase.refund} locale={zh ? "zh-Hans" : "en"} presentation="modal" onRecorded={onRefundRecorded} />
+    <RefundRequestControl key={selectedPurchase.id} orderId={selectedPurchase.id} orderStatus={selectedPurchase.status} existingRefund={selectedPurchase.refund} locale={zh ? "zh-Hans" : "en"} onRecorded={onRefundRecorded} />
   </section>;
   return <div className="qic-account-primary">
     <section className="qic-account-paper qic-account-identity"><h2><Diamond aria-hidden="true" />{t("Account", "账户")}</h2><dl><div><dt>{t("Email", "邮箱")}</dt><dd><Mail aria-hidden="true" />{account.email}</dd></div><div><dt>{t("Sign-in method", "登录方式")}</dt><dd>{account.signInMethods.length ? account.signInMethods.join(" + ") : t("Unknown", "未知")}</dd></div></dl></section>

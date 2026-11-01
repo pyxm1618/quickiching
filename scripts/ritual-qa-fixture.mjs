@@ -19,7 +19,7 @@ export default async function LocalResultFixture({searchParams}:{searchParams:Pr
  const lines=inputs.map((bits,index)=>{let draw=0;return generateThreeCoinLine(index as 0|1|2|3|4|5,()=>bits[draw++]).lineValue;});
  return <div className="ritual-result-scene" data-local-qa-fixture="saved-reading"><div className="ritual-room" aria-hidden="true"/>
   <ThreeCoinResultClient initialState={saving?undefined:{kind:'ready',lineValues:lines}} initialUser={{id:'local-visual-fixture',email:'fixture@example.invalid'}}
-   initialCastingView={saving?undefined:{castingId:'ritual-qa-saved-cast',context:'',lineValuesBottomUp:lines,readingReport:null,owns:true}}
+   initialCastingView={saving?undefined:{castingId:'ritual-qa-saved-cast',context:'',lineValuesBottomUp:lines,deepReadingViewModel:null,owns:true}}
    initialInterpretationBundles={{primary:await loadHexagramInterpretation(4),relating:null}}/>
  </div>;
 }

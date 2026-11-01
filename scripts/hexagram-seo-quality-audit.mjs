@@ -237,9 +237,8 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     && hasExactPhrase(inboundAnchor.text, entry.primaryKeyword, entry.locale));
   const isEnglishKnowledgePage = entry.locale === "en";
   const expectedH1 = isEnglishKnowledgePage ? CLASSICAL_HEXAGRAMS.find((hexagram) => hexagram.number === entry.number).englishName : entry.finalH1;
-  // The approved English knowledge design supersedes keyword/reading-intent UI slots.
-  // Omit non-applicable checks rather than recording them as passed. Metadata, language,
-  // source, inbound links, line anchors and actual knowledge sections remain required.
+  // EN and ZH share one knowledge-detail presentation. Locale-specific keyword placement
+  // remains where it is a real content requirement; retired reading-intent UI is not revived.
   const placement = {
     titleExact: snapshot.title === entry.finalTitle,
     descriptionExact: snapshot.description === entry.finalDescription,
@@ -253,7 +252,6 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     ...(!isEnglishKnowledgePage ? { primaryInH1: snapshot.h1.some((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)) } : {}),
     ...(!isEnglishKnowledgePage ? { primaryInEarlyCopy: hasExactPhrase(snapshot.earlyCopy, entry.primaryKeyword, entry.locale) } : {}),
     ...(!isEnglishKnowledgePage ? { primaryInH2: snapshot.h2.some((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)) } : {}),
-    ...(!isEnglishKnowledgePage ? { primaryInBreadcrumb: hasExactPhrase(snapshot.breadcrumb, entry.primaryKeyword, entry.locale) } : {}),
     primaryInboundAnchor: inboundAnchorValid,
     ...(!isEnglishKnowledgePage ? { secondaryInEarlyCopy: secondaryEarlyMatched.length > 0 } : {}),
   };
@@ -278,20 +276,14 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     hubToHome: siteGraph.hubHomeHref === expectedHomePath,
     hubToDetail: inboundAnchorValid,
     detailToHub: snapshot.detailHubHref === expectedHubPath,
-    ...(!isEnglishKnowledgePage ? { detailToHome: snapshot.detailHomeHref === expectedHomePath } : {}),
   };
-  const modules = isEnglishKnowledgePage ? {
+  const modules = {
     knowledgeSections: snapshot.hasKnowledgeSections,
     noLoveModule: !snapshot.hasLoveModule,
     noRelationshipGuidanceModule: !snapshot.hasRelationshipModule,
     noSpecialIntentModule: snapshot.specialModules.length === 0,
     sixLineHeadings: snapshot.lineHeadings.length === 6 && snapshot.lineHeadings.every(Boolean),
-  } : {
-    love: true,
-    unchanging: snapshot.h2.some((value) => hasExactPhrase(value, entry.unchangingKeyword, entry.locale)),
-    relationship: snapshot.hasRelationshipModule === Boolean(entry.relationshipKeyword),
-    special: (entry.specialKeywords ?? []).every((phrase) => hasExactPhrase(bodyText, phrase, entry.locale)),
-    sixKeywordedLineHeadings: snapshot.h3.filter((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)).length >= 6,
+    ...(!isEnglishKnowledgePage ? { sixKeywordedLineHeadings: snapshot.h3.filter((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)).length >= 6 } : {}),
   };
   const repetition = {
     mechanicalPrimaryRepetition: mechanicalPrimaryRepetition(bodyText, entry.primaryKeyword),
@@ -338,8 +330,10 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     keywordPresencePass: quality.primaryPresent,
     languageMostlyCorrect: quality.languageMostlyCorrect,
     languageContamination: quality.contamination,
-    presentationPolicy: isEnglishKnowledgePage ? "Approved English knowledge detail: entity-name H1; no keyword stuffing slots, reading-intent modules or detail-to-home link" : "Existing Chinese detail contract",
-    nonApplicablePresentationChecks: isEnglishKnowledgePage ? ["primaryInH1", "primaryInEarlyCopy", "primaryInH2", "primaryInBreadcrumb", "secondaryInEarlyCopy", "detailToHome", "love", "unchanging", "relationship", "special"] : [],
+    presentationPolicy: "Unified EN/ZH knowledge detail: one IA and presentation, locale-specific copy only; no retired reading-intent modules or detail-to-home CTA",
+    nonApplicablePresentationChecks: isEnglishKnowledgePage
+      ? ["primaryInH1", "primaryInEarlyCopy", "primaryInH2", "secondaryInEarlyCopy", "detailToHome", "love", "unchanging", "relationship", "special"]
+      : ["primaryInBreadcrumb", "detailToHome", "love", "unchanging", "relationship", "special"],
     placements: placement,
     linkGraph,
     modules,

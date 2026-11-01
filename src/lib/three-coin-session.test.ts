@@ -5,8 +5,9 @@ import {
   clearThreeCoinReading,
   completedThreeCoinSteps,
   parseThreeCoinSteps,
+  patchThreeCoinQuestionSession,
+  readThreeCoinQuestionState,
   readThreeCoinSession,
-  readThreeCoinSteps,
   THREE_COIN_SESSION_STORAGE_KEY,
   writeThreeCoinSteps,
 } from "./three-coin-session";
@@ -92,7 +93,7 @@ describe("Three-Coin browser session contract", () => {
       },
     }));
 
-    expect(() => readThreeCoinSteps()).toThrowError("THREE_COIN_SESSION_READ_FAILED");
+    expect(() => readThreeCoinSession()).toThrowError("THREE_COIN_SESSION_UNAVAILABLE");
   });
 
   it("throws a specific error when sessionStorage.setItem fails", () => {
@@ -113,6 +114,55 @@ describe("Three-Coin browser session contract", () => {
     }));
 
     expect(() => clearThreeCoinReading()).toThrowError("THREE_COIN_SESSION_CLEAR_FAILED");
+  });
+
+
+  it("does not revive the retired raw-array Three-Coin session model", () => {
+    const values = new Map<string, string>([
+      [THREE_COIN_SESSION_STORAGE_KEY, JSON.stringify(validSteps(2))],
+    ]);
+    vi.stubGlobal("window", {
+      sessionStorage: storageWith({
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+        removeItem: (key: string) => values.delete(key),
+      }),
+    });
+
+    expect(readThreeCoinSession()).toBeNull();
+    expect(readThreeCoinQuestionState()).toEqual({
+      started: false,
+      coreQuestionFrozenAtCast: false,
+    });
+  });
+
+  it("does not revive the retired unversioned object session model", () => {
+    const values = new Map<string, string>([
+      [THREE_COIN_SESSION_STORAGE_KEY, JSON.stringify({ steps: validSteps(2) })],
+    ]);
+    vi.stubGlobal("window", {
+      sessionStorage: storageWith({
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+        removeItem: (key: string) => values.delete(key),
+      }),
+    });
+
+    expect(readThreeCoinSession()).toBeNull();
+    expect(readThreeCoinQuestionState()).toEqual({
+      started: false,
+      coreQuestionFrozenAtCast: false,
+    });
+
+    expect(patchThreeCoinQuestionSession({
+      started: true,
+      question: "Should I continue?",
+    })).toBe(true);
+    expect(JSON.parse(values.get(THREE_COIN_SESSION_STORAGE_KEY) ?? "null")).toMatchObject({
+      schemaVersion: 1,
+      started: true,
+      question: "Should I continue?",
+    });
   });
 
   it("restores completed 6-line reading from localStorage backup when sessionStorage is empty (cross-tab return)", () => {
@@ -142,18 +192,31 @@ describe("Three-Coin browser session contract", () => {
       localStorage: fakeLocalStorage,
     });
 
-    // Write full 6 steps in the original tab
-    writeThreeCoinSteps(validSteps(6));
+    // Freeze the question and write the full six-line session in the original tab.
+    expect(patchThreeCoinQuestionSession({
+      started: true,
+      question: "Should I continue?",
+      coreQuestionAtCast: "Should I continue?",
+      coreQuestionFrozenAtCast: true,
+    })).toBe(true);
+    const original = writeThreeCoinSteps(validSteps(6));
     expect(sessionMemory.size).toBeGreaterThan(0);
     expect(backupStorage.size).toBeGreaterThan(0);
 
-    // Simulate opening a new tab: sessionStorage is empty, localStorage remains
+    // Simulate opening a new tab: sessionStorage is empty, localStorage remains.
     sessionMemory.clear();
-    expect(fakeSessionStorage.getItem("quickiching:public-v1:three-coin")).toBeNull();
+    expect(fakeSessionStorage.getItem(THREE_COIN_SESSION_STORAGE_KEY)).toBeNull();
 
-    // Read in new tab: automatically restores 6 steps from backup
+    // Restore the exact formal envelope: same cast id, timestamp, question and six lines.
     const restored = readThreeCoinSession();
-    expect(restored?.data?.steps.length).toBe(6);
-    expect(fakeSessionStorage.getItem("quickiching:public-v1:three-coin")).not.toBeNull();
+    expect(restored).toMatchObject({
+      id: original.id,
+      createdAt: original.createdAt,
+      question: "Should I continue?",
+      coreQuestionAtCast: "Should I continue?",
+      coreQuestionFrozenAtCast: true,
+    });
+    expect(restored?.data?.steps).toEqual(original.data?.steps);
+    expect(fakeSessionStorage.getItem(THREE_COIN_SESSION_STORAGE_KEY)).not.toBeNull();
   });
 });
