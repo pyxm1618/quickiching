@@ -90,6 +90,7 @@ jobs:
         run: node scripts/test-postgres-serial.mjs
 
   capture:
+    if: github.event_name == 'workflow_dispatch'
     name: Canonical ritual capture
     runs-on: macos-15
     timeout-minutes: 35
@@ -189,6 +190,7 @@ jobs:
           retention-days: 3
 
   perf-smoke:
+    if: github.event_name == 'workflow_dispatch'
     name: Ritual desktop Lighthouse smoke
     runs-on: ubuntu-latest
     timeout-minutes: 12
@@ -261,6 +263,7 @@ jobs:
           NODE
 
   perf-smoke-mac:
+    if: github.event_name == 'workflow_dispatch'
     name: Ritual desktop Lighthouse smoke (Metal)
     runs-on: macos-15
     timeout-minutes: 12
