@@ -9,7 +9,7 @@ import chromium from '@sparticuz/chromium';
 import { resolveChromeExecutable } from './browser-runtime.mjs';
 // Exercise the real components with explicit simulated network responses.
 const directory = await mkdtemp(join(tmpdir(),'qic-reading-browser-'));
-execFileSync('bun',['scripts/fixtures/build-reading-business-fixture.ts',directory],{stdio:'pipe'});
+execFileSync('bun',['scripts/fixtures/build-reading-business-fixture.mjs',directory],{stdio:'pipe'});
 const server = createServer(async (request,response) => {
   const path = new URL(request.url,'http://localhost').pathname;
   const asset = path === '/reading-business-entry.js' || path === '/reading-business-entry.css' ? path.slice(1) : null;
