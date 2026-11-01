@@ -115,6 +115,22 @@ describe("Three-Coin browser session contract", () => {
     expect(() => clearThreeCoinReading()).toThrowError("THREE_COIN_SESSION_CLEAR_FAILED");
   });
 
+
+  it("does not revive the retired raw-array Three-Coin session model", () => {
+    const values = new Map<string, string>([
+      [THREE_COIN_SESSION_STORAGE_KEY, JSON.stringify(validSteps(2))],
+    ]);
+    vi.stubGlobal("window", {
+      sessionStorage: storageWith({
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+        removeItem: (key: string) => values.delete(key),
+      }),
+    });
+
+    expect(readThreeCoinSession()).toBeNull();
+  });
+
   it("restores completed 6-line reading from localStorage backup when sessionStorage is empty (cross-tab return)", () => {
     const backupStorage = new Map<string, string>();
     const sessionMemory = new Map<string, string>();

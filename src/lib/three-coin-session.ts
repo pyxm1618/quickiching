@@ -61,10 +61,6 @@ export function parseThreeCoinSteps(raw: string | null): ThreeCoinStep[] {
 }
 
 function parseThreeCoinSessionData(value: unknown): ThreeCoinSessionData | null {
-  if (Array.isArray(value)) {
-    const steps = parseThreeCoinSteps(JSON.stringify(value));
-    return steps.length === value.length ? { steps } : null;
-  }
   if (!isRecord(value) || !Array.isArray(value.steps)) return null;
   const steps = parseThreeCoinSteps(JSON.stringify(value.steps));
   return steps.length === value.steps.length ? { steps } : null;

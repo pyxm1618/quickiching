@@ -1,7 +1,7 @@
 import { ritualBrush } from "@/components/public-reading/ritual-font";
 import React from "react";
 import type { Metadata } from "next";
-import { QuestionFirst } from "@/components/public-reading/question-first";
+import { ThreeCoinRitual } from "@/components/public-reading/three-coin-ritual";
 import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { HOME_DESCRIPTION, HOME_H1, HOME_TITLE } from "@/lib/seo";
@@ -27,16 +27,12 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_STRUCTURED_DATA) }}
       />
-      <QuestionFirst
-        storageKey="quickiching:public-v1:three-coin"
-        legacyStorageKeys={["quickiching:question:home-three-coin", "quickiching:question:three-coin"]}
-        deepReadingEligible
-        presentation="home-ritual"
+      <ThreeCoinRitual
         homeHeading={HOME_H1}
         homeDescription="Use the I Ching online through one focused ritual: ask one question, confirm it, then cast six lines from bottom to top. Your question is frozen only when the first real cast is generated."
       >
-        <ThreeCoinTool compactIntro presentation="home-ritual" />
-      </QuestionFirst>
+        <ThreeCoinTool />
+      </ThreeCoinRitual>
     </article>
   );
 }
