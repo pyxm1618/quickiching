@@ -31,7 +31,7 @@ const page=await browser.newPage();
 const evidence=[];
 page.on("pageerror", error=>console.log("PAGE_ERROR",error.message));
 try {
- for(const method of ['three_coin','yarrow_stalk','mei_hua_current_time']) {
+ for(const method of ['three_coin','yarrow_stalk','mei_hua_number_time']) {
   console.log('checking',method);
   await page.goto(`${fixtureBase}/?method=${method}`,{waitUntil:'networkidle0'});
   await page.waitForSelector('[data-shared-reading-summary]');
@@ -47,12 +47,12 @@ try {
   assert.equal(await page.$('[data-public-reading-result]'),null);
   await page.click('[data-start-deep-reading]');
   await page.waitForSelector('[data-deep-reading-report]',{timeout:10000});
-  const deep=await page.evaluate(()=>({text:document.body.innerText, requests:window.__requests,forms:document.querySelectorAll('textarea').length}));
+  const deep=await page.evaluate(()=>({text:document.body.textContent, requests:window.__requests,forms:document.querySelectorAll('textarea').length}));
   for (const title of ['Your Question','Cast Basis','Direct Answer','Why','What Matters Most','What To Do Next','View Free Reading']) assert.ok(deep.text.includes(title),title);
   assert.equal(deep.forms,0);
   const post=deep.requests.find(item=>item.method==='POST'); assert.deepEqual(JSON.parse(post.body),{locale:'en'});
   evidence.push({method,deep:{sections:true,postBody:JSON.parse(post.body),report:true}});
-  await page.locator('[data-cast-basis] a.mystic-button-secondary').click();
+  await page.$eval('[data-cast-basis] a.mystic-button-secondary', element=>element.click());
   await page.waitForSelector('[data-reading-open="free"]',{timeout:5000});
   assert.equal(new URL(page.url()).pathname,'/readings/result');
   evidence.push({method,deepToFree:'explicit Free intent overrides previous Deep selection'});
