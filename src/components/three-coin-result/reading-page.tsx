@@ -54,7 +54,7 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
   return <div data-realm="chamber" className="ritual-result-scene">
     <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
     <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
-    <div className="ritual-room" aria-hidden="true" />
+    <div className="ritual-room" data-room-ready="true" aria-hidden="true" />
     {client}
   </div>;
 }

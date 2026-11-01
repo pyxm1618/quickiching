@@ -113,18 +113,18 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
 
       <nav className="scene-scrolls" aria-label={zh ? "探索易经" : "Explore the I Ching"}>
         <Link href={localize("/hexagrams")} className="scene-scroll scene-scroll-hexagrams" prefetch={false}>
-          <Image unoptimized src="/navigation/scroll-64-hexagrams-no-text.webp" alt="" width={450} height={675} />
+          <Image unoptimized loading="lazy" fetchPriority="low" src="/navigation/scroll-64-hexagrams-no-text.webp" alt="" width={450} height={675} />
           <span>{zh ? "六十四卦" : <>64<br />Hexagrams</>}</span>
         </Link>
         <button ref={methodsTrigger} type="button" className="scene-scroll scene-scroll-methods" aria-expanded={panel === "methods"} aria-controls={`${id}-methods`} onClick={() => setPanel(panel === "methods" ? null : "methods")} onKeyDown={event => triggerKey(event, "methods")}>
-          <Image unoptimized src="/navigation/scroll-other-methods-no-text.webp" alt="" width={338} height={675} />
+          <Image unoptimized loading="lazy" fetchPriority="low" src="/navigation/scroll-other-methods-no-text.webp" alt="" width={338} height={675} />
           <span>{zh ? "其他起卦" : <>Other<br />Methods</>}</span>
         </button>
         <button ref={infoTrigger} type="button" className="scene-scroll scene-scroll-info" aria-expanded={panel === "info"} aria-controls={`${id}-info`} onClick={() => setPanel(panel === "info" ? null : "info")} onKeyDown={event => triggerKey(event, "info")}>
-          <Image unoptimized src="/navigation/scroll-info-no-text.webp" alt="" width={338} height={675} />
+          <Image unoptimized loading="lazy" fetchPriority="low" src="/navigation/scroll-info-no-text.webp" alt="" width={338} height={675} />
           <span>{zh ? "资讯" : "Info"}</span>
         </button>
-        <Image unoptimized className="scene-scroll-holder" src="/navigation/scroll-holder.webp" alt="" width={220} height={132} />
+        <Image unoptimized loading="lazy" fetchPriority="low" className="scene-scroll-holder" src="/navigation/scroll-holder.webp" alt="" width={220} height={132} />
       </nav>
 
       <div ref={panelRef} className="scene-panels" onKeyDown={panelKey} onBlur={event => {
