@@ -42,6 +42,7 @@ const runtimeEnv: Record<string, string> = {
 };
 
 const sentLinks: Array<{ email: string; url: string }> = [];
+const previousEnv = new Map<string, string | undefined>();
 const loginAuth = betterAuth(buildAuthOptions(db, runtimeEnv, {
   sendMagicLink: async (data) => {
     sentLinks.push({ email: data.email, url: data.url });
@@ -71,6 +72,7 @@ function readingRequest(cookie: string, body: unknown) {
 
 describe("Three-Coin real Auth -> save -> account History integration", () => {
   beforeAll(async () => {
+    for (const key of Object.keys(runtimeEnv)) previousEnv.set(key, process.env[key]);
     Object.assign(process.env, runtimeEnv);
     resetAuthForTests();
     await migrate(db, { migrationsFolder: "drizzle" });
@@ -80,7 +82,11 @@ describe("Three-Coin real Auth -> save -> account History integration", () => {
     resetAuthForTests();
     await closeAuthDatabaseConnection();
     await closeCommercialDatabaseConnection();
-    for (const key of Object.keys(runtimeEnv)) delete process.env[key];
+    for (const [key, value] of previousEnv) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    previousEnv.clear();
     await sql.end({ timeout: 5 });
   });
 
