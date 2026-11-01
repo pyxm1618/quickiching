@@ -1,10 +1,5 @@
 import styles from "./info-pages.module.css";
 
-export function optimizedInfoAsset(src: string, width = 1920, quality = 90) {
-  if (src.startsWith("runtime/")) return `/info-pages/${src}`;
-  return `/_next/image?url=${encodeURIComponent(`/info-pages/${src}`)}&w=${width}&q=${quality}`;
-}
-
 // Nine slices render the untouched source. Only the quiet middle grows with text;
 // the roller caps, corners and mountain foot retain their original proportions.
 export function PaperArtwork({ kind = "main" }: { kind?: "main" | "secondary" | "legal" | "toc" | "helpTop" | "helpBottom"; }) {
@@ -23,8 +18,7 @@ export function PaperArtwork({ kind = "main" }: { kind?: "main" | "secondary" | 
     {heights.flatMap((height, row) => widths.map((width, col) => {
       const x = s.x + widths.slice(0, col).reduce((sum, n) => sum + n, 0);
       const y = s.y + heights.slice(0, row).reduce((sum, n) => sum + n, 0);
-      const optimizedWidth = kind === "toc" ? 1080 : 1920;
-      const original = <image href={optimizedInfoAsset(s.src, optimizedWidth)} width={kind === "legal" ? 1683 : kind === "toc" ? 887 : kind.startsWith("help") ? 1983 : 2172} height={kind === "legal" ? 935 : kind === "toc" ? 1774 : kind.startsWith("help") ? 793 : 724} />;
+      const original = <image href={`/info-pages/${s.src}`} width={kind === "legal" ? 1683 : kind === "toc" ? 887 : kind.startsWith("help") ? 1983 : 2172} height={kind === "legal" ? 935 : kind === "toc" ? 1774 : kind.startsWith("help") ? 793 : 724} />;
       return <svg key={`${row}-${col}`} viewBox={`${x} ${y} ${width} ${height}`} preserveAspectRatio="none">{original}</svg>;
     }))}
   </div>;
@@ -33,6 +27,6 @@ export function PaperArtwork({ kind = "main" }: { kind?: "main" | "secondary" | 
 export function GuideDecoration({ kind }: { kind: "coins" | "landscape" | "lantern" | "books"; }) {
   const regions = { coins: "70 45 610 420", landscape: "700 40 740 450", lantern: "60 510 620 470", books: "810 540 600 430" };
   return <svg aria-hidden="true" className={styles.guideDecoration} viewBox={regions[kind]}>
-    <image href={optimizedInfoAsset("runtime/decorative/guide-decorations.webp", 1920)} width="1536" height="1024" />
+    <image href="/info-pages/runtime/decorative/guide-decorations.webp" width="1536" height="1024" />
   </svg>;
 }
