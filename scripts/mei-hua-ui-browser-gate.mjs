@@ -15,9 +15,12 @@ const browser=await puppeteer.launch({executablePath:runtime.executablePath,head
 const results={base:BASE,authVerification:'Browser-only /api/user/me seam; real provider login requires staging acceptance',captures:[],checks:[]};
 
 const button=async(p,text)=>{
-  await p.waitForFunction(t=>[...document.querySelectorAll('button')].some(b=>b.textContent.trim()===t&&!b.disabled),{},text);
-  const h=await p.evaluateHandle(t=>[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===t),text);
-  await h.asElement().click();await h.dispose();
+  await p.waitForFunction(t=>[...document.querySelectorAll('button')].some(b=>{
+    if(b.textContent.trim()!==t||b.disabled)return false;
+    const rect=b.getBoundingClientRect();
+    return rect.width>0&&rect.height>0&&getComputedStyle(b).pointerEvents!=='none';
+  }),{},text);
+  await p.evaluate(t=>[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===t)?.click(),text);
 };
 const setControlledValue=async(p,selector,value)=>{
   await p.$eval(selector,(element,nextValue)=>{
