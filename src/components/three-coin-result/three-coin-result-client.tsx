@@ -13,16 +13,10 @@ import type { HexagramInterpretationBundle } from "@/domain/interpretation/v2/ty
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import { ZH_HANS_UI_DICTIONARY } from "@/i18n/dictionaries/zh-Hans";
-import {
-  deepReadingContextSnapshotSchema,
-  readingReportSchema as activeReadingReportSchema,
-  legacyDeepReadingReportSchema,
-  type DeepReadingContextSnapshot,
-} from "@/domain/generation/deep-reading-contract";
-import {
-  readingReportSchema as legacyReadingReportSchema,
-  type CommercialReadingReport,
-} from "@/domain/generation/schemas";
+import type {
+  AiDeepReadingViewModel,
+  DeepReadingPresentationContext,
+} from "@/domain/generation/deep-reading-view-model";
 import {
   completedThreeCoinSteps,
   readThreeCoinSession,
@@ -31,12 +25,8 @@ import { buildPricingHref, buildResultSigninHref } from "@/lib/commercial-naviga
 import { evaluateRisk } from "@/domain/risk/engine";
 import { AiDeepReadingResult, AiDeepReadingState } from "./ai-deep-reading-result";
 import styles from "./result-page.module.css";
-import { z } from "zod";
 import { readCompletedPublicReading, publicReadingSaveInput, clearCompletedReadingForRestart } from "@/lib/completed-public-reading";
 import type { PublicReading, PublicReadingMethod } from "@/domain/public-reading/types";
-const readingReportSchema = z.union([activeReadingReportSchema, legacyDeepReadingReportSchema]);
-type ReadableDeepReport = z.infer<typeof readingReportSchema>;
-
 export type ResultState =
   | { kind: "loading" }
   | { kind: "empty" }
@@ -59,8 +49,8 @@ export type ThreeCoinResultClientProps = {
     createdAt?: string;
     context: string;
     lineValuesBottomUp: number[] | null;
-    readingReport: unknown;
-    deepSnapshot?: unknown;
+    deepReadingViewModel: AiDeepReadingViewModel | null;
+    deepReadingContext: DeepReadingPresentationContext | null;
     owns: boolean;
   } | null;
 };
@@ -81,8 +71,8 @@ export function getResultRevealGate(input: {
 }
 type DeepReadingStatusPayload = {
   status: "not_started" | "queued" | "running" | "completed" | "failed" | "timed_out";
-  output?: unknown;
-  snapshot?: unknown;
+  viewModel?: AiDeepReadingViewModel;
+  context?: DeepReadingPresentationContext;
   availableCredits?: unknown;
   errorCode?: string;
 };
@@ -166,17 +156,13 @@ export function ThreeCoinResultClient({
   const [user] = useState<{ id: string; email: string } | null>(initialUser);
   const [credits, setCredits] = useState<number>(initialCredits);
   const ownedInitialCastingView = initialCastingView?.owns ? initialCastingView : null;
-  const initialReport = readingReportSchema.safeParse(ownedInitialCastingView?.readingReport);
-  const initialLegacyReport = legacyReadingReportSchema.safeParse(ownedInitialCastingView?.readingReport);
-  const initialSnapshot = deepReadingContextSnapshotSchema.safeParse(ownedInitialCastingView?.deepSnapshot);
-  const [deepStatus, setDeepStatus] = useState<DeepStatus>(initialReport.success || initialLegacyReport.success ? "completed" : "idle");
-  const [deepReport, setDeepReport] = useState<ReadableDeepReport | null>(initialReport.success ? initialReport.data : null);
-  const [legacyReport, setLegacyReport] = useState<CommercialReadingReport | null>(initialLegacyReport.success ? initialLegacyReport.data : null);
-  const [deepSnapshot, setDeepSnapshot] = useState<DeepReadingContextSnapshot | null>(initialSnapshot.success ? initialSnapshot.data : null);
+  const [deepStatus, setDeepStatus] = useState<DeepStatus>(ownedInitialCastingView?.deepReadingViewModel ? "completed" : "idle");
+  const [deepViewModel, setDeepViewModel] = useState<AiDeepReadingViewModel | null>(ownedInitialCastingView?.deepReadingViewModel ?? null);
+  const [deepContext, setDeepContext] = useState<DeepReadingPresentationContext | null>(ownedInitialCastingView?.deepReadingContext ?? null);
   const reservedCreditCastingRef = useRef<string | null>(null);
-  const [legacyReadOnly, setLegacyReadOnly] = useState(initialSnapshot.success && initialSnapshot.data.schemaVersion === "deep-reading-context-v1");
+  const [legacyReadOnly, setLegacyReadOnly] = useState(Boolean(ownedInitialCastingView?.deepReadingContext?.legacyReadOnly));
   const [actionError, setActionError] = useState<string | null>(null);
-  const deepRisk = useMemo(() => evaluateRisk(deepSnapshot?.coreQuestionAtCast ?? (state.kind === "ready" ? state.question ?? "" : "")), [state, deepSnapshot]);
+  const deepRisk = useMemo(() => evaluateRisk(deepContext?.question ?? (state.kind === "ready" ? state.question ?? "" : "")), [state, deepContext]);
   const deepRiskBlocked = deepRisk.status !== "allowed";
   const deepRiskMessage = deepRisk.status === "emergency_blocked"
     ? t("Deep Reading cannot handle an immediate safety crisis. If there is immediate danger, contact local emergency services now. In the U.S., call or text 988 for crisis support, or call 911 for immediate emergency help.", "深度解读无法处理紧急安全危机。如果存在即时危险，请立即联系当地紧急服务。在美国，可拨打或短信联系 988 获取危机支持；如需紧急救援请拨打 911。")
@@ -302,27 +288,21 @@ export function ThreeCoinResultClient({
         const data = await res.json() as DeepReadingStatusPayload;
         if (data.errorCode === "LEGACY_DEEP_READING_READ_ONLY") setLegacyReadOnly(true);
         if (runId !== pollRunRef.current) return;
-        const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
-        if (parsedSnapshot.success) setDeepSnapshot(parsedSnapshot.data);
-        const parsedReport = readingReportSchema.safeParse(data.output);
+        if (data.context) {
+          setDeepContext(data.context);
+          if (data.context.legacyReadOnly) setLegacyReadOnly(true);
+        }
         if (data.status === "completed") {
           terminal = true;
           if (typeof data.availableCredits === "number" && Number.isInteger(data.availableCredits) && data.availableCredits >= 0) {
             setCredits(data.availableCredits);
           }
-          if (parsedReport.success) {
-            setDeepReport(parsedReport.data);
-            setLegacyReport(null);
+          if (data.viewModel) {
+            setDeepViewModel(data.viewModel);
             setDeepStatus("completed");
           } else {
-            const parsedLegacyReport = legacyReadingReportSchema.safeParse(data.output);
-            if (parsedLegacyReport.success) {
-              setLegacyReport(parsedLegacyReport.data);
-              setDeepStatus("completed");
-            } else {
-              setDeepStatus("failed");
-              setActionError(zh ? "已保存的报告格式无效，请联系支持；不会显示未验证内容。" : "The saved report format is invalid. Contact support; unverified content cannot be displayed.");
-            }
+            setDeepStatus("failed");
+            setActionError(zh ? "已保存的报告格式无效，请联系支持；不会显示未验证内容。" : "The saved report format is invalid. Contact support; unverified content cannot be displayed.");
           }
           if (reservedCreditCastingRef.current === targetCastingId) {
             reservedCreditCastingRef.current = null;
@@ -509,26 +489,16 @@ export function ThreeCoinResultClient({
         const data = await res.json() as DeepReadingStatusPayload;
         if (data.errorCode === "LEGACY_DEEP_READING_READ_ONLY") setLegacyReadOnly(true);
         if (!active) return;
-        const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
-        if (parsedSnapshot.success) {
-          const snapshot = parsedSnapshot.data;
-          setDeepSnapshot(snapshot);
-
+        if (data.context) {
+          setDeepContext(data.context);
+          if (data.context.legacyReadOnly) setLegacyReadOnly(true);
         }
-        const parsedReport = readingReportSchema.safeParse(data.output);
-        if (data.status === "completed" && parsedReport.success) {
-          setDeepReport(parsedReport.data);
-          setLegacyReport(null);
+        if (data.status === "completed" && data.viewModel) {
+          setDeepViewModel(data.viewModel);
           setDeepStatus("completed");
         } else if (data.status === "completed") {
-          const parsedLegacyReport = legacyReadingReportSchema.safeParse(data.output);
-          if (parsedLegacyReport.success) {
-            setLegacyReport(parsedLegacyReport.data);
-            setDeepStatus("completed");
-          } else {
-            setDeepStatus("failed");
-            setActionError(t("The saved report format is invalid. Contact support.", "已保存的报告格式无效，请联系支持。"));
-          }
+          setDeepStatus("failed");
+          setActionError(t("The saved report format is invalid. Contact support.", "已保存的报告格式无效，请联系支持。"));
         } else if (data.status === "queued" || data.status === "running") {
           setDeepStatus("generating");
           if (activeId) startPolling(activeId);
@@ -608,33 +578,24 @@ export function ThreeCoinResultClient({
         return;
       }
 
-      const data = await res.json() as {
-        status: "queued" | "running" | "completed" | "timed_out";
-        output?: unknown;
-        snapshot?: unknown;
+      const data = await res.json() as DeepReadingStatusPayload & {
         creditReservationCreated?: boolean;
       };
 
-      const parsedSnapshot = deepReadingContextSnapshotSchema.safeParse(data.snapshot);
-      if (parsedSnapshot.success) setDeepSnapshot(parsedSnapshot.data);
+      if (data.context) {
+        setDeepContext(data.context);
+        if (data.context.legacyReadOnly) setLegacyReadOnly(true);
+      }
       if (data.creditReservationCreated) {
         reservedCreditCastingRef.current = activeCastingId;
       }
-      const parsedReport = readingReportSchema.safeParse(data.output);
-      if (data.status === "completed" && parsedReport.success) {
-        setDeepReport(parsedReport.data);
-        setLegacyReport(null);
+      if (data.status === "completed" && data.viewModel) {
+        setDeepViewModel(data.viewModel);
         setDeepStatus("completed");
         reservedCreditCastingRef.current = null;
       } else if (data.status === "completed") {
-        const parsedLegacyReport = legacyReadingReportSchema.safeParse(data.output);
-        if (parsedLegacyReport.success) {
-          setLegacyReport(parsedLegacyReport.data);
-          setDeepStatus("completed");
-        } else {
-          setDeepStatus("failed");
-          setActionError(t("The saved report format is invalid. Contact support.", "已保存的报告格式无效，请联系支持。"));
-        }
+        setDeepStatus("failed");
+        setActionError(t("The saved report format is invalid. Contact support.", "已保存的报告格式无效，请联系支持。"));
       } else if (data.status === "timed_out") {
         setDeepStatus("failed");
         setActionError(t("The previous generation timed out and its reserved credit was released. You may retry.", "上一次生成已超时，预留次数已释放；你可以重试。"));
@@ -784,18 +745,17 @@ export function ThreeCoinResultClient({
   const prefix = zh ? "/zh" : "";
   const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(castingId!)}`;
   const deepHref = `${prefix}/readings/deep?session=${encodeURIComponent(castingId!)}`;
-  const deepQuestion = deepSnapshot?.coreQuestionAtCast
+  const deepQuestion = deepContext?.question
     ?? (state.kind === "ready" ? state.question : undefined)
     ?? initialCastingView?.context
     ?? "";
   const deepCreatedAt = initialCastingView?.createdAt
     ?? (state.kind === "ready" ? state.createdAt : undefined)
-    ?? deepSnapshot?.snapshotAt;
+    ?? deepContext?.createdAt;
 
-  const deepBody = deepStatus === "completed" && (deepReport || legacyReport) ? (
+  const deepBody = deepStatus === "completed" && deepViewModel ? (
     <AiDeepReadingResult
-      report={deepReport ?? legacyReport!}
-      snapshot={deepSnapshot}
+      model={deepViewModel}
       question={deepQuestion}
       createdAt={deepCreatedAt}
       locale={locale}
@@ -827,7 +787,6 @@ export function ThreeCoinResultClient({
   return (
     <RitualRevealTransition stage="result">
       {pageMode === "free" ? <PublicReadingResult
-        presentation="ritual"
         reading={resultReading!}
         onNewReading={startNewReading}
         dictionary={resultDictionary}
