@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer-core';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
@@ -29,6 +29,21 @@ const {executablePath} = await resolveChromeExecutable(serverlessChromium);
 const browser=await puppeteer.launch({executablePath,headless:true});
 const page=await browser.newPage();
 const evidence=[];
+const visualOutput=process.env.READING_VISUAL_OUTPUT?.trim() || null;
+async function captureVisual(label) {
+  if (!visualOutput) return;
+  await mkdir(visualOutput,{recursive:true});
+  for (const [suffix,viewport] of [
+    ['desktop',{width:1440,height:1000,deviceScaleFactor:1}],
+    ['mobile',{width:390,height:844,deviceScaleFactor:1}],
+  ]) {
+    await page.setViewport(viewport);
+    await page.evaluate(()=>document.fonts.ready);
+    await new Promise(resolve=>setTimeout(resolve,80));
+    await page.screenshot({path:join(visualOutput,`${label}-${suffix}.png`),fullPage:true});
+  }
+  await page.setViewport({width:1440,height:1000,deviceScaleFactor:1});
+}
 page.on("pageerror", error=>console.log("PAGE_ERROR",error.message));
 try {
  for(const locale of ['en','zh']) {
@@ -47,6 +62,7 @@ try {
    assert.equal(free.method,method==='three_coin'?'three-coin':method==='yarrow_stalk'?'yarrow-stalks':'mei-hua-yi-shu');
    assert.ok(free.text.includes(locale==='zh'?'整体解读':'Overall Reading'));
    evidence.push({locale,method,free:{ctas:free.ctas,forms:free.forms,overall:free.overall,method:free.method}});
+   if(method==='three_coin') await captureVisual(`free-${locale}`);
    await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&page=deep`,{waitUntil:'networkidle0'});
    await page.waitForSelector('[data-start-deep-reading]');
    assert.equal(await page.$('[data-public-reading-result]'),null);
@@ -61,6 +77,7 @@ try {
    const post=deep.requests.find(item=>item.method==='POST');
    assert.deepEqual(JSON.parse(post.body),{locale:locale==='zh'?'zh-Hans':'en'});
    evidence.push({locale,method,deep:{sections:true,postBody:JSON.parse(post.body),report:true}});
+   if(method==='three_coin') await captureVisual(`deep-${locale}`);
   }
  }
  await page.goto(`${fixtureBase}/?page=deep&invalid=1`,{waitUntil:'networkidle0'});
