@@ -327,13 +327,54 @@ async function assertNoOverflow(page) {
   assert(overflow.scrollWidth <= overflow.clientWidth + 1, `Horizontal overflow: ${overflow.scrollWidth} > ${overflow.clientWidth}`);
 }
 
-async function assertBasicResult(page) {
-  await waitForText(page, "Your I Ching reading");
-  const resultText = await page.$eval("[data-public-reading-result]", (node) => node.textContent || "");
-  for (const expected of ["Primary Hexagram", "Core meaning", "Reflect"]) {
-    assert(resultText.includes(expected), `Reading result missing: ${expected}`);
+async function assertCompletedMethodHandoff(page, expectedMethod) {
+  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+  assert.equal(await page.$("[data-public-reading-result]"), null, `${expectedMethod}: unsigned completed cast must remain behind the save/auth gate`);
+
+  const completed = await page.evaluate((storageKey) => {
+    const raw = sessionStorage.getItem(storageKey);
+    if (!raw) return null;
+    const reading = JSON.parse(raw);
+    return {
+      raw,
+      id: reading?.id ?? null,
+      method: reading?.method ?? null,
+      methodVersion: reading?.methodVersion ?? null,
+      lineValuesBottomUp: reading?.lineValuesBottomUp ?? null,
+      evidenceKind: reading?.evidence?.kind ?? null,
+      yarrowLineCount: Array.isArray(reading?.evidence?.lines) ? reading.evidence.lines.length : null,
+      yarrowChangesPerLine: Array.isArray(reading?.evidence?.lines)
+        ? reading.evidence.lines.map((line) => Array.isArray(line?.changes) ? line.changes.length : null)
+        : null,
+      meiHuaUtcMillis: reading?.evidence?.calculation?.methodCalculation?.utcMillis ?? null,
+      meiHuaTimeZone: reading?.evidence?.calculation?.methodCalculation?.ianaTimeZone ?? null,
+    };
+  }, "quickiching:public-v1:completed-reading");
+
+  assert(completed, `${expectedMethod}: completed-reading handoff was not persisted`);
+  assert.equal(completed.method, expectedMethod, `${expectedMethod}: completed-reading method mismatch`);
+  assert.equal(completed.evidenceKind, expectedMethod, `${expectedMethod}: completed-reading evidence mismatch`);
+  assert.equal(completed.lineValuesBottomUp?.length, 6, `${expectedMethod}: completed-reading must preserve all six lines`);
+  assert(completed.lineValuesBottomUp.every((value) => [6, 7, 8, 9].includes(value)), `${expectedMethod}: completed-reading contains an invalid line value`);
+
+  const currentUrl = new URL(page.url());
+  assert.equal(currentUrl.searchParams.get("session"), completed.id, `${expectedMethod}: result URL must preserve the exact completed-reading id`);
+
+  if (expectedMethod === "yarrow-stalks") {
+    assert.equal(completed.yarrowLineCount, 6, "Yarrow completed-reading must preserve six evidence lines");
+    assert.deepEqual(completed.yarrowChangesPerLine, [3, 3, 3, 3, 3, 3], "Yarrow completed-reading must preserve all 18 changes");
+  } else if (expectedMethod === "mei-hua-yi-shu") {
+    assert.equal(completed.methodVersion, "quickiching-gregorian-current-time-v2", "Mei Hua completed-reading algorithm version mismatch");
+    assert(Number.isFinite(completed.meiHuaUtcMillis), "Mei Hua completed-reading must preserve the exact UTC casting moment");
+    assert.equal(completed.meiHuaTimeZone, "Asia/Singapore", "Mei Hua completed-reading must preserve the chosen IANA timezone");
   }
-  assert(resultText.toLocaleLowerCase().includes("changing line"), "Reading result must identify changing lines or state that no lines changed");
+
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+  const preservedRaw = await page.evaluate((storageKey) => sessionStorage.getItem(storageKey), "quickiching:public-v1:completed-reading");
+  assert.equal(preservedRaw, completed.raw, `${expectedMethod}: refresh must preserve the exact completed cast before authentication`);
+  assert.equal(await page.$("[data-public-reading-result]"), null, `${expectedMethod}: refresh must not reveal before authentication`);
 }
 
 async function waitForRecordedLines(page,count) {
@@ -476,10 +517,7 @@ async function finishYarrow(page, verifyResume) {
     await clickButton(page, "Perform change");
     await waitForText(page, `${change} / 18 changes`);
   }
-  await assertBasicResult(page);
-  await clickButton(page, "New reading");
-  await skipOptionalQuestion(page);
-  await waitForText(page, "0 / 18 changes");
+  await assertCompletedMethodHandoff(page, "yarrow-stalks");
 }
 
 async function finishMeiHua(page) {
@@ -488,12 +526,7 @@ async function finishMeiHua(page) {
   assert(labelExists, "Mei Hua timezone input is missing its label");
   await page.locator("#mei-hua-timezone").fill("Asia/Singapore");
   await clickButton(page, "Cast current time");
-  await waitForText(page, "Recorded calculation");
-  await waitForText(page, "quickiching-gregorian-current-time-v2");
-  await assertBasicResult(page);
-  await clickButton(page, "New reading");
-  await skipOptionalQuestion(page);
-  await waitForText(page, "Cast current time");
+  await assertCompletedMethodHandoff(page, "mei-hua-yi-shu");
 }
 
 async function runPage(browser, { path, viewport, flow, label, skipQuestion = true }) {
@@ -566,12 +599,12 @@ async function verifyBrowserFlows() {
     log("14 bilingual Info routes × desktop/320px formal shell, locale switch, no-footer and overflow checks PASS");
     await runPage(browser, { path: "/", viewport: desktop, flow: verifyThreeCoinTransactionSemantics, label: "Desktop Three Coin → commit/reveal/cancel semantics" });
     await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → completed cast → auth-before-reveal" });
-    await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → V1 result/reset" });
-    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → V1 result/reset" });
+    await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → unified result auth handoff" });
+    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → unified result auth handoff" });
 
     await runPage(browser, { path: "/", viewport: mobile, flow: finishThreeCoin, label: "375px homepage → Three Coin → auth-before-reveal" });
-    await runPage(browser, { path: "/methods/yarrow-stalks", viewport: mobile, flow: (page) => finishYarrow(page, false), label: "375px Yarrow → V1 result" });
-    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → V1 result" });
+    await runPage(browser, { path: "/methods/yarrow-stalks", viewport: mobile, flow: (page) => finishYarrow(page, false), label: "375px Yarrow → unified result auth handoff" });
+    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → unified result auth handoff" });
 
     for (const viewport of [{ width: 320, height: 800 }, { width: 390, height: 844 }]) {
       await runPage(browser, {
