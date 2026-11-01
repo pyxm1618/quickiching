@@ -12,7 +12,7 @@ execFileSync('bun',['scripts/fixtures/build-reading-business-fixture.mjs',direct
 const server = createServer(async (request,response) => {
   const path = new URL(request.url,'http://localhost').pathname;
   const asset = path === '/reading-business-entry.js' || path === '/reading-business-entry.css' ? path.slice(1) : null;
-  const publicAsset = ['/free-reading/','/ai-deep-reading/','/ritual/'].some(prefix=>path.startsWith(prefix))
+  const publicAsset = ['/free-reading/','/ai-deep-reading/','/ritual/','/performance/'].some(prefix=>path.startsWith(prefix))
     ? join(process.cwd(),'public',path.slice(1))
     : null;
   try {
@@ -29,7 +29,7 @@ const server = createServer(async (request,response) => {
       ? await readFile(join(directory,asset))
       : publicAsset
         ? await readFile(publicAsset)
-        : '<!doctype html><meta charset="utf-8"><title>Reading business test fixture</title><link rel="stylesheet" href="/reading-business-entry.css"><script>window.process={env:{NODE_ENV:"production"}}</script><div id="root"></div><script type="module" src="/reading-business-entry.js"></script>');
+        : '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Reading business test fixture</title><link rel="stylesheet" href="/reading-business-entry.css"><script>window.process={env:{NODE_ENV:"production"}}</script><div id="root"></div><script type="module" src="/reading-business-entry.js"></script>');
   } catch {response.statusCode=404;response.end('Fixture asset unavailable');}
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
