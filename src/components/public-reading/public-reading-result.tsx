@@ -14,28 +14,6 @@ import type { PublicReading } from "@/domain/public-reading/types";
 import { writeCompletedPublicReading } from "@/lib/completed-public-reading";
 import { FreeReadingRitualView } from "./free-reading-ritual-view";
 
-function formatCopy(template: string, values: Record<string, string | number>): string {
-  return Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, String(value)), template);
-}
-
-const METHOD_NAMES_ZH: Record<string, string> = {
-  "three-coin": "三枚铜钱",
-  "yarrow": "蓍草起卦",
-  "yarrow-stalks": "蓍草起卦",
-  "mei-hua": "梅花易数",
-  "mei-hua-yi-shu": "梅花易数",
-  "manual": "手动起卦",
-};
-
-export function resolveReadingKicker(reading: PublicReading, dictionary: UiDictionary): string {
-  if (dictionary.locale !== "zh-Hans") {
-    return formatCopy(dictionary.reading.staticKicker, { methodVersion: reading.methodVersion });
-  }
-  const methodName = METHOD_NAMES_ZH[reading.method] ?? "";
-  const baseKicker = dictionary.reading.staticKicker;
-  return methodName ? `${methodName} · ${baseKicker}` : baseKicker;
-}
-
 export function PublicReadingResult({
   reading,
   onNewReading,
