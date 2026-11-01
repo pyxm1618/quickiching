@@ -176,10 +176,10 @@ describe("POST /api/readings Postgres idempotency (integration)", () => {
     // Same line values, different question → independent rows ✓
   });
 
-  it("binds the first cast to its question for 72 hours and keeps retries idempotent", async () => {
+  it("allows the same normalized question to create a new independent reading while keeping same-cast retries idempotent", async () => {
     const userId = await createUser();
     const firstCastingId = randomUUID();
-    const blockedCastingId = randomUUID();
+    const repeatedQuestionCastingId = randomUUID();
     const distinctQuestionCastingId = randomUUID();
     const question = "How should I approach the next step?";
 
@@ -191,11 +191,11 @@ describe("POST /api/readings Postgres idempotency (integration)", () => {
     expect(retryResponse.status).toBe(200);
     await expect(retryResponse.json()).resolves.toMatchObject({ castingId: firstCastingId, idempotent: true });
 
-    const blockedResponse = await saveReading(saveRequest(saveInput(blockedCastingId, `  ${question.toUpperCase()}! `)));
-    expect(blockedResponse.status).toBe(409);
-    await expect(blockedResponse.json()).resolves.toMatchObject({
-      error: "QUESTION_LOCKED",
-      previousCastingId: firstCastingId,
+    const repeatedQuestionResponse = await saveReading(saveRequest(saveInput(repeatedQuestionCastingId, `  ${question.toUpperCase()}! `)));
+    expect(repeatedQuestionResponse.status).toBe(201);
+    await expect(repeatedQuestionResponse.json()).resolves.toMatchObject({
+      castingId: repeatedQuestionCastingId,
+      idempotent: false,
     });
 
     const otherQuestionResponse = await saveReading(saveRequest(saveInput(distinctQuestionCastingId, "What should I prioritize this week?")));
@@ -203,26 +203,43 @@ describe("POST /api/readings Postgres idempotency (integration)", () => {
     await expect(otherQuestionResponse.json()).resolves.toMatchObject({ castingId: distinctQuestionCastingId });
 
     const rows = await sql`
-      select count(*)::integer as count from casting_sessions
+      select id, question_fingerprint from casting_sessions
       where user_id = ${userId} and deleted_at is null
+      order by created_at
+    ` as Array<{ id: string; question_fingerprint: string | null }>;
+    expect(rows).toHaveLength(3);
+    const first = rows.find((row) => row.id === firstCastingId);
+    const repeated = rows.find((row) => row.id === repeatedQuestionCastingId);
+    expect(first?.question_fingerprint).toBeTruthy();
+    expect(repeated?.question_fingerprint).toBe(first?.question_fingerprint);
+
+    const locks = await sql`
+      select count(*)::integer as count from question_locks
+      where user_id = ${userId}
     ` as Array<{ count: number }>;
-    expect(rows[0]?.count).toBe(2);
+    expect(locks[0]?.count).toBe(0);
   });
 
-  it("serializes concurrent casts for the same core question", async () => {
-    await createUser();
+  it("allows concurrent new casts for the same core question", async () => {
+    const userId = await createUser();
     const castingIds = [randomUUID(), randomUUID()];
     const question = "What deserves my attention over the next month?";
     const responses = await Promise.all(castingIds.map((clientCastingId) =>
       saveReading(saveRequest(saveInput(clientCastingId, question))),
     ));
 
-    expect(responses.map((response) => response.status).sort()).toEqual([201, 409]);
+    expect(responses.map((response) => response.status).sort()).toEqual([201, 201]);
     const bodies = await Promise.all(responses.map((response) => response.json()));
-    const winner = bodies.find((body) => body.idempotent === false);
-    const blocked = bodies.find((body) => body.error === "QUESTION_LOCKED");
-    expect(winner?.castingId).toBeDefined();
-    expect(blocked?.previousCastingId).toBe(winner?.castingId);
+    expect(bodies.every((body) => body.idempotent === false)).toBe(true);
+    expect(new Set(bodies.map((body) => body.castingId))).toEqual(new Set(castingIds));
+
+    const rows = await sql`
+      select id, question_fingerprint from casting_sessions
+      where user_id = ${userId} and id in (${castingIds[0]}, ${castingIds[1]})
+    ` as Array<{ id: string; question_fingerprint: string | null }>;
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.question_fingerprint).toBeTruthy();
+    expect(rows[1]?.question_fingerprint).toBe(rows[0]?.question_fingerprint);
   });
 
   it("serializes same-user concurrent new writes at the configured rate limit", async () => {
