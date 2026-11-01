@@ -8,6 +8,8 @@
 }
 .ritual-room { position: fixed; inset:0; z-index:-1; pointer-events:none; background:#21160c; }
 .ritual-room[data-room-ready='true'] { background-image:url('/performance/stageDesktop.e37364561615e31f.webp'); background-position:center; background-size:auto 100%; background-repeat:no-repeat; }
+.ritual-canvas > .ritual-room[data-room-ready='true'] {background-image:none;}
+.ritual-room-art-primary {position:absolute;top:0;left:50%;height:100%;width:auto;max-width:none;transform:translateX(-50%);object-fit:contain;}
 body:has(.ritual-canvas) { background:#21160c; }
 body:has(.ritual-canvas)::before,body:has(.ritual-canvas)::after { display:none; }
 body:has(.ritual-canvas) > footer { position:relative;z-index:2; }
@@ -94,6 +96,8 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 /* Native production artwork at canonical size, with only its final edge repeated. */
 @media (width:1672px) and (height:941px) {
  .ritual-room[data-room-ready='true'] {background-image:url('/performance/stageDesktop.e37364561615e31f.webp'),url('/performance/stageDesktop.e37364561615e31f.webp');background-size:auto 100%,auto 100%;background-position:left center,right center;}
+ .ritual-canvas > .ritual-room[data-room-ready='true'] {background-image:none;}
+ .ritual-room-art-primary {left:0;transform:none;}
 }
 
 .ritual-gold-button {position:relative;isolation:isolate;overflow:hidden;}
