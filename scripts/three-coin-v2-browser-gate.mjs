@@ -104,10 +104,8 @@ async function clickButton(page, label) {
   assert(clicked, `Unable to click enabled button: ${label}`);
 }
 
-async function seedCompletedReading(page) {
-  // Seed a sealed, question-free session using the current envelope format. The completed cast
-  // is already frozen as free-only, so this exercises the current post-cast state without asking
-  // the user to skip a question a second time.
+async function seedCompletedReadingStorage(page) {
+  // Seed a sealed, question-free session using the current envelope format.
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(({ key, steps }) => sessionStorage.setItem(key, JSON.stringify({
     schemaVersion: 1,
@@ -120,6 +118,11 @@ async function seedCompletedReading(page) {
     key: STORAGE_KEY,
     steps: FIXTURE_STEPS,
   });
+}
+
+async function seedCompletedReading(page) {
+  // The anonymous completed cast must first remain concealed behind the formal Auth/Save gate.
+  await seedCompletedReadingStorage(page);
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector('[data-ritual-view="complete"]');
   await page.waitForFunction(()=>document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===6);
@@ -381,8 +384,8 @@ async function verifyClearFailure(browser) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
   try {
-    await seedCompletedReading(page);
-    await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await seedCompletedReadingStorage(page);
+    await page.goto(`${BASE}/ritual-qa-local`, { waitUntil: "networkidle0", timeout: 30_000 });
     await waitForText(page, "Your Three-Coin Reading");
     const removeItemFailureArmed = await page.evaluate((key) => {
       const originalRemoveItem = Storage.prototype.removeItem;
@@ -426,7 +429,7 @@ async function verifyClearFailure(browser) {
       stored: sessionStorage.getItem(key),
       stillShowsResult: document.body?.innerText.includes("Your Three-Coin Reading"),
     }), STORAGE_KEY);
-    assert.equal(failureState.pathname, RESULT_PATH, "Clear failure must keep the user on the existing result page");
+    assert.equal(failureState.pathname, "/ritual-qa-local", "Clear failure must keep the user on the existing saved-result page");
     assert(failureState.stored, "Clear failure must preserve the sealed reading");
     assert(failureState.stillShowsResult, "Clear failure must keep the current reading visible");
     log("sessionStorage removeItem fail-fast PASS");
@@ -439,8 +442,8 @@ async function verifyExplicitReset(browser) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
   try {
-    await seedCompletedReading(page);
-    await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await seedCompletedReadingStorage(page);
+    await page.goto(`${BASE}/ritual-qa-local`, { waitUntil: "networkidle0", timeout: 30_000 });
     await waitForText(page, "Start a New Reading");
     await clickButton(page, "Start a New Reading");
     await page.waitForFunction(() => location.pathname === "/" && location.hash === "#three-coin-reading", { timeout: 15_000 });
