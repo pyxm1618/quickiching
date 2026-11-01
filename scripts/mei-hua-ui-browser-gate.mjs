@@ -139,6 +139,14 @@ try {
       assert.equal(await p.$eval('[data-public-reading-result]',e=>e.dataset.readingFingerprint),fingerprint);
       assert.equal(await p.$eval('[data-shared-reading-summary]',e=>e.dataset.castId),sealed.id);
       assert.equal(await p.evaluate(k=>sessionStorage.getItem(k),CAST_KEY),original);
+      await p.click('[data-save-reading]');
+      await p.waitForFunction(()=>document.querySelector('[data-save-reading]')?.textContent?.toLowerCase().includes('saved'));
+      await p.goto(`${BASE}/history`,{waitUntil:'networkidle0'});
+      await p.waitForSelector('[data-history-page]');
+      await p.waitForSelector('[data-public-reading-result]');
+      assert.equal(await p.$eval('[data-public-reading-result]',e=>e.dataset.readingFingerprint),fingerprint);
+      assert.equal(await p.$eval('[data-public-reading-result]',e=>e.dataset.readingFingerprint),fingerprint);
+      results.checks.push('Mei Hua History: save → History render → identical fingerprint PASS');
     }else{
       await p.waitForFunction(()=>location.pathname==='/readings/deep');
       assert.equal(new URL(p.url()).searchParams.get('session'),sealed.id);
