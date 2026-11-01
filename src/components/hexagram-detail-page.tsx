@@ -205,7 +205,7 @@ export function HexagramDetailPageView({
           <DetailHeroArtwork />
           <div className={styles.numberBadge}><span>{isChinese ? "易经第" : "Hexagram"}</span><strong>{knowledge.number}</strong></div>
           <div className={styles.identityCopy}>
-            <p className={styles.pinyin}>{isChinese ? knowledge.chineseName + " · " + knowledge.pinyin : knowledge.pinyin.charAt(0).toUpperCase() + knowledge.pinyin.slice(1)}</p>
+            <p className={styles.pinyin} data-seo-latin-allowed={isChinese ? "pinyin" : undefined}>{isChinese ? knowledge.chineseName + " · " + knowledge.pinyin : knowledge.pinyin.charAt(0).toUpperCase() + knowledge.pinyin.slice(1)}</p>
             <h1>{isChinese ? seo.finalH1 : knowledge.englishName}</h1>
             <p className={styles.heroMeaning} data-seo-early-copy={isChinese ? "true" : undefined}>
               {isChinese
