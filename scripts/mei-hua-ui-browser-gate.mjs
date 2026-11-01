@@ -15,11 +15,13 @@ const browser=await puppeteer.launch({executablePath:runtime.executablePath,head
 const results={base:BASE,authVerification:'Browser-only /api/user/me seam; real provider login requires staging acceptance',captures:[],checks:[]};
 
 const button=async(p,text)=>{
-  await p.waitForFunction(t=>[...document.querySelectorAll('button')].some(b=>{
-    if(b.textContent.trim()!==t||b.disabled)return false;
-    const rect=b.getBoundingClientRect();
-    return rect.width>0&&rect.height>0&&getComputedStyle(b).pointerEvents!=='none';
-  }),{},text);
+  const state=await p.evaluate(t=>{
+    const candidate=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===t);
+    if(!candidate)return null;
+    const rect=candidate.getBoundingClientRect();
+    return {disabled:candidate.disabled,width:rect.width,height:rect.height,pointerEvents:getComputedStyle(candidate).pointerEvents};
+  },text);
+  assert(state&&state.disabled===false&&state.width>0&&state.height>0&&state.pointerEvents!=='none',`${text}: visible enabled button required`);
   await p.evaluate(t=>[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===t)?.click(),text);
 };
 const setControlledValue=async(p,selector,value)=>{
