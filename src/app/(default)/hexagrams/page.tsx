@@ -8,12 +8,12 @@ import { HexagramsExperience } from "./hexagrams-experience";
 
 export const metadata: Metadata = {
   title: "64 I Ching Hexagrams — King Wen Sequence Guide",
-  description: "Explore all 64 I Ching hexagrams in the King Wen sequence with concise original theme summaries and links to free online casting methods.",
+  description: "Explore all 64 I Ching hexagrams in King Wen order through an interactive 8×8 scroll and wheel, then open any hexagram detail page.",
   alternates: {
     canonical: "/hexagrams",
     languages: alternateLanguages("hexagrams-hub"),
   },
-  openGraph: { title: "64 I Ching Hexagrams — King Wen Sequence Guide", description: "A concise hub for all 64 I Ching hexagrams in the King Wen sequence.", url: "/hexagrams", type: "website" },
+  openGraph: { title: "64 I Ching Hexagrams — King Wen Sequence Guide", description: "Browse all 64 I Ching hexagrams in King Wen order and open any hexagram detail page.", url: "/hexagrams", type: "website" },
 };
 
 export default function HexagramsHubPage() {
@@ -21,7 +21,7 @@ export default function HexagramsHubPage() {
     const seo = hexagramSeoFor(hexagram.number, "en");
     return {
       number: hexagram.number,
-      englishName: hexagram.englishName,
+      name: hexagram.englishName,
       slug: hexagram.slug,
       lower: hexagram.trigrams.lower,
       upper: hexagram.trigrams.upper,
@@ -29,5 +29,16 @@ export default function HexagramsHubPage() {
     };
   });
 
-  return <HexagramsExperience hexagrams={hexagrams} authEnabled={isAuthCapabilityEnabled()} />;
+  return (
+    <HexagramsExperience
+      hexagrams={hexagrams}
+      authEnabled={isAuthCapabilityEnabled()}
+      locale="en"
+      title="64 I Ching Hexagrams"
+      description="Browse all 64 hexagrams in King Wen order and open any one to explore its detail page."
+      detailRoutePrefix="/hexagrams/"
+      languageSwitchHref="/zh/hexagrams"
+      sectionHeading="All 64 I Ching hexagrams in King Wen order"
+    />
+  );
 }
