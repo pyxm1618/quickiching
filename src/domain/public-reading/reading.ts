@@ -14,7 +14,7 @@ import {
 const INTERNAL_METHODS: Record<Exclude<PublicReadingMethod, "manual">, CastingMethod> = {
   "three-coin": "three_coin",
   "yarrow-stalks": "yarrow_stalk",
-  "mei-hua-yi-shu": "mei_hua_current_time",
+  "mei-hua-yi-shu": "mei_hua_number_time",
 };
 
 function asPublicLineTuple(values: readonly number[]): PublicLineTuple {
