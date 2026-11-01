@@ -1,7 +1,6 @@
 
 import type { ReactNode } from "react";
 import styles from "./info-pages.module.css";
-import { optimizedInfoAsset } from "./paper-artwork";
 
 export function InfoPageShell({ title, lead, meta, variant = "standard", seoPrimary, children }: {
   title: string;
@@ -12,10 +11,10 @@ export function InfoPageShell({ title, lead, meta, variant = "standard", seoPrim
   children: ReactNode;
 }) {
   const firstArtwork = variant === "help"
-    ? optimizedInfoAsset("help/help-main-panel.png", 1920)
+    ? "/info-pages/runtime/help/help-main-panel.webp"
     : variant === "legal"
-      ? optimizedInfoAsset("legal/legal-main-paper.png", 1920)
-      : optimizedInfoAsset("guide/guide-main-scroll.png", 1920);
+      ? "/info-pages/runtime/legal/legal-main-paper.webp"
+      : "/info-pages/runtime/guide/guide-main-scroll.webp";
   const content = (
     <>
       <header className={styles.heading}>
