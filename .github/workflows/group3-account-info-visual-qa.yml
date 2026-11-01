@@ -116,7 +116,7 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          "$PWD/node_modules/.bin/lighthouse" "http://127.0.0.1:3036/group3-visual-qa-local?view=account"             --quiet --preset=desktop             --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"             --only-categories=performance,accessibility             --output=json --output-path=.artifacts/group3-visual-qa/lighthouse-account.json
+          "$PWD/node_modules/.bin/lighthouse" "http://127.0.0.1:3036/group3-visual-qa-local?view=account-perf"             --quiet --preset=desktop             --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"             --only-categories=performance,accessibility             --output=json --output-path=.artifacts/group3-visual-qa/lighthouse-account.json
           node - <<'NODE'
           const fs=require('fs');
           const r=JSON.parse(fs.readFileSync('.artifacts/group3-visual-qa/lighthouse-account.json','utf8'));
