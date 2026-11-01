@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - integration/quickiching-ui-redesign
+      - codex/qic-pixel-closeout-group1
   workflow_dispatch:
 
 permissions:
