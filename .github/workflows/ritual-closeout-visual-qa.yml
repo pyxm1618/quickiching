@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - integration/quickiching-ui-redesign
+      - feat/mei-hua-number-time-flow
   workflow_dispatch:
 
 permissions:
@@ -65,6 +66,7 @@ jobs:
         run: |
           node scripts/three-coin-v2-browser-gate.mjs
           node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth
+          node scripts/mei-hua-ui-browser-gate.mjs
 
   postgres-auth-history:
     name: Three-Coin Better Auth + PostgreSQL
