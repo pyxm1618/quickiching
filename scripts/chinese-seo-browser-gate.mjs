@@ -94,7 +94,7 @@ async function snapshot(page, path) {
     }
     const visibleClone = document.body.cloneNode(true);
     if (!(visibleClone instanceof HTMLElement)) throw new Error("BODY_CLONE_FAILED");
-    visibleClone.querySelectorAll("script, style, noscript, template, [hidden], [aria-hidden='true']").forEach((node) => node.remove());
+    visibleClone.querySelectorAll("script, style, noscript, template, [hidden], [aria-hidden='true'], [data-language-switcher]").forEach((node) => node.remove());
 
     const main = document.querySelector("main");
     const article = main?.querySelector("article[data-seo-primary]") ?? null;
