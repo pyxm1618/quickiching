@@ -224,6 +224,9 @@ try {
     env: { ...browserEnv, SEO_AUDIT_LABEL: "AFTER", SEO_AUDIT_ASSERT: "1" },
   });
 
+  log("Running Reading result business acceptance before unrelated browser suites");
+  run("node", ["scripts/reading-business-browser.mjs"], { env: { ...browserEnv, READING_TEST_BASE_URL: BASE } });
+
   log("Running real Chromium E2E and on-page SEO acceptance");
   run("bun", ["run", "seo:registry"]);
   run("bun", ["run", "seo:quality"], {
@@ -232,7 +235,6 @@ try {
   run("bun", ["run", "seo:browser"], { env: { ...browserEnv, HEXAGRAM_SEO_BROWSER_BASE_URL: BASE } });
   run("bun", ["run", "seo:zh"], { env: { ...browserEnv, CHINESE_SEO_AUDIT_BASE_URL: BASE, CHINESE_SEO_AUDIT_OUTPUT_DIR: "/tmp/quickiching-chinese-seo-quality" } });
   run("bun", ["run", "gate:interactive:zh"], { env: { ...browserEnv, CHINESE_INTERACTIVE_GATE_BASE_URL: BASE } });
-  run("node", ["scripts/reading-business-browser.mjs"], { env: { ...browserEnv, READING_TEST_BASE_URL: BASE } });
   run("bun", ["scripts/browser-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/on-page-seo-browser-gate.mjs"], { env: browserEnv });
   run("bun", ["scripts/three-coin-v2-browser-gate.mjs"], { env: browserEnv });
