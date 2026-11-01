@@ -30,7 +30,7 @@ describe("PublicReadingResult unified method identity", () => {
     ["mei-hua-yi-shu", "mei-hua-v1"],
     ["manual", "manual-v1"],
   ] as const)("renders %s through the same current Free Reading DOM", (method, version) => {
-    const html = renderToStaticMarkup(<PublicReadingResult reading={mockReading(method, version)} />);
+    const html = renderToStaticMarkup(React.createElement(PublicReadingResult, { reading: mockReading(method, version) }));
     expect(html).toContain("data-free-reading-ritual");
     expect(html).toContain(`data-reading-method="${method}"`);
     expect(html).not.toContain("mystic-kicker");
