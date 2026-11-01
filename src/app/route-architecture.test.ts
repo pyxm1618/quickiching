@@ -9,7 +9,7 @@ const dynamicLocaleRoot = `${appRoot}(localized)/[locale]`;
 const globalNotFound = `${appRoot}global-not-found.tsx`;
 const localizedNotFound = `${appRoot}(localized)/zh/not-found.tsx`;
 const localizedCatchAll = `${appRoot}(localized)/zh/[...slug]/page.tsx`;
-const legacyActionSource = new URL("../legacy/commercial/actions.ts", import.meta.url).pathname;
+const retiredCommercialRuntime = new URL("../legacy/commercial", import.meta.url).pathname;
 
 describe("App Router multilingual architecture", () => {
   it("has separate English and localized root layouts", () => {
@@ -52,7 +52,7 @@ describe("App Router multilingual architecture", () => {
     expect(catchAllModule.metadata.robots).toEqual({ index: false, follow: false });
   });
 
-  it("adds only the reviewed CP4 commercial API surface without restoring legacy pages", () => {
+  it("keeps only the reviewed commercial API surface and does not retain the retired commercial runtime", () => {
     expect(existsSync(`${appRoot}(default)/signin/page.tsx`)).toBe(true);
     expect(existsSync(`${appRoot}(default)/signup/page.tsx`)).toBe(true);
     expect(existsSync(`${appRoot}api/auth/[...all]/route.ts`)).toBe(true);
@@ -66,7 +66,7 @@ describe("App Router multilingual architecture", () => {
       expect(existsSync(route)).toBe(false);
     }
     expect(existsSync(`${appRoot}actions.ts`)).toBe(false);
-    expect(existsSync(legacyActionSource)).toBe(true);
+    expect(existsSync(retiredCommercialRuntime)).toBe(false);
   });
 
 

@@ -67,10 +67,16 @@ describe("hexagram hub inbound anchors", () => {
     const englishHub = renderToStaticMarkup(<EnglishHexagramsHubPage />);
     const chineseHub = renderToStaticMarkup(<ChineseHexagramsHubPage />);
 
-    expect(englishHome).toContain("data-three-coin-home-stage");
+    expect(englishHome).toContain('data-three-coin-ritual="true"');
+    expect(englishHome).toContain('data-experience-stage="landing"');
+    expect(englishHome).toContain('data-three-coin-presentation="ritual"');
+    expect(englishHome).not.toContain("data-three-coin-home-stage");
     const heading = englishHome.match(/<h1[^>]*>([\s\S]*?)<\/h1>/u)?.[1].replace(/<[^>]+>/gu, "");
     expect(heading).toBe(HOME_H1);
-    expect(chineseHome).toContain("data-three-coin-home-stage");
+    expect(chineseHome).toContain('data-three-coin-ritual="true"');
+    expect(chineseHome).toContain('data-experience-stage="landing"');
+    expect(chineseHome).toContain('data-three-coin-presentation="ritual"');
+    expect(chineseHome).not.toContain("data-three-coin-home-stage");
     expect(englishHub).toContain('data-seo-home-link="/"');
     expect(chineseHub).toContain('data-seo-home-link="/zh"');
 
