@@ -13,7 +13,7 @@ const result = await Bun.build({
     name: "reading-fixture-next-image",
     setup(builder) {
       builder.onResolve({ filter: /^next\/image$/ }, () => ({
-        path: resolve("scripts/fixtures/next-image-stub.tsx"),
+        path: resolve("scripts/fixtures/next-image-stub.mjs"),
       }));
     },
   }],
