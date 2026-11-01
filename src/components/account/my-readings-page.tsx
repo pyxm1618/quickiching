@@ -18,7 +18,11 @@ export async function MyReadingsPage({ zh = false }: { zh?: boolean }) {
       <AccountScrollRegion className="qic-my-readings-region" scrollClassName="qic-my-readings-scroll" ariaLabel={zh ? "解读列表" : "Readings list"}>
         {readings.length === 0 ? <p className="qic-account-paper qic-no-readings">{zh ? "还没有已保存的解读。" : "No readings yet."}</p> : <ol>{readings.map(reading => <li key={reading.id}>
           <Link className="qic-account-paper qic-my-reading" prefetch={false} href={`${prefix}/readings/three-coin/result?session=${encodeURIComponent(reading.id)}`}>
-            <span><strong data-clarity-mask="true" data-private-question="true">{reading.question?.trim() || (zh ? "未命名解读" : "Untitled Reading")}</strong><time dateTime={reading.createdAt.toISOString()}>{reading.createdAt.toLocaleDateString(zh ? "zh-CN" : "en-US", { month: "short", day: "2-digit", year: "numeric", timeZone: "UTC" })}</time></span><span aria-hidden="true" className="qic-reading-arrow">›</span>
+            <span className="qic-reading-question"><strong data-clarity-mask="true" data-private-question="true">{reading.question?.trim() || (zh ? "未命名解读" : "Untitled Reading")}</strong><time dateTime={reading.createdAt.toISOString()}>{reading.createdAt.toLocaleDateString(zh ? "zh-CN" : "en-US", { month: "short", day: "2-digit", year: "numeric", timeZone: "UTC" })}</time></span>
+            <span className="qic-reading-primary"><small>{zh ? "本卦" : "Primary"}</small><strong>{reading.primaryName || (zh ? "已生成" : "Generated")}</strong></span>
+            <span className="qic-reading-method"><small>{zh ? "起卦方式" : "Method"}</small><strong>{reading.method === "three_coin" ? (zh ? "三硬币法" : "Three-Coin Method") : reading.method}</strong></span>
+            <span className="qic-reading-status"><small>{zh ? "解读" : "Reading"}</small><strong>{reading.hasReading ? (zh ? "深度解读 · 已完成" : "Deep Reading · Completed") : reading.hasPreview ? (zh ? "免费解读 · 已完成" : "Free Reading · Completed") : (zh ? "已保存" : "Saved")}</strong></span>
+            <span aria-hidden="true" className="qic-reading-arrow">›</span>
           </Link>
         </li>)}</ol>}
       </AccountScrollRegion>
