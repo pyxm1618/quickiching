@@ -182,7 +182,14 @@ function summarize(label, runnerResult) {
 
 async function seedReading(page) {
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.evaluate(({ key, steps }) => sessionStorage.setItem(key, JSON.stringify(steps)), {
+  await page.evaluate(({ key, steps }) => sessionStorage.setItem(key, JSON.stringify({
+    schemaVersion: 1,
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    started: true,
+    coreQuestionFrozenAtCast: true,
+    data: { steps },
+  })), {
     key: STORAGE_KEY,
     steps: FIXTURE_STEPS,
   });

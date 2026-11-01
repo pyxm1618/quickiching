@@ -367,13 +367,19 @@
       "change": "M",
       "state": "approved / pass",
       "evidence": "Assert authored sentinels in downloaded JS chunks rather than retired visible long prose. Check current H13/H57 card destinations and preserve absence of unrelated H1/H61 chunks. Reproduced old visible-copy timeout; corrected gate passed."
+    },
+    {
+      "path": "scripts/result-lighthouse-gate.mjs",
+      "change": "M",
+      "state": "approved / pass",
+      "evidence": "Replace retired bare-array Three-Coin fixture with strict current schemaVersion/id/createdAt/started/coreQuestionFrozenAtCast/data envelope. Old fixture reproduced empty-state timeout; current fixture verified sealed auth gate on mobile and desktop. No runtime compatibility restored."
     }
   ],
   "counts": {
-    "approved / pass": 51,
+    "approved / pass": 52,
     "confirmed reject / delete": 10
   },
-  "original_total": 61,
+  "original_total": 62,
   "validation": {
     "unit": "977 passed",
     "postgres": "161 passed, 26 suites, isolated PostgreSQL 16",
@@ -390,7 +396,9 @@
     "performance": "BLOCKED on 0f9206c: Linux performance 90 (>=95 required), LCP 2095ms; Metal performance 76 (>=95), LCP 2830ms (<=2750). Thresholds unchanged.",
     "public_p0": "PASS: formal cast/record, skip, EN/ZH, privacy, auth, Manual movement, Yarrow and fresh same-question restart",
     "interpretation_bundle": "PASS: homepage prose absent, result H13/H57 loaded, unrelated H1/H61 absent",
-    "brand": "PASS: EN/ZH current scene and Info brand, immersive hidden header, retired footer absent, mobile"
+    "brand": "PASS: EN/ZH current scene and Info brand, immersive hidden header, retired footer absent, mobile",
+    "result_lighthouse": "Local PASS: mobile performance96 LCP2625 CLS0.053; desktop performance98 LCP980 CLS0.0545; auth-before-reveal asserted on real current result route.",
+    "public_p0_lighthouse": "Local FAIL: AFTER_HOME performance93 <95; AFTER_HOME_MOBILE LCP3536 recorded. Budgets unchanged."
   },
   "source_commits": [
     "6be6522379010aaa4b326d354a850505350a55d8 test: remove obsolete question-lock privacy cases",
