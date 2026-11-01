@@ -89,8 +89,20 @@ describe("Navigation and multi-language routing contract", () => {
     expect(seoRoutes.every((route) => route.paths["zh-Hans"]?.startsWith("/zh") === true)).toBe(true);
     expect(seoRoutes.every((route) => route.hreflangGroup && route.switchable)).toBe(true);
 
-    const standaloneRoutes = ["/history", "/privacy", "/terms", "/acceptable-use", "/help"];
-    for (const path of standaloneRoutes) expect(currentRouteForPath(path)).toBeUndefined();
+    expect(currentRouteForPath("/history")).toBeUndefined();
+
+    const noindexInfoRoutes = [
+      ["help", "/help", "/zh/help"],
+      ["privacy", "/privacy", "/zh/privacy"],
+      ["terms", "/terms", "/zh/terms"],
+      ["acceptable-use", "/acceptable-use", "/zh/acceptable-use"],
+    ] as const;
+    for (const [routeId, enPath, zhPath] of noindexInfoRoutes) {
+      expect(currentRouteForPath(enPath)?.id).toBe(routeId);
+      expect(currentRouteForPath(zhPath)?.id).toBe(routeId);
+      expect(languageSwitchTarget(routeId, "en")).toEqual({ href: zhPath, label: "简体中文", equivalent: true });
+      expect(languageSwitchTarget(routeId, "zh-Hans")).toEqual({ href: enPath, label: "English", equivalent: true });
+    }
   });
 
   it("ensures Chinese navigation labels contain natural simplified Chinese and no fake English labels", () => {
