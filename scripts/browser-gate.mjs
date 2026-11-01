@@ -347,6 +347,7 @@ async function assertCompletedMethodHandoff(page, expectedMethod) {
       yarrowChangesPerLine: Array.isArray(reading?.evidence?.lines)
         ? reading.evidence.lines.map((line) => Array.isArray(line?.changes) ? line.changes.length : null)
         : null,
+      meiHuaConventionId: reading?.evidence?.calculation?.methodCalculation?.conventionId ?? null,
       meiHuaUtcMillis: reading?.evidence?.calculation?.methodCalculation?.utcMillis ?? null,
       meiHuaTimeZone: reading?.evidence?.calculation?.methodCalculation?.ianaTimeZone ?? null,
     };
@@ -365,7 +366,8 @@ async function assertCompletedMethodHandoff(page, expectedMethod) {
     assert.equal(completed.yarrowLineCount, 6, "Yarrow completed-reading must preserve six evidence lines");
     assert.deepEqual(completed.yarrowChangesPerLine, [3, 3, 3, 3, 3, 3], "Yarrow completed-reading must preserve all 18 changes");
   } else if (expectedMethod === "mei-hua-yi-shu") {
-    assert.equal(completed.methodVersion, "quickiching-gregorian-current-time-v2", "Mei Hua completed-reading algorithm version mismatch");
+    assert.equal(completed.methodVersion, "mei-hua-gregorian-current-time-v2", "Mei Hua completed-reading algorithm version mismatch");
+    assert.equal(completed.meiHuaConventionId, "quickiching-gregorian-current-time-v2", "Mei Hua completed-reading public convention mismatch");
     assert(Number.isFinite(completed.meiHuaUtcMillis), "Mei Hua completed-reading must preserve the exact UTC casting moment");
     assert.equal(completed.meiHuaTimeZone, "Asia/Singapore", "Mei Hua completed-reading must preserve the chosen IANA timezone");
   }
