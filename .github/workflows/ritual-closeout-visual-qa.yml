@@ -41,7 +41,7 @@ jobs:
       - name: Production build
         run: bun run build
       - name: Install browser driver
-        run: bun add --no-save --cache-dir=/tmp/quickiching-bun-cache puppeteer-core@24
+        run: bun add --no-save --cache-dir=/tmp/quickiching-bun-cache puppeteer-core@24 @sparticuz/chromium
       - name: Resolve Chrome
         shell: bash
         run: |
