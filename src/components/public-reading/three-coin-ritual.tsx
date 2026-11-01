@@ -98,6 +98,9 @@ export function ThreeCoinRitual({
 
   useEffect(() => {
     const restored = readThreeCoinQuestionState();
+    if (!restored.started && !restored.question && !restored.coreQuestionAtCast && !restored.coreQuestionFrozenAtCast) {
+      return;
+    }
     setQuestionState(restored.question);
     setDraft(restored.question ?? "");
     setCoreQuestionAtCast(restored.coreQuestionAtCast);
