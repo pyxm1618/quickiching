@@ -2,7 +2,8 @@
 
 import "./ritual.css";
 import { ArrowRight } from "lucide-react";
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import Image from "next/image";
+import React, { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
@@ -76,6 +77,15 @@ export function ThreeCoinRitual({
   const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(() => initialSession?.coreQuestionFrozenAtCast ?? false);
   const [draft, setDraft] = useState(() => initialSession?.question ?? "");
   const [error, setError] = useState("");
+  const roomRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const room = roomRef.current;
+    const frame = window.requestAnimationFrame(() => {
+      if (room) room.dataset.roomReady = "true";
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (experienceStage !== "question-confirm") {
@@ -258,13 +268,42 @@ export function ThreeCoinRitual({
       <link rel="preload" as="image" href="/ritual/decor/gold-cloud-button-2x.png" media="(max-width:800px)" fetchPriority="low" />
       <link rel="preload" as="image" href="/ritual/decor/yin-yang.png" media="(max-width:800px)" fetchPriority="low" />
       <section id="three-coin-reading" data-three-coin-ritual data-experience-stage={experienceStage} data-question-leaving={questionLeaving} className="ritual-canvas">
-        <div className="ritual-room" data-room-ready="true" aria-hidden="true" />
+        <div ref={roomRef} className="ritual-room" aria-hidden="true">
+          <picture className="ritual-room-picture">
+            <source media="(max-width:600px) and (max-aspect-ratio:11/20)" srcSet="/performance/stageMobile.285965e6cb8c7840.webp" />
+            <source media="(max-aspect-ratio:11/20)" srcSet="/performance/stagePortrait.bde3e415eb141bc8.webp" />
+            <img
+              className="ritual-room-art ritual-room-art-primary"
+              src="/performance/stageDesktop.e37364561615e31f.webp"
+              alt=""
+              width={1671}
+              height={941}
+              loading="eager"
+              decoding="async"
+              fetchPriority="low"
+            />
+          </picture>
+          <img
+            className="ritual-room-art ritual-room-art-secondary"
+            src="/performance/stageDesktop.e37364561615e31f.webp"
+            alt=""
+            width={1671}
+            height={941}
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
+          />
+        </div>
         {experienceStage !== "ritual" || questionLeaving ? (
           <div className="ritual-question-stage" data-leaving={questionLeaving} inert={questionLeaving}>
             {landing || homeLeaving ? (
               <div className="ritual-home-heading" data-leaving={homeLeaving}>
-                <span className="ritual-cloud ritual-home-cloud-left" aria-hidden="true" />
-                <span className="ritual-cloud ritual-home-cloud-right" aria-hidden="true" />
+                <span className="ritual-cloud ritual-home-cloud-left" aria-hidden="true">
+                  <Image src="/ritual/decor/gold-cloud.png" alt="" fill sizes="68px" loading="lazy" fetchPriority="low" />
+                </span>
+                <span className="ritual-cloud ritual-home-cloud-right" aria-hidden="true">
+                  <Image src="/ritual/decor/gold-cloud.png" alt="" fill sizes="112px" loading="lazy" fetchPriority="low" />
+                </span>
                 <Heading><em>{homeTitleFirst}</em>{homeTitleSecond ? <span className="ritual-title-second">{homeTitleSecond}</span> : null}</Heading>
                 <p data-home-hero-copy>{zh ? (homeDescription ?? "在变化之中，重新认识此刻的自己。") : <>Use the I Ching online to rediscover where you are.<br />It is not about predicting the future,<br />but about seeing yourself more clearly in the present.</>}</p>
               </div>
