@@ -301,7 +301,7 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 }
 
 @media(min-width:801px) {
- .ritual-gate-card h1 {font-size:calc(60 * var(--u));margin-top:calc(11 * var(--u));}
+ .ritual-gate-card h1 {font-size:calc(57 * var(--u));margin-top:calc(11 * var(--u));}
  .ritual-gate-action {margin-top:calc(24 * var(--u));}
  .ritual-gate-signin::before,.ritual-gate-signin::after {content:'';position:absolute;top:calc(10 * var(--u));bottom:calc(10 * var(--u));width:calc(8 * var(--u));z-index:-1;background:#2f1400;border-top:2px solid #ffe4a0;border-bottom:2px solid #ffe4a0;box-shadow:0 0 10px rgba(248,166,63,.55);}
  .ritual-gate-signin::before {left:calc(-8 * var(--u));border-left:2px solid #ffe4a0;}
