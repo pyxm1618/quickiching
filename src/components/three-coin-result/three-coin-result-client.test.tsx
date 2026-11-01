@@ -16,6 +16,7 @@ import { AiDeepReadingResult } from "./ai-deep-reading-result";
 import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
+import { normalizeDeepReadingViewModel } from "@/domain/generation/deep-reading-view-model";
 
 const ZH_TEST_READING_CONTENT = zhHansReadingContentFor([1, 9]);
 
@@ -160,7 +161,6 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
           castingId: "cast_saved",
           context: "",
           lineValuesBottomUp: lineValues,
-          readingReport: null,
           owns: true,
         }}
       />,
@@ -194,7 +194,6 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
             castingId: "cast_risk",
             context: question,
             lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-            readingReport: null,
             owns: true,
           }} />;
       const freeHtml = renderToStaticMarkup(result);
@@ -226,7 +225,6 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           castingId: "cast_risk_zh",
           context: question,
           lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-          readingReport: null,
           owns: true,
         }}
       />,
@@ -330,7 +328,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           createdAt: "2026-09-25T10:00:00.000Z",
           context: "事业测试",
           lineValuesBottomUp: [7, 7, 7, 9, 7, 7],
-          readingReport: mockReport,
+          deepReadingViewModel: normalizeDeepReadingViewModel(mockReport),
           owns: true,
         }}
       />,
@@ -395,7 +393,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           castingId: "cast_1",
           context: "Career test",
           lineValuesBottomUp: [7, 7, 7, 9, 7, 7],
-          readingReport: mockReport,
+          deepReadingViewModel: normalizeDeepReadingViewModel(mockReport),
           owns: true,
         }}
       />,
@@ -436,7 +434,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         initialUser={{ id: "usr_1", email: "test@example.com" }}
         initialCredits={0}
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on now?" }}
-        initialCastingView={{ castingId: "cast_1", context: "Career test", lineValuesBottomUp: [7, 7, 7, 7, 7, 7], readingReport: null, owns: true }}
+        initialCastingView={{ castingId: "cast_1", context: "Career test", lineValuesBottomUp: [7, 7, 7, 7, 7, 7], owns: true }}
       />,
     );
 
@@ -461,7 +459,6 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           castingId: "cast_public_result",
           context: "这次变化中我应该先看清什么？",
           lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-          readingReport: null,
           owns: true,
         }}
       />,
@@ -497,7 +494,6 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           castingId: "cast_pricing_test",
           context: "我的核心问题是否能够解决？",
           lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-          readingReport: null,
           owns: true,
         }}
       />,
@@ -521,7 +517,6 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
           castingId: "cast_pricing_test_en",
           context: "How should I approach this transition?",
           lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-          readingReport: null,
           owns: true,
         }}
       />,
@@ -610,8 +605,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
 
     const htmlEn = renderToStaticMarkup(
       <AiDeepReadingResult
-        report={mockReport}
-        snapshot={mockSnapshot}
+        model={normalizeDeepReadingViewModel(mockReport, mockSnapshot)!}
         locale="en"
         question={mockSnapshot.coreQuestionAtCast}
         createdAt={mockSnapshot.snapshotAt}
@@ -629,8 +623,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
 
     const htmlZh = renderToStaticMarkup(
       <AiDeepReadingResult
-        report={mockReport}
-        snapshot={mockSnapshot}
+        model={normalizeDeepReadingViewModel(mockReport, mockSnapshot)!}
         locale="zh-Hans"
         question={mockSnapshot.coreQuestionAtCast}
         createdAt={mockSnapshot.snapshotAt}
