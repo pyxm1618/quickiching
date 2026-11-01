@@ -793,7 +793,6 @@ export function ThreeCoinResultClient({
         localizedContent={zh ? initialLocalizedContent : undefined}
         initialBundles={effectiveInterpretationBundles}
         title={t("Your Free Reading", "免费解卦")}
-        headingLevel="h1"
         deepReadingHref={deepHref}
         newReadingLabel={t("Start a New Reading", "重新起一卦")}
       /> : deepBody}
