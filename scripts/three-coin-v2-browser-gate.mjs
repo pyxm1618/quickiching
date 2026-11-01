@@ -448,6 +448,8 @@ async function verifyExplicitReset(browser) {
     await clickButton(page, "Start a New Reading");
     await page.waitForFunction(() => location.pathname === "/" && location.hash === "#three-coin-reading", { timeout: 15_000 });
     await clickButton(page, "Skip — free reading only");
+    await page.waitForSelector('[data-experience-stage="question-confirm"]');
+    await clickButton(page, "Cast the Coins");
     await page.waitForSelector(".hold-button:not(:disabled)");
     assert.equal(await page.$$eval('.ritual-six-lines li[data-state="done"]',nodes=>nodes.length),0);
     const storedSteps = await page.evaluate((key) => {
