@@ -100,8 +100,10 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
           <span aria-hidden="true">/</span>
           <Link href={zh ? "/zh" : languageHref} hrefLang="zh-Hans" lang="zh-Hans" aria-current={zh ? "page" : undefined} onClick={() => setPanel(null)}>中文</Link>
         </div>
-        <span className="scene-utility-divider" aria-hidden="true" />
-        <UserNavControl locale={locale} appearance="scene" initialUser={authEnabled ? undefined : null} onItemClick={() => setPanel(null)} />
+        {authEnabled ? <>
+          <span className="scene-utility-divider" aria-hidden="true" />
+          <UserNavControl locale={locale} appearance="scene" onItemClick={() => setPanel(null)} />
+        </> : null}
       </div>
 
       <Link href={localize("/")} className="scene-brand" onClick={() => setPanel(null)}>

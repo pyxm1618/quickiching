@@ -33,10 +33,12 @@ export function InfoPageHeader({ locale = "en", authEnabled = false }: {
             <span>/</span>
             <Link href={locale === "zh-Hans" ? pathname : target.href} lang="zh-Hans" aria-current={locale === "zh-Hans" ? "page" : undefined}>中文</Link>
           </nav>
-          <span className={styles.headerSeparator} aria-hidden="true">|</span>
-          {authEnabled ? <div className={styles.infoAuth}>
-            <UserNavControl locale={locale} />
-          </div> : <Link className={styles.signIn} href={`${locale === "zh-Hans" ? "/zh" : ""}/signin?callbackURL=${encodeURIComponent(pathname)}`}>{locale === "en" ? "Sign In" : "登录"}</Link>}
+          {authEnabled ? <>
+            <span className={styles.headerSeparator} aria-hidden="true">|</span>
+            <div className={styles.infoAuth}>
+              <UserNavControl locale={locale} />
+            </div>
+          </> : null}
         </div>
       </div>
     </header>
