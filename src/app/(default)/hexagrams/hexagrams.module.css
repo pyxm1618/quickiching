@@ -572,3 +572,7 @@
     transition: none;
   }
 }
+
+/* The immersive hub owns the full viewport from first paint. */
+:global(body):has(.scene) > :global(header),
+:global(body):has(.scene) > :global(footer) { display: none; }
