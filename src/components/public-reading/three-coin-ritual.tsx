@@ -3,7 +3,7 @@
 import "./ritual.css";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
@@ -77,6 +77,15 @@ export function ThreeCoinRitual({
   const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(() => initialSession?.coreQuestionFrozenAtCast ?? false);
   const [draft, setDraft] = useState(() => initialSession?.question ?? "");
   const [error, setError] = useState("");
+  const roomRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const room = roomRef.current;
+    const frame = window.requestAnimationFrame(() => {
+      if (room) room.dataset.roomReady = "true";
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (experienceStage !== "question-confirm") {
@@ -259,7 +268,7 @@ export function ThreeCoinRitual({
       <link rel="preload" as="image" href="/ritual/decor/gold-cloud-button-2x.png" media="(max-width:800px)" fetchPriority="low" />
       <link rel="preload" as="image" href="/ritual/decor/yin-yang.png" media="(max-width:800px)" fetchPriority="low" />
       <section id="three-coin-reading" data-three-coin-ritual data-experience-stage={experienceStage} data-question-leaving={questionLeaving} className="ritual-canvas">
-        <div className="ritual-room" data-room-ready="true" aria-hidden="true">
+        <div ref={roomRef} className="ritual-room" aria-hidden="true">
           <picture className="ritual-room-picture">
             <source media="(max-width:600px) and (max-aspect-ratio:11/20)" srcSet="/performance/stageMobile.285965e6cb8c7840.webp" />
             <source media="(max-aspect-ratio:11/20)" srcSet="/performance/stagePortrait.bde3e415eb141bc8.webp" />
@@ -310,17 +319,6 @@ export function ThreeCoinRitual({
               </div>
             ) : null}
             <div className="ritual-question-card">
-              <img
-                className="ritual-question-card-art"
-                src="/performance/questionDesktop.d616c1d6e5957a79.png"
-                alt=""
-                width={646}
-                height={184}
-                loading="eager"
-                decoding="async"
-                fetchPriority="high"
-                aria-hidden="true"
-              />
               <label htmlFor={`${THREE_COIN_SESSION_STORAGE_KEY}-question`}>{zh ? "此刻，你想问什么？" : "What would you like to ask?"}</label>
               <p className="ritual-question-description">{zh ? "描述一个你心中的具体问题。" : "Describe a specific question that is on your mind."}</p>
               <textarea id={`${THREE_COIN_SESSION_STORAGE_KEY}-question`} value={draft} onChange={(event) => setDraft(event.target.value)} rows={3}
