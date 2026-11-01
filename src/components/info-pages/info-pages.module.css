@@ -76,7 +76,7 @@
 
 .guideDecoration {
   display: block; width: 170px; height: 145px; max-width: 100%; margin: 0 auto 8px;
-  background-image: url("/info-pages/decorative/guide-decorations.png"); background-repeat: no-repeat;
+  background-image: url("/info-pages/runtime/decorative/guide-decorations.webp"); background-repeat: no-repeat;
   background-size: 340px 227px;
 }
 
