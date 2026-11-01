@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MeiHuaTool } from "@/components/public-reading/mei-hua-tool";
-import { QuestionFirst } from "@/components/public-reading/question-first";
-import { getDictionary } from "@/i18n/dictionaries";
+import { MeiHuaNumberFlow } from "@/components/public-reading/mei-hua-number-flow";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { ZH_HANS_MEI_HUA_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { zhSeoFor } from "@/content/seo/zh-pages";
@@ -19,12 +17,13 @@ export function generateMetadata(): Metadata {
 }
 
 export default function ChineseMeiHuaPage() {
-  const dictionary = getDictionary("zh-Hans");
   const content = ZH_HANS_MEI_HUA_CONTENT;
   const seo = zhSeoFor("mei-hua-yi-shu");
 
   return (
-    <article data-seo-primary={seo.primaryKeyword}>
+    <>
+      <MeiHuaNumberFlow />
+      <article data-seo-primary={seo.primaryKeyword}>
       <header className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
         <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--bronze)]">{content.eyebrow}</p>
         <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{seo.finalH1}</h1>
@@ -34,12 +33,6 @@ export default function ChineseMeiHuaPage() {
       <section className="mx-auto max-w-5xl px-4 pb-8">
         <h2 className="font-display text-2xl font-medium">梅花易数起卦的当前时间约定</h2>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">本站这套梅花易数起卦明确使用公历当地日期、十二时辰与固定时区计算上下卦和动爻，并把计算过程完整展示出来，方便复核。</p>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 pb-12">
-        <QuestionFirst storageKey="quickiching:public-v1:mei-hua-v2" legacyStorageKeys={["quickiching:question:mei-hua-yi-shu"]} dictionary={dictionary}>
-          <MeiHuaTool dictionary={dictionary} conventionContent={content.convention} />
-        </QuestionFirst>
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-12" aria-labelledby="zh-positioning-title">
@@ -77,6 +70,7 @@ export default function ChineseMeiHuaPage() {
         inLanguage: "zh-Hans",
         isPartOf: { "@type": "WebSite", name: "Quick I Ching", url: canonicalUrl("/") },
       }) }} />
-    </article>
+      </article>
+    </>
   );
 }
