@@ -23,9 +23,10 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-home-heading :is(h1,h2) em { font-size:calc(72 * var(--u));font-weight:700;font-style:normal; }
 .ritual-home-heading p { position:absolute;top:calc(146 * var(--u));left:0;white-space:nowrap;font-size:calc(24 * var(--u));line-height:1.18;margin:calc(17 * var(--u)) 0 0 calc(45 * var(--u));color:#fff8ed; }
 .ritual-question-card { position:absolute;left:calc(200 * var(--u));top:calc(411 * var(--u));width:calc(646 * var(--u));height:calc(184 * var(--u));z-index:2;
-  padding:calc(19 * var(--u)) calc(36 * var(--u));background:#f1dfbd url('/performance/questionMobile.aeacbe5208415e49.webp') center / 100% 100% no-repeat;background-origin:border-box;color:#16110b;border:4px double #be8d50;border-radius:14px;
+  padding:calc(19 * var(--u)) calc(36 * var(--u));background:#f1dfbd;background-origin:border-box;color:#16110b;border:4px double #be8d50;border-radius:14px;isolation:isolate;overflow:hidden;
   transition:left 360ms var(--ritual-enter) 80ms,top 360ms var(--ritual-enter) 80ms,width 360ms var(--ritual-enter) 80ms,height 360ms var(--ritual-enter) 80ms;
 }
+.ritual-question-card-art {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;pointer-events:none;}
 .ritual-question-card label { display:block;font-size:calc(28 * var(--u));font-weight:700;line-height:1.2; }
 .ritual-question-description { font-size:calc(18 * var(--u));line-height:1.4;margin:calc(6 * var(--u)) 0 calc(10 * var(--u)); }
 .ritual-question-card textarea { display:block;width:100%;height:calc(63 * var(--u));padding:calc(16 * var(--u));resize:none;border:1px solid #d7ae7a;border-radius:5px;background:rgba(255,244,222,.2);font:400 calc(16 * var(--u))/1.4 Georgia,serif;color:#20150c;outline-offset:3px; }
@@ -127,7 +128,8 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
  .ritual-gold-button::before {background-image:url('/ritual/decor/gold-cloud-button-2x.png'),url('/ritual/decor/gold-cloud-button-2x.png');}
 }
 @media (max-width:470px) {
- .ritual-question-card {background-size:cover;}
+ .ritual-question-card {background-image:url('/performance/questionMobile.aeacbe5208415e49.webp');background-position:center;background-size:cover;background-repeat:no-repeat;}
+ .ritual-question-card-art {display:none;}
 }
 
 /* The casting UI consumes the same recorded steps as the application owner. */
