@@ -263,6 +263,14 @@ jobs:
             cls:Math.round(report.audits['cumulative-layout-shift'].score*100),
           };
           console.log(JSON.stringify({performance,accessibility,seo,fcp,speedIndex,lcp,tbt,cls,metricScores}));
+          const lcpElement=report.audits['largest-contentful-paint-element']?.details?.items||[];
+          const lcpBreakdown=report.audits['lcp-breakdown-insight']?.details||report.audits['lcp-discovery-insight']?.details||null;
+          const network=(report.audits['network-requests']?.details?.items||[])
+            .filter(item=>/stageDesktop|questionDesktop|coinFrontMobile|coinBackMobile|\.woff2/i.test(item.url||''))
+            .map(item=>({url:item.url,startTime:Math.round(item.startTime||0),endTime:Math.round(item.endTime||0),transferSize:item.transferSize,resourceSize:item.resourceSize,statusCode:item.statusCode}));
+          console.log('LCP_ELEMENT '+JSON.stringify(lcpElement));
+          console.log('LCP_BREAKDOWN '+JSON.stringify(lcpBreakdown));
+          console.log('LCP_NETWORK '+JSON.stringify(network));
           const boot=(report.audits['bootup-time']?.details?.items||[])
             .sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,12)
             .map(item=>({url:item.url,total:Math.round(item.total||0),scripting:Math.round(item.scripting||0),parse:Math.round(item.scriptParseCompile||0)}));
@@ -341,5 +349,13 @@ jobs:
             cls:Math.round(report.audits['cumulative-layout-shift'].score*100),
           };
           console.log(JSON.stringify({performance,accessibility,seo,fcp,speedIndex,lcp,tbt,cls,metricScores}));
+          const lcpElement=report.audits['largest-contentful-paint-element']?.details?.items||[];
+          const lcpBreakdown=report.audits['lcp-breakdown-insight']?.details||report.audits['lcp-discovery-insight']?.details||null;
+          const network=(report.audits['network-requests']?.details?.items||[])
+            .filter(item=>/stageDesktop|questionDesktop|coinFrontMobile|coinBackMobile|\.woff2/i.test(item.url||''))
+            .map(item=>({url:item.url,startTime:Math.round(item.startTime||0),endTime:Math.round(item.endTime||0),transferSize:item.transferSize,resourceSize:item.resourceSize,statusCode:item.statusCode}));
+          console.log('LCP_ELEMENT '+JSON.stringify(lcpElement));
+          console.log('LCP_BREAKDOWN '+JSON.stringify(lcpBreakdown));
+          console.log('LCP_NETWORK '+JSON.stringify(network));
           if(performance<95||lcp>2750) process.exit(1);
           NODE
