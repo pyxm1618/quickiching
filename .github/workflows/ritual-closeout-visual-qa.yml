@@ -71,7 +71,15 @@ jobs:
       - name: Reading browser regression
         env:
           READING_TEST_BASE_URL: http://127.0.0.1:3028
+          READING_VISUAL_OUTPUT: .artifacts/reading-qa
         run: node scripts/reading-business-browser.mjs
+      - name: Upload Reading visual QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: reading-closeout-visual-qa
+          path: .artifacts/reading-qa
+          if-no-files-found: error
+          retention-days: 3
 
   postgres-auth-history:
     name: Three-Coin Better Auth + PostgreSQL
