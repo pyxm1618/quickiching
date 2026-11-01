@@ -9,6 +9,29 @@ const output=resolve(process.env.NAV_QA_OUTPUT||'docs/design/scene-navigation/ev
 await mkdir(output,{recursive:true});
 const report={base,states:[],checks:[],errors:[],status:'RUNNING'};
 function check(name,value){assert(value,name);report.checks.push({name,status:'PASS'});}
+async function openSceneHome(page,locale){
+ const home=locale==='en'?'/':'/zh';
+ await page.goto(base+home+'?ritualTime=700',{waitUntil:'networkidle0'});
+ await page.waitForSelector('.scene-navigation');
+}
+async function clickSceneDestination(page,locale,path){
+ const prefix=locale==='en'?'':'/zh';
+ const target=prefix+path;
+ await openSceneHome(page,locale);
+ if(path==='/hexagrams'){
+  await page.click('.scene-scroll-hexagrams');
+ } else if(path.startsWith('/methods/')){
+  await page.click('.scene-scroll-methods');
+  await page.waitForFunction(()=>document.querySelector('.scene-navigation')?.dataset.scenePanel==='methods');
+  await page.click(`.scene-methods-panel a[href="${target}"]`);
+ } else {
+  await page.click('.scene-scroll-info');
+  await page.waitForFunction(()=>document.querySelector('.scene-navigation')?.dataset.scenePanel==='info');
+  await page.click(`.scene-info-panel a[href="${target}"]`);
+ }
+ await page.waitForFunction(expected=>location.pathname===expected,{timeout:10000},target);
+ check(`${locale}: click reaches ${target}`,true);
+}
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1']});
 try {
  const page=await browser.newPage();page.on('pageerror',error=>report.errors.push(String(error)));
@@ -46,12 +69,18 @@ try {
  await page.keyboard.press('Escape');
  const paths=['/hexagrams','/methods/yarrow-stalks','/methods/mei-hua-yi-shu','/methods/manual-cast','/guides/how-to-ask-the-i-ching','/guides/changing-lines','/guides/primary-relating-hexagrams','/help','/privacy','/terms','/acceptable-use'];
  for(const locale of ['en','zh']) {
-  await page.goto(base+(locale==='en'?'/':'/zh')+'?ritualTime=700',{waitUntil:'networkidle0'});
-  const links=await page.$$eval('.scene-navigation a',nodes=>nodes.map(node=>node.getAttribute('href')));
+  await openSceneHome(page,locale);
+  const links=await page.$eval('.scene-navigation a',nodes=>nodes.map(node=>node.getAttribute('href')));
   for(const path of paths)check(`${locale}: existing destination ${path}`,links.includes((locale==='en'?'':'/zh')+path));
   check(`${locale}: support email`,links.includes('mailto:support@quickiching.com'));
   check(`${locale}: no Methods index`,!links.includes((locale==='en'?'':'/zh')+'/methods'));
+  for(const path of paths)await clickSceneDestination(page,locale,path);
+  await openSceneHome(page,locale);
+  await page.click('.scene-account-trigger');
+  await page.waitForFunction(expected=>location.pathname===expected,{timeout:10000},locale==='en'?'/signin':'/zh/signin');
+  check(`${locale}: Sign In entry click works`,true);
  }
+ await openSceneHome(page,'zh');
  await page.click('.scene-languages a[lang="en"]');await page.waitForFunction(()=>location.pathname==='/');check('Existing English language route works',true);
  await page.click('.scene-languages a[lang="zh-Hans"]');await page.waitForFunction(()=>location.pathname==='/zh');check('Existing Chinese language route works',true);
  // The only merge conflict was the shared header. Verify the latest dedicated Info header survives.
