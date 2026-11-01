@@ -541,20 +541,19 @@ async function verifyBrowserFlows() {
               await page.waitForSelector('[data-info-page="true"]', { timeout: 5000 });
               const headerVisible = await page.$eval("body > header", (node) => Boolean(node.getClientRects().length));
               assert(headerVisible, `${path}: formal Info header is not visible`);
-              assert.equal(await page.$('header button[aria-controls^="nav-drawer-"]'), null, `${path}: legacy/global mobile navigation is still active`);
+              assert.equal(await page.$(".scene-navigation"), null, `${path}: SceneNavigation must not replace the approved Info page header`);
               const languageTarget = await page.$eval(
                 `header [data-language-switcher] a[lang="${targetLang}"]`,
                 (node) => node.getAttribute("href"),
               );
               assert.equal(languageTarget, targetPath, `${path}: equivalent language target mismatch`);
-              const footerVisible = await page.$eval("body > footer", (node) => Boolean(node.getClientRects().length));
-              assert.equal(footerVisible, false, `${path}: global footer must remain hidden on formal Info pages`);
+              assert.equal(await page.$("body > footer"), null, `${path}: retired global footer is still mounted`);
             },
           });
         }
       }
     }
-    log("14 bilingual Info routes × desktop/320px formal shell, locale switch, footer and overflow checks PASS");
+    log("14 bilingual Info routes × desktop/320px formal shell, locale switch, no-footer and overflow checks PASS");
     await runPage(browser, { path: "/", viewport: desktop, flow: verifyThreeCoinTransactionSemantics, label: "Desktop Three Coin → commit/reveal/cancel semantics" });
     await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → completed cast → auth-before-reveal" });
     await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → V1 result/reset" });
@@ -568,34 +567,23 @@ async function verifyBrowserFlows() {
       await runPage(browser, {
         path: "/",
         viewport,
-        label: `${viewport.width}px navigation/single-stage/footer`,
+        label: `${viewport.width}px scene-navigation/single-stage`,
         skipQuestion: false,
         flow: async (page) => {
           await page.waitForFunction((wanted) => document.querySelector("h1")?.textContent === wanted, { timeout: 15_000 }, HOME_H1);
           assert(await page.$("[data-three-coin-home-stage][data-experience-stage='landing']"), "Single-stage homepage landing is missing");
-          const mobileTrigger = await page.$('header button[aria-controls^="nav-drawer-"]');
-          assert(mobileTrigger, "Mobile navigation trigger missing");
-          const triggerVisible = await page.$eval(
-            'header button[aria-controls^="nav-drawer-"]',
-            (node) => Boolean(node.getClientRects().length && getComputedStyle(node).display !== "none"),
-          );
-          assert(triggerVisible, "Mobile navigation trigger not visible");
-          await mobileTrigger.click();
-          await page.waitForSelector('[role="dialog"][aria-modal="true"]', { timeout: 5000 });
-          const drawerNavigation = await page.$eval(
-            '[role="dialog"][aria-modal="true"] nav',
-            (node) => ({
-              visible: Boolean(node.getClientRects().length),
-              links: [...node.querySelectorAll("a[href]")].filter((link) => link.getClientRects().length).length,
-            }),
-          );
-          assert(drawerNavigation.visible, "Mobile drawer navigation not visible");
-          assert(drawerNavigation.links > 0, "Mobile drawer navigation links missing");
+          const navigation = await page.$(".scene-navigation");
+          assert(navigation, "SceneNavigation missing");
+          assert.equal(await page.$('[role="dialog"][aria-modal="true"]'), null, "Retired mobile drawer is still mounted");
+          const methodsTrigger = await page.$(".scene-scroll-methods");
+          assert(methodsTrigger, "Other Methods trigger missing");
+          await methodsTrigger.click();
+          await page.waitForFunction(() => document.querySelector(".scene-navigation")?.getAttribute("data-scene-panel") === "methods", { timeout: 5000 });
+          assert(await page.$(".scene-methods-panel:not([hidden])"), "Other Methods scene panel did not open");
           await page.keyboard.press("Escape");
-          await page.waitForFunction(() => !document.querySelector('[role="dialog"][aria-modal="true"]'), { timeout: 5000 });
+          await page.waitForFunction(() => document.querySelector(".scene-navigation")?.getAttribute("data-scene-panel") === "closed", { timeout: 5000 });
           assert.equal(await page.$("summary"), null, "Single-stage homepage must not retain the old FAQ accordion");
-          const footerVisible = await page.$eval("footer", (node) => Boolean(node.getClientRects().length));
-          assert(footerVisible, "Footer not visible");
+          assert.equal(await page.$("body > footer"), null, "Retired global footer is still mounted");
         },
       });
     }
