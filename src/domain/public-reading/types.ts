@@ -14,12 +14,21 @@ export const PUBLIC_READING_METHODS: readonly PublicReadingMethod[] = [
   "manual",
 ] as const;
 
+export const LEGACY_MEI_HUA_METHOD_VERSION = "mei-hua-gregorian-current-time-v2" as const;
+
 export const PUBLIC_METHOD_VERSIONS: Record<PublicReadingMethod, string> = {
   "three-coin": "three-coin-v1",
   "yarrow-stalks": "yarrow-zhu-xi-digital-v2",
-  "mei-hua-yi-shu": "mei-hua-gregorian-current-time-v2",
+  "mei-hua-yi-shu": "mei-hua-number-moment-classical-v1",
   manual: "manual-cast-v1",
 };
+
+export function isSupportedPublicMethodVersion(method: PublicReadingMethod, version: string): boolean {
+  if (method === "mei-hua-yi-shu") {
+    return version === PUBLIC_METHOD_VERSIONS[method] || version === LEGACY_MEI_HUA_METHOD_VERSION;
+  }
+  return version === PUBLIC_METHOD_VERSIONS[method];
+}
 
 export type PublicLineTuple = readonly [LineValue, LineValue, LineValue, LineValue, LineValue, LineValue];
 
