@@ -176,7 +176,10 @@ export function ThreeCoinResultClient({
   const [legacyReport, setLegacyReport] = useState<CommercialReadingReport | null>(initialLegacyReport.success ? initialLegacyReport.data : null);
   const [deepSnapshot, setDeepSnapshot] = useState<DeepReadingContextSnapshot | null>(initialSnapshot.success ? initialSnapshot.data : null);
   const reservedCreditCastingRef = useRef<string | null>(null);
-  const [legacyReadOnly, setLegacyReadOnly] = useState(initialSnapshot.success && initialSnapshot.data.schemaVersion === "deep-reading-context-v1");
+  const [legacyReadOnly, setLegacyReadOnly] = useState(
+    initialCastingView?.method === "mei_hua_current_time"
+      || (initialSnapshot.success && initialSnapshot.data.schemaVersion === "deep-reading-context-v1"),
+  );
   const [actionError, setActionError] = useState<string | null>(null);
   const deepRisk = useMemo(() => evaluateRisk(deepSnapshot?.coreQuestionAtCast ?? (state.kind === "ready" ? state.question ?? "" : "")), [state, deepSnapshot]);
   const deepRiskBlocked = deepRisk.status !== "allowed";

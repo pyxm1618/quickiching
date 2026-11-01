@@ -60,6 +60,25 @@ describe("Mei Hua classical object-number + confirmed moment", () => {
       .not.toBe(meiHuaFromNumberAndTime({ number: 17, utcMillis: instant, ianaTimeZone: "Europe/London" }).lowerTrigram);
   });
 
+  it("changes the deterministic result when the chosen number or confirmed moment changes", () => {
+    const base = {
+      number: 17,
+      utcMillis: Date.UTC(2026, 9, 31, 12, 0),
+      ianaTimeZone: "Asia/Shanghai",
+    };
+    const baseline = meiHuaFromNumberAndTime(base);
+    const differentNumber = meiHuaFromNumberAndTime({ ...base, number: 18 });
+    const differentMoment = meiHuaFromNumberAndTime({
+      ...base,
+      utcMillis: Date.UTC(2026, 9, 31, 14, 0),
+    });
+
+    expect(differentNumber.lineValuesBottomUp).not.toEqual(baseline.lineValuesBottomUp);
+    expect(differentNumber.methodCalculation.upperTrigramNumber).not.toBe(baseline.methodCalculation.upperTrigramNumber);
+    expect(differentMoment.lineValuesBottomUp).not.toEqual(baseline.lineValuesBottomUp);
+    expect(differentMoment.methodCalculation.timeNumber).not.toBe(baseline.methodCalculation.timeNumber);
+  });
+
   it("has a reproducible classical fixture: number 17 + Xu hour => Qian over Li, line 4, 13 -> 37", () => {
     const input = {
       number: 17,
