@@ -3,20 +3,21 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ThreeCoinResultClient } from '../../src/components/three-coin-result/three-coin-result-client';
 import { generateYarrowLine } from '../../src/domain/casting/yarrow/algorithm';
-import { meiHuaFromUtc } from '../../src/domain/casting/mei-hua/algorithm';
+import { meiHuaFromNumberAndTime } from '../../src/domain/casting/mei-hua/number-time';
 
 const query = new URLSearchParams(location.search);
-const method = (query.get('method') ?? 'three_coin') as 'three_coin' | 'yarrow_stalk' | 'mei_hua_current_time';
+const method = (query.get('method') ?? 'three_coin') as 'three_coin' | 'yarrow_stalk' | 'mei_hua_number_time';
 const yarrowLines = Array.from({length:6},(_,index)=>generateYarrowLine(index as 0|1|2|3|4|5,()=>2));
-const meiHua = meiHuaFromUtc(Date.UTC(2026,9,31,12,0,0),'UTC');
+const meiHuaInput = {number:29,utcMillis:Date.UTC(2026,9,31,12,0,0),ianaTimeZone:'UTC'};
+const meiHua = meiHuaFromNumberAndTime(meiHuaInput);
 const lineValues = method === 'yarrow_stalk'
   ? yarrowLines.map(line=>line.lineValue)
-  : method === 'mei_hua_current_time'
+  : method === 'mei_hua_number_time'
     ? [...meiHua.lineValuesBottomUp]
     : [7,7,7,7,7,7];
 const methodCalculation = method === 'yarrow_stalk'
   ? {kind:'yarrow-stalks',version:'yarrow-zhu-xi-digital-v2',changes:yarrowLines.flatMap(line=>line.changes)}
-  : method === 'mei_hua_current_time'
+  : method === 'mei_hua_number_time'
     ? meiHua.methodCalculation
     : {kind:'three-coin',version:'three-coin-v1'};
 const zh = query.get('locale') === 'zh';
@@ -67,7 +68,7 @@ window.fetch = async (url, init) => {
 createRoot(document.getElementById('root')!).render(<ThreeCoinResultClient
   locale={zh ? 'zh-Hans' : 'en'}
   pageMode={query.get('page') === 'deep' ? 'deep' : 'free'}
-  initialUser={{id:'browser-fixture-owner',email:'fixture@example.com'}}
+  initialUser={query.has('anon') ? null : {id:'browser-fixture-owner',email:'fixture@example.com'}}
   initialCredits={1}
   initialState={{kind:'ready',lineValues,question}}
   initialCastingView={{
@@ -77,7 +78,7 @@ createRoot(document.getElementById('root')!).render(<ThreeCoinResultClient
       ? 'three-coin-v1'
       : method==='yarrow_stalk'
         ? 'yarrow-zhu-xi-digital-v2'
-        : 'mei-hua-gregorian-current-time-v2',
+        : 'mei-hua-number-moment-classical-v1',
     context:question,
     lineValuesBottomUp:lineValues,
     methodCalculation,

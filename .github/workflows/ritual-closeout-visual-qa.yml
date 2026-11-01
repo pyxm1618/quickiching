@@ -63,10 +63,12 @@ jobs:
       - name: Three-Coin browser regression
         env:
           PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3028
+          READING_TEST_BASE_URL: http://127.0.0.1:3028
         run: |
           node scripts/three-coin-v2-browser-gate.mjs
           node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth
           node scripts/mei-hua-ui-browser-gate.mjs
+          node scripts/reading-business-browser.mjs
 
   postgres-auth-history:
     name: Three-Coin Better Auth + PostgreSQL

@@ -27,7 +27,7 @@ const evidence=[];
 page.on("pageerror", error=>console.log("PAGE_ERROR",error.message));
 try {
  for(const locale of ['en','zh']) {
-  for(const method of ['three_coin','yarrow_stalk','mei_hua_current_time']) {
+  for(const method of ['three_coin','yarrow_stalk','mei_hua_number_time']) {
    console.log('checking',locale,method);
    await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}`,{waitUntil:'networkidle0'});
    await page.waitForSelector('[data-public-reading-result] [data-free-reading-ritual]');
@@ -42,6 +42,18 @@ try {
    assert.equal(free.method,method==='three_coin'?'three-coin':method==='yarrow_stalk'?'yarrow-stalks':'mei-hua-yi-shu');
    assert.ok(free.text.includes(locale==='zh'?'整体解读':'Overall Reading'));
    evidence.push({locale,method,free:{ctas:free.ctas,forms:free.forms,overall:free.overall,method:free.method}});
+   await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&anon=1`,{waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+   const callbacks=await page.evaluate(()=>[...document.querySelectorAll('[data-auth-reading-intent],[data-auth-reading-alternate-intent]')].map(node=>({intent:node.getAttribute('data-auth-reading-intent')??node.getAttribute('data-auth-reading-alternate-intent'),href:node.getAttribute('href')})));
+   assert.equal(callbacks.length,2);
+   for(const item of callbacks) {
+    const login=new URL(item.href,location.origin);
+    const callback=new URL(login.searchParams.get('callbackURL'),location.origin);
+    assert.equal(login.pathname,locale==='zh'?'/zh/signin':'/signin');
+    assert.equal(callback.searchParams.get('session'),'browser-fixture-cast');
+    assert.equal(callback.pathname,item.intent==='deep'?(locale==='zh'?'/zh/readings/deep':'/readings/deep'):(locale==='zh'?'/zh/readings/result':'/readings/result'));
+   }
+   evidence.push({locale,method,authCallbacks:'shared-free-deep-same-cast'});
    await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&page=deep`,{waitUntil:'networkidle0'});
    await page.waitForSelector('[data-start-deep-reading]');
    assert.equal(await page.$('[data-public-reading-result]'),null);
