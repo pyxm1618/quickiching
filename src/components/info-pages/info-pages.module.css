@@ -740,3 +740,8 @@
   .helpQuestion h3 { font-size: 21px; }
 }
 
+
+/* Cross-platform reference typography using the existing project display font. */
+.title,.paperHeading,.paperSubheading,.exampleCard h3,.flowColumn h3,.primerColumn>h3,.tocTitle,.legalHeading,.helpGroup h2,.helpQuestion h3,.helpSupport h2 {
+  font-family: var(--font-fraunces), Georgia, "Times New Roman", serif;
+}
