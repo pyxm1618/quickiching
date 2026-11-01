@@ -54,14 +54,18 @@ const readingRows = [
   ["Where should I focus my energy now?", "Oct 12, 2026"],
 ] as const;
 
-function Scene({ children }: { children: React.ReactNode }) {
-  return <main style={{ minHeight: "100dvh", background: "url('/performance/stageDesktop.e37364561615e31f.webp') center/cover fixed", position: "relative" }}>
-    <div aria-hidden="true" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.52)", backdropFilter: "blur(4px)" }} />
+function Scene({ children, lightweight = false }: { children: React.ReactNode; lightweight?: boolean }) {
+  return <main style={{
+    minHeight: "100dvh",
+    background: lightweight ? "#160c04" : "url('/performance/stageDesktop.e37364561615e31f.webp') center/cover fixed",
+    position: "relative",
+  }}>
+    <div aria-hidden="true" style={{ position: "fixed", inset: 0, background: lightweight ? "rgba(0,0,0,.18)" : "rgba(0,0,0,.52)", backdropFilter: lightweight ? "none" : "blur(4px)" }} />
     {children}
   </main>;
 }
 
-function Frame({ surface, children }: { surface: "account" | "settings"; children: React.ReactNode }) {
+function Frame({ surface, children, lightweight = false }: { surface: "account" | "settings"; children: React.ReactNode; lightweight?: boolean }) {
   const title = surface === "account" ? "My Account" : "Settings";
   const subtitle = surface === "account" ? "Manage your account and reading credits." : "Manage your privacy and account controls.";
   const ref = React.useRef<HTMLDialogElement>(null);
@@ -99,6 +103,7 @@ export function Group3FixtureClient({ view }: { view: string }) {
     </section>
   </div>;
 
+  if (view === "account-perf") return <Frame surface="account" lightweight><PurchaseView account={account} selectedPurchase={null} onSelectPurchase={()=>{}} zh={false} onClose={()=>{}} /></Frame>;
   if (view === "settings") return <Frame surface="settings"><SettingsView deleting={false} onDeleteView={()=>{}} zh={false} onClose={()=>{}} /></Frame>;
   if (view === "delete") return <Frame surface="settings"><SettingsView deleting onDeleteView={()=>{}} zh={false} onClose={()=>{}} /></Frame>;
   if (view === "refund") return <Frame surface="account"><PurchaseView account={account} selectedPurchase={purchases[0]} onSelectPurchase={()=>{}} zh={false} onClose={()=>{}} /></Frame>;
