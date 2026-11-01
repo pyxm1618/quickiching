@@ -153,7 +153,7 @@ try {
     } else {
       assert.equal(snapshot.homeStages.length, 1, "Homepage must expose one Three-Coin single-stage experience");
       assert.equal(snapshot.homeStages[0].stage, "landing", "Homepage initial experience stage must be landing");
-      assert.equal(snapshot.homeStages[0].visualStatus, "in-development", "The Phase 3/4 presentation must expose its explicit implementation status");
+      assert.equal(snapshot.homeStages[0].visualStatus, "", "Formal Three-Coin ritual must not restore the retired in-development marker");
     }
     assert(!snapshot.headings.some((heading) => /^Line \d(?: sealed| awaiting cast)?$/i.test(heading)), "Three-Coin UI status leaked into the heading tree");
     assert(

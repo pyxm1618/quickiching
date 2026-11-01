@@ -201,23 +201,12 @@ async function fillInput(page, selector, value) {
   }, value);
 }
 
-async function openLanguageMenuAndSwitch(page, viewport) {
-  if (viewport.width < 1024) {
-    const hamburger = await page.$('header button[aria-controls^="nav-drawer-"]');
-    assert(hamburger, "Mobile language switch requires the navigation trigger");
-    await hamburger.click();
-    await page.waitForSelector('[role="dialog"][aria-modal="true"]', { timeout: 5000 });
-    const trigger = await page.$('[role="dialog"] [data-language-switcher] button[aria-haspopup="menu"]');
-    assert(trigger, "Drawer language switch trigger missing");
-    await trigger.click();
-    await page.click('[role="dialog"] [data-language-switch]');
-    return;
-  }
-
-  const trigger = await page.$("header [data-language-switcher] button[aria-haspopup='menu']");
-  assert(trigger, "Desktop language switch trigger missing");
-  await trigger.click();
-  await page.click("header [data-language-switch]");
+async function switchMethodLanguage(page, language, expectedPath) {
+  const selector = `header [data-language-switcher] a[lang="${language}"]`;
+  assert.equal(await page.$$eval(selector, nodes => nodes.length), 1, "Expected one formal language destination");
+  assert.equal(await page.$eval(selector, node => node.getAttribute("href")), expectedPath);
+  await page.click(selector);
+  await page.waitForFunction(path => location.pathname === path, { timeout: 20_000 }, expectedPath);
 }
 
 async function verifyChineseReading(page, viewport) {
@@ -225,68 +214,52 @@ async function verifyChineseReading(page, viewport) {
   await page.setViewport(viewport);
   await page.goto(`${BASE}/zh`, { waitUntil: "networkidle0", timeout: 30_000 });
   await waitForText(page, "易经在线起卦：从起卦到本卦、动爻与变卦");
+  for (const button of await page.$$('[aria-label="Analytics Consent"] button')) {
+    if (await button.evaluate(node => node.textContent?.trim() === "拒绝")) await button.click();
+  }
   await assertNoOverflow(page, `${viewport.width}px Chinese home`);
-  assert.equal(await page.$$eval("header [data-language-switch]", (nodes) => nodes.length), 1, `${label}: Chinese header must have one language switcher`);
-  assert.equal(await page.$$eval('header a[href="/"]', (nodes) => nodes.length), 1, `${label}: Chinese home must have one root English header link`);
+  assert.equal(await page.$$eval('header [data-language-switcher]', nodes => nodes.length), 1);
+  assert.equal(await page.$$eval('header a[href="/"]', nodes => nodes.length), 1);
 
   await page.goto(`${BASE}/zh/methods/mei-hua-yi-shu`, { waitUntil: "networkidle0", timeout: 30_000 });
-  assert.equal(await page.$$eval("header [data-language-switch]", (nodes) => nodes.length), 1, `${label}: Chinese Mei Hua header must have one language switcher`);
-  assert((await page.$$eval('header a[href="/"]', (nodes) => nodes.length)) <= 1, `${label}: Chinese Mei Hua header has duplicate root English links`);
-  const labelledByReferences = await page.$$eval("[aria-labelledby]", (nodes) => {
-    const ids = new Map([...document.querySelectorAll("[id]")].map((node) => [node.id, (document.querySelectorAll(`#${CSS.escape(node.id)}`).length)]));
-    return nodes.flatMap((node) => (node.getAttribute("aria-labelledby") ?? "").split(/\s+/).filter(Boolean).map((id) => ({ id, count: ids.get(id) ?? 0 })));
+  const labelledByReferences = await page.$$eval("[aria-labelledby]", nodes => {
+    const ids = new Map([...document.querySelectorAll("[id]")].map(node => [node.id, document.querySelectorAll(`#${CSS.escape(node.id)}`).length]));
+    return nodes.flatMap(node => (node.getAttribute("aria-labelledby") ?? "").split(/\s+/).filter(Boolean).map(id => ({ id, count: ids.get(id) ?? 0 })));
   });
-  assert(labelledByReferences.every(({ count }) => count === 1), `${label}: every aria-labelledby token must resolve to one unique element`);
+  assert(labelledByReferences.every(({ count }) => count === 1), `${label}: invalid aria-labelledby reference`);
   await page.waitForSelector("textarea[data-private-question]");
   await page.type("textarea[data-private-question]", CHINESE_QUESTION);
   await clickButton(page, "继续起卦");
   await page.waitForSelector("#mei-hua-timezone");
+  const methodKey = "quickiching:public-v1:mei-hua-v2";
+  const beforeSwitch = await page.evaluate(key => sessionStorage.getItem(key), methodKey);
+  assert(beforeSwitch, "Bound method question must be persisted before switching language");
+  await switchMethodLanguage(page, "en", "/methods/mei-hua-yi-shu");
+  await page.waitForSelector("#mei-hua-timezone");
+  assert.equal(await page.$eval("input[data-private-question]", node => node.value), CHINESE_QUESTION);
+  assert.equal(await page.evaluate(key => sessionStorage.getItem(key), methodKey), beforeSwitch);
+  await assertNoOverflow(page, `${label} English method`);
+  await switchMethodLanguage(page, "zh-Hans", "/zh/methods/mei-hua-yi-shu");
+  await page.waitForSelector("#mei-hua-timezone");
+  assert.equal(await page.$eval("input[data-private-question]", node => node.value), CHINESE_QUESTION);
   await fillInput(page, "#mei-hua-timezone", "Asia/Shanghai");
   await clickButton(page, "按当前时间起卦");
-  await page.waitForSelector("[data-public-reading-result]", { timeout: 20_000 });
-  await waitForText(page, "本卦");
-  await waitForText(page, "动爻");
-  await waitForText(page, "之卦");
-
-  const chineseResult = await page.$eval("[data-public-reading-result]", (node) => ({
-    fingerprint: node.getAttribute("data-reading-fingerprint"),
-    text: node.textContent ?? "",
-  }));
-  assert(chineseResult.fingerprint, `${label}: reading fingerprint missing`);
-  assert(chineseResult.text.includes("核心主题"), `${label}: Chinese core interpretation missing`);
-  assert(chineseResult.text.includes("回到现实"), `${label}: Chinese grounded reflection missing`);
-  assert(chineseResult.text.includes("继续反思"), `${label}: Chinese reflection section missing`);
-  assert(chineseResult.text.includes(CHINESE_QUESTION), `${label}: Chinese question missing from result`);
-  for (const forbidden of ["Your I Ching reading", "Changing Lines", "Personalized Interpretation", "Reveal Your Reading"]) {
-    assert(!chineseResult.text.includes(forbidden), `${label}: English-only result text leaked into Chinese result: ${forbidden}`);
-  }
-  await assertNoOverflow(page, `${label} result`);
-
-  const englishTarget = await page.$eval("header [data-language-switch]", (node) => node.getAttribute("href"));
-  assert.equal(englishTarget, "/methods/mei-hua-yi-shu", `${label}: language switch must target the equivalent English route`);
-  await openLanguageMenuAndSwitch(page, viewport);
-
-  await page.waitForFunction((path) => location.pathname === path, { timeout: 20_000 }, "/methods/mei-hua-yi-shu");
-  await page.waitForSelector("[data-public-reading-result]", { timeout: 20_000 });
-  await waitForText(page, "Your I Ching reading");
-
-  const englishResult = await page.$eval("[data-public-reading-result]", (node) => ({
-    fingerprint: node.getAttribute("data-reading-fingerprint"),
-    text: node.textContent ?? "",
-  }));
-  assert.equal(englishResult.fingerprint, chineseResult.fingerprint, `${label}: language switch changed reading facts`);
-  assert(englishResult.text.includes("Primary"), `${label}: English result did not restore its original UI`);
-  assert.equal(await page.$eval("input[data-private-question]", (node) => node.value), CHINESE_QUESTION, `${label}: question changed during language switch`);
-  await assertNoOverflow(page, `${label} English result`);
-
-  await openLanguageMenuAndSwitch(page, viewport);
-
-  await page.waitForFunction((path) => location.pathname === path, { timeout: 20_000 }, "/zh/methods/mei-hua-yi-shu");
-  await page.waitForSelector("[data-public-reading-result]", { timeout: 20_000 });
-  const returnedChineseFingerprint = await page.$eval("[data-public-reading-result]", (node) => node.getAttribute("data-reading-fingerprint"));
-  assert.equal(returnedChineseFingerprint, chineseResult.fingerprint, `${label}: returning to Chinese changed reading facts`);
-
-  log(`${label} PASS`);
+  await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 20_000 });
+  await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+  assert.equal(await page.$("[data-public-reading-result]"), null, "Anonymous result must remain concealed");
+  await waitForText(page, "登录、保存并查看");
+  const completedKey = "quickiching:public-v1:completed-reading";
+  const completed = await page.evaluate(key => sessionStorage.getItem(key), completedKey);
+  const reading = JSON.parse(completed ?? "null");
+  assert.equal(reading?.method, "mei-hua-yi-shu");
+  assert.equal(reading?.question, CHINESE_QUESTION);
+  assert.equal(reading?.lineValuesBottomUp?.length, 6);
+  assert.equal(new URL(page.url()).searchParams.get("session"), reading.id);
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+  assert.equal(await page.evaluate(key => sessionStorage.getItem(key), completedKey), completed, "Refresh changed saved reading facts");
+  await assertNoOverflow(page, `${label} result gate`);
+  log(`${label}: cross-language question/session preservation + completed cast auth-before-reveal PASS`);
 }
 
 async function verifyBrowserFlows() {
