@@ -160,7 +160,7 @@ export const deepReadingRequestSchema = z.object({
 
 export const activeDeepReadingContextSnapshotSchema = legacyDeepReadingContextSnapshotSchema.omit({ context: true, castMethod: true, schemaVersion: true }).extend({
   schemaVersion: z.literal("deep-reading-context-v2"),
-  castMethod: z.enum(["three_coin", "yarrow_stalk", "mei_hua_current_time"]),
+  castMethod: z.enum(["three_coin", "yarrow_stalk", "mei_hua_number_time", "mei_hua_current_time"]),
   locale: z.enum(["en", "zh-Hans"]),
 }).strict();
 
