@@ -33,8 +33,10 @@ export type ThreeCoinRitualContextValue = {
 
 const ThreeCoinRitualContext = createContext<ThreeCoinRitualContextValue | null>(null);
 
-export function useThreeCoinRitualContext(): ThreeCoinRitualContextValue | undefined {
-  return useContext(ThreeCoinRitualContext) ?? undefined;
+export function useThreeCoinRitualContext(): ThreeCoinRitualContextValue {
+  const context = useContext(ThreeCoinRitualContext);
+  if (!context) throw new Error("THREE_COIN_RITUAL_CONTEXT_REQUIRED");
+  return context;
 }
 
 export function ThreeCoinRitual({

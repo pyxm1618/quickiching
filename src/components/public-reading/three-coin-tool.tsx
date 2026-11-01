@@ -57,7 +57,6 @@ function storageErrorCode(error: unknown): string {
 export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: UiDictionary }) {
   const router = useRouter();
   const questionContext = useThreeCoinRitualContext();
-  if (!questionContext) throw new Error("THREE_COIN_RITUAL_CONTEXT_REQUIRED");
   const homeStage = questionContext.experienceStage;
   const showRitualControls = homeStage === "ritual";
   const zh = dictionary.locale === "zh-Hans";
