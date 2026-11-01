@@ -13,6 +13,8 @@ describe("shared post-Reading business architecture", () => {
     expect(shared).toContain("persistCurrentReading");
     expect(shared).toContain("handleUnlockDeepReading");
     expect(shared).toContain("data-retry-account-reading-save");
+    expect(shared).toContain("data-auth-reading-intent");
+    expect(shared).toContain("/readings/deep?session=");
     expect(shared).not.toContain("readThreeCoinSession");
   });
   it("hands Three-Coin, Yarrow and Mei Hua into the same completed Reading boundary", () => {

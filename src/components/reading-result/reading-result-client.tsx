@@ -99,7 +99,7 @@ export function getTerminalCreditReconciliation(
 }
 
 function errorCode(error: unknown): string {
-  return error instanceof Error ? error.message : "THREE_COIN_READING_UNAVAILABLE";
+  return error instanceof Error ? error.message : "READING_UNAVAILABLE";
 }
 
 export function hasRequiredInterpretationBundles(
@@ -115,7 +115,7 @@ export function hasRequiredInterpretationBundles(
 }
 
 function currentBrowserReturnPath(): string {
-  if (typeof window === "undefined") return "/readings/three-coin/result";
+  if (typeof window === "undefined") return "/readings/result";
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }
 
@@ -185,9 +185,9 @@ export function ReadingResultClient({
 }: ReadingResultClientProps) {
   const zh = locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
-  const resultSigninHref = () => zh
-    ? "/zh/signin?callbackURL=" + encodeURIComponent(currentBrowserReturnPath())
-    : buildResultSigninHref(currentBrowserReturnPath());
+  const resultSigninHref = (returnPath = currentBrowserReturnPath()) => zh
+    ? "/zh/signin?callbackURL=" + encodeURIComponent(returnPath)
+    : buildResultSigninHref(returnPath);
   const pricingHref = (returnPath: string) => zh
     ? "/zh/pricing?returnUrl=" + encodeURIComponent(returnPath)
     : buildPricingHref(returnPath);
@@ -672,7 +672,7 @@ export function ReadingResultClient({
         data-reading-interpretation-loading={waitingForBrowserInterpretation ? "true" : undefined}
       >
         <div className={styles.loadingState} role="status" aria-label={t("Loading your completed reading", "正在恢复已完成的起卦结果")}>
-          <p className="mystic-kicker">{t("Three-Coin Method", "三枚铜钱法")}</p>
+          <p className="mystic-kicker">{t("Reading", "解卦")}</p>
           <p className="mt-3 font-display text-3xl font-normal text-white">{t("Restoring your sealed reading…", "正在恢复已经落定的起卦结果…")}</p>
           <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">
             {t("The result is rebuilt from the six completed lines.", "结果会根据已经完成的六爻重新构建。")}
@@ -686,15 +686,15 @@ export function ReadingResultClient({
     return (
       <div className={`${styles.page} mx-auto w-full max-w-[1180px] px-4 sm:px-6`}>
         <section className={styles.emptyState} aria-labelledby="empty-reading-title">
-          <p className="mystic-kicker">{t("Three-Coin Result", "三枚铜钱起卦结果")}</p>
+          <p className="mystic-kicker">{t("Reading", "解卦")}</p>
           <h1 id="empty-reading-title" className="mt-3 font-display text-4xl font-normal tracking-[-0.04em] text-white sm:text-5xl">
             {t("No completed reading found", "没有找到已完成的起卦")}
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[var(--ink-2)] sm:text-base">
-            {t("Complete a six-line Three-Coin reading before opening a result.", "请先完成六爻三枚铜钱起卦，再打开结果页。")}
+            {t("Complete a casting method before opening its saved result.", "请先完成一种起卦方式，再打开已完成的解卦结果。")}
           </p>
-          <Link href={zh ? "/zh/methods/three-coin" : "/#three-coin-reading"} className={`${styles.newReadingButton} mt-7`}>
-            {t("Start a Three-Coin Reading", "开始三枚铜钱起卦")}
+          <Link href={zh ? "/zh" : "/"} className={`${styles.newReadingButton} mt-7`}>
+            {t("Start a New Reading", "重新起一卦")}
           </Link>
         </section>
       </div>
@@ -710,17 +710,22 @@ export function ReadingResultClient({
             {t("The sealed reading could not be interpreted", "无法恢复这次已落定的起卦结果")}
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[var(--ink-2)]">
-            {zh ? "请返回三枚铜钱页面重新检查本次起卦。" : <>Error: <code className="font-mono text-[var(--cyan)]">{state.code}</code></>}
+            {zh ? "请返回起卦入口重新检查本次起卦。" : <>Error: <code className="font-mono text-[var(--cyan)]">{state.code}</code></>}
           </p>
-          <Link href={zh ? "/zh/methods/three-coin" : "/#three-coin-reading"} className={`${styles.newReadingButton} mt-7`}>
-            {t("Return to Three-Coin Reading", "返回三枚铜钱起卦")}
+          <Link href={zh ? "/zh" : "/"} className={`${styles.newReadingButton} mt-7`}>
+            {t("Return to Reading Methods", "返回起卦入口")}
           </Link>
         </section>
       </div>
     );
   }
 
-  const signinHref = resultSigninHref();
+  const prefix = zh ? "/zh" : "";
+  const intentCastId = resultReading?.id ?? clientCastingId ?? castingId ?? initialSessionId ?? "";
+  const freeIntentPath = `${prefix}/readings/result?session=${encodeURIComponent(intentCastId)}`;
+  const deepIntentPath = `${prefix}/readings/deep?session=${encodeURIComponent(intentCastId)}`;
+  const signinHref = resultSigninHref(pageMode === "deep" ? deepIntentPath : freeIntentPath);
+  const alternateSigninHref = resultSigninHref(pageMode === "deep" ? freeIntentPath : deepIntentPath);
   const resultDictionary = zh ? ZH_HANS_UI_DICTIONARY : EN_UI_DICTIONARY;
 
   if (!revealAllowed) {
@@ -739,8 +744,11 @@ export function ReadingResultClient({
 
           {!user ? (
             <div key="auth-required" className="ritual-gate-action" data-auth-required-before-reveal>
-              <Link href={signinHref} prefetch={false} className="ritual-gate-signin" onClick={(event) => { if (event.currentTarget.closest(".ritual-gate-card")?.getAnimations().some(animation => animation.playState === "running")) event.preventDefault(); }} aria-label={t("Sign in to save and reveal this reading", "登录、保存并查看本次卦象")}>
-                <UserRound aria-hidden="true" />{t("Sign In to Save & Reveal", "登录、保存并查看")}<ArrowRight aria-hidden="true" />
+              <Link href={signinHref} prefetch={false} className="ritual-gate-signin" data-auth-reading-intent={pageMode} onClick={(event) => { if (event.currentTarget.closest(".ritual-gate-card")?.getAnimations().some(animation => animation.playState === "running")) event.preventDefault(); }} aria-label={pageMode === "deep" ? t("Sign in and continue to Deep Reading", "登录并继续深度解读") : t("Sign in to save and reveal this reading", "登录、保存并查看本次卦象")}>
+                <UserRound aria-hidden="true" />{pageMode === "deep" ? t("Sign In for Deep Reading", "登录并继续深度解读") : t("Sign In to Save & Reveal", "登录、保存并查看")}<ArrowRight aria-hidden="true" />
+              </Link>
+              <Link href={alternateSigninHref} prefetch={false} className="mt-3 inline-flex text-sm underline underline-offset-4" data-auth-reading-alternate-intent={pageMode === "deep" ? "free" : "deep"}>
+                {pageMode === "deep" ? t("Use Free Reading instead", "改为查看免费解卦") : t("Continue to Deep Reading instead", "改为继续深度解读")}
               </Link>
             </div>
           ) : persistenceStatus === "error" ? (
@@ -776,7 +784,6 @@ export function ReadingResultClient({
     </div></RitualRevealTransition>;
   }
 
-  const prefix = zh ? "/zh" : "";
   const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(castingId!)}`;
   const deepHref = `${prefix}/readings/deep?session=${encodeURIComponent(castingId!)}`;
   const deepQuestion = deepContext?.question

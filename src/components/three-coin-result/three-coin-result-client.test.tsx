@@ -253,9 +253,9 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT} initialState={{ kind: "empty" }} />,
     );
-    expect(html).toContain('href="/zh/methods/three-coin"');
-    expect(html).not.toContain('href="/#three-coin-reading"');
-    expect(html).toContain("开始三枚铜钱起卦");
+    expect(html).toContain('href="/zh"');
+    expect(html).not.toContain('href="/"');
+    expect(html).toContain("重新起一卦");
     expect(html).toContain("没有找到已完成的起卦");
   });
 
@@ -263,7 +263,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient locale="en" initialState={{ kind: "empty" }} />,
     );
-    expect(html).toContain('href="/#three-coin-reading"');
+    expect(html).toContain('href="/"');
     expect(html).toContain("Start a Three-Coin Reading");
     expect(html).toContain("No completed reading found");
   });
@@ -276,9 +276,9 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         initialState={{ kind: "error", code: "TEST_ERROR" }}
       />,
     );
-    expect(html).toContain('href="/zh/methods/three-coin"');
-    expect(html).not.toContain('href="/#three-coin-reading"');
-    expect(html).toContain("返回三枚铜钱起卦");
+    expect(html).toContain('href="/zh"');
+    expect(html).not.toContain('href="/"');
+    expect(html).toContain("返回起卦入口");
     expect(html).toContain("无法恢复这次已落定的起卦结果");
   });
 
@@ -289,8 +289,8 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         initialState={{ kind: "error", code: "TEST_ERROR" }}
       />,
     );
-    expect(html).toContain('href="/#three-coin-reading"');
-    expect(html).toContain("Return to Three-Coin Reading");
+    expect(html).toContain('href="/"');
+    expect(html).toContain("Return to Reading Methods");
     expect(html).toContain("The sealed reading could not be interpreted");
   });
 
