@@ -13,9 +13,11 @@ import { browserRandomBit } from "@/lib/browser-random";
 import {
   clearThreeCoinReading,
   readThreeCoinSession,
-  readThreeCoinSteps,
   writeThreeCoinSteps,
 } from "@/lib/three-coin-session";
+
+type MotionState = "idle" | "holding" | "casting" | "settled";
+type UnpersistedCommit = { steps: ThreeCoinStep[]; step: ThreeCoinStep };
 
 export function canRecordSettledThreeCoin(input: {
   motion: MotionState;
@@ -55,7 +57,8 @@ function storageErrorCode(error: unknown): string {
 export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: UiDictionary }) {
   const router = useRouter();
   const questionContext = useThreeCoinRitualContext();
-  const homeStage = questionContext?.experienceStage ?? "ritual";
+  if (!questionContext) throw new Error("THREE_COIN_RITUAL_CONTEXT_REQUIRED");
+  const homeStage = questionContext.experienceStage;
   const showRitualControls = homeStage === "ritual";
   const zh = dictionary.locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
@@ -83,10 +86,9 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
   useEffect(() => {
     try {
       const session = readThreeCoinSession();
-      const stored = session?.data?.steps ?? readThreeCoinSteps();
-      const migrated = stored.length > 0 ? writeThreeCoinSteps(stored) : session;
+      const stored = session?.data?.steps ?? [];
       setSteps(stored);
-      setReadingMeta(migrated ? { id: migrated.id, createdAt: migrated.createdAt } : null);
+      setReadingMeta(session ? { id: session.id, createdAt: session.createdAt } : null);
       setRevealedCount(stored.length);
       setStorageError(null);
     } catch (error: unknown) {
@@ -105,7 +107,6 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
 
   const lines = useMemo(() => steps.map((step) => step.lineValue), [steps]);
   const revealedSteps = useMemo(() => steps.slice(0, revealedCount), [steps, revealedCount]);
-  const revealedLines = useMemo(() => revealedSteps.map((step) => step.lineValue), [revealedSteps]);
   const complete = lines.length === 6;
   const visuallyComplete = revealedCount === 6;
   const settledUnrecordedStep = motion === "settled" && steps.length > revealedCount
@@ -251,7 +252,7 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
     if (!holdingRef.current || complete || storageBlocked) return;
     stopShake();
 
-    if (steps.length === 0 && questionContext?.freezeCoreQuestion() === false) return;
+    if (steps.length === 0 && questionContext.freezeCoreQuestion() === false) return;
     const lineIndex = steps.length as 0 | 1 | 2 | 3 | 4 | 5;
     const next = generateThreeCoinLine(lineIndex, browserRandomBit);
     const committedSteps = [...steps, next];
@@ -284,7 +285,7 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
 
     try {
       const session = readThreeCoinSession();
-      const stored = session?.data?.steps ?? readThreeCoinSteps();
+      const stored = session?.data?.steps ?? [];
       setSteps(stored);
       setReadingMeta(session ? { id: session.id, createdAt: session.createdAt } : null);
       setRevealedCount(stored.length);
@@ -323,7 +324,7 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
 
   function startNewReading() {
     reset();
-    questionContext?.restartQuestion(true);
+    questionContext.restartQuestion(true);
   }
 
   function onPointerDown(event: PointerEvent<HTMLButtonElement>) {
