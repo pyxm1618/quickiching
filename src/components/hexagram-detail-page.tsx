@@ -154,6 +154,7 @@ export function HexagramDetailPageView({
   const structuredData = buildStructuredData({ locale, knowledge, seo, hubPath });
   const staticLines = detailLineValues(knowledge.trigrams);
   const detail = knowledge.detail;
+  const englishH1Prefix = !isChinese && seo.finalH1.endsWith(knowledge.englishName) ? seo.finalH1.slice(0, -knowledge.englishName.length) : "";
 
   preload("/hexagram-detail/delivery/paper-627.webp", { as: "image", imageSrcSet: "/hexagram-detail/delivery/paper-627.webp 1x, /hexagram-detail/delivery/paper-1254.webp 2x", fetchPriority: "high", media: "(min-width: 961px)" });
   preload("/hexagram-detail/delivery/paper-mobile-627.webp", { as: "image", imageSrcSet: "/hexagram-detail/delivery/paper-mobile-627.webp 1x, /hexagram-detail/delivery/paper-mobile-1254.webp 2x", fetchPriority: "high", media: "(max-width: 960px)" });
@@ -206,7 +207,7 @@ export function HexagramDetailPageView({
           <div className={styles.numberBadge}><span>{isChinese ? "易经第" : "Hexagram"}</span><strong>{knowledge.number}</strong></div>
           <div className={styles.identityCopy}>
             <p className={styles.pinyin} data-seo-latin-allowed={isChinese ? "pinyin" : undefined}>{isChinese ? knowledge.chineseName + " · " + knowledge.pinyin : knowledge.pinyin.charAt(0).toUpperCase() + knowledge.pinyin.slice(1)}</p>
-            <h1>{seo.finalH1}</h1>
+            <h1>{isChinese || !englishH1Prefix ? seo.finalH1 : <><span className={styles.h1Prefix}>{englishH1Prefix}</span><span>{knowledge.englishName}</span></>}</h1>
             <p className={styles.heroMeaning} data-seo-early-copy={isChinese ? "true" : undefined}>
               {isChinese
                 ? seo.primaryKeyword + "（" + secondary + "）是易经第" + knowledge.number + "卦。" + chineseCopy(zhContent?.coreMeaning)
