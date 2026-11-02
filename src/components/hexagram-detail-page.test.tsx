@@ -84,7 +84,7 @@ describe("static hexagram detail page", () => {
         />,
       );
       expect((html.match(/<h1\b/g) ?? []).length, item.locale + " " + item.number).toBe(1);
-      expect(html).toContain(">" + hexagramSeoFor(item.number, item.locale).finalH1 + "<");
+      expect(h1Text(html)).toBe(hexagramSeoFor(item.number, item.locale).finalH1);
       for (let position = 1; position <= 6; position += 1) {
         expect(html).toContain('id="line-' + position + '"');
       }
