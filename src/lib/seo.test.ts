@@ -22,6 +22,8 @@ describe("Public SEO V1 constants", () => {
       "/checkout",
       "/result",
       "/readings/three-coin/result",
+      "/readings/result",
+      "/readings/deep",
     ]) {
       expect(isPrivateOrCommercialPath(path)).toBe(true);
       expect(isPrivateOrCommercialPath(`/zh${path}`)).toBe(true);

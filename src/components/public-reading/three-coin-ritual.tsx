@@ -97,13 +97,15 @@ export function ThreeCoinRitual({
 
   useEffect(() => {
     const restored = readThreeCoinQuestionState();
-    setQuestionState(restored.question);
-    setDraft(restored.question ?? "");
-    setCoreQuestionAtCast(restored.coreQuestionAtCast);
-    setCoreQuestionFrozenAtCast(restored.coreQuestionFrozenAtCast);
-    const stage = threeCoinExperienceStageForSession(restored);
-    setExperienceStage(stage);
-    setPresentationStage(stage);
+    if (restored.question || restored.coreQuestionFrozenAtCast || restored.started) {
+      setQuestionState(restored.question);
+      setDraft(restored.question ?? "");
+      setCoreQuestionAtCast(restored.coreQuestionAtCast);
+      setCoreQuestionFrozenAtCast(restored.coreQuestionFrozenAtCast);
+      const stage = threeCoinExperienceStageForSession(restored);
+      setExperienceStage(stage);
+      setPresentationStage(stage);
+    }
   }, []);
 
   function persist(
@@ -251,7 +253,7 @@ export function ThreeCoinRitual({
 
   return (
     <ThreeCoinRitualContext.Provider value={context}>
-      <link rel="preload" as="image" href="/performance/questionDesktop.d616c1d6e5957a79.png" media="(min-width:471px)" fetchPriority="high" />
+      <link rel="preload" as="image" href="/performance/questionDesktop.3b34ef04891180ba.webp" media="(min-width:471px)" fetchPriority="high" />
       <link rel="preload" as="image" href="/performance/questionMobile.aeacbe5208415e49.webp" media="(max-width:470px)" fetchPriority="high" />
       <link rel="preload" as="image" href="/performance/stageDesktop.e37364561615e31f.webp" media="not all and (max-aspect-ratio:11/20)" fetchPriority="high" />
       <link rel="preload" as="image" href="/performance/stagePortrait.bde3e415eb141bc8.webp" media="(min-width:601px) and (max-aspect-ratio:11/20)" fetchPriority="high" />

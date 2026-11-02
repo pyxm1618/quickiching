@@ -6,7 +6,7 @@ const definitions = [
   ['stageDesktop', 'ritual/bg-stage-master-clean.png', 1671],
   ['stageMobile', 'ritual/bg-stage-mobile-600.webp'],
   ['stagePortrait', 'ritual/bg-stage-portrait-crop.webp'],
-  ['questionDesktop', 'ritual/question-parchment-crop.png'],
+  ['questionDesktop', 'ritual/question-parchment-crop.png', 646],
   ['questionMobile', 'ritual/question-parchment-mobile-crop.webp'],
   ['resultDesktop', 'ritual/hexagram-result-card-blank.png', 1670],
   ['resultMobile', 'ritual/hexagram-result-card-mobile.webp'],

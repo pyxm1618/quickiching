@@ -53,6 +53,42 @@ const REQUIRED_INTERNAL_EDGES = {
   "/hexagrams": ["/", "/methods/yarrow-stalks", "/methods/mei-hua-yi-shu"],
 };
 const VAGUE_ANCHORS = new Set(["click here", "go", "learn more", "read more"]);
+const EXPECTED_TDH = {
+  "/methods/three-coin": {
+    title: "I Ching Three-Coin Method — Free Online Cast | Quick I Ching",
+    h1: "I Ching Three-Coin Method",
+  },
+  "/methods/yarrow-stalks": {
+    title: "I Ching Yarrow Stalk Method — Online Cast | Quick I Ching",
+    h1: "I Ching Yarrow Stalk Method",
+  },
+  "/methods/mei-hua-yi-shu": {
+    title: "Mei Hua Yi Shu — Free Online Casting | Quick I Ching",
+    h1: "Mei Hua Yi Shu — Current-Time Casting",
+  },
+  "/methods/manual-cast": {
+    title: "Manual I Ching Cast — Enter Lines Online | Quick I Ching",
+    h1: "Manual I Ching Cast",
+  },
+  "/guides/how-to-ask-the-i-ching": {
+    title: "How to Ask the I Ching — Question Guide | Quick I Ching",
+    h1: "How to Ask the I Ching",
+  },
+  "/guides/changing-lines": {
+    title: "I Ching Changing Lines — Moving Lines Guide | Quick I Ching",
+    h1: "I Ching Changing Lines",
+  },
+  "/guides/primary-relating-hexagrams": {
+    title: "Primary and Relating Hexagrams — Guide | Quick I Ching",
+    h1: "Primary and Relating Hexagrams",
+  },
+  "/hexagrams": {
+    title: "64 I Ching Hexagrams — King Wen Guide | Quick I Ching",
+    description: "Explore all 64 I Ching hexagrams in King Wen order, with names, meanings, and links to detailed hexagram pages and casting methods.",
+    h1: "64 I Ching Hexagrams",
+  },
+};
+
 
 function log(message) {
   console.log(`[On-Page SEO Browser Gate] ${message}`);
@@ -101,6 +137,12 @@ try {
     assert(snapshot.description.trim(), `${path}: description missing`);
     assert.equal(snapshot.h1.length, 1, `${path}: expected exactly one H1`);
     assert(snapshot.h1[0], `${path}: H1 is empty`);
+    const expectedTdh = EXPECTED_TDH[path];
+    if (expectedTdh) {
+      assert.equal(snapshot.title, expectedTdh.title, `${path}: title drift`);
+      if (expectedTdh.description) assert.equal(snapshot.description, expectedTdh.description, `${path}: description drift`);
+      assert.equal(snapshot.h1[0], expectedTdh.h1, `${path}: H1 drift`);
+    }
 
     const internalAnchors = snapshot.anchors.filter((anchor) => anchor.href.startsWith("/"));
     for (const anchor of internalAnchors) {
@@ -114,6 +156,7 @@ try {
     const hexagramIndex = HEXAGRAM_PATHS.indexOf(path);
     if (hexagramIndex >= 0) {
       const expectedCanonical = `https://www.quickiching.com${path}`;
+      assert(snapshot.h1[0].startsWith(`Hexagram ${hexagramIndex + 1} — `), `${path}: English hexagram H1 must retain the researched Hexagram N primary`);
       assert.equal(snapshot.canonical, expectedCanonical, `${path}: canonical mismatch`);
       assert(snapshot.lineAnchors.every(Boolean), `${path}: six changing-line anchors are incomplete`);
       for (const required of [

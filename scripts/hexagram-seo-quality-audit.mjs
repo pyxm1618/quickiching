@@ -236,7 +236,7 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     && new URL(inboundAnchor.href, CANONICAL_ORIGIN).pathname === pagePath(entry)
     && hasExactPhrase(inboundAnchor.text, entry.primaryKeyword, entry.locale));
   const isEnglishKnowledgePage = entry.locale === "en";
-  const expectedH1 = isEnglishKnowledgePage ? CLASSICAL_HEXAGRAMS.find((hexagram) => hexagram.number === entry.number).englishName : entry.finalH1;
+  const expectedH1 = entry.finalH1;
   // EN and ZH share one knowledge-detail presentation. Locale-specific keyword placement
   // remains where it is a real content requirement; retired reading-intent UI is not revived.
   const placement = {
@@ -249,7 +249,7 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     h1Exact: snapshot.h1.length === 1 && snapshot.h1[0] === expectedH1,
     primaryInTitle: hasExactPhrase(snapshot.title, entry.primaryKeyword, entry.locale),
     primaryInDescription: hasExactPhrase(snapshot.description, entry.primaryKeyword, entry.locale),
-    ...(!isEnglishKnowledgePage ? { primaryInH1: snapshot.h1.some((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)) } : {}),
+    primaryInH1: snapshot.h1.some((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)),
     ...(!isEnglishKnowledgePage ? { primaryInEarlyCopy: hasExactPhrase(snapshot.earlyCopy, entry.primaryKeyword, entry.locale) } : {}),
     ...(!isEnglishKnowledgePage ? { primaryInH2: snapshot.h2.some((value) => hasExactPhrase(value, entry.primaryKeyword, entry.locale)) } : {}),
     primaryInboundAnchor: inboundAnchorValid,
@@ -332,7 +332,7 @@ function auditSnapshot(entry, snapshot, inboundAnchor, siteGraph) {
     languageContamination: quality.contamination,
     presentationPolicy: "Unified EN/ZH knowledge detail: one IA and presentation, locale-specific copy only; no retired reading-intent modules or detail-to-home CTA",
     nonApplicablePresentationChecks: isEnglishKnowledgePage
-      ? ["primaryInH1", "primaryInEarlyCopy", "primaryInH2", "secondaryInEarlyCopy", "detailToHome", "love", "unchanging", "relationship", "special"]
+      ? ["primaryInEarlyCopy", "primaryInH2", "secondaryInEarlyCopy", "detailToHome", "love", "unchanging", "relationship", "special"]
       : ["primaryInBreadcrumb", "detailToHome", "love", "unchanging", "relationship", "special"],
     placements: placement,
     linkGraph,
@@ -366,7 +366,7 @@ async function writeReport(rows) {
   const summary = {
     base: BASE,
     staticBuildDir: STATIC_BUILD_DIR || null,
-    algorithm: "Eligible rendered article copy is measured after excluding navigation, source attribution, legal copy, hidden content, scripts, styles, and explicit data-seo-exclude regions. Fixed keyword-density percentage bands are diagnostic only. Hard gates retain primary-keyword presence and placement, title/description/H1, canonical/hreflang, internal links, main-language validity, locale-specific presentation modules, and mechanical stuffing detection. English H1 is the real entity name; retired reading-intent UI and keyword slots are explicitly non-applicable, not passed.",
+    algorithm: "Eligible rendered article copy is measured after excluding navigation, source attribution, legal copy, hidden content, scripts, styles, and explicit data-seo-exclude regions. Fixed keyword-density percentage bands are diagnostic only. Hard gates retain primary-keyword presence and placement, title/description/H1, canonical/hreflang, internal links, main-language validity, locale-specific presentation modules, and mechanical stuffing detection. English H1 follows the researched finalH1 target and contains the exact Primary; retired reading-intent UI and unrelated keyword slots remain explicitly non-applicable, not passed.",
     total: rows.length,
     records: rows.length === 128,
     english: rows.filter((row) => row.locale === "en").length,
