@@ -279,6 +279,7 @@ export function HexagramsExperience({
         alt=""
         fill
         priority
+        decoding="sync"
         quality={90}
         sizes="100vw"
         className={styles.heroImage}
