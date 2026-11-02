@@ -121,8 +121,8 @@ export function coinPose(input:{
   const diameter=mix(mix(164,peakDiameter,sizeEntry),164,guidance);
   const spin=spinProgress(progress,index===2?8:index===1?1.8:1);
   const targetAngle=(index===1&&face==='yang'?6*PI:4*PI)+(face==='yin'?PI:0);
-  const precession=Math.pow(Math.sin(spin*PI),index===0?2.5:2)*[1.62,1.84,2.7][index];
-  const roll=Math.pow(Math.sin(clamp(progress/.72)*PI),index===2?10:1)*[-.92,-.49,.5][index];
+  const precession=Math.pow(Math.sin(spin*PI),index===0?2.5:2)*[2.23,1.84,2.7][index];
+  const roll=Math.pow(Math.sin(clamp(progress/.72)*PI),index===2?10:1)*[-1.58,-.49,.5][index];
   return {x,y,diameter,rotation:[
     initial[0]*(1-spin)+targetAngle*spin,
     (precession+initial[1]*(1-spin))*(1-guidance),
