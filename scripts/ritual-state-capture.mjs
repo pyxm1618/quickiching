@@ -12,7 +12,7 @@ const output=resolve(process.argv[3]||`.artifacts/ritual-qa/ref-${state}/pass-1`
 const mobile=process.env.RITUAL_QA_VIEWPORT==='mobile';
 const viewport=mobile?{width:390,height:844}:{width:1672,height:941};
 await mkdir(output,{recursive:true});
-const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1',`--window-size=${viewport.width},${viewport.height}`]});
+const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,protocolTimeout:180_000,args:['--force-device-scale-factor=1',`--window-size=${viewport.width},${viewport.height}`]});
 try {
  const page=await browser.newPage();await page.setViewport({...viewport,deviceScaleFactor:1});
  await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
