@@ -132,7 +132,7 @@ function DetailHeroArtwork() {
   return <picture className={styles.taiji}>
     <source media="(min-width: 961px)" srcSet="/hexagram-detail/delivery/taiji-660.avif 1x, /hexagram-detail/delivery/taiji-1320.avif 2x" />
     <source media="(min-width: 541px)" srcSet="/hexagram-detail/delivery/taiji-360.avif 1x, /hexagram-detail/delivery/taiji-720.avif 2x" />
-    <img src="/hexagram-detail/delivery/taiji-290.avif" srcSet="/hexagram-detail/delivery/taiji-290.avif 1x, /hexagram-detail/delivery/taiji-580.avif 2x" alt="" width={2048} height={2048} fetchPriority="high" decoding="sync" />
+    <img src="/hexagram-detail/delivery/taiji-360.avif" alt="" width={2048} height={2048} fetchPriority="high" decoding="sync" />
   </picture>;
 }
 
