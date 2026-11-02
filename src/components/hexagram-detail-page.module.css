@@ -12,11 +12,11 @@
   padding: clamp(65px, 6.35vw, 92px) 28px 68px 96px;
   background: #160e07;
   color: var(--detail-ink);
-  font: 16px/1.45 Georgia, "Libre Baskerville", serif;
+  font: 16px/1.45 "Times New Roman", Times, serif;
 }
 .detail * { box-sizing: border-box; }
 .detail .paper h1, .detail .paper h2, .detail .paper h3 {
-  font-family: Georgia, "Libre Baskerville", serif;
+  font-family: "Times New Roman", Times, serif;
   letter-spacing: normal;
   text-shadow: none;
 }
