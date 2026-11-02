@@ -56,8 +56,9 @@ try {
    if(state==='03') {
     await page.waitForSelector('.hold-button:not(:disabled)');await page.locator('.hold-button').click();
     await page.waitForSelector('[data-renderer="three-webgl"][data-phase="casting"]');
-    const cdp=await page.createCDPSession();
-    await cdp.send('Emulation.setVirtualTimePolicy',{policy:'pause'});
+    // ritualTime=500 already freezes the rendered Three.js sample. Do not pause
+    // Chromium virtual time here: a fully paused compositor can deadlock
+    // Page.captureScreenshot on Metal/WebGL after the integration performance merge.
    } else {
     const count=state==='04'?1:state==='05'?4:6;
     for(let index=0;index<count;index++) {
