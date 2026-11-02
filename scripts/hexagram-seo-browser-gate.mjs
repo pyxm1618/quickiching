@@ -70,7 +70,7 @@ function assertSnapshot(entry, snapshot) {
   assert.doesNotMatch(snapshot.robots, /\bnoindex\b/iu, `${path}: detail page is noindex`);
   assert.equal(snapshot.canonical, entry.canonicalUrl, `${path}: canonical mismatch`);
   assert.equal(snapshot.ogUrl, entry.canonicalUrl, `${path}: og:url mismatch`);
-  assert.deepEqual(snapshot.h1, [entry.locale === "en" ? CLASSICAL_HEXAGRAMS.find((hexagram) => hexagram.number === entry.number).englishName : entry.finalH1], `${path}: H1 is not unique/exact`);
+  assert.deepEqual(snapshot.h1, [entry.finalH1], `${path}: H1 is not unique/exact`);
   assert(snapshot.lineAnchors.every(Boolean), `${path}: line anchors incomplete`);
   assert.equal(snapshot.detailInboundAnchorCount, 0, `${path}: detail page contains a fake inbound-anchor marker`);
   assert.equal(snapshot.htmlLang, entry.locale === "zh-Hans" ? "zh-Hans" : "en", `${path}: html lang mismatch`);

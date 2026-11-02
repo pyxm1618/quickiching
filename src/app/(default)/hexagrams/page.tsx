@@ -7,13 +7,13 @@ import { isAuthCapabilityEnabled } from "@/server/auth/capability";
 import { HexagramsExperience } from "./hexagrams-experience";
 
 export const metadata: Metadata = {
-  title: "64 I Ching Hexagrams — King Wen Sequence Guide",
-  description: "Explore all 64 I Ching hexagrams in King Wen order through an interactive 8×8 scroll and wheel, then open any hexagram detail page.",
+  title: "64 I Ching Hexagrams — King Wen Guide",
+  description: "Explore all 64 I Ching hexagrams in King Wen order, with names, meanings, and links to detailed hexagram pages and casting methods.",
   alternates: {
     canonical: "/hexagrams",
     languages: alternateLanguages("hexagrams-hub"),
   },
-  openGraph: { title: "64 I Ching Hexagrams — King Wen Sequence Guide", description: "Browse all 64 I Ching hexagrams in King Wen order and open any hexagram detail page.", url: "/hexagrams", type: "website" },
+  openGraph: { title: "64 I Ching Hexagrams — King Wen Guide", description: "Explore all 64 I Ching hexagrams in King Wen order, with names, meanings, and links to detailed hexagram pages and casting methods.", url: "/hexagrams", type: "website" },
 };
 
 export default function HexagramsHubPage() {

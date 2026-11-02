@@ -11,10 +11,10 @@ import { PaperArtwork } from "@/components/info-pages/paper-artwork";
 import styles from "@/components/info-pages/info-pages.module.css";
 
 export const metadata: Metadata = {
-  title: "I Ching Changing Lines — How Moving Lines Work",
+  title: "I Ching Changing Lines — Moving Lines Guide",
   description: "Learn what changing lines mean in an I Ching reading, why 6 and 9 move, and how moving lines produce a relating hexagram.",
   alternates: { canonical: "/guides/changing-lines", languages: alternateLanguages("guides-changing-lines") },
-  openGraph: { title: "I Ching Changing Lines — How Moving Lines Work", description: "Understand moving lines and the relating hexagram in an I Ching reading.", url: "/guides/changing-lines", type: "article" },
+  openGraph: { title: "I Ching Changing Lines — Moving Lines Guide", description: "Understand moving lines and the relating hexagram in an I Ching reading.", url: "/guides/changing-lines", type: "article" },
 };
 
 const WORKED_EXAMPLE_LINES = [7, 8, 9, 7, 6, 8] as const;
@@ -38,7 +38,7 @@ function lineChange(value: LineValue): string {
 export default function ChangingLinesGuidePage() {
   return (
     <InfoPageShell
-      title="Changing Lines"
+      title="I Ching Changing Lines"
       lead="Changing lines, also called moving lines, identify the positions where a cast changes polarity when the relating hexagram is calculated. The line values are always read from the bottom of the hexagram upward."
     >
       <section className={styles.guideMain}>

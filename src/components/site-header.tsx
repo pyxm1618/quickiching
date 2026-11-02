@@ -1,10 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { SceneNavigation } from "@/components/scene-navigation";
 import "@/components/scene-navigation.css";
-import { InfoPageHeader } from "@/components/info-pages/info-page-header";
 import type { ContentLocale } from "@/i18n/config";
+
+const InfoPageHeader = dynamic(() => import("@/components/info-pages/info-page-header").then(m => m.InfoPageHeader), { ssr: true });
 
 const INFO_PAGE_PATHS = new Set([
   "/guides/how-to-ask-the-i-ching",

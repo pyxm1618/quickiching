@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
-import { ThreeCoinRitual } from "@/components/public-reading/three-coin-ritual";
-import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
+import { ThreeCoinRitualClient } from "@/components/public-reading/three-coin-ritual-client";
 
 export const metadata: Metadata = {
-  title: "I Ching Three-Coin Method — Free Coin Toss Reading",
+  title: "I Ching Three-Coin Method — Free Online Cast",
   description: "Use the I Ching three-coin method online. Toss six lines from bottom to top, identify changing lines, and read the primary and relating hexagrams for free.",
   alternates: { canonical: "/methods/three-coin", languages: alternateLanguages("three-coin-method") },
-  openGraph: { title: "I Ching Three-Coin Method — Free Coin Toss Reading", description: "Cast a complete free three-coin I Ching reading online.", url: "/methods/three-coin", type: "website" },
+  openGraph: { title: "I Ching Three-Coin Method — Free Online Cast", description: "Cast a complete free three-coin I Ching reading online.", url: "/methods/three-coin", type: "website" },
 };
 
 export default function ThreeCoinMethodPage() {
@@ -20,7 +19,9 @@ export default function ThreeCoinMethodPage() {
         <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">The three-coin I Ching method turns six coin tosses into a hexagram. Each completed toss is one line, built from the bottom upward; values 6 and 9 are changing lines.</p>
       </header>
 
-      <section className="mx-auto max-w-6xl px-4 pb-12"><ThreeCoinRitual headingLevel={2} homeHeading="Begin Your Three-Coin Reading" homeDescription="Ask one focused question, confirm it, then complete the same six-cast ritual used on the home page."><ThreeCoinTool /></ThreeCoinRitual></section>
+      <section className="mx-auto max-w-6xl px-4 pb-12">
+        <ThreeCoinRitualClient headingLevel={2} homeHeading="Begin Your Three-Coin Reading" homeDescription="Ask one focused question, confirm it, then complete the same six-cast ritual used on the home page." />
+      </section>
 
       <section className="mx-auto grid max-w-5xl gap-8 px-4 py-12 md:grid-cols-2">
         <div><h2 className="font-display text-2xl font-medium">How the coin method works</h2><ol className="mt-4 list-decimal space-y-3 pl-6 text-sm leading-7 text-[var(--ink-2)]"><li>Three independent coin faces are generated with browser Web Crypto.</li><li>Yang/head contributes 3 and yin/tail contributes 2.</li><li>The total becomes 6, 7, 8, or 9.</li><li>Repeat six times, with the first result as the bottom line.</li><li>6 and 9 move; reversing those lines derives the relating hexagram.</li></ol></div>

@@ -1,5 +1,6 @@
 {
-  "base": "http://127.0.0.1:3056",
+  "base": "http://127.0.0.1:3000",
+  "authClosed": true,
   "states": [
     {
       "state": "default",
@@ -323,6 +324,58 @@
       "status": "PASS"
     },
     {
+      "name": "en: click reaches /hexagrams",
+      "status": "PASS"
+    },
+    {
+      "name": "en: click reaches /methods/yarrow-stalks",
+      "status": "PASS"
+    },
+    {
+      "name": "en: click reaches /methods/mei-hua-yi-shu",
+      "status": "PASS"
+    },
+    {
+      "name": "en: click reaches /methods/manual-cast",
+      "status": "PASS"
+    },
+    {
+      "name": "en: click reaches /guides/how-to-ask-the-i-ching",
+      "status": "PASS"
+    },
+    {
+      "name": "en: click reaches /guides/changing-lines",
+      "status": "PASS"
+    },
+    {
+      "name": "en: click reaches /guides/primary-relating-hexagrams",
+      "status": "PASS"
+    },
+    {
+      "name": "en: click reaches /help",
+      "status": "PASS"
+    },
+    {
+      "name": "en: click reaches /privacy",
+      "status": "PASS"
+    },
+    {
+      "name": "en: click reaches /terms",
+      "status": "PASS"
+    },
+    {
+      "name": "en: click reaches /acceptable-use",
+      "status": "PASS"
+    },
+    {
+      "name": "en: closed Auth hides Sign In entry",
+      "status": "PASS"
+    },
+    {
+      "name": "en: Account guard stays closed",
+      "status": "PASS"
+    },
+    {
       "name": "zh: existing destination /hexagrams",
       "status": "PASS"
     },
@@ -372,6 +425,58 @@
     },
     {
       "name": "zh: no Methods index",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: click reaches /zh/hexagrams",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: click reaches /zh/methods/yarrow-stalks",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: click reaches /zh/methods/mei-hua-yi-shu",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: click reaches /zh/methods/manual-cast",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: click reaches /zh/guides/how-to-ask-the-i-ching",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: click reaches /zh/guides/changing-lines",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: click reaches /zh/guides/primary-relating-hexagrams",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: click reaches /zh/help",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: click reaches /zh/privacy",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: click reaches /zh/terms",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: click reaches /zh/acceptable-use",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: closed Auth hides Sign In entry",
+      "status": "PASS"
+    },
+    {
+      "name": "zh: Account guard stays closed",
       "status": "PASS"
     },
     {
