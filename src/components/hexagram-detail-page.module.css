@@ -114,9 +114,6 @@
 }
 @media (max-width: 960px) {
   .detail { padding: 50px 26px 55px; font-size: 16px; }
-  .paper { isolation: isolate; background: #f7e5c2; }
-  .paper::before { content: ""; display: block; position: sticky; top: 0; height: 100vh; margin-bottom: -100vh; z-index: 0; pointer-events: none; background: var(--detail-paper) repeat; background-size: 627px 627px; }
-  .paper > * { position: relative; z-index: 1; }
   .leftEdge { width: 24px; top: 45px; bottom: 35px; }
   .rightEdge { width: 24px; top: 45px; bottom: 35px; }
   .detail .sectionNav { position: relative; top: auto; left: auto; width: auto; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0 0 16px; font-size: 12px; }
