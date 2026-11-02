@@ -109,7 +109,7 @@ function makeEffects(seed:number) {
           float edges=pow(max(0.,sin(clamp(across,0.,1.)*3.14159)),2.);
           float density=smoothstep(.12,.52,wisps(drift+vec2(curl,0.)));
           float a=edges*sin(vUv.y*3.14159)*density*intensity;
-          gl_FragColor=vec4(.95,.82,.66,a);
+          gl_FragColor=vec4(.78,.42,.16,a*.88);
         }`,
     });
     const mesh=new Mesh(geometry,material);group.add(mesh);return mesh;
@@ -335,7 +335,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
               positions.setXYZ(i*2+side,rimPoint.x,rimPoint.y,rimPoint.z);uv.setXY(i*2+side,side,i/99);
             }
           }
-          ribbon.material.uniforms.intensity.value=energy*castTrailIntensity(effectTime,index%3)*1.05;
+          ribbon.material.uniforms.intensity.value=energy*castTrailIntensity(effectTime,index%3)*.58;
         } else {
           const centers=effects.centers[index];
           for(let i=0;i<100;i++) {const point=effects.heroCurves[index].getPoint(i/99);centers[i*3]=point.x+(progressScene?-112:0);centers[i*3+1]=progressScene?770+(point.y-770)*.70:point.y;}
@@ -356,11 +356,11 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         const positions=mesh.geometry.getAttribute('position') as BufferAttribute;
         const uv=mesh.geometry.getAttribute('uv') as BufferAttribute;
         for(let i=0;i<100;i++) {
-          const t=i/99;const angle=t*9+index*1.5+effectTime/4000;
-          const x=originX+Math.sin(angle)*t*210;
+          const t=i/99;const angle=t*7.2+index*1.5+effectTime/4200;
+          const x=originX+Math.sin(angle)*t*185;
           const y=originY-t*490-((effectTime-index*200)%1300)/1000*25;
           for(let side=0;side<2;side++) {
-            positions.setXYZ(i*2+side,(x-836+(side-.5)*(10+Math.sin(t*Math.PI)*70))*scale,(470.5-y)*scale,12);
+            positions.setXYZ(i*2+side,(x-836+(side-.5)*(18+Math.sin(t*Math.PI)*105))*scale,(470.5-y)*scale,12);
             uv.setXY(i*2+side,side,t);
           }
         }
