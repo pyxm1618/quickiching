@@ -207,6 +207,11 @@
   .detail .sectionNav { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 540px) {
+  .paper { display: contents; }
+  .detail::after { content: ""; position: fixed; left: 17px; right: 17px; top: 35px; bottom: 35px; z-index: 0; pointer-events: none; background: #f7e5c2 var(--detail-paper) repeat; background-size: 627px 627px; }
+  .identity .taiji { display: none; }
+  .identity::after { content: ""; position: absolute; z-index: 0; width: 290px; height: 290px; right: -50px; top: -60px; pointer-events: none; opacity: .22; background: image-set(url("/hexagram-detail/delivery/taiji-290.avif") 1x, url("/hexagram-detail/delivery/taiji-580.avif") 2x) center / contain no-repeat; }
+  .section { z-index: 1; }
   .pinyin { font-size: 48px; }
   .identity h1 { font-size: 26px; }
   .h1Prefix { position: static; display: block; font-size: .42em; line-height: 1.1; margin-bottom: 2px; }
