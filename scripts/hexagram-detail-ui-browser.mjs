@@ -9,6 +9,7 @@ import puppeteer from "puppeteer-core";
 import { resolveChromeExecutable } from "./browser-runtime.mjs";
 import { CLASSICAL_HEXAGRAMS } from "../src/domain/public-reading/classical.ts";
 import { loadPublicHexagramKnowledge } from "../src/domain/public-reading/knowledge.ts";
+import { hexagramSeoFor } from "../src/content/hexagrams/seo.ts";
 
 const base = new URL(process.env.HEXAGRAM_DETAIL_UI_BASE_URL || "http://localhost:3217");
 const output = new URL("../outputs/hexagram-detail/integrated/", import.meta.url);
@@ -64,7 +65,7 @@ try {
         });
         return { url: location.href, title: document.title, viewport: { width: innerWidth, height: innerHeight }, dpr: devicePixelRatio, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight, h1: article.querySelector("h1").textContent, h1Count: article.querySelectorAll("h1").length, assetDelivery, sideFrames, lineCount: article.querySelectorAll("[data-basic-identity] [data-hexagram-line]").length, meanings, clipped, optionalSections: article.querySelectorAll("[data-reading-cases], [data-hexagram-relations]").length, auxiliaryLinks: [...auxiliary.querySelectorAll("a")].map((a) => a.getAttribute("href")), topLevelHeaderVisible: document.body.querySelector(":scope > header").getBoundingClientRect().height > 0 };
       });
-      assert.equal(state.h1, knowledge.englishName);
+      assert.equal(state.h1, hexagramSeoFor(number, "en").finalH1);
       assert.equal(state.h1Count, 1);
       assert.ok(state.assetDelivery.some((entry) => new URL(entry.url).pathname.startsWith("/hexagram-detail/delivery/")), "Detail images must use density-aware delivery");
       const rawImages = state.assetDelivery.filter((entry) => new URL(entry.url).pathname.startsWith("/hexagram-detail/") && !new URL(entry.url).pathname.startsWith("/hexagram-detail/delivery/"));
