@@ -14,10 +14,6 @@ export const CURRENT_REQUIRED_SCHEMA_OBJECTS = Object.freeze([
   "function:prevent_deep_reading_context_snapshot_update",
 ] as const);
 
-export const RETIRED_SCHEMA_OBJECTS = Object.freeze([
-  "table:question_locks",
-] as const);
-
 export type ProductionEnvironmentEntry = {
   key?: unknown;
   target?: unknown;
@@ -63,23 +59,20 @@ export async function resolveProductionDatabaseUrl(
   return decrypted.value.trim();
 }
 
-export type CurrentSchemaState = "pending" | "complete" | "partial";
+export type CurrentSchemaState = "complete" | "partial";
 
 export function classifyCurrentSchema(existingObjects: readonly string[]): {
   state: CurrentSchemaState;
   present: string[];
   missing: string[];
-  retiredPresent: string[];
 } {
   const existing = new Set(existingObjects);
   const present = CURRENT_REQUIRED_SCHEMA_OBJECTS.filter((object) => existing.has(object));
   const missing = CURRENT_REQUIRED_SCHEMA_OBJECTS.filter((object) => !existing.has(object));
-  const retiredPresent = RETIRED_SCHEMA_OBJECTS.filter((object) => existing.has(object));
   return {
-    state: missing.length > 0 ? "partial" : retiredPresent.length > 0 ? "pending" : "complete",
+    state: missing.length > 0 ? "partial" : "complete",
     present: [...present],
     missing: [...missing],
-    retiredPresent: [...retiredPresent],
   };
 }
 export function classifyAppliedMigrationHistory(
