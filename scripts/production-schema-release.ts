@@ -4,7 +4,6 @@ import migrationIntegrity from "../drizzle/migration-integrity.json";
 import {
   classifyAppliedMigrationHistory,
   classifyCurrentMigrationSchema,
-  MIGRATION_0012_REQUIRED_OBJECTS,
   requireProductionDatabaseUrl,
   resolveProductionDatabaseUrl,
   type ProductionEnvironmentEntry,
@@ -16,7 +15,7 @@ const PRODUCTION_PROJECT_ID = "prj_pCpeoAys2GOqKZvkbLugYjpJWZBS";
 const PRODUCTION_TEAM_ID = "team_z1b9TTQtbNkr43dzs5JVJPnQ";
 const EXPECTED_MIGRATIONS = migrationIntegrity.migrations.map(({ createdAt, hash }) => ({ createdAt, hash }));
 const EXISTING_COMMERCIAL_TABLES = REQUIRED_COMMERCIAL_TABLES.filter(
-  (table) => table !== "question_locks" && table !== "deep_reading_context_snapshots",
+  (table) => !CURRENT_MIGRATION_REQUIRED_OBJECTS.some((object) => object === `table:${table}`),
 );
 
 async function fetchProductionDatabaseUrl(): Promise<string> {
@@ -145,8 +144,8 @@ function runOfficialDrizzleMigration(databaseUrl: string): void {
 async function main(): Promise<void> {
   const action = process.env.PRODUCTION_SCHEMA_ACTION?.trim();
   if (action !== "inspect" && action !== "migrate") throw new Error("PRODUCTION_SCHEMA_ACTION_INVALID");
-  if (EXPECTED_MIGRATIONS.length !== 13 || migrationIntegrity.migrations[12]?.tag !== "0012_deep_reading_context_contract") {
-    throw new Error("EXPECTED_PRODUCTION_MIGRATION_0012_NOT_CURRENT");
+  if (EXPECTED_MIGRATIONS.length === 0 || migrationIntegrity.migrations.at(-1)?.tag !== CURRENT_SCHEMA_MIGRATION.tag) {
+    throw new Error("EXPECTED_PRODUCTION_CURRENT_MIGRATION_NOT_CURRENT");
   }
 
   const databaseUrl = await fetchProductionDatabaseUrl();
