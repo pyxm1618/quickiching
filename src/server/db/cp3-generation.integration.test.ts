@@ -29,7 +29,7 @@ describe("CP3 PostgreSQL generation core", () => {
     const repeated = await sql<{ count: string }[]>`
       select count(*)::text as count from drizzle.__drizzle_migrations
     `;
-    expect(Number(repeated[0]?.count)).toBe(13);
+    expect(Number(repeated[0]?.count)).toBe(14);
   });
 
   it("creates every CP3 persistence boundary without a plaintext question column", async () => {
