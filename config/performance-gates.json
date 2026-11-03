@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "tooling": {
+    "lighthouse": "13.4.1",
+    "puppeteerCore": "25.1.0",
+    "chromium": "149.0.0",
+    "chromePolicy": "Pinned @sparticuz/chromium executable; record browser version in CI"
+  },
+  "regressionTolerance": {
+    "performancePoints": 5,
+    "lcpPercent": 10,
+    "lcpAllowanceMs": 100
+  },
+  "defaults": {
+    "accessibilityMin": 90,
+    "seoMin": 90,
+    "clsMax": 0.1,
+    "tbtMaxMs": 200
+  },
+  "targets": {
+    "home.mobile": {
+      "path": "/",
+      "device": "mobile",
+      "metrics": {
+        "performanceMin": 90,
+        "lcpMaxMs": 2750,
+        "accessibilityMin": 90,
+        "seoMin": 90,
+        "clsMax": 0.1,
+        "tbtMaxMs": 200,
+        "imageBytesMax": 786432,
+        "maxImageBytesMax": 262144,
+        "scriptBytesMax": 327680
+      },
+      "samplePolicy": { "count": 3, "selection": "median-performance-lcp-worst-rest", "warmupCount": 1 },
+      "baseline": { "file": "docs/performance/home-mobile-accepted-baseline.json", "key": "aggregate" }
+    },
+    "home.desktop": {
+      "path": "/",
+      "device": "desktop",
+      "metrics": {
+        "performanceMin": 95,
+        "lcpMaxMs": 2750,
+        "accessibilityMin": 90,
+        "seoMin": 90,
+        "clsMax": 0.1,
+        "tbtMaxMs": 200,
+        "imageBytesMax": 1572864,
+        "maxImageBytesMax": 786432,
+        "scriptBytesMax": 327680
+      },
+      "samplePolicy": { "count": 1, "selection": "single", "warmupCount": 1 },
+      "baseline": { "file": "docs/performance/pr-76-lab-baseline.json", "key": "metrics.desktop-home" }
+    },
+    "three-coin.desktop": {
+      "path": "/methods/three-coin",
+      "device": "desktop",
+      "metrics": {
+        "performanceMin": 95,
+        "lcpMaxMs": 2750,
+        "accessibilityMin": 90,
+        "seoMin": 90,
+        "clsMax": 0.1,
+        "tbtMaxMs": 200,
+        "imageBytesMax": 1572864,
+        "maxImageBytesMax": 786432,
+        "scriptBytesMax": 327680
+      },
+      "samplePolicy": { "count": 1, "selection": "single", "warmupCount": 1 }
+    },
+    "result.mobile": {
+      "path": "/readings/result",
+      "device": "mobile",
+      "fixture": "completed-reading",
+      "metrics": {
+        "performanceMin": 90,
+        "lcpMaxMs": 2750,
+        "accessibilityMin": 90,
+        "seoMin": null,
+        "clsMax": 0.1,
+        "tbtMaxMs": 200,
+        "imageBytesMax": 786432,
+        "maxImageBytesMax": 262144,
+        "scriptBytesMax": 327680
+      },
+      "samplePolicy": { "count": 3, "selection": "median-performance-lcp-worst-rest", "warmupCount": 1 }
+    },
+    "result.desktop": {
+      "path": "/readings/result",
+      "device": "desktop",
+      "fixture": "completed-reading",
+      "metrics": {
+        "performanceMin": 95,
+        "lcpMaxMs": 2750,
+        "accessibilityMin": 90,
+        "seoMin": null,
+        "clsMax": 0.1,
+        "tbtMaxMs": 200,
+        "imageBytesMax": 1572864,
+        "maxImageBytesMax": 786432,
+        "scriptBytesMax": 327680
+      },
+      "samplePolicy": { "count": 1, "selection": "single", "warmupCount": 1 }
+    },
+    "info.desktop": {
+      "path": "/guides/how-to-ask-the-i-ching",
+      "device": "desktop",
+      "metrics": {
+        "performanceMin": 95,
+        "lcpMaxMs": 2750,
+        "accessibilityMin": 90,
+        "seoMin": 90,
+        "clsMax": 0.1,
+        "tbtMaxMs": 200
+      },
+      "samplePolicy": { "count": 1, "selection": "single", "warmupCount": 1 }
+    },
+    "account.desktop": {
+      "path": "/group3-visual-qa-local?view=account-perf",
+      "device": "desktop",
+      "metrics": {
+        "performanceMin": 95,
+        "lcpMaxMs": 2750,
+        "accessibilityMin": 90,
+        "seoMin": null,
+        "clsMax": 0.1,
+        "tbtMaxMs": 200
+      },
+      "samplePolicy": { "count": 1, "selection": "single", "warmupCount": 1 }
+    },
+    "guide.mobile": {
+      "path": "/guides/how-to-ask-the-i-ching",
+      "device": "mobile",
+      "metrics": {
+        "performanceMin": 70,
+        "lcpMaxMs": 3200,
+        "accessibilityMin": 90,
+        "seoMin": 90,
+        "clsMax": 0.1
+      },
+      "samplePolicy": { "count": 5, "selection": "median-lcp", "warmupCount": 1 }
+    }
+  }
+}
