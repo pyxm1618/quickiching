@@ -58,6 +58,8 @@ async function capture({ name, path, width, height, fullPage = false, hover, scr
             if (typeof image.decode === "function") await image.decode().catch(() => {});
           } catch {}
         }));
+        const paperContainersVisible = [...document.querySelectorAll("[data-paper-artwork]")].filter(intersectsViewport).length;
+        const visiblePaperCells = [...document.querySelectorAll("[data-paper-artwork] > img,[data-paper-artwork] > svg")].filter(intersectsViewport).length;
         const meaningful = [...document.querySelectorAll("[data-info-page] h1,[data-info-page] h2,[data-info-page] h3,[data-info-page] p,[data-info-page] li,[data-info-page] table,[data-info-page] img,[data-info-page] svg")]
           .filter(intersectsViewport)
           .filter(element => {
@@ -69,6 +71,8 @@ async function capture({ name, path, width, height, fullPage = false, hover, scr
           y: Math.round(scrollY),
           meaningfulVisible: meaningful.length,
           visibleImages: visibleImages.length,
+          paperContainersVisible,
+          visiblePaperCells,
           failedVisibleImages: visibleImages.filter(image => !image.complete || image.naturalWidth <= 0).map(image => image.currentSrc || image.src),
         };
       });
@@ -150,7 +154,7 @@ await browser.close();
 
 const overflow = results.filter(result => result.pageOverflow);
 const scrollFailures = results.flatMap(result => (result.scrollEvidence ?? [])
-  .filter(entry => entry.meaningfulVisible === 0 || entry.failedVisibleImages.length > 0)
+  .filter(entry => entry.meaningfulVisible === 0 || entry.failedVisibleImages.length > 0 || (entry.paperContainersVisible > 0 && entry.visiblePaperCells === 0))
   .map(entry => ({ name: result.name, ...entry })));
 if (overflow.length || scrollFailures.length) {
   console.error(JSON.stringify({
