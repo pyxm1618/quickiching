@@ -228,10 +228,16 @@ try {
   assert(!hasPendingResearch, "Chinese Hub must not contain legacy PENDING_RESEARCH marker");
   log("English and Chinese Hub → 64 detail links, reachable Chinese Hub, and no PENDING_RESEARCH marker PASS");
 
-  for (const [path, locale, expectedPrefix] of [
-    ["/hexagrams", "en", "/hexagrams/"],
-    ["/zh/hexagrams", "zh-Hans", "/zh/hexagrams/"],
-  ]) {
+  {
+    // The exhaustive detail pass performs hundreds of navigations. Run the
+    // interactive Hub acceptance in a fresh page so browser state accumulated
+    // by detail auditing cannot turn a correct Hub into a CI navigation timeout.
+    const page = await browser.newPage();
+    try {
+      for (const [path, locale, expectedPrefix] of [
+        ["/hexagrams", "en", "/hexagrams/"],
+        ["/zh/hexagrams", "zh-Hans", "/zh/hexagrams/"],
+      ]) {
     const runtimeErrors = [];
     const onConsole = (message) => {
       if (message.type() === "error") runtimeErrors.push("console: " + message.text());
@@ -306,8 +312,12 @@ try {
       page.$eval('[data-wheel-index="1"]', (node) => node.click()),
     ]);
     assert.equal(new URL(page.url()).pathname, expectedPrefix + CLASSICAL_HEXAGRAMS[1].slug, `${path}: current card must navigate to locale detail route`);
+      }
+      log("English and Chinese immersive Hub data, sync, full-cycle keyboard, wheel, drag, mobile, navigation and zero-error checks PASS");
+    } finally {
+      await page.close();
+    }
   }
-  log("English and Chinese immersive Hub data, sync, full-cycle keyboard, wheel, drag, mobile, navigation and zero-error checks PASS");
 
   for (const entry of HEXAGRAM_SEO_REGISTRY) {
     const mobileErrorStart = detailPageErrors.length;
