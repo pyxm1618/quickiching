@@ -334,7 +334,6 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
     setRevealedCount(0);
     setReadingMeta(null);
     setSteps([]);
-    completionNavigationArmedRef.current = false;
     resultNavigationStartedRef.current = false;
   }
 
