@@ -7,7 +7,8 @@ import { desktopConfig, navigation } from "lighthouse";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
-const RESULT_URL = `${BASE}/readings/three-coin/result`;
+const COMPLETED_STORAGE_KEY = "quickiching:public-v1:completed-reading";
+const RESULT_URL = `${BASE}/readings/result`;
 const FIXTURE_STEPS = [
   { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
   { lineIndex: 1, coinFaces: ["yin", "yin", "yin"], lineValue: 6, algorithmVersion: "three-coin-v1" },
@@ -182,15 +183,31 @@ function summarize(label, runnerResult) {
 
 async function seedReading(page) {
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.evaluate(({ key, steps }) => sessionStorage.setItem(key, JSON.stringify({
-    schemaVersion: 1,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    started: true,
-    coreQuestionFrozenAtCast: true,
-    data: { steps },
-  })), {
+  return page.evaluate(({ key, completedKey, steps }) => {
+    const id = crypto.randomUUID();
+    const createdAt = new Date().toISOString();
+    sessionStorage.setItem(key, JSON.stringify({
+      schemaVersion: 1,
+      id,
+      createdAt,
+      started: true,
+      coreQuestionFrozenAtCast: true,
+      data: { steps },
+    }));
+    sessionStorage.setItem(completedKey, JSON.stringify({
+      schemaVersion: 1,
+      id,
+      createdAt,
+      method: "three-coin",
+      methodVersion: "three-coin-v1",
+      question: "Should I continue on my current path?",
+      lineValuesBottomUp: steps.map((step) => step.lineValue),
+      evidence: { kind: "three-coin", steps },
+    }));
+    return id;
+  }, {
     key: STORAGE_KEY,
+    completedKey: COMPLETED_STORAGE_KEY,
     steps: FIXTURE_STEPS,
   });
 }
@@ -203,8 +220,8 @@ async function auditResult(browser, desktop) {
       await page.setViewport(desktop
         ? { width: 1350, height: 940, deviceScaleFactor: 1 }
         : { width: 412, height: 915, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true });
-      await seedReading(page);
-      const runnerResult = await navigation(page, RESULT_URL, {
+      const sessionId = await seedReading(page);
+      const runnerResult = await navigation(page, `${RESULT_URL}?session=${encodeURIComponent(sessionId)}`, {
         config: desktop ? desktopConfig : undefined,
         flags: {
           logLevel: "error",
