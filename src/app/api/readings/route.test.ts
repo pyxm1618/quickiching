@@ -151,21 +151,21 @@ describe("Save Reading Route (POST /api/readings)", () => {
       clientCastingId: CLIENT_CASTING_ID,
       method: "manual",
       algorithmVersion: "manual-cast-v1",
-      lineValuesBottomUp: [8, 8, 8, 7, 7, 7],
-      methodCalculation: { mode: "primary-changing", primaryHexagramNumber: 11, changingLines: [] },
+      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+      methodCalculation: { mode: "primary-changing", primaryHexagramNumber: 1, changingLines: [] },
     };
     expect((await POST(createReq(valid))).status).toBe(201);
 
     expect((await POST(createReq({
       ...valid,
       clientCastingId: randomUUID(),
-      methodCalculation: { mode: "primary-changing", primaryHexagramNumber: 11, changingLines: [1, 1] },
+      methodCalculation: { mode: "primary-changing", primaryHexagramNumber: 1, changingLines: [1, 1] },
     }))).status).toBe(422);
 
     expect((await POST(createReq({
       ...valid,
       clientCastingId: randomUUID(),
-      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+      lineValuesBottomUp: [8, 8, 8, 8, 8, 8],
     }))).status).toBe(422);
   });
 
