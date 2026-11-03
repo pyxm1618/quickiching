@@ -135,6 +135,64 @@ async function assertPurity(page, contextLabel) {
   }
 }
 
+async function seedCompletedReading(page, { id, method }) {
+  const createdAt = new Date().toISOString();
+  const lineValuesBottomUp = [7, 7, 7, 7, 7, 7];
+  const steps = lineValuesBottomUp.map((lineValue, lineIndex) => ({
+    lineIndex,
+    lineValue,
+    coinFaces: ["yin", "yin", "yang"],
+    algorithmVersion: "three-coin-v1",
+  }));
+
+  let methodVersion;
+  let evidence;
+  if (method === "three-coin") {
+    methodVersion = "three-coin-v1";
+    evidence = { kind: "three-coin", steps };
+  } else if (method === "yarrow-stalks") {
+    methodVersion = "yarrow-zhu-xi-digital-v2";
+    evidence = {
+      kind: "yarrow-stalks",
+      lines: lineValuesBottomUp.map((lineValue, lineIndex) => ({
+        lineIndex,
+        lineValue,
+        changes: [],
+      })),
+    };
+  } else if (method === "mei-hua-yi-shu") {
+    methodVersion = "mei-hua-number-moment-classical-v1";
+    evidence = {
+      kind: "mei-hua-yi-shu",
+      calculation: {
+        algorithmVersion: methodVersion,
+        lineValuesBottomUp,
+        methodCalculation: {
+          kind: "mei-hua-number-time",
+          number: 29,
+          utcMillis: Date.UTC(2026, 9, 31, 12, 0, 0),
+          ianaTimeZone: "UTC",
+        },
+      },
+    };
+  } else {
+    throw new Error(`Unsupported fixture method: ${method}`);
+  }
+
+  await page.evaluate((reading) => {
+    sessionStorage.setItem("quickiching:public-v1:completed-reading", JSON.stringify(reading));
+  }, {
+    schemaVersion: 1,
+    id,
+    createdAt,
+    method,
+    methodVersion,
+    question: "我现在是否适合换一份工作？",
+    lineValuesBottomUp,
+    evidence,
+  });
+}
+
 async function main() {
   const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
   log(`Launching Chromium at ${executablePath}${usingSystemChrome ? " (system runner)" : " (serverless fallback)"}`);
@@ -377,87 +435,22 @@ async function main() {
     log("Test 5: Four Casting Methods -> current result handoff, auth gate, and unified manual result");
 
 
-    // 5.a: Three-Coin Method (/zh/methods/three-coin)
-    await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0" });
-    await page.evaluate(() => {
-      const steps = [
-        { lineIndex: 0, lineValue: 7, coinFaces: ["yin", "yin", "yang"], algorithmVersion: "three-coin-v1" },
-        { lineIndex: 1, lineValue: 8, coinFaces: ["yin", "yang", "yang"], algorithmVersion: "three-coin-v1" },
-        { lineIndex: 2, lineValue: 9, coinFaces: ["yang", "yang", "yang"], algorithmVersion: "three-coin-v1" },
-        { lineIndex: 3, lineValue: 6, coinFaces: ["yin", "yin", "yin"], algorithmVersion: "three-coin-v1" },
-        { lineIndex: 4, lineValue: 7, coinFaces: ["yin", "yin", "yang"], algorithmVersion: "three-coin-v1" },
-        { lineIndex: 5, lineValue: 8, coinFaces: ["yin", "yang", "yang"], algorithmVersion: "three-coin-v1" },
-      ];
-      const session = {
-        schemaVersion: 1,
-        started: true,
-        id: "550e8400-e29b-41d4-a716-446655440101",
-        createdAt: new Date().toISOString(),
-        data: { steps },
-      };
-      sessionStorage.setItem("quickiching:public-v1:three-coin", JSON.stringify(session));
-    });
-    await page.reload({ waitUntil: "networkidle0" });
-    assert.equal(new URL(page.url()).pathname, "/zh/methods/three-coin", "A restored completed Three-Coin session must not auto-redirect from the casting page");
-    await page.goto(`${BASE}/zh/readings/result?session=550e8400-e29b-41d4-a716-446655440101`, { waitUntil: "networkidle0" });
-    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
-    assert.equal(await page.$("[data-public-reading-result]"), null, "Unsigned Three-Coin result must stay behind the current save/auth gate");
-    await assertPurity(page, "Three-Coin Current Result Auth Gate");
-    log("Method simulation PASS: three-coin current result handoff");
-
-    // 5.b: Yarrow Stalk Method (/zh/methods/yarrow-stalks)
-    await page.goto(`${BASE}/zh/methods/yarrow-stalks`, { waitUntil: "networkidle0" });
-    await page.evaluate(() => {
-      const changes = [];
-      for (let i = 0; i < 18; i++) {
-        changes.push({
-          lineIndex: Math.floor(i / 3),
-          changeIndex: i % 3,
-          startingStalks: 49,
-          endingStalks: 28, // 28 / 4 = 7
-          leftGroup: 24,
-          rightGroup: 24,
-          removedFromRight: 1,
-          leftRemainder: 1,
-          rightRemainder: 3,
-          algorithmVersion: "yarrow-v1",
-        });
-      }
-      const session = {
-        schemaVersion: 1,
-        started: true,
-        id: "550e8400-e29b-41d4-a716-446655440102",
-        createdAt: new Date().toISOString(),
-        data: { changes },
-      };
-      sessionStorage.setItem("quickiching:public-v1:yarrow-v2", JSON.stringify(session));
-    });
-    await page.reload({ waitUntil: "networkidle0" });
-    await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 10_000 });
-    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
-    assert.equal(await page.$("[data-public-reading-result]"), null, "Unsigned Yarrow result must stay behind the current save/auth gate");
-    await assertPurity(page, "Yarrow Current Result Auth Gate");
-    log("Method simulation PASS: yarrow-stalks current result handoff");
-
-    // 5.c: Mei Hua Yi Shu (/zh/methods/mei-hua-yi-shu)
-    await page.goto(`${BASE}/zh/methods/mei-hua-yi-shu`, { waitUntil: "networkidle0" });
-    await page.evaluate(() => {
-      sessionStorage.setItem("quickiching:public-v1:mei-hua-v2", JSON.stringify({
-        schemaVersion: 1,
-        started: true,
-        id: "550e8400-e29b-41d4-a716-446655440103",
-        createdAt: new Date().toISOString(),
-        data: {},
-      }));
-    });
-    await page.reload({ waitUntil: "networkidle0" });
-    const castTimeBtn = await page.waitForSelector("section[aria-labelledby='mei-hua-tool-title'] button.mystic-button", { timeout: 5000 });
-    await castTimeBtn.click();
-    await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 10_000 });
-    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
-    assert.equal(await page.$("[data-public-reading-result]"), null, "Unsigned Mei Hua result must stay behind the current save/auth gate");
-    await assertPurity(page, "Mei Hua Current Result Auth Gate");
-    log("Method simulation PASS: mei-hua-yi-shu current result handoff");
+    // 5.a-5.c: Current shared Reading auth gate for the three persisted casting methods.
+    // Use the canonical completed-reading seam instead of retired per-method result-route recovery.
+    for (const fixture of [
+      { label: "Three-Coin", method: "three-coin", id: "550e8400-e29b-41d4-a716-446655440101" },
+      { label: "Yarrow Stalk", method: "yarrow-stalks", id: "550e8400-e29b-41d4-a716-446655440102" },
+      { label: "Mei Hua Yi Shu", method: "mei-hua-yi-shu", id: "550e8400-e29b-41d4-a716-446655440103" },
+    ]) {
+      await page.goto(`${BASE}/zh`, { waitUntil: "networkidle0" });
+      await page.evaluate(() => sessionStorage.clear());
+      await seedCompletedReading(page, fixture);
+      await page.goto(`${BASE}/zh/readings/result?session=${fixture.id}`, { waitUntil: "networkidle0" });
+      await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+      assert.equal(await page.$("[data-public-reading-result]"), null, `Unsigned ${fixture.label} result must stay behind the current save/auth gate`);
+      await assertPurity(page, `${fixture.label} Current Result Auth Gate`);
+      log(`Method simulation PASS: ${fixture.method} canonical completed-reading auth gate`);
+    }
 
     // 5.d: Manual Cast (/zh/methods/manual-cast)
     await page.goto(`${BASE}/zh/methods/manual-cast`, { waitUntil: "networkidle0" });
@@ -499,29 +492,15 @@ async function main() {
     await assertPurity(page, "Three-Coin Result Page Empty State");
     log("Three-coin result PASS: empty state");
 
-    // 6.b: Completed cast / auth-before-reveal state
-    await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0" });
+    // 6.b: Completed cast / auth-before-reveal state on the canonical shared Reading route
+    await page.goto(`${BASE}/zh`, { waitUntil: "networkidle0" });
     await page.evaluate(() => {
       sessionStorage.clear();
       localStorage.clear();
-      const steps = [
-        { lineIndex: 0, lineValue: 7, coinFaces: ["yin", "yin", "yang"], algorithmVersion: "three-coin-v1" },
-        { lineIndex: 1, lineValue: 8, coinFaces: ["yin", "yang", "yang"], algorithmVersion: "three-coin-v1" },
-        { lineIndex: 2, lineValue: 9, coinFaces: ["yang", "yang", "yang"], algorithmVersion: "three-coin-v1" },
-        { lineIndex: 3, lineValue: 6, coinFaces: ["yin", "yin", "yin"], algorithmVersion: "three-coin-v1" },
-        { lineIndex: 4, lineValue: 7, coinFaces: ["yin", "yin", "yang"], algorithmVersion: "three-coin-v1" },
-        { lineIndex: 5, lineValue: 8, coinFaces: ["yin", "yang", "yang"], algorithmVersion: "three-coin-v1" },
-      ];
-      const session = {
-        schemaVersion: 1,
-        started: true,
-        id: "550e8400-e29b-41d4-a716-446655440105",
-        createdAt: new Date().toISOString(),
-        data: { steps },
-      };
-      sessionStorage.setItem("quickiching:public-v1:three-coin", JSON.stringify(session));
     });
-    await page.goto(`${BASE}/zh/readings/three-coin/result`, { waitUntil: "networkidle0" });
+    const completedThreeCoinId = "550e8400-e29b-41d4-a716-446655440105";
+    await seedCompletedReading(page, { id: completedThreeCoinId, method: "three-coin" });
+    await page.goto(`${BASE}/zh/readings/result?session=${completedThreeCoinId}`, { waitUntil: "networkidle0" });
     await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 5000 });
     const completedState = await page.evaluate(() => ({
       heading: document.querySelector("h1")?.textContent?.trim() ?? "",
@@ -538,7 +517,7 @@ async function main() {
     assert.equal(completedState.primaryCard, false, "Primary result must remain hidden before sign-in and account persistence");
     assert.equal(completedState.deepEntry, false, "Deep Reading must remain hidden before result reveal");
     await assertPurity(page, "Three-Coin Completed Cast Auth Gate");
-    log("Three-coin result PASS: completed cast auth-before-reveal state");
+    log("Three-coin result PASS: canonical completed cast auth-before-reveal state");
 
     // 6.c: Error state (in isolated test tab)
     const errPage = await browser.newPage();
