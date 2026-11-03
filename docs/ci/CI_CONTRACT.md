@@ -85,3 +85,22 @@ Before merging a product-contract change, answer:
 - Is this automated functional evidence, performance evidence, or manual visual evidence?
 
 Never use `test.skip`, `.only`, `continue-on-error`, or reduced thresholds to manufacture a green required gate.
+
+## 8. Legacy workflow transition inventory
+
+| Workflow | Classification | Transition |
+| --- | --- | --- |
+| `cp5-commercial-v2.yml` | CONSOLIDATED | Historical phase gate; retire after ruleset cutover. |
+| `cp6-commercial-v2.yml` | CONSOLIDATED | Transitional only because the active ruleset still requires its old contexts; retire after cutover. |
+| `group3-account-info-visual-qa.yml` | CONSOLIDATED | Browser/responsive evidence now belongs to Product; screenshots remain manual evidence only. |
+| `payment-closeout-security.yml` | CONSOLIDATED | Dependency/secret checks now belong to the Payment domain. |
+| `public-seo-v1.yml` | CONSOLIDATED | Transitional old required browser/Lighthouse context; retire after ruleset cutover. |
+| `ritual-closeout-visual-qa.yml` | CONSOLIDATED | Reading/browser/performance coverage now belongs to stable domain gates. |
+| `cp6-staging-emergency-cleanup.yml` | OPS-ONLY | Manual dispatch only. |
+| `cp6-staging-migrate.yml` | OPS-ONLY | Manual dispatch only. |
+| `cp6-staging-preflight.yml` | OPS-ONLY | Manual dispatch only. |
+| `cp6-staging-runtime-diagnostics.yml` | OPS-ONLY | Manual dispatch only. |
+| `payment-closeout-production-env-audit.yml` | OPS-ONLY | Explicit Production release/inspection workflow; never a PR required gate. |
+| `payment-closeout-staging-preflight.yml` | OPS-ONLY | Manual dispatch only. |
+
+No legacy workflow is deleted before the ruleset cutover. The safe order is: run new and old contexts in parallel, validate the new contexts, switch the ruleset, then remove the consolidated legacy workflows.
