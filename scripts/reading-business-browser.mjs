@@ -129,7 +129,11 @@ try {
    const backCallback=await page.$eval('[data-auth-reading-intent]',node=>node.getAttribute('href'));
    assert.equal(new URL(new URL(backCallback,fixtureBase).searchParams.get('callbackURL'),fixtureBase).searchParams.get('session'),'browser-fixture-cast');
    await page.goForward({waitUntil:'networkidle0'});
-   await page.waitForSelector('[data-start-deep-reading]');
+   await page.waitForFunction(()=>[...document.querySelectorAll('a[href]')].some(node=>node.getAttribute('href')?.includes('/readings/result?session=browser-fixture-cast')));
+   const forwardFreeHref=await page.evaluate(()=>[...document.querySelectorAll('a[href]')].map(node=>node.getAttribute('href')).find(href=>href?.includes('/readings/result?session=browser-fixture-cast'))??null);
+   const forwardFree=new URL(forwardFreeHref,fixtureBase);
+   assert.equal(forwardFree.pathname,locale==='zh'?'/zh/readings/result':'/readings/result');
+   assert.equal(forwardFree.searchParams.get('session'),'browser-fixture-cast');
    evidence.push({locale,method,refreshBackForwardSameCast:true});
   }
  }
