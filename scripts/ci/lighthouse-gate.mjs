@@ -106,13 +106,16 @@ for (const id of targetIds) {
   const target = config.targets[id];
   assert(target, `Unknown performance target: ${id}`);
   if (target.fixture === "completed-reading") {
-    console.log(`[CI Lighthouse] ${id} uses the dedicated result-lighthouse gate because it requires sessionStorage seeding`);
-    const result = spawnSync("node", ["scripts/result-lighthouse-gate.mjs"], {
-      stdio: "inherit",
-      env: { ...process.env, PUBLIC_V1_TEST_BASE_URL: base, CHROME_PATH: chrome },
-    });
-    if (result.error) throw result.error;
-    if (result.status !== 0) throw new Error(`result-lighthouse-gate failed for ${id}`);
+    if (!resultGateRan) {
+      console.log("[CI Lighthouse] completed-reading targets use the dedicated seeded result-lighthouse gate");
+      const result = spawnSync("node", ["scripts/result-lighthouse-gate.mjs"], {
+        stdio: "inherit",
+        env: { ...process.env, PUBLIC_V1_TEST_BASE_URL: base, CHROME_PATH: chrome },
+      });
+      if (result.error) throw result.error;
+      if (result.status !== 0) throw new Error("result-lighthouse-gate failed");
+      resultGateRan = true;
+    }
     results[id] = { delegated: "scripts/result-lighthouse-gate.mjs" };
     continue;
   }
