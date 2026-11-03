@@ -201,6 +201,25 @@ async function fillInput(page, selector, value) {
   }, value);
 }
 
+async function assertClickTargetUnobstructed(page, selector, label) {
+  const hit = await page.$eval(selector, node => {
+    node.scrollIntoView({ block: "center", inline: "center" });
+    const rect = node.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const top = document.elementFromPoint(x, y);
+    return {
+      x: Math.round(x),
+      y: Math.round(y),
+      targetClass: node.getAttribute("class"),
+      topTag: top?.tagName ?? null,
+      topClass: top?.getAttribute("class") ?? null,
+      unobstructed: top === node || (top instanceof Node && node.contains(top)),
+    };
+  });
+  assert.equal(hit.unobstructed, true, `${label}: click target obstructed: ${JSON.stringify(hit)}`);
+}
+
 async function switchMethodLanguage(page, language, expectedPath) {
   const selector = `header [data-language-switcher] a[lang="${language}"]`;
   const destinationCount = await page.evaluate((target) => document.querySelectorAll(target).length, selector);
@@ -247,7 +266,9 @@ async function verifyChineseReading(page, viewport) {
   await fillInput(page, "#mei-hua-number", "29");
   await page.click(".mei-choose button[type='submit']");
   await page.waitForSelector(".mei-confirm-actions");
-  await page.click(".mei-confirm-actions .mei-button:not(.mei-button-outline)");
+  const confirmSelector = ".mei-confirm-actions .mei-button:not(.mei-button-outline)";
+  await assertClickTargetUnobstructed(page, confirmSelector, `${label} Confirm & Cast`);
+  await page.click(confirmSelector);
   await page.waitForSelector('[data-completed-cast-gate="auth-required"]', { timeout: 30_000 });
   assert.equal(new URL(page.url()).pathname, "/zh/readings/result", "Completed Mei Hua cast must enter the Chinese shared result route");
   assert.equal(await page.$("[data-public-reading-result]"), null, "Anonymous result must remain concealed");
