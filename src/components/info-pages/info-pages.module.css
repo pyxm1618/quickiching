@@ -722,6 +722,7 @@
     background-size: auto 100vh;
     background-position: center top;
     background-attachment: scroll;
+    background-attachment: scroll;
     overflow-x: clip;
   }
   .inner { width: 100%; max-width: 100%; }
