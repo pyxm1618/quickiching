@@ -1,14 +1,19 @@
 "use client";
 
 import React, { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookOpen, FileText, Globe, Mail, MessageSquare, Settings, ShieldCheck, Sparkles } from "lucide-react";
-import { UserNavControl } from "@/components/auth/user-nav-control";
 import { PrivacySettingsButton } from "@/components/privacy-settings-button";
 import { currentRouteForPath, languageSwitchTarget } from "@/i18n/helpers";
 import type { ContentLocale } from "@/i18n/config";
+
+const UserNavControl = dynamic(
+  () => import("@/components/auth/user-nav-control").then(m => m.UserNavControl),
+  { ssr: false }
+);
 
 type Panel = "methods" | "info";
 
@@ -96,9 +101,9 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
       <div className="scene-utility" onClick={() => setPanel(null)}>
         <div className="scene-languages" data-language-switcher aria-label={zh ? "选择语言" : "Select language"}>
           <Globe aria-hidden="true" />
-          <Link href={zh ? languageHref : "/"} hrefLang="en" lang="en" aria-current={!zh ? "page" : undefined} onClick={() => setPanel(null)}>EN</Link>
+          <Link href={zh ? languageHref : "/"} prefetch={false} hrefLang="en" lang="en" aria-current={!zh ? "page" : undefined} onClick={() => setPanel(null)}>EN</Link>
           <span aria-hidden="true">/</span>
-          <Link href={zh ? "/zh" : languageHref} hrefLang="zh-Hans" lang="zh-Hans" aria-current={zh ? "page" : undefined} onClick={() => setPanel(null)}>中文</Link>
+          <Link href={zh ? "/zh" : languageHref} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" aria-current={zh ? "page" : undefined} onClick={() => setPanel(null)}>中文</Link>
         </div>
         {authEnabled ? <>
           <span className="scene-utility-divider" aria-hidden="true" />
@@ -106,25 +111,25 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
         </> : null}
       </div>
 
-      <Link href={localize("/")} className="scene-brand" onClick={() => setPanel(null)}>
+      <Link href={localize("/")} prefetch={false} className="scene-brand" onClick={() => setPanel(null)}>
         <Image unoptimized src="/navigation/logo.webp" alt="" width={72} height={72} priority />
         <span>Quick I Ching</span>
       </Link>
 
       <nav className="scene-scrolls" aria-label={zh ? "探索易经" : "Explore the I Ching"}>
         <Link href={localize("/hexagrams")} className="scene-scroll scene-scroll-hexagrams" prefetch={false}>
-          <Image loading="lazy" fetchPriority="low" quality={95} sizes="(max-width: 800px) 94px, 151px" src="/navigation/scroll-64-hexagrams-no-text.webp" alt="" width={450} height={675} />
+          <Image unoptimized src="/navigation/scroll-64-hexagrams-no-text.webp" alt="" width={450} height={675} fetchPriority="low" />
           <span>{zh ? "六十四卦" : <>64<br />Hexagrams</>}</span>
         </Link>
         <button ref={methodsTrigger} type="button" className="scene-scroll scene-scroll-methods" aria-expanded={panel === "methods"} aria-controls={`${id}-methods`} onClick={() => setPanel(panel === "methods" ? null : "methods")} onKeyDown={event => triggerKey(event, "methods")}>
-          <Image loading="lazy" fetchPriority="low" quality={95} sizes="(max-width: 800px) 76px, 122px" src="/navigation/scroll-other-methods-no-text.webp" alt="" width={338} height={675} />
+          <Image unoptimized src="/navigation/scroll-other-methods-no-text.webp" alt="" width={338} height={675} fetchPriority="low" />
           <span>{zh ? "其他起卦" : <>Other<br />Methods</>}</span>
         </button>
         <button ref={infoTrigger} type="button" className="scene-scroll scene-scroll-info" aria-expanded={panel === "info"} aria-controls={`${id}-info`} onClick={() => setPanel(panel === "info" ? null : "info")} onKeyDown={event => triggerKey(event, "info")}>
-          <Image loading="lazy" fetchPriority="low" quality={95} sizes="(max-width: 800px) 69px, 111px" src="/navigation/scroll-info-no-text.webp" alt="" width={338} height={675} />
+          <Image unoptimized src="/navigation/scroll-info-no-text.webp" alt="" width={338} height={675} fetchPriority="low" />
           <span>{zh ? "资讯" : "Info"}</span>
         </button>
-        <Image unoptimized loading="lazy" fetchPriority="low" className="scene-scroll-holder" src="/navigation/scroll-holder.webp" alt="" width={220} height={132} />
+        <Image unoptimized className="scene-scroll-holder" src="/navigation/scroll-holder.webp" alt="" width={220} height={132} fetchPriority="low" />
       </nav>
 
       <div ref={panelRef} className="scene-panels" onKeyDown={panelKey} onBlur={event => {

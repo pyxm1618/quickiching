@@ -170,7 +170,7 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
     expect(html).toContain("data-relating-card");
     expect(html).toContain(primary.hexagram.coreTheme);
     expect(html).toContain(relating.hexagram.coreTheme);
-    expect(html).not.toContain("data-ritual-result-card");
+    expect(html).toContain("data-ritual-result-card");
     expect(html).toContain('data-active-line="1"');
     expect(html.match(/Get My Deep Reading/g)).toHaveLength(2);
     expect(html).not.toContain("Restoring your sealed reading…");
@@ -254,7 +254,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       <ThreeCoinResultClient locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT} initialState={{ kind: "empty" }} />,
     );
     expect(html).toContain('href="/zh"');
-    expect(html).not.toContain('href="/"');
+    expect(html).not.toContain('href="/#three-coin-reading"');
     expect(html).toContain("重新起一卦");
     expect(html).toContain("没有找到已完成的起卦");
   });
@@ -277,7 +277,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       />,
     );
     expect(html).toContain('href="/zh"');
-    expect(html).not.toContain('href="/"');
+    expect(html).not.toContain('href="/#three-coin-reading"');
     expect(html).toContain("返回起卦入口");
     expect(html).toContain("无法恢复这次已落定的起卦结果");
   });

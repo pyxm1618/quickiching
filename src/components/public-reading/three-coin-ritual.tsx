@@ -2,7 +2,6 @@
 
 import "./ritual.css";
 import { ArrowRight } from "lucide-react";
-import Image from "next/image";
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
@@ -98,13 +97,15 @@ export function ThreeCoinRitual({
 
   useEffect(() => {
     const restored = readThreeCoinQuestionState();
-    setQuestionState(restored.question);
-    setDraft(restored.question ?? "");
-    setCoreQuestionAtCast(restored.coreQuestionAtCast);
-    setCoreQuestionFrozenAtCast(restored.coreQuestionFrozenAtCast);
-    const stage = threeCoinExperienceStageForSession(restored);
-    setExperienceStage(stage);
-    setPresentationStage(stage);
+    if (restored.question || restored.coreQuestionFrozenAtCast || restored.started) {
+      setQuestionState(restored.question);
+      setDraft(restored.question ?? "");
+      setCoreQuestionAtCast(restored.coreQuestionAtCast);
+      setCoreQuestionFrozenAtCast(restored.coreQuestionFrozenAtCast);
+      const stage = threeCoinExperienceStageForSession(restored);
+      setExperienceStage(stage);
+      setPresentationStage(stage);
+    }
   }, []);
 
   function persist(
@@ -252,35 +253,21 @@ export function ThreeCoinRitual({
 
   return (
     <ThreeCoinRitualContext.Provider value={context}>
-      <link rel="preload" as="image" href="/performance/questionDesktop.d616c1d6e5957a79.png" media="(min-width:471px)" fetchPriority="high" />
+      <link rel="preload" as="image" href="/performance/questionDesktop.3b34ef04891180ba.webp" media="(min-width:471px)" fetchPriority="high" />
       <link rel="preload" as="image" href="/performance/questionMobile.aeacbe5208415e49.webp" media="(max-width:470px)" fetchPriority="high" />
+      <link rel="preload" as="image" href="/performance/stageDesktop.e37364561615e31f.webp" media="not all and (max-aspect-ratio:11/20)" fetchPriority="high" />
       <link rel="preload" as="image" href="/performance/stagePortrait.bde3e415eb141bc8.webp" media="(min-width:601px) and (max-aspect-ratio:11/20)" fetchPriority="high" />
       <link rel="preload" as="image" href="/performance/stageMobile.285965e6cb8c7840.webp" media="(max-width:600px) and (max-aspect-ratio:11/20)" fetchPriority="low" />
       <link rel="preload" as="image" href="/ritual/decor/gold-cloud-button-2x.png" media="(max-width:800px)" fetchPriority="low" />
       <link rel="preload" as="image" href="/ritual/decor/yin-yang.png" media="(max-width:800px)" fetchPriority="low" />
       <section id="three-coin-reading" data-three-coin-ritual data-experience-stage={experienceStage} data-question-leaving={questionLeaving} className="ritual-canvas">
-        <div className="ritual-room" data-room-ready="true" aria-hidden="true">
-          <img
-            className="ritual-room-art-primary"
-            src="/performance/stageDesktop.e37364561615e31f.webp"
-            alt=""
-            width={1671}
-            height={941}
-            loading="eager"
-            decoding="async"
-            fetchPriority="low"
-          />
-        </div>
+        <div className="ritual-room" aria-hidden="true" />
         {experienceStage !== "ritual" || questionLeaving ? (
           <div className="ritual-question-stage" data-leaving={questionLeaving} inert={questionLeaving}>
             {landing || homeLeaving ? (
               <div className="ritual-home-heading" data-leaving={homeLeaving}>
-                <span className="ritual-cloud ritual-home-cloud-left" aria-hidden="true">
-                  <Image src="/ritual/decor/gold-cloud.png" alt="" fill sizes="68px" loading="lazy" fetchPriority="low" />
-                </span>
-                <span className="ritual-cloud ritual-home-cloud-right" aria-hidden="true">
-                  <Image src="/ritual/decor/gold-cloud.png" alt="" fill sizes="112px" loading="lazy" fetchPriority="low" />
-                </span>
+                <span className="ritual-cloud ritual-home-cloud-left" aria-hidden="true" />
+                <span className="ritual-cloud ritual-home-cloud-right" aria-hidden="true" />
                 <Heading><em>{homeTitleFirst}</em>{homeTitleSecond ? <span className="ritual-title-second">{homeTitleSecond}</span> : null}</Heading>
                 <p data-home-hero-copy>{zh ? (homeDescription ?? "在变化之中，重新认识此刻的自己。") : <>Use the I Ching online to rediscover where you are.<br />It is not about predicting the future,<br />but about seeing yourself more clearly in the present.</>}</p>
               </div>
@@ -296,17 +283,6 @@ export function ThreeCoinRitual({
               </div>
             ) : null}
             <div className="ritual-question-card">
-              <img
-                className="ritual-question-card-art"
-                src="/performance/questionDesktop.d616c1d6e5957a79.png"
-                alt=""
-                width={646}
-                height={184}
-                loading="eager"
-                decoding="async"
-                fetchPriority="high"
-                aria-hidden="true"
-              />
               <label htmlFor={`${THREE_COIN_SESSION_STORAGE_KEY}-question`}>{zh ? "此刻，你想问什么？" : "What would you like to ask?"}</label>
               <p className="ritual-question-description">{zh ? "描述一个你心中的具体问题。" : "Describe a specific question that is on your mind."}</p>
               <textarea id={`${THREE_COIN_SESSION_STORAGE_KEY}-question`} value={draft} onChange={(event) => setDraft(event.target.value)} rows={3}

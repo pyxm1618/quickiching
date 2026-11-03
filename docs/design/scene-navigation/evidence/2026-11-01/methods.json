@@ -1,5 +1,5 @@
 {
-  "url": "http://127.0.0.1:3056/?ritualTime=700",
+  "url": "http://127.0.0.1:3000/?ritualTime=700",
   "title": "I Ching Online — Free Hexagram Reading | Quick I Ching",
   "viewport": {
     "width": 1670,
@@ -15,7 +15,7 @@
   "elements": [
     {
       "className": "scene-utility",
-      "text": "EN/中文Sign In",
+      "text": "EN/中文",
       "rect": {
         "x": 1287.25,
         "y": 23.984375,

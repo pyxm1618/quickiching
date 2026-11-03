@@ -12,12 +12,15 @@ import { readingFingerprint } from "@/domain/public-reading/reading";
 import type { PublicReading } from "@/domain/public-reading/types";
 import { writeCompletedPublicReading } from "@/lib/completed-public-reading";
 import { FreeReadingRitualView } from "./free-reading-ritual-view";
+import { RitualResultCard } from "./ritual-result-card";
 
 export function PublicReadingResult({
   reading,
   onNewReading,
   deepReadingHref,
   onDeepReading,
+  showRitualReveal = false,
+  savedReadingHref,
   dictionary = EN_UI_DICTIONARY,
   localizedContent,
   initialBundles,
@@ -29,6 +32,8 @@ export function PublicReadingResult({
   onNewReading?: () => void;
   deepReadingHref?: string;
   onDeepReading?: () => void;
+  showRitualReveal?: boolean;
+  savedReadingHref?: string;
   dictionary?: UiDictionary;
   localizedContent?: LocalizedReadingContent;
   initialBundles?: { primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null };
@@ -132,25 +137,38 @@ export function PublicReadingResult({
       ? <button type="button" onClick={onDeepReading} className="mystic-button">{isChinese ? "获取我的深度解读" : "Get My Deep Reading"}</button>
       : <Link href={deepHref} onClick={prepareDeepReading} className="mystic-button">{isChinese ? "获取我的深度解读" : "Get My Deep Reading"}</Link>;
 
+  const reveal = showRitualReveal && reading.method === "three-coin";
+
   return (
     <section aria-live="polite" data-public-reading-result data-reading-fingerprint={readingFingerprint(reading)}>
       <h1 id="public-reading-result-title" className="sr-only">{title}</h1>
-      <FreeReadingRitualView
-        reading={reading}
-        model={model}
-        dictionary={dictionary}
-        deepAction={deepAction}
-        deepUnavailableMessage={deepUnavailableMessage}
-        deepEntryError={deepEntryError
-          ? (isChinese ? "无法保存本次起卦以继续深度解读，请检查浏览器存储后重试。" : "Could not save this cast to continue to Deep Reading. Check browser storage and retry.")
-          : null}
-        contentError={contentError
-          ? (isChinese ? "部分解读加载失败，请刷新后重试。" : "Some reading content could not load. Please refresh to retry.")
-          : null}
-      />
-      {children}
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3 px-4 pb-8 pt-5" data-free-reading-actions>
-        {onNewReading ? <button type="button" onClick={onNewReading} className="mystic-button-secondary">{newReadingLabel}</button> : null}
+      {reveal ? (
+        <RitualResultCard
+          reading={reading}
+          primary={model.primary}
+          zh={isChinese}
+          onNewReading={onNewReading}
+          savedHref={savedReadingHref ?? (isChinese ? "/zh/my-readings" : "/my-readings")}
+        />
+      ) : null}
+      <div className={reveal ? "ritual-result-details" : undefined}>
+        <FreeReadingRitualView
+          reading={reading}
+          model={model}
+          dictionary={dictionary}
+          deepAction={deepAction}
+          deepUnavailableMessage={deepUnavailableMessage}
+          deepEntryError={deepEntryError
+            ? (isChinese ? "无法保存本次起卦以继续深度解读，请检查浏览器存储后重试。" : "Could not save this cast to continue to Deep Reading. Check browser storage and retry.")
+            : null}
+          contentError={contentError
+            ? (isChinese ? "部分解读加载失败，请刷新后重试。" : "Some reading content could not load. Please refresh to retry.")
+            : null}
+        />
+        {children}
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3 px-4 pb-8 pt-5" data-free-reading-actions>
+          {onNewReading ? <button type="button" onClick={onNewReading} className="mystic-button-secondary">{newReadingLabel}</button> : null}
+        </div>
       </div>
     </section>
   );

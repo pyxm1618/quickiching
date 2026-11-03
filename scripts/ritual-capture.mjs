@@ -4,35 +4,18 @@ import os from 'node:os';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const output=resolve(process.argv[2]||'.artifacts/ritual-qa/ref-01/iteration-01');
-async function waitForProductionRoom(page){
- await page.waitForSelector('.ritual-room[data-room-ready="true"]',{timeout:15000});
- await page.waitForFunction(()=> {
-  const room=document.querySelector('.ritual-room');
-  if(!room)return false;
-  const art=room.querySelector('.ritual-room-art-primary');
-  if(art instanceof HTMLImageElement)return art.complete&&art.naturalWidth>0&&art.currentSrc.includes('stageDesktop.e37364561615e31f.webp');
-  return getComputedStyle(room).backgroundImage.includes('stageDesktop.e37364561615e31f.webp');
- },{timeout:15000});
- await page.evaluate(async()=>{
-  const room=document.querySelector('.ritual-room');
-  if(!room)throw new Error('RITUAL_ROOM_MISSING');
-  const art=room.querySelector('.ritual-room-art-primary');
-  if(art instanceof HTMLImageElement)await art.decode();
-  else {const image=new Image();image.src='/performance/stageDesktop.e37364561615e31f.webp';await image.decode();}
-  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
- });
-}
+const mobile=process.env.RITUAL_QA_VIEWPORT==='mobile';
+const viewport=mobile?{width:390,height:844}:{width:1672,height:941};
 await mkdir(output,{recursive:true});
-const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--window-size=1672,941','--force-device-scale-factor=1']});
+const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,protocolTimeout:180_000,args:[`--window-size=${viewport.width},${viewport.height}`,'--force-device-scale-factor=1']});
 try {
- const page=await browser.newPage();await page.setViewport({width:1672,height:941,deviceScaleFactor:1});
+ const page=await browser.newPage();await page.setViewport({...viewport,deviceScaleFactor:1});
  await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
  const errors=[];page.on('pageerror',error=>errors.push(String(error)));page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
  await page.goto('http://127.0.0.1:3028/?ritualTime=700',{waitUntil:'networkidle0'});
  const consentButtons=await page.$$('button');
  for(const button of consentButtons) {if((await button.evaluate(node=>node.textContent))==='Decline') await button.click();}
  await page.evaluate(()=>document.fonts.ready);
- await waitForProductionRoom(page);
  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
  await page.waitForSelector('[data-renderer="three-webgl"]',{timeout:15000});
  if(await page.$('[data-webgl-fallback="true"]'))throw new Error('Desktop Pixel QA cannot use fallback');
@@ -49,8 +32,8 @@ try {
   return {userAgent:navigator.userAgent,viewport:[innerWidth,innerHeight],dpr:devicePixelRatio,zoom:visualViewport.scale,renderDpr:Number(document.querySelector('[data-renderer="three-webgl"]').dataset.renderDpr),webgl:gl.getParameter(gl.VERSION),renderer:gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)};
  });
  const runtimeAssets=await page.evaluate(()=>performance.getEntriesByType('resource').filter(item=>item.name.includes('/ritual/')).map(item=>({url:item.name,transferBytes:item.transferSize})));
- if(environment.renderDpr!==1)throw new Error('Canonical Desktop renderer must retain DPR 1');
- const assetCodecs=await page.evaluate(async()=>{
+ if(environment.renderDpr!==1)throw new Error('Visual QA renderer must retain DPR 1');
+ const assetCodecs=mobile?[]:await page.evaluate(async()=>{
   const comparisons=[];
   for(const [source,target,crop] of [
    ['/ritual/bg-stage-master-clean.png','/ritual/bg-stage-master-clean.lossless.webp',null],

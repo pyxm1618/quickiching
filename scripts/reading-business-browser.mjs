@@ -1,9 +1,9 @@
 import puppeteer from 'puppeteer-core';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { extname, join } from 'node:path';
 import { createServer } from 'node:http';
 import { resolveChromeExecutable } from './browser-runtime.mjs';
 // Exercise the real components with explicit simulated network responses.
@@ -12,17 +12,53 @@ execFileSync('bun',['scripts/fixtures/build-reading-business-fixture.mjs',direct
 const server = createServer(async (request,response) => {
   const path = new URL(request.url,'http://localhost').pathname;
   const asset = path === '/reading-business-entry.js' || path === '/reading-business-entry.css' ? path.slice(1) : null;
+  const publicAsset = ['/free-reading/','/ai-deep-reading/','/ritual/','/performance/'].some(prefix=>path.startsWith(prefix))
+    ? join(process.cwd(),'public',path.slice(1))
+    : null;
   try {
-    response.setHeader('Content-Type',asset?.endsWith('.js') ? 'text/javascript' : asset ? 'text/css' : 'text/html');
-    response.end(asset ? await readFile(join(directory,asset)) : '<!doctype html><meta charset="utf-8"><title>Reading business test fixture</title><link rel="stylesheet" href="/reading-business-entry.css"><script>window.process={env:{NODE_ENV:"production"}}</script><div id="root"></div><script type="module" src="/reading-business-entry.js"></script>');
-  } catch {response.statusCode=500;response.end('Fixture asset unavailable');}
+    const type = extname(path);
+    response.setHeader('Content-Type',
+      asset?.endsWith('.js') ? 'text/javascript'
+      : asset ? 'text/css'
+      : type === '.png' ? 'image/png'
+      : type === '.jpg' || type === '.jpeg' ? 'image/jpeg'
+      : type === '.webp' ? 'image/webp'
+      : type === '.avif' ? 'image/avif'
+      : 'text/html');
+    response.end(asset
+      ? await readFile(join(directory,asset))
+      : publicAsset
+        ? await readFile(publicAsset)
+        : '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Reading business test fixture</title><link rel="stylesheet" href="/reading-business-entry.css"><script>window.process={env:{NODE_ENV:"production"}}</script><div id="root"></div><script type="module" src="/reading-business-entry.js"></script>');
+  } catch {response.statusCode=404;response.end('Fixture asset unavailable');}
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const fixtureBase = `http://127.0.0.1:${server.address().port}`;
-const {executablePath} = await resolveChromeExecutable({ executablePath: async () => { throw new Error("CHROME_PATH_OR_SYSTEM_CHROME_REQUIRED"); } });
+const serverlessChromium = {
+  executablePath: async () => {
+    const { default: chromium } = await import('@sparticuz/chromium');
+    return chromium.executablePath();
+  },
+};
+const {executablePath} = await resolveChromeExecutable(serverlessChromium);
 const browser=await puppeteer.launch({executablePath,headless:true});
 const page=await browser.newPage();
 const evidence=[];
+const visualOutput=process.env.READING_VISUAL_OUTPUT?.trim() || null;
+async function captureVisual(label) {
+  if (!visualOutput) return;
+  await mkdir(visualOutput,{recursive:true});
+  for (const [suffix,viewport] of [
+    ['desktop',{width:1440,height:1000,deviceScaleFactor:1}],
+    ['mobile',{width:390,height:844,deviceScaleFactor:1}],
+  ]) {
+    await page.setViewport(viewport);
+    await page.evaluate(()=>document.fonts.ready);
+    await new Promise(resolve=>setTimeout(resolve,80));
+    await page.screenshot({path:join(visualOutput,`${label}-${suffix}.png`),fullPage:true});
+  }
+  await page.setViewport({width:1440,height:1000,deviceScaleFactor:1});
+}
 page.on("pageerror", error=>console.log("PAGE_ERROR",error.message));
 try {
  for(const locale of ['en','zh']) {
@@ -41,6 +77,7 @@ try {
    assert.equal(free.method,method==='three_coin'?'three-coin':method==='yarrow_stalk'?'yarrow-stalks':'mei-hua-yi-shu');
    assert.ok(free.text.includes(locale==='zh'?'整体解读':'Overall Reading'));
    evidence.push({locale,method,free:{ctas:free.ctas,forms:free.forms,overall:free.overall,method:free.method}});
+   if(method==='three_coin') await captureVisual(`free-${locale}`);
    await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&anon=1`,{waitUntil:'networkidle0'});
    await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
    const callbacks=await page.evaluate(()=>[...document.querySelectorAll('[data-auth-reading-intent],[data-auth-reading-alternate-intent]')].map(node=>({intent:node.getAttribute('data-auth-reading-intent')??node.getAttribute('data-auth-reading-alternate-intent'),href:node.getAttribute('href')})));
@@ -67,6 +104,7 @@ try {
    const post=deep.requests.find(item=>item.method==='POST');
    assert.deepEqual(JSON.parse(post.body),{locale:locale==='zh'?'zh-Hans':'en'});
    evidence.push({locale,method,deep:{sections:true,postBody:JSON.parse(post.body),report:true}});
+   if(method==='three_coin') await captureVisual(`deep-${locale}`);
   }
  }
  await page.goto(`${fixtureBase}/?page=deep&invalid=1`,{waitUntil:'networkidle0'});

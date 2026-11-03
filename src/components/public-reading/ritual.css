@@ -6,10 +6,14 @@
   position: relative; isolation:isolate; height: calc(100svh - 75px); min-height: 650px;
   color: #fff3d4; font-family: Georgia,"Libre Baskerville",serif;
 }
-.ritual-room { position: fixed; inset:0; z-index:-1; pointer-events:none; background:#21160c; }
-.ritual-room[data-room-ready='true'] { background-image:url('/performance/stageDesktop.e37364561615e31f.webp'); background-position:center; background-size:auto 100%; background-repeat:no-repeat; }
-.ritual-canvas > .ritual-room[data-room-ready='true'] {background-image:none;}
-.ritual-room-art-primary {position:absolute;top:0;left:50%;height:100%;width:auto;max-width:none;transform:translateX(-50%);object-fit:contain;}
+article:not(.home-oracle) .ritual-canvas {
+  content-visibility: auto;
+  contain-intrinsic-size: 800px;
+}
+article:not(.home-oracle) .ritual-room {
+  position: absolute;
+}
+.ritual-room { position: fixed; inset:0; z-index:-1; pointer-events:none; background:#21160c url('/performance/stageDesktop.e37364561615e31f.webp') center / auto 100% no-repeat; }
 body:has(.ritual-canvas) { background:#21160c; }
 body:has(.ritual-canvas)::before,body:has(.ritual-canvas)::after { display:none; }
 body:has(.ritual-canvas) > footer { position:relative;z-index:2; }
@@ -26,14 +30,9 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-home-heading :is(h1,h2) em { font-size:calc(72 * var(--u));font-weight:700;font-style:normal; }
 .ritual-home-heading p { position:absolute;top:calc(146 * var(--u));left:0;white-space:nowrap;font-size:calc(24 * var(--u));line-height:1.18;margin:calc(17 * var(--u)) 0 0 calc(45 * var(--u));color:#fff8ed; }
 .ritual-question-card { position:absolute;left:calc(200 * var(--u));top:calc(411 * var(--u));width:calc(646 * var(--u));height:calc(184 * var(--u));z-index:2;
-  padding:calc(19 * var(--u)) calc(36 * var(--u));background:#f1dfbd;background-origin:border-box;color:#16110b;border:4px double #be8d50;border-radius:14px;isolation:isolate;overflow:hidden;transform:translateZ(0);
+  padding:calc(19 * var(--u)) calc(36 * var(--u));background:url('/performance/questionDesktop.3b34ef04891180ba.webp') center / cover no-repeat;background-origin:border-box;color:#16110b;border:4px double #be8d50;border-radius:14px;
   transition:left 360ms var(--ritual-enter) 80ms,top 360ms var(--ritual-enter) 80ms,width 360ms var(--ritual-enter) 80ms,height 360ms var(--ritual-enter) 80ms;
 }
-.ritual-question-card-art {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;}
-.ritual-question-card > label,
-.ritual-question-card > .ritual-question-description,
-.ritual-question-card > textarea {position:relative;z-index:1;}
-.ritual-character-count {z-index:1;}
 .ritual-question-card label { display:block;font-size:calc(28 * var(--u));font-weight:700;line-height:1.2; }
 .ritual-question-description { font-size:calc(18 * var(--u));line-height:1.4;margin:calc(6 * var(--u)) 0 calc(10 * var(--u)); }
 .ritual-question-card textarea { display:block;width:100%;height:calc(63 * var(--u));padding:calc(16 * var(--u));resize:none;border:1px solid #d7ae7a;border-radius:5px;background:rgba(255,244,222,.2);font:400 calc(16 * var(--u))/1.4 Georgia,serif;color:#20150c;outline-offset:3px; }
@@ -55,8 +54,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-confirm-heading p {font-size:calc(24 * var(--u));line-height:1.25;margin:calc(18 * var(--u)) 0 calc(9 * var(--u));color:#fff9ef;}
 .ritual-ink,.ritual-cloud,.ritual-divider {display:block;background-image:url('/ritual/decor/ink-circle.png');background-repeat:no-repeat;}
 .ritual-ink {position:absolute;z-index:-1;left:0;top:calc(-15 * var(--u));width:calc(245 * var(--u));height:calc(223 * var(--u));background-size:contain;background-position:center;}
-.ritual-cloud {position:absolute;right:calc(55 * var(--u));top:calc(137 * var(--u));width:calc(140 * var(--u));height:calc(55 * var(--u));background-image:none;background-size:contain;background-position:center;}
-/* Gold cloud artwork is deferred and delivered via optimized Image components */
+.ritual-cloud {position:absolute;right:calc(55 * var(--u));top:calc(137 * var(--u));width:calc(140 * var(--u));height:calc(55 * var(--u));background-image:url('/ritual/decor/gold-cloud.png');background-size:contain;background-position:center;}
 .ritual-divider {width:calc(350 * var(--u));height:calc(35 * var(--u));margin:auto;background-image:url('/ritual/decor/yin-yang-divider.png');background-size:contain;background-position:center;}
 :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card {left:calc(485 * var(--u));top:calc(470 * var(--u));width:calc(688 * var(--u));height:calc(140 * var(--u));padding:calc(23 * var(--u)) calc(34 * var(--u));}
 :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card label,:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-description {display:none;}
@@ -91,17 +89,13 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 
 .ritual-home-cloud-left {left:calc(5 * var(--u));right:auto;top:calc(102 * var(--u));width:calc(68 * var(--u));height:calc(40 * var(--u));opacity:.75;}
 .ritual-home-cloud-right {left:calc(658 * var(--u));right:auto;top:calc(102 * var(--u));width:calc(112 * var(--u));height:calc(54 * var(--u));opacity:.75;}
-.ritual-home-heading .ritual-cloud {background-image:none!important;}
-.ritual-home-heading .ritual-cloud img {object-fit:contain;}
 /* Native production artwork at canonical size, with only its final edge repeated. */
 @media (width:1672px) and (height:941px) {
- .ritual-room[data-room-ready='true'] {background-image:url('/performance/stageDesktop.e37364561615e31f.webp'),url('/performance/stageDesktop.e37364561615e31f.webp');background-size:auto 100%,auto 100%;background-position:left center,right center;}
- .ritual-canvas > .ritual-room[data-room-ready='true'] {background-image:none;}
- .ritual-room-art-primary {left:0;transform:none;}
+ .ritual-room {background-image:url('/performance/stageDesktop.e37364561615e31f.webp'),url('/performance/stageDesktop.e37364561615e31f.webp');background-size:auto 100%,auto 100%;background-position:left center,right center;}
 }
 
 .ritual-gold-button {position:relative;isolation:isolate;overflow:hidden;}
-.ritual-gold-button::before {content:'';position:absolute;inset:0;z-index:-1;opacity:.13;background-image:url('/ritual/decor/gold-cloud-button-2x.png'),url('/ritual/decor/gold-cloud-button-2x.png');background-size:100px 40px;background-position:left center,right center;background-repeat:no-repeat;mix-blend-mode:multiply;}
+.ritual-gold-button::before {content:'';position:absolute;inset:0;z-index:-1;opacity:.13;background-image:url('/ritual/decor/gold-cloud.png'),url('/ritual/decor/gold-cloud.png');background-size:100px 40px;background-position:left center,right center;background-repeat:no-repeat;mix-blend-mode:multiply;}
 .ritual-gold-button::after {content:'';position:absolute;inset:4px;border:1px solid rgba(255,239,184,.7);border-radius:inherit;pointer-events:none;}
 @media(min-width:801px) {
  [data-experience-stage='landing'] .ritual-gold-button {font-weight:400;font-size:calc(26.2 * var(--u));gap:calc(14 * var(--u));padding-bottom:calc(3 * var(--u));}
@@ -111,7 +105,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
  [data-experience-stage='landing'] .ritual-gold-button::after {display:none;}
  [data-experience-stage='landing'] .ritual-gold-button {background:radial-gradient(ellipse at 50% 50%,#ffd26b 0%,#f5b64e 42%,#e99b32 74%,#d98528 100%);box-shadow:inset 0 -4px 8px rgba(255,225,140,.78),0 0 4px rgba(245,194,106,.9),0 0 14px rgba(216,136,46,.85),0 0 28px rgba(137,71,21,.65);}
 }
-.ritual-question-card::before {content:'';position:absolute;inset:5px;z-index:2;border:1px solid #d3a970;border-radius:5px;pointer-events:none;}
+.ritual-question-card::before {content:'';position:absolute;inset:5px;border:1px solid #d3a970;border-radius:5px;pointer-events:none;}
 
 [data-three-coin-presentation="ritual"] > .ritual-webgl {position:fixed;}
 
@@ -127,21 +121,20 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 
 /* Exact center pixels from the same room master; offscreen pixels need no transfer. */
 @media (max-aspect-ratio:11/20) {
- .ritual-room[data-room-ready='true'] {background-image:url('/performance/stagePortrait.bde3e415eb141bc8.webp');}
+ .ritual-room {background-image:url('/performance/stagePortrait.bde3e415eb141bc8.webp');}
 }
 
 .ritual-home-skip {display:block;width:100%;padding:0;margin:calc(20 * var(--u)) 0 0;font:400 calc(16 * var(--u))/1.25 Georgia,serif;color:#ffe8a4;text-decoration:none;}
 
 /* Non-QA narrow screens retain the same room/composition with a bounded raster budget. */
 @media (max-width:600px) and (max-aspect-ratio:11/20) {
- .ritual-room[data-room-ready='true'] {background-image:url('/performance/stageMobile.285965e6cb8c7840.webp');}
+ .ritual-room {background-image:url('/performance/stageMobile.285965e6cb8c7840.webp');}
 }
 @media (max-width:800px) {
  .ritual-gold-button::before {background-image:url('/ritual/decor/gold-cloud-button-2x.png'),url('/ritual/decor/gold-cloud-button-2x.png');}
 }
 @media (max-width:470px) {
- .ritual-question-card {background-image:url('/performance/questionMobile.aeacbe5208415e49.webp');background-position:center;background-size:cover;background-repeat:no-repeat;}
- .ritual-question-card-art {display:none;}
+ .ritual-question-card {background-image:url('/performance/questionMobile.aeacbe5208415e49.webp');}
 }
 
 /* The casting UI consumes the same recorded steps as the application owner. */
@@ -160,7 +153,7 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 [data-ritual-view='result'] .ritual-cast-heading h2 {font:700 calc(64 * var(--u))/1.2 Georgia,serif;margin-top:calc(12 * var(--u));}
 [data-ritual-view='result'] .ritual-cast-heading > p:last-child {font-size:calc(26 * var(--u));margin-top:calc(10 * var(--u));}
 .ritual-face-labels {position:absolute;left:calc(490 * var(--u));top:calc(643 * var(--u));display:flex;gap:calc(130 * var(--u));}
-.ritual-face-labels > span {display:flex;align-items:center;justify-content:center;width:calc(140 * var(--u));height:calc(46 * var(--u));background:url('/performance/questionDesktop.d616c1d6e5957a79.png') center/cover;color:#17100a;font:700 calc(25 * var(--u))/1 Georgia,serif;clip-path:polygon(6% 0,95% 0,100% 20%,98% 83%,93% 100%,5% 100%,0 70%,2% 20%);animation:ritual-ui-enter 180ms var(--ritual-enter) both;}
+.ritual-face-labels > span {display:flex;align-items:center;justify-content:center;width:calc(140 * var(--u));height:calc(46 * var(--u));background:url('/performance/questionDesktop.3b34ef04891180ba.webp') center/cover;color:#17100a;font:700 calc(25 * var(--u))/1 Georgia,serif;clip-path:polygon(6% 0,95% 0,100% 20%,98% 83%,93% 100%,5% 100%,0 70%,2% 20%);animation:ritual-ui-enter 180ms var(--ritual-enter) both;}
 .ritual-record-action {position:absolute;left:calc(615 * var(--u));top:calc(732 * var(--u));width:calc(440 * var(--u));text-align:center;animation:ritual-ui-enter 220ms var(--ritual-enter) both;}
 .ritual-record-action .ritual-gold-button {font-size:calc(28 * var(--u));height:calc(72 * var(--u));}
 .ritual-record-action .ritual-stage-number {margin-top:calc(20 * var(--u));}
@@ -224,11 +217,49 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 .ritual-gate-card h1 {font:700 calc(64 * var(--u))/1.2 Georgia,serif;margin:calc(20 * var(--u)) 0 0;}
 .ritual-gate-description {font:400 calc(28 * var(--u))/1.15 Georgia,serif;margin:calc(8 * var(--u)) 0 0;}
 .ritual-gate-action {margin:calc(34 * var(--u)) auto 0;max-width:calc(650 * var(--u));animation:ritual-ui-enter 180ms var(--ritual-enter,cubic-bezier(.22,1,.36,1)) both;}
-.ritual-gate-signin {display:flex;align-items:center;justify-content:center;gap:calc(22 * var(--u));width:calc(490 * var(--u));height:calc(82 * var(--u));margin:auto;border:2px solid #ffe4a0;border-radius:calc(15 * var(--u));font:400 calc(28 * var(--u))/1 Georgia,serif;color:#fff6d8;background:radial-gradient(ellipse at center,#442000,#241000);box-shadow:0 0 7px #ffda7c,0 0 25px #f8a63f,inset 0 0 12px #9a5517;text-decoration:none;}
+.ritual-gate-signin {position:relative;isolation:isolate;display:flex;align-items:center;justify-content:center;gap:calc(22 * var(--u));width:calc(490 * var(--u));height:calc(82 * var(--u));margin:auto;border:2px solid #ffe4a0;border-radius:calc(4 * var(--u));font:400 calc(28 * var(--u))/1 Georgia,serif;color:#fff6d8;background:radial-gradient(ellipse at center,#442000,#241000);box-shadow:0 0 6px #ffda7c,0 0 21px rgba(248,166,63,.88),inset 0 0 11px #9a5517;text-decoration:none;}
 .ritual-gate-signin svg {width:calc(29 * var(--u));height:calc(29 * var(--u));}
 .ritual-gate-action [data-history-saving],.ritual-gate-action p {color:#64411e;}
 .ritual-gate-error p {color:#8a2614!important;}
 .ritual-result-scene [data-public-reading-result] {position:relative;max-width:none;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;}
+/* Approved Three-Coin result reveal. Dynamic content stays live over the optimized blank parchment runtime asset. */
+.ritual-result-card {position:absolute;left:calc(289 * var(--u));top:calc(87 * var(--u));width:calc(1166 * var(--u));height:calc(657 * var(--u));background:url('/performance/resultDesktop.c8b42fcbbe5723fe.webp') center/100% 100% no-repeat;color:#110d07;animation:ritual-card-enter 420ms cubic-bezier(.22,1,.36,1) both;}
+.ritual-result-title {position:absolute;left:calc(260 * var(--u));top:calc(74 * var(--u));width:calc(650 * var(--u));text-align:center;}
+.ritual-result-title h1 {font:700 calc(52 * var(--u))/1.15 Georgia,serif;margin:0;color:#100d07;}
+.ritual-result-title p {font:400 calc(30 * var(--u))/1.2 Georgia,serif;color:#665741;margin:calc(8 * var(--u)) 0 0;}
+.ritual-result-seal {position:absolute;right:calc(-7 * var(--u));top:calc(-8 * var(--u));width:calc(36 * var(--u));min-height:calc(74 * var(--u));padding:calc(7 * var(--u));border:2px solid #ffe6be;border-radius:calc(15 * var(--u));background:#bd1b0d;color:#ffecd2;font:400 calc(20 * var(--u))/1 Georgia,serif;writing-mode:vertical-rl;display:flex;align-items:center;justify-content:center;}
+.ritual-result-lines {position:absolute;left:calc(169 * var(--u));top:calc(213 * var(--u));width:calc(200 * var(--u));display:flex;flex-direction:column;gap:calc(18.6 * var(--u));}
+.ritual-result-bar {height:calc(24 * var(--u));display:flex;gap:calc(24 * var(--u));}
+.ritual-result-bar i {display:block;background:#100d07;flex:1;border-radius:2px;}
+.ritual-result-bar[data-yang='true'] {gap:0;}
+.ritual-result-copy {position:absolute;left:calc(488 * var(--u));top:calc(210 * var(--u));width:calc(572 * var(--u));max-height:calc(314 * var(--u));overflow:auto;scrollbar-width:thin;scrollbar-color:#b28d54 transparent;}
+.ritual-result-copy h2 {margin:0;font:700 calc(32 * var(--u))/1.2 Georgia,serif;color:#100d07;}
+.ritual-result-copy p {font:400 calc(26 * var(--u))/1.18 Georgia,serif;margin:calc(10 * var(--u)) 0 0;color:#17110a;}
+.ritual-result-copy section+section {border-top:1px solid #bc9d77;margin-top:calc(24 * var(--u));padding-top:calc(19 * var(--u));}
+.ritual-result-actions {position:absolute;left:calc(254 * var(--u));top:calc(546 * var(--u));display:flex;gap:calc(26 * var(--u));}
+.ritual-result-actions :is(button,a) {display:flex;align-items:center;justify-content:center;gap:calc(24 * var(--u));width:calc(306 * var(--u));height:calc(74 * var(--u));border:1px solid #b3773a;border-radius:60px;background:rgba(255,232,201,.7);color:#150f08;font:400 calc(28 * var(--u))/1 Georgia,serif;cursor:pointer;text-decoration:none;}
+.ritual-result-actions :is(button,a)+:is(button,a) {width:calc(302 * var(--u));background:#301500;color:#fff0cf;border:2px solid #ffe0a0;box-shadow:0 0 16px #d78622,inset 0 0 10px #965217;}
+.ritual-result-actions svg {width:calc(30 * var(--u));height:calc(30 * var(--u));stroke-width:1.7;}
+.ritual-result-details {padding:calc(870 * var(--u)) 0 0;}
+.ritual-result-back {left:calc(167 * var(--u));}
+@keyframes ritual-card-enter {from{opacity:0;transform:translateY(18px) scale(.975)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:800px) {
+ .ritual-result-card {position:relative;inset:auto;width:calc(100% - 20px);height:auto;min-height:900px;margin:20px 10px;padding:65px 35px;background-image:url('/performance/resultMobile.b62092713b0e63f0.webp');}
+ .ritual-result-title {position:relative;inset:auto;width:100%;}
+ .ritual-result-title h1 {font-size:34px;}
+ .ritual-result-title p {font-size:24px;}
+ .ritual-result-seal {display:none;}
+ .ritual-result-lines {position:relative;inset:auto;width:150px;margin:30px auto;gap:12px;}
+ .ritual-result-bar {height:15px;}
+ .ritual-result-copy {position:relative;inset:auto;width:100%;max-height:none;overflow:visible;}
+ .ritual-result-copy h2 {font-size:26px;}
+ .ritual-result-copy p {font-size:20px;}
+ .ritual-result-actions {position:relative;inset:auto;gap:14px;margin-top:24px;flex-direction:column;}
+ .ritual-result-actions :is(button,a),.ritual-result-actions :is(button,a)+:is(button,a) {width:100%;font-size:23px;}
+ .ritual-result-details {padding-top:40px;}
+ .ritual-result-back {position:relative;inset:auto;display:inline-block;margin:16px 20px;font-size:18px;}
+}
+
 @keyframes ritual-gate-enter {from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce) {
  .ritual-result-scene * {animation-duration:140ms!important;transition-duration:140ms!important;}
@@ -253,6 +284,7 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
  .ritual-confirm-heading .ritual-divider::after {right:0;background-position:right center;}
  :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card {border-radius:3px;border-width:2px;}
  :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-gold-button::after {display:none;}
+ :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-gold-button {box-shadow:inset 0 -3px 5px rgba(255,242,201,.78),0 0 3px rgba(255,224,145,.72),0 0 10px rgba(237,157,48,.62),0 0 18px rgba(177,101,26,.5);}
  :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-taichi {width:calc(54 * var(--u));height:calc(54 * var(--u));}
 }
 
@@ -264,6 +296,7 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 @media(min-width:801px) {
  [data-ritual-view='result'] .ritual-cast-heading {top:calc(123 * var(--u));}
  .ritual-record-action .ritual-gold-button::after {display:none;}
+ .ritual-record-action .ritual-gold-button {box-shadow:inset 0 -3px 5px rgba(255,242,201,.78),0 0 3px rgba(255,224,145,.72),0 0 10px rgba(237,157,48,.62),0 0 18px rgba(177,101,26,.5);}
 }
 
 @keyframes ritual-line-enter {from{opacity:0;transform:scaleX(.92)}to{opacity:1;transform:scaleX(1)}}
@@ -275,8 +308,11 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 }
 
 @media(min-width:801px) {
- .ritual-gate-card h1 {margin-top:calc(16 * var(--u));}
- .ritual-gate-action {margin-top:calc(28 * var(--u));}
+ .ritual-gate-card h1 {font-size:calc(57 * var(--u));margin-top:calc(11 * var(--u));}
+ .ritual-gate-action {margin-top:calc(24 * var(--u));}
+ .ritual-gate-signin::before,.ritual-gate-signin::after {content:'';position:absolute;top:calc(10 * var(--u));bottom:calc(10 * var(--u));width:calc(8 * var(--u));z-index:-1;background:#2f1400;border-top:2px solid #ffe4a0;border-bottom:2px solid #ffe4a0;box-shadow:0 0 10px rgba(248,166,63,.55);}
+ .ritual-gate-signin::before {left:calc(-8 * var(--u));border-left:2px solid #ffe4a0;}
+ .ritual-gate-signin::after {right:calc(-8 * var(--u));border-right:2px solid #ffe4a0;}
  .ritual-gate-complete-mark {position:relative;}
  .ritual-gate-complete-mark::before,.ritual-gate-complete-mark::after {content:'';position:absolute;top:0;width:calc(115 * var(--u));height:100%;background:url('/ritual/decor/yin-yang-divider.png') left center/calc(360 * var(--u)) calc(52 * var(--u)) no-repeat;}
  .ritual-gate-complete-mark::before {right:calc(90 * var(--u));}
@@ -300,7 +336,7 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 .ritual-record-action.ritual-departing-record-action .ritual-gold-button {font-size:calc(28 * var(--u));height:calc(72 * var(--u));}
 :is([data-ritual-view='ready'],[data-ritual-view='casting']) .ritual-cast-heading {animation:ritual-casting-enter 320ms var(--ritual-enter) 120ms both;}
 [data-ritual-view='casting'][data-flight-beat='landing'] .ritual-cast-heading {animation:ritual-heading-exit 180ms var(--ritual-exit) both;}
-.ritual-face-labels > span {animation-delay:30ms;}
+.ritual-face-labels > span {animation-delay:60ms;}
 .ritual-record-action {animation:ritual-record-enter 220ms var(--ritual-enter) 180ms both;}
 [data-resetting='true'] .ritual-cast-heading {animation-delay:120ms;}
 @media(prefers-reduced-motion:reduce) {

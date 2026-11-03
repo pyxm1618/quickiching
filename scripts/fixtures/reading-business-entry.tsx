@@ -2,6 +2,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ThreeCoinResultClient } from '../../src/components/three-coin-result/three-coin-result-client';
+import '../../src/components/public-reading/ritual.css';
 import { generateYarrowLine } from '../../src/domain/casting/yarrow/algorithm';
 import { meiHuaFromNumberAndTime } from '../../src/domain/casting/mei-hua/number-time';
 

@@ -1,7 +1,7 @@
 .page {
   position: relative; isolation: isolate; min-height: 100vh; padding: 58px 2.4% 64px; color: #fff0cb;
   font-family: "Times New Roman",Georgia,serif;
-  background: #1b0b04 url("/info-pages/shared/info-page-background.png") center top/100vw auto fixed no-repeat;
+  background: #1b0b04 url("/info-pages/runtime/shared/info-page-background.webp") center top/100vw auto fixed no-repeat;
 }
 
 .inner { width: min(1550px,100%); margin: auto; container-type: inline-size; }
@@ -15,7 +15,7 @@
 
 .titleStroke {
   display: block; width: clamp(220px,36vw,620px); height: 22px; margin: 0 auto 8px;
-  background: url("/info-pages/shared/title-brush-stroke.png") center 49%/100% auto no-repeat;
+  background: url("/info-pages/runtime/shared/title-brush-stroke.webp") center 49%/100% auto no-repeat;
 }
 
 .lead { max-width: 970px; margin: 0 auto; color: #fff1d7; font-size: 22px; line-height: 1.25; }
@@ -76,7 +76,7 @@
 
 .guideDecoration {
   display: block; width: 170px; height: 145px; max-width: 100%; margin: 0 auto 8px;
-  background-image: url("/info-pages/decorative/guide-decorations.png"); background-repeat: no-repeat;
+  background-image: url("/info-pages/runtime/decorative/guide-decorations.webp"); background-repeat: no-repeat;
   background-size: 340px 227px;
 }
 
@@ -418,7 +418,7 @@
   .helpGroup { padding: 28px 9% 55px; isolation: isolate; }
   .helpGroup:before {
     content: ""; position: absolute; inset: 0; z-index: -1; border: 25px solid transparent;
-    border-image: url("/info-pages/legal/legal-main-paper.png") 65 fill stretch;
+    border-image: url("/info-pages/runtime/legal/legal-main-paper.webp") 65 fill stretch;
     filter: drop-shadow(0 8px 10px #0005);
   }
   .helpRow+.helpRow { margin-top: 20px; }
@@ -629,3 +629,232 @@
   .exampleComparison > p + p { padding-left: 0; border-left: 0; }
 }
 .artwork[data-paper-artwork="helpBottom"] { grid-template-rows: 2.8cqw minmax(0, 1fr) 7.4cqw; }
+/* Group 3 pixel closeout: Info visual-only overrides. */
+/* Keep the approved immersive room visible behind long real-content pages.
+   This reuses the existing optimized source asset; it does not add a full-page raster. */
+.page {
+  background-size: cover;
+  background-position: center top;
+}
+.inner { position: relative; z-index: 1; }
+
+/* Desktop guide proportions: preserve the actual copy while restoring the approved
+   scroll hierarchy and tighter first-screen composition. */
+@media (min-width:761px) {
+  .page[data-info-kind="question"] { padding-top: 34px; }
+  .page[data-info-kind="question"] .heading { margin-bottom: 18px; }
+  .page[data-info-kind="standard"] .heading { margin-bottom: 18px; }
+  .guideMain { padding-top: 44px; padding-bottom: 94px; }
+  .guideSecondary { margin-top: 10px; }
+  .relatedNav { margin-top: 28px; }
+}
+
+/* The approved legal artwork is one continuous parchment with a narrow TOC column.
+   Remove the artificial gutter and let the left paper extend with the real document. */
+@media (min-width:761px) {
+  .legalLayout {
+    grid-template-columns: 22% minmax(0,1fr);
+    gap: 0;
+    align-items: stretch;
+  }
+  .legalToc {
+    min-height: 100%;
+    height: 100%;
+    margin-right: -1px;
+    padding: 48px 28px 190px;
+  }
+  .legalPaper {
+    margin-left: -1px;
+    padding: 40px 42px 180px;
+  }
+  .tocList a { font-size: 19px; padding-block: 12px; }
+  .legalHeading { font-size: 28px; }
+  .legalBody,.legalIntro,.legalFooter { font-size: 18px; line-height: 1.38; }
+  .legalSection + .legalSection { margin-top: 22px; }
+  .legalBody { padding-top: 6px; }
+}
+
+/* Help reference uses four balanced framed zones inside one scroll.  Keep all
+   production wording, but remove excess dead space introduced by the generic shell. */
+@media (min-width:761px) {
+  .helpRow {
+    gap: 2.2%;
+    padding: 36px 6.3% 64px;
+  }
+  .helpGroup { padding-inline: 14px; }
+  .helpGroup h2 { margin-bottom: 16px; }
+  .helpQuestion { margin-top: 16px; }
+  .helpQuestion p { line-height: 1.28; }
+  .helpSupport { margin-top: 8px; padding: 32px 7% 62px; }
+}
+
+/* Keep diagrams optically centred in the four-column guide without changing their
+   semantics or the line values rendered by production code. */
+.changingPrimer { align-items: start; }
+.primerColumn > h3 { box-shadow: inset 0 0 0 1px #6d2c0b55,0 2px 5px #7b3a1640; }
+.flowColumn { box-shadow: inset 0 0 18px #d99a4c22; }
+.flowArrow { filter: drop-shadow(0 2px 2px #a85a1844); }
+
+/* Narrow screens: preserve the approved parchment stack and guarantee that no
+   page-level text or decorative geometry escapes 390px or 320px viewports. */
+@media (max-width:760px) {
+  .page {
+    background-size: auto 100vh;
+    background-position: center top;
+    background-attachment: scroll;
+    overflow-x: clip;
+  }
+  .inner { width: 100%; max-width: 100%; }
+  .guideMain,.guideSecondary,.legalPaper,.legalToc,.helpGroup,.helpSupport { max-width: 100%; }
+  .paperText,.paperList,.paperOrdered,.legalBody,.legalIntro,.legalFooter,.helpQuestion p {
+    overflow-wrap: anywhere;
+  }
+  .dataTable { word-break: normal; }
+  .flowColumn,.diagramCard,.exampleCard { max-width: 100%; overflow: hidden; }
+  .relatedNav a { max-width: 100%; }
+  .legalLayout { width: 100%; }
+  .legalToc { padding-inline: 24px; }
+  .legalPaper { padding-inline: 24px; }
+}
+@media (max-width:340px) {
+  .page { padding-inline: 8px; }
+  .title,.page:has(.legalLayout) .title { font-size: 32px; }
+  .lead { max-width: 100%; font-size: 17px; }
+  .meta { max-width: calc(100vw - 32px); font-size: 15px; }
+  .guideMain { padding-inline: 8%; }
+  .guideSecondary { padding-inline: 7%; }
+  .paperHeading { font-size: 25px; }
+  .paperSubheading { font-size: 22px; }
+  .paperText,.paperList,.paperOrdered,.exampleCard p,.callout { font-size: 17px; }
+  .primerColumn > h3 { font-size: 23px; }
+  .sixLines { gap: 10px; }
+  .sixLines > span { font-size: 76px; }
+  .sixLines .lineStack { width: 165px; }
+  .legalToc,.legalPaper { padding-inline: 18px; }
+  .tocList a { grid-template-columns: 30px minmax(0,1fr); gap: 9px; font-size: 18px; }
+  .tocNumber { width: 30px; height: 30px; font-size: 22px; }
+  .legalHeading { font-size: 23px; }
+  .legalBody,.legalIntro,.legalFooter { font-size: 17px; }
+  .helpGroup { padding-inline: 8%; }
+  .helpGroup h2 { font-size: 22px; }
+  .helpQuestion h3 { font-size: 21px; }
+}
+
+
+/* Cross-platform reference typography using the existing project display font. */
+.title,.paperHeading,.paperSubheading,.exampleCard h3,.flowColumn h3,.primerColumn>h3,.tocTitle,.legalHeading,.helpGroup h2,.helpQuestion h3,.helpSupport h2 {
+  font-family: var(--font-fraunces), Georgia, "Times New Roman", serif;
+}
+
+/* Reference taiji glow: CSS-only, no extra runtime asset. */
+@media (min-width:761px) {
+  .page::before {
+    content: "☯";
+    position: absolute;
+    z-index: 0;
+    top: 8px;
+    left: clamp(92px, 12vw, 210px);
+    width: 190px;
+    height: 190px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #f8dda0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 168px;
+    line-height: 1;
+    opacity: .78;
+    transform: rotate(-8deg);
+    text-shadow:
+      0 0 5px #fff0b8,
+      0 0 18px #f6ba45,
+      0 0 42px #d77d17,
+      0 0 76px #8c430c;
+    filter: drop-shadow(0 4px 8px #35160088);
+    pointer-events: none;
+  }
+  .page:has(.legalLayout)::before {
+    left: clamp(150px, 18vw, 300px);
+    top: 6px;
+  }
+}
+@media (max-width:760px) {
+  .page::before { content: none; }
+}
+
+/* Group 3 final reference-proportion refinement. */
+@media (min-width:761px) {
+  .page[data-info-kind="question"],
+  .page[data-info-kind="standard"] {
+    padding-top: 50px;
+  }
+  .page[data-info-kind="question"] .heading {
+    min-height: 205px;
+    margin-bottom: 26px;
+  }
+  .page[data-info-kind="standard"] .heading {
+    min-height: 165px;
+    margin-bottom: 26px;
+  }
+  .page[data-info-kind="question"] .title,
+  .page[data-info-kind="standard"] .title,
+  .page[data-info-kind="help"] .title,
+  .page:has(.legalLayout) .title {
+    font-size: clamp(54px,4.9vw,82px);
+  }
+  .titleStroke {
+    width: clamp(300px,40vw,690px);
+    height: 28px;
+    margin-bottom: 10px;
+  }
+
+  /* Draw the approved glowing taiji with CSS so no extra image/font request is added. */
+  .page::before {
+    content: "";
+    width: 220px;
+    height: 220px;
+    top: 18px;
+    left: clamp(110px,13vw,225px);
+    border: 2px solid #e7b553;
+    border-radius: 50%;
+    opacity: .9;
+    transform: rotate(-7deg);
+    background:
+      radial-gradient(circle at 50% 25%, #28170c 0 9%, #f1d48d 10% 24%, #28170c 25% 49%, transparent 50%),
+      radial-gradient(circle at 50% 75%, #f1d48d 0 9%, #28170c 10% 24%, #f1d48d 25% 49%, transparent 50%),
+      linear-gradient(90deg,#f1d48d 0 50%,#28170c 50% 100%);
+    box-shadow:
+      inset 0 0 0 4px #7e491a88,
+      0 0 8px #ffe8a8,
+      0 0 28px #efb144,
+      0 0 64px #b86418;
+    filter: drop-shadow(0 8px 12px #2d120a99);
+  }
+  .page:has(.legalLayout)::before {
+    left: clamp(150px,16vw,270px);
+    top: 14px;
+  }
+}
+
+/* Corrected taiji glyph treatment. */
+@media (min-width:761px) {
+  .page::before {
+    content: "☯";
+    display: grid;
+    place-items: center;
+    color: #28160b;
+    font-family: "DejaVu Sans","Segoe UI Symbol","Arial Unicode MS",sans-serif;
+    font-size: 202px;
+    line-height: 1;
+    letter-spacing: 0;
+    background: radial-gradient(circle at 44% 38%,#fff1bd 0%,#e8bd62 46%,#b97024 72%,#5a2b0d 100%);
+    border: 3px solid #d99d39;
+    box-shadow:
+      inset 0 0 0 4px #4e260d88,
+      inset 0 0 28px #fff1aa66,
+      0 0 9px #ffe9aa,
+      0 0 30px #eaa33b,
+      0 0 68px #a85416;
+    text-shadow: 0 1px 0 #f7dd92;
+  }
+}

@@ -87,10 +87,12 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
   useEffect(() => {
     try {
       const session = readThreeCoinSession();
-      const stored = session?.data?.steps ?? [];
-      setSteps(stored);
-      setReadingMeta(session ? { id: session.id, createdAt: session.createdAt } : null);
-      setRevealedCount(stored.length);
+      if (session) {
+        const stored = session.data?.steps ?? [];
+        setSteps(stored);
+        setReadingMeta({ id: session.id, createdAt: session.createdAt });
+        setRevealedCount(stored.length);
+      }
       setStorageError(null);
     } catch (error: unknown) {
       setStorageError(storageErrorCode(error));
