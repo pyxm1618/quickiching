@@ -180,9 +180,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          (GROUP3_VISUAL_QA=1 PORT=3000 HOSTNAME=127.0.0.1 CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW=1 bun run start > /tmp/qic-ci-product.log 2>&1 & echo $! > /tmp/qic-ci-product.pid)
+          (GROUP3_VISUAL_QA=1 PORT=3036 HOSTNAME=127.0.0.1 CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW=1 bun run start > /tmp/qic-ci-product.log 2>&1 & echo $! > /tmp/qic-ci-product.pid)
           for i in {1..80}; do
-            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then exit 0; fi
+            if curl -fsS http://127.0.0.1:3036/ >/dev/null; then exit 0; fi
             sleep 1
           done
           cat /tmp/qic-ci-product.log
@@ -190,8 +190,8 @@ jobs:
       - name: Reading Gate
         if: always() && needs.select.outputs.reading == 'true' && steps.product_build.conclusion == 'success'
         env:
-          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3000
-          READING_TEST_BASE_URL: http://127.0.0.1:3000
+          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3036
+          READING_TEST_BASE_URL: http://127.0.0.1:3036
         shell: bash
         run: |
           set -euo pipefail
@@ -202,12 +202,12 @@ jobs:
       - name: Public / SEO Gate
         if: always() && needs.select.outputs.public_seo == 'true' && steps.product_build.conclusion == 'success'
         env:
-          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3000
-          HEXAGRAM_SEO_AUDIT_BASE_URL: http://127.0.0.1:3000
-          HEXAGRAM_SEO_BROWSER_BASE_URL: http://127.0.0.1:3000
-          CHINESE_SEO_AUDIT_BASE_URL: http://127.0.0.1:3000
-          CHINESE_INTERACTIVE_GATE_BASE_URL: http://127.0.0.1:3000
-          MULTILINGUAL_TEST_BASE_URL: http://127.0.0.1:3000
+          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3036
+          HEXAGRAM_SEO_AUDIT_BASE_URL: http://127.0.0.1:3036
+          HEXAGRAM_SEO_BROWSER_BASE_URL: http://127.0.0.1:3036
+          CHINESE_SEO_AUDIT_BASE_URL: http://127.0.0.1:3036
+          CHINESE_INTERACTIVE_GATE_BASE_URL: http://127.0.0.1:3036
+          MULTILINGUAL_TEST_BASE_URL: http://127.0.0.1:3036
         shell: bash
         run: |
           set -euo pipefail
@@ -225,7 +225,7 @@ jobs:
       - name: Account / Info browser + responsive Gate
         if: always() && needs.select.outputs.account_info == 'true' && steps.product_build.conclusion == 'success'
         env:
-          GROUP3_QA_BASE_URL: http://127.0.0.1:3000
+          GROUP3_QA_BASE_URL: http://127.0.0.1:3036
         run: node scripts/group3-visual-capture.mjs .artifacts/account-info-evidence
       - name: Payment Gate - dependency audit
         if: always() && needs.select.outputs.payment == 'true'
@@ -303,9 +303,9 @@ jobs:
         if: needs.select.outputs.performance == 'true'
         shell: bash
         run: |
-          (GROUP3_VISUAL_QA=1 PORT=3001 HOSTNAME=127.0.0.1 bun run start > /tmp/qic-ci-performance.log 2>&1 & echo $! > /tmp/qic-ci-performance.pid)
+          (GROUP3_VISUAL_QA=1 PORT=3036 HOSTNAME=127.0.0.1 bun run start > /tmp/qic-ci-performance.log 2>&1 & echo $! > /tmp/qic-ci-performance.pid)
           for i in {1..80}; do
-            if curl -fsS http://127.0.0.1:3001/ >/dev/null; then exit 0; fi
+            if curl -fsS http://127.0.0.1:3036/ >/dev/null; then exit 0; fi
             sleep 1
           done
           cat /tmp/qic-ci-performance.log
@@ -313,7 +313,7 @@ jobs:
       - name: Targeted Lighthouse
         if: needs.select.outputs.performance == 'true'
         env:
-          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3001
+          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3036
           CI_PERFORMANCE_TARGETS: ${{ needs.select.outputs.performance_targets }}
         run: node scripts/ci/lighthouse-gate.mjs
       - name: Upload Lighthouse evidence
