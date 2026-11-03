@@ -202,22 +202,31 @@ async function fillInput(page, selector, value) {
 }
 
 async function assertClickTargetUnobstructed(page, selector, label) {
-  const hit = await page.$eval(selector, node => {
+  const hit = await page.$eval(selector, async node => {
+    const root = document.documentElement;
+    const previousScrollBehavior = root.style.scrollBehavior;
+    root.style.scrollBehavior = "auto";
     node.scrollIntoView({ block: "center", inline: "center" });
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const rect = node.getBoundingClientRect();
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
     const top = document.elementFromPoint(x, y);
-    return {
+    const result = {
       x: Math.round(x),
       y: Math.round(y),
+      scrollY: Math.round(window.scrollY),
+      scrollHeight: root.scrollHeight,
+      viewportHeight: window.innerHeight,
       targetClass: node.getAttribute("class"),
       topTag: top?.tagName ?? null,
       topClass: top?.getAttribute("class") ?? null,
       unobstructed: top === node || (top instanceof Node && node.contains(top)),
     };
+    root.style.scrollBehavior = previousScrollBehavior;
+    return result;
   });
-  assert.equal(hit.unobstructed, true, `${label}: click target obstructed: ${JSON.stringify(hit)}`);
+  assert.equal(hit.unobstructed, true, `${label}: click target obstructed after deterministic center scroll: ${JSON.stringify(hit)}`);
 }
 
 async function switchMethodLanguage(page, language, expectedPath) {
