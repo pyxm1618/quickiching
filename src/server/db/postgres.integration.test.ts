@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { authTables, users } from "./auth-schema";
 import { createLoginIntentRepository } from "@/server/auth/login-intent";
+import migrationIntegrity from "../../../drizzle/migration-integrity.json";
 
 const databaseURL = process.env.TEST_DATABASE_URL;
 if (!databaseURL) throw new Error("TEST_DATABASE_URL is required for PostgreSQL integration tests");
@@ -44,7 +45,7 @@ describe("CP2 PostgreSQL migration and auth persistence", () => {
       select count(*)::text as count
       from drizzle.__drizzle_migrations
     `;
-    expect(Number(migrationRows[0]?.count)).toBe(13);
+    expect(Number(migrationRows[0]?.count)).toBe(migrationIntegrity.migrations.length);
   });
 
   it("enforces the identity foreign keys, uniqueness, and required indexes in PostgreSQL", async () => {
