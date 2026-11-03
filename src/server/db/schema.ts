@@ -45,7 +45,7 @@ export {
   paymentWebhookConflicts,
   paymentWebhookInbox,
 } from "./payment-schema";
-export { deepReadingContextSnapshots, deepReadingResults, questionLocks } from "./deep-reading-schema";
+export { deepReadingContextSnapshots, deepReadingResults } from "./deep-reading-schema";
 export { workflowRuns, workflowRunStatus } from "./workflow-schema";
 export { auditEvents, auditCategory } from "./audit-schema";
 
@@ -70,7 +70,7 @@ import {
   paymentWebhookConflicts,
   paymentWebhookInbox,
 } from "./payment-schema";
-import { deepReadingContextSnapshots, deepReadingResults, questionLocks } from "./deep-reading-schema";
+import { deepReadingContextSnapshots, deepReadingResults } from "./deep-reading-schema";
 import { workflowRuns } from "./workflow-schema";
 import { auditEvents } from "./audit-schema";
 
@@ -89,7 +89,6 @@ export const databaseSchema = Object.freeze({
   generationOutputReviews,
   deepReadingResults,
   deepReadingContextSnapshots,
-  questionLocks,
   paymentOrders,
   paymentWebhookInbox,
   paymentOutbox,
