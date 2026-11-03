@@ -14,6 +14,18 @@ function log(message) {
   console.log(`[Hexagram SEO Browser Gate] ${message}`);
 }
 
+async function gotoWithRetry(page, url, options = { waitUntil: "load", timeout: 30_000 }) {
+  try {
+    return await page.goto(url, options);
+  } catch (error) {
+    const navigationTimeout = error?.name === "TimeoutError" || String(error).includes("Navigation timeout");
+    if (!navigationTimeout) throw error;
+    log(`Navigation timeout for ${new URL(url).pathname}; retrying once without weakening assertions`);
+    await page.evaluate(() => window.stop()).catch(() => {});
+    return page.goto(url, options);
+  }
+}
+
 function entryFor(number, locale) {
   const entry = HEXAGRAM_SEO_REGISTRY.find((candidate) => candidate.number === number && candidate.locale === locale);
   if (!entry) throw new Error(`Missing registry entry ${locale}:${number}`);
@@ -163,7 +175,7 @@ try {
   await page.setViewport({ width: 1440, height: 1000 });
   for (const entry of HEXAGRAM_SEO_REGISTRY) {
     const desktopErrorStart = detailPageErrors.length;
-    const response = await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
+    const response = await gotoWithRetry(page, `${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
     assert([200, 304].includes(response?.status()), `${pathFor(entry)}: expected 200 or 304, got ${response?.status()}`);
     assertSnapshot(entry, await extractSnapshot(page));
     await assertNoOverflow(page, `${pathFor(entry)} 1440px`);
@@ -181,7 +193,7 @@ try {
     const en = entryFor(number, "en");
     const zh = entryFor(number, "zh-Hans");
     for (const entry of [en, zh]) {
-      await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
+      await gotoWithRetry(page, `${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
       // The approved shared detail scroll supplies local section/sequence navigation and hides the site header in both locales.
       assert.equal(await page.$eval("body > header", (node) => node.getBoundingClientRect().height), 0, `${pathFor(entry)}: site header must remain hidden on the shared detail scroll`);
       await assertKeyboardFocus(page, pathFor(entry));
@@ -190,7 +202,7 @@ try {
   log("20 sampled EN/ZH shared detail scroll header-isolation and keyboard-focus checks PASS");
 
   for (const [path, expectedPrefix] of [["/hexagrams", "/hexagrams/"], ["/zh/hexagrams", "/zh/hexagrams/"]]) {
-    await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
+    await gotoWithRetry(page, `${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
     const links = await page.$$eval(`a[href^="${expectedPrefix}"]`, (nodes) => nodes.map((node) => new URL(node.getAttribute("href") ?? "", location.href).pathname));
     assert.equal(new Set(links).size, 64, `${path}: Hub must link exactly 64 detail pages`);
     const hubH1 = await page.$eval("h1", (node) => node.textContent?.trim() ?? "");
@@ -210,7 +222,7 @@ try {
       assert(anchor.text.toLocaleLowerCase().includes(entry.primaryKeyword.toLocaleLowerCase()), `${path}: visible inbound anchor omits ${entry.primaryKeyword}`);
     }
   }
-  const chineseHubStatus = await page.goto(`${BASE}/zh/hexagrams`, { waitUntil: "load", timeout: 30_000 });
+  const chineseHubStatus = await gotoWithRetry(page, `${BASE}/zh/hexagrams`, { waitUntil: "load", timeout: 30_000 });
   assert([200, 304].includes(chineseHubStatus?.status() ?? 0), `Chinese Hub must be reachable, received ${chineseHubStatus?.status()}`);
   const hasPendingResearch = await page.evaluate(() => document.body.innerHTML.includes("PENDING_RESEARCH"));
   assert(!hasPendingResearch, "Chinese Hub must not contain legacy PENDING_RESEARCH marker");
@@ -229,7 +241,7 @@ try {
     page.on("pageerror", onPageError);
     try {
       await page.setViewport({ width: 1669, height: 942 });
-      await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
+      await gotoWithRetry(page, `${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
       await page.waitForSelector("[data-hexagrams-immersive-page]");
       const desktop = await page.evaluate(() => ({
         locale: document.querySelector("[data-hexagrams-immersive-page]")?.getAttribute("data-hexagrams-locale") ?? "",
@@ -271,7 +283,7 @@ try {
       await page.waitForFunction(() => document.querySelector('[data-wheel-index][aria-current="true"]')?.getAttribute("data-wheel-index") !== "0");
 
       await page.setViewport({ width: 390, height: 844 });
-      await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
+      await gotoWithRetry(page, `${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
       await page.waitForSelector("[data-hexagram-wheel]");
       await assertNoOverflow(page, `${path} Hub 390px`);
       await page.focus("[data-hexagram-wheel]");
@@ -284,7 +296,7 @@ try {
     assert.deepEqual(runtimeErrors, [], `${path}: Hub console/page errors detected`);
 
     await page.setViewport({ width: 1669, height: 942 });
-    await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
+    await gotoWithRetry(page, `${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });
     const beforePath = new URL(page.url()).pathname;
     await page.$eval('[data-wheel-index="1"]', (node) => node.click());
     await page.waitForFunction(() => document.querySelector('[data-wheel-index="1"]')?.getAttribute("aria-current") === "true");
@@ -300,7 +312,7 @@ try {
   for (const entry of HEXAGRAM_SEO_REGISTRY) {
     const mobileErrorStart = detailPageErrors.length;
     await page.setViewport({ width: 390, height: 844 });
-    await page.goto(`${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
+    await gotoWithRetry(page, `${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
     await assertNoOverflow(page, `${pathFor(entry)} 390px`);
     await assertNoTextClipping(page, `${pathFor(entry)} 390px`);
     const h1Fits = await page.$eval("h1", (node) => {
