@@ -83,12 +83,12 @@ jobs:
         run: bun run lint
       - name: Typecheck
         run: bun run typecheck
-      - name: Unit tests
-        run: bun run test
       - name: Production build
         run: bun run build
       - name: Drizzle metadata check
         run: bunx drizzle-kit check
+      - name: Unit tests
+        run: bun run test
 
   database:
     name: CI / Database
@@ -155,6 +155,7 @@ jobs:
         if: needs.select.outputs.account_info == 'true'
         run: node scripts/group3-visual-qa-fixture.mjs install
       - name: Production build for browser domains
+        id: product_build
         if: needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true' || needs.select.outputs.account_info == 'true'
         run: bun run build
       - name: Install pinned browser tools
@@ -187,7 +188,7 @@ jobs:
           cat /tmp/qic-ci-product.log
           exit 1
       - name: Reading Gate
-        if: needs.select.outputs.reading == 'true'
+        if: always() && needs.select.outputs.reading == 'true' && steps.product_build.conclusion == 'success'
         env:
           PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3000
           READING_TEST_BASE_URL: http://127.0.0.1:3000
@@ -199,7 +200,7 @@ jobs:
           bun scripts/mei-hua-ui-browser-gate.mjs
           bun scripts/public-p0-browser-gate.mjs
       - name: Public / SEO Gate
-        if: needs.select.outputs.public_seo == 'true'
+        if: always() && needs.select.outputs.public_seo == 'true' && steps.product_build.conclusion == 'success'
         env:
           PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3000
           HEXAGRAM_SEO_AUDIT_BASE_URL: http://127.0.0.1:3000
@@ -222,15 +223,15 @@ jobs:
           bun scripts/logo-browser-gate.mjs
           bun run gate:navigation
       - name: Account / Info browser + responsive Gate
-        if: needs.select.outputs.account_info == 'true'
+        if: always() && needs.select.outputs.account_info == 'true' && steps.product_build.conclusion == 'success'
         env:
           GROUP3_QA_BASE_URL: http://127.0.0.1:3000
         run: node scripts/group3-visual-capture.mjs .artifacts/account-info-evidence
       - name: Payment Gate - dependency audit
-        if: needs.select.outputs.payment == 'true'
+        if: always() && needs.select.outputs.payment == 'true'
         run: bun audit --audit-level=high
       - name: Payment Gate - plaintext secret scan
-        if: needs.select.outputs.payment == 'true'
+        if: always() && needs.select.outputs.payment == 'true'
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: node scripts/ci/secret-scan.mjs
