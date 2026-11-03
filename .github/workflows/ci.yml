@@ -227,9 +227,9 @@ jobs:
         env:
           GROUP3_QA_BASE_URL: http://127.0.0.1:3036
         run: node scripts/group3-visual-capture.mjs .artifacts/account-info-evidence
-      - name: Payment Gate - dependency audit
+      - name: Payment Gate - dependency regression audit
         if: always() && needs.select.outputs.payment == 'true'
-        run: bun audit --audit-level=high
+        run: node scripts/ci/dependency-audit-gate.mjs
       - name: Payment Gate - plaintext secret scan
         if: always() && needs.select.outputs.payment == 'true'
         env:
