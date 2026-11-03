@@ -15,25 +15,26 @@ export function PaperArtwork({ kind = "main" }: { kind?: "main" | "secondary" | 
   const widths = [s.side, s.width - 2 * s.side, s.side];
   const heights = [s.top, s.height - s.top - s.bottom, s.bottom];
   return <div className={styles.artwork} data-paper-artwork={kind} aria-hidden="true">
-    {s.sliceDir ? heights.flatMap((height, row) => widths.map((width, col) => (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        key={`slice-${row}-${col}`}
-        className={styles.mobileGuideSlice}
-        src={`/info-pages/${s.sliceDir}/${row}-${col}.webp`}
-        width={width}
-        height={height}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        fetchPriority="low"
-      />
-    ))) : null}
     {heights.flatMap((height, row) => widths.map((width, col) => {
+      if (s.sliceDir) {
+        return (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={`${row}-${col}`}
+            src={`/info-pages/${s.sliceDir}/${row}-${col}.webp`}
+            width={width}
+            height={height}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
+          />
+        );
+      }
       const x = s.x + widths.slice(0, col).reduce((sum, n) => sum + n, 0);
       const y = s.y + heights.slice(0, row).reduce((sum, n) => sum + n, 0);
       const original = <image href={`/info-pages/${s.src}`} width={kind === "legal" ? 1683 : kind === "toc" ? 887 : kind.startsWith("help") ? 1983 : 2172} height={kind === "legal" ? 935 : kind === "toc" ? 1774 : kind.startsWith("help") ? 793 : 724} />;
-      return <svg className={styles.desktopArtworkCell} key={`${row}-${col}`} viewBox={`${x} ${y} ${width} ${height}`} preserveAspectRatio="none">{original}</svg>;
+      return <svg key={`${row}-${col}`} viewBox={`${x} ${y} ${width} ${height}`} preserveAspectRatio="none">{original}</svg>;
     }))}
   </div>;
 }

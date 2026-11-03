@@ -10,11 +10,6 @@ export function InfoPageShell({ title, lead, meta, variant = "standard", seoPrim
   seoPrimary?: string;
   children: ReactNode;
 }) {
-  const firstArtwork = variant === "help"
-    ? "/info-pages/runtime/help/help-main-panel.webp"
-    : variant === "legal"
-      ? "/info-pages/runtime/legal/legal-main-paper.webp"
-      : "/info-pages/runtime/guide/guide-main-scroll.webp";
   const content = (
     <>
       <header className={styles.heading}>
@@ -29,7 +24,6 @@ export function InfoPageShell({ title, lead, meta, variant = "standard", seoPrim
 
   return (
     <div className={styles.page} data-info-page="true" data-info-kind={variant}>
-      <link rel="preload" as="image" href={firstArtwork} fetchPriority="high" media="(min-width: 761px)" />
       {seoPrimary ? (
         <article className={styles.inner} data-seo-primary={seoPrimary}>{content}</article>
       ) : (
