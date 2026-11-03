@@ -11,14 +11,11 @@ const method = (query.get('method') ?? 'three_coin') as 'three_coin' | 'yarrow_s
 const yarrowLines = Array.from({length:6},(_,index)=>generateYarrowLine(index as 0|1|2|3|4|5,()=>2));
 const meiHuaInput = {number:29,utcMillis:Date.UTC(2026,9,31,12,0,0),ianaTimeZone:'UTC'};
 const meiHua = meiHuaFromNumberAndTime(meiHuaInput);
-const bundleFixture = query.get('bundle') === '13-57';
-const lineValues = bundleFixture
-  ? [9,6,7,9,7,7]
-  : method === 'yarrow_stalk'
-    ? yarrowLines.map(line=>line.lineValue)
-    : method === 'mei_hua_number_time'
-      ? [...meiHua.lineValuesBottomUp]
-      : [7,7,7,7,7,7];
+const lineValues = method === 'yarrow_stalk'
+  ? yarrowLines.map(line=>line.lineValue)
+  : method === 'mei_hua_number_time'
+    ? [...meiHua.lineValuesBottomUp]
+    : [7,7,7,7,7,7];
 const methodCalculation = method === 'yarrow_stalk'
   ? {kind:'yarrow-stalks',version:'yarrow-zhu-xi-digital-v2',changes:yarrowLines.flatMap(line=>line.changes)}
   : method === 'mei_hua_number_time'
