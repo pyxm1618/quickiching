@@ -13,11 +13,11 @@ const completeState = {
 };
 
 describe("ThreeCoinTool completion navigation", () => {
-  it("does not redirect merely because a completed session was restored on mount", () => {
+  it("routes a restored completed session into the completed Reading gate", () => {
     expect(shouldNavigateCompletedThreeCoin({
       ...completeState,
       completionNavigationArmed: false,
-    })).toBe(false);
+    })).toBe(true);
   });
 
   it("navigates only after the newly persisted sixth line has visually settled", () => {
