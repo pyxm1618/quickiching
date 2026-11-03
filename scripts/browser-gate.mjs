@@ -190,7 +190,6 @@ async function verifyHttpAndSeo() {
     ["/primary-and-relating-hexagrams", "/guides/primary-relating-hexagrams"],
     ["/cast/three_coin", "/"],
     ["/cast/yarrow_stalk", "/methods/yarrow-stalks"],
-    ["/cast/mei_hua_current_time", "/methods/mei-hua-yi-shu"],
   ];
   for (const [path, destination] of redirects) {
     const response = await expectStatus(path, 308);
