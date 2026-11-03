@@ -13,6 +13,10 @@ export const FULL_PATTERNS = [
   "bun.lock",
   /^next\.config\./,
   /^tsconfig(?:\..+)?\.json$/,
+  /^middleware\./,
+  /^src\/middleware\./,
+  /^src\/(?:config\/)?routes?(?:\.|\/)/,
+  /^src\/i18n\/(?:routing|navigation)/,
   "src/app/globals.css",
   /\/layout\.tsx$/,
   "src/domain/public-reading/",
@@ -99,6 +103,15 @@ const ALL_PERFORMANCE_TARGETS = [
   "account.desktop",
 ];
 
+export function shouldForceFullContext(eventName, headRef = "") {
+  if (eventName && eventName !== "pull_request") return true;
+  const normalizedHead = headRef.trim();
+  return normalizedHead === "integration"
+    || normalizedHead === "release"
+    || normalizedHead.startsWith("integration/")
+    || normalizedHead.startsWith("release/");
+}
+
 export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
   const files = rawFiles.map(normalize).filter(Boolean);
   const full = forceFull || any(files, FULL_PATTERNS);
@@ -146,5 +159,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   const chunks = [];
   for await (const chunk of process.stdin) chunks.push(chunk);
   const files = Buffer.concat(chunks).toString("utf8").split(/\r?\n/);
-  emit(classifyChangedFiles(files, { forceFull: process.env.CI_FORCE_FULL === "1" }));
+  emit(classifyChangedFiles(files, {
+    forceFull: process.env.CI_FORCE_FULL === "1"
+      || shouldForceFullContext(process.env.CI_EVENT_NAME ?? "", process.env.CI_HEAD_REF ?? ""),
+  }));
 }
