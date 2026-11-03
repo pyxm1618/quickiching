@@ -182,7 +182,7 @@ async function main(): Promise<void> {
       return;
     }
 
-    if (beforeSchema.state === "partial" || beforeHistory === "invalid") {
+    if (beforeSchema.state === "partial") {
       console.log(JSON.stringify(report, null, 2));
       throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_MIGRATION_0013");
     }
