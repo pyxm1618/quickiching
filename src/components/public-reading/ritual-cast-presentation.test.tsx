@@ -32,9 +32,9 @@ describe('Ritual presentation consumes authoritative casts',()=>{
   expect(html).toContain('data-result-departure="true"');
   expect(html).toContain('disabled');
  });
-  it('shows line six at the top, line one at the bottom, using only recorded steps',()=>{
+  it('matches the approved Progress reference order without changing recorded steps',()=>{
   const steps=[generateThreeCoinLine(0,()=>true),generateThreeCoinLine(1,()=>false)];
   const html=renderToStaticMarkup(<RitualCastPresentation {...common} steps={steps} visibleStep={steps[1]}/>);
-  expect([...html.matchAll(/data-line-position="(\d)" data-state="([^"]+)"/g)].map(match=>[Number(match[1]),match[2]])).toEqual([[6,'waiting'],[5,'waiting'],[4,'waiting'],[3,'waiting'],[2,'done'],[1,'done']]);
+  expect([...html.matchAll(/data-line-position="(\d)" data-state="([^"]+)"/g)].map(match=>[Number(match[1]),match[2]])).toEqual([[1,'done'],[2,'done'],[3,'waiting'],[4,'waiting'],[5,'waiting'],[6,'waiting']]);
  });
 });
