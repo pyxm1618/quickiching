@@ -115,6 +115,13 @@ export const activeDeepReadingContextSnapshotSchema = z.object({
       message: "Deep Reading snapshot method must match the sealed cast method.",
     });
   }
+  if (snapshot.methodVersion !== snapshot.facts.algorithmVersion) {
+    issueContext.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["facts", "algorithmVersion"],
+      message: "Deep Reading snapshot version must match the sealed cast algorithm version.",
+    });
+  }
 });
 
 export const deepReadingContextSnapshotSchema = activeDeepReadingContextSnapshotSchema;
