@@ -63,6 +63,7 @@
  .mei-confirm-cards {display:block;width:100%;margin-top:10px;}.mei-number-ring {width:100%;max-width:340px;margin:auto;}.mei-number-ring h2 {font-size:19px;}.mei-number-ring p {font-size:48px;}
  .mei-moment {width:100%;min-height:190px;margin:-10px 0 0;padding:30px 32px 30px 35px;aspect-ratio:auto;}.mei-moment h2 {font-size:21px;}.mei-moment dl {font-size:14px;margin-top:12px;}.mei-moment dl div {grid-template-columns:1fr 1.2fr;gap:8px;padding:7px 0;}
  .mei-confirm-actions {gap:10px;margin-top:20px;}.mei-confirm-actions .mei-button {font-size:16px;padding:12px 15px;}
+ .mei-scene.mei-step-3 {padding-bottom:300px;}
  }
 .mei-number-decoration {pointer-events:none;}
 .mei-number-decoration input {pointer-events:auto;}
