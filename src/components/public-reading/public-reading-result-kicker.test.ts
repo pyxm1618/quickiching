@@ -5,7 +5,7 @@ import { PublicReadingResult } from "./public-reading-result";
 import { ZH_HANS_UI_DICTIONARY } from "@/i18n/dictionaries/zh-Hans";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import type { PublicReadingEvidence, PublicReadingMethod } from "@/domain/public-reading/types";
-import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
+import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
 import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
 
 vi.mock("next/link", () => ({
@@ -15,7 +15,7 @@ vi.mock("next/link", () => ({
 function evidenceFor(method: PublicReadingMethod): PublicReadingEvidence {
   if (method === "three-coin") return { kind: "three-coin", steps: [] };
   if (method === "yarrow-stalks") return { kind: "yarrow-stalks", lines: [] };
-  if (method === "mei-hua-yi-shu") return { kind: "mei-hua-yi-shu", calculation: meiHuaFromUtc(Date.UTC(2026, 9, 31), "UTC") };
+  if (method === "mei-hua-yi-shu") return { kind: "mei-hua-yi-shu", calculation: meiHuaFromNumberAndTime({ number: 17, utcMillis: Date.UTC(2026, 9, 31), ianaTimeZone: "UTC" }) };
   return { kind: "manual", mode: "line-values" };
 }
 
