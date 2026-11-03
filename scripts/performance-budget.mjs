@@ -18,7 +18,7 @@ export const PERFORMANCE_TARGETS = Object.freeze({
 });
 
 function legacyTarget(desktop) {
-  return getPerformanceGateConfig(desktop ? "home.desktop" : "home.mobile");
+  return { metrics: PERFORMANCE_GATE_CONFIG.budgetDefaults[desktop ? "desktop" : "mobile"] };
 }
 
 // Compatibility API for existing gates. The authoritative values live in
