@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   visual-regression:
-    if: github.event_name != 'pull_request' || github.base_ref == 'integration/quickiching-ui-redesign' || github.head_ref == 'integration/quickiching-ui-redesign'
+    if: github.event_name != 'pull_request' || github.base_ref == 'integration/quickiching-ui-redesign' || github.head_ref == 'integration/quickiching-ui-redesign' || github.head_ref == 'codex/final-visual-pixel-closeout'
     name: Account + Info build, browser, responsive, Lighthouse
     runs-on: ubuntu-latest
     timeout-minutes: 40
