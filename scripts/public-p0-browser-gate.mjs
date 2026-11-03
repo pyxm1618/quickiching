@@ -390,33 +390,40 @@ async function startManual(page) {
 async function buildManual(page, values) {
   await setManualValues(page, values);
   await clickText(page, "Build reading");
-  await page.waitForSelector("[data-free-reading-ritual]");
-}
-
-async function newManual(page) {
-  await clickText(page, "New reading");
-  await waitForText(page, "What would you like to reflect on?");
-  await clickText(page, "Skip — free reading only");
-  await page.waitForSelector("select:not(#manual-primary-hexagram)", { timeout: 15_000 });
+  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+  const state = await page.evaluate(() => {
+    const completedRaw = sessionStorage.getItem("quickiching:public-v1:completed-reading");
+    const manualRaw = sessionStorage.getItem("quickiching:public-v1:manual-cast");
+    return {
+      completed: completedRaw ? JSON.parse(completedRaw) : null,
+      manual: manualRaw ? JSON.parse(manualRaw) : null,
+      revealed: document.querySelector("[data-public-reading-result]") !== null,
+    };
+  });
+  assert(state.completed, "Manual Build Reading must write canonical completed-reading");
+  assert(state.manual, "Manual Build Reading must preserve its canonical current session");
+  assert.equal(state.completed.method, "manual", "Manual completed-reading must use the canonical manual method");
+  assert.equal(state.completed.id, state.manual.id, "Manual result handoff must preserve the same casting id");
+  assert.deepEqual(state.completed.lineValuesBottomUp, values, "Manual result handoff must preserve all six authoritative values");
+  assert.equal(state.revealed, false, "Manual result must remain sealed before authentication and account persistence");
+  return state;
 }
 
 async function verifyManualAndMovement(page) {
   await startManual(page);
-  await buildManual(page, [7, 8, 7, 8, 7, 8]);
-  assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 0, "No-moving reading must not render a fabricated relating hexagram");
-  assert.equal(await page.$$eval("[data-no-relating-card]", (nodes) => nodes.length), 1, "No-moving reading must explain that there is no relating hexagram");
-  assert.equal(await page.$$eval("[data-active-line]", nodes => nodes.length), 0, "A still cast must not show an active changing line");
-  await waitForText(page, "No Relating Hexagram");
-  const noChangeText = await page.$eval("[data-public-reading-result]", (node) => node.textContent ?? "");
-  assert(!/Changing line\(s\):\s*None/.test(noChangeText), "No-moving reading must not display a bare None");
-  await newManual(page);
-  await buildManual(page, [6, 7, 8, 7, 8, 7]);
-  assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 1, "Single-moving reading must render one relating card");
-  await newManual(page);
-  await buildManual(page, [6, 9, 8, 7, 8, 7]);
-  assert.deepEqual(await page.$$eval("[data-active-line]", nodes => nodes.map(node => Number(node.dataset.activeLine))), [1, 2]);
-  assert.equal(await page.$$eval("[data-relating-card]", (nodes) => nodes.length), 1, "Multiple-moving reading must render one relating card");
-  await newManual(page);
+  const noChange = await buildManual(page, [7, 8, 7, 8, 7, 8]);
+  assert.equal(noChange.completed.evidence?.mode, "line-values", "Mode A must preserve line-values evidence");
+
+  await startManual(page);
+  const singleChange = await buildManual(page, [6, 7, 8, 7, 8, 7]);
+  assert.deepEqual(singleChange.completed.lineValuesBottomUp, [6, 7, 8, 7, 8, 7]);
+
+  await startManual(page);
+  const multipleChange = await buildManual(page, [6, 9, 8, 7, 8, 7]);
+  assert.deepEqual(multipleChange.completed.lineValuesBottomUp, [6, 9, 8, 7, 8, 7]);
+
+  await startManual(page);
   await page.focus('[role="tab"][aria-selected="true"]');
   await page.keyboard.press("ArrowRight");
   assert.equal(await page.$eval('[role="tab"][aria-selected="true"]', (node) => node.textContent?.trim()), "Mode B · primary + moving", "ArrowRight must activate and focus Manual mode B");
@@ -424,9 +431,19 @@ async function verifyManualAndMovement(page) {
   await page.select("#manual-primary-hexagram", "24");
   await page.click('input[type="checkbox"]');
   await clickText(page, "Build reading");
-  await page.waitForSelector("[data-free-reading-ritual]");
-  await assertNoOverflow(page, "Manual Cast 390px");
-  log("Manual A/B, keyboard tab semantics, no/single/multiple moving lines, shared result, and no randomness UI PASS");
+  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+  const modeB = await page.evaluate(() => {
+    const raw = sessionStorage.getItem("quickiching:public-v1:completed-reading");
+    return raw ? JSON.parse(raw) : null;
+  });
+  assert(modeB, "Manual Mode B must write canonical completed-reading");
+  assert.equal(modeB.method, "manual");
+  assert.equal(modeB.evidence?.mode, "primary-changing");
+  assert.equal(modeB.evidence?.primaryHexagramNumber, 24);
+  assert.deepEqual(modeB.evidence?.changingLines, [1]);
+  await assertNoOverflow(page, "Manual result auth gate 390px");
+  log("Manual A/B, keyboard tabs, canonical completed-reading, stable id, and auth-before-reveal PASS");
 }
 
 async function verifyPartialRestart(page) {
