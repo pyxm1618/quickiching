@@ -1,18 +1,15 @@
 // Core domain types shared by the credential-free public tools and the future commercial flow.
 
-export type CastingMethod = "three_coin" | "yarrow_stalk" | "mei_hua_number_time" | "mei_hua_current_time";
+export type CastingMethod = "three_coin" | "yarrow_stalk" | "mei_hua_number_time" | "manual";
 
 export const ACTIVE_CASTING_METHODS = [
   "three_coin",
   "yarrow_stalk",
   "mei_hua_number_time",
+  "manual",
 ] as const satisfies readonly CastingMethod[];
 
-// Legacy current-time Mei Hua stays in the type system only for historical rows.
-export const CASTING_METHODS: CastingMethod[] = [
-  ...ACTIVE_CASTING_METHODS,
-  "mei_hua_current_time",
-];
+export const CASTING_METHODS: CastingMethod[] = [...ACTIVE_CASTING_METHODS];
 
 // 6 = old yin (changes to yang), 7 = young yang, 8 = young yin, 9 = old yang (changes to yin)
 export type LineValue = 6 | 7 | 8 | 9;
@@ -21,7 +18,7 @@ export const ALGORITHM_VERSIONS = {
   three_coin: "three-coin-v1",
   yarrow_stalk: "yarrow-zhu-xi-digital-v2",
   mei_hua_number_time: "mei-hua-number-moment-classical-v1",
-  mei_hua_current_time: "mei-hua-gregorian-current-time-v2",
+  manual: "manual-cast-v1",
 } as const;
 
 export const CLASSIC_MAPPING_VERSION = "king-wen-v1";
