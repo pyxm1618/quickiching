@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   classifyAppliedMigrationHistory,
-  classifyMigration0012Schema,
-  MIGRATION_0012_REQUIRED_OBJECTS,
+  classifyCurrentMigrationSchema,
+  CURRENT_MIGRATION_REQUIRED_OBJECTS,
   requireProductionDatabaseUrl,
   resolveProductionDatabaseUrl,
 } from "./production-schema-release";
+import { CURRENT_MIGRATION_REQUIRED_OBJECTS } from "./current-schema-contract";
 
 describe("Production Drizzle schema release preflight", () => {
   it("accepts only PostgreSQL URLs from the dedicated Production release secret", () => {
@@ -57,30 +58,30 @@ describe("Production Drizzle schema release preflight", () => {
     ], async () => ({ }))).rejects.toThrow("PRODUCTION_DATABASE_URL_COUNT_INVALID:2");
   });
 
-  it("treats a completely absent migration 0012 schema as pending", () => {
-    expect(classifyMigration0012Schema([])).toEqual({
+  it("treats a completely absent current latest-migration schema as pending", () => {
+    expect(classifyCurrentMigrationSchema([])).toEqual({
       state: "pending",
       present: [],
-      missing: [...MIGRATION_0012_REQUIRED_OBJECTS],
+      missing: [...CURRENT_MIGRATION_REQUIRED_OBJECTS],
     });
   });
 
-  it("treats all migration 0012 objects present as complete", () => {
-    expect(classifyMigration0012Schema([...MIGRATION_0012_REQUIRED_OBJECTS])).toEqual({
+  it("treats all current latest-migration objects present as complete", () => {
+    expect(classifyCurrentMigrationSchema([...CURRENT_MIGRATION_REQUIRED_OBJECTS])).toEqual({
       state: "complete",
-      present: [...MIGRATION_0012_REQUIRED_OBJECTS],
+      present: [...CURRENT_MIGRATION_REQUIRED_OBJECTS],
       missing: [],
     });
   });
 
   it("identifies partial schema as unsafe for automatic migration", () => {
-    const state = classifyMigration0012Schema(MIGRATION_0012_REQUIRED_OBJECTS.slice(1));
+    const state = classifyCurrentMigrationSchema(CURRENT_MIGRATION_REQUIRED_OBJECTS.slice(1));
     expect(state.state).toBe("partial");
-    expect(state.present).toHaveLength(MIGRATION_0012_REQUIRED_OBJECTS.length - 1);
+    expect(state.present).toHaveLength(CURRENT_MIGRATION_REQUIRED_OBJECTS.length - 1);
     expect(state.missing).toEqual(["table:question_locks"]);
   });
 
-  it("allows only the exact journal prefix before migration 0012", () => {
+  it("allows only the exact journal prefix before the current latest migration", () => {
     const expected = [
       { createdAt: 10, hash: "migration-one" },
       { createdAt: 20, hash: "migration-two" },
