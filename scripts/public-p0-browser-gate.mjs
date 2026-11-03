@@ -128,7 +128,7 @@ async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, 
 async function openSeededThreeCoinResult(page, locale = "en") {
   const prefix = locale === "zh-Hans" ? "/zh" : "";
   const methodPath = `${prefix}/methods/three-coin`;
-  const resultPath = `${prefix}/readings/three-coin/result`;
+  const resultPath = `${prefix}/readings/result`;
   await page.goto(`${BASE}${methodPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForFunction(() => {
     return document.querySelector('[data-ritual-view="complete"]') !== null
