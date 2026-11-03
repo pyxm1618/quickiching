@@ -1,4 +1,6 @@
-import { appendFileSync } from "node:fs";\nimport { resolve } from "node:path";\nimport { fileURLToPath } from "node:url";
+import { appendFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const normalize = (value) => value.replaceAll("\\", "/").replace(/^\.\//, "");
 const any = (files, patterns) => files.some((file) => patterns.some((pattern) =>
