@@ -67,7 +67,7 @@ try {
    await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}`,{waitUntil:'networkidle0'});
    await page.waitForSelector('[data-public-reading-result] [data-free-reading-ritual]');
    const free=await page.evaluate(()=>({
-    ctas:document.querySelectorAll('[data-deep-reading-cta]').length,
+    ctas:document.querySelectorAll('[data-deep-reading-cta] a[href]').length,
     forms:document.querySelectorAll('textarea').length,
     overall:!!document.querySelector('[data-overall-reading]'),
     method:document.querySelector('[data-free-reading-ritual]')?.getAttribute('data-reading-method'),
@@ -87,7 +87,7 @@ try {
    const freeUrl=page.url();
    await page.reload({waitUntil:'networkidle0'});
    await page.waitForSelector('[data-public-reading-result] [data-free-reading-ritual]');
-   const deepAfterReload=await page.$eval('[data-deep-reading-cta]',node=>node.getAttribute('href'));
+   const deepAfterReload=await page.$eval('[data-deep-reading-cta] a[href]',node=>node.getAttribute('href'));
    assert.equal(new URL(deepAfterReload,fixtureBase).searchParams.get('session'),'browser-fixture-cast');
    assert.equal(page.url(),freeUrl);
    if(method==='three_coin') await captureVisual(`free-${locale}`);
