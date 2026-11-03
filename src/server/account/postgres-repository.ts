@@ -66,11 +66,6 @@ export function createPostgresAccountRepository(dependencies: { sql: Sql }): Pos
           where casting_id in (select id from casting_sessions where user_id = ${userId})
         `;
         await transaction`
-          delete from question_locks
-          where user_id = ${userId}
-             or winning_casting_id in (select id from casting_sessions where user_id = ${userId})
-        `;
-        await transaction`
           delete from deep_reading_results
           where casting_id in (select id from casting_sessions where user_id = ${userId})
         `;
