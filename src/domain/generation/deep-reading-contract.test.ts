@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  legacyDeepReadingContextEnrichmentSchema,
   deepReadingRequestSchema,
   activeDeepReadingContextSnapshotSchema,
   readingReportSchema,
   deepReadingContextSnapshotSchema,
   validateDeepReadingEvidence,
   type DeepReadingKnowledgeBundle,
-  type LegacyDeepReadingContextEnrichment,
   type DeepReadingContextSnapshot,
 } from "./deep-reading-contract";
 import {
@@ -15,15 +13,6 @@ import {
   encryptDeepReadingContextSnapshot,
 } from "@/server/generation/deep-reading-snapshot";
 import { calculateDeepReadingContextSnapshotHash } from "@/server/generation/integrity";
-
-const validEnrichment: LegacyDeepReadingContextEnrichment = {
-  contextNotes: "My team has delayed the review twice, and I need to decide what to prepare before Friday.",
-  options: ["Ask for a written timeline", "Wait for the scheduled review"],
-  constraints: ["I cannot change teams this quarter"],
-  concerns: ["I do not want to damage a working relationship"],
-  interpretationGoal: "what_do_i_need_to_see_clearly",
-  locale: "en",
-};
 
 const knowledge: DeepReadingKnowledgeBundle = {
   version: "quickiching-knowledge-v1",
@@ -79,9 +68,8 @@ const castScope = {
 };
 
 const snapshot: DeepReadingContextSnapshot = {
-  schemaVersion: "deep-reading-context-v1",
+  schemaVersion: "deep-reading-context-v2",
   coreQuestionAtCast: "Should I ask my manager for a written timeline?",
-  context: validEnrichment,
   scene: "career",
   castMethod: "three_coin",
   methodVersion: "three-coin-v1",
@@ -99,6 +87,7 @@ const snapshot: DeepReadingContextSnapshot = {
   knowledgeVersion: "quickiching-knowledge-v1",
   risk: { status: "allowed", ruleVersion: "risk-v2", reasonCode: "none" },
   knowledge,
+  locale: "en",
 };
 
 function report(references: Array<{ evidenceId: string; hexagramNumber?: number }>) {
@@ -121,13 +110,16 @@ describe("Deep Reading input and evidence contract", () => {
     expect(deepReadingRequestSchema.safeParse({ contextNotes: "extra facts" }).success).toBe(false);
     expect(deepReadingRequestSchema.safeParse({ locale: "fr" }).success).toBe(false);
   });
-  it.each(["three_coin", "yarrow_stalk", "mei_hua_current_time"] as const)("seals %s without enrichment", (method) => {
-    const { context: _legacyContext, ...base } = snapshot;
-    const current = { ...base, schemaVersion: "deep-reading-context-v2", castMethod: method,
-      locale: "en", facts: { ...snapshot.facts, method } };
+  it.each(["three_coin", "yarrow_stalk", "mei_hua_number_time"] as const)("seals active %s snapshots only", (method) => {
+    const current = {
+      ...snapshot,
+      castMethod: method,
+      methodVersion: method === "three_coin" ? "three-coin-v1" : method === "yarrow_stalk" ? "yarrow-zhu-xi-digital-v2" : "mei-hua-number-moment-classical-v1",
+      facts: { ...snapshot.facts, method },
+    };
     expect(activeDeepReadingContextSnapshotSchema.safeParse(current).success).toBe(true);
-    expect(activeDeepReadingContextSnapshotSchema.safeParse(snapshot).success).toBe(false);
-    expect(activeDeepReadingContextSnapshotSchema.safeParse({ ...current, context: validEnrichment }).success).toBe(false);
+    expect(activeDeepReadingContextSnapshotSchema.safeParse({ ...current, schemaVersion: "deep-reading-context-v1" }).success).toBe(false);
+    expect(activeDeepReadingContextSnapshotSchema.safeParse({ ...current, context: { contextNotes: "retired" } }).success).toBe(false);
   });
   it("enforces the v3 sections and one to three practical items", () => {
     const candidate = report([{ evidenceId: "primary.judgment" }]);
@@ -135,17 +127,6 @@ describe("Deep Reading input and evidence contract", () => {
     expect(readingReportSchema.safeParse({ ...candidate, whatToDoNext: [] }).success).toBe(false);
     expect(readingReportSchema.safeParse({ ...candidate, whatMattersMost: Array(4).fill(candidate.whatMattersMost[0]) }).success).toBe(false);
   });
-  it("requires a real core question and enough situation context before generation", () => {
-    expect(legacyDeepReadingContextEnrichmentSchema.safeParse(validEnrichment).success).toBe(true);
-    expect(legacyDeepReadingContextEnrichmentSchema.safeParse({
-      ...validEnrichment,
-      contextNotes: "",
-      options: [],
-      constraints: [],
-      concerns: [],
-    }).success).toBe(false);
-  });
-
   it("rejects a question too short to identify one specific concern", () => {
     expect(deepReadingContextSnapshotSchema.safeParse({ ...snapshot, coreQuestionAtCast: "Should?" }).success).toBe(false);
     expect(deepReadingContextSnapshotSchema.safeParse(snapshot).success).toBe(true);
@@ -193,7 +174,7 @@ describe("Deep Reading input and evidence contract", () => {
       .toBe(calculateDeepReadingContextSnapshotHash(snapshot, env));
     expect(calculateDeepReadingContextSnapshotHash({
       ...snapshot,
-      context: { ...validEnrichment, contextNotes: "A different situation that changes the available evidence." },
+      coreQuestionAtCast: "Should I wait for the existing review instead?",
     }, env)).not.toBe(calculateDeepReadingContextSnapshotHash(snapshot, env));
   });
 });
