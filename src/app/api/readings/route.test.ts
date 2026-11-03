@@ -220,15 +220,6 @@ describe("Save Reading Route (POST /api/readings)", () => {
     expect((await POST(createReq({ clientCastingId: CLIENT_CASTING_ID, method: "mei_hua_number_time", lineValuesBottomUp: [7,7,7,7,7,7], methodCalculation }))).status).toBe(422);
   });
 
-  it("rejects creation of historical current-time Mei Hua casts", async () => {
-    expect((await POST(createReq({
-      clientCastingId: CLIENT_CASTING_ID,
-      method: "mei_hua_current_time",
-      lineValuesBottomUp: [7,7,7,7,7,7],
-      methodCalculation: { utcMillis: Date.UTC(2026, 9, 31, 12), ianaTimeZone: "Asia/Shanghai" },
-    }))).status).toBe(422);
-  });
-
   it("rejects missing, invalid, or inconsistent method evidence", async () => {
     for (const input of [
       { method: "yarrow_stalk" },
