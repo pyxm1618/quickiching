@@ -716,12 +716,14 @@
   /* Mobile keeps the same approved artwork at the existing lightweight delivery resolution. */
   .page { background-image: url("/info-pages/shared/info-page-background.webp"); }
   .titleStroke { background-image: url("/info-pages/shared/title-brush-stroke.webp"); }
+  /* The decoration component already renders dedicated WebP images; avoid also fetching
+     the legacy 418 KB sprite behind those images on narrow screens. */
+  .guideDecoration { background-image: none; }
   /* Avoid rasterizing the entire tall parchment/content layer on mobile. */
   .guideMain { filter: none; }
   .page {
     background-size: auto 100vh;
     background-position: center top;
-    background-attachment: scroll;
     background-attachment: scroll;
     overflow-x: clip;
   }
