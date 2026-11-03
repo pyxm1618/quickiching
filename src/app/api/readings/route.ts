@@ -6,11 +6,12 @@ import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
 import { getActiveResultIntegrityKey, resultIntegrityHmac } from "@/server/generation/integrity";
 import { encryptQuestionForStorage, getActiveQuestionFingerprintKey } from "@/server/generation/question-crypto";
-import { normalizeComposite, normalizeQuestion, fingerprintQuestion } from "@/domain/questions/normalize";
+import { normalizeComposite, fingerprintQuestion } from "@/domain/questions/normalize";
 import { getPostgresClient } from "@/server/db/client";
 import { repo } from "@/server/repository";
 import { evaluateRisk, RISK_RULE_VERSION } from "@/domain/risk/engine";
 import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
+import { manualFromPrimaryAndChangingLines, normalizeManualChangingLines } from "@/domain/public-reading/manual";
 import { ALGORITHM_VERSIONS, type CastingMethod } from "@/domain/casting/types";
 import { normalizeScene } from "@/domain/casting/types";
 import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
@@ -38,7 +39,7 @@ const lineValueSchema = z.union([z.literal(6), z.literal(7), z.literal(8), z.lit
 
 const saveReadingSchema = z.object({
   clientCastingId: z.string().uuid(),
-  method: z.enum(["three_coin", "yarrow_stalk", "mei_hua_number_time"]).default("three_coin"),
+  method: z.enum(["three_coin", "yarrow_stalk", "mei_hua_number_time", "manual"]).default("three_coin"),
   algorithmVersion: z.string().max(80).optional(),
   methodCalculation: z.unknown().optional(),
   lineValuesBottomUp: z.array(lineValueSchema).length(6),
@@ -80,7 +81,7 @@ function matchesStableSave(
     userId: string;
     scene: string;
     interpretationGoal: string;
-    questionFingerprints: readonly (string | null)[];
+    questionFingerprint: string | null;
     lineValuesBottomUp: readonly number[];
   },
 ): boolean {
@@ -91,7 +92,7 @@ function matchesStableSave(
     && row.user_id === input.userId
     && normalizeScene(row.scene) === input.scene
     && row.interpretation_goal === input.interpretationGoal
-    && input.questionFingerprints.includes(row.question_fingerprint)
+    && row.question_fingerprint === input.questionFingerprint
     && sameNumberArray(row.line_values, input.lineValuesBottomUp);
 }
 
@@ -130,6 +131,34 @@ function validatedMethodCalculation(input: z.infer<typeof saveReadingSchema>): R
         || (index % 3 === 2 && change.endingStalks / 4 !== input.lineValuesBottomUp[Math.floor(index / 3)])) return null;
     }
     return { kind: "yarrow-stalks", version, changes };
+  }
+  if (input.method === "manual") {
+    const parsed = z.discriminatedUnion("mode", [
+      z.object({ mode: z.literal("line-values") }).strict(),
+      z.object({
+        mode: z.literal("primary-changing"),
+        primaryHexagramNumber: z.number().int().min(1).max(64),
+        changingLines: z.array(z.number().int().min(1).max(6)).max(6),
+      }).strict(),
+    ]).safeParse(input.methodCalculation);
+    if (!parsed.success) return null;
+    if (parsed.data.mode === "line-values") {
+      return { kind: "manual", version, mode: "line-values" };
+    }
+    try {
+      const changingLines = normalizeManualChangingLines(parsed.data.changingLines);
+      const calculated = manualFromPrimaryAndChangingLines(parsed.data.primaryHexagramNumber, changingLines);
+      if (!sameNumberArray(calculated as number[], input.lineValuesBottomUp)) return null;
+      return {
+        kind: "manual",
+        version,
+        mode: "primary-changing",
+        primaryHexagramNumber: parsed.data.primaryHexagramNumber,
+        changingLines,
+      };
+    } catch {
+      return null;
+    }
   }
   if (input.method !== "mei_hua_number_time") return null;
   const parsed = z.object({
@@ -190,9 +219,6 @@ export async function POST(request: Request): Promise<Response> {
     if (!fingerprintKey) return json({ error: "QUESTION_FINGERPRINT_KEY_UNAVAILABLE" }, 503);
     fingerprint = fingerprintQuestion(composite, fingerprintKey.material, fingerprintKeyVersion);
   }
-  const legacyFingerprint = questionText && sceneInput !== scene && fingerprintKey
-    ? fingerprintQuestion(`${sceneInput}|${interpretationGoal}|${normalizeQuestion(questionText)}`, fingerprintKey.material, fingerprintKeyVersion)
-    : null;
   const risk = questionText
     ? evaluateRisk(questionText)
     : { status: "not_checked" as const, ruleVersion: RISK_RULE_VERSION, matchedRuleCodes: [], reasonCode: "core_question_missing" };
@@ -235,7 +261,7 @@ export async function POST(request: Request): Promise<Response> {
         userId,
         scene,
         interpretationGoal,
-        questionFingerprints: legacyFingerprint && legacyFingerprint !== fingerprint ? [fingerprint, legacyFingerprint] : [fingerprint],
+        questionFingerprint: fingerprint,
         lineValuesBottomUp,
       };
 
