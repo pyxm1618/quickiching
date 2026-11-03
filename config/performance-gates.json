@@ -32,8 +32,15 @@
         "maxImageBytesMax": 262144,
         "scriptBytesMax": 327680
       },
-      "samplePolicy": { "count": 3, "selection": "median-performance-lcp-worst-rest", "warmupCount": 1 },
-      "baseline": { "file": "docs/performance/home-mobile-accepted-baseline.json", "key": "aggregate" }
+      "samplePolicy": {
+        "count": 3,
+        "selection": "median-performance-lcp-worst-rest",
+        "warmupCount": 1
+      },
+      "baseline": {
+        "file": "docs/performance/home-mobile-accepted-baseline.json",
+        "key": "aggregate"
+      }
     },
     "home.desktop": {
       "path": "/",
@@ -49,8 +56,15 @@
         "maxImageBytesMax": 786432,
         "scriptBytesMax": 327680
       },
-      "samplePolicy": { "count": 1, "selection": "single", "warmupCount": 1 },
-      "baseline": { "file": "docs/performance/pr-76-lab-baseline.json", "key": "metrics.desktop-home" }
+      "samplePolicy": {
+        "count": 1,
+        "selection": "single",
+        "warmupCount": 1
+      },
+      "baseline": {
+        "file": "docs/performance/pr-76-lab-baseline.json",
+        "key": "metrics.desktop-home"
+      }
     },
     "three-coin.desktop": {
       "path": "/methods/three-coin",
@@ -66,7 +80,11 @@
         "maxImageBytesMax": 786432,
         "scriptBytesMax": 327680
       },
-      "samplePolicy": { "count": 1, "selection": "single", "warmupCount": 1 }
+      "samplePolicy": {
+        "count": 1,
+        "selection": "single",
+        "warmupCount": 1
+      }
     },
     "result.mobile": {
       "path": "/readings/result",
@@ -83,7 +101,11 @@
         "maxImageBytesMax": 262144,
         "scriptBytesMax": 327680
       },
-      "samplePolicy": { "count": 3, "selection": "median-performance-lcp-worst-rest", "warmupCount": 1 }
+      "samplePolicy": {
+        "count": 3,
+        "selection": "median-performance-lcp-worst-rest",
+        "warmupCount": 1
+      }
     },
     "result.desktop": {
       "path": "/readings/result",
@@ -100,7 +122,11 @@
         "maxImageBytesMax": 786432,
         "scriptBytesMax": 327680
       },
-      "samplePolicy": { "count": 1, "selection": "single", "warmupCount": 1 }
+      "samplePolicy": {
+        "count": 1,
+        "selection": "single",
+        "warmupCount": 1
+      }
     },
     "info.desktop": {
       "path": "/guides/how-to-ask-the-i-ching",
@@ -113,7 +139,11 @@
         "clsMax": 0.1,
         "tbtMaxMs": 200
       },
-      "samplePolicy": { "count": 1, "selection": "single", "warmupCount": 1 }
+      "samplePolicy": {
+        "count": 1,
+        "selection": "single",
+        "warmupCount": 1
+      }
     },
     "account.desktop": {
       "path": "/group3-visual-qa-local?view=account-perf",
@@ -126,7 +156,11 @@
         "clsMax": 0.1,
         "tbtMaxMs": 200
       },
-      "samplePolicy": { "count": 1, "selection": "single", "warmupCount": 1 }
+      "samplePolicy": {
+        "count": 1,
+        "selection": "single",
+        "warmupCount": 1
+      }
     },
     "guide.mobile": {
       "path": "/guides/how-to-ask-the-i-ching",
@@ -138,7 +172,15 @@
         "seoMin": 90,
         "clsMax": 0.1
       },
-      "samplePolicy": { "count": 5, "selection": "median-lcp", "warmupCount": 1 }
+      "samplePolicy": {
+        "count": 5,
+        "selection": "median-lcp",
+        "warmupCount": 1
+      }
     }
+  },
+  "productTargets": {
+    "lcpGoodMs": 2500,
+    "interactionLatencyMs": 200
   }
 }
