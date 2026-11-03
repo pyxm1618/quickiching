@@ -235,7 +235,7 @@ async function verifyChineseReading(page, viewport) {
   await page.goto(`${BASE}/zh`, { waitUntil: "networkidle0", timeout: 30_000 });
   const chineseHomeText = await page.$eval("body", node => node.innerText);
   assert(chineseHomeText.includes("易经在线起卦：从起卦到本卦、动爻与变卦"), "Chinese home heading missing");
-  for (const button of await page.$('[aria-label="Analytics Consent"] button, [aria-label="分析工具同意设置"] button')) {
+  for (const button of await page.$$('[aria-label="Analytics Consent"] button, [aria-label="分析工具同意设置"] button')) {
     if (await button.evaluate(node => ["拒绝", "Decline"].includes(node.textContent?.trim() ?? ""))) {
       await button.click();
       break;
