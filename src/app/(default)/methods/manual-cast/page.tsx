@@ -6,7 +6,7 @@ import { QuestionFirst } from "@/components/public-reading/question-first";
 
 export const metadata: Metadata = {
   title: "Manual I Ching Cast — Enter Lines Online",
-  description: "Build a deterministic I Ching reading by entering six line values or choosing a primary hexagram and moving lines. No randomness, no sign-in, and the same rich result as every other method.",
+  description: "Build a deterministic I Ching reading by entering six line values or choosing a primary hexagram and moving lines. No randomness; the completed cast uses the same saved Free Reading flow as other methods.",
   alternates: { canonical: "/methods/manual-cast", languages: alternateLanguages("manual-cast-method") },
   openGraph: { title: "Manual I Ching Cast — Enter Lines Online", description: "Use Manual Cast to enter an I Ching structure directly and read the same primary, moving-line, and relating result.", url: "/methods/manual-cast", type: "website" },
 };
