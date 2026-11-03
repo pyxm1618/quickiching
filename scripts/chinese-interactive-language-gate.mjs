@@ -488,7 +488,7 @@ async function main() {
     const emptyResultText = await page.evaluate(() => document.body.innerText || "");
     assert(emptyResultText.includes("没有找到已完成的起卦"), "Result empty state missing Chinese heading");
     const emptyCtaHref = await page.$eval("a[class*='newReadingButton']", (el) => el.getAttribute("href"));
-    assert.equal(emptyCtaHref, "/zh/methods/three-coin", `Empty state CTA must point to /zh/methods/three-coin, got: ${emptyCtaHref}`);
+    assert.equal(emptyCtaHref, "/zh", `Shared empty-state CTA must point to /zh, got: ${emptyCtaHref}`);
     await assertPurity(page, "Three-Coin Result Page Empty State");
     log("Three-coin result PASS: empty state");
 
@@ -534,7 +534,7 @@ async function main() {
       const errorResultText = await errPage.evaluate(() => document.body.innerText || "");
       assert(errorResultText.includes("无法恢复这次已落定的起卦结果"), "Result error state missing Chinese heading");
       const errorCtaHref = await errPage.$eval("a[class*='newReadingButton']", (el) => el.getAttribute("href"));
-      assert.equal(errorCtaHref, "/zh/methods/three-coin", `Error state CTA must point to /zh/methods/three-coin, got: ${errorCtaHref}`);
+      assert.equal(errorCtaHref, "/zh", `Shared error-state CTA must point to /zh, got: ${errorCtaHref}`);
       await assertPurity(errPage, "Three-Coin Result Page Error State");
       log("Three-coin result PASS: error state");
     } finally {
