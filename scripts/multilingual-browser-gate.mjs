@@ -203,7 +203,8 @@ async function fillInput(page, selector, value) {
 
 async function switchMethodLanguage(page, language, expectedPath) {
   const selector = `header [data-language-switcher] a[lang="${language}"]`;
-  assert.equal(await page.$eval(selector, nodes => nodes.length), 1, "Expected one formal language destination");
+  const destinationCount = await page.evaluate((target) => document.querySelectorAll(target).length, selector);
+  assert.equal(destinationCount, 1, "Expected one formal language destination");
   assert.equal(await page.$eval(selector, node => node.getAttribute("href")), expectedPath);
   await page.goto(`${BASE}${expectedPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
   assert.equal(new URL(page.url()).pathname, expectedPath, "Formal language destination did not load");
