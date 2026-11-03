@@ -34,6 +34,26 @@ describe("My Readings page", () => {
     expect(html).not.toContain("/readings/three-coin/result");
     expect(html).not.toMatch(/Preview|Get Deep Reading|View Deep Reading/);
   });
+  it("renders current and legacy Mei Hua history with the user-facing method label", async () => {
+    mocks.readings.mockResolvedValue([
+      {
+        id: "mei-current", question: "Current method", createdAt: new Date("2026-10-29"), method: "mei_hua_number_time",
+        primaryHexagramNumber: 1, primaryName: "The Creative", lineValues: [7, 7, 7, 7, 7, 9],
+        movingLinePositions: [6], relatingHexagramNumber: 43, relatingName: "Breakthrough",
+      },
+      {
+        id: "mei-legacy", question: "Legacy method", createdAt: new Date("2026-10-28"), method: "mei_hua_current_time",
+        primaryHexagramNumber: 2, primaryName: "The Receptive", lineValues: [8, 8, 8, 8, 8, 6],
+        movingLinePositions: [6], relatingHexagramNumber: 23, relatingName: "Splitting Apart",
+      },
+    ]);
+    const html = renderToStaticMarkup(await MyReadingsPage({}));
+    expect(html.match(/Mei Hua Yi Shu/g)).toHaveLength(2);
+    expect(html).not.toContain("mei_hua_number_time");
+    expect(html).not.toContain("mei_hua_current_time");
+    expect(html).toContain("/readings/result?session=mei-current");
+    expect(html).toContain("/readings/result?session=mei-legacy");
+  });
   it("uses Chinese routes without adding an empty-state CTA", async () => {
     mocks.readings.mockResolvedValue([]);
     const html = renderToStaticMarkup(await MyReadingsPage({ zh: true }));
