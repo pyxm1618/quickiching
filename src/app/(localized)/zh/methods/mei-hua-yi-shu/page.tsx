@@ -31,7 +31,7 @@ export default function ChineseMeiHuaPage() {
       </header>
 
       <section className="mx-auto max-w-5xl px-4 pb-8">
-        <h2 className="font-display text-2xl font-medium">梅花易数的数字 + 时刻起卦</h2>
+        <h2 className="font-display text-2xl font-medium">梅花易数起卦：数字 + 时刻规则</h2>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">本站正式流程使用一个用户数字和点击确认时的当地十二时辰序数起卦，并锁定 UTC 精确时刻与 IANA 时区，使同一份结果可以复现。</p>
       </section>
 
