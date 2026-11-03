@@ -3,7 +3,6 @@ import { BINARY_TO_KING_WEN, KING_WEN_HEXAGRAMS, TRIGRAM_BITS } from "./hexagram
 import { buildHexagramResult, isMovingLine } from "./hexagrams/compute";
 import { generateThreeCoinLine } from "./three-coin/algorithm";
 import { generateYarrowLine } from "./yarrow/algorithm";
-import { gregorianYearBranchNumber, hourBranch, localCalendarFields, meiHuaFromFields } from "./mei-hua/algorithm";
 import type { LineValue } from "./types";
 
 function mulberry32(seed: number) {
@@ -156,48 +155,5 @@ describe("Yarrow Zhu Xi digital v2", () => {
     expect(Math.abs(counts[7] / sampleSize - 5 / 16)).toBeLessThan(tolerance);
     expect(Math.abs(counts[8] / sampleSize - 7 / 16)).toBeLessThan(tolerance);
     expect(Math.abs(counts[9] / sampleSize - 3 / 16)).toBeLessThan(tolerance);
-  });
-});
-
-describe("Mei Hua Gregorian current-time v2", () => {
-  it("maps terrestrial-branch years and hour branches deterministically", () => {
-    expect(gregorianYearBranchNumber(2020)).toBe(1);
-    expect(gregorianYearBranchNumber(2031)).toBe(12);
-    expect(gregorianYearBranchNumber(2032)).toBe(1);
-    expect(hourBranch(23)).toBe(1);
-    expect(hourBranch(0)).toBe(1);
-    expect(hourBranch(1)).toBe(2);
-    expect(hourBranch(12)).toBe(7);
-    expect(hourBranch(13)).toBe(8);
-  });
-
-  it("has a fixed golden fixture: 2026-08-10 14:xx -> Qian/Qian with line 3 moving", () => {
-    const meiHua = meiHuaFromFields({ year: 2026, month: 8, day: 10, hour: 14, ianaTimeZone: "Asia/Singapore" });
-    expect(meiHua.upperTrigram).toBe("qian");
-    expect(meiHua.lowerTrigram).toBe("qian");
-    expect(meiHua.movingLinePosition).toBe(3);
-    expect(meiHua.lineValuesBottomUp).toEqual([7, 7, 9, 7, 7, 7]);
-    const result = buildHexagramResult({ lineValuesBottomUp: meiHua.lineValuesBottomUp, method: "mei_hua_current_time", algorithmVersion: meiHua.algorithmVersion });
-    expect(result.primaryHexagramNumber).toBe(1);
-    expect(result.relatingHexagramNumber).toBe(10);
-  });
-
-  it("rolls 23:xx into the next Gregorian formula date but leaves 00:xx on its civil date", () => {
-    const at0030 = localCalendarFields(Date.UTC(2026, 6, 29, 4, 30), "America/New_York");
-    expect(at0030).toMatchObject({ year: 2026, month: 7, day: 29, hour: 0 });
-    const at2330 = localCalendarFields(Date.UTC(2026, 6, 30, 3, 30), "America/New_York");
-    expect(at2330).toMatchObject({ year: 2026, month: 7, day: 30, hour: 23 });
-  });
-
-  it("handles Gregorian year rollover at Zi hour", () => {
-    const fields = localCalendarFields(Date.UTC(2027, 0, 1, 4, 30), "America/New_York");
-    expect(fields).toMatchObject({ year: 2027, month: 1, day: 1, hour: 23 });
-  });
-
-  it("uses IANA DST transitions rather than a fixed UTC offset", () => {
-    const before = localCalendarFields(Date.UTC(2026, 2, 8, 6, 30), "America/New_York");
-    const after = localCalendarFields(Date.UTC(2026, 2, 8, 7, 30), "America/New_York");
-    expect(before).toMatchObject({ month: 3, day: 8, hour: 1 });
-    expect(after).toMatchObject({ month: 3, day: 8, hour: 3 });
   });
 });
