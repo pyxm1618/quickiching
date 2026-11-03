@@ -114,7 +114,7 @@ describe("System Readiness Service", () => {
     expect(report.database.connected).toBe(false);
   });
 
-  it("requires the complete 26-table commercial persistence surface", () => {
+  it("requires the complete 25-table current commercial persistence surface", () => {
     expect(REQUIRED_COMMERCIAL_TABLES).toHaveLength(25);
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("payment_outbox");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("entitlement_batches");
@@ -144,7 +144,7 @@ describe("System Readiness Service", () => {
     expect(report.database.missingTables).toContain("entitlement_reservations");
   });
 
-  it("never considers the commercial path ready when either migration 0012 table is missing", async () => {
+  it("never considers the commercial path ready when the current deep-reading table is missing", async () => {
     const env = validCommercialEnv();
     for (const missingTable of ["deep_reading_context_snapshots"]) {
       const tables = REQUIRED_COMMERCIAL_TABLES.filter((table) => table !== missingTable);
@@ -161,7 +161,20 @@ describe("System Readiness Service", () => {
     }
   });
 
-  it("blocks commercial readiness when a migration 0012 review field or integrity object is missing", async () => {
+  it("blocks readiness while the retired question_locks table remains", async () => {
+    const env = validCommercialEnv();
+    const override = readyDbOverride(EXPECTED_MIGRATIONS);
+    override.queryTables = async () => [...REQUIRED_COMMERCIAL_TABLES, "question_locks"];
+
+    const report = await checkSystemReadiness(env, override);
+
+    expect(report.status).toBe("not_ready");
+    expect(report.overall).toBe("blocked");
+    expect(report.database.status).toBe("retired_objects_present");
+    expect(report.database.retiredObjectsPresent).toEqual(["table:question_locks"]);
+  });
+
+  it("blocks commercial readiness when a current review field or integrity object is missing", async () => {
     const env = validCommercialEnv();
     for (const missingObject of [
       "column:generation_output_reviews.question_relevance_pass",
