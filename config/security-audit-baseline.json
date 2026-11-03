@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "capturedFromMain": "bbe5c127f71b224c8129389011736ca93aa2f8be",
+  "policy": "Pre-existing high/critical dependency advisories are visible debt. CI fails on any advisory ID not present in this baseline. Removing baseline advisories is always allowed. Updating this baseline requires an explicit security review.",
+  "observedInstances": 27,
+  "uniqueAdvisories": [
+    {
+      "severity": "high",
+      "id": "GHSA-qhr7-859c-m2p7",
+      "summary": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-6j4f-fj2g-mc7p",
+      "summary": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion"
+    },
+    {
+      "severity": "critical",
+      "id": "GHSA-jqcg-44mw-7w3h",
+      "summary": "proxy-addr vulnerable to IP spoofing via IPv4-mapped IPv6 trust subnet"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-587h-7wmj-h5pm",
+      "summary": "launch-editor: fs.existsSync existence check can be bypassed on Windows"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-r4xp-prcw-77qf",
+      "summary": "better-auth: OAuth Proxy lets an attacker sign in as another user"
+    },
+    {
+      "severity": "critical",
+      "id": "GHSA-965c-763c-88jm",
+      "summary": "better-auth: OAuth state can be used as a Magic Link to sign in as another user"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-68fv-2mgg-jv7q",
+      "summary": "source-map-js allows event-loop denial of service through indexed source-map section offsets"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-xjj6-f33q-929c",
+      "summary": "undici vulnerable to Denial of Service via unhandled error on excessive content-encodings"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-4w7w-5xrc-9h26",
+      "summary": "undici vulnerable to cache poisoning and cross-user disclosure via cross-origin redirects"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-2m5v-pch6-74hx",
+      "summary": "undici vulnerable to TLS certificate validation bypass via dropped tls options in Agent"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-qrxm-fqhp-jwvm",
+      "summary": "undici vulnerable to Denial of Service via TLS 1.2 certificate-changing renegotiation"
+    },
+    {
+      "severity": "critical",
+      "id": "GHSA-5gmw-xhrv-c9v3",
+      "summary": "Tinypool: Prototype Pollution gadget in worker options leads to Remote Code Execution"
+    },
+    {
+      "severity": "critical",
+      "id": "GHSA-85c8-ppgw-ccpr",
+      "summary": "Tinypool: Prototype Pollution Gadget to RCE in run() options"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-27r3-jxmh-p828",
+      "summary": "body-parser vulnerable to Denial of Service via trailing bytes after a compressed request body"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-mrhx-c7xc-m3w5",
+      "summary": "Zod can exhaust memory while validating oversized constrained collections"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-p3m5-59mp-jv5r",
+      "summary": "Next.js: Denial of Service in App Router using Server Actions"
+    },
+    {
+      "severity": "critical",
+      "id": "GHSA-2464-fhr4-w9xw",
+      "summary": "Next.js: Unauthenticated Remote Code Execution in Image Optimization API when SVG files are used"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-wq5f-xc86-pv6w",
+      "summary": "sharp: Vulnerability in librsvg dependency CVE-2026-96889"
+    },
+    {
+      "severity": "critical",
+      "id": "GHSA-67c8-pqhq-4rmx",
+      "summary": "piscina: Prototype-pollution gadget in ThreadPool.options allows RCE via execArgv / loadBalancer / env"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-r9w8-h9r3-54w4",
+      "summary": "devalue: Custom ArrayBuffer revivers can bypass typed-array allocation validation"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-j22f-vq7h-c4qm",
+      "summary": "devalue: stringify/uneval serialize shared memory"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-mcm9-63f2-9j32",
+      "summary": "devalue: Repeated primitive strings cause quadratic expansion in uneval"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-x5rw-q4pp-hg5g",
+      "summary": "devalue: stringifyAsync can cause an unhandled rejection despite a caught returned promise"
+    }
+  ]
+}
