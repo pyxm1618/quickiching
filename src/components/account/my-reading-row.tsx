@@ -33,7 +33,8 @@ function HexagramMark({ values, label }: { values: readonly LineValue[]; label: 
 function methodLabel(method: string, zh: boolean) {
   if (method === "three_coin") return zh ? "三硬币法" : "Three-Coin Method";
   if (method === "yarrow_stalk") return zh ? "蓍草法" : "Yarrow Stalks";
-  if (method === "mei_hua_number_time" || method === "mei_hua_current_time") return zh ? "梅花易数" : "Mei Hua Yi Shu";
+  if (method === "mei_hua_number_time") return zh ? "梅花易数" : "Mei Hua Yi Shu";
+  if (method === "manual") return zh ? "手动起卦" : "Manual Cast";
   return method;
 }
 
