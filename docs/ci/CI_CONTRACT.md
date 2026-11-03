@@ -86,6 +86,8 @@ Before merging a product-contract change, answer:
 
 Never use `test.skip`, `.only`, `continue-on-error`, or reduced thresholds to manufacture a green required gate.
 
+Dependency security uses `config/security-audit-baseline.json` as a regression baseline for pre-existing high/critical advisory IDs. Existing debt remains visible in every Payment/Full audit, newly introduced advisory IDs fail the gate, and baseline additions require explicit security review.
+
 ## 8. Legacy workflow transition inventory
 
 | Workflow | Classification | Transition |
