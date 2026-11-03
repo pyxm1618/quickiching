@@ -9,39 +9,15 @@ import {
   type AppliedMigration,
   type MigrationIntegrityStatus,
 } from "./migration-integrity";
-import { MIGRATION_0012_REQUIRED_OBJECTS } from "./production-schema-release";
+import {
+  CURRENT_MIGRATION_REQUIRED_OBJECTS,
+  CURRENT_SCHEMA_REQUIRED_TABLES,
+} from "./current-schema-contract";
 
-export const REQUIRED_COMMERCIAL_TABLES = Object.freeze([
-  "users",
-  "sessions",
-  "accounts",
-  "verifications",
-  "login_intents",
-  "casting_sessions",
-  "question_versions",
-  "cast_results",
-  "generation_jobs",
-  "generation_attempts",
-  "preview_results",
-  "generation_output_reviews",
-  "deep_reading_results",
-  "payment_orders",
-  "payment_webhook_inbox",
-  "payment_outbox",
-  "entitlement_batches",
-  "entitlement_ledger",
-  "entitlement_reservations",
-  "payment_checkout_budgets",
-  "payment_financial_reviews",
-  "payment_webhook_conflicts",
-  "workflow_runs",
-  "audit_events",
-  "question_locks",
-  "deep_reading_context_snapshots",
-] as const);
+export const REQUIRED_COMMERCIAL_TABLES = CURRENT_SCHEMA_REQUIRED_TABLES;
 
 export const REQUIRED_COMMERCIAL_SCHEMA_OBJECTS = Object.freeze(
-  MIGRATION_0012_REQUIRED_OBJECTS.filter((object) => !object.startsWith("table:")),
+  CURRENT_MIGRATION_REQUIRED_OBJECTS.filter((object) => !object.startsWith("table:")),
 );
 
 export type CapabilityReadinessDetail = {
