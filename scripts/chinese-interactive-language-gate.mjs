@@ -519,26 +519,27 @@ async function main() {
     await assertPurity(page, "Three-Coin Completed Cast Auth Gate");
     log("Three-coin result PASS: canonical completed cast auth-before-reveal state");
 
-    // 6.c: Error state (in isolated test tab)
-    const errPage = await browser.newPage();
+    // 6.c: Browser storage unavailable degrades safely to the shared empty state.
+    // The production reader intentionally catches sessionStorage access failures and returns null.
+    const storageFailurePage = await browser.newPage();
     try {
-      await errPage.evaluateOnNewDocument(() => {
+      await storageFailurePage.evaluateOnNewDocument(() => {
         Object.defineProperty(window, "sessionStorage", {
           get() {
             throw new Error("PUBLIC_READING_SESSION_UNAVAILABLE");
           },
         });
       });
-      await errPage.goto(`${BASE}/zh/readings/three-coin/result`, { waitUntil: "networkidle0" });
-      await errPage.waitForSelector("h1#reading-error-title", { timeout: 5000 });
-      const errorResultText = await errPage.evaluate(() => document.body.innerText || "");
-      assert(errorResultText.includes("无法恢复这次已落定的起卦结果"), "Result error state missing Chinese heading");
-      const errorCtaHref = await errPage.$eval("a[class*='newReadingButton']", (el) => el.getAttribute("href"));
-      assert.equal(errorCtaHref, "/zh", `Shared error-state CTA must point to /zh, got: ${errorCtaHref}`);
-      await assertPurity(errPage, "Three-Coin Result Page Error State");
-      log("Three-coin result PASS: error state");
+      await storageFailurePage.goto(`${BASE}/zh/readings/three-coin/result`, { waitUntil: "networkidle0" });
+      await storageFailurePage.waitForSelector("h1#empty-reading-title", { timeout: 5000 });
+      const storageFailureText = await storageFailurePage.evaluate(() => document.body.innerText || "");
+      assert(storageFailureText.includes("没有找到已完成的起卦"), "Storage failure must degrade to the shared Chinese empty state");
+      const storageFailureCtaHref = await storageFailurePage.$eval("a[class*='newReadingButton']", (el) => el.getAttribute("href"));
+      assert.equal(storageFailureCtaHref, "/zh", `Shared storage-failure CTA must point to /zh, got: ${storageFailureCtaHref}`);
+      await assertPurity(storageFailurePage, "Shared Reading Storage Failure Empty State");
+      log("Three-coin result PASS: storage failure safely degrades to empty state");
     } finally {
-      await errPage.close();
+      await storageFailurePage.close();
     }
 
     // =========================================================================
