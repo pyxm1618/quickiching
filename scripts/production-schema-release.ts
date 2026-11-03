@@ -3,13 +3,14 @@ import postgres from "postgres";
 import migrationIntegrity from "../drizzle/migration-integrity.json";
 import {
   classifyAppliedMigrationHistory,
-  classifyMigration0012Schema,
+  classifyCurrentMigrationSchema,
   MIGRATION_0012_REQUIRED_OBJECTS,
   requireProductionDatabaseUrl,
   resolveProductionDatabaseUrl,
   type ProductionEnvironmentEntry,
 } from "../src/server/readiness/production-schema-release";
 import { REQUIRED_COMMERCIAL_TABLES } from "../src/server/readiness/readiness-service";
+import { CURRENT_MIGRATION_REQUIRED_OBJECTS, CURRENT_SCHEMA_MIGRATION } from "../src/server/readiness/current-schema-contract";
 
 const PRODUCTION_PROJECT_ID = "prj_pCpeoAys2GOqKZvkbLugYjpJWZBS";
 const PRODUCTION_TEAM_ID = "team_z1b9TTQtbNkr43dzs5JVJPnQ";
@@ -152,7 +153,7 @@ async function main(): Promise<void> {
   const sql = postgres(databaseUrl, { max: 1, connect_timeout: 10 });
   try {
     const beforeObjects = await readSchemaObjects(sql);
-    const beforeSchema = classifyMigration0012Schema(beforeObjects);
+    const beforeSchema = classifyCurrentMigrationSchema(beforeObjects);
     const beforeMigrations = await readAppliedMigrations(sql);
     const beforeHistory = classifyAppliedMigrationHistory(beforeMigrations, EXPECTED_MIGRATIONS);
     const existingTables = new Set(beforeObjects.filter((object) => object.startsWith("table:")).map((object) => object.slice(6)));
@@ -163,7 +164,7 @@ async function main(): Promise<void> {
       existingCommercialTableCount: EXISTING_COMMERCIAL_TABLES.length,
       missingExistingTables,
       migrationHistory: { appliedCount: beforeMigrations.length, state: beforeHistory },
-      migration0012Schema: beforeSchema,
+      currentMigrationSchema: beforeSchema,
       existingCommercialRowCounts: null as Record<string, string> | null,
       after: null as Record<string, unknown> | null,
     };
@@ -180,14 +181,14 @@ async function main(): Promise<void> {
     if (action === "inspect") {
       console.log(JSON.stringify(report, null, 2));
       if (beforeSchema.state === "partial" || (beforeSchema.state === "complete" && beforeHistory !== "complete")) {
-        throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_MIGRATION_0012");
+        throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_CURRENT_MIGRATION");
       }
       return;
     }
 
     if (beforeSchema.state === "partial" || (beforeSchema.state === "complete" && beforeHistory !== "complete")) {
       console.log(JSON.stringify(report, null, 2));
-      throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_MIGRATION_0012");
+      throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_CURRENT_MIGRATION");
     }
     if (beforeSchema.state === "pending" && beforeHistory !== "pending") {
       console.log(JSON.stringify(report, null, 2));
@@ -200,7 +201,7 @@ async function main(): Promise<void> {
     }
 
     const afterObjects = await readSchemaObjects(sql);
-    const afterSchema = classifyMigration0012Schema(afterObjects);
+    const afterSchema = classifyCurrentMigrationSchema(afterObjects);
     const afterMigrations = await readAppliedMigrations(sql);
     const afterHistory = classifyAppliedMigrationHistory(afterMigrations, EXPECTED_MIGRATIONS);
     const afterRowCounts = report.existingCommercialRowCounts ? await readExistingRowCounts(sql) : null;
@@ -209,7 +210,7 @@ async function main(): Promise<void> {
     report.after = {
       appliedMigrationCount: afterMigrations.length,
       migrationHistory: afterHistory,
-      migration0012Schema: afterSchema,
+      currentMigrationSchema: afterSchema,
       existingCommercialTablesCountCompared: Object.keys(report.existingCommercialRowCounts ?? {}).length,
       existingCommercialRowCountsPreserved: report.existingCommercialRowCounts === null ? "not_applicable" : rowsPreserved,
     };
