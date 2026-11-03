@@ -20,10 +20,28 @@ await writeFile(`${output}/environment.json`, JSON.stringify({ node: process.ver
 
 async function seedCompletedCast(page) {
   await page.goto(`${base}/robots.txt`);
-  await page.evaluate(() => sessionStorage.setItem('quickiching:public-v1:three-coin', JSON.stringify(
-    [9, 6, 7, 9, 7, 7].map((lineValue, lineIndex) => ({ lineIndex, lineValue,
-      coinFaces: lineValue === 9 ? ['yang', 'yang', 'yang'] : lineValue === 6 ? ['yin', 'yin', 'yin'] : ['yang', 'yin', 'yin'], algorithmVersion: 'three-coin-v1' })),
-  )));
+  await page.evaluate(() => {
+    const steps = [9, 6, 7, 9, 7, 7].map((lineValue, lineIndex) => ({
+      lineIndex,
+      lineValue,
+      coinFaces: lineValue === 9
+        ? ['yang', 'yang', 'yang']
+        : lineValue === 6
+          ? ['yin', 'yin', 'yin']
+          : ['yang', 'yin', 'yin'],
+      algorithmVersion: 'three-coin-v1',
+    }));
+    sessionStorage.setItem('quickiching:public-v1:three-coin', JSON.stringify({
+      schemaVersion: 1,
+      id: '2d0a4f0d-37e8-42bf-9232-9d40518f1e4f',
+      createdAt: '2026-11-03T00:00:00.000Z',
+      started: true,
+      question: 'What should I understand?',
+      coreQuestionAtCast: 'What should I understand?',
+      coreQuestionFrozenAtCast: true,
+      data: { steps },
+    }));
+  });
 }
 
 try {
