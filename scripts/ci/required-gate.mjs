@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 export function evaluateRequiredGate(input) {
   const failed = [];
   if (input.select !== "success") failed.push("select");
@@ -18,7 +20,7 @@ export function evaluateRequiredGate(input) {
   return { ok: failed.length === 0, failed };
 }
 
-if (import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const bool = (value) => value === "true";
   const result = evaluateRequiredGate({
     select: process.env.SELECT_RESULT,
