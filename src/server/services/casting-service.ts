@@ -1,7 +1,6 @@
 import { ALGORITHM_VERSIONS, type CastingMethod, type InterpretationGoal, type LineValue, type Scene } from "@/domain/casting/types";
 import { generateThreeCoinLine } from "@/domain/casting/three-coin/algorithm";
 import { generateYarrowChange } from "@/domain/casting/yarrow/algorithm";
-import { meiHuaFromUtc, type MeiHuaResult } from "@/domain/casting/mei-hua/algorithm";
 import type { RiskDecision } from "@/domain/risk/engine";
 import { DomainError } from "@/server/errors/domain-error";
 import { assertCastingMutationAllowed, nextMissingCoinLine, nextYarrowCoordinate } from "@/server/casting-guards";
@@ -231,47 +230,5 @@ export class CastingService {
     return { completed: true };
   }
 
-  recordMeiHua(castingId: string, ianaTimeZone: string): {
-    completed: true;
-  } {
-    const { castingRepository } = this.dependencies;
-    const session = castingRepository.getCastingSession(castingId);
-    if (!session) throw new DomainError("CASTING_NOT_FOUND", "Casting session not found", false);
-    if (session.method !== "mei_hua_current_time") {
-      throw new DomainError("CASTING_METHOD_MISMATCH", "This casting cannot be changed in its current state.", false);
-    }
-    if (castingRepository.getCastResult(castingId)) {
-      return { completed: true };
-    }
-    const steps = castingRepository.getSteps(castingId);
-    const persistedStep = steps.find((step) => step.stepKind === "mei_hua");
-    if (!persistedStep) {
-      assertCastingMutationAllowed(session, "mei_hua_current_time", this.dependencies.clock.now());
-      try {
-        new Intl.DateTimeFormat("en-US", { timeZone: ianaTimeZone }).format();
-      } catch {
-        throw new DomainError("INVALID_TIME_ZONE", "Invalid request input", false, "ianaTimeZone");
-      }
-    }
-    const step = persistedStep ?? castingRepository.getOrCreateStep({
-      castingSessionId: castingId,
-      stepKind: "mei_hua",
-      lineIndex: 0,
-      changeIndex: null,
-      create: () => {
-        const result = meiHuaFromUtc(this.dependencies.clock.now().getTime(), ianaTimeZone);
-        return {
-          rawRecord: { result },
-          lineValue: result.lineValuesBottomUp[0],
-        };
-      },
-    });
-    const result = (step.rawRecord as { result: MeiHuaResult }).result;
-    castingRepository.saveCastResult({
-      castingSessionId: castingId,
-      lineValues: [...result.lineValuesBottomUp],
-      methodCalculation: result.methodCalculation,
-    });
-    return { completed: true };
-  }
+
 }

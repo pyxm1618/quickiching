@@ -20,6 +20,7 @@ import {
   authErrorMessage,
   maskAuthEmail,
   runAuthRequest,
+  toAbsoluteAuthURL,
 } from "./auth-form";
 
 const authFormPath = path.resolve(process.cwd(), "src/components/auth/auth-form.tsx");
@@ -33,6 +34,17 @@ describe("shared passwordless AuthForm", () => {
     expect(source).toContain('provider: "google"');
     expect(source).toContain("authClient.signIn.magicLink");
     expect(source).not.toMatch(/signUp\.social|signUp\.magicLink|signUpGoogle|signUpMagicLink/);
+  });
+
+  it("converts validated same-origin callbacks to absolute URLs for Better Auth", () => {
+    expect(toAbsoluteAuthURL(
+      "/methods/mei-hua-yi-shu?session=cast-1#reading-free",
+      "https://staging.quickiching.com",
+    )).toBe("https://staging.quickiching.com/methods/mei-hua-yi-shu?session=cast-1#reading-free");
+    expect(() => toAbsoluteAuthURL(
+      "https://example.com/escape",
+      "https://staging.quickiching.com",
+    )).toThrow("AUTH_CALLBACK_INVALID");
   });
 
   it("renders Google first, then email, with no password UI", () => {

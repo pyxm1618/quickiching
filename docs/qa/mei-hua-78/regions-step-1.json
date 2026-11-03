@@ -1,0 +1,36 @@
+{
+  "reference": "reference-step-1.png",
+  "css_viewport_width": 1670,
+  "expected": {
+    "url": "http://127.0.0.1:3078/methods/mei-hua-yi-shu",
+    "viewport": {
+      "width": 1670,
+      "height": 942
+    },
+    "dpr": 1,
+    "full_page": false,
+    "screenshot_scale": "css"
+  },
+  "regions": [
+    {
+      "name": "heading",
+      "box": [
+        546,
+        130,
+        640,
+        170
+      ],
+      "selector": ".mei-heading"
+    },
+    {
+      "name": "scroll",
+      "box": [
+        100,
+        250,
+        1470,
+        470
+      ],
+      "selector": ".mei-question-scroll"
+    }
+  ]
+}

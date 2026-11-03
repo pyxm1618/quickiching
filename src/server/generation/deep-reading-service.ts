@@ -337,6 +337,15 @@ export function createDeepReadingService(dependencies: {
           limit 1
         ` as Row[];
         if (activeJobRows[0]) {
+          if (session.method === "mei_hua_current_time") {
+            const active = activeJobRows[0];
+            await compensateWorkflowStartFailure(transaction, {
+              jobId: String(active.job_id), reservationId: String(active.res_id ?? ""),
+              idempotencyKey: String(active.idempotency_key), castingId, userId,
+              generationEpoch: Number(session.generation_epoch), legacyReadOnly: true,
+            });
+            return { legacyReadOnly: true as const };
+          }
           const rows = await transaction`
             select ciphertext, iv, auth_tag, encryption_key_version
             from deep_reading_context_snapshots where casting_id = ${castingId} limit 1
@@ -363,6 +372,11 @@ export function createDeepReadingService(dependencies: {
             reservationId: activeJobRows[0].res_id ? String(activeJobRows[0].res_id) : "",
             status: activeJobRows[0].job_status as "queued" | "running",
           };
+        }
+
+        if (session.method === "mei_hua_current_time") {
+          // Historical current-time Mei Hua rows remain readable, but cannot start new generation.
+          return { legacyReadOnly: true as const };
         }
 
         const storedSnapshotRows = await transaction`

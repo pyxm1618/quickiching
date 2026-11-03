@@ -25,6 +25,13 @@ export async function runAuthRequest(
   }
 }
 
+export function toAbsoluteAuthURL(value: string, origin: string): string {
+  const parsedOrigin = new URL(origin).origin;
+  const resolved = new URL(value, parsedOrigin);
+  if (resolved.origin !== parsedOrigin) throw new Error("AUTH_CALLBACK_INVALID");
+  return resolved.toString();
+}
+
 export function maskAuthEmail(email: string): string {
   const normalized = email.trim().toLowerCase();
   const at = normalized.lastIndexOf("@");
@@ -133,11 +140,14 @@ export function AuthForm({
     setError(null);
     setRequestNewLink(false);
     try {
+      const origin = window.location.origin;
+      const absoluteCallbackURL = toAbsoluteAuthURL(callbackURL, origin);
+      const absoluteErrorCallbackURL = toAbsoluteAuthURL(errorCallbackURL, origin);
       const ok = await runAuthRequest(() => authClient.signIn.magicLink({
         email,
-        callbackURL,
-        newUserCallbackURL: callbackURL,
-        errorCallbackURL,
+        callbackURL: absoluteCallbackURL,
+        newUserCallbackURL: absoluteCallbackURL,
+        errorCallbackURL: absoluteErrorCallbackURL,
       }));
       if (!ok) {
         setError(copy.sendEmailError);
@@ -154,11 +164,14 @@ export function AuthForm({
     setError(null);
     setRequestNewLink(false);
     try {
+      const origin = window.location.origin;
+      const absoluteCallbackURL = toAbsoluteAuthURL(callbackURL, origin);
+      const absoluteErrorCallbackURL = toAbsoluteAuthURL(errorCallbackURL, origin);
       const result = await authClient.signIn.social({
         provider: "google",
-        callbackURL,
-        newUserCallbackURL: callbackURL,
-        errorCallbackURL,
+        callbackURL: absoluteCallbackURL,
+        newUserCallbackURL: absoluteCallbackURL,
+        errorCallbackURL: absoluteErrorCallbackURL,
       });
       if (result.error) {
         setError(copy.googleStartError);

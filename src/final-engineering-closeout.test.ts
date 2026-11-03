@@ -30,7 +30,7 @@ describe("final engineering closeout source contracts", () => {
   it("keeps scene normalization for reading data while making risk evaluation scene-neutral", () => {
     const route = source("./app/api/readings/route.ts");
     const engine = source("./domain/risk/engine.ts");
-    const client = source("./components/three-coin-result/three-coin-result-client.tsx");
+    const client = source("./components/reading-result/reading-result-client.tsx");
     const deepService = source("./server/generation/deep-reading-service.ts");
     expect(route).toContain("const scene = normalizeScene(sceneInput)");
     expect(route).toContain("evaluateRisk(questionText)");
@@ -52,7 +52,7 @@ describe("final engineering closeout source contracts", () => {
   });
 
   it("distinguishes clarification risk copy from high-risk professional-support copy", () => {
-    const client = source("./components/three-coin-result/three-coin-result-client.tsx");
+    const client = source("./components/reading-result/reading-result-client.tsx");
     expect(client).toContain('deepRisk.status === "needs_clarification"');
     expect(client).toContain("Deep Reading needs a clearer locked question");
     expect(client).toContain("qualified professional support");
@@ -68,12 +68,12 @@ describe("final engineering closeout source contracts", () => {
       expect(source(path), path).not.toContain("ZH_HANS_READING_CONTENT");
     }
     expect(source("./app/(localized)/zh/methods/mei-hua-yi-shu/page.tsx")).not.toContain("readingContent={content.reading}");
-    expect(source("./components/three-coin-result/three-coin-result-client.tsx")).not.toContain('import { ZH_HANS_READING_CONTENT');
+    expect(source("./components/reading-result/reading-result-client.tsx")).not.toContain('import { ZH_HANS_READING_CONTENT');
     expect(source("./components/public-reading/public-reading-result.tsx")).toContain('import("@/content/mei-hua-yi-shu/zh-Hans")');
   });
 
   it("keeps anonymous browser-session Three-Coin results on the interpretation loading contract", () => {
-    const client = source("./components/three-coin-result/three-coin-result-client.tsx");
+    const client = source("./components/reading-result/reading-result-client.tsx");
     const genericResult = source("./components/public-reading/public-reading-result.tsx");
     expect(client).toContain("shouldDeferBrowserInterpretation");
     expect(client).toContain("waitingForBrowserInterpretation");

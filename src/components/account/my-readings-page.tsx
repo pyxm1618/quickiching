@@ -20,7 +20,7 @@ export async function MyReadingsPage({ zh = false }: { zh?: boolean }) {
           <MyReadingRow
             reading={reading}
             zh={zh}
-            href={`${prefix}/readings/three-coin/result?session=${encodeURIComponent(reading.id)}`}
+            href={`${prefix}/readings/result?session=${encodeURIComponent(reading.id)}`}
           />
         </li>)}</ol>}
       </AccountScrollRegion>

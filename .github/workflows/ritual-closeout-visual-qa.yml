@@ -6,6 +6,7 @@ on:
     branches:
       - integration/quickiching-ui-redesign
       - codex/qic-pixel-closeout-group1
+      - feat/mei-hua-number-time-flow
   workflow_dispatch:
 
 permissions:
@@ -69,6 +70,7 @@ jobs:
         run: |
           node scripts/three-coin-v2-browser-gate.mjs
           node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth
+          node scripts/mei-hua-ui-browser-gate.mjs
       - name: Reading browser regression
         env:
           READING_TEST_BASE_URL: http://127.0.0.1:3028

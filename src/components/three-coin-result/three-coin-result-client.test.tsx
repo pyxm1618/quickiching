@@ -253,18 +253,18 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT} initialState={{ kind: "empty" }} />,
     );
-    expect(html).toContain('href="/zh/methods/three-coin"');
+    expect(html).toContain('href="/zh"');
     expect(html).not.toContain('href="/#three-coin-reading"');
-    expect(html).toContain("开始三枚铜钱起卦");
+    expect(html).toContain("重新起一卦");
     expect(html).toContain("没有找到已完成的起卦");
   });
 
-  it("renders empty state pointing to /#three-coin-reading in English mode", () => {
+  it("renders the shared empty state pointing to the reading entry in English mode", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient locale="en" initialState={{ kind: "empty" }} />,
     );
-    expect(html).toContain('href="/#three-coin-reading"');
-    expect(html).toContain("Start a Three-Coin Reading");
+    expect(html).toContain('href="/"');
+    expect(html).toContain("Start a New Reading");
     expect(html).toContain("No completed reading found");
   });
 
@@ -276,9 +276,9 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         initialState={{ kind: "error", code: "TEST_ERROR" }}
       />,
     );
-    expect(html).toContain('href="/zh/methods/three-coin"');
+    expect(html).toContain('href="/zh"');
     expect(html).not.toContain('href="/#three-coin-reading"');
-    expect(html).toContain("返回三枚铜钱起卦");
+    expect(html).toContain("返回起卦入口");
     expect(html).toContain("无法恢复这次已落定的起卦结果");
   });
 
@@ -289,8 +289,8 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         initialState={{ kind: "error", code: "TEST_ERROR" }}
       />,
     );
-    expect(html).toContain('href="/#three-coin-reading"');
-    expect(html).toContain("Return to Three-Coin Reading");
+    expect(html).toContain('href="/"');
+    expect(html).toContain("Return to Reading Methods");
     expect(html).toContain("The sealed reading could not be interpreted");
   });
 
@@ -640,7 +640,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
 
 describe("Deep Reading polling contract", () => {
   it("uses recursive timeout polling rather than an overlapping interval loop", () => {
-    const source = readFileSync(new URL("./three-coin-result-client.tsx", import.meta.url), "utf8");
+    const source = readFileSync(new URL("../reading-result/reading-result-client.tsx", import.meta.url), "utf8");
     expect(source).toContain("pollInFlightRef");
     expect(source).toContain('document.visibilityState === "hidden"');
     expect(source).toContain("setTimeout(() => { void poll(); }, delay)");
@@ -648,7 +648,7 @@ describe("Deep Reading polling contract", () => {
   });
 
   it("does not guess the post-reservation credit balance on the client", () => {
-    const source = readFileSync(new URL("./three-coin-result-client.tsx", import.meta.url), "utf8");
+    const source = readFileSync(new URL("../reading-result/reading-result-client.tsx", import.meta.url), "utf8");
     expect(source).not.toContain("setCredits((prev) => Math.max(0, prev - 1))");
     expect(source).toContain("setCredits(data.availableCredits)");
   });

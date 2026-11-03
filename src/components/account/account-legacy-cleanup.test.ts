@@ -87,7 +87,10 @@ describe("Account legacy cleanup guard", () => {
   it("keeps My Readings routing aligned with the current account loader scope", () => {
     const loaders = read("../../server/loaders.ts");
     const page = read("./my-readings-page.tsx");
-    expect(loaders).toContain("s.method = 'three_coin'");
-    expect(page).toContain("/readings/three-coin/result");
+    expect(loaders).not.toContain("s.method = 'three_coin'");
+    expect(loaders).toContain("'yarrow_stalk'");
+    expect(loaders).toContain("'mei_hua_number_time'");
+    expect(page).toContain("/readings/result?session=");
+    expect(page).not.toContain("/readings/three-coin/result");
   });
 });

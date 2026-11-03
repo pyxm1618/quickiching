@@ -6,4 +6,5 @@ export const ritualBrush = Kaushan_Script({
   subsets: ['latin'],
   weight: '400',
   display: 'swap',
+  preload: false,
 });

@@ -10,7 +10,7 @@ import { normalizeComposite, normalizeQuestion, fingerprintQuestion } from "@/do
 import { getPostgresClient } from "@/server/db/client";
 import { repo } from "@/server/repository";
 import { evaluateRisk, RISK_RULE_VERSION } from "@/domain/risk/engine";
-import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
+import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
 import { ALGORITHM_VERSIONS, type CastingMethod } from "@/domain/casting/types";
 import { normalizeScene } from "@/domain/casting/types";
 import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
@@ -38,7 +38,7 @@ const lineValueSchema = z.union([z.literal(6), z.literal(7), z.literal(8), z.lit
 
 const saveReadingSchema = z.object({
   clientCastingId: z.string().uuid(),
-  method: z.enum(["three_coin", "yarrow_stalk", "mei_hua_current_time"]).default("three_coin"),
+  method: z.enum(["three_coin", "yarrow_stalk", "mei_hua_number_time"]).default("three_coin"),
   algorithmVersion: z.string().max(80).optional(),
   methodCalculation: z.unknown().optional(),
   lineValuesBottomUp: z.array(lineValueSchema).length(6),
@@ -131,10 +131,15 @@ function validatedMethodCalculation(input: z.infer<typeof saveReadingSchema>): R
     }
     return { kind: "yarrow-stalks", version, changes };
   }
-  const parsed = z.object({ utcMillis: z.number().int().min(0).max(253402300799999), ianaTimeZone: z.string().min(1).max(100) }).strict().safeParse(input.methodCalculation);
+  if (input.method !== "mei_hua_number_time") return null;
+  const parsed = z.object({
+    number: z.number().int().positive().max(Number.MAX_SAFE_INTEGER - 12),
+    utcMillis: z.number().int().min(0).max(253402300799999),
+    ianaTimeZone: z.string().min(1).max(100),
+  }).strict().safeParse(input.methodCalculation);
   if (!parsed.success) return null;
   try {
-    const calculated = meiHuaFromUtc(parsed.data.utcMillis, parsed.data.ianaTimeZone);
+    const calculated = meiHuaFromNumberAndTime(parsed.data);
     if (!sameNumberArray(calculated.lineValuesBottomUp as number[], input.lineValuesBottomUp)) return null;
     return calculated.methodCalculation;
   } catch { return null; }

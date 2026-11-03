@@ -7,8 +7,8 @@ describe("Simplified Chinese Mei Hua V1 content", () => {
     expect(ZH_HANS_MEI_HUA_CONTENT.metadata.description).toContain("公历");
     expect(ZH_HANS_MEI_HUA_CONTENT.introduction.length).toBeGreaterThan(80);
     expect(ZH_HANS_MEI_HUA_CONTENT.convention.paragraphs.join(" ")).toContain("十二时辰");
-    expect(ZH_HANS_MEI_HUA_CONTENT.convention.paragraphs.join(" ")).toContain("唯一标准");
-    expect(ZH_HANS_MEI_HUA_CONTENT.scope.notSupported.join(" ")).toContain("数字起卦");
+    expect(ZH_HANS_MEI_HUA_CONTENT.convention.paragraphs.join(" ")).toContain("不使用年月日");
+    expect(ZH_HANS_MEI_HUA_CONTENT.scope.notSupported.join(" ")).toContain("旧版仅当前时间起卦");
     expect(ZH_HANS_MEI_HUA_CONTENT.scope.notSupported.join(" ")).toContain("完整梅花易数排盘");
   });
 

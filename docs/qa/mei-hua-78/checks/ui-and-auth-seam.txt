@@ -1,0 +1,203 @@
+START desktop
+desktop: edit/reset, change-number, click-time seal, immutable reload, no Step 4, algorithm blocker PASS
+START mobile
+mobile: edit/reset, change-number, click-time seal, immutable reload, no Step 4, algorithm blocker PASS
+{
+  "base": "http://127.0.0.1:3078",
+  "authVerification": "Test-only /api/user/me response and callback navigation; real provider login NOT VERIFIED",
+  "captures": [
+    {
+      "name": "desktop-step-1",
+      "url": "http://127.0.0.1:3078/methods/mei-hua-yi-shu",
+      "viewport": {
+        "width": 1670,
+        "height": 942,
+        "deviceScaleFactor": 1
+      },
+      "fullPage": false,
+      "screenshotScale": "css",
+      "metadata": {
+        "title": "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting | Quick I Ching",
+        "dpr": 1,
+        "scrollWidth": 1670,
+        "clientWidth": 1670,
+        "fonts": "loaded"
+      }
+    },
+    {
+      "name": "desktop-step-2",
+      "url": "http://127.0.0.1:3078/methods/mei-hua-yi-shu",
+      "viewport": {
+        "width": 1670,
+        "height": 942,
+        "deviceScaleFactor": 1
+      },
+      "fullPage": false,
+      "screenshotScale": "css",
+      "metadata": {
+        "title": "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting | Quick I Ching",
+        "dpr": 1,
+        "scrollWidth": 1670,
+        "clientWidth": 1670,
+        "fonts": "loaded"
+      }
+    },
+    {
+      "name": "desktop-step-3",
+      "url": "http://127.0.0.1:3078/methods/mei-hua-yi-shu",
+      "viewport": {
+        "width": 1670,
+        "height": 942,
+        "deviceScaleFactor": 1
+      },
+      "fullPage": false,
+      "screenshotScale": "css",
+      "metadata": {
+        "title": "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting | Quick I Ching",
+        "dpr": 1,
+        "scrollWidth": 1670,
+        "clientWidth": 1670,
+        "fonts": "loaded"
+      }
+    },
+    {
+      "name": "mobile-step-1",
+      "url": "http://127.0.0.1:3078/methods/mei-hua-yi-shu",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "deviceScaleFactor": 1
+      },
+      "fullPage": false,
+      "screenshotScale": "css",
+      "metadata": {
+        "title": "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting | Quick I Ching",
+        "dpr": 1,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "fonts": "loaded"
+      }
+    },
+    {
+      "name": "mobile-step-2",
+      "url": "http://127.0.0.1:3078/methods/mei-hua-yi-shu",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "deviceScaleFactor": 1
+      },
+      "fullPage": false,
+      "screenshotScale": "css",
+      "metadata": {
+        "title": "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting | Quick I Ching",
+        "dpr": 1,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "fonts": "loaded"
+      }
+    },
+    {
+      "name": "mobile-step-3",
+      "url": "http://127.0.0.1:3078/methods/mei-hua-yi-shu",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "deviceScaleFactor": 1
+      },
+      "fullPage": false,
+      "clip": {
+        "x": 0,
+        "y": 0,
+        "width": 375,
+        "height": 963
+      },
+      "screenshotScale": "css",
+      "metadata": {
+        "title": "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting | Quick I Ching",
+        "dpr": 1,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "fonts": "loaded"
+      }
+    },
+    {
+      "name": "desktop-shared-reading",
+      "url": "http://127.0.0.1:3078/readings/result?session=6b706a05-3c42-44ca-b0f9-a9a5564d7331",
+      "viewport": {
+        "width": 1670,
+        "height": 942,
+        "deviceScaleFactor": 1
+      },
+      "fullPage": false,
+      "screenshotScale": "css",
+      "metadata": {
+        "title": "Your Free Reading | Quick I Ching",
+        "dpr": 1,
+        "scrollWidth": 1670,
+        "clientWidth": 1670,
+        "fonts": "loaded"
+      }
+    },
+    {
+      "name": "desktop-shared-reference",
+      "url": "http://127.0.0.1:3078/readings/result?session=6b706a05-3c42-44ca-b0f9-a9a5564d7331",
+      "viewport": {
+        "width": 1983,
+        "height": 793,
+        "deviceScaleFactor": 1
+      },
+      "fullPage": false,
+      "screenshotScale": "css",
+      "metadata": {
+        "title": "Your Free Reading | Quick I Ching",
+        "dpr": 1,
+        "scrollWidth": 1983,
+        "clientWidth": 1983,
+        "fonts": "loaded"
+      }
+    },
+    {
+      "name": "mobile-shared-reading",
+      "url": "http://127.0.0.1:3078/readings/result?session=6b706a05-3c42-44ca-b0f9-a9a5564d7331",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "deviceScaleFactor": 1
+      },
+      "fullPage": false,
+      "clip": {
+        "x": 0,
+        "y": 0,
+        "width": 375,
+        "height": 965
+      },
+      "screenshotScale": "css",
+      "metadata": {
+        "title": "Your Free Reading | Quick I Ching",
+        "dpr": 1,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "fonts": "loaded"
+      }
+    }
+  ],
+  "checks": [
+    "desktop: edit/reset, change-number, click-time seal, immutable reload, no Step 4, algorithm blocker PASS",
+    "mobile: edit/reset, change-number, click-time seal, immutable reload, no Step 4, algorithm blocker PASS",
+    "Three Coin free: anonymous summary → callback with same cast ID and selected destination PASS; provider login NOT VERIFIED (test-only auth seam)",
+    "Three Coin deep: anonymous summary → callback with same cast ID and selected destination PASS; provider login NOT VERIFIED (test-only auth seam)"
+  ],
+  "realThreeCoin": {
+    "id": "6b706a05-3c42-44ca-b0f9-a9a5564d7331",
+    "createdAt": "2026-10-31T16:27:24.525Z",
+    "lines": [
+      9,
+      7,
+      8,
+      9,
+      8,
+      7
+    ],
+    "fingerprint": "public-reading-fingerprint-v1|1|three-coin|three-coin-v1|9,7,8,9,8,7|38|1,4|4"
+  }
+}

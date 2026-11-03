@@ -340,27 +340,7 @@ describe("CastingService step guards", () => {
     expect(() => service.completeYarrow(draft.castingId)).toThrow("CASTING_METHOD_MISMATCH");
   });
 
-  it("validates Mei Hua method before replaying an existing coin result", () => {
-    const { service, repositories } = serviceFixture();
-    const draft = service.createDraft(draftInput);
-    service.submitQuestion(draft.castingId, "What should I understand about this career transition?");
-    repositories.castingRepository.saveStep({
-      castingSessionId: draft.castingId,
-      stepKind: "coin",
-      lineIndex: 0,
-      changeIndex: null,
-      rawRecord: { coinFaces: ["yang", "yang", "yang"] },
-      lineValue: 9,
-    });
-    repositories.castingRepository.saveCastResult({
-      castingSessionId: draft.castingId,
-      lineValues: [9, 9, 9, 9, 9, 9],
-      methodCalculation: { kind: "three-coin" },
-    });
 
-    expect(() => service.recordMeiHua(draft.castingId, "Asia/Shanghai"))
-      .toThrow("CASTING_METHOD_MISMATCH");
-  });
 });
 
 describe("CastingService anonymous result secrecy", () => {
@@ -401,18 +381,5 @@ describe("CastingService anonymous result secrecy", () => {
     expect(repositories.castingRepository.getCastingSession(draft.castingId)?.lifecycle).toBe("awaiting_reveal");
   });
 
-  it("persists Mei Hua once but returns no anonymous hexagram fields", () => {
-    const { service, repositories, current } = serviceFixture();
-    const draft = service.createDraft({ ...draftInput, method: "mei_hua_current_time" });
-    service.submitQuestion(draft.castingId, "What should I understand about this career transition?");
 
-    const first = service.recordMeiHua(draft.castingId, "Asia/Shanghai");
-    current.value = new Date("2026-07-30T01:00:00.000Z");
-    const replay = service.recordMeiHua(draft.castingId, "Asia/Shanghai");
-
-    expect(first).toEqual({ completed: true });
-    expect(replay).toEqual(first);
-    expect(repositories.castingRepository.getSteps(draft.castingId)).toHaveLength(1);
-    expect(repositories.castingRepository.getCastResult(draft.castingId)).toBeDefined();
-  });
 });

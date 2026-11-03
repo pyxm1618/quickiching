@@ -1,0 +1,156 @@
+{
+  "testedApplicationCommit": "167a72811a0d19564992f7c4a6fb2f3349d53706",
+  "integrationHead": "d9154f741f2ec353b7d8dccce8dace5317c7d690",
+  "note": "Fresh native Desktop/375px captures and callback tests use the current application. Deep to Free return additionally passes all three existing-method business fixtures. Earlier CI/fixture failures remain separate; no pixel or real-provider acceptance inferred. Existing CI preview flag only; payment code unchanged.",
+  "checks": [
+    {
+      "name": "lint",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "lint.txt"
+    },
+    {
+      "name": "typecheck",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "typecheck.txt"
+    },
+    {
+      "name": "unit-tests",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "unit-tests.txt"
+    },
+    {
+      "name": "production-build",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "production-build.txt"
+    },
+    {
+      "name": "browser",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "browser.txt"
+    },
+    {
+      "name": "three-coin",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "three-coin.txt"
+    },
+    {
+      "name": "public-p0",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "public-p0.txt"
+    },
+    {
+      "name": "interpretation-bundle",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "interpretation-bundle.txt"
+    },
+    {
+      "name": "reading-business",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "reading-business.txt"
+    },
+    {
+      "name": "ui-and-auth-seam",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "ui-and-auth-seam.txt"
+    },
+    {
+      "name": "chinese-full-gate-blocked",
+      "exitCode": 1,
+      "status": "SUPERSEDED DIAGNOSTIC: initial local run omitted the existing CI preview flag; current full gate PASS",
+      "log": "chinese-full-gate-blocked.txt",
+      "required": false
+    },
+    {
+      "name": "lighthouse",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "lighthouse.txt"
+    },
+    {
+      "name": "scene",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "scene.txt"
+    },
+    {
+      "name": "motion",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "motion.txt"
+    },
+    {
+      "name": "existing-ritual-assets",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "assets.txt"
+    },
+    {
+      "name": "chinese-interactive",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "chinese-interactive.txt"
+    },
+    {
+      "name": "multilingual",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "multilingual.txt"
+    },
+    {
+      "name": "on-page",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "on-page.txt"
+    },
+    {
+      "name": "logo",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "logo.txt"
+    },
+    {
+      "name": "navigation",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "navigation.txt"
+    }
+  ],
+  "sourceSha256": {
+    "src/components/public-reading/mei-hua-number-flow.tsx": "52ba24d80c0f74601ec39439ce6e7fde349c73df6fa53817f7ee5c838ac848ef",
+    "src/components/public-reading/mei-hua-scene.css": "a430b049fc7d96652e185b9cc3b83ac07e6bc9aa9c87d90bbfe11ee9e51fd3ef",
+    "src/components/public-reading/public-reading-result.tsx": "41929fb590d1c8fee8b5452d21f7b074f3ba13c46b68c1b89ddb2b5cc482236e",
+    "src/components/public-reading/shared-reading-summary.tsx": "9ea720f8bdfb11cd1320c79625e10c904dbaf109badc74c887e41382f817b7e4",
+    "src/components/public-reading/shared-reading-summary.css": "48ee1f0f82b1290cae475f290ae1d41c3e5aa2b37e3f7eb5675cfc0186387fe5",
+    "src/components/three-coin-result/three-coin-result-client.tsx": "09d93580358281d714521bf3c4e276aebd82207d7d140c9b3380b9a14ee81952",
+    "src/components/three-coin-result/reading-page.tsx": "a62c0dcc4dc5e17f587b5db468833fd2f9c19374e0be8bf8e8a8a1a3ad70ef1f",
+    "src/lib/reading-entry.ts": "347cd8323ff7ccfc40b4456c9e08d4e69c679fa5bce53e4d88cb3ced70e09b79",
+    "src/i18n/routes.ts": "88f3f8644381c7983b166a3ba2543047c2b1068c3007f59d17742ab17112b3d7"
+  },
+  "localRuntime": {
+    "node": "v26.7.0",
+    "bun": "1.4.2"
+  },
+  "presentationCapturedAtCommit": "167a72811a0d19564992f7c4a6fb2f3349d53706",
+  "deepToFreeRegression": {
+    "before": "../failures/deep-to-free-before-fix.txt",
+    "beforeExitCode": 1,
+    "after": "reading-business.txt",
+    "afterExitCode": 0,
+    "methods": [
+      "three_coin",
+      "yarrow_stalk",
+      "mei_hua_current_time"
+    ],
+    "boundary": "Matching explicit Free intent overrides cached Deep; another cast cannot override this cast."
+  }
+}
