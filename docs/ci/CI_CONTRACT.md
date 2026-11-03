@@ -11,7 +11,7 @@ Stable jobs:
 - `CI / Performance` — stable asset budgets plus targeted Lighthouse only for affected pages.
 - `CI / Required` — fails if any required job fails; unrelated domains may no-op but still publish a stable context.
 
-`push -> main` and manual dispatch force FULL mode to catch integration failures after merge.
+`push -> main`, manual dispatch, and pull requests whose head is `integration`/`integration/*` or `release`/`release/*` force FULL mode to catch integration and release-composition failures.
 
 ## 2. Required checks
 
