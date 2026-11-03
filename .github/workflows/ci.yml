@@ -345,13 +345,7 @@ jobs:
           DATABASE_RESULT: ${{ needs.database.result }}
           PRODUCT_RESULT: ${{ needs.product.result }}
           PERFORMANCE_RESULT: ${{ needs.performance.result }}
-        run: |
-          node - <<'NODE'
-          const names = ["SELECT","CORE","DATABASE","PRODUCT","PERFORMANCE"];
-          const failed = names.filter((name) => !["success"].includes(process.env[name + "_RESULT"]));
-          console.log(JSON.stringify(Object.fromEntries(names.map((name) => [name, process.env[name + "_RESULT"]]))));
-          if (failed.length) {
-            console.error("Required CI gate failure: " + failed.join(", "));
-            process.exit(1);
-          }
-          NODE
+          DATABASE_SELECTED: ${{ needs.select.outputs.database }}
+          PRODUCT_SELECTED: ${{ needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true' || needs.select.outputs.account_info == 'true' || needs.select.outputs.payment == 'true' }}
+          PERFORMANCE_SELECTED: ${{ needs.select.outputs.performance }}
+        run: node scripts/ci/required-gate.mjs
