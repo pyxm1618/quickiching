@@ -9,7 +9,7 @@ import {
   type AppliedMigration,
   type MigrationIntegrityStatus,
 } from "./migration-integrity";
-import { MIGRATION_0012_REQUIRED_OBJECTS } from "./production-schema-release";
+import { CURRENT_REQUIRED_SCHEMA_OBJECTS, RETIRED_SCHEMA_OBJECTS } from "./production-schema-release";
 
 export const REQUIRED_COMMERCIAL_TABLES = Object.freeze([
   "users",
@@ -36,12 +36,17 @@ export const REQUIRED_COMMERCIAL_TABLES = Object.freeze([
   "payment_webhook_conflicts",
   "workflow_runs",
   "audit_events",
-  "question_locks",
   "deep_reading_context_snapshots",
 ] as const);
 
 export const REQUIRED_COMMERCIAL_SCHEMA_OBJECTS = Object.freeze(
-  MIGRATION_0012_REQUIRED_OBJECTS.filter((object) => !object.startsWith("table:")),
+  CURRENT_REQUIRED_SCHEMA_OBJECTS.filter((object) => !object.startsWith("table:")),
+);
+
+export const RETIRED_COMMERCIAL_TABLES = Object.freeze(
+  RETIRED_SCHEMA_OBJECTS
+    .filter((object) => object.startsWith("table:"))
+    .map((object) => object.slice("table:".length)),
 );
 
 export type CapabilityReadinessDetail = {
@@ -59,6 +64,7 @@ export type DatabaseReadinessStatus =
   | "error"
   | "tables_missing"
   | "schema_objects_missing"
+  | "retired_objects_present"
   | Exclude<MigrationIntegrityStatus, "ok">;
 
 export type DatabaseReadinessDetail = {
@@ -68,6 +74,7 @@ export type DatabaseReadinessDetail = {
   migrationsChecked: boolean;
   missingTables?: string[];
   missingSchemaObjects?: string[];
+  retiredObjectsPresent?: string[];
   appliedMigrationCount?: number;
 };
 
@@ -152,6 +159,11 @@ export async function checkSystemReadiness(
         dbReport.status = "tables_missing";
         dbReport.missingTables = missing;
       } else {
+        const retiredObjectsPresent = RETIRED_COMMERCIAL_TABLES.filter((table) => existingTables.includes(table));
+        if (retiredObjectsPresent.length > 0) {
+          dbReport.status = "retired_objects_present";
+          dbReport.retiredObjectsPresent = retiredObjectsPresent.map((table) => `table:${table}`);
+        } else {
         let existingSchemaObjects: string[];
         if (dbOverride?.querySchemaObjects) {
           existingSchemaObjects = await dbOverride.querySchemaObjects();
@@ -230,6 +242,7 @@ export async function checkSystemReadiness(
           dbReport.migrationsChecked = true;
           dbReport.appliedMigrationCount = appliedMigrations.length;
           dbReport.status = checkMigrationIntegrity(appliedMigrations);
+        }
         }
       }
     } catch {
