@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { meiHuaFromFields } from "@/domain/casting/mei-hua/algorithm";
+import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
 import { buildPublicReading, readingFingerprint } from "./reading";
 import { buildStaticReading } from "./static-reading";
 import { ZH_HANS_READING_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
@@ -13,7 +13,7 @@ describe("localized public reading display", () => {
       lineValuesBottomUp: [9, 7, 7, 7, 7, 7],
       evidence: {
         kind: "mei-hua-yi-shu",
-        calculation: meiHuaFromFields({ year: 2026, month: 8, day: 19, hour: 10, ianaTimeZone: "Asia/Shanghai" }),
+        calculation: meiHuaFromNumberAndTime({ number: 17, utcMillis: Date.UTC(2026, 7, 19, 2), ianaTimeZone: "Asia/Shanghai" }),
       },
     });
     const facts = {
