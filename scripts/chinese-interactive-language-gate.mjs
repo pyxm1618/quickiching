@@ -460,7 +460,6 @@ async function main() {
         started: true,
         id: "550e8400-e29b-41d4-a716-446655440104",
         createdAt: new Date().toISOString(),
-        data: {},
       }));
     });
     await page.reload({ waitUntil: "networkidle0" });
