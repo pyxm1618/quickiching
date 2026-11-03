@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
@@ -6,6 +7,7 @@ import { CLASSICAL_HEXAGRAMS } from "../src/domain/public-reading/classical.ts";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const THREE_COIN_STORAGE_KEY = "quickiching:public-v1:three-coin";
+const COMPLETED_READING_STORAGE_KEY = "quickiching:public-v1:completed-reading";
 const FIXTURE_STEPS = [
   { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
   { lineIndex: 1, coinFaces: ["yin", "yin", "yin"], lineValue: 6, algorithmVersion: "three-coin-v1" },
@@ -85,12 +87,12 @@ async function resetThreeCoin(page) {
 }
 
 async function seedThreeCoin(page, question) {
-  await seedThreeCoinSession(page, `fixture-${Date.now()}`, new Date().toISOString(), FIXTURE_STEPS, question);
+  await seedThreeCoinSession(page, randomUUID(), new Date().toISOString(), FIXTURE_STEPS, question);
 }
 
 
 async function verifyChineseNoChangingLines(page) {
-  await seedThreeCoinSession(page, `fixture-no-change-${Date.now()}`, new Date().toISOString(), NO_CHANGE_STEPS, "这次起卦没有动爻吗？");
+  await seedThreeCoinSession(page, randomUUID(), new Date().toISOString(), NO_CHANGE_STEPS, "这次起卦没有动爻吗？");
   await openSeededThreeCoinResult(page, "zh-Hans");
   const gate = await page.evaluate(() => ({
     hasSixLines: document.querySelector("[data-completed-six-lines]") !== null,
@@ -136,7 +138,24 @@ async function openSeededThreeCoinResult(page, locale = "en") {
   }, { timeout: 15_000 });
   await new Promise((resolve) => setTimeout(resolve, 500));
   assert.equal(new URL(page.url()).pathname, methodPath, "Restored completed cast must not auto-navigate to an old result");
-  await page.goto(`${BASE}${resultPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.evaluate(({ sessionKey, completedKey }) => {
+    const raw = sessionStorage.getItem(sessionKey);
+    if (!raw) throw new Error("SEEDED_THREE_COIN_SESSION_MISSING");
+    const session = JSON.parse(raw);
+    const steps = session.data?.steps;
+    if (!Array.isArray(steps) || steps.length !== 6) throw new Error("SEEDED_THREE_COIN_STEPS_INVALID");
+    sessionStorage.setItem(completedKey, JSON.stringify({
+      schemaVersion: 1,
+      id: session.id,
+      createdAt: session.createdAt,
+      method: "three-coin",
+      methodVersion: "three-coin-v1",
+      ...(session.coreQuestionAtCast ? { question: session.coreQuestionAtCast } : {}),
+      lineValuesBottomUp: steps.map(step => step.lineValue),
+      evidence: { kind: "three-coin", steps },
+    }));
+  }, { sessionKey: THREE_COIN_STORAGE_KEY, completedKey: COMPLETED_READING_STORAGE_KEY });
+  await page.goto(`${BASE}${resultPath}?session=${encodeURIComponent(await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.id ?? "", THREE_COIN_STORAGE_KEY))}`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
 }
 
