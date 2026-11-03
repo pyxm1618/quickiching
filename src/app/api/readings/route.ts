@@ -148,7 +148,7 @@ function validatedMethodCalculation(input: z.infer<typeof saveReadingSchema>): R
     try {
       const changingLines = normalizeManualChangingLines(parsed.data.changingLines);
       const calculated = manualFromPrimaryAndChangingLines(parsed.data.primaryHexagramNumber, changingLines);
-      if (!sameNumberArray(calculated as number[], input.lineValuesBottomUp)) return null;
+      if (!sameNumberArray([...calculated], input.lineValuesBottomUp)) return null;
       return {
         kind: "manual",
         version,
