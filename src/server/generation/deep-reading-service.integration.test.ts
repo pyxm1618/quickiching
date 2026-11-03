@@ -5,9 +5,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { databaseSchema } from "@/server/db/schema";
 import { encryptQuestionForStorage } from "./question-crypto";
-import { buildDeepReadingKnowledgeBundle } from "./deep-reading-knowledge";
-import { decryptDeepReadingContextSnapshot, encryptDeepReadingContextSnapshot } from "./deep-reading-snapshot";
-import { calculateDeepReadingContextSnapshotHash } from "./integrity";
+import { decryptDeepReadingContextSnapshot } from "./deep-reading-snapshot";
 import { resultIntegrityHmac } from "./integrity";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
 import { createDeepReadingService, DeepReadingService } from "./deep-reading-service";
@@ -114,40 +112,48 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     expect(retry.creditReservationCreated).toBe(false);
   });
 
-  it("keeps historical mei_hua_current_time read-only and does not reserve a new credit", async () => {
-    const userId = `historical-mei-${randomUUID()}`;
-    const { castingId, batchId } = await seedDeepReadingCandidateWithCredit(userId, "mei_hua_current_time");
-    await expect(deepReadingService.requestDeepReading({ userId, castingId })).rejects.toThrow("LEGACY_DEEP_READING_READ_ONLY");
-    const batches = await sql`select quantity_available, quantity_reserved, quantity_consumed from entitlement_batches where id = ${batchId}`;
-    expect(batches[0]).toMatchObject({ quantity_available: 1, quantity_reserved: 0, quantity_consumed: 0 });
-  });
 
-  it.each(["queued", "running"])("fails legacy %s work and releases the reservation without regenerating", async (status) => {
-    const userId = `legacy-${randomUUID()}`;
-    const { castingId, batchId } = await seedDeepReadingCandidateWithCredit(userId);
-    const requested = { jobId: randomUUID(), reservationId: randomUUID() };
-    const knowledge = await buildDeepReadingKnowledgeBundle(castFacts);
-    const legacy = { schemaVersion: "deep-reading-context-v1" as const, castMethod: "three_coin" as const,
-      coreQuestionAtCast: "What should I focus on in this transition?", scene: "career" as const,
-      methodVersion: castFacts.algorithmVersion, facts: castFacts, snapshotAt: new Date().toISOString(),
-      knowledgeVersion: knowledge.version, knowledge, risk: { status: "allowed" as const, ruleVersion: "risk-v3", reasonCode: "allowed" },
-      context: { contextNotes: "An old background note with sufficient detail for the legacy parser.", options: [], constraints: [], concerns: [], interpretationGoal: "what_do_i_need_to_see_clearly" as const, locale: "en" as const } };
-    const encrypted = encryptDeepReadingContextSnapshot(castingId, legacy, integrationEnv);
-    expect(decryptDeepReadingContextSnapshot(castingId, encrypted, integrationEnv)).toEqual(legacy);
-    const hash = calculateDeepReadingContextSnapshotHash(legacy, integrationEnv);
-    await sql`insert into deep_reading_context_snapshots (casting_id, ciphertext, iv, auth_tag, encryption_key_version, snapshot_hash, created_at)
-      values (${castingId}, ${encrypted.ciphertext}, ${encrypted.iv}, ${encrypted.authTag}, ${encrypted.encryptionKeyVersion}, ${hash}, clock_timestamp())`;
-    await sql`insert into generation_jobs (id, casting_id, kind, status, generation_epoch, idempotency_key, input_snapshot_hash, timeout_at, created_at, updated_at)
-      values (${requested.jobId}, ${castingId}, 'deep_reading', ${status}, 0, ${`legacy:${castingId}`}, ${hash}, clock_timestamp() + interval '5 minutes', clock_timestamp(), clock_timestamp())`;
-    await sql`insert into entitlement_reservations (id, batch_id, user_id, casting_id, job_id, status, lease_token, lease_expires_at, expires_at, created_at, updated_at)
-      values (${requested.reservationId}, ${batchId}, ${userId}, ${castingId}, ${requested.jobId}, 'reserved', ${randomUUID()}, clock_timestamp() + interval '5 minutes', clock_timestamp() + interval '12 months', clock_timestamp(), clock_timestamp())`;
-    await sql`update entitlement_batches set quantity_available = 0, quantity_reserved = 1 where id = ${batchId}`;
-    await expect(deepReadingService.requestDeepReading({ userId, castingId })).rejects.toThrow("LEGACY_DEEP_READING_READ_ONLY");
-    const result = await deepReadingService.getDeepReadingStatus({ userId, castingId });
-    expect(result).toMatchObject({ status: "failed", errorCode: "LEGACY_DEEP_READING_READ_ONLY", availableCredits: 1 });
-    const batches = await sql`select quantity_available, quantity_reserved, quantity_consumed from entitlement_batches where id = ${batchId}`;
+  it("rejects Manual Cast Deep Reading before reserving a credit", async () => {
+    const userId = `manual-${randomUUID()}`;
+    const orderId = randomUUID();
+    const batchId = randomUUID();
+    const castingId = randomUUID();
+    const now = new Date().toISOString();
+
+    await sql`
+      insert into users (id, name, email, email_verified, created_at, updated_at)
+      values (${userId}, 'Manual User', ${`${userId}@example.com`}, true, ${now}, ${now})
+      on conflict (id) do nothing
+    `;
+    await sql`
+      insert into payment_orders (
+        id, user_id, product_key, quantity, amount_minor, currency, request_id,
+        provider, provider_environment, provider_product_id, provider_order_id, provider_payment_id,
+        status, paid_at, created_at, updated_at
+      ) values (${orderId}, ${userId}, 'one', 1, 299, 'USD', ${`req-${orderId}`}, 'waffo', 'test', 'prod-1', ${`ord-${orderId}`}, ${`pay-${orderId}`}, 'paid', ${now}, ${now}, ${now})
+    `;
+    await sql`
+      insert into entitlement_batches (
+        id, user_id, order_id, quantity_total, quantity_available, quantity_reserved, quantity_consumed, quantity_revoked, expires_at, created_at, updated_at
+      ) values (${batchId}, ${userId}, ${orderId}, 1, 1, 0, 0, 0, now() + interval '12 months', ${now}, ${now})
+    `;
+    await sql`
+      insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
+      values (${castingId}, ${userId}, 'manual', 'revealed', 'allowed', 'career', 'what_do_i_need_to_see_clearly', ${now}, ${now})
+    `;
+
+    await expect(deepReadingService.requestDeepReading({ userId, castingId }))
+      .rejects.toThrow("MANUAL_DEEP_READING_UNAVAILABLE");
+
+    const batches = await sql`
+      select quantity_available, quantity_reserved, quantity_consumed
+      from entitlement_batches where id = ${batchId}
+    `;
     expect(batches[0]).toMatchObject({ quantity_available: 1, quantity_reserved: 0, quantity_consumed: 0 });
-    await expect(deepReadingService.requestDeepReading({ userId, castingId })).rejects.toThrow("LEGACY_DEEP_READING_READ_ONLY");
+    const reservations = await sql`
+      select count(*)::integer as count from entitlement_reservations where casting_id = ${castingId}
+    `;
+    expect(reservations[0]?.count).toBe(0);
   });
 
   beforeAll(async () => {
