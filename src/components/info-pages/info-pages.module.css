@@ -705,6 +705,8 @@
 /* Narrow screens: preserve the approved parchment stack and guarantee that no
    page-level text or decorative geometry escapes 390px or 320px viewports. */
 @media (max-width:760px) {
+  /* Avoid rasterizing the entire tall parchment/content layer on mobile. */
+  .guideMain { filter: none; }
   .page {
     background-size: auto 100vh;
     background-position: center top;
