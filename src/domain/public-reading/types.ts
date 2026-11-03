@@ -1,4 +1,4 @@
-import type { MeiHuaResult } from "@/domain/casting/mei-hua/algorithm";
+import type { MeiHuaNumberTimeResult } from "@/domain/casting/mei-hua/number-time";
 import type { ThreeCoinStep } from "@/domain/casting/three-coin/algorithm";
 import type { YarrowLineResult } from "@/domain/casting/yarrow/algorithm";
 import type { LineValue } from "@/domain/casting/types";
@@ -39,7 +39,7 @@ export type PublicReadingEvidence =
     }
   | {
       kind: "mei-hua-yi-shu";
-      calculation: MeiHuaResult;
+      calculation: MeiHuaNumberTimeResult;
     }
   | {
       kind: "manual";
