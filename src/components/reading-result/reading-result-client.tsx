@@ -22,6 +22,7 @@ import { evaluateRisk } from "@/domain/risk/engine";
 import { AiDeepReadingResult, AiDeepReadingState } from "@/components/three-coin-result/ai-deep-reading-result";
 import styles from "@/components/three-coin-result/result-page.module.css";
 import { readCompletedPublicReading, publicReadingSaveInput, clearCompletedReadingForRestart } from "@/lib/completed-public-reading";
+import { clearThreeCoinCompletedBackup } from "@/lib/three-coin-session";
 import type { PublicReading, PublicReadingEvidence, PublicReadingMethod } from "@/domain/public-reading/types";
 import type { LineValue } from "@/domain/casting/types";
 import type { YarrowChange, YarrowLineResult } from "@/domain/casting/yarrow/algorithm";
@@ -508,6 +509,7 @@ export function ReadingResultClient({
 
       setCastingId(data.castingId);
       setPersistenceStatus("saved");
+      if (completedReading?.method === "three-coin") clearThreeCoinCompletedBackup();
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set("session", data.castingId);
       window.history.replaceState(null, "", currentUrl.toString());
