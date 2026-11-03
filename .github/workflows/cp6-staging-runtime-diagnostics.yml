@@ -1,13 +1,7 @@
-name: CP6 Staging Runtime Diagnostics
+name: OPS / Staging Runtime Diagnostics
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - codex/commercial-v2-cp6-repair
-      - fix/waffo-payment-closeout
-    paths:
-      - .github/workflows/cp6-staging-runtime-diagnostics.yml
 
 permissions:
   contents: read
