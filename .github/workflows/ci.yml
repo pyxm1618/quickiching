@@ -180,7 +180,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          (PORT=3000 HOSTNAME=127.0.0.1 CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW=1 bun run start > /tmp/qic-ci-product.log 2>&1 & echo $! > /tmp/qic-ci-product.pid)
+          (GROUP3_VISUAL_QA=1 PORT=3000 HOSTNAME=127.0.0.1 CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW=1 bun run start > /tmp/qic-ci-product.log 2>&1 & echo $! > /tmp/qic-ci-product.pid)
           for i in {1..80}; do
             if curl -fsS http://127.0.0.1:3000/ >/dev/null; then exit 0; fi
             sleep 1
@@ -303,7 +303,7 @@ jobs:
         if: needs.select.outputs.performance == 'true'
         shell: bash
         run: |
-          (PORT=3001 HOSTNAME=127.0.0.1 bun run start > /tmp/qic-ci-performance.log 2>&1 & echo $! > /tmp/qic-ci-performance.pid)
+          (GROUP3_VISUAL_QA=1 PORT=3001 HOSTNAME=127.0.0.1 bun run start > /tmp/qic-ci-performance.log 2>&1 & echo $! > /tmp/qic-ci-performance.pid)
           for i in {1..80}; do
             if curl -fsS http://127.0.0.1:3001/ >/dev/null; then exit 0; fi
             sleep 1
