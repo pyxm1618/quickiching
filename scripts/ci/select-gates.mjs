@@ -1,4 +1,4 @@
-import { appendFileSync } from "node:fs";
+import { appendFileSync } from "node:fs";\nimport { resolve } from "node:path";\nimport { fileURLToPath } from "node:url";
 
 const normalize = (value) => value.replaceAll("\\", "/").replace(/^\.\//, "");
 const any = (files, patterns) => files.some((file) => patterns.some((pattern) =>
@@ -140,7 +140,7 @@ function emit(result) {
   else process.stdout.write(lines.join("\n") + "\n");
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const chunks = [];
   for await (const chunk of process.stdin) chunks.push(chunk);
   const files = Buffer.concat(chunks).toString("utf8").split(/\r?\n/);
