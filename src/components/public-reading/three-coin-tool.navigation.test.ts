@@ -8,16 +8,12 @@ const completeState = {
   hasReadingMeta: true,
   storageBlocked: false,
   hasUnpersistedCommit: false,
-  completionNavigationArmed: true,
   resultNavigationStarted: false,
 };
 
 describe("ThreeCoinTool completion navigation", () => {
-  it("does not redirect merely because a completed session was restored on mount", () => {
-    expect(shouldNavigateCompletedThreeCoin({
-      ...completeState,
-      completionNavigationArmed: false,
-    })).toBe(false);
+  it("redirects when a completed session is restored on mount", () => {
+    expect(shouldNavigateCompletedThreeCoin(completeState)).toBe(true);
   });
 
   it("navigates only after the newly persisted sixth line has visually settled", () => {
@@ -34,7 +30,6 @@ describe("ThreeCoinTool completion navigation", () => {
       complete: false,
       visuallyComplete: false,
       hasReadingMeta: false,
-      completionNavigationArmed: false,
     })).toBe(false);
   });
 });
