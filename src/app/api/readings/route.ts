@@ -403,16 +403,42 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
-  // Local/test memory mode keeps its existing repository semantics. Production
-  // idempotency is enforced by the stable UUID persisted as casting_sessions.id.
+  const existingMemorySession = repo.getCastingSession(clientCastingId);
+  if (existingMemorySession) {
+    const existingResult = repo.getCastResult(clientCastingId);
+    const matches = existingMemorySession.userId === userId
+      && existingMemorySession.deletedAt == null
+      && existingMemorySession.method === method
+      && existingMemorySession.algorithmVersion === algorithmVersion
+      && normalizeScene(existingMemorySession.scene) === scene
+      && existingMemorySession.interpretationGoal === interpretationGoal
+      && existingMemorySession.questionFingerprint === fingerprint
+      && sameNumberArray(existingResult?.lineValues ?? null, lineValuesBottomUp)
+      && JSON.stringify(canonicalJson(existingResult?.methodCalculation ?? null))
+        === JSON.stringify(canonicalJson(methodCalculation));
+    if (!matches) return json({ error: "READING_IDEMPOTENCY_CONFLICT" }, 409);
+    return json({ castingId: clientCastingId, idempotent: true }, 200);
+  }
+
   const memorySession = repo.createCastingSession({
+    id: clientCastingId,
     userId,
     anonHash: null,
     method,
     scene,
     interpretationGoal: interpretationGoal as any,
     algorithmVersion,
+    questionFingerprint: fingerprint,
+    fingerprintKeyVersion: fingerprint ? fingerprintKeyVersion : null,
   });
+  if (questionText) {
+    repo.addQuestionVersion({
+      castingSessionId: memorySession.id,
+      context: questionText,
+      versionNumber: 1,
+      reason: "initial",
+    });
+  }
   repo.saveCastResult({
     castingSessionId: memorySession.id,
     lineValues: [...lineValuesBottomUp],
