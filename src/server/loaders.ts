@@ -1,6 +1,8 @@
 import { repo } from "@/server/repository";
 import { getCurrentUser, getAnonymousHash } from "@/lib/auth/session";
 import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
+import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
+import type { LineValue } from "@/domain/casting/types";
 import { evaluateRisk } from "@/domain/risk/engine";
 import type { CastingSession } from "@/server/repository";
 import type { DeepReadingContextSnapshot } from "@/domain/generation/deep-reading-contract";
@@ -212,7 +214,12 @@ export async function loadMyReadings(
     lifecycle: string;
     riskStatus: string;
     createdAt: Date;
-    primaryName: string | null;
+    primaryHexagramNumber: number;
+    primaryName: string;
+    lineValues: readonly LineValue[];
+    movingLinePositions: readonly number[];
+    relatingHexagramNumber: number | null;
+    relatingName: string | null;
     question: string | null;
     hasPreview: boolean;
     hasReading: boolean;
@@ -242,7 +249,8 @@ export async function loadMyReadings(
       left join preview_results p on p.casting_id = s.id
       left join deep_reading_results d on d.casting_id = s.id
       where s.user_id = ${user.id} and s.deleted_at is null
-        and s.lifecycle = 'revealed' and s.method = 'three_coin'
+        and s.lifecycle = 'revealed'
+        and s.method in ('three_coin', 'yarrow_stalk', 'mei_hua_number_time', 'mei_hua_current_time')
       order by s.created_at desc
     ` as Array<Record<string, any>>;
 
@@ -251,7 +259,10 @@ export async function loadMyReadings(
       && r.line_values.every((value: unknown) => typeof value === "number" && [6, 7, 8, 9].includes(value))
       && Number.isInteger(r.primary_hexagram_number) && r.primary_hexagram_number >= 1 && r.primary_hexagram_number <= 64
     ).map((r) => {
-      const hexNum = r.primary_hexagram_number != null ? Number(r.primary_hexagram_number) : null;
+      const hexNum = Number(r.primary_hexagram_number);
+      const lineValues = r.line_values.map((value: unknown) => Number(value)) as LineValue[];
+      const computed = buildHexagramResult({ lineValuesBottomUp: lineValues, method: "three_coin" });
+      const relatingNum = computed.relatingHexagramNumber;
       return {
         id: String(r.id),
         question: r.question_version_id == null ? null : decryptQuestionForGeneration(r),
@@ -260,19 +271,26 @@ export async function loadMyReadings(
         lifecycle: String(r.lifecycle),
         riskStatus: String(r.risk_status),
         createdAt: new Date(r.created_at),
-        primaryName: hexNum ? (locale === "zh-Hans" ? hexagramByNumber(hexNum).chineseName : hexagramByNumber(hexNum).englishName) : null,
+        primaryHexagramNumber: hexNum,
+        primaryName: locale === "zh-Hans" ? hexagramByNumber(hexNum).chineseName : hexagramByNumber(hexNum).englishName,
+        lineValues,
+        movingLinePositions: computed.movingLinePositions,
+        relatingHexagramNumber: relatingNum,
+        relatingName: relatingNum == null ? null : (locale === "zh-Hans" ? hexagramByNumber(relatingNum).chineseName : hexagramByNumber(relatingNum).englishName),
         hasPreview: r.preview_id != null,
         hasReading: r.reading_id != null,
       };
     });
   }
 
+  const historyMethods = new Set(["three_coin", "yarrow_stalk", "mei_hua_number_time", "mei_hua_current_time"]);
   return repo.listCastsForUser(user.id).filter((s) =>
-    s.method === "three_coin" && repo.canReadRevealedResult(s.id, user.id) && !!repo.getCastResult(s.id)
+    historyMethods.has(s.method) && repo.canReadRevealedResult(s.id, user.id) && !!repo.getCastResult(s.id)
   ).map((s) => {
-    const cr = repo.getCastResult(s.id);
+    const cr = repo.getCastResult(s.id)!;
     const preview = repo.getPreview(s.id);
     const reading = repo.getReadingByCasting(s.id);
+    const lineValues = cr.lineValues as LineValue[];
     return {
       id: s.id,
       question: repo.getLatestQuestionContext(s.id) || null,
@@ -281,7 +299,12 @@ export async function loadMyReadings(
       lifecycle: s.lifecycle,
       riskStatus: s.riskStatus,
       createdAt: s.createdAt,
-      primaryName: cr ? (locale === "zh-Hans" ? hexagramByNumber(cr.primaryHexagramNumber).chineseName : hexagramByNumber(cr.primaryHexagramNumber).englishName) : null,
+      primaryHexagramNumber: cr.primaryHexagramNumber,
+      primaryName: locale === "zh-Hans" ? hexagramByNumber(cr.primaryHexagramNumber).chineseName : hexagramByNumber(cr.primaryHexagramNumber).englishName,
+      lineValues,
+      movingLinePositions: cr.movingLinePositions,
+      relatingHexagramNumber: cr.relatingHexagramNumber,
+      relatingName: cr.relatingHexagramNumber == null ? null : (locale === "zh-Hans" ? hexagramByNumber(cr.relatingHexagramNumber).chineseName : hexagramByNumber(cr.relatingHexagramNumber).englishName),
       hasPreview: !!preview && preview.status === "completed",
       hasReading: !!reading && reading.status === "completed",
     };

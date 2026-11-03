@@ -1,0 +1,13 @@
+[Browser Gate] Checking initial HTML, canonical URLs, sitemap, robots, redirects, 404/410 and internal links
+[Browser Gate] HTTP/SEO gate PASS; 187 internal links checked
+[Browser Gate] Launching Chromium at /Applications/Google Chrome.app/Contents/MacOS/Google Chrome (system runner)
+[Browser Gate] Desktop Three Coin → commit/reveal/cancel semantics PASS
+[Browser Gate] Desktop homepage → Three Coin → completed cast → anonymous summary PASS
+[Browser Gate] Desktop Yarrow → resume → V1 result/reset PASS
+[Browser Gate] Desktop Mei Hua → three-step locked cast PASS
+[Browser Gate] 375px homepage → Three Coin → anonymous summary PASS
+[Browser Gate] 375px Yarrow → V1 result PASS
+[Browser Gate] 375px Mei Hua → three-step locked cast PASS
+[Browser Gate] 320px navigation/single-stage/footer PASS
+[Browser Gate] 390px navigation/single-stage/footer PASS
+[Browser Gate] ALL BROWSER/HTTP GATES PASS

@@ -1,0 +1,9 @@
+[Three-Coin V2 Browser Gate] Result SEO + clean 404 metadata PASS
+[Three-Coin V2 Browser Gate] Invalid direct result URL PASS
+[Three-Coin V2 Browser Gate] sessionStorage read failure blocks casting before the question is persisted PASS
+[Three-Coin V2 Browser Gate] sessionStorage setItem fail-fast + same-cast retry + visual record PASS
+[Three-Coin V2 Browser Gate] 1440px completed-cast summary / refresh / back / forward PASS
+[Three-Coin V2 Browser Gate] 320px completed-cast summary / refresh / back / forward PASS
+[Three-Coin V2 Browser Gate] 375px completed-cast summary / refresh / back / forward PASS
+[Three-Coin V2 Browser Gate] 390px completed-cast summary / refresh / back / forward PASS
+[Three-Coin V2 Browser Gate] ALL THREE-COIN V2 ANONYMOUS-SUMMARY GATES PASS

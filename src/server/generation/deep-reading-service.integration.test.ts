@@ -99,7 +99,7 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
   const userTwoId = "cp5-deep-user-2";
   const userZeroId = "cp5-deep-user-zero";
 
-  it.each(["three_coin", "yarrow_stalk", "mei_hua_current_time"] as const)("derives a sealed %s snapshot with default English and one reservation", async (method) => {
+  it.each(["three_coin", "yarrow_stalk", "mei_hua_number_time"] as const)("derives a sealed %s snapshot with default English and one reservation", async (method) => {
     const userId = `method-${randomUUID()}`;
     const { castingId } = await seedDeepReadingCandidateWithCredit(userId, method);
     const facts = { ...castFacts, method };
@@ -112,6 +112,14 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     const retry = await deepReadingService.requestDeepReading({ userId, castingId, locale: "zh-Hans" });
     expect(retry.jobId).toBe(result.jobId);
     expect(retry.creditReservationCreated).toBe(false);
+  });
+
+  it("keeps historical mei_hua_current_time read-only and does not reserve a new credit", async () => {
+    const userId = `historical-mei-${randomUUID()}`;
+    const { castingId, batchId } = await seedDeepReadingCandidateWithCredit(userId, "mei_hua_current_time");
+    await expect(deepReadingService.requestDeepReading({ userId, castingId })).rejects.toThrow("LEGACY_DEEP_READING_READ_ONLY");
+    const batches = await sql`select quantity_available, quantity_reserved, quantity_consumed from entitlement_batches where id = ${batchId}`;
+    expect(batches[0]).toMatchObject({ quantity_available: 1, quantity_reserved: 0, quantity_consumed: 0 });
   });
 
   it.each(["queued", "running"])("fails legacy %s work and releases the reservation without regenerating", async (status) => {

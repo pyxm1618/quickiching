@@ -1,4 +1,4 @@
-import React from "react";
+import React, { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -136,7 +136,7 @@ const mockWindow: any = {
 
 mockDoc.defaultView = mockWindow;
 
-(globalThis as any).IS_REACT_ACT_ENVIRONMENT = false;
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 (globalThis as any).React = React;
 (globalThis as any).HTMLIFrameElement = class HTMLIFrameElement {};
 (globalThis as any).Element = MockElement;
@@ -150,6 +150,20 @@ async function flushMicrotasks() {
   for (let i = 0; i < 20; i++) {
     await Promise.resolve();
   }
+}
+
+async function renderAndFlush(root: Root, element: React.ReactElement) {
+  await act(async () => {
+    root.render(element);
+    await flushMicrotasks();
+  });
+}
+
+async function advanceTimersAndFlush(ms: number) {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+    await flushMicrotasks();
+  });
 }
 
 describe("CheckoutReturnRecovery actual React component lifecycle", () => {
@@ -166,8 +180,10 @@ describe("CheckoutReturnRecovery actual React component lifecycle", () => {
   });
 
   afterEach(async () => {
-    root.unmount();
-    await flushMicrotasks();
+    await act(async () => {
+      root.unmount();
+      await flushMicrotasks();
+    });
     vi.useRealTimers();
   });
 
@@ -181,40 +197,32 @@ describe("CheckoutReturnRecovery actual React component lifecycle", () => {
     writeCheckoutReturnContext(mockStorage, initialContext);
 
     // 1. 初始挂载：credits 为 0（未到账）
-    root.render(React.createElement(CheckoutReturnRecovery, { credits: 0 }));
-    await flushMicrotasks();
-    await vi.advanceTimersByTimeAsync(0);
-    await flushMicrotasks();
+    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, { credits: 0 }));
+    await advanceTimersAndFlush(0);
 
     expect(mockRouter.refresh).not.toHaveBeenCalled();
 
     // 2. 推进 5000ms -> 第 1 次轮询 tick 触发
-    await vi.advanceTimersByTimeAsync(5000);
-    await flushMicrotasks();
+    await advanceTimersAndFlush(5000);
     expect(mockRouter.refresh).toHaveBeenCalledTimes(1);
 
     // 3. 再次推进 5000ms -> 第 2 次轮询 tick 触发（证明 credits 没变时依然持续轮询）
-    await vi.advanceTimersByTimeAsync(5000);
-    await flushMicrotasks();
+    await advanceTimersAndFlush(5000);
     expect(mockRouter.refresh).toHaveBeenCalledTimes(2);
 
     // 4. 再次推进 5000ms -> 第 3 次轮询 tick 触发
-    await vi.advanceTimersByTimeAsync(5000);
-    await flushMicrotasks();
+    await advanceTimersAndFlush(5000);
     expect(mockRouter.refresh).toHaveBeenCalledTimes(3);
 
     // 5. 额度稍后到账！重新渲染组件：credits 变为 1
-    root.render(React.createElement(CheckoutReturnRecovery, { credits: 1 }));
-    await flushMicrotasks();
-    await vi.advanceTimersByTimeAsync(0);
-    await flushMicrotasks();
+    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, { credits: 1 }));
+    await advanceTimersAndFlush(0);
 
     // 验证：sessionStorage context 被清除，且通过 location.assign 返回原起卦页
     expect(mockStorage.getItem(CHECKOUT_RETURN_CONTEXT_KEY)).toBeNull();
     expect(mockAssign).toHaveBeenCalledWith("/readings/three-coin/result?id=test-casting-123");
     const refreshesAtCompletion = mockRouter.refresh.mock.calls.length;
-    await vi.advanceTimersByTimeAsync(10_000);
-    await flushMicrotasks();
+    await advanceTimersAndFlush(10_000);
     expect(mockRouter.refresh.mock.calls.length).toBe(refreshesAtCompletion);
   });
 
@@ -228,28 +236,23 @@ describe("CheckoutReturnRecovery actual React component lifecycle", () => {
     writeCheckoutReturnContext(mockStorage, initialContext);
 
     // 初始挂载
-    root.render(React.createElement(CheckoutReturnRecovery, { credits: 0 }));
-    await flushMicrotasks();
-    await vi.advanceTimersByTimeAsync(0);
-    await flushMicrotasks();
+    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, { credits: 0 }));
+    await advanceTimersAndFlush(0);
 
     // 推进 25000ms (5 次 5000ms 轮询)
     for (let i = 0; i < 5; i++) {
-      await vi.advanceTimersByTimeAsync(5000);
-      await flushMicrotasks();
+      await advanceTimersAndFlush(5000);
     }
     const refreshesBeforeTimeout = mockRouter.refresh.mock.calls.length;
     expect(refreshesBeforeTimeout).toBe(5);
 
     // 超过 30s 窗口（推进到 31000ms）
-    await vi.advanceTimersByTimeAsync(6000);
-    await flushMicrotasks();
+    await advanceTimersAndFlush(6000);
 
     const refreshesAtTimeout = mockRouter.refresh.mock.calls.length;
 
     // 再次推进 5000ms，验证轮询彻底停止，不再产生新的 refresh 调用
-    await vi.advanceTimersByTimeAsync(5000);
-    await flushMicrotasks();
+    await advanceTimersAndFlush(5000);
     expect(mockRouter.refresh.mock.calls.length).toBe(refreshesAtTimeout);
 
     // 从未跳转

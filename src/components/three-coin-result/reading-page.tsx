@@ -2,7 +2,7 @@ import "@/components/public-reading/ritual.css";
 import { visualRuntimeAssets } from "@/lib/visual-runtime-assets";
 import { getCurrentUser } from "@/lib/auth/session";
 import { loadCastingView, loadEntitlementBalance } from "@/server/loaders";
-import { ThreeCoinResultClient } from "./three-coin-result-client";
+import { ReadingResultClient } from "@/components/reading-result/reading-result-client";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
 import {
@@ -36,7 +36,7 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
     ? normalizeDeepReadingViewModel(castingView.reading.report, castingView.reading.snapshot)
     : null;
   const initialDeepReadingContext = normalizeDeepReadingContext(castingView?.reading?.snapshot);
-  const client = <ThreeCoinResultClient pageMode={pageMode} locale={locale} initialSessionId={sessionId}
+  const client = <ReadingResultClient pageMode={pageMode} locale={locale} initialSessionId={sessionId}
     initialUser={user ? {id:user.id,email:user.email} : null} initialCredits={balance.available}
     initialInterpretationBundles={initialInterpretationBundles} initialLocalizedContent={initialLocalizedContent}
     initialCastingView={castingView ? {
@@ -54,6 +54,7 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
   return <div data-realm="chamber" className="ritual-result-scene">
     <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
     <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
+    <link rel="preload" as="image" href="/navigation/scroll-64-hexagrams-no-text.webp" media="(max-width:800px)" />
     <div className="ritual-room" aria-hidden="true" />
     {client}
   </div>;

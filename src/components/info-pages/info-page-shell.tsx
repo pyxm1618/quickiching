@@ -24,6 +24,8 @@ export function InfoPageShell({ title, lead, meta, variant = "standard", seoPrim
 
   return (
     <div className={styles.page} data-info-page="true" data-info-kind={variant}>
+      <link rel="preload" as="image" href="/info-pages/shared/info-page-background.webp" media="(max-width: 760px)" fetchPriority="high" />
+      <link rel="preload" as="image" href="/info-pages/shared/title-brush-stroke.webp" media="(max-width: 760px)" fetchPriority="high" />
       {seoPrimary ? (
         <article className={styles.inner} data-seo-primary={seoPrimary}>{content}</article>
       ) : (

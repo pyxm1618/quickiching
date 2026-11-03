@@ -1,0 +1,9 @@
+[Logo Browser Gate] Favicon/icon endpoints PASS
+[Logo Browser Gate] Desktop Homepage brand chrome PASS
+[Logo Browser Gate] Desktop Three-Coin brand chrome PASS
+[Logo Browser Gate] Desktop Yarrow brand chrome PASS
+[Logo Browser Gate] Desktop Mei Hua brand chrome PASS
+[Logo Browser Gate] Desktop Guide brand chrome PASS
+[Logo Browser Gate] Desktop Hexagrams immersive chrome PASS
+[Logo Browser Gate] 375px Homepage brand/navigation/footer PASS
+[Logo Browser Gate] ALL LOGO / FAVICON BROWSER ACCEPTANCE GATES PASS

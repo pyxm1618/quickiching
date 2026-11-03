@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 import { useRouter } from "next/navigation";
+import { buildPublicReading } from "@/domain/public-reading/reading";
+import { completedPublicReadingPath, writeCompletedPublicReading } from "@/lib/completed-public-reading";
 import { ThreeCoinVisual } from "./three-coin-visual";
 import { RitualCastPresentation } from "./ritual-cast-presentation";
 import { CAST_ACTION_MS, COIN_RESET_MS, COIN_EXIT_MS } from "./three-coin-motion";
@@ -109,6 +111,16 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
   const lines = useMemo(() => steps.map((step) => step.lineValue), [steps]);
   const revealedSteps = useMemo(() => steps.slice(0, revealedCount), [steps, revealedCount]);
   const complete = lines.length === 6;
+  const completedReading = useMemo(() => complete && readingMeta
+    ? buildPublicReading({
+        id: readingMeta.id,
+        createdAt: readingMeta.createdAt,
+        method: "three-coin",
+        question: questionContext.coreQuestionAtCast ?? questionContext.question,
+        lineValuesBottomUp: lines,
+        evidence: { kind: "three-coin", steps },
+      })
+    : null, [complete, lines, questionContext.coreQuestionAtCast, questionContext.question, readingMeta, steps]);
   const visuallyComplete = revealedCount === 6;
   const settledUnrecordedStep = motion === "settled" && steps.length > revealedCount
     ? steps[revealedCount] ?? null
@@ -138,14 +150,21 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
       resultNavigationStarted: resultNavigationStartedRef.current,
     })) return;
 
-    if (!readingMeta) return;
-    const resultPath = `${zh ? "/zh" : ""}/readings/three-coin/result?session=${encodeURIComponent(readingMeta.id)}`;
+    if (!readingMeta || !completedReading) return;
+    try {
+      writeCompletedPublicReading(completedReading);
+      setStorageError(null);
+    } catch (error: unknown) {
+      setStorageError(storageErrorCode(error));
+      return;
+    }
+    const resultPath = completedPublicReadingPath(completedReading.id, zh);
     const navigation=setTimeout(()=>{
       resultNavigationStartedRef.current=true;
       router.push(resultPath);
     },window.matchMedia("(prefers-reduced-motion: reduce)").matches?160:COIN_EXIT_MS);
     return ()=>clearTimeout(navigation);
-  }, [complete, readingMeta, restored, router, storageBlocked, unpersistedCommit, visuallyComplete, zh]);
+  }, [complete, completedReading, readingMeta, restored, router, storageBlocked, unpersistedCommit, visuallyComplete, zh]);
 
   function audio(): AudioContext | null {
     if (!soundOn || typeof window === "undefined") return null;

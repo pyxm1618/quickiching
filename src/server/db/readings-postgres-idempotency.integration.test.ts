@@ -14,10 +14,11 @@ vi.mock("@/lib/auth/session", () => ({
 }));
 
 import { generateYarrowLine } from "@/domain/casting/yarrow/algorithm";
-import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
+import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
 import { getActiveResultIntegrityKey, resultIntegrityHmac } from "@/server/generation/integrity";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { POST as saveReading } from "@/app/api/readings/route";
+import { loadMyReadings } from "@/server/loaders";
 import { closeCommercialDatabaseConnection } from "./client";
 
 /**
@@ -123,15 +124,17 @@ describe("POST /api/readings Postgres idempotency (integration)", () => {
   });
 
   it("persists all method identities, verified facts and evidence without cross-method idempotency reuse", async () => {
-    await createUser();
+    const userId = await createUser();
+    const historyIds: string[] = [];
     const yarrow = Array.from({ length: 6 }, (_, index) => generateYarrowLine(index as 0, () => 1));
-    const instant = { utcMillis: Date.UTC(2026, 9, 31, 12), ianaTimeZone: "Asia/Shanghai" };
-    const meiHua = meiHuaFromUtc(instant.utcMillis, instant.ianaTimeZone);
+    const instant = { number: 29, utcMillis: Date.UTC(2026, 9, 31, 12), ianaTimeZone: "Asia/Shanghai" };
+    const meiHua = meiHuaFromNumberAndTime(instant);
     for (const source of [
       { method: "yarrow_stalk" as const, lineValuesBottomUp: yarrow.map(line => line.lineValue), methodCalculation: { changes: yarrow.flatMap(line => line.changes) } },
-      { method: "mei_hua_current_time" as const, lineValuesBottomUp: meiHua.lineValuesBottomUp, methodCalculation: instant },
+      { method: "mei_hua_number_time" as const, lineValuesBottomUp: meiHua.lineValuesBottomUp, methodCalculation: instant },
     ]) {
       const clientCastingId = randomUUID();
+      historyIds.push(clientCastingId);
       const input = { clientCastingId, ...source };
       expect((await saveReading(saveRequest(input))).status).toBe(201);
       expect((await saveReading(saveRequest(input))).status).toBe(200);
@@ -150,6 +153,8 @@ describe("POST /api/readings Postgres idempotency (integration)", () => {
         select ${legacyId}, line_values, primary_hexagram_number, moving_line_positions, relating_hexagram_number, method_calculation, 'invalid-version', classic_mapping_version, result_hmac, result_hmac_key_version, created_at from cast_results where casting_id = ${clientCastingId}`;
       expect((await saveReading(saveRequest({ ...input, clientCastingId: legacyId }))).status).toBe(409);
     }
+    const history = await loadMyReadings({ id: userId, email: `${userId}@test.example` });
+    for (const historyId of historyIds) expect(history.some((entry) => entry.id === historyId)).toBe(true);
   });
 
   it("same clientCastingId retry returns existing row, no duplicate", async () => {

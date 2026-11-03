@@ -37,14 +37,19 @@ function assertQuality(label, metrics, indexable = true, enforcePerformance = tr
 async function seedManualReading(page, origin) {
   await page.goto(`${origin}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(() => {
-    sessionStorage.setItem("quickiching:question:manual-cast:started", "true");
+    sessionStorage.removeItem("quickiching:question:manual-cast:started");
     sessionStorage.removeItem("quickiching:question:manual-cast:question");
     sessionStorage.setItem("quickiching:public-v1:manual-cast", JSON.stringify({
+      schemaVersion: 1,
       id: "lighthouse-manual-reading",
       createdAt: "2026-08-19T00:00:00.000Z",
-      mode: "line-values",
-      lineValuesBottomUp: [9, 7, 8, 7, 8, 7],
-      evidence: { kind: "manual", mode: "line-values" },
+      started: true,
+      coreQuestionFrozenAtCast: true,
+      data: {
+        mode: "line-values",
+        lineValuesBottomUp: [9, 7, 8, 7, 8, 7],
+        evidence: { kind: "manual", mode: "line-values" },
+      },
     }));
   });
 }

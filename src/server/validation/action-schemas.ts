@@ -14,18 +14,9 @@ const orderId = identifier("ord");
 const email = z.string().trim().toLowerCase().email();
 const questionContext = z.string().trim().min(QUESTION_MIN_CHARS).max(QUESTION_MAX_CHARS);
 const reviewReason = z.string().trim().min(1).max(2000);
-const ianaTimeZone = z.string().trim().refine((value) => {
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: value }).format();
-    return true;
-  } catch {
-    return false;
-  }
-});
-
 export const actionSchemas = {
   createCastingSession: z.object({
-    method: z.enum(["three_coin", "yarrow_stalk", "mei_hua_current_time"]),
+    method: z.enum(["three_coin", "yarrow_stalk"]),
     scene: z.enum(SCENES),
     interpretationGoal: z.enum(INTERPRETATION_GOALS),
   }),
@@ -38,7 +29,6 @@ export const actionSchemas = {
     lineIndex: z.number().int().min(0).max(5),
     changeIndex: z.number().int().min(0).max(2),
   }),
-  createMeiHuaResult: z.object({ castingId, ianaTimeZone }),
   revealCasting: z.object({ castingId, email }),
   createCheckout: z.object({ productId: z.enum(["one", "three", "five"]) }),
   simulatePayment: z.object({ orderId }),

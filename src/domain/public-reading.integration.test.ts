@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
-import { meiHuaFromFields } from "@/domain/casting/mei-hua/algorithm";
+import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
 import { generateThreeCoinLine } from "@/domain/casting/three-coin/algorithm";
 import { generateYarrowLine } from "@/domain/casting/yarrow/algorithm";
 import { buildBasicReading } from "@/domain/interpretation/basic";
@@ -40,9 +40,9 @@ describe("Public V1 free reading integration", () => {
     expect(reading.primaryInterpretation.summary).toBeTruthy();
   });
 
-  it("completes Mei Hua current-time through primary, one moving line, relating and free interpretation", () => {
-    const meiHua = meiHuaFromFields({ year: 2026, month: 8, day: 10, hour: 14, ianaTimeZone: "Asia/Singapore" });
-    const result = buildHexagramResult({ lineValuesBottomUp: meiHua.lineValuesBottomUp, method: "mei_hua_current_time", algorithmVersion: meiHua.algorithmVersion });
+  it("completes Mei Hua number + moment through primary, one moving line, relating and free interpretation", () => {
+    const meiHua = meiHuaFromNumberAndTime({ number: 17, utcMillis: Date.UTC(2026, 7, 10, 6), ianaTimeZone: "Asia/Singapore" });
+    const result = buildHexagramResult({ lineValuesBottomUp: meiHua.lineValuesBottomUp, method: "mei_hua_number_time", algorithmVersion: meiHua.algorithmVersion });
     const reading = buildBasicReading(result);
     expect(result.movingLinePositions).toHaveLength(1);
     expect(result.relatingHexagramNumber).not.toBeNull();

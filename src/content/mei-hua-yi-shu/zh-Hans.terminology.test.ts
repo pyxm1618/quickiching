@@ -3,14 +3,14 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { ZH_HANS_MEI_HUA_CONTENT, ZH_HANS_READING_CONTENT } from "./zh-Hans";
 
 describe("Simplified Chinese terminology boundaries", () => {
-  it("labels the Gregorian adapter and recorded calculation fields precisely", () => {
-    const dictionary = getDictionary("zh-Hans");
-    expect(dictionary.meiHua.kicker).toContain("公历");
-    expect(dictionary.meiHua.branch).toContain("序数");
-    expect(dictionary.meiHua.formulaDate).toBe("起卦计算日期");
-    expect(ZH_HANS_MEI_HUA_CONTENT.scope.supported).toContain("公历当前时间起卦");
-    expect(ZH_HANS_MEI_HUA_CONTENT.convention.paragraphs.join(" ")).toContain("产品采用");
-    expect(ZH_HANS_MEI_HUA_CONTENT.convention.paragraphs.join(" ")).toContain("不同传统流派");
+  it("labels the active number + moment convention precisely", () => {
+    const convention = ZH_HANS_MEI_HUA_CONTENT.convention.paragraphs.join(" ");
+    expect(ZH_HANS_MEI_HUA_CONTENT.scope.supported).toContain("一个用户数字 + 确认时刻起卦");
+    expect(ZH_HANS_MEI_HUA_CONTENT.scope.notSupported).toContain("旧版仅当前时间起卦");
+    expect(convention).toContain("按八取余");
+    expect(convention).toContain("按六取余");
+    expect(convention).toContain("不使用年月日");
+    expect(convention).toContain("IANA");
   });
 
   it("uses 大象（《象传》） and separates the three content layers", () => {

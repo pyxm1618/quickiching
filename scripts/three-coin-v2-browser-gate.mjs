@@ -4,9 +4,11 @@ import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
-const RESULT_PATH = "/readings/three-coin/result";
+const COMPLETED_READING_KEY = "quickiching:public-v1:completed-reading";
+const FIXTURE_CASTING_ID = "11111111-1111-4111-8111-111111111111";
+const RESULT_PATH = "/readings/result";
 const HOME_TITLE = "I Ching Online — Free Hexagram Reading | Quick I Ching";
-const HOME_DESCRIPTION = "Use the I Ching online with three coins, yarrow stalks, or Mei Hua Yi Shu. Cast your hexagram, see changing lines, and get a free basic interpretation.";
+const HOME_DESCRIPTION = "Use the I Ching online with Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, or Manual Cast. See changing lines and get a free grounded interpretation.";
 const NOT_FOUND_TITLE = "Page Not Found | Quick I Ching";
 const FIXTURE_STEPS = [
   { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
@@ -107,15 +109,29 @@ async function clickButton(page, label) {
 async function seedCompletedReadingStorage(page) {
   // Seed a sealed, question-free session using the current envelope format.
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.evaluate(({ key, steps }) => sessionStorage.setItem(key, JSON.stringify({
-    schemaVersion: 1,
-    id: "browser-gate-question-free-only",
-    createdAt: "2026-09-27T00:00:00.000Z",
-    started: true,
-    coreQuestionFrozenAtCast: true,
-    data: { steps },
-  })), {
+  await page.evaluate(({ key, completedKey, castingId, steps }) => {
+    const createdAt = "2026-09-27T00:00:00.000Z";
+    sessionStorage.setItem(key, JSON.stringify({
+      schemaVersion: 1,
+      id: castingId,
+      createdAt,
+      started: true,
+      coreQuestionFrozenAtCast: true,
+      data: { steps },
+    }));
+    sessionStorage.setItem(completedKey, JSON.stringify({
+      schemaVersion: 1,
+      id: castingId,
+      createdAt,
+      method: "three-coin",
+      methodVersion: "three-coin-v1",
+      lineValuesBottomUp: steps.map((step) => step.lineValue),
+      evidence: { kind: "three-coin", steps },
+    }));
+  }, {
     key: STORAGE_KEY,
+    completedKey: COMPLETED_READING_KEY,
+    castingId: FIXTURE_CASTING_ID,
     steps: FIXTURE_STEPS,
   });
 }
@@ -173,11 +189,11 @@ async function verifyInvalidResult(browser) {
     const response = await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
     assert.equal(response?.status(), 200, "Product result route should remain HTTP 200 even without a completed browser reading");
     await waitForText(page, "No completed reading found");
-    await waitForText(page, "Complete a six-line Three-Coin reading before opening a result.");
+    await waitForText(page, "Complete a casting method before opening its saved result.");
     const body = await resultText(page);
     assert(!body.includes("Fellowship"), "Invalid result state must not manufacture a reading");
-    const href = await page.$eval('a[href="/#three-coin-reading"]', (node) => node.getAttribute("href"));
-    assert.equal(href, "/#three-coin-reading");
+    const href = await page.$eval('a[href="/"]', (node) => node.getAttribute("href"));
+    assert.equal(href, "/");
     log("Invalid direct result URL PASS");
   } finally {
     await context.close();

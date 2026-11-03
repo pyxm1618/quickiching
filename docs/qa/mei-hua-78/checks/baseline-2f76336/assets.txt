@@ -1,0 +1,9 @@
+/(default)/page: initial JS with inherited layout 198226 bytes gzip (limit 240 KiB)
+/(default)/methods/three-coin/page: initial JS with inherited layout 198107 bytes gzip (limit 240 KiB)
+/(default)/readings/three-coin/result/page: initial JS with inherited layout 213653 bytes gzip (limit 240 KiB)
+/(default)/hexagrams/page: initial JS with inherited layout 148221 bytes gzip (limit 240 KiB)
+/(default)/hexagrams/[slug]/page: initial JS with inherited layout 143492 bytes gzip (limit 240 KiB)
+/(default)/my-readings/page: initial JS with inherited layout 143735 bytes gzip (limit 240 KiB)
+/(localized)/zh/hexagrams/page: initial JS with inherited layout 142925 bytes gzip (limit 240 KiB)
+/(localized)/zh/hexagrams/[slug]/page: initial JS with inherited layout 143603 bytes gzip (limit 240 KiB)
+Asset coverage: original=14 pass=14 deferred=0 reject=0 unknown=0. Sources and content hashes verified.
