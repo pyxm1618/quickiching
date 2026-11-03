@@ -1,4 +1,4 @@
-import { assertPerformanceBudget, metricsFromReport } from "./performance-budget.mjs";
+import { assertPerformanceBudget, PERFORMANCE_GATE_CONFIG, metricsFromReport } from "./performance-budget.mjs";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import puppeteer from "puppeteer-core";
@@ -28,8 +28,8 @@ function summarize(label, result) {
 }
 
 function assertQuality(label, metrics, indexable = true, enforcePerformance = true, desktop = false) {
-  assert(metrics.accessibility >= 90, `${label}: accessibility below 90`);
-  if (indexable) assert(metrics.seo >= 90, `${label}: SEO below 90`);
+  assert(metrics.accessibility >= PERFORMANCE_GATE_CONFIG.defaults.accessibilityMin, `${label}: accessibility below ${PERFORMANCE_GATE_CONFIG.defaults.accessibilityMin}`);
+  if (indexable) assert(metrics.seo >= PERFORMANCE_GATE_CONFIG.defaults.seoMin, `${label}: SEO below ${PERFORMANCE_GATE_CONFIG.defaults.seoMin}`);
   assert(metrics.cls <= 0.1, `${label}: CLS exceeds 0.10`);
   if (enforcePerformance) assertPerformanceBudget(label, metrics, desktop);
 }
