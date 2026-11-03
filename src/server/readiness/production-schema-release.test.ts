@@ -3,7 +3,6 @@ import {
   classifyAppliedMigrationHistory,
   classifyCurrentSchema,
   CURRENT_REQUIRED_SCHEMA_OBJECTS,
-  RETIRED_SCHEMA_OBJECTS,
   requireProductionDatabaseUrl,
   resolveProductionDatabaseUrl,
 } from "./production-schema-release";
@@ -58,24 +57,11 @@ describe("Production Drizzle schema release preflight", () => {
     ], async () => ({ }))).rejects.toThrow("PRODUCTION_DATABASE_URL_COUNT_INVALID:2");
   });
 
-  it("treats the 0012 schema with question_locks still present as pending 0013", () => {
-    expect(classifyCurrentSchema([
-      ...CURRENT_REQUIRED_SCHEMA_OBJECTS,
-      ...RETIRED_SCHEMA_OBJECTS,
-    ])).toEqual({
-      state: "pending",
-      present: [...CURRENT_REQUIRED_SCHEMA_OBJECTS],
-      missing: [],
-      retiredPresent: [...RETIRED_SCHEMA_OBJECTS],
-    });
-  });
-
-  it("treats current required objects without question_locks as complete", () => {
+  it("treats all current required objects as complete", () => {
     expect(classifyCurrentSchema([...CURRENT_REQUIRED_SCHEMA_OBJECTS])).toEqual({
       state: "complete",
       present: [...CURRENT_REQUIRED_SCHEMA_OBJECTS],
       missing: [],
-      retiredPresent: [],
     });
   });
 
@@ -84,7 +70,6 @@ describe("Production Drizzle schema release preflight", () => {
     expect(state.state).toBe("partial");
     expect(state.present).toHaveLength(CURRENT_REQUIRED_SCHEMA_OBJECTS.length - 1);
     expect(state.missing).toEqual(["table:deep_reading_context_snapshots"]);
-    expect(state.retiredPresent).toEqual([]);
   });
 
   it("allows only the exact journal prefix before the current migration", () => {
