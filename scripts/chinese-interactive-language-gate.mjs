@@ -452,24 +452,39 @@ async function main() {
       log(`Method simulation PASS: ${fixture.method} canonical completed-reading auth gate`);
     }
 
-    // 5.d: Manual Cast (/zh/methods/manual-cast)
+    // 5.d: Manual Cast -> canonical completed-reading -> shared result auth gate.
+    const manualId = "550e8400-e29b-41d4-a716-446655440104";
     await page.goto(`${BASE}/zh/methods/manual-cast`, { waitUntil: "networkidle0" });
-    await page.evaluate(() => {
+    await page.evaluate((id) => {
       sessionStorage.setItem("quickiching:public-v1:manual-cast", JSON.stringify({
         schemaVersion: 1,
         started: true,
-        id: "550e8400-e29b-41d4-a716-446655440104",
+        id,
         createdAt: new Date().toISOString(),
       }));
-    });
+    }, manualId);
     await page.reload({ waitUntil: "networkidle0" });
     const castManualBtn = await page.waitForSelector("section[aria-labelledby='manual-cast-tool-title'] button:not([role='tab']).mystic-button", { timeout: 5000 });
     await castManualBtn.click();
-    await page.waitForSelector("[data-public-reading-result]:not([data-reading-localization-loading]) [data-free-reading-ritual]", { timeout: 5000 });
-    const manualMethod = await page.$eval("[data-free-reading-ritual]", (el) => el.getAttribute("data-reading-method"));
-    assert.equal(manualMethod, "manual", `Manual cast result method mismatch: ${manualMethod}`);
-    await assertPurity(page, "Manual Cast Complete Reading View");
-    log("Method simulation PASS: manual-cast complete reading");
+    await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 10_000 });
+    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+    const manualState = await page.evaluate(() => {
+      const completedRaw = sessionStorage.getItem("quickiching:public-v1:completed-reading");
+      const currentRaw = sessionStorage.getItem("quickiching:public-v1:manual-cast");
+      return {
+        completed: completedRaw ? JSON.parse(completedRaw) : null,
+        current: currentRaw ? JSON.parse(currentRaw) : null,
+        resultVisible: document.querySelector("[data-public-reading-result]") !== null,
+      };
+    });
+    assert(manualState.completed, "Manual cast must write canonical completed-reading");
+    assert(manualState.current, "Manual cast must preserve the current formal session");
+    assert.equal(manualState.completed.method, "manual", "Manual completed-reading method mismatch");
+    assert.equal(manualState.completed.id, manualId, "Manual completed-reading must preserve the stable casting id");
+    assert.equal(manualState.current.id, manualId, "Manual current session must preserve the stable casting id");
+    assert.equal(manualState.resultVisible, false, "Unsigned Manual cast must remain behind auth-before-reveal");
+    await assertPurity(page, "Manual Cast Current Result Auth Gate");
+    log("Method simulation PASS: manual-cast canonical completed-reading auth gate");
 
     // =========================================================================
     // Test 6: Unified Result Route (/zh/readings/result) States
