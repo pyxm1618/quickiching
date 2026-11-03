@@ -176,22 +176,18 @@ async function main(): Promise<void> {
 
     if (action === "inspect") {
       console.log(JSON.stringify(report, null, 2));
-      if (beforeSchema.state === "partial"
-        || (beforeSchema.state === "pending" && beforeHistory !== "pending")
-        || (beforeSchema.state === "complete" && beforeHistory !== "complete")) {
+      if (beforeSchema.state === "partial" || beforeHistory !== "complete") {
         throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_MIGRATION_0013");
       }
       return;
     }
 
-    if (beforeSchema.state === "partial"
-      || (beforeSchema.state === "pending" && beforeHistory !== "pending")
-      || (beforeSchema.state === "complete" && beforeHistory !== "complete")) {
+    if (beforeSchema.state === "partial" || beforeHistory === "invalid") {
       console.log(JSON.stringify(report, null, 2));
       throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_MIGRATION_0013");
     }
 
-    if (beforeSchema.state === "pending" && beforeHistory === "pending") {
+    if (beforeHistory === "pending") {
       report.existingCommercialRowCounts = await readExistingRowCounts(sql);
       runOfficialDrizzleMigration(databaseUrl);
     }
