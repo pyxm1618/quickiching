@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { classifyChangedFiles } from "./select-gates.mjs";
+import { classifyChangedFiles, shouldForceFullContext } from "./select-gates.mjs";
 
 function pick(files) {
   return classifyChangedFiles(files);
@@ -67,4 +67,15 @@ test("push/main and workflow_dispatch can force FULL independently of diff", () 
   const r = classifyChangedFiles([], { forceFull: true });
   assert.equal(r.full, true);
   assert.equal(JSON.parse(r.performance_targets).length, 7);
+});
+
+test("integration and release PR contexts force FULL independently of changed paths", () => {
+  assert.equal(shouldForceFullContext("pull_request", "integration/quickiching-ui-redesign"), true);
+  assert.equal(shouldForceFullContext("pull_request", "release/2026-11"), true);
+  assert.equal(shouldForceFullContext("pull_request", "feature/small-copy"), false);
+});
+
+test("push main and workflow dispatch contexts force FULL", () => {
+  assert.equal(shouldForceFullContext("push", ""), true);
+  assert.equal(shouldForceFullContext("workflow_dispatch", ""), true);
 });
