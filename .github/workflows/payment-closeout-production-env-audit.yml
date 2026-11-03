@@ -1,4 +1,4 @@
-name: Production Schema Readiness & Drizzle Release
+name: RELEASE / Production Schema Readiness & Drizzle Release
 
 on:
   workflow_dispatch:
