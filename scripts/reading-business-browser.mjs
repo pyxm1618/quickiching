@@ -76,7 +76,7 @@ try {
    assert.equal(free.ctas,2); assert.equal(free.forms,0); assert.equal(free.overall,true);
    assert.equal(free.method,method==='three_coin'?'three-coin':method==='yarrow_stalk'?'yarrow-stalks':'mei-hua-yi-shu');
    assert.ok(free.text.includes(locale==='zh'?'整体解读':'Overall Reading'));
-   const deepLinks=await page.evaluate(()=>[...document.querySelectorAll('[data-deep-reading-cta]')].map(node=>node.getAttribute('href')));
+   const deepLinks=await page.evaluate(()=>[...document.querySelectorAll('[data-deep-reading-cta] a[href]')].map(node=>node.getAttribute('href')));
    assert.ok(deepLinks.length>=1);
    for(const href of deepLinks) {
     const url=new URL(href,fixtureBase);
