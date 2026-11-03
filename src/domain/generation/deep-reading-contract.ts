@@ -2,43 +2,10 @@ import { z } from "zod";
 import { deterministicFactsSchema } from "./schemas";
 import { SCENES, normalizeScene } from "@/domain/casting/types";
 
-const goalSchema = z.enum([
-  "what_do_i_need_to_see_clearly",
-  "what_should_i_pay_attention_to_next",
-  "how_should_i_act",
-  "what_is_the_likely_direction",
-]);
-
 const sceneSchema = z.preprocess(
   (value) => typeof value === "string" ? (normalizeScene(value) ?? value) : value,
   z.enum(SCENES),
 );
-const boundedText = (maximum: number) => z.string().trim().max(maximum);
-const contextList = z.array(z.string().trim().min(1).max(240)).max(8);
-
-function codePointCount(value: string): number {
-  return Array.from(value).length;
-}
-
-export const legacyDeepReadingContextEnrichmentSchema = z.object({
-  contextNotes: boundedText(2000).default(""),
-  options: contextList.default([]),
-  constraints: contextList.default([]),
-  concerns: contextList.default([]),
-  interpretationGoal: goalSchema,
-  locale: z.enum(["en", "zh-Hans"]),
-}).strict().superRefine((context, issueContext) => {
-  const contextText = [context.contextNotes, ...context.options, ...context.constraints, ...context.concerns]
-    .filter(Boolean)
-    .join(" ");
-  if (codePointCount(contextText) < 24) {
-    issueContext.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["contextNotes"],
-      message: "Add at least 24 characters of relevant situation context.",
-    });
-  }
-});
 
 export const deepReadingEvidenceSchema = z.object({
   id: z.string().min(1).max(120),
@@ -120,12 +87,15 @@ export const deepReadingKnowledgeBundleSchema = z.object({
   evidence: z.array(deepReadingEvidenceSchema).min(1).max(100),
 }).strict();
 
-export const legacyDeepReadingContextSnapshotSchema = z.object({
-  schemaVersion: z.literal("deep-reading-context-v1"),
+export const deepReadingRequestSchema = z.object({
+  locale: z.enum(["en", "zh-Hans"]).default("en"),
+}).strict();
+
+export const activeDeepReadingContextSnapshotSchema = z.object({
+  schemaVersion: z.literal("deep-reading-context-v2"),
   coreQuestionAtCast: z.string().trim().min(8).max(1000),
-  context: legacyDeepReadingContextEnrichmentSchema,
   scene: sceneSchema,
-  castMethod: z.literal("three_coin"),
+  castMethod: z.enum(["three_coin", "yarrow_stalk", "mei_hua_number_time"]),
   methodVersion: z.string().min(1).max(120),
   facts: deterministicFactsSchema,
   snapshotAt: z.string().datetime({ offset: true }),
@@ -136,39 +106,10 @@ export const legacyDeepReadingContextSnapshotSchema = z.object({
     reasonCode: z.string().min(1).max(120),
   }).strict(),
   knowledge: deepReadingKnowledgeBundleSchema,
-}).strict();
-
-export const legacyDeepReadingReportSchema = z.object({
-  schemaVersion: z.literal("deep-reading-v2"),
-  readingVariant: z.enum(["standard", "still_hexagram", "multiple_moving", "all_lines_moving"]),
-  directAnswer: z.string().trim().min(80).max(2400),
-  situationMapping: z.string().trim().min(80).max(3000),
-  keyTensions: z.array(z.string().trim().min(20).max(700)).min(1).max(4),
-  conditionalDirection: z.string().trim().min(80).max(2400),
-  signalsToWatch: z.array(z.string().trim().min(20).max(600)).min(1).max(5),
-  practicalReflection: z.string().trim().min(80).max(2400),
-  uncertaintyAndBoundaries: z.string().trim().min(80).max(2400),
-  interpretiveBasisReferences: z.array(z.object({
-    evidenceId: z.string().min(1).max(120),
-  }).strict()).min(1).max(20),
-  disclaimer: z.string().trim().min(20).max(600),
-}).strict();
-
-export const deepReadingRequestSchema = z.object({
-  locale: z.enum(["en", "zh-Hans"]).default("en"),
-}).strict();
-
-export const activeDeepReadingContextSnapshotSchema = legacyDeepReadingContextSnapshotSchema.omit({ context: true, castMethod: true, schemaVersion: true }).extend({
-  schemaVersion: z.literal("deep-reading-context-v2"),
-  castMethod: z.enum(["three_coin", "yarrow_stalk", "mei_hua_number_time", "mei_hua_current_time"]),
   locale: z.enum(["en", "zh-Hans"]),
 }).strict();
 
-// Historical snapshots remain decryptable and hash-compatible, but never generate new reports.
-export const deepReadingContextSnapshotSchema = z.union([
-  activeDeepReadingContextSnapshotSchema,
-  legacyDeepReadingContextSnapshotSchema,
-]);
+export const deepReadingContextSnapshotSchema = activeDeepReadingContextSnapshotSchema;
 export type ActiveDeepReadingContextSnapshot = z.infer<typeof activeDeepReadingContextSnapshotSchema>;
 
 export const readingReportSchema = z.object({
@@ -183,7 +124,6 @@ export const readingReportSchema = z.object({
   disclaimer: z.string().trim().min(20).max(600),
 }).strict();
 
-export type LegacyDeepReadingContextEnrichment = z.infer<typeof legacyDeepReadingContextEnrichmentSchema>;
 export type DeepReadingKnowledgeBundle = z.infer<typeof deepReadingKnowledgeBundleSchema>;
 export type DeepReadingContextSnapshot = z.infer<typeof deepReadingContextSnapshotSchema>;
 export type DeepReadingReport = z.infer<typeof readingReportSchema>;
