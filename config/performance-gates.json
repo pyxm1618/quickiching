@@ -23,7 +23,7 @@
       "device": "mobile",
       "metrics": {
         "performanceMin": 90,
-        "lcpMaxMs": 2750,
+        "lcpMaxMs": null,
         "accessibilityMin": 90,
         "seoMin": 90,
         "clsMax": 0.1,
@@ -182,5 +182,25 @@
   "productTargets": {
     "lcpGoodMs": 2500,
     "interactionLatencyMs": 200
+  },
+  "budgetDefaults": {
+    "mobile": {
+      "performanceMin": 90,
+      "lcpMaxMs": 2750,
+      "clsMax": 0.1,
+      "tbtMaxMs": 200,
+      "imageBytesMax": 786432,
+      "maxImageBytesMax": 262144,
+      "scriptBytesMax": 327680
+    },
+    "desktop": {
+      "performanceMin": 95,
+      "lcpMaxMs": 2750,
+      "clsMax": 0.1,
+      "tbtMaxMs": 200,
+      "imageBytesMax": 1572864,
+      "maxImageBytesMax": 786432,
+      "scriptBytesMax": 327680
+    }
   }
 }
