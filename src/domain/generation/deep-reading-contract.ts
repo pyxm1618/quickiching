@@ -107,7 +107,15 @@ export const activeDeepReadingContextSnapshotSchema = z.object({
   }).strict(),
   knowledge: deepReadingKnowledgeBundleSchema,
   locale: z.enum(["en", "zh-Hans"]),
-}).strict();
+}).strict().superRefine((snapshot, issueContext) => {
+  if (snapshot.castMethod !== snapshot.facts.method) {
+    issueContext.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["facts", "method"],
+      message: "Deep Reading snapshot method must match the sealed cast method.",
+    });
+  }
+});
 
 export const deepReadingContextSnapshotSchema = activeDeepReadingContextSnapshotSchema;
 export type ActiveDeepReadingContextSnapshot = z.infer<typeof activeDeepReadingContextSnapshotSchema>;
