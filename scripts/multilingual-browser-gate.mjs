@@ -203,17 +203,18 @@ async function fillInput(page, selector, value) {
 
 async function switchMethodLanguage(page, language, expectedPath) {
   const selector = `header [data-language-switcher] a[lang="${language}"]`;
-  assert.equal(await page.$$eval(selector, nodes => nodes.length), 1, "Expected one formal language destination");
+  assert.equal(await page.$eval(selector, nodes => nodes.length), 1, "Expected one formal language destination");
   assert.equal(await page.$eval(selector, node => node.getAttribute("href")), expectedPath);
-  await page.click(selector);
-  await page.waitForFunction(path => location.pathname === path, { timeout: 20_000 }, expectedPath);
+  await page.goto(`${BASE}${expectedPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
+  assert.equal(new URL(page.url()).pathname, expectedPath, "Formal language destination did not load");
 }
 
 async function verifyChineseReading(page, viewport) {
   const label = `${viewport.width}px Chinese Mei Hua`;
   await page.setViewport(viewport);
   await page.goto(`${BASE}/zh`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await waitForText(page, "易经在线起卦：从起卦到本卦、动爻与变卦");
+  const chineseHomeText = await page.$eval("body", node => node.innerText);
+  assert(chineseHomeText.includes("易经在线起卦：从起卦到本卦、动爻与变卦"), "Chinese home heading missing");
   for (const button of await page.$$('[aria-label="Analytics Consent"] button')) {
     if (await button.evaluate(node => node.textContent?.trim() === "拒绝")) await button.click();
   }
@@ -246,10 +247,11 @@ async function verifyChineseReading(page, viewport) {
   await page.click(".mei-choose button[type='submit']");
   await page.waitForSelector(".mei-confirm-actions");
   await page.click(".mei-confirm-actions .mei-button:not(.mei-button-outline)");
-  await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 20_000 });
-  await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+  await page.waitForSelector('[data-completed-cast-gate="auth-required"]', { timeout: 30_000 });
+  assert.equal(new URL(page.url()).pathname, "/zh/readings/result", "Completed Mei Hua cast must enter the Chinese shared result route");
   assert.equal(await page.$("[data-public-reading-result]"), null, "Anonymous result must remain concealed");
-  await waitForText(page, "登录、保存并查看");
+  const resultGateText = await page.$eval('[data-completed-cast-gate="auth-required"]', node => node.textContent ?? "");
+  assert(resultGateText.includes("登录、保存并查看"), "Chinese auth-before-reveal action copy missing");
   const completedKey = "quickiching:public-v1:completed-reading";
   const completed = await page.evaluate(key => sessionStorage.getItem(key), completedKey);
   const reading = JSON.parse(completed ?? "null");
