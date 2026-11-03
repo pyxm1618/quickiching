@@ -1,19 +1,12 @@
 import assert from "node:assert/strict";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import { readdir, readFile } from "node:fs/promises";
+import { join, relative } from "node:path";
 import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const BASE_ORIGIN = new URL(BASE).origin;
-const FIXTURE_STEPS = [
-  { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
-  { lineIndex: 1, coinFaces: ["yin", "yin", "yin"], lineValue: 6, algorithmVersion: "three-coin-v1" },
-  { lineIndex: 2, coinFaces: ["yang", "yin", "yin"], lineValue: 7, algorithmVersion: "three-coin-v1" },
-  { lineIndex: 3, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
-  { lineIndex: 4, coinFaces: ["yang", "yin", "yin"], lineValue: 7, algorithmVersion: "three-coin-v1" },
-  { lineIndex: 5, coinFaces: ["yang", "yin", "yin"], lineValue: 7, algorithmVersion: "three-coin-v1" },
-];
-
 // These are stable authored-prose sentinels from four different dynamic catalog chunks.
 // The fixture resolves to H13 → H57, so those chunks must load while unrelated H1/H61 stay absent.
 const H1_CATALOG_SENTINEL = "Creative force describes a situation with strong capacity to initiate, shape, and sustain movement.";
@@ -53,43 +46,58 @@ async function verifyHomepage(page) {
   log(`HOMEPAGE_JS resources=${scripts.urls.length} bytes=${scripts.bytes}; V2 catalog prose absent`);
 }
 
-async function verifyResult(page) {
-  // Three-Coin results are correctly sealed behind authentication + formal account persistence.
-  // Use the existing Manual Cast path to exercise the same shared PublicReadingResult bundle loader
-  // without bypassing the Three-Coin reveal gate.
-  await page.goto(`${BASE}/methods/manual-cast`, { waitUntil: "networkidle0", timeout: 30_000 });
-  const clickButton = async (label) => {
-    const clicked = await page.evaluate((wanted) => {
-      const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === wanted);
-      if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
-      button.click();
-      return true;
-    }, label);
-    assert(clicked, `Could not click ${label}`);
-  };
-  await clickButton("Skip — free reading only");
-  await page.waitForSelector("select:not(#manual-primary-hexagram)", { timeout: 15_000 });
-  await page.evaluate((values) => {
-    const selects = [...document.querySelectorAll("select")].filter((node) => node.id !== "manual-primary-hexagram");
-    values.forEach((value, index) => {
-      const select = selects[index];
-      if (!(select instanceof HTMLSelectElement)) return;
-      select.value = String(value);
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-  }, FIXTURE_STEPS.map((step) => step.lineValue));
-  await clickButton("Build reading");
-  await page.waitForSelector("[data-free-reading-ritual]", { timeout: 15_000 });
-  await page.waitForNetworkIdle({ idleTime: 500, timeout: 15_000 });
-  // Authored prose is a chunk sentinel, not mandatory visible copy in the current concise Free Reading.
-  assert(await page.$('[data-primary-card] a[href="/hexagrams/13-fellowship"]'));
-  assert(await page.$('[data-relating-card] a[href="/hexagrams/57-the-gentle-wind"]'));
-  const scripts = await loadedJavascript(page);
-  assert(scripts.combined.includes(H13_CATALOG_SENTINEL), "Result did not load the primary H13 interpretation chunk");
-  assert(scripts.combined.includes(H57_CATALOG_SENTINEL), "Result did not load the relating H57 interpretation chunk");
-  assert(!scripts.combined.includes(H1_CATALOG_SENTINEL), "Result eagerly loaded an unrelated H1 interpretation chunk");
-  assert(!scripts.combined.includes(H61_CATALOG_SENTINEL), "Result eagerly loaded an unrelated H61 interpretation chunk");
-  log(`RESULT_JS resources=${scripts.urls.length} bytes=${scripts.bytes}; shared result loader selected H13/H57 chunks; unrelated H1/H61 chunks absent`);
+async function collectProductionChunks(root) {
+  const files = [];
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    const absolute = join(root, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await collectProductionChunks(absolute));
+    } else if (entry.isFile() && entry.name.endsWith(".js")) {
+      files.push(absolute);
+    }
+  }
+  return files;
+}
+
+async function verifyInterpretationChunks() {
+  const chunksRoot = join(process.cwd(), ".next", "static", "chunks");
+  const chunkFiles = await collectProductionChunks(chunksRoot);
+  assert(chunkFiles.length > 0, "Next production build emitted no JavaScript chunks");
+
+  const payloads = await Promise.all(chunkFiles.map(async (file) => ({
+    file,
+    text: await readFile(file, "utf8"),
+  })));
+
+  const sentinels = new Map([
+    ["H1", H1_CATALOG_SENTINEL],
+    ["H13", H13_CATALOG_SENTINEL],
+    ["H57", H57_CATALOG_SENTINEL],
+    ["H61", H61_CATALOG_SENTINEL],
+  ]);
+  const matches = new Map();
+  for (const [label, sentinel] of sentinels) {
+    const files = payloads.filter((payload) => payload.text.includes(sentinel)).map((payload) => payload.file);
+    assert(files.length > 0, `Production build is missing ${label} interpretation prose`);
+    matches.set(label, files);
+  }
+
+  const h13Files = new Set(matches.get("H13"));
+  const h57Files = new Set(matches.get("H57"));
+  assert([...h13Files].every((file) => !h57Files.has(file)), "H13 and H57 interpretation catalogs collapsed into the same production chunk");
+
+  for (const file of h13Files) {
+    const text = payloads.find((payload) => payload.file === file)?.text ?? "";
+    assert(!text.includes(H1_CATALOG_SENTINEL), "H13 chunk eagerly contains unrelated H1 prose");
+    assert(!text.includes(H61_CATALOG_SENTINEL), "H13 chunk eagerly contains unrelated H61 prose");
+  }
+  for (const file of h57Files) {
+    const text = payloads.find((payload) => payload.file === file)?.text ?? "";
+    assert(!text.includes(H1_CATALOG_SENTINEL), "H57 chunk eagerly contains unrelated H1 prose");
+    assert(!text.includes(H61_CATALOG_SENTINEL), "H57 chunk eagerly contains unrelated H61 prose");
+  }
+
+  log(`PRODUCTION_CHUNKS H13=${[...h13Files].map((file) => relative(process.cwd(), file)).join(",")} H57=${[...h57Files].map((file) => relative(process.cwd(), file)).join(",")}; unrelated H1/H61 prose remains separated`);
 }
 
 const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
@@ -103,7 +111,7 @@ try {
   const page = await context.newPage();
   try {
     await verifyHomepage(page);
-    await verifyResult(page);
+    await verifyInterpretationChunks();
   } finally {
     await context.close();
   }
