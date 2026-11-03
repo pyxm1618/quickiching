@@ -339,6 +339,7 @@ jobs:
     needs: [select, core, database, product, performance]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
       - name: Enforce required gate results
         env:
           SELECT_RESULT: ${{ needs.select.result }}
