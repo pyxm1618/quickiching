@@ -76,7 +76,20 @@ try {
    assert.equal(free.ctas,2); assert.equal(free.forms,0); assert.equal(free.overall,true);
    assert.equal(free.method,method==='three_coin'?'three-coin':method==='yarrow_stalk'?'yarrow-stalks':'mei-hua-yi-shu');
    assert.ok(free.text.includes(locale==='zh'?'整体解读':'Overall Reading'));
-   evidence.push({locale,method,free:{ctas:free.ctas,forms:free.forms,overall:free.overall,method:free.method}});
+   const deepLinks=await page.$eval('[data-deep-reading-cta]',nodes=>nodes.map(node=>node.getAttribute('href')));
+   assert.ok(deepLinks.length>=1);
+   for(const href of deepLinks) {
+    const url=new URL(href,fixtureBase);
+    assert.equal(url.pathname,locale==='zh'?'/zh/readings/deep':'/readings/deep');
+    assert.equal(url.searchParams.get('session'),'browser-fixture-cast');
+   }
+   evidence.push({locale,method,free:{ctas:free.ctas,forms:free.forms,overall:free.overall,method:free.method},freeToDeepSameCast:true});
+   const freeUrl=page.url();
+   await page.reload({waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-public-reading-result] [data-free-reading-ritual]');
+   const deepAfterReload=await page.$eval('[data-deep-reading-cta]',node=>node.getAttribute('href'));
+   assert.equal(new URL(deepAfterReload,fixtureBase).searchParams.get('session'),'browser-fixture-cast');
+   assert.equal(page.url(),freeUrl);
    if(method==='three_coin') await captureVisual(`free-${locale}`);
    await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&anon=1`,{waitUntil:'networkidle0'});
    await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
@@ -90,6 +103,7 @@ try {
     assert.equal(callback.pathname,item.intent==='deep'?(locale==='zh'?'/zh/readings/deep':'/readings/deep'):(locale==='zh'?'/zh/readings/result':'/readings/result'));
    }
    evidence.push({locale,method,authCallbacks:'shared-free-deep-same-cast'});
+   const anonUrl=page.url();
    await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&page=deep`,{waitUntil:'networkidle0'});
    await page.waitForSelector('[data-start-deep-reading]');
    assert.equal(await page.$('[data-public-reading-result]'),null);
@@ -103,8 +117,20 @@ try {
    assert.equal(deep.forms,0);
    const post=deep.requests.find(item=>item.method==='POST');
    assert.deepEqual(JSON.parse(post.body),{locale:locale==='zh'?'zh-Hans':'en'});
-   evidence.push({locale,method,deep:{sections:true,postBody:JSON.parse(post.body),report:true}});
+   const freeLink=await page.$eval('[data-ai-deep-section="full-hexagram"] a',node=>node.getAttribute('href'));
+   const freeUrlFromDeep=new URL(freeLink,fixtureBase);
+   assert.equal(freeUrlFromDeep.pathname,locale==='zh'?'/zh/readings/result':'/readings/result');
+   assert.equal(freeUrlFromDeep.searchParams.get('session'),'browser-fixture-cast');
+   evidence.push({locale,method,deep:{sections:true,postBody:JSON.parse(post.body),report:true},deepToFreeSameCast:true});
    if(method==='three_coin') await captureVisual(`deep-${locale}`);
+   await page.goBack({waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+   assert.equal(page.url(),anonUrl);
+   const backCallback=await page.$eval('[data-auth-reading-intent]',node=>node.getAttribute('href'));
+   assert.equal(new URL(new URL(backCallback,fixtureBase).searchParams.get('callbackURL'),fixtureBase).searchParams.get('session'),'browser-fixture-cast');
+   await page.goForward({waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-start-deep-reading]');
+   evidence.push({locale,method,refreshBackForwardSameCast:true});
   }
  }
  await page.goto(`${fixtureBase}/?page=deep&invalid=1`,{waitUntil:'networkidle0'});
