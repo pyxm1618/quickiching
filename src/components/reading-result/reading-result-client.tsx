@@ -230,7 +230,6 @@ export function ReadingResultClient({
   const [deepViewModel, setDeepViewModel] = useState<AiDeepReadingViewModel | null>(ownedInitialCastingView?.deepReadingViewModel ?? null);
   const [deepContext, setDeepContext] = useState<DeepReadingPresentationContext | null>(ownedInitialCastingView?.deepReadingContext ?? null);
   const reservedCreditCastingRef = useRef<string | null>(null);
-  const [legacyReadOnly, setLegacyReadOnly] = useState(Boolean(ownedInitialCastingView?.deepReadingContext?.legacyReadOnly));
   const [actionError, setActionError] = useState<string | null>(null);
   const deepRisk = useMemo(() => evaluateRisk(deepContext?.question ?? (state.kind === "ready" ? state.question ?? "" : "")), [state, deepContext]);
   const deepRiskBlocked = deepRisk.status !== "allowed";
@@ -363,11 +362,9 @@ export function ReadingResultClient({
         }
         transientFailures = 0;
         const data = await res.json() as DeepReadingStatusPayload;
-        if (data.errorCode === "LEGACY_DEEP_READING_READ_ONLY") setLegacyReadOnly(true);
         if (runId !== pollRunRef.current) return;
         if (data.context) {
           setDeepContext(data.context);
-          if (data.context.legacyReadOnly) setLegacyReadOnly(true);
         }
         if (data.status === "completed") {
           terminal = true;
@@ -533,7 +530,7 @@ export function ReadingResultClient({
   // Restore the paid result and the exact encrypted input snapshot for this account.
   useEffect(() => {
     const activeId = castingId;
-    if (!activeId || !user || pageMode !== "deep") return;
+    if (!activeId || !user || pageMode !== "deep" || manualDeepUnavailable) return;
 
     let active = true;
 
@@ -542,11 +539,9 @@ export function ReadingResultClient({
         const res = await fetch(`/api/readings/${activeId}/deep`);
         if (!res.ok) return;
         const data = await res.json() as DeepReadingStatusPayload;
-        if (data.errorCode === "LEGACY_DEEP_READING_READ_ONLY") setLegacyReadOnly(true);
         if (!active) return;
         if (data.context) {
           setDeepContext(data.context);
-          if (data.context.legacyReadOnly) setLegacyReadOnly(true);
         }
         if (data.status === "completed" && data.viewModel) {
           setDeepViewModel(data.viewModel);
@@ -627,7 +622,6 @@ export function ReadingResultClient({
       if (!res.ok) {
         const error = await res.json().catch(() => ({})) as { error?: string };
         setDeepStatus(error.error === "RISK_PROHIBITED" || error.error === "RISK_NEEDS_CLARIFICATION" ? "idle" : "failed");
-        if (error.error === "LEGACY_DEEP_READING_READ_ONLY") setLegacyReadOnly(true);
         const message = error.error === "RISK_NEEDS_CLARIFICATION"
           ? t("Clarify the locked question before requesting Deep Reading. No credit was reserved.", "请先把锁定的问题说明得更明确，再请求深度解读；本次未预留次数。")
           : error.error === "RISK_PROHIBITED"
@@ -643,7 +637,6 @@ export function ReadingResultClient({
 
       if (data.context) {
         setDeepContext(data.context);
-        if (data.context.legacyReadOnly) setLegacyReadOnly(true);
       }
       if (data.creditReservationCreated) {
         reservedCreditCastingRef.current = activeCastingId;
@@ -838,7 +831,6 @@ export function ReadingResultClient({
       : deepStatus === "generating" ? <div role="status" data-deep-reading-state="generating">
         {t("Reading your locked question and this cast…", "正在解读你锁定的问题与本次卦象…")}
       </div> : deepRiskBlocked ? <div role="status" data-deep-reading-blocked="risk">{deepRiskMessage}</div>
-      : legacyReadOnly ? <p data-legacy-reading-read-only>{t("This earlier generation is read only and cannot be restarted. Start a new cast to request a new Deep Reading.", "旧版生成仅保留只读，无法重新生成。如需新版深度解读，请重新起卦。")}</p>
       : !deepQuestion.trim() ? <p data-deep-reading-blocked="missing-question">{t("This historical cast has no locked question. Start a new cast with a question to use Deep Reading.", "这次历史起卦没有锁定的问题。如需深度解读，请带着问题重新起卦。")}</p>
       : credits <= 0 ? <div>
         <button type="button" onClick={handleOpenPricing} className="mystic-button">{t("Choose a Deep Reading pack", "选择深度解读次数包")}</button>
