@@ -31,7 +31,7 @@ export default function ChineseYarrowStalksPage() {
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
-        <QuestionFirst storageKey="quickiching:public-v1:yarrow-v2" legacyStorageKeys={["quickiching:question:yarrow-stalks"]} dictionary={dictionary}>
+        <QuestionFirst storageKey="quickiching:public-v1:yarrow-v2" dictionary={dictionary}>
           <YarrowTool dictionary={dictionary} />
         </QuestionFirst>
       </section>
