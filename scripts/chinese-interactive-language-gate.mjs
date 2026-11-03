@@ -473,9 +473,9 @@ async function main() {
     log("Method simulation PASS: manual-cast complete reading");
 
     // =========================================================================
-    // Test 6: Result Route (/zh/readings/three-coin/result) States
+    // Test 6: Unified Result Route (/zh/readings/result) States
     // =========================================================================
-    log("Test 6: Three-Coin Result Route (/zh/readings/three-coin/result) -> empty, ready, and error states");
+    log("Test 6: Unified Result Route (/zh/readings/result) -> empty, ready, and storage-fallback states");
 
     // 6.a: Empty state
     await page.goto(`${BASE}/zh/methods/three-coin`, { waitUntil: "networkidle0" });
@@ -483,7 +483,7 @@ async function main() {
       sessionStorage.clear();
       localStorage.clear();
     });
-    await page.goto(`${BASE}/zh/readings/three-coin/result`, { waitUntil: "networkidle0" });
+    await page.goto(`${BASE}/zh/readings/result`, { waitUntil: "networkidle0" });
     await page.waitForSelector("h1#empty-reading-title", { timeout: 5000 });
     const emptyResultText = await page.evaluate(() => document.body.innerText || "");
     assert(emptyResultText.includes("没有找到已完成的起卦"), "Result empty state missing Chinese heading");
@@ -530,7 +530,7 @@ async function main() {
           },
         });
       });
-      await storageFailurePage.goto(`${BASE}/zh/readings/three-coin/result`, { waitUntil: "networkidle0" });
+      await storageFailurePage.goto(`${BASE}/zh/readings/result`, { waitUntil: "networkidle0" });
       await storageFailurePage.waitForSelector("h1#empty-reading-title", { timeout: 5000 });
       const storageFailureText = await storageFailurePage.evaluate(() => document.body.innerText || "");
       assert(storageFailureText.includes("没有找到已完成的起卦"), "Storage failure must degrade to the shared Chinese empty state");
