@@ -1,4 +1,4 @@
-export const MIGRATION_0012_REQUIRED_OBJECTS = Object.freeze([
+export const CURRENT_MIGRATION_REQUIRED_OBJECTS = Object.freeze([
   "table:question_locks",
   "table:deep_reading_context_snapshots",
   "column:generation_output_reviews.question_relevance_pass",
@@ -65,16 +65,16 @@ export async function resolveProductionDatabaseUrl(
   return decrypted.value.trim();
 }
 
-export type Migration0012SchemaState = "pending" | "complete" | "partial";
+export type CurrentMigrationSchemaState = "pending" | "complete" | "partial";
 
-export function classifyMigration0012Schema(existingObjects: readonly string[]): {
-  state: Migration0012SchemaState;
+export function classifyCurrentMigrationSchema(existingObjects: readonly string[]): {
+  state: CurrentMigrationSchemaState;
   present: string[];
   missing: string[];
 } {
   const existing = new Set(existingObjects);
-  const present = MIGRATION_0012_REQUIRED_OBJECTS.filter((object) => existing.has(object));
-  const missing = MIGRATION_0012_REQUIRED_OBJECTS.filter((object) => !existing.has(object));
+  const present = CURRENT_MIGRATION_REQUIRED_OBJECTS.filter((object) => existing.has(object));
+  const missing = CURRENT_MIGRATION_REQUIRED_OBJECTS.filter((object) => !existing.has(object));
   return {
     state: present.length === 0 ? "pending" : missing.length === 0 ? "complete" : "partial",
     present: [...present],
