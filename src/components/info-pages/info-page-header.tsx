@@ -29,9 +29,9 @@ export function InfoPageHeader({ locale = "en", authEnabled = false }: {
         <div className={styles.headerControls}>
           <nav className={styles.headerLanguages} aria-label={languageLabel} data-language-switcher>
             <Globe aria-hidden="true" />
-            <Link href={locale === "en" ? pathname : target.href} lang="en" aria-current={locale === "en" ? "page" : undefined}>{locale === "zh-Hans" ? "英文" : "EN"}</Link>
+            <Link href={locale === "en" ? pathname : target.href} prefetch={false} lang="en" aria-current={locale === "en" ? "page" : undefined}>{locale === "zh-Hans" ? "英文" : "EN"}</Link>
             <span>/</span>
-            <Link href={locale === "zh-Hans" ? pathname : target.href} lang="zh-Hans" aria-current={locale === "zh-Hans" ? "page" : undefined}>中文</Link>
+            <Link href={locale === "zh-Hans" ? pathname : target.href} prefetch={false} lang="zh-Hans" aria-current={locale === "zh-Hans" ? "page" : undefined}>中文</Link>
           </nav>
           {authEnabled ? <>
             <span className={styles.headerSeparator} aria-hidden="true">|</span>

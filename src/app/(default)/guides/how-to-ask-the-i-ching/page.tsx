@@ -29,7 +29,6 @@ export default function HowToAskGuidePage() {
       lead="Learning how to ask the I Ching is mostly a question-framing skill: give the reading one clear situation and one core concern, while leaving enough room to notice patterns you may not have considered."
     >
       <section className={styles.guideMain}>
-        <PaperArtwork />
         <h2 className={styles.paperHeading}>Core principles for I Ching questions</h2>
         <p className={styles.paperText}>When you are deciding how to phrase an I Ching question, these five principles keep the inquiry focused without turning the reading into a substitute decision-maker.</p>
         <ul className={styles.principlesGrid}>
@@ -38,10 +37,10 @@ export default function HowToAskGuidePage() {
           <li><GuideDecoration kind="lantern" /><strong>Specific enough to focus:</strong> name the real opportunity, transition, conflict, or decision rather than asking a vague question about your whole life.</li>
           <li><GuideDecoration kind="books" /><strong>Open enough to interpret:</strong> do not narrow the answer so tightly that only “yes” or “no” can fit. Leave room for conditions, tensions, and change.</li>
         </ul>
+        <PaperArtwork />
       </section>
 
       <section className={styles.guideSecondary}>
-        <PaperArtwork kind="secondary" />
         <h2 className={styles.paperHeading}>Bad → better questions to ask the I Ching</h2>
         <p className={styles.paperText}>There is no single magic wording. The useful distinction is whether your I Ching questions create a focused subject for reflection or ask the hexagram to guarantee facts it cannot establish.</p>
         <div className={styles.questionGrid}>
@@ -84,6 +83,7 @@ export default function HowToAskGuidePage() {
           <Link href="/guides/changing-lines">Understanding changing lines</Link>
           <Link href="/methods/three-coin">Three-coin method</Link>
         </nav>
+        <PaperArtwork kind="secondary" />
       </section>
     </InfoPageShell>
   );

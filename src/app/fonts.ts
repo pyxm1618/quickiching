@@ -17,9 +17,9 @@ const instrumentSans = Instrument_Sans({
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-plex",
   subsets: ["latin"],
-  // The visible ritual counter uses 400; keep its preload to avoid a late font request.
   weight: ["400"],
   display: "swap",
+  preload: false,
 });
 
 // Keep existing secondary weights available without preloading three unused faces.

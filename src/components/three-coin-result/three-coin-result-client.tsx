@@ -681,16 +681,12 @@ export function ThreeCoinResultClient({
   if (state.kind === "loading") {
     return (
       <div
-        className={`${styles.page} mx-auto min-h-[100svh] w-full max-w-[1180px] px-4 sm:px-6`}
+        className="sr-only"
+        role="status"
+        aria-label={t("Loading your completed reading", "正在恢复已完成的起卦结果")}
         data-reading-interpretation-loading={waitingForBrowserInterpretation ? "true" : undefined}
       >
-        <div className={styles.loadingState} role="status" aria-label={t("Loading your completed reading", "正在恢复已完成的起卦结果")}>
-          <p className="mystic-kicker">{t("Three-Coin Method", "三枚铜钱法")}</p>
-          <p className="mt-3 font-display text-3xl font-normal text-white">{t("Restoring your sealed reading…", "正在恢复已经落定的起卦结果…")}</p>
-          <p className="mt-3 text-sm leading-7 text-[var(--ink-2)]">
-            {t("The result is rebuilt from the six completed lines.", "结果会根据已经完成的六爻重新构建。")}
-          </p>
-        </div>
+        {t("Restoring your sealed reading…", "正在恢复已经落定的起卦结果…")}
       </div>
     );
   }
@@ -842,6 +838,8 @@ export function ThreeCoinResultClient({
         title={t("Your Free Reading", "免费解卦")}
         deepReadingHref={deepHref}
         newReadingLabel={t("Start a New Reading", "重新起一卦")}
+        showRitualReveal={resultReading?.method === "three-coin"}
+        savedReadingHref={zh ? "/zh/my-readings" : "/my-readings"}
       /> : deepBody}
 
 

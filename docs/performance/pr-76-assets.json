@@ -41,12 +41,17 @@
     "source": "ritual/question-parchment-crop.png",
     "sourceSha256": "d616c1d6e5957a79c6af49353661ea95d0f1a78d9ec6f69447a7b06d5a496982",
     "sourceBytes": 173114,
-    "url": "/performance/questionDesktop.d616c1d6e5957a79.png",
-    "sha256": "d616c1d6e5957a79c6af49353661ea95d0f1a78d9ec6f69447a7b06d5a496982",
-    "bytes": 173114,
+    "url": "/performance/questionDesktop.3b34ef04891180ba.webp",
+    "sha256": "3b34ef04891180ba22d192ece5b50432c86001e1ac48eff4e7c325a67a1ef691",
+    "bytes": 24556,
     "width": 646,
     "height": 184,
-    "options": null
+    "options": {
+      "lossless": false,
+      "quality": 95,
+      "alphaQuality": 100,
+      "effort": 6
+    }
   },
   "questionMobile": {
     "source": "ritual/question-parchment-mobile-crop.webp",

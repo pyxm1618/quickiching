@@ -127,7 +127,7 @@ async function verifyHttpBoundaries() {
 
   const metadataChecks = [
     ["/", "en", `${CANONICAL_ORIGIN}/`, "I Ching Online — Cast Your Hexagram", "I Ching Online — Free Hexagram Reading | Quick I Ching"],
-    ["/methods/mei-hua-yi-shu", "en", `${CANONICAL_ORIGIN}/methods/mei-hua-yi-shu`, "Mei Hua Yi Shu", "Mei Hua Yi Shu — Free Plum Blossom Current-Time Casting | Quick I Ching"],
+    ["/methods/mei-hua-yi-shu", "en", `${CANONICAL_ORIGIN}/methods/mei-hua-yi-shu`, "Mei Hua Yi Shu", "Mei Hua Yi Shu — Free Online Casting | Quick I Ching"],
     ["/zh", "zh-Hans", `${CANONICAL_ORIGIN}/zh`, "易经在线起卦：从起卦到本卦、动爻与变卦", "易经在线起卦｜四种起卦方法与六十四卦解读 | Quick I Ching"],
     ["/zh/methods/mei-hua-yi-shu", "zh-Hans", `${CANONICAL_ORIGIN}/zh/methods/mei-hua-yi-shu`, "梅花易数起卦：按公历当前时间在线起卦", "梅花易数起卦｜在线时间起卦与计算说明 | Quick I Ching"],
   ];

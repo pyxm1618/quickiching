@@ -59,7 +59,7 @@ export function coinPose(input:{
   const resultX=[565,835,1105][index];
   const originX=835+(index-1)*60.8;
   const finalRotation:[number,number,number]=[face==='yang'?0:PI,0,0];
-  const final:CoinPose={x:resultX,y:560,diameter:164,rotation:finalRotation,rotationOrder:'ZYX',settled:true,opacity:1};
+  const final:CoinPose={x:resultX,y:560,diameter:152,rotation:finalRotation,rotationOrder:'ZYX',settled:true,opacity:1};
   const initial=initialRotations[index];
   const ready:CoinPose={x:originX,y:800,diameter:164,rotation:[...initial],rotationOrder:'ZYX',settled:false,opacity:1};
   if(phase==='hero'||phase==='hero-exit') {
@@ -70,17 +70,17 @@ export function coinPose(input:{
     return {...hero,x:reducedMotion?hero.x:mix(hero.x,835,t),y:reducedMotion?hero.y:mix(hero.y,800,t),diameter:hero.diameter*(reducedMotion?1:1-.04*t),opacity:1-t};
   }
   if(phase==='settled')return final;
-  if(phase==='progress')return {x:1008,y:542,diameter:235,rotation:[face==='yang'?-.08:PI-.08,.12,.06],rotationOrder:'ZYX',settled:true,opacity:index===0?1:0};
+  if(phase==='progress')return {x:1008,y:542,diameter:220,rotation:[face==='yang'?-.08:PI-.08,.12,.06],rotationOrder:'ZYX',settled:true,opacity:index===0?1:0};
   if(phase==='ready')return ready;
   if(phase==='exit') {
     const t=smooth(clamp(reducedMotion?time/160:(time-220)/280));
-    return {...final,y:reducedMotion?560:560-10*t,diameter:164*(reducedMotion?1:1-.04*t),opacity:1-t};
+    return {...final,y:reducedMotion?560:560-10*t,diameter:152*(reducedMotion?1:1-.04*t),opacity:1-t};
   }
   if(phase==='reset') {
     const t=clamp(time/(reducedMotion?140:COIN_RESET_MS));
     if(reducedMotion)return t<.5?{...final,opacity:1-t*2}:{...ready,opacity:(t-.5)*2};
     const eased=smooth(t);
-    return {...ready,x:mix(resultX,originX,eased),y:mix(560,800,eased),diameter:164*(1-.06*Math.sin(t*PI)),
+    return {...ready,x:mix(resultX,originX,eased),y:mix(560,800,eased),diameter:mix(152,164,eased)*(1-.06*Math.sin(t*PI)),
       rotation:initial.map((value,axis)=>mix(finalRotation[axis],value,eased)) as [number,number,number],opacity:1-.15*Math.sin(t*PI)};
   }
   const duration=reducedMotion?280:FLIGHT_DURATIONS[index];
@@ -121,8 +121,8 @@ export function coinPose(input:{
   const diameter=mix(mix(164,peakDiameter,sizeEntry),164,guidance);
   const spin=spinProgress(progress,index===2?8:index===1?1.8:1);
   const targetAngle=(index===1&&face==='yang'?6*PI:4*PI)+(face==='yin'?PI:0);
-  const precession=Math.pow(Math.sin(spin*PI),index===0?2.5:2)*[1.53,2.4,2.7][index];
-  const roll=Math.pow(Math.sin(clamp(progress/.72)*PI),index===2?10:1)*[.8,-.5,.5][index];
+  const precession=Math.pow(Math.sin(spin*PI),index===0?2.5:2)*[1.62,1.84,2.7][index];
+  const roll=Math.pow(Math.sin(clamp(progress/.72)*PI),index===2?10:1)*[-.45,-.49,.5][index];
   return {x,y,diameter,rotation:[
     initial[0]*(1-spin)+targetAngle*spin,
     (precession+initial[1]*(1-spin))*(1-guidance),

@@ -8,7 +8,7 @@ const result = await Bun.build({
   outdir,
   target: "browser",
   minify: true,
-  external: ["/ai-deep-reading/*"],
+  external: ["/ai-deep-reading/*", "/performance/*", "/ritual/*", "/free-reading/*"],
   plugins: [{
     name: "reading-fixture-next-image",
     setup(builder) {
