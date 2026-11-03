@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import {
   classifyAppliedMigrationHistory,
   classifyCurrentMigrationSchema,
-  CURRENT_MIGRATION_REQUIRED_OBJECTS,
   requireProductionDatabaseUrl,
   resolveProductionDatabaseUrl,
 } from "./production-schema-release";
