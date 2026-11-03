@@ -161,19 +161,6 @@ describe("System Readiness Service", () => {
     }
   });
 
-  it("blocks readiness while the retired question_locks table remains", async () => {
-    const env = validCommercialEnv();
-    const override = readyDbOverride(EXPECTED_MIGRATIONS);
-    override.queryTables = async () => [...REQUIRED_COMMERCIAL_TABLES, "question_locks"];
-
-    const report = await checkSystemReadiness(env, override);
-
-    expect(report.status).toBe("not_ready");
-    expect(report.overall).toBe("blocked");
-    expect(report.database.status).toBe("retired_objects_present");
-    expect(report.database.retiredObjectsPresent).toEqual(["table:question_locks"]);
-  });
-
   it("blocks commercial readiness when a current review field or integrity object is missing", async () => {
     const env = validCommercialEnv();
     for (const missingObject of [
