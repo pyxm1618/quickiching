@@ -25,7 +25,6 @@ import { readCompletedPublicReading, publicReadingSaveInput, clearCompletedReadi
 import type { PublicReading, PublicReadingEvidence, PublicReadingMethod } from "@/domain/public-reading/types";
 import type { LineValue } from "@/domain/casting/types";
 import type { YarrowChange, YarrowLineResult } from "@/domain/casting/yarrow/algorithm";
-import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
 import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
 export type ResultState =
   | { kind: "loading" }
@@ -44,7 +43,7 @@ export type ReadingResultClientProps = {
   initialLocalizedContent?: LocalizedReadingContent;
   initialCastingView?: {
     castingId: string;
-    method?: "three_coin" | "yarrow_stalk" | "mei_hua_number_time" | "mei_hua_current_time";
+    method?: "three_coin" | "yarrow_stalk" | "mei_hua_number_time" | "manual";
     algorithmVersion?: string;
     methodCalculation?: unknown;
     createdAt?: string;
@@ -123,7 +122,7 @@ function serverBackedReadingEvidence(
   method: PublicReadingMethod,
   lineValues: readonly number[],
   methodCalculation: unknown,
-  internalMethod?: "three_coin" | "yarrow_stalk" | "mei_hua_number_time" | "mei_hua_current_time",
+  internalMethod?: "three_coin" | "yarrow_stalk" | "mei_hua_number_time" | "manual",
 ): PublicReadingEvidence {
   if (method === "three-coin") return { kind: "three-coin", steps: [] };
 
@@ -159,16 +158,34 @@ function serverBackedReadingEvidence(
     if (typeof utcMillis !== "number" || !Number.isFinite(utcMillis) || typeof ianaTimeZone !== "string") {
       throw new Error("MEI_HUA_READING_EVIDENCE_UNAVAILABLE");
     }
-    const calculation = internalMethod === "mei_hua_number_time"
-      ? meiHuaFromNumberAndTime({ number: Number(record?.number), utcMillis, ianaTimeZone })
-      : meiHuaFromUtc(utcMillis, ianaTimeZone);
+    const calculation = meiHuaFromNumberAndTime({ number: Number(record?.number), utcMillis, ianaTimeZone });
     if (calculation.lineValuesBottomUp.some((value, index) => value !== lineValues[index])) {
       throw new Error("MEI_HUA_READING_EVIDENCE_INVALID");
     }
     return { kind: "mei-hua-yi-shu", calculation };
   }
 
-  return { kind: "manual", mode: "line-values" };
+  if (method === "manual") {
+    const record = methodCalculation && typeof methodCalculation === "object"
+      ? methodCalculation as Record<string, unknown>
+      : null;
+    if (record?.mode === "line-values") return { kind: "manual", mode: "line-values" };
+    if (record?.mode === "primary-changing"
+      && Number.isInteger(record.primaryHexagramNumber)
+      && Array.isArray(record.changingLines)
+      && record.changingLines.every((line) => Number.isInteger(line) && Number(line) >= 1 && Number(line) <= 6)
+      && new Set(record.changingLines).size === record.changingLines.length) {
+      return {
+        kind: "manual",
+        mode: "primary-changing",
+        primaryHexagramNumber: Number(record.primaryHexagramNumber),
+        changingLines: record.changingLines.map(Number).sort((left, right) => left - right),
+      };
+    }
+    throw new Error("MANUAL_READING_EVIDENCE_UNAVAILABLE");
+  }
+
+  throw new Error("READING_METHOD_EVIDENCE_UNAVAILABLE");
 }
 
 
@@ -228,9 +245,11 @@ export function ReadingResultClient({
     if (completedReading) return completedReading;
     const method: PublicReadingMethod = initialCastingView?.method === "yarrow_stalk"
       ? "yarrow-stalks"
-      : initialCastingView?.method === "mei_hua_number_time" || initialCastingView?.method === "mei_hua_current_time"
+      : initialCastingView?.method === "mei_hua_number_time"
         ? "mei-hua-yi-shu"
-        : "three-coin";
+        : initialCastingView?.method === "manual"
+          ? "manual"
+          : "three-coin";
     return buildPublicReading({
       ...(id ? { id } : {}),
       ...(state.createdAt ? { createdAt: state.createdAt } : {}),
@@ -241,6 +260,7 @@ export function ReadingResultClient({
       evidence: serverBackedReadingEvidence(method, state.lineValues, initialCastingView?.methodCalculation, initialCastingView?.method),
     });
   }, [castingId, clientCastingId, state, completedReading, initialCastingView?.method, initialCastingView?.algorithmVersion, initialCastingView?.methodCalculation]);
+  const manualDeepUnavailable = resultReading?.method === "manual";
   const resultRevealGate = getResultRevealGate({
     authenticated: Boolean(user),
     castingId,
@@ -568,6 +588,10 @@ export function ReadingResultClient({
 
   async function handleUnlockDeepReading() {
     if (state.kind !== "ready") return;
+    if (manualDeepUnavailable) {
+      setActionError(t("Deep Reading is unavailable for Manual Cast. Free Reading remains available.", "手动起卦暂不支持深度解读；免费解卦仍可正常查看。"));
+      return;
+    }
     setActionError(null);
     if (deepRiskBlocked) return;
 
@@ -645,6 +669,10 @@ export function ReadingResultClient({
 
   async function handleOpenPricing() {
     setActionError(null);
+    if (manualDeepUnavailable) {
+      setActionError(t("Deep Reading is unavailable for Manual Cast. Free Reading remains available.", "手动起卦暂不支持深度解读；免费解卦仍可正常查看。"));
+      return;
+    }
     if (deepRiskBlocked) return;
     const activeCastingId = await persistCurrentReading(true);
     if (!activeCastingId) return;
@@ -720,8 +748,9 @@ export function ReadingResultClient({
   const intentCastId = resultReading?.id ?? clientCastingId ?? castingId ?? initialSessionId ?? "";
   const freeIntentPath = `${prefix}/readings/result?session=${encodeURIComponent(intentCastId)}`;
   const deepIntentPath = `${prefix}/readings/deep?session=${encodeURIComponent(intentCastId)}`;
-  const signinHref = resultSigninHref(pageMode === "deep" ? deepIntentPath : freeIntentPath);
-  const alternateSigninHref = resultSigninHref(pageMode === "deep" ? freeIntentPath : deepIntentPath);
+  const deepIntentAllowed = pageMode === "deep" && !manualDeepUnavailable;
+  const signinHref = resultSigninHref(deepIntentAllowed ? deepIntentPath : freeIntentPath);
+  const alternateSigninHref = resultSigninHref(deepIntentAllowed ? freeIntentPath : deepIntentPath);
   const resultDictionary = zh ? ZH_HANS_UI_DICTIONARY : EN_UI_DICTIONARY;
 
   if (!revealAllowed) {
@@ -743,9 +772,9 @@ export function ReadingResultClient({
               <Link href={signinHref} prefetch={false} className="ritual-gate-signin" data-auth-reading-intent={pageMode} onClick={(event) => { if (event.currentTarget.closest(".ritual-gate-card")?.getAnimations().some(animation => animation.playState === "running")) event.preventDefault(); }} aria-label={pageMode === "deep" ? t("Sign in and continue to Deep Reading", "登录并继续深度解读") : t("Sign in to save and reveal this reading", "登录、保存并查看本次卦象")}>
                 <UserRound aria-hidden="true" />{pageMode === "deep" ? t("Sign In for Deep Reading", "登录并继续深度解读") : t("Sign In to Save & Reveal", "登录、保存并查看")}<ArrowRight aria-hidden="true" />
               </Link>
-              <Link href={alternateSigninHref} prefetch={false} className="mt-3 inline-flex text-sm underline underline-offset-4" data-auth-reading-alternate-intent={pageMode === "deep" ? "free" : "deep"}>
+              {!manualDeepUnavailable ? <Link href={alternateSigninHref} prefetch={false} className="mt-3 inline-flex text-sm underline underline-offset-4" data-auth-reading-alternate-intent={pageMode === "deep" ? "free" : "deep"}>
                 {pageMode === "deep" ? t("Use Free Reading instead", "改为查看免费解卦") : t("Continue to Deep Reading instead", "改为继续深度解读")}
-              </Link>
+              </Link> : null}
             </div>
           ) : persistenceStatus === "error" ? (
             <div key="save-error" className="ritual-gate-action ritual-gate-error" data-account-reading-save-error role="alert">
@@ -805,7 +834,8 @@ export function ReadingResultClient({
       locale={locale}
       freeHref={freeHref}
     >
-      {deepStatus === "generating" ? <div role="status" data-deep-reading-state="generating">
+      {manualDeepUnavailable ? <p data-deep-reading-blocked="manual">{t("Deep Reading is unavailable for Manual Cast. Use the Free Reading for this saved cast.", "手动起卦暂不支持深度解读；请查看这次已保存起卦的免费解卦。")}</p>
+      : deepStatus === "generating" ? <div role="status" data-deep-reading-state="generating">
         {t("Reading your locked question and this cast…", "正在解读你锁定的问题与本次卦象…")}
       </div> : deepRiskBlocked ? <div role="status" data-deep-reading-blocked="risk">{deepRiskMessage}</div>
       : legacyReadOnly ? <p data-legacy-reading-read-only>{t("This earlier generation is read only and cannot be restarted. Start a new cast to request a new Deep Reading.", "旧版生成仅保留只读，无法重新生成。如需新版深度解读，请重新起卦。")}</p>
