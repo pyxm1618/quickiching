@@ -1,7 +1,6 @@
 import { buildHexagramResult } from "../hexagrams/compute";
 import { TRIGRAM_BITS, TRIGRAM_BY_NUMBER, TRIGRAM_NUMBER } from "../hexagrams/king-wen";
 import { ALGORITHM_VERSIONS, type LineValue } from "../types";
-import type { MeiHuaResult } from "./algorithm";
 
 export const MEI_HUA_NUMBER_TIME_INPUT_VERSION = "mei-hua-number-time-input-v1";
 export const MEI_HUA_NUMBER_TIME_CONVENTION_ID = "mei-hua-classical-object-number-hour-v1";
@@ -13,9 +12,15 @@ export type MeiHuaNumberTimeInput = {
   ianaTimeZone: string;
 };
 
-export type MeiHuaNumberTimeResult = MeiHuaResult & {
+export type MeiHuaNumberTimeResult = {
+  lineValuesBottomUp: [LineValue, LineValue, LineValue, LineValue, LineValue, LineValue];
+  upperTrigram: string;
+  lowerTrigram: string;
+  movingLinePosition: number;
   primaryHexagramNumber: number;
   relatingHexagramNumber: number;
+  methodCalculation: Record<string, unknown>;
+  algorithmVersion: string;
 };
 
 /**
@@ -114,7 +119,7 @@ export function meiHuaFromNumberAndTime(rawInput: MeiHuaNumberTimeInput): MeiHua
 
   const movingIndex = movingLinePosition - 1;
   lineValues[movingIndex] = lineValues[movingIndex] === 7 ? 9 : 6;
-  const tuple = lineValues as MeiHuaResult["lineValuesBottomUp"];
+  const tuple = lineValues as MeiHuaNumberTimeResult["lineValuesBottomUp"];
   const hexagrams = buildHexagramResult({
     lineValuesBottomUp: tuple,
     method: "mei_hua_number_time",
