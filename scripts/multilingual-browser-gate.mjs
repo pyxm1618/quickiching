@@ -229,7 +229,7 @@ async function verifyChineseReading(page, viewport) {
   assert(labelledByReferences.every(({ count }) => count === 1), `${label}: invalid aria-labelledby reference`);
   await page.waitForSelector("textarea[data-private-question]");
   await page.type("textarea[data-private-question]", CHINESE_QUESTION);
-  await clickButton(page, "继续");
+  await page.click(".mei-ask button[type='submit']");
   await page.waitForSelector("#mei-hua-number");
   const methodKey = "quickiching:public-v1:mei-hua-number-time-v1";
   const beforeSwitch = await page.evaluate(key => sessionStorage.getItem(key), methodKey);
@@ -243,9 +243,9 @@ async function verifyChineseReading(page, viewport) {
   await page.waitForSelector("#mei-hua-number");
   assert.equal(await page.$eval("[data-private-question] p", node => node.textContent?.trim()), CHINESE_QUESTION);
   await fillInput(page, "#mei-hua-number", "29");
-  await clickButton(page, "继续");
+  await page.click(".mei-choose button[type='submit']");
   await page.waitForSelector(".mei-confirm-actions");
-  await clickButton(page, "确认并起卦");
+  await page.click(".mei-confirm-actions .mei-button:not(.mei-button-outline)");
   await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 20_000 });
   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
   assert.equal(await page.$("[data-public-reading-result]"), null, "Anonymous result must remain concealed");
