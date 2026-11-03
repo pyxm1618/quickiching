@@ -39,7 +39,7 @@ async function clickSceneDestination(page,locale,path){
  }
  check(`${locale}: click reaches ${target}`,true);
 }
-const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1']});
+const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--force-device-scale-factor=1']});
 try {
  const page=await browser.newPage();page.on('pageerror',error=>report.errors.push(String(error)));
  await page.setViewport({width:1671,height:941,deviceScaleFactor:1});
