@@ -2,6 +2,7 @@ import {
   assertHomeMobileRegressionGuard,
   assertPerformanceBudget,
   aggregateHomeMobileSamples,
+  getPerformanceGateConfig,
   metricsFromReport,
 } from "./performance-budget.mjs";
 import { createHash } from "node:crypto";
@@ -9,6 +10,8 @@ import { readFile } from "node:fs/promises";
 import { spawn, spawnSync } from "node:child_process";
 
 const BASE = "http://127.0.0.1:3000";
+const HOME_MOBILE_GATE = getPerformanceGateConfig("home.mobile");
+const GUIDE_MOBILE_GATE = getPerformanceGateConfig("guide.mobile");
 
 function log(message) {
   console.log(`[Public V1 + Free Reading V2 Gate] ${message}`);
@@ -121,8 +124,9 @@ async function summarizeLighthouse(label, path) {
 function assertLighthouse(metrics) {
   const failures = [];
   for (const result of metrics) {
-    if (result.accessibility < 90) failures.push(`${result.label} Lighthouse accessibility score below 90`);
-    if (result.seo < 90) failures.push(`${result.label} Lighthouse SEO score below 90`);
+    const gate = result.label.startsWith("HOW_TO_ASK") ? GUIDE_MOBILE_GATE : getPerformanceGateConfig(result.label.endsWith("DESKTOP") ? "home.desktop" : "home.mobile");
+    if (result.accessibility < gate.metrics.accessibilityMin) failures.push(`${result.label} Lighthouse accessibility score below ${gate.metrics.accessibilityMin}`);
+    if (result.seo < gate.metrics.seoMin) failures.push(`${result.label} Lighthouse SEO score below ${gate.metrics.seoMin}`);
     if (result.cls > 0.1) failures.push(`${result.label} CLS exceeds 0.10`);
     try {
       if (result.label.startsWith("HOME_")) {
@@ -130,7 +134,7 @@ function assertLighthouse(metrics) {
         assertPerformanceBudget(result.label, result, result.label.endsWith("DESKTOP"));
       } else {
         // Non-target historical page: strict regression guard
-        if (result.performance < 70 || result.lcp > 3200) {
+        if (result.performance < GUIDE_MOBILE_GATE.metrics.performanceMin || result.lcp > GUIDE_MOBILE_GATE.metrics.lcpMaxMs) {
           failures.push(`${result.label} performance regression (score=${result.performance}, lcp=${result.lcp})`);
         }
       }
@@ -251,7 +255,7 @@ try {
 
   log("Collecting 3 consecutive Lighthouse samples for Home Mobile regression guard");
   const mobileSamples = [];
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 1; i <= HOME_MOBILE_GATE.samplePolicy.count; i++) {
     const mobileSamplePath = `/tmp/quickiching-lighthouse-mobile-sample-${i}.json`;
     run("./node_modules/.bin/lighthouse", lighthouseArgs(BASE, mobileSamplePath), { env: lighthouseEnv });
     const sample = await summarizeLighthouse(`HOME_MOBILE_SAMPLE_${i}`, mobileSamplePath);
@@ -260,8 +264,8 @@ try {
   const aggregatedHomeMobile = aggregateHomeMobileSamples(mobileSamples);
   const minMobileAccessibility = Math.min(...mobileSamples.map((s) => s.accessibility));
   const minMobileSeo = Math.min(...mobileSamples.map((s) => s.seo));
-  if (minMobileAccessibility < 90) throw new Error(`HOME_MOBILE Lighthouse accessibility score below 90 (${minMobileAccessibility})`);
-  if (minMobileSeo < 90) throw new Error(`HOME_MOBILE Lighthouse SEO score below 90 (${minMobileSeo})`);
+  if (minMobileAccessibility < HOME_MOBILE_GATE.metrics.accessibilityMin) throw new Error(`HOME_MOBILE Lighthouse accessibility score below ${HOME_MOBILE_GATE.metrics.accessibilityMin} (${minMobileAccessibility})`);
+  if (minMobileSeo < HOME_MOBILE_GATE.metrics.seoMin) throw new Error(`HOME_MOBILE Lighthouse SEO score below ${HOME_MOBILE_GATE.metrics.seoMin} (${minMobileSeo})`);
 
   const homeMobileAcceptedBaselineRaw = JSON.parse(
     await readFile(new URL("../docs/performance/home-mobile-accepted-baseline.json", import.meta.url), "utf8")
@@ -282,10 +286,10 @@ try {
   run("./node_modules/.bin/lighthouse", lighthouseArgs(`${BASE}/guides/how-to-ask-the-i-ching`, guideMobilePath), { env: lighthouseEnv });
   const desktop = await summarizeLighthouse("HOME_DESKTOP", desktopPath);
   let guideMobile = await summarizeLighthouse("HOW_TO_ASK_MOBILE", guideMobilePath);
-  if (guideMobile.lcp > 3200) {
-    log(`HOW_TO_ASK_MOBILE single sample LCP (${guideMobile.lcp}ms) exceeded 3200ms due to runner jitter; confirming with stable median sample`);
+  if (guideMobile.lcp > GUIDE_MOBILE_GATE.metrics.lcpMaxMs) {
+    log(`HOW_TO_ASK_MOBILE single sample LCP (${guideMobile.lcp}ms) exceeded ${GUIDE_MOBILE_GATE.metrics.lcpMaxMs}ms; confirming with configured median sample`);
     const guideSamples = [guideMobile];
-    for (let i = 2; i <= 5; i++) {
+    for (let i = 2; i <= GUIDE_MOBILE_GATE.samplePolicy.count; i++) {
       await new Promise((r) => setTimeout(r, 1000));
       const p = `/tmp/quickiching-lighthouse-guide-mobile-${i}.json`;
       run("./node_modules/.bin/lighthouse", lighthouseArgs(`${BASE}/guides/how-to-ask-the-i-ching`, p), { env: lighthouseEnv });
