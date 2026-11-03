@@ -378,8 +378,6 @@ async function resetManualSession(page) {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(() => {
     sessionStorage.removeItem("quickiching:public-v1:manual-cast");
-    sessionStorage.removeItem("quickiching:question:manual-cast:started");
-    sessionStorage.removeItem("quickiching:question:manual-cast:question");
   });
 }
 
