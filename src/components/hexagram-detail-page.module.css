@@ -50,7 +50,8 @@
 .numberBadge strong { display: block; font-weight: 400; font-size: 42px; line-height: 1.1; }
 .identityCopy { min-width: 0; }
 .pinyin { font-size: clamp(48px, 7vw, 90px); line-height: 1; margin: 0; }
-.identity h1 { font-size: clamp(26px, 3.2vw, 40px); font-weight: 400; line-height: 1.15; margin: 12px 0 0; text-wrap: balance; overflow-wrap: break-word; }
+.identity h1 { position: relative; font-size: clamp(26px, 3.2vw, 40px); font-weight: 400; line-height: 1.15; margin: 12px 0 0; text-wrap: balance; overflow-wrap: break-word; }
+.h1Prefix { position: absolute; left: 0; top: -1.1em; font-size: .28em; line-height: 1; letter-spacing: .02em; white-space: nowrap; }
 .heroMeaning { max-width: min(100%, 300px); font-size: 21px; line-height: 1.2; margin-top: 14px; }
 .form { border: 1px solid #b9884c; outline: 1px solid #d9b77d; outline-offset: 3px; background: #f9e7c7c9; padding: 16px; }
 .form h2 { font-size: 16px; font-weight: 700; margin: 0 0 12px; }
@@ -97,6 +98,12 @@
   .cherryBottom { bottom: 48px; width: clamp(132px, 14vw, 144px); }
   .pine { top: clamp(520px, 56vw, 680px); width: clamp(128px, 14vw, 144px); }
 }
+@media (min-width: 961px) and (max-width: 1279px) {
+  .identity { padding-bottom: 29px; }
+  .identity + .section { margin-top: 3px; }
+  .numberBadge { width: 58px; margin-top: 6px; margin-left: 7px; padding: 7.3px 1px; }
+  .form { transform: translateY(2px); }
+}
 @media (min-width: 1280px) {
   .numberBadge { margin-top: 60px; }
   .detail { padding-left: 112px; padding-right: 44px; font-size: 18px; }
@@ -134,6 +141,7 @@
   .identity { padding: 22px 12px; column-gap: 12px; }
   .pinyin { font-size: 48px; }
   .identity h1 { font-size: 26px; }
+  .h1Prefix { position: static; display: block; font-size: .42em; line-height: 1.1; margin-bottom: 2px; }
   .meaningGrid, .classicalGrid { grid-template-columns: 1fr; }
   .meaningGrid > section { padding: 16px 12px; }
   .meaningGrid h3 { margin-bottom: 8px; }
