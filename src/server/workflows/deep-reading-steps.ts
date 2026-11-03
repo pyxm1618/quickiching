@@ -62,7 +62,6 @@ async function loadDeepReadingSnapshot(
     authTag: String(row.auth_tag),
     encryptionKeyVersion: String(row.encryption_key_version),
   });
-  if (snapshot.schemaVersion !== "deep-reading-context-v2") throw new Error("LEGACY_DEEP_READING_READ_ONLY");
   const snapshotHash = calculateDeepReadingContextSnapshotHash(snapshot);
   if (snapshotHash !== String(row.snapshot_hash)) throw new Error("DEEP_READING_SNAPSHOT_INTEGRITY_INVALID");
   return { snapshot, snapshotHash };
