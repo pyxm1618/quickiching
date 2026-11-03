@@ -64,7 +64,7 @@ const EXPECTED_TDH = {
   },
   "/methods/mei-hua-yi-shu": {
     title: "Mei Hua Yi Shu — Free Online Casting | Quick I Ching",
-    h1: "Mei Hua Yi Shu — Current-Time Casting",
+    h1: "Mei Hua Yi Shu",
   },
   "/methods/manual-cast": {
     title: "Manual I Ching Cast — Enter Lines Online | Quick I Ching",
