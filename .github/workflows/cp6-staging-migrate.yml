@@ -1,12 +1,7 @@
-name: CP6 Controlled Staging Migration
+name: OPS / Staging Controlled Migration
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - codex/commercial-v2-cp6-repair
-    paths:
-      - .github/workflows/cp6-staging-migrate.yml
 
 permissions:
   contents: read
