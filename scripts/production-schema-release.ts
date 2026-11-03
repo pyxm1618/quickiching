@@ -3,8 +3,7 @@ import postgres from "postgres";
 import migrationIntegrity from "../drizzle/migration-integrity.json";
 import {
   classifyAppliedMigrationHistory,
-  classifyMigration0012Schema,
-  MIGRATION_0012_REQUIRED_OBJECTS,
+  classifyCurrentSchema,
   requireProductionDatabaseUrl,
   resolveProductionDatabaseUrl,
   type ProductionEnvironmentEntry,
@@ -14,9 +13,7 @@ import { REQUIRED_COMMERCIAL_TABLES } from "../src/server/readiness/readiness-se
 const PRODUCTION_PROJECT_ID = "prj_pCpeoAys2GOqKZvkbLugYjpJWZBS";
 const PRODUCTION_TEAM_ID = "team_z1b9TTQtbNkr43dzs5JVJPnQ";
 const EXPECTED_MIGRATIONS = migrationIntegrity.migrations.map(({ createdAt, hash }) => ({ createdAt, hash }));
-const EXISTING_COMMERCIAL_TABLES = REQUIRED_COMMERCIAL_TABLES.filter(
-  (table) => table !== "question_locks" && table !== "deep_reading_context_snapshots",
-);
+const EXISTING_COMMERCIAL_TABLES = [...REQUIRED_COMMERCIAL_TABLES];
 
 async function fetchProductionDatabaseUrl(): Promise<string> {
   const releaseSecret = process.env.PRODUCTION_DATABASE_URL;
@@ -144,15 +141,15 @@ function runOfficialDrizzleMigration(databaseUrl: string): void {
 async function main(): Promise<void> {
   const action = process.env.PRODUCTION_SCHEMA_ACTION?.trim();
   if (action !== "inspect" && action !== "migrate") throw new Error("PRODUCTION_SCHEMA_ACTION_INVALID");
-  if (EXPECTED_MIGRATIONS.length !== 13 || migrationIntegrity.migrations[12]?.tag !== "0012_deep_reading_context_contract") {
-    throw new Error("EXPECTED_PRODUCTION_MIGRATION_0012_NOT_CURRENT");
+  if (EXPECTED_MIGRATIONS.length !== 14 || migrationIntegrity.migrations[13]?.tag !== "0013_drop_question_locks") {
+    throw new Error("EXPECTED_PRODUCTION_MIGRATION_0013_NOT_CURRENT");
   }
 
   const databaseUrl = await fetchProductionDatabaseUrl();
   const sql = postgres(databaseUrl, { max: 1, connect_timeout: 10 });
   try {
     const beforeObjects = await readSchemaObjects(sql);
-    const beforeSchema = classifyMigration0012Schema(beforeObjects);
+    const beforeSchema = classifyCurrentSchema(beforeObjects);
     const beforeMigrations = await readAppliedMigrations(sql);
     const beforeHistory = classifyAppliedMigrationHistory(beforeMigrations, EXPECTED_MIGRATIONS);
     const existingTables = new Set(beforeObjects.filter((object) => object.startsWith("table:")).map((object) => object.slice(6)));
@@ -163,7 +160,7 @@ async function main(): Promise<void> {
       existingCommercialTableCount: EXISTING_COMMERCIAL_TABLES.length,
       missingExistingTables,
       migrationHistory: { appliedCount: beforeMigrations.length, state: beforeHistory },
-      migration0012Schema: beforeSchema,
+      currentSchema: beforeSchema,
       existingCommercialRowCounts: null as Record<string, string> | null,
       after: null as Record<string, unknown> | null,
     };
@@ -179,19 +176,19 @@ async function main(): Promise<void> {
 
     if (action === "inspect") {
       console.log(JSON.stringify(report, null, 2));
-      if (beforeSchema.state === "partial" || (beforeSchema.state === "complete" && beforeHistory !== "complete")) {
-        throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_MIGRATION_0012");
+      if (beforeSchema.state === "partial"
+        || (beforeSchema.state === "pending" && beforeHistory !== "pending")
+        || (beforeSchema.state === "complete" && beforeHistory !== "complete")) {
+        throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_MIGRATION_0013");
       }
       return;
     }
 
-    if (beforeSchema.state === "partial" || (beforeSchema.state === "complete" && beforeHistory !== "complete")) {
+    if (beforeSchema.state === "partial"
+      || (beforeSchema.state === "pending" && beforeHistory !== "pending")
+      || (beforeSchema.state === "complete" && beforeHistory !== "complete")) {
       console.log(JSON.stringify(report, null, 2));
-      throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_MIGRATION_0012");
-    }
-    if (beforeSchema.state === "pending" && beforeHistory !== "pending") {
-      console.log(JSON.stringify(report, null, 2));
-      throw new Error("PRODUCTION_SCHEMA_MIGRATION_HISTORY_CONFLICT");
+      throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_MIGRATION_0013");
     }
 
     if (beforeSchema.state === "pending" && beforeHistory === "pending") {
@@ -200,7 +197,7 @@ async function main(): Promise<void> {
     }
 
     const afterObjects = await readSchemaObjects(sql);
-    const afterSchema = classifyMigration0012Schema(afterObjects);
+    const afterSchema = classifyCurrentSchema(afterObjects);
     const afterMigrations = await readAppliedMigrations(sql);
     const afterHistory = classifyAppliedMigrationHistory(afterMigrations, EXPECTED_MIGRATIONS);
     const afterRowCounts = report.existingCommercialRowCounts ? await readExistingRowCounts(sql) : null;
@@ -209,7 +206,7 @@ async function main(): Promise<void> {
     report.after = {
       appliedMigrationCount: afterMigrations.length,
       migrationHistory: afterHistory,
-      migration0012Schema: afterSchema,
+      currentSchema: afterSchema,
       existingCommercialTablesCountCompared: Object.keys(report.existingCommercialRowCounts ?? {}).length,
       existingCommercialRowCountsPreserved: report.existingCommercialRowCounts === null ? "not_applicable" : rowsPreserved,
     };
