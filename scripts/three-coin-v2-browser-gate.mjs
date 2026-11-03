@@ -6,9 +6,9 @@ const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
 const COMPLETED_READING_KEY = "quickiching:public-v1:completed-reading";
 const FIXTURE_CASTING_ID = "11111111-1111-4111-8111-111111111111";
-const RESULT_PATH = "/readings/three-coin/result";
+const RESULT_PATH = "/readings/result";
 const HOME_TITLE = "I Ching Online — Free Hexagram Reading | Quick I Ching";
-const HOME_DESCRIPTION = "Use the I Ching online with three coins, yarrow stalks, or Mei Hua Yi Shu. Cast your hexagram, see changing lines, and get a free basic interpretation.";
+const HOME_DESCRIPTION = "Use the I Ching online with Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, or Manual Cast. See changing lines and get a free grounded interpretation.";
 const NOT_FOUND_TITLE = "Page Not Found | Quick I Ching";
 const FIXTURE_STEPS = [
   { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
