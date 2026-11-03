@@ -11,10 +11,11 @@ import {
   type PublicReadingMethod,
 } from "./types";
 
-const INTERNAL_METHODS: Record<Exclude<PublicReadingMethod, "manual">, CastingMethod> = {
+const INTERNAL_METHODS: Record<PublicReadingMethod, CastingMethod> = {
   "three-coin": "three_coin",
   "yarrow-stalks": "yarrow_stalk",
   "mei-hua-yi-shu": "mei_hua_number_time",
+  manual: "manual",
 };
 
 function asPublicLineTuple(values: readonly number[]): PublicLineTuple {
@@ -64,7 +65,7 @@ export function buildPublicReading(input: PublicReadingInput): PublicReading {
   assertEvidenceMatchesMethod(input.method, input.evidence);
   const lineValuesBottomUp = asPublicLineTuple(input.lineValuesBottomUp);
   const question = normalizePublicQuestion(input.question);
-  const internalMethod = input.method === "manual" ? "three_coin" : INTERNAL_METHODS[input.method];
+  const internalMethod = INTERNAL_METHODS[input.method];
   const methodVersion = input.methodVersion ?? PUBLIC_METHOD_VERSIONS[input.method];
   const computed = buildHexagramResult({
     lineValuesBottomUp: lineValuesBottomUp as readonly LineValue[],
