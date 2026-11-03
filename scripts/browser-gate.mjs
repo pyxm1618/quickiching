@@ -348,6 +348,7 @@ async function assertCompletedMethodHandoff(page, expectedMethod) {
         ? reading.evidence.lines.map((line) => Array.isArray(line?.changes) ? line.changes.length : null)
         : null,
       meiHuaConventionId: reading?.evidence?.calculation?.methodCalculation?.conventionId ?? null,
+      meiHuaNumber: reading?.evidence?.calculation?.methodCalculation?.number ?? null,
       meiHuaUtcMillis: reading?.evidence?.calculation?.methodCalculation?.utcMillis ?? null,
       meiHuaTimeZone: reading?.evidence?.calculation?.methodCalculation?.ianaTimeZone ?? null,
     };
@@ -366,10 +367,12 @@ async function assertCompletedMethodHandoff(page, expectedMethod) {
     assert.equal(completed.yarrowLineCount, 6, "Yarrow completed-reading must preserve six evidence lines");
     assert.deepEqual(completed.yarrowChangesPerLine, [3, 3, 3, 3, 3, 3], "Yarrow completed-reading must preserve all 18 changes");
   } else if (expectedMethod === "mei-hua-yi-shu") {
-    assert.equal(completed.methodVersion, "mei-hua-gregorian-current-time-v2", "Mei Hua completed-reading algorithm version mismatch");
-    assert.equal(completed.meiHuaConventionId, "quickiching-gregorian-current-time-v2", "Mei Hua completed-reading public convention mismatch");
+    assert.equal(completed.methodVersion, "mei-hua-number-moment-classical-v1", "Mei Hua completed-reading algorithm version mismatch");
+    assert.equal(completed.meiHuaConventionId, "mei-hua-classical-object-number-hour-v1", "Mei Hua completed-reading public convention mismatch");
+    assert.equal(completed.meiHuaNumber, 29, "Mei Hua completed-reading must preserve the confirmed user number");
     assert(Number.isFinite(completed.meiHuaUtcMillis), "Mei Hua completed-reading must preserve the exact UTC casting moment");
-    assert.equal(completed.meiHuaTimeZone, "Asia/Singapore", "Mei Hua completed-reading must preserve the chosen IANA timezone");
+    assert.equal(typeof completed.meiHuaTimeZone, "string", "Mei Hua completed-reading must preserve an IANA timezone");
+    assert(completed.meiHuaTimeZone.length > 0, "Mei Hua completed-reading timezone must not be empty");
   }
 
   await page.reload({ waitUntil: "networkidle0" });
@@ -523,11 +526,14 @@ async function finishYarrow(page, verifyResume) {
 }
 
 async function finishMeiHua(page) {
-  await page.waitForSelector("#mei-hua-timezone");
-  const labelExists = await page.evaluate(() => Boolean(document.querySelector('label[for="mei-hua-timezone"]')));
-  assert(labelExists, "Mei Hua timezone input is missing its label");
-  await page.locator("#mei-hua-timezone").fill("Asia/Singapore");
-  await clickButton(page, "Cast current time");
+  await page.waitForSelector("#mei-hua-question");
+  await page.locator("#mei-hua-question").fill("Should I change to a new job this year?");
+  await page.click(".mei-ask button");
+  await page.waitForSelector("#mei-hua-number");
+  await page.locator("#mei-hua-number").fill("29");
+  await page.click(".mei-choose button");
+  await page.waitForSelector(".mei-moment");
+  await page.click(".mei-confirm-actions .mei-button:not(.mei-button-outline)");
   await assertCompletedMethodHandoff(page, "mei-hua-yi-shu");
 }
 
@@ -605,11 +611,11 @@ async function verifyBrowserFlows() {
     await runPage(browser, { path: "/", viewport: desktop, flow: verifyThreeCoinTransactionSemantics, label: "Desktop Three Coin → commit/reveal/cancel semantics" });
     await runPage(browser, { path: "/", viewport: desktop, flow: finishThreeCoin, label: "Desktop homepage → Three Coin → completed cast → auth-before-reveal" });
     await runPage(browser, { path: "/methods/yarrow-stalks", viewport: desktop, flow: (page) => finishYarrow(page, true), label: "Desktop Yarrow → resume → unified result auth handoff" });
-    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → unified result auth handoff" });
+    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: desktop, flow: finishMeiHua, label: "Desktop Mei Hua → unified result auth handoff", skipQuestion: false });
 
     await runPage(browser, { path: "/", viewport: mobile, flow: finishThreeCoin, label: "375px homepage → Three Coin → auth-before-reveal" });
     await runPage(browser, { path: "/methods/yarrow-stalks", viewport: mobile, flow: (page) => finishYarrow(page, false), label: "375px Yarrow → unified result auth handoff" });
-    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → unified result auth handoff" });
+    await runPage(browser, { path: "/methods/mei-hua-yi-shu", viewport: mobile, flow: finishMeiHua, label: "375px Mei Hua → unified result auth handoff", skipQuestion: false });
 
     for (const viewport of [{ width: 320, height: 800 }, { width: 390, height: 844 }]) {
       await runPage(browser, {
