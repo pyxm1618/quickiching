@@ -1,13 +1,6 @@
-name: CP6 Staging Preflight
+name: OPS / Staging Preflight
 
 on:
-  push:
-    branches:
-      - codex/commercial-v2-cp6-repair
-    paths:
-      - .github/workflows/cp6-staging-preflight.yml
-      - scripts/cp6-staging-preflight.ts
-      - src/server/readiness/cp6-staging-preflight.test.ts
   workflow_dispatch:
 
 permissions:
