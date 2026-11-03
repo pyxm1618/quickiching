@@ -99,6 +99,9 @@
   .pine { top: clamp(520px, 56vw, 680px); width: clamp(128px, 14vw, 144px); }
 }
 @media (min-width: 961px) and (max-width: 1279px) {
+  /* The 1024px formal reference starts the paper hero ~48px above the earlier integrated capture.
+     Shift only the desktop reference band; do not crop content or change mobile/large-desktop flow. */
+  .detail { padding-top: clamp(17px, calc(6.35vw - 48px), 44px); }
   .identity { padding-bottom: 29px; }
   .identity + .section { margin-top: 3px; }
   .numberBadge { width: 58px; margin-top: 6px; margin-left: 7px; padding: 7.3px 1px; }
