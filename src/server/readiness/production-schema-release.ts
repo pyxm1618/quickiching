@@ -1,24 +1,4 @@
-export const CURRENT_MIGRATION_REQUIRED_OBJECTS = Object.freeze([
-  "table:question_locks",
-  "table:deep_reading_context_snapshots",
-  "column:generation_output_reviews.question_relevance_pass",
-  "column:generation_output_reviews.context_fidelity_pass",
-  "column:generation_output_reviews.evidence_grounding_pass",
-  "column:generation_output_reviews.interpretive_coherence_pass",
-  "column:generation_output_reviews.actionability_pass",
-  "column:generation_output_reviews.uncertainty_pass",
-  "column:generation_output_reviews.language_consistency_pass",
-  "index:question_locks.question_locks_winning_casting_idx",
-  "index:question_locks.question_locks_locked_until_idx",
-  "constraint:question_locks.question_locks_pkey",
-  "constraint:deep_reading_context_snapshots.deep_reading_context_snapshots_pkey",
-  "constraint:generation_output_reviews.generation_reviews_deep_reading_pass_fields_check",
-  "foreign_key:question_locks.user_id->users.id:cascade",
-  "foreign_key:question_locks.winning_casting_id->casting_sessions.id:cascade",
-  "foreign_key:deep_reading_context_snapshots.casting_id->casting_sessions.id:cascade",
-  "trigger:deep_reading_context_snapshots.deep_reading_context_snapshot_immutable_trigger",
-  "function:prevent_deep_reading_context_snapshot_update",
-] as const);
+import { CURRENT_MIGRATION_REQUIRED_OBJECTS } from "./current-schema-contract";
 
 export type ProductionEnvironmentEntry = {
   key?: unknown;
