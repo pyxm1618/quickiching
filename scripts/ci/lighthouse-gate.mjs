@@ -101,8 +101,7 @@ async function checkBaseline(id, metrics, target) {
   }
 }
 
-const results = {};
-for (const id of targetIds) {
+const results = {};\nlet resultGateRan = false;\nfor (const id of targetIds) {
   const target = config.targets[id];
   assert(target, `Unknown performance target: ${id}`);
   if (target.fixture === "completed-reading") {
