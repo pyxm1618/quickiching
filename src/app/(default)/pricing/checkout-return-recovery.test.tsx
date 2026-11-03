@@ -236,15 +236,12 @@ describe("CheckoutReturnRecovery actual React component lifecycle", () => {
     writeCheckoutReturnContext(mockStorage, initialContext);
 
     // 初始挂载
-    root.render(React.createElement(CheckoutReturnRecovery, { credits: 0 }));
-    await flushMicrotasks();
-    await vi.advanceTimersByTimeAsync(0);
-    await flushMicrotasks();
+    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, { credits: 0 }));
+    await advanceTimersAndFlush(0);
 
     // 推进 25000ms (5 次 5000ms 轮询)
     for (let i = 0; i < 5; i++) {
-      await vi.advanceTimersByTimeAsync(5000);
-      await flushMicrotasks();
+      await advanceTimersAndFlush(5000);
     }
     const refreshesBeforeTimeout = mockRouter.refresh.mock.calls.length;
     expect(refreshesBeforeTimeout).toBe(5);
