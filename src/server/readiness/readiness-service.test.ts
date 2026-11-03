@@ -146,7 +146,7 @@ describe("System Readiness Service", () => {
     expect(report.database.missingTables).toContain("entitlement_reservations");
   });
 
-  it("never considers the commercial path ready when either migration 0012 table is missing", async () => {
+  it("never considers the commercial path ready when a current required table is missing", async () => {
     const env = validCommercialEnv();
     for (const missingTable of ["question_locks", "deep_reading_context_snapshots"]) {
       const tables = REQUIRED_COMMERCIAL_TABLES.filter((table) => table !== missingTable);
@@ -163,7 +163,7 @@ describe("System Readiness Service", () => {
     }
   });
 
-  it("blocks commercial readiness when a migration 0012 review field or integrity object is missing", async () => {
+  it("blocks commercial readiness when a current required schema object is missing", async () => {
     const env = validCommercialEnv();
     for (const missingObject of [
       "column:generation_output_reviews.question_relevance_pass",
