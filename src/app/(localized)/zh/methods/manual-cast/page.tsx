@@ -27,7 +27,7 @@ export default function ChineseManualCastPage() {
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
-        <QuestionFirst storageKey="quickiching:public-v1:manual-cast" legacyStorageKeys={["quickiching:question:manual-cast"]} dictionary={dictionary}>
+        <QuestionFirst storageKey="quickiching:public-v1:manual-cast" dictionary={dictionary}>
           <ManualCastTool dictionary={dictionary} />
         </QuestionFirst>
       </section>
