@@ -37,8 +37,6 @@ function assertQuality(label, metrics, indexable = true, enforcePerformance = tr
 async function seedManualReading(page, origin) {
   await page.goto(`${origin}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(() => {
-    sessionStorage.removeItem("quickiching:question:manual-cast:started");
-    sessionStorage.removeItem("quickiching:question:manual-cast:question");
     sessionStorage.setItem("quickiching:public-v1:manual-cast", JSON.stringify({
       schemaVersion: 1,
       id: "lighthouse-manual-reading",
