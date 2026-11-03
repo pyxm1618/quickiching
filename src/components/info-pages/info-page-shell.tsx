@@ -29,7 +29,7 @@ export function InfoPageShell({ title, lead, meta, variant = "standard", seoPrim
 
   return (
     <div className={styles.page} data-info-page="true" data-info-kind={variant}>
-      <link rel="preload" as="image" href={firstArtwork} fetchPriority="high" />
+      <link rel="preload" as="image" href={firstArtwork} fetchPriority="high" media="(min-width: 761px)" />
       {seoPrimary ? (
         <article className={styles.inner} data-seo-primary={seoPrimary}>{content}</article>
       ) : (

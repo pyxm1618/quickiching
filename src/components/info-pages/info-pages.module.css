@@ -437,21 +437,6 @@
   .helpSupport>a { margin-top: 24px; font-size: 22px; }
   .artwork { grid-template-rows: 4cqw minmax(0,1fr) 6cqw; }
 
-  /* Avoid stretching the source parchment image through a several-thousand-pixel
-     mobile middle row. Keep the real top/bottom artwork; render only the long
-     quiet paper body with lightweight gradients so it cannot become a giant LCP. */
-  .artwork[data-paper-artwork="main"] svg:nth-child(4) image,
-  .artwork[data-paper-artwork="main"] svg:nth-child(5) image,
-  .artwork[data-paper-artwork="main"] svg:nth-child(6) image { display: none; }
-  .artwork[data-paper-artwork="main"] svg:nth-child(4) {
-    background: linear-gradient(90deg,#9a6434 0%,#d8ad70 34%,#efd3a0 100%);
-  }
-  .artwork[data-paper-artwork="main"] svg:nth-child(5) {
-    background: linear-gradient(180deg,#efd3a0 0%,#f3dab0 48%,#e8c58f 100%);
-  }
-  .artwork[data-paper-artwork="main"] svg:nth-child(6) {
-    background: linear-gradient(90deg,#efd3a0 0%,#d8ad70 66%,#9a6434 100%);
-  }
 }
 
 @media (max-width:380px) {

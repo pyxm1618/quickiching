@@ -25,8 +25,15 @@ export function PaperArtwork({ kind = "main" }: { kind?: "main" | "secondary" | 
 }
 
 export function GuideDecoration({ kind }: { kind: "coins" | "landscape" | "lantern" | "books"; }) {
-  const regions = { coins: "70 45 610 420", landscape: "700 40 740 450", lantern: "60 510 620 470", books: "810 540 600 430" };
-  return <svg aria-hidden="true" className={styles.guideDecoration} viewBox={regions[kind]}>
-    <image href="/info-pages/runtime/decorative/guide-decorations.webp" width="1536" height="1024" />
-  </svg>;
+  return <img
+    aria-hidden="true"
+    alt=""
+    className={styles.guideDecoration}
+    src={`/info-pages/decorative/${kind}.webp`}
+    width="170"
+    height="145"
+    loading="lazy"
+    decoding="async"
+    fetchPriority="low"
+  />;
 }
