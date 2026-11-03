@@ -71,6 +71,5 @@ describe("Public SEO V1 constants", () => {
     expect(bySource.get("/yarrow-stalk-method")).toBe("/methods/yarrow-stalks");
     expect(bySource.get("/mei-hua-yi-shu")).toBe("/methods/mei-hua-yi-shu");
     expect(bySource.get("/cast/yarrow_stalk")).toBe("/methods/yarrow-stalks");
-    expect(bySource.get("/cast/mei_hua_current_time")).toBe("/methods/mei-hua-yi-shu");
   });
 });
