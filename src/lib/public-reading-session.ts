@@ -13,7 +13,6 @@ export type PublicReadingSession<T = unknown> = {
 
 type RawSession = PublicReadingSession<unknown>;
 
-type SessionCompatibility = { allowLegacyEnvelope?: boolean };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -68,39 +67,18 @@ function asEnvelope(value: unknown): RawSession | null {
   };
 }
 
-function legacyEnvelope(value: unknown): RawSession | null {
-  if (value === null) return null;
-  const identity = validIdentity(value) ? value : null;
-  return {
-    schemaVersion: PUBLIC_READING_SESSION_SCHEMA_VERSION,
-    id: identity?.id ?? makeReadingId(),
-    createdAt: identity?.createdAt ?? new Date().toISOString(),
-    // Shared compatibility for non-Three-Coin public methods whose pre-envelope data may still exist.
-    // The formal Three-Coin flow explicitly opts out with allowLegacyEnvelope: false.
-    started: false,
-    ...(isRecord(value) && typeof value.question === "string" && value.question ? { question: value.question } : {}),
-    data: value,
-  };
-}
-
-function readRawSession(
-  key: string,
-  compatibility: SessionCompatibility = {},
-): { raw: unknown; envelope: RawSession | null } {
+function readRawSession(key: string): { raw: unknown; envelope: RawSession | null } {
   const raw = browserStorage().getItem(key);
   const parsed = parseRaw(raw);
-  const envelope = asEnvelope(parsed)
-    ?? (compatibility.allowLegacyEnvelope === false ? null : legacyEnvelope(parsed));
-  return { raw: parsed, envelope };
+  return { raw: parsed, envelope: asEnvelope(parsed) };
 }
 
 export function readPublicReadingSession<T>(
   key: string,
   parseData: (value: unknown) => T | null,
-  compatibility: SessionCompatibility = {},
 ): PublicReadingSession<T> | null {
   try {
-    const { envelope } = readRawSession(key, compatibility);
+    const { envelope } = readRawSession(key);
     if (!envelope) return null;
     if (!("data" in envelope)) return envelope as PublicReadingSession<T>;
     const data = parseData(envelope.data);
@@ -113,46 +91,33 @@ export function readPublicReadingSession<T>(
 
 export function readPublicReadingSessionState(
   key: string,
-  legacyKeys: readonly string[] = [],
-  compatibility: SessionCompatibility = {},
 ): { started: boolean; question?: string; coreQuestionAtCast?: string; coreQuestionFrozenAtCast: boolean } {
   try {
-    const current = readRawSession(key, compatibility).envelope;
-    let legacyStarted = false;
-    let legacyQuestion: string | undefined;
-    for (const legacyKey of legacyKeys) {
-      const started = browserStorage().getItem(`${legacyKey}:started`) === "true";
-      const question = browserStorage().getItem(`${legacyKey}:question`) ?? undefined;
-      legacyStarted ||= started;
-      legacyQuestion ||= question;
-    }
+    const current = readRawSession(key).envelope;
     if (current) {
       const coreQuestionFrozenAtCast = current.coreQuestionFrozenAtCast === true || Boolean(current.data);
       const coreQuestionAtCast = coreQuestionFrozenAtCast
-        ? current.coreQuestionAtCast ?? current.question ?? legacyQuestion
+        ? current.coreQuestionAtCast ?? current.question
         : undefined;
-      const question = coreQuestionAtCast ?? current.question ?? legacyQuestion;
+      const question = coreQuestionAtCast ?? current.question;
       return {
-        started: current.started || legacyStarted,
+        started: current.started,
         ...(question ? { question } : {}),
         ...(coreQuestionAtCast ? { coreQuestionAtCast } : {}),
         coreQuestionFrozenAtCast,
       };
     }
-    if (legacyStarted || legacyQuestion) return { started: legacyStarted, ...(legacyQuestion ? { question: legacyQuestion } : {}), coreQuestionFrozenAtCast: false };
   } catch {
     // Question-first remains usable in memory when session recovery is unavailable.
   }
   return { started: false, coreQuestionFrozenAtCast: false };
 }
-
 export function writePublicReadingSession<T>(
   key: string,
   data: T,
-  compatibility: SessionCompatibility = {},
 ): PublicReadingSession<T> {
   try {
-    const current = readRawSession(key, compatibility).envelope;
+    const current = readRawSession(key).envelope;
     const next: PublicReadingSession<T> = {
       schemaVersion: PUBLIC_READING_SESSION_SCHEMA_VERSION,
       id: current?.id ?? makeReadingId(),
@@ -174,33 +139,17 @@ export function writePublicReadingSession<T>(
 export function patchPublicReadingSession(
   key: string,
   patch: { started: boolean; question?: string; coreQuestionAtCast?: string | null; coreQuestionFrozenAtCast?: boolean },
-  legacyKeys: readonly string[] = [],
-  compatibility: SessionCompatibility = {},
 ): boolean {
   try {
-    const current = readRawSession(key, compatibility).envelope;
+    const current = readRawSession(key).envelope;
     if (!patch.started) {
       browserStorage().removeItem(key);
-      for (const legacyKey of legacyKeys) {
-        browserStorage().removeItem(`${legacyKey}:started`);
-        browserStorage().removeItem(`${legacyKey}:question`);
-      }
       return true;
     }
 
-    let legacyQuestion: string | undefined;
-    if (!current) {
-      for (const legacyKey of legacyKeys) {
-        const candidate = browserStorage().getItem(`${legacyKey}:question`)?.trim();
-        if (candidate) {
-          legacyQuestion = candidate;
-          break;
-        }
-      }
-    }
     const questionFrozen = current?.coreQuestionFrozenAtCast === true || Boolean(current && "data" in current);
     const frozenQuestion = current?.coreQuestionAtCast ?? current?.question;
-    const nextQuestion = questionFrozen ? frozenQuestion : patch.question ?? legacyQuestion;
+    const nextQuestion = questionFrozen ? frozenQuestion : patch.question;
     const nextCoreQuestion = questionFrozen
       ? current?.coreQuestionAtCast
       : patch.coreQuestionAtCast !== undefined
@@ -217,17 +166,12 @@ export function patchPublicReadingSession(
       ...(current && "data" in current ? { data: current.data } : {}),
     };
     browserStorage().setItem(key, JSON.stringify(next));
-    for (const legacyKey of legacyKeys) {
-      browserStorage().removeItem(`${legacyKey}:started`);
-      browserStorage().removeItem(`${legacyKey}:question`);
-    }
     return true;
   } catch {
     // The public flow remains usable in memory when session recovery is unavailable.
     return false;
   }
 }
-
 export function clearPublicReadingSession(key: string): void {
   try {
     browserStorage().removeItem(key);
@@ -239,10 +183,9 @@ export function clearPublicReadingSession(key: string): void {
 
 export function restartPublicReadingSession(
   key: string,
-  compatibility: SessionCompatibility = {},
 ): PublicReadingSession {
   try {
-    const current = readRawSession(key, compatibility).envelope;
+    const current = readRawSession(key).envelope;
     const now = Date.now();
     const previousTime = current ? Date.parse(current.createdAt) : Number.NaN;
     const createdAt = new Date(Number.isFinite(previousTime) && previousTime >= now ? previousTime + 1 : now).toISOString();
