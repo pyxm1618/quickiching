@@ -144,6 +144,21 @@ const PERFORMANCE = [
   "config/performance-gates.json",
 ];
 
+const DOMAIN_SELECTORS = [
+  DATABASE,
+  READING,
+  PUBLIC_SEO,
+  ACCOUNT_INFO,
+  PAYMENT,
+  HEXAGRAM_DETAIL,
+];
+
+function isUnclassifiedServerRuntime(file) {
+  return file.startsWith("src/server/")
+    && !any([file], FULL_PATTERNS)
+    && !DOMAIN_SELECTORS.some((patterns) => any([file], patterns));
+}
+
 const ALL_PERFORMANCE_TARGETS = [
   "home.mobile",
   "home.desktop",
@@ -166,7 +181,8 @@ export function shouldForceFullContext(eventName, headRef = "") {
 
 export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
   const files = rawFiles.map(normalize).filter(Boolean);
-  const full = forceFull || any(files, FULL_PATTERNS);
+  const unclassifiedServerRuntime = files.some(isUnclassifiedServerRuntime);
+  const full = forceFull || any(files, FULL_PATTERNS) || unclassifiedServerRuntime;
 
   const selected = {
     full,
