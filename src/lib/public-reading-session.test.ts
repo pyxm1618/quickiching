@@ -42,18 +42,14 @@ describe("public reading session envelope", () => {
     });
   });
 
-  it("migrates legacy casting data behind the question gate and gives it one persistent id", () => {
+  it("rejects retired unversioned session data instead of migrating it", () => {
     const storage = installSessionStorage(JSON.stringify([7, 8, 9]));
-    expect(readPublicReadingSessionState("reading")).toEqual({ started: false, coreQuestionFrozenAtCast: true });
-    patchPublicReadingSession("reading", { started: true, question: "A question" });
-    const migrated = readPublicReadingSession("reading", (value) => Array.isArray(value) ? value as number[] : null);
-    const persisted = JSON.parse(storage.getItem("reading") ?? "null") as { id?: string; question?: string; coreQuestionFrozenAtCast?: boolean };
+    expect(readPublicReadingSession("reading", (value) => Array.isArray(value) ? value as number[] : null)).toBeNull();
+    expect(readPublicReadingSessionState("reading")).toEqual({ started: false, coreQuestionFrozenAtCast: false });
 
-    expect(migrated?.data).toEqual([7, 8, 9]);
-    expect(migrated?.question).toBeUndefined();
-    expect(migrated?.coreQuestionFrozenAtCast).toBe(true);
-    expect(persisted.coreQuestionFrozenAtCast).toBe(true);
-    expect(persisted.id).toBe(migrated?.id);
+    patchPublicReadingSession("reading", { started: true, question: "A question" });
+    const current = JSON.parse(storage.getItem("reading") ?? "null") as { schemaVersion?: number; question?: string };
+    expect(current).toMatchObject({ schemaVersion: 1, question: "A question" });
     clearPublicReadingSession("reading");
     expect(storage.getItem("reading")).toBeNull();
   });

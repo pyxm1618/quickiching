@@ -54,7 +54,7 @@ jobs:
         run: bun scripts/payment-closeout-production-env-audit.ts
       - name: Verify Drizzle journal and migration integrity manifest
         run: node scripts/check-migration-integrity.mjs
-      - name: Inspect or apply migration 0012 through Drizzle
+      - name: Inspect or apply migration 0013 through Drizzle
         env:
           PRODUCTION_SCHEMA_ACTION: ${{ inputs.schema_action }}
         run: bun scripts/production-schema-release.ts

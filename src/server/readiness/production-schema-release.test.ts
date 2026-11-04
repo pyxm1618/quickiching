@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   classifyAppliedMigrationHistory,
-  classifyMigration0012Schema,
-  MIGRATION_0012_REQUIRED_OBJECTS,
+  classifyCurrentSchema,
+  CURRENT_REQUIRED_SCHEMA_OBJECTS,
   requireProductionDatabaseUrl,
   resolveProductionDatabaseUrl,
 } from "./production-schema-release";
@@ -57,30 +57,22 @@ describe("Production Drizzle schema release preflight", () => {
     ], async () => ({ }))).rejects.toThrow("PRODUCTION_DATABASE_URL_COUNT_INVALID:2");
   });
 
-  it("treats a completely absent migration 0012 schema as pending", () => {
-    expect(classifyMigration0012Schema([])).toEqual({
-      state: "pending",
-      present: [],
-      missing: [...MIGRATION_0012_REQUIRED_OBJECTS],
-    });
-  });
-
-  it("treats all migration 0012 objects present as complete", () => {
-    expect(classifyMigration0012Schema([...MIGRATION_0012_REQUIRED_OBJECTS])).toEqual({
+  it("treats all current required objects as complete", () => {
+    expect(classifyCurrentSchema([...CURRENT_REQUIRED_SCHEMA_OBJECTS])).toEqual({
       state: "complete",
-      present: [...MIGRATION_0012_REQUIRED_OBJECTS],
+      present: [...CURRENT_REQUIRED_SCHEMA_OBJECTS],
       missing: [],
     });
   });
 
-  it("identifies partial schema as unsafe for automatic migration", () => {
-    const state = classifyMigration0012Schema(MIGRATION_0012_REQUIRED_OBJECTS.slice(1));
+  it("identifies missing current schema objects as partial", () => {
+    const state = classifyCurrentSchema(CURRENT_REQUIRED_SCHEMA_OBJECTS.slice(1));
     expect(state.state).toBe("partial");
-    expect(state.present).toHaveLength(MIGRATION_0012_REQUIRED_OBJECTS.length - 1);
-    expect(state.missing).toEqual(["table:question_locks"]);
+    expect(state.present).toHaveLength(CURRENT_REQUIRED_SCHEMA_OBJECTS.length - 1);
+    expect(state.missing).toEqual(["table:deep_reading_context_snapshots"]);
   });
 
-  it("allows only the exact journal prefix before migration 0012", () => {
+  it("allows only the exact journal prefix before the current migration", () => {
     const expected = [
       { createdAt: 10, hash: "migration-one" },
       { createdAt: 20, hash: "migration-two" },

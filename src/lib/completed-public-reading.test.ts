@@ -2,9 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { generateYarrowLine } from "@/domain/casting/yarrow/algorithm";
 import { generateThreeCoinLine } from "@/domain/casting/three-coin/algorithm";
-import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
 import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
-import { LEGACY_MEI_HUA_METHOD_VERSION } from "@/domain/public-reading/types";
 import { completedPublicReadingPath, readCompletedPublicReading, publicReadingSaveInput, writeCompletedPublicReading } from "./completed-public-reading";
 
 const calculation = meiHuaFromNumberAndTime({
@@ -45,19 +43,7 @@ describe("common completed reading handoff", () => {
     expect(publicReadingSaveInput(reading).methodCalculation).not.toHaveProperty("movingLinePosition");
   });
 
-  it("keeps historical current-time Mei Hua read-only instead of creating a legacy cast", () => {
-    const oldCalculation = meiHuaFromUtc(Date.UTC(2026, 9, 31), "UTC");
-    const oldReading = buildPublicReading({
-      id: reading.id,
-      method: "mei-hua-yi-shu",
-      methodVersion: LEGACY_MEI_HUA_METHOD_VERSION,
-      lineValuesBottomUp: oldCalculation.lineValuesBottomUp,
-      evidence: { kind: "mei-hua-yi-shu", calculation: oldCalculation },
-    });
-    expect(() => publicReadingSaveInput(oldReading)).toThrow("LEGACY_MEI_HUA_READ_ONLY");
-  });
-
-  it("hands all three active methods to the same canonical route with unchanged source evidence", () => {
+  it("hands all four active methods to the same canonical route with unchanged source evidence", () => {
     const values = new Map<string, string>();
     vi.stubGlobal("window", { sessionStorage: { setItem: (key: string, value: string) => values.set(key, value), getItem: (key: string) => values.get(key) ?? null } });
     const yarrow = Array.from({ length: 6 }, (_, index) => generateYarrowLine(index as 0, () => 1));
@@ -66,6 +52,7 @@ describe("common completed reading handoff", () => {
       reading,
       buildPublicReading({ id: reading.id, method: "three-coin", lineValuesBottomUp: coins.map(line => line.lineValue), evidence: { kind: "three-coin", steps: coins } }),
       buildPublicReading({ id: reading.id, method: "yarrow-stalks", lineValuesBottomUp: yarrow.map(line => line.lineValue), evidence: { kind: "yarrow-stalks", lines: yarrow } }),
+      buildPublicReading({ id: reading.id, method: "manual", lineValuesBottomUp: [7, 8, 9, 6, 7, 8], evidence: { kind: "manual", mode: "line-values" } }),
     ]) {
       writeCompletedPublicReading(completed);
       expect(readCompletedPublicReading(completed.id)).toEqual(completed);
@@ -88,6 +75,7 @@ describe("restart preserves other casting methods", () => {
     ["yarrow-stalks", "quickiching:public-v1:yarrow-v2", "/methods/yarrow-stalks"],
     ["mei-hua-yi-shu", "quickiching:public-v1:mei-hua-number-time-v1", "/methods/mei-hua-yi-shu"],
     ["three-coin", "quickiching:public-v1:three-coin", "/methods/three-coin"],
+    ["manual", "quickiching:public-v1:manual-cast", "/methods/manual-cast"],
   ] as const)("clears only %s and the common handoff", (method, key, href) => {
     const values = new Map([[key,"cast"],["unrelated","preserve"],["quickiching:public-v1:completed-reading","handoff"]]);
     vi.stubGlobal("window", {sessionStorage: {removeItem:(item:string)=>values.delete(item)}, localStorage:{removeItem:vi.fn()}});

@@ -8,11 +8,24 @@ on:
 permissions:
   contents: read
 
+# Transitional compatibility wrapper.
+# Keep the historical required context name until the repository Ruleset is
+# switched to the stable CI / ... contexts. The implementation below delegates
+# to the same current Product/Performance contracts used by .github/workflows/ci.yml.
 jobs:
   launch-gate:
     name: Bun + Production Browser + Lighthouse
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
+    env:
+      PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3036
+      READING_TEST_BASE_URL: http://127.0.0.1:3036
+      HEXAGRAM_SEO_AUDIT_BASE_URL: http://127.0.0.1:3036
+      HEXAGRAM_SEO_BROWSER_BASE_URL: http://127.0.0.1:3036
+      CHINESE_SEO_AUDIT_BASE_URL: http://127.0.0.1:3036
+      CHINESE_INTERACTIVE_GATE_BASE_URL: http://127.0.0.1:3036
+      MULTILINGUAL_TEST_BASE_URL: http://127.0.0.1:3036
+      CI_PERFORMANCE_TARGETS: '["home.mobile","home.desktop","three-coin.desktop","result.mobile","result.desktop","info.desktop"]'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -21,11 +34,63 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
-      - name: Tool versions
-        run: |
-          node --version
-          bun --version
-      - name: Install locked application dependencies
+      - name: Install locked dependencies
         run: bun install --frozen-lockfile
-      - name: Run complete Public SEO V1 launch gate
-        run: node scripts/vercel-build.mjs
+      - name: Production build
+        run: bun run build
+      - name: Stable asset and bundle budgets
+        run: node scripts/performance-asset-gate.mjs
+      - name: Install pinned browser stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(node - <<'NODE'
+          const fs=require('fs');
+          const c=JSON.parse(fs.readFileSync('config/performance-gates.json','utf8')).tooling;
+          console.log('LIGHTHOUSE_VERSION='+c.lighthouse);
+          console.log('PUPPETEER_VERSION='+c.puppeteerCore);
+          console.log('CHROMIUM_VERSION='+c.chromium);
+          NODE
+          )"
+          bun add --no-save --cache-dir=/tmp/quickiching-ci-legacy-compat-cache             "puppeteer-core@$PUPPETEER_VERSION" "@sparticuz/chromium@$CHROMIUM_VERSION" "lighthouse@$LIGHTHOUSE_VERSION"
+          CHROME_PATH="$(node -e 'import("@sparticuz/chromium").then(async m=>process.stdout.write(await m.default.executablePath()))')"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+          "$CHROME_PATH" --version
+      - name: Start production server
+        shell: bash
+        run: |
+          set -euo pipefail
+          (PORT=3036 HOSTNAME=127.0.0.1 CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW=1 bun run start > /tmp/qic-legacy-compat.log 2>&1 & echo $! > /tmp/qic-legacy-compat.pid)
+          for i in {1..80}; do
+            if curl -fsS http://127.0.0.1:3036/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/qic-legacy-compat.log
+          exit 1
+      - name: Current Reading and Public SEO contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/reading-business-browser.mjs
+          bun scripts/three-coin-v2-browser-gate.mjs --public-only
+          bun scripts/public-p0-browser-gate.mjs
+          bun run seo:registry
+          bun run seo:quality
+          bun run seo:browser
+          bun run seo:zh
+          bun run gate:interactive:zh
+          bun scripts/browser-gate.mjs
+          bun scripts/on-page-seo-browser-gate.mjs
+          bun scripts/multilingual-browser-gate.mjs
+          bun scripts/interpretation-bundle-gate.mjs
+          bun scripts/logo-browser-gate.mjs
+          bun run gate:navigation
+      - name: Current targeted Lighthouse contracts
+        run: node scripts/ci/lighthouse-gate.mjs
+      - name: Stop production server
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/qic-legacy-compat.pid ]; then
+            kill "$(cat /tmp/qic-legacy-compat.pid)" 2>/dev/null || true
+          fi

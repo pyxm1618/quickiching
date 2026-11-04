@@ -37,8 +37,6 @@ function assertQuality(label, metrics, indexable = true, enforcePerformance = tr
 async function seedManualReading(page, origin) {
   await page.goto(`${origin}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(() => {
-    sessionStorage.removeItem("quickiching:question:manual-cast:started");
-    sessionStorage.removeItem("quickiching:question:manual-cast:question");
     sessionStorage.setItem("quickiching:public-v1:manual-cast", JSON.stringify({
       schemaVersion: 1,
       id: "lighthouse-manual-reading",
@@ -106,7 +104,10 @@ async function audit(browser, { origin, path, label, desktop = false, seed = fal
     }
     const metrics = { ...summarize(label, result), ...metricsFromReport(result.lhr) };
     assertQuality(label, metrics, indexable, enforcePerformance, desktop);
-    if (path === "/methods/manual-cast") await page.waitForFunction(() => document.body?.innerText.toLocaleLowerCase().includes("your i ching reading"), { timeout: 15_000 });
+    if (path === "/methods/manual-cast") {
+      await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
+      await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+    }
     return metrics;
   } finally {
     await context.close();

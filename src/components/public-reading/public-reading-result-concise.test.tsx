@@ -6,7 +6,7 @@ import { buildPublicReading } from "@/domain/public-reading/reading";
 import { buildStaticReading } from "@/domain/public-reading/static-reading";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 import type { PublicReadingEvidence, PublicReadingMethod } from "@/domain/public-reading/types";
-import { meiHuaFromUtc } from "@/domain/casting/mei-hua/algorithm";
+import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
 import type { LineValue } from "@/domain/casting/types";
 
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: React.ComponentProps<"a">) => <a href={href} {...props}>{children}</a> }));
@@ -14,7 +14,7 @@ vi.mock("next/link", () => ({ default: ({ href, children, ...props }: React.Comp
 function evidenceFor(method: PublicReadingMethod): PublicReadingEvidence {
   if (method === "three-coin") return { kind: "three-coin", steps: [] };
   if (method === "yarrow-stalks") return { kind: "yarrow-stalks", lines: [] };
-  if (method === "mei-hua-yi-shu") return { kind: "mei-hua-yi-shu", calculation: meiHuaFromUtc(Date.UTC(2026, 9, 31), "UTC") };
+  if (method === "mei-hua-yi-shu") return { kind: "mei-hua-yi-shu", calculation: meiHuaFromNumberAndTime({ number: 17, utcMillis: Date.UTC(2026, 9, 31), ianaTimeZone: "UTC" }) };
   return { kind: "manual", mode: "line-values" };
 }
 

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -13,7 +14,7 @@ import { repo } from "@/server/repository";
 import { generateYarrowLine } from "@/domain/casting/yarrow/algorithm";
 import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
 
-const CLIENT_CASTING_ID = "2d0a4f0d-37e8-42bf-9232-9d40518f1e4f";
+let CLIENT_CASTING_ID = randomUUID();
 
 function createReq(body: unknown, origin = "https://www.quickiching.com") {
   return new Request("https://www.quickiching.com/api/readings", {
@@ -31,6 +32,7 @@ function createReq(body: unknown, origin = "https://www.quickiching.com") {
 
 describe("Save Reading Route (POST /api/readings)", () => {
   beforeEach(() => {
+    CLIENT_CASTING_ID = randomUUID();
     vi.stubEnv("APP_BASE_URL", "https://www.quickiching.com");
     vi.stubEnv("BETTER_AUTH_URL", "https://www.quickiching.com");
     vi.stubEnv("DATABASE_ADAPTER_MODE", "memory");
@@ -115,10 +117,90 @@ describe("Save Reading Route (POST /api/readings)", () => {
     expect(body.castingId).toBeDefined();
     expect(typeof body.castingId).toBe("string");
   });
-  it("rejects unsupported methods and client-selected algorithm versions", async () => {
-    for (const input of [{ method: "manual" }, { method: "three_coin", algorithmVersion: "invented-v1" }]) {
-      expect((await POST(createReq({ clientCastingId: CLIENT_CASTING_ID, lineValuesBottomUp: [7,7,7,7,7,7], ...input }))).status).toBe(422);
-    }
+  it("rejects client-selected unsupported algorithm versions", async () => {
+    expect((await POST(createReq({
+      clientCastingId: CLIENT_CASTING_ID,
+      method: "three_coin",
+      algorithmVersion: "invented-v1",
+      lineValuesBottomUp: [7,7,7,7,7,7],
+    }))).status).toBe(422);
+  });
+
+  it("saves Manual line-values with the canonical method and stable client id", async () => {
+    const response = await POST(createReq({
+      clientCastingId: CLIENT_CASTING_ID,
+      method: "manual",
+      algorithmVersion: "manual-cast-v1",
+      lineValuesBottomUp: [7, 8, 9, 6, 7, 8],
+      methodCalculation: { mode: "line-values" },
+      question: "What should I understand about this choice?",
+    }));
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({ castingId: CLIENT_CASTING_ID, idempotent: false });
+    expect(repo.getCastingSession(CLIENT_CASTING_ID)).toMatchObject({
+      id: CLIENT_CASTING_ID,
+      method: "manual",
+      algorithmVersion: "manual-cast-v1",
+      lifecycle: "revealed",
+    });
+    expect(repo.getLatestQuestionContext(CLIENT_CASTING_ID)).toBe("What should I understand about this choice?");
+  });
+
+  it("validates Manual primary-changing evidence and rejects duplicate or conflicting positions", async () => {
+    const valid = {
+      clientCastingId: CLIENT_CASTING_ID,
+      method: "manual",
+      algorithmVersion: "manual-cast-v1",
+      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+      methodCalculation: { mode: "primary-changing", primaryHexagramNumber: 1, changingLines: [] },
+    };
+    expect((await POST(createReq(valid))).status).toBe(201);
+
+    expect((await POST(createReq({
+      ...valid,
+      clientCastingId: randomUUID(),
+      methodCalculation: { mode: "primary-changing", primaryHexagramNumber: 1, changingLines: [1, 1] },
+    }))).status).toBe(422);
+
+    expect((await POST(createReq({
+      ...valid,
+      clientCastingId: randomUUID(),
+      lineValuesBottomUp: [8, 8, 8, 8, 8, 8],
+    }))).status).toBe(422);
+  });
+
+  it("is idempotent for the same stable id and rejects different content under that id", async () => {
+    const input = {
+      clientCastingId: CLIENT_CASTING_ID,
+      method: "manual",
+      lineValuesBottomUp: [7, 8, 9, 6, 7, 8],
+      methodCalculation: { mode: "line-values" },
+      question: "What should I understand?",
+    };
+    expect((await POST(createReq(input))).status).toBe(201);
+    const retry = await POST(createReq(input));
+    expect(retry.status).toBe(200);
+    await expect(retry.json()).resolves.toMatchObject({ castingId: CLIENT_CASTING_ID, idempotent: true });
+
+    const conflict = await POST(createReq({ ...input, lineValuesBottomUp: [7, 7, 7, 7, 7, 7] }));
+    expect(conflict.status).toBe(409);
+    await expect(conflict.json()).resolves.toEqual({ error: "READING_IDEMPOTENCY_CONFLICT" });
+  });
+
+  it("allows the same question to be saved as two distinct casts with different stable ids", async () => {
+    const question = "Should I continue with the same plan?";
+    const first = await POST(createReq({
+      clientCastingId: randomUUID(),
+      lineValuesBottomUp: [7, 8, 9, 6, 7, 8],
+      question,
+    }));
+    const second = await POST(createReq({
+      clientCastingId: randomUUID(),
+      lineValuesBottomUp: [8, 7, 8, 7, 8, 7],
+      question,
+    }));
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
   });
 
   it("saves yarrow with its own server-known method and version", async () => {
@@ -136,15 +218,6 @@ describe("Save Reading Route (POST /api/readings)", () => {
     expect(response.status).toBe(201);
     expect(repo.getCastingSession((await response.json()).castingId)).toMatchObject({ method: "mei_hua_number_time", algorithmVersion: result.algorithmVersion });
     expect((await POST(createReq({ clientCastingId: CLIENT_CASTING_ID, method: "mei_hua_number_time", lineValuesBottomUp: [7,7,7,7,7,7], methodCalculation }))).status).toBe(422);
-  });
-
-  it("rejects creation of historical current-time Mei Hua casts", async () => {
-    expect((await POST(createReq({
-      clientCastingId: CLIENT_CASTING_ID,
-      method: "mei_hua_current_time",
-      lineValuesBottomUp: [7,7,7,7,7,7],
-      methodCalculation: { utcMillis: Date.UTC(2026, 9, 31, 12), ianaTimeZone: "Asia/Shanghai" },
-    }))).status).toBe(422);
   });
 
   it("rejects missing, invalid, or inconsistent method evidence", async () => {

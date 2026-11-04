@@ -252,59 +252,6 @@ describe("POST /api/readings Postgres idempotency (integration)", () => {
     expect(first?.question_fingerprint).toBeTruthy();
     expect(repeated?.question_fingerprint).toBe(first?.question_fingerprint);
 
-    const locks = await sql`
-      select count(*)::integer as count from question_locks
-      where user_id = ${userId}
-    ` as Array<{ count: number }>;
-    expect(locks[0]?.count).toBe(0);
-  });
-
-  it("ignores an existing historical question_locks row for a new same-question cast", async () => {
-    const userId = await createUser();
-    const firstCastingId = randomUUID();
-    const repeatedCastingId = randomUUID();
-    const question = "Should I ask this exact question again?";
-
-    const firstResponse = await saveReading(saveRequest(saveInput(firstCastingId, question), userId));
-    expect(firstResponse.status).toBe(201);
-
-    const fingerprintRows = await sql`
-      select question_fingerprint, fingerprint_key_version
-      from casting_sessions
-      where id = ${firstCastingId}
-    ` as Array<{ question_fingerprint: string | null; fingerprint_key_version: string | null }>;
-    const fingerprint = fingerprintRows[0]?.question_fingerprint;
-    const keyVersion = fingerprintRows[0]?.fingerprint_key_version;
-    expect(fingerprint).toBeTruthy();
-    expect(keyVersion).toBeTruthy();
-
-    await sql`
-      insert into question_locks (
-        user_id, fingerprint, key_version, winning_casting_id, locked_until, created_at, updated_at
-      ) values (
-        ${userId}, ${fingerprint!}, ${keyVersion!}, ${firstCastingId},
-        clock_timestamp() + interval '72 hours', clock_timestamp(), clock_timestamp()
-      )
-    `;
-
-    const repeatedResponse = await saveReading(saveRequest(saveInput(repeatedCastingId, question), userId));
-    expect(repeatedResponse.status).toBe(201);
-    await expect(repeatedResponse.json()).resolves.toMatchObject({
-      castingId: repeatedCastingId,
-      idempotent: false,
-    });
-
-    const rows = await sql`
-      select id from casting_sessions
-      where user_id = ${userId} and id in (${firstCastingId}, ${repeatedCastingId})
-    ` as Array<{ id: string }>;
-    expect(new Set(rows.map((row) => row.id))).toEqual(new Set([firstCastingId, repeatedCastingId]));
-
-    const lockRows = await sql`
-      select winning_casting_id from question_locks
-      where user_id = ${userId} and fingerprint = ${fingerprint!}
-    ` as Array<{ winning_casting_id: string }>;
-    expect(lockRows).toEqual([{ winning_casting_id: firstCastingId }]);
   });
 
   it("allows concurrent new casts for the same core question", async () => {

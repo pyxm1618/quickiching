@@ -1,9 +1,7 @@
 import {
   deepReadingContextSnapshotSchema,
-  legacyDeepReadingReportSchema,
   readingReportSchema as activeReadingReportSchema,
 } from "./deep-reading-contract";
-import { readingReportSchema as commercialReadingReportSchema } from "./schemas";
 
 export type AiDeepReadingViewModel = {
   schemaVersion: "ai-deep-reading-view-v1";
@@ -20,7 +18,6 @@ export type AiDeepReadingViewModel = {
 export type DeepReadingPresentationContext = {
   question: string;
   createdAt?: string;
-  legacyReadOnly: boolean;
 };
 
 function compactUnique(items: Array<string | null | undefined>, limit = 3): string[] {
@@ -62,7 +59,6 @@ export function normalizeDeepReadingContext(snapshot: unknown): DeepReadingPrese
   return {
     question: parsed.data.coreQuestionAtCast,
     createdAt: parsed.data.snapshotAt,
-    legacyReadOnly: parsed.data.schemaVersion === "deep-reading-context-v1",
   };
 }
 
@@ -93,63 +89,6 @@ export function normalizeDeepReadingViewModel(
       ], 3),
       nextSteps: compactUnique(active.data.whatToDoNext, 3),
       disclaimer: active.data.disclaimer,
-    };
-  }
-
-  const legacyV2 = legacyDeepReadingReportSchema.safeParse(report);
-  if (legacyV2.success) {
-    const core = splitCoreAnswer(legacyV2.data.directAnswer);
-    return {
-      schemaVersion: "ai-deep-reading-view-v1",
-      coreLead: core.lead,
-      coreDetail: core.detail,
-      whyItems: sentencePoints(legacyV2.data.situationMapping, 3),
-      changeItems: compactUnique([
-        contextSnapshot?.knowledge.structuralChange,
-        legacyV2.data.conditionalDirection,
-        ...legacyV2.data.keyTensions,
-      ], 3),
-      actionSignals: compactUnique(legacyV2.data.signalsToWatch, 3),
-      observeSignals: compactUnique([
-        ...legacyV2.data.keyTensions,
-        ...sentencePoints(legacyV2.data.uncertaintyAndBoundaries, 2),
-      ], 3),
-      nextSteps: compactUnique([
-        ...sentencePoints(legacyV2.data.practicalReflection, 3),
-        ...sentencePoints(legacyV2.data.conditionalDirection, 2),
-      ], 3),
-      disclaimer: legacyV2.data.disclaimer,
-    };
-  }
-
-  const legacyV1 = commercialReadingReportSchema.safeParse(report);
-  if (legacyV1.success) {
-    const core = splitCoreAnswer(legacyV1.data.coreSummary);
-    return {
-      schemaVersion: "ai-deep-reading-view-v1",
-      coreLead: core.lead,
-      coreDetail: core.detail,
-      whyItems: compactUnique([
-        ...sentencePoints(legacyV1.data.currentStage, 2),
-        ...sentencePoints(legacyV1.data.primaryHexagramPattern, 2),
-      ], 3),
-      changeItems: compactUnique([
-        ...sentencePoints(legacyV1.data.changeMechanism, 2),
-        ...sentencePoints(legacyV1.data.possibleDirection, 2),
-      ], 3),
-      actionSignals: compactUnique([
-        ...sentencePoints(legacyV1.data.turningConditions, 2),
-        ...sentencePoints(legacyV1.data.conditionalActionDirection, 2),
-      ], 3),
-      observeSignals: compactUnique([
-        ...sentencePoints(legacyV1.data.obstaclesAndBlindSpots, 2),
-        ...sentencePoints(legacyV1.data.uncertaintyAndBoundaries, 2),
-      ], 3),
-      nextSteps: compactUnique([
-        ...sentencePoints(legacyV1.data.conditionalActionDirection, 3),
-        ...sentencePoints(legacyV1.data.turningConditions, 2),
-      ], 3),
-      disclaimer: legacyV1.data.disclaimer,
     };
   }
 

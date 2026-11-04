@@ -8,6 +8,8 @@ import {
   patchThreeCoinQuestionSession,
   readThreeCoinQuestionState,
   readThreeCoinSession,
+  THREE_COIN_BACKUP_STORAGE_KEY,
+  THREE_COIN_COMPLETED_BACKUP_TTL_MS,
   THREE_COIN_SESSION_STORAGE_KEY,
   writeThreeCoinSteps,
 } from "./three-coin-session";
@@ -219,4 +221,90 @@ describe("Three-Coin browser session contract", () => {
     expect(restored?.data?.steps).toEqual(original.data?.steps);
     expect(fakeSessionStorage.getItem(THREE_COIN_SESSION_STORAGE_KEY)).not.toBeNull();
   });
+  it("restores a five-line current session with the same identity and leaves it incomplete", () => {
+    const values = new Map<string, string>();
+    const sessionStorage = storageWith({
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    });
+    vi.stubGlobal("window", { sessionStorage, localStorage: storageWith({}) });
+
+    expect(patchThreeCoinQuestionSession({
+      started: true,
+      question: "What should I understand?",
+      coreQuestionAtCast: "What should I understand?",
+      coreQuestionFrozenAtCast: true,
+    })).toBe(true);
+    const written = writeThreeCoinSteps(validSteps(5));
+    const restored = readThreeCoinSession();
+
+    expect(restored?.id).toBe(written.id);
+    expect(restored?.data?.steps).toHaveLength(5);
+    expect(completedThreeCoinSteps(restored?.data?.steps ?? [])).toBeNull();
+  });
+
+  it("removes an expired completed backup and does not restore it", () => {
+    const sessionMemory = new Map<string, string>();
+    const backupMemory = new Map<string, string>();
+    const sessionStorage = storageWith({
+      getItem: (key: string) => sessionMemory.get(key) ?? null,
+      setItem: (key: string, value: string) => sessionMemory.set(key, value),
+      removeItem: (key: string) => sessionMemory.delete(key),
+    });
+    const localStorage = storageWith({
+      getItem: (key: string) => backupMemory.get(key) ?? null,
+      setItem: (key: string, value: string) => backupMemory.set(key, value),
+      removeItem: (key: string) => backupMemory.delete(key),
+    });
+    vi.stubGlobal("window", { sessionStorage, localStorage });
+
+    expect(patchThreeCoinQuestionSession({
+      started: true,
+      question: "Should this remain?",
+      coreQuestionAtCast: "Should this remain?",
+      coreQuestionFrozenAtCast: true,
+    })).toBe(true);
+    writeThreeCoinSteps(validSteps(6));
+
+    const raw = JSON.parse(backupMemory.get(THREE_COIN_BACKUP_STORAGE_KEY) ?? "null") as Record<string, unknown>;
+    raw.completedBackupCreatedAt = new Date(Date.now() - THREE_COIN_COMPLETED_BACKUP_TTL_MS - 1).toISOString();
+    backupMemory.set(THREE_COIN_BACKUP_STORAGE_KEY, JSON.stringify(raw));
+    sessionMemory.clear();
+
+    expect(readThreeCoinSession()).toBeNull();
+    expect(backupMemory.has(THREE_COIN_BACKUP_STORAGE_KEY)).toBe(false);
+    expect(sessionMemory.has(THREE_COIN_SESSION_STORAGE_KEY)).toBe(false);
+  });
+
+  it("New Reading clears the completed backup together with the current session", () => {
+    const sessionMemory = new Map<string, string>();
+    const backupMemory = new Map<string, string>();
+    vi.stubGlobal("window", {
+      sessionStorage: storageWith({
+        getItem: (key: string) => sessionMemory.get(key) ?? null,
+        setItem: (key: string, value: string) => sessionMemory.set(key, value),
+        removeItem: (key: string) => sessionMemory.delete(key),
+      }),
+      localStorage: storageWith({
+        getItem: (key: string) => backupMemory.get(key) ?? null,
+        setItem: (key: string, value: string) => backupMemory.set(key, value),
+        removeItem: (key: string) => backupMemory.delete(key),
+      }),
+    });
+
+    expect(patchThreeCoinQuestionSession({
+      started: true,
+      question: "Start over?",
+      coreQuestionAtCast: "Start over?",
+      coreQuestionFrozenAtCast: true,
+    })).toBe(true);
+    writeThreeCoinSteps(validSteps(6));
+    expect(backupMemory.has(THREE_COIN_BACKUP_STORAGE_KEY)).toBe(true);
+
+    clearThreeCoinReading();
+    expect(sessionMemory.has(THREE_COIN_SESSION_STORAGE_KEY)).toBe(false);
+    expect(backupMemory.has(THREE_COIN_BACKUP_STORAGE_KEY)).toBe(false);
+  });
+
 });

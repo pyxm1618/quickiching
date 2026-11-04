@@ -36,8 +36,10 @@ export class MemoryCastingRepository implements CastingRepository {
       const ownerId = input.userId ?? input.anonHash ?? "";
       if (this.hasActiveCast(ownerId, input.userId != null)) throw repositoryError("CASTING_ALREADY_IN_PROGRESS");
       const now = new Date();
+      const id = input.id ?? memoryId("cas");
+      if (this.store.castingSessions.has(id)) throw new Error("CASTING_ID_CONFLICT");
       const session: CastingSession = {
-        id: memoryId("cas"),
+        id,
         userId: input.userId,
         anonymousSessionHash: input.anonHash,
         anonymousHashKeyVersion: input.anonHash ? KEY_VERSION : null,
@@ -47,8 +49,8 @@ export class MemoryCastingRepository implements CastingRepository {
         scene: input.scene,
         interpretationGoal: input.interpretationGoal,
         currentQuestionVersionId: null,
-        questionFingerprint: null,
-        fingerprintKeyVersion: null,
+        questionFingerprint: input.questionFingerprint ?? null,
+        fingerprintKeyVersion: input.fingerprintKeyVersion ?? null,
         algorithmVersion: input.algorithmVersion,
         firstIrreversibleStepAt: null,
         castingExpiresAt: null,

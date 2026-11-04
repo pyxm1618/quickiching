@@ -39,7 +39,6 @@ export function shouldNavigateCompletedThreeCoin(input: {
   hasReadingMeta: boolean;
   storageBlocked: boolean;
   hasUnpersistedCommit: boolean;
-  completionNavigationArmed: boolean;
   resultNavigationStarted: boolean;
 }): boolean {
   return input.restored
@@ -48,7 +47,6 @@ export function shouldNavigateCompletedThreeCoin(input: {
     && input.hasReadingMeta
     && !input.storageBlocked
     && !input.hasUnpersistedCommit
-    && input.completionNavigationArmed
     && !input.resultNavigationStarted;
 }
 
@@ -82,7 +80,6 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
   const shakeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resultNavigationStartedRef = useRef(false);
-  const completionNavigationArmedRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -146,7 +143,6 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
       hasReadingMeta: Boolean(readingMeta),
       storageBlocked,
       hasUnpersistedCommit: Boolean(unpersistedCommit),
-      completionNavigationArmed: completionNavigationArmedRef.current,
       resultNavigationStarted: resultNavigationStartedRef.current,
     })) return;
 
@@ -259,7 +255,6 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
     try {
       const session = writeThreeCoinSteps(committedSteps);
       setReadingMeta({ id: session.id, createdAt: session.createdAt });
-      if (committedSteps.length === 6) completionNavigationArmedRef.current = true;
       beginVisualSettlement(committedSteps, next);
     } catch (error: unknown) {
       setPendingStep(null);
@@ -339,7 +334,6 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
     setRevealedCount(0);
     setReadingMeta(null);
     setSteps([]);
-    completionNavigationArmedRef.current = false;
     resultNavigationStartedRef.current = false;
   }
 

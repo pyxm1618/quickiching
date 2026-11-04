@@ -1,17 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
-import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
-import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import { useQuestionFirstContext } from "@/components/public-reading/question-first";
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
 import { manualFromLineValues, manualFromPrimaryAndChangingLines } from "@/domain/public-reading/manual";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import type { PublicLineTuple, PublicReadingEvidence } from "@/domain/public-reading/types";
-import { clearPublicReadingSession, readPublicReadingSession, writePublicReadingSession } from "@/lib/public-reading-session";
+import { readPublicReadingSession, writePublicReadingSession } from "@/lib/public-reading-session";
+import { completedPublicReadingPath, writeCompletedPublicReading } from "@/lib/completed-public-reading";
 
 const STORAGE_KEY = "quickiching:public-v1:manual-cast";
 const DEFAULT_LINE_VALUES: PublicLineTuple = [7, 7, 7, 7, 7, 7];
@@ -62,61 +62,48 @@ function readFacts(): ManualFacts | null {
 
 export function ManualCastTool({
   question: questionProp,
-  onNewReading: onNewReadingProp,
   dictionary = EN_UI_DICTIONARY,
-  localizedContent,
 }: {
   question?: string;
-  onNewReading?: () => void;
   dictionary?: UiDictionary;
-  localizedContent?: LocalizedReadingContent;
 }) {
+  const router = useRouter();
   const questionContext = useQuestionFirstContext();
   const question = questionProp ?? questionContext?.question;
-  const onNewReading = onNewReadingProp ?? (() => questionContext?.restartQuestion(true));
   const zh = dictionary.locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
   const [mode, setMode] = useState<ManualMode>("line-values");
   const [lineValues, setLineValues] = useState<PublicLineTuple>(DEFAULT_LINE_VALUES);
   const [primaryHexagram, setPrimaryHexagram] = useState(1);
   const [changingLines, setChangingLines] = useState<number[]>([]);
-  const [facts, setFacts] = useState<ManualFacts | null>(null);
-  const [hydrated, setHydrated] = useState(false);
   const modeTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
     const restored = readFacts();
-    if (restored) {
-      setFacts(restored);
-      setMode(restored.mode);
+    if (!restored) return;
+    setMode(restored.mode);
+    setLineValues(restored.lineValuesBottomUp);
+    if (restored.evidence.kind === "manual" && restored.evidence.mode === "primary-changing") {
+      setPrimaryHexagram(restored.evidence.primaryHexagramNumber ?? 1);
+      setChangingLines([...(restored.evidence.changingLines ?? [])]);
     }
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
     try {
-      if (facts) writePublicReadingSession(STORAGE_KEY, {
-        mode: facts.mode,
-        lineValuesBottomUp: facts.lineValuesBottomUp,
-        evidence: facts.evidence,
-      });
-    } catch {
-      // A manual cast remains in memory when session storage is unavailable.
-    }
-  }, [facts, hydrated]);
-
-  const modeBValues = useMemo(() => manualFromPrimaryAndChangingLines(primaryHexagram, changingLines), [primaryHexagram, changingLines]);
-  const publicReading = useMemo(() => facts
-    ? buildPublicReading({
-        id: facts.id,
-        createdAt: facts.createdAt,
+      const reading = buildPublicReading({
+        id: restored.id,
+        createdAt: restored.createdAt,
         method: "manual",
         question,
-        lineValuesBottomUp: facts.lineValuesBottomUp,
-        evidence: facts.evidence,
-      })
-    : null, [facts, question]);
+        lineValuesBottomUp: restored.lineValuesBottomUp,
+        evidence: restored.evidence,
+      });
+      writeCompletedPublicReading(reading);
+      router.replace(completedPublicReadingPath(reading.id, zh));
+    } catch {
+      // Keep the current canonical session so Build Reading can retry the handoff.
+    }
+  }, [question, router, zh]);
+
+  const modeBValues = useMemo(() => manualFromPrimaryAndChangingLines(primaryHexagram, changingLines), [primaryHexagram, changingLines]);
 
   function updateLine(index: number, value: number) {
     setLineValues((current) => manualFromLineValues(current.map((line, lineIndex) => lineIndex === index ? value : line)));
@@ -135,7 +122,16 @@ export function ManualCastTool({
       ? { kind: "manual", mode: "line-values" }
       : { kind: "manual", mode: "primary-changing", primaryHexagramNumber: primaryHexagram, changingLines };
     const session = writePublicReadingSession(STORAGE_KEY, { mode, lineValuesBottomUp: values, evidence });
-    setFacts({ id: session.id, createdAt: session.createdAt, mode, lineValuesBottomUp: values, evidence });
+    const reading = buildPublicReading({
+      id: session.id,
+      createdAt: session.createdAt,
+      method: "manual",
+      question: session.coreQuestionAtCast ?? session.question ?? question,
+      lineValuesBottomUp: values,
+      evidence,
+    });
+    writeCompletedPublicReading(reading);
+    router.push(completedPublicReadingPath(reading.id, zh));
   }
 
   function selectMode(nextMode: ManualMode, focusIndex?: number) {
@@ -155,20 +151,6 @@ export function ManualCastTool({
     selectMode(modes[nextIndex]!, nextIndex);
   }
 
-  function startNewReading() {
-    try {
-      clearPublicReadingSession(STORAGE_KEY);
-    } catch {
-      // The in-memory reset still works when browser storage is unavailable.
-    }
-    setFacts(null);
-    setChangingLines([]);
-    setLineValues(DEFAULT_LINE_VALUES);
-    setPrimaryHexagram(1);
-    setMode("line-values");
-    onNewReading?.();
-  }
-
   return (
     <section className="mystic-card overflow-hidden p-5 sm:p-8" aria-labelledby="manual-cast-tool-title">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -180,8 +162,7 @@ export function ManualCastTool({
         <span className="ritual-progress-badge" style={{ textTransform: "none" }}>{t("No randomness", "无随机过程")}</span>
       </div>
 
-      {!facts ? (
-        <>
+      <>
           <div className="mt-7 flex flex-wrap gap-3" role="tablist" aria-label={t("Manual cast input mode", "手动起卦输入方式")}>
             <button ref={(node) => { modeTabRefs.current[0] = node; }} id="manual-mode-line-values-tab" type="button" role="tab" aria-controls="manual-mode-line-values-panel" aria-selected={mode === "line-values"} tabIndex={mode === "line-values" ? 0 : -1} onClick={() => selectMode("line-values")} onKeyDown={(event) => handleModeKeyDown(event, 0)} className={mode === "line-values" ? "mystic-button" : "mystic-button-secondary"}>{t("Mode A · six values", "方式一 · 输入六个爻值")}</button>
             <button ref={(node) => { modeTabRefs.current[1] = node; }} id="manual-mode-primary-changing-tab" type="button" role="tab" aria-controls="manual-mode-primary-changing-panel" aria-selected={mode === "primary-changing"} tabIndex={mode === "primary-changing" ? 0 : -1} onClick={() => selectMode("primary-changing")} onKeyDown={(event) => handleModeKeyDown(event, 1)} className={mode === "primary-changing" ? "mystic-button" : "mystic-button-secondary"}>{t("Mode B · primary + moving", "方式二 · 本卦 + 动爻")}</button>
@@ -221,10 +202,7 @@ export function ManualCastTool({
           )}
 
           <div className="mt-7 flex flex-wrap gap-3"><button type="button" onClick={cast} className="mystic-button">{t("Build reading", "生成卦象")}</button><span className="self-center text-xs text-[var(--ink-3)]">{t("Lines are always read bottom → top.", "六爻始终按自下而上的顺序读取。")}</span></div>
-        </>
-      ) : null}
-
-      {publicReading ? <PublicReadingResult reading={publicReading} onNewReading={startNewReading} dictionary={dictionary} localizedContent={localizedContent} /> : null}
+      </>
     </section>
   );
 }

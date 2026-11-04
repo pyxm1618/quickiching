@@ -9,7 +9,7 @@ import {
   type AppliedMigration,
   type MigrationIntegrityStatus,
 } from "./migration-integrity";
-import { MIGRATION_0012_REQUIRED_OBJECTS } from "./production-schema-release";
+import { CURRENT_REQUIRED_SCHEMA_OBJECTS } from "./production-schema-release";
 
 export const REQUIRED_COMMERCIAL_TABLES = Object.freeze([
   "users",
@@ -36,12 +36,11 @@ export const REQUIRED_COMMERCIAL_TABLES = Object.freeze([
   "payment_webhook_conflicts",
   "workflow_runs",
   "audit_events",
-  "question_locks",
   "deep_reading_context_snapshots",
 ] as const);
 
 export const REQUIRED_COMMERCIAL_SCHEMA_OBJECTS = Object.freeze(
-  MIGRATION_0012_REQUIRED_OBJECTS.filter((object) => !object.startsWith("table:")),
+  CURRENT_REQUIRED_SCHEMA_OBJECTS.filter((object) => !object.startsWith("table:")),
 );
 
 export type CapabilityReadinessDetail = {

@@ -22,7 +22,6 @@ export const LEGACY_REDIRECTS = [
   { source: "/primary-and-relating-hexagrams", destination: "/guides/primary-relating-hexagrams" },
   { source: "/cast/three_coin", destination: "/" },
   { source: "/cast/yarrow_stalk", destination: "/methods/yarrow-stalks" },
-  { source: "/cast/mei_hua_current_time", destination: "/methods/mei-hua-yi-shu" },
 ] as const;
 
 export function absoluteUrl(path: string): string {

@@ -137,19 +137,32 @@ async function seedCompletedReadingStorage(page) {
 }
 
 async function seedCompletedReading(page) {
-  // The anonymous completed cast must first remain concealed behind the formal Auth/Save gate.
+  // A restored six-line cast must recover directly into the canonical sealed result route.
   await seedCompletedReadingStorage(page);
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForSelector('[data-ritual-view="complete"]');
-  await page.waitForFunction(()=>document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===6);
-  await new Promise((resolve) => setTimeout(resolve, 750));
+  await page.waitForFunction(
+    (resultPath, castingId) => location.pathname === resultPath && new URLSearchParams(location.search).get("session") === castingId,
+    { timeout: 30_000 },
+    RESULT_PATH,
+    FIXTURE_CASTING_ID,
+  );
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+  await page.waitForSelector("[data-completed-six-lines]", { timeout: 15_000 });
 
-  const completedState = await page.evaluate(() => ({
-    pathname: location.pathname,
-    progressComplete: document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===6,
-  }));
-  assert.equal(completedState.pathname, "/", "Restoring a completed cast must not auto-navigate away from the current page");
-  assert(completedState.progressComplete, "Restored completed cast must remain available in the casting UI");
+  const completedState = await page.evaluate(({ completedKey, castingId }) => {
+    const raw = sessionStorage.getItem(completedKey);
+    const completed = raw ? JSON.parse(raw) : null;
+    return {
+      pathname: location.pathname,
+      session: new URLSearchParams(location.search).get("session"),
+      completedId: completed?.id ?? null,
+      ritualCompleteViewVisible: document.querySelector('[data-ritual-view="complete"]') !== null,
+    };
+  }, { completedKey: COMPLETED_READING_KEY, castingId: FIXTURE_CASTING_ID });
+  assert.equal(completedState.pathname, RESULT_PATH, "Restored completed cast must recover into the canonical result route");
+  assert.equal(completedState.session, FIXTURE_CASTING_ID, "Recovered result route must preserve the same stable casting id");
+  assert.equal(completedState.completedId, FIXTURE_CASTING_ID, "Recovered completed-reading payload must preserve the same stable casting id");
+  assert.equal(completedState.ritualCompleteViewVisible, false, "Restored six-line cast must not leave the user stuck on a completed casting screen");
 }
 
 async function assertNoHorizontalOverflow(page) {
@@ -326,15 +339,20 @@ async function verifySeededResult(browser, viewport) {
     assert.equal(await resultText(page), beforeRefresh, "Refresh must reproduce the same anonymous completed-cast gate");
 
     await page.goBack({ waitUntil: "networkidle0" });
-    await page.waitForSelector('[data-ritual-view="complete"]');
-  await page.waitForFunction(()=>document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===6);
+    await page.waitForFunction(
+      (resultPath, castingId) => location.pathname === resultPath && new URLSearchParams(location.search).get("session") === castingId,
+      { timeout: 30_000 },
+      RESULT_PATH,
+      FIXTURE_CASTING_ID,
+    );
+    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
     const storedAfterBack = await page.evaluate((key) => sessionStorage.getItem(key), STORAGE_KEY);
     assert(storedAfterBack, "Back navigation must preserve the sealed reading");
-    await page.goForward({ waitUntil: "networkidle0" });
+    assert.equal(await page.$('[data-ritual-view="complete"]'), null, "Back navigation must not strand the user on the completed casting screen");
     await waitForText(page, "Your six lines are complete");
 
     await assertNoHorizontalOverflow(page);
-    log(`${viewport.width}px completed-cast auth gate / refresh / back / forward PASS`);
+    log(`${viewport.width}px completed-cast auth gate / refresh / back recovery PASS`);
   } finally {
     await context.close();
   }

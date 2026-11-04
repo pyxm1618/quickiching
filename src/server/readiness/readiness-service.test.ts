@@ -114,8 +114,8 @@ describe("System Readiness Service", () => {
     expect(report.database.connected).toBe(false);
   });
 
-  it("requires the complete 26-table commercial persistence surface", () => {
-    expect(REQUIRED_COMMERCIAL_TABLES).toHaveLength(26);
+  it("requires the complete 25-table current commercial persistence surface", () => {
+    expect(REQUIRED_COMMERCIAL_TABLES).toHaveLength(25);
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("payment_outbox");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("entitlement_batches");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("entitlement_reservations");
@@ -123,11 +123,9 @@ describe("System Readiness Service", () => {
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("generation_output_reviews");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("cast_results");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("payment_financial_reviews");
-    expect(REQUIRED_COMMERCIAL_TABLES).toContain("question_locks");
     expect(REQUIRED_COMMERCIAL_TABLES).toContain("deep_reading_context_snapshots");
     expect(REQUIRED_COMMERCIAL_SCHEMA_OBJECTS).toContain("column:generation_output_reviews.language_consistency_pass");
     expect(REQUIRED_COMMERCIAL_SCHEMA_OBJECTS).toContain("constraint:generation_output_reviews.generation_reviews_deep_reading_pass_fields_check");
-    expect(REQUIRED_COMMERCIAL_SCHEMA_OBJECTS).toContain("foreign_key:question_locks.user_id->users.id:cascade");
   });
 
   it("reports blocked when required commercial tables are missing from database", async () => {
@@ -146,9 +144,9 @@ describe("System Readiness Service", () => {
     expect(report.database.missingTables).toContain("entitlement_reservations");
   });
 
-  it("never considers the commercial path ready when either migration 0012 table is missing", async () => {
+  it("never considers the commercial path ready when the current deep-reading table is missing", async () => {
     const env = validCommercialEnv();
-    for (const missingTable of ["question_locks", "deep_reading_context_snapshots"]) {
+    for (const missingTable of ["deep_reading_context_snapshots"]) {
       const tables = REQUIRED_COMMERCIAL_TABLES.filter((table) => table !== missingTable);
       const report = await checkSystemReadiness(env, {
         ping: async () => {},
@@ -163,11 +161,10 @@ describe("System Readiness Service", () => {
     }
   });
 
-  it("blocks commercial readiness when a migration 0012 review field or integrity object is missing", async () => {
+  it("blocks commercial readiness when a current review field or integrity object is missing", async () => {
     const env = validCommercialEnv();
     for (const missingObject of [
       "column:generation_output_reviews.question_relevance_pass",
-      "index:question_locks.question_locks_winning_casting_idx",
       "trigger:deep_reading_context_snapshots.deep_reading_context_snapshot_immutable_trigger",
     ]) {
       const schemaObjects = REQUIRED_COMMERCIAL_SCHEMA_OBJECTS.filter((object) => object !== missingObject);

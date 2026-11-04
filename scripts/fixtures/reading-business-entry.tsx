@@ -44,10 +44,7 @@ const viewModel = zh ? {
   nextSteps: ['Verify the responsibilities and terms of the specific role before choosing.'],
   disclaimer: 'Reflective interpretation only, not a certain prediction.',
 };
-const context = {
-  question,
-  legacyReadOnly: false,
-};
+const context = { question };
 
 let posted = false;
 (window as any).__requests = [];

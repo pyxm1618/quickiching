@@ -40,8 +40,14 @@ const serverlessChromium = {
     return chromium.executablePath();
   },
 };
-const {executablePath} = await resolveChromeExecutable(serverlessChromium);
-const browser=await puppeteer.launch({executablePath,headless:true});
+const { executablePath, usingSystemChrome } = await resolveChromeExecutable(serverlessChromium);
+const browser = await puppeteer.launch({
+  executablePath,
+  headless: true,
+  args: usingSystemChrome
+    ? ["--no-sandbox", "--disable-dev-shm-usage"]
+    : ["--no-sandbox", "--disable-dev-shm-usage"],
+});
 const page=await browser.newPage();
 const evidence=[];
 const visualOutput=process.env.READING_VISUAL_OUTPUT?.trim() || null;

@@ -222,11 +222,5 @@ describe("Three-Coin real Auth -> save -> Account My Readings integration", () =
     ` as Array<{ count: number }>;
     expect(savedCount[0]?.count).toBe(2);
 
-    const questionLockCount = await sql`
-      select count(*)::integer as count
-      from question_locks
-      where user_id = ${resolved!.user.id}
-    ` as Array<{ count: number }>;
-    expect(questionLockCount[0]?.count).toBe(0);
   });
 });

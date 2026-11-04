@@ -9,12 +9,15 @@ import type {
 import type { CastResult, CastingRiskDecision, CastingSession, CastingStep, QuestionVersion } from "./models";
 
 export type CreateCastingSessionInput = {
+  id?: string;
   method: CastingMethod;
   scene: Scene;
   interpretationGoal: InterpretationGoal;
   userId: string | null;
   anonHash: string | null;
   algorithmVersion: string;
+  questionFingerprint?: string | null;
+  fingerprintKeyVersion?: string | null;
 };
 
 export type RecordCoinStepInput = {

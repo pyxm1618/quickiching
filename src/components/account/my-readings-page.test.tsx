@@ -34,7 +34,7 @@ describe("My Readings page", () => {
     expect(html).not.toContain("/readings/three-coin/result");
     expect(html).not.toMatch(/Preview|Get Deep Reading|View Deep Reading/);
   });
-  it("renders current and legacy Mei Hua history with the user-facing method label", async () => {
+  it("renders current Mei Hua and Manual history with user-facing method labels", async () => {
     mocks.readings.mockResolvedValue([
       {
         id: "mei-current", question: "Current method", createdAt: new Date("2026-10-29"), method: "mei_hua_number_time",
@@ -42,17 +42,18 @@ describe("My Readings page", () => {
         movingLinePositions: [6], relatingHexagramNumber: 43, relatingName: "Breakthrough",
       },
       {
-        id: "mei-legacy", question: "Legacy method", createdAt: new Date("2026-10-28"), method: "mei_hua_current_time",
+        id: "manual-current", question: "Manual method", createdAt: new Date("2026-10-28"), method: "manual",
         primaryHexagramNumber: 2, primaryName: "The Receptive", lineValues: [8, 8, 8, 8, 8, 6],
         movingLinePositions: [6], relatingHexagramNumber: 23, relatingName: "Splitting Apart",
       },
     ]);
     const html = renderToStaticMarkup(await MyReadingsPage({}));
-    expect(html.match(/Mei Hua Yi Shu/g)).toHaveLength(2);
+    expect(html).toContain("Mei Hua Yi Shu");
+    expect(html).toContain("Manual Cast");
     expect(html).not.toContain("mei_hua_number_time");
-    expect(html).not.toContain("mei_hua_current_time");
+    expect(html).not.toContain('method="manual"');
     expect(html).toContain("/readings/result?session=mei-current");
-    expect(html).toContain("/readings/result?session=mei-legacy");
+    expect(html).toContain("/readings/result?session=manual-current");
   });
   it("uses Chinese routes without adding an empty-state CTA", async () => {
     mocks.readings.mockResolvedValue([]);

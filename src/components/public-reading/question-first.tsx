@@ -17,7 +17,6 @@ export type QuestionContext = {
 
 type QuestionFirstProps = {
   storageKey: string;
-  legacyStorageKeys?: readonly string[];
   dictionary?: UiDictionary;
   deepReadingEligible?: boolean;
   initialSession?: {
@@ -37,7 +36,6 @@ export function useQuestionFirstContext(): QuestionContext | undefined {
 
 export function QuestionFirst({
   storageKey,
-  legacyStorageKeys = [],
   dictionary = EN_UI_DICTIONARY,
   deepReadingEligible = false,
   initialSession,
@@ -51,7 +49,7 @@ export function QuestionFirst({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const restored = readPublicReadingSessionState(storageKey, legacyStorageKeys);
+    const restored = readPublicReadingSessionState(storageKey);
     if (!restored.started && !restored.question && !restored.coreQuestionAtCast && !restored.coreQuestionFrozenAtCast) {
       return;
     }
@@ -60,7 +58,7 @@ export function QuestionFirst({
     setDraft(restored.question ?? "");
     setCoreQuestionAtCast(restored.coreQuestionAtCast);
     setCoreQuestionFrozenAtCast(restored.coreQuestionFrozenAtCast);
-  }, [legacyStorageKeys, storageKey]);
+  }, [storageKey]);
 
   function persist(
     nextStarted: boolean,
@@ -72,7 +70,7 @@ export function QuestionFirst({
       started: nextStarted,
       ...(nextQuestion ? { question: nextQuestion } : {}),
       ...(frozen ? { coreQuestionAtCast: frozenQuestion ?? coreQuestionAtCast ?? "", coreQuestionFrozenAtCast: true } : {}),
-    }, legacyStorageKeys);
+    });
   }
 
   function setQuestion(value: string | undefined) {
