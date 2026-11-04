@@ -25,6 +25,7 @@ jobs:
       public_seo: ${{ steps.select.outputs.public_seo }}
       account_info: ${{ steps.select.outputs.account_info }}
       payment: ${{ steps.select.outputs.payment }}
+      hexagram_detail: ${{ steps.select.outputs.hexagram_detail }}
       performance: ${{ steps.select.outputs.performance }}
       performance_targets: ${{ steps.select.outputs.performance_targets }}
     steps:
@@ -156,6 +157,9 @@ jobs:
       - name: Install Account local QA fixture
         if: needs.select.outputs.account_info == 'true'
         run: node scripts/group3-visual-qa-fixture.mjs install
+      - name: Install Reading local QA fixture
+        if: needs.select.outputs.reading == 'true'
+        run: node scripts/ritual-qa-fixture.mjs install
       - name: Production build for browser domains
         id: product_build
         if: needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true' || needs.select.outputs.account_info == 'true'
@@ -182,7 +186,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          (GROUP3_VISUAL_QA=1 PORT=3036 HOSTNAME=127.0.0.1 CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW=1 bun run start > /tmp/qic-ci-product.log 2>&1 & echo $! > /tmp/qic-ci-product.pid)
+          (GROUP3_VISUAL_QA=1 RITUAL_VISUAL_QA=1 RITUAL_QA_HOST=127.0.0.1:3036 PORT=3036 HOSTNAME=127.0.0.1 CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW=1 bun run start > /tmp/qic-ci-product.log 2>&1 & echo $! > /tmp/qic-ci-product.pid)
           for i in {1..80}; do
             if curl -fsS http://127.0.0.1:3036/ >/dev/null; then exit 0; fi
             sleep 1
@@ -198,7 +202,8 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/reading-business-browser.mjs
-          bun scripts/three-coin-v2-browser-gate.mjs --public-only
+          node scripts/three-coin-v2-browser-gate.mjs
+          node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth
           bun scripts/mei-hua-ui-browser-gate.mjs
           bun scripts/public-p0-browser-gate.mjs
       - name: Public / SEO Gate
@@ -210,6 +215,7 @@ jobs:
           CHINESE_SEO_AUDIT_BASE_URL: http://127.0.0.1:3036
           CHINESE_INTERACTIVE_GATE_BASE_URL: http://127.0.0.1:3036
           MULTILINGUAL_TEST_BASE_URL: http://127.0.0.1:3036
+          HEXAGRAM_DETAIL_UI_BASE_URL: http://127.0.0.1:3036
         shell: bash
         run: |
           set -euo pipefail
@@ -224,6 +230,11 @@ jobs:
           bun scripts/interpretation-bundle-gate.mjs
           bun scripts/logo-browser-gate.mjs
           bun run gate:navigation
+      - name: Hexagram Detail structural browser Gate
+        if: always() && needs.select.outputs.hexagram_detail == 'true' && steps.product_build.conclusion == 'success'
+        env:
+          HEXAGRAM_DETAIL_UI_BASE_URL: http://127.0.0.1:3036
+        run: bun scripts/hexagram-detail-ui-browser.mjs
       - name: Account / Info browser + responsive Gate
         if: always() && needs.select.outputs.account_info == 'true' && steps.product_build.conclusion == 'success'
         env:
@@ -253,6 +264,9 @@ jobs:
       - name: Remove Account local QA fixture
         if: always() && needs.select.outputs.account_info == 'true'
         run: node scripts/group3-visual-qa-fixture.mjs remove
+      - name: Remove Reading local QA fixture
+        if: always() && needs.select.outputs.reading == 'true'
+        run: node scripts/ritual-qa-fixture.mjs remove
 
   performance:
     name: CI / Performance
