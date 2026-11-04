@@ -19,13 +19,23 @@ export const FULL_PATTERNS = [
   /^src\/i18n\/(?:routing|navigation)/,
   "src/app/globals.css",
   /\/layout\.tsx$/,
+  "src/components/ui/",
+  "src/server/config.ts",
+  "src/server/capabilities.ts",
+  "src/server/loaders.ts",
+  "src/server/repository.ts",
   "src/domain/public-reading/",
   /^src\/lib\/completed-public-reading/,
   "src/server/auth/",
   /^src\/server\/db\/(?:schema|.+-schema)\.ts$/,
   "drizzle/",
+  "scripts/ci/",
   "scripts/check-migration-integrity.mjs",
   "scripts/test-postgres-serial.mjs",
+  "scripts/browser-runtime.mjs",
+  "scripts/performance-budget.mjs",
+  "scripts/performance-asset-gate.mjs",
+  "scripts/result-lighthouse-gate.mjs",
   "config/performance-gates.json",
 ];
 
@@ -41,6 +51,7 @@ const DATABASE = [
   "src/server/refunds/",
   "src/server/reconcile/",
   "src/app/api/",
+  /^src\/server\/.+\.integration\.test\.ts$/,
   "drizzle/",
   "scripts/test-postgres-serial.mjs",
   "scripts/check-migration-integrity.mjs",
@@ -72,6 +83,9 @@ const READING = [
   "scripts/three-coin-v2-browser-gate.mjs",
   "scripts/mei-hua-ui-browser-gate.mjs",
   "scripts/public-p0-browser-gate.mjs",
+  "scripts/ritual-scene-boundary-gate.mjs",
+  "scripts/ritual-motion-gate.mjs",
+  "scripts/ritual-qa-fixture.mjs",
 ];
 
 const PUBLIC_SEO = [
