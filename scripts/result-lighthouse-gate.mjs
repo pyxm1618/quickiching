@@ -1,4 +1,4 @@
-import { assertPerformanceBudget, metricsFromReport } from "./performance-budget.mjs";
+import { assertPerformanceBudget, getPerformanceGateConfig, metricsFromReport } from "./performance-budget.mjs";
 import assert from "node:assert/strict";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
@@ -174,8 +174,9 @@ function summarize(label, runnerResult) {
   const tbt = Math.round(report.audits["total-blocking-time"].numericValue ?? 0);
   log(`${label} performance=${performance} accessibility=${accessibility} seo=${seo} LCP_ms=${lcp} CLS=${cls.toFixed(4)} TBT_ms=${tbt}`);
 
-  assert(accessibility >= 90, `${label}: accessibility score below 90`);
-  assert(cls <= 0.1, `${label}: CLS exceeds 0.10`);
+  const gate = getPerformanceGateConfig(label === "RESULT_DESKTOP" ? "result.desktop" : "result.mobile");
+  assert(accessibility >= gate.metrics.accessibilityMin, `${label}: accessibility score below ${gate.metrics.accessibilityMin}`);
+  assert(cls <= gate.metrics.clsMax, `${label}: CLS exceeds ${gate.metrics.clsMax}`);
   assertPerformanceBudget(label, metricsFromReport(report), label === "RESULT_DESKTOP");
   // The product result is intentionally noindex. Its SEO category is recorded but not used as an indexing gate.
   return { performance, accessibility, seo, lcp, cls, tbt };
@@ -250,10 +251,11 @@ async function auditResult(browser, desktop) {
   let runnerResult = await runSingle();
   if (!desktop) {
     const initialLcp = Math.round(runnerResult?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0);
-    if (initialLcp > 2750) {
-      log(`RESULT_MOBILE single sample LCP (${initialLcp}ms) exceeded 2750ms due to runner jitter; confirming with stable median sample`);
+    const mobileGate = getPerformanceGateConfig("result.mobile");
+    if (initialLcp > mobileGate.metrics.lcpMaxMs) {
+      log(`RESULT_MOBILE single sample LCP (${initialLcp}ms) exceeded ${mobileGate.metrics.lcpMaxMs}ms; confirming with configured median sample`);
       const samples = [runnerResult];
-      for (let i = 2; i <= 3; i++) {
+      for (let i = 2; i <= mobileGate.samplePolicy.count; i++) {
         samples.push(await runSingle());
       }
       samples.sort((a, b) => {
