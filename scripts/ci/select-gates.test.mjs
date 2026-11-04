@@ -65,6 +65,7 @@ test("Info-only change selects Public/SEO + Account/Info + Performance", () => {
 
 test("Deep Reading generation service selects Reading + Database", () => {
   const r = pick(["src/server/generation/deep-reading-service.ts"]);
+  assert.equal(r.full, false);
   assert.equal(r.reading, true);
   assert.equal(r.database, true);
 });
@@ -78,6 +79,7 @@ test("Deep Reading route selects Reading + Public/SEO + Performance", () => {
 
 test("Reading repository selects Reading + Database", () => {
   const r = pick(["src/server/repositories/reading-repository.ts"]);
+  assert.equal(r.full, false);
   assert.equal(r.reading, true);
   assert.equal(r.database, true);
 });
@@ -109,9 +111,34 @@ test("Entitlement domain selects Payment + Database", () => {
 
 test("Payment-only server change selects Payment + Database", () => {
   const r = pick(["src/server/payments/postgres-repository.ts"]);
+  assert.equal(r.full, false);
   assert.equal(r.payment, true);
   assert.equal(r.database, true);
   assert.equal(r.performance, false);
+});
+
+test("Unclassified server runtime change forces FULL", () => {
+  const r = pick(["src/server/http/origin-guard.ts"]);
+  assert.equal(r.full, true);
+  assert.equal(r.database, true);
+  assert.equal(r.reading, true);
+  assert.equal(r.public_seo, true);
+  assert.equal(r.account_info, true);
+  assert.equal(r.payment, true);
+  assert.equal(r.hexagram_detail, true);
+  assert.equal(r.performance, true);
+});
+
+test("Future unknown server runtime path forces FULL", () => {
+  const r = pick(["src/server/new-cross-cutting/example.ts"]);
+  assert.equal(r.full, true);
+  assert.equal(r.database, true);
+  assert.equal(r.reading, true);
+  assert.equal(r.public_seo, true);
+  assert.equal(r.account_info, true);
+  assert.equal(r.payment, true);
+  assert.equal(r.hexagram_detail, true);
+  assert.equal(r.performance, true);
 });
 
 for (const file of [
