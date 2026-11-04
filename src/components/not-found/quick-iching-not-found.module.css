@@ -62,7 +62,7 @@ body:has(.page) > header {
   position: absolute;
   z-index: 4;
   left: 50%;
-  top: 7.2cqh;
+  top: 9.2cqh;
   width: 72cqw;
   transform: translateX(-50%);
   text-align: center;
@@ -232,8 +232,8 @@ body:has(.page) > header {
 .coins {
   z-index: 3;
   left: 50%;
-  top: 62.2cqh;
-  width: 32.8cqw;
+  top: 64.2cqh;
+  width: 30cqw;
   aspect-ratio: 1842 / 854;
   transform: translateX(-50%);
 }
