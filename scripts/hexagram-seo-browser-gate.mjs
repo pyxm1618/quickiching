@@ -14,7 +14,7 @@ function log(message) {
   console.log(`[Hexagram SEO Browser Gate] ${message}`);
 }
 
-async function gotoWithRetry(page, url, options = { waitUntil: "load", timeout: 30_000 }) {
+async function gotoWithRetry(page, url, options = { waitUntil: "load", timeout: 60_000 }) {
   try {
     return await page.goto(url, options);
   } catch (error) {
