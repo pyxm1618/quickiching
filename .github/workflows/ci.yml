@@ -204,6 +204,7 @@ jobs:
           node scripts/reading-business-browser.mjs
           node scripts/three-coin-v2-browser-gate.mjs
           node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth
+          node scripts/ritual-motion-gate.mjs
           bun scripts/mei-hua-ui-browser-gate.mjs
           bun scripts/public-p0-browser-gate.mjs
       - name: Public / SEO Gate
