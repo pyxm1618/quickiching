@@ -45,6 +45,9 @@ const DATABASE = [
 
 const READING = [
   "src/components/public-reading/",
+  "src/components/reading-result/",
+  "src/components/three-coin-result/",
+  "src/components/hex/",
   "src/domain/casting/",
   "src/domain/public-reading/",
   /^src\/lib\/(?:three-coin|completed-public-reading)/,
@@ -60,12 +63,19 @@ const PUBLIC_SEO = [
   "src/app/",
   "src/i18n/",
   "src/config/",
+  "src/components/hex/",
+  "src/components/hexagram-detail-page",
+  "src/components/info-pages/",
+  "src/components/scene-navigation",
+  "src/components/site-header",
+  "src/components/brand-mark",
   "public/",
   /^scripts\/(?:.*seo.*|browser-gate|multilingual-browser-gate|scene-navigation-qa|logo-browser-gate|interpretation-bundle-gate)\./,
 ];
 
 const ACCOUNT_INFO = [
   "src/components/account/",
+  "src/components/info-pages/",
   /\/account\//,
   /\/my-readings\//,
   /\/(?:guides|help|privacy|terms|acceptable-use)\//,
@@ -79,6 +89,15 @@ const PAYMENT = [
   "src/server/reconcile/",
   /\/api\/(?:payments|refunds|webhooks)\//,
   /^scripts\/payment-/,
+];
+
+const HEXAGRAM_DETAIL = [
+  /\/hexagrams\//,
+  "src/components/hex/",
+  "src/components/hexagram-detail-page",
+  /^scripts\/hexagram-(?:detail|seo)/,
+  "docs/design/hexagram-detail/",
+  "public/hexagram-detail/",
 ];
 
 const PERFORMANCE = [
@@ -101,6 +120,8 @@ const ALL_PERFORMANCE_TARGETS = [
   "result.desktop",
   "info.desktop",
   "account.desktop",
+  "hexagram-hub.desktop",
+  "hexagram-detail.mobile",
 ];
 
 export function shouldForceFullContext(eventName, headRef = "") {
@@ -123,6 +144,7 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
     public_seo: full || any(files, PUBLIC_SEO),
     account_info: full || any(files, ACCOUNT_INFO),
     payment: full || any(files, PAYMENT),
+    hexagram_detail: full || any(files, HEXAGRAM_DETAIL),
     performance: full || any(files, PERFORMANCE),
   };
 
@@ -139,8 +161,12 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
       targets.add("home.mobile");
       targets.add("home.desktop");
     }
+    if (selected.hexagram_detail) {
+      targets.add("hexagram-hub.desktop");
+      targets.add("hexagram-detail.mobile");
+    }
     if (selected.account_info) {
-      if (files.some((file) => /\/(?:guides|help|privacy|terms|acceptable-use)\//.test(file))) targets.add("info.desktop");
+      if (files.some((file) => /\/(?:guides|help|privacy|terms|acceptable-use)\//.test(file) || file.startsWith("src/components/info-pages/"))) targets.add("info.desktop");
       if (files.some((file) => file.startsWith("src/components/account/") || /\/(?:account|my-readings)\//.test(file))) targets.add("account.desktop");
     }
   }
