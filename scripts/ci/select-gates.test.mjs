@@ -62,6 +62,26 @@ test("Info-only change selects Public/SEO + Account/Info + Performance", () => {
   assert.deepEqual(JSON.parse(r.performance_targets), ["home.mobile", "home.desktop", "info.desktop"]);
 });
 
+
+test("Deep Reading generation service selects Reading + Database", () => {
+  const r = pick(["src/server/generation/deep-reading-service.ts"]);
+  assert.equal(r.reading, true);
+  assert.equal(r.database, true);
+});
+
+test("Reading API selects Reading + Database", () => {
+  const r = pick(["src/app/api/readings/route.ts"]);
+  assert.equal(r.reading, true);
+  assert.equal(r.database, true);
+});
+
+test("Auth UI selects Account/Info + account performance", () => {
+  const r = pick(["src/components/auth/user-nav-control.tsx"]);
+  assert.equal(r.account_info, true);
+  assert.equal(r.performance, true);
+  assert.deepEqual(JSON.parse(r.performance_targets), ["account.desktop"]);
+});
+
 test("Payment-only server change selects Payment + Database", () => {
   const r = pick(["src/server/payments/postgres-repository.ts"]);
   assert.equal(r.payment, true);
