@@ -64,7 +64,7 @@ try {
         });
         return { url: location.href, title: document.title, viewport: { width: innerWidth, height: innerHeight }, dpr: devicePixelRatio, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight, h1: article.querySelector("h1").textContent, h1Count: article.querySelectorAll("h1").length, assetDelivery, sideFrames, lineCount: article.querySelectorAll("[data-basic-identity] [data-hexagram-line]").length, meanings, clipped, optionalSections: article.querySelectorAll("[data-reading-cases], [data-hexagram-relations]").length, auxiliaryLinks: [...auxiliary.querySelectorAll("a")].map((a) => a.getAttribute("href")), topLevelHeaderVisible: document.body.querySelector(":scope > header").getBoundingClientRect().height > 0 };
       });
-      assert.equal(state.h1, knowledge.englishName);
+      assert.equal(state.h1, `Hexagram ${number} — ${knowledge.englishName}`);
       assert.equal(state.h1Count, 1);
       assert.ok(state.assetDelivery.some((entry) => new URL(entry.url).pathname.startsWith("/hexagram-detail/delivery/")), "Detail images must use density-aware delivery");
       const rawImages = state.assetDelivery.filter((entry) => new URL(entry.url).pathname.startsWith("/hexagram-detail/") && !new URL(entry.url).pathname.startsWith("/hexagram-detail/delivery/"));
