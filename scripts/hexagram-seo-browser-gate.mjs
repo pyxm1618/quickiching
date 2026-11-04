@@ -14,15 +14,16 @@ function log(message) {
   console.log(`[Hexagram SEO Browser Gate] ${message}`);
 }
 
-async function gotoWithRetry(page, url, options = { waitUntil: "load", timeout: 30_000 }) {
+async function gotoWithRetry(page, url, options = { waitUntil: "load", timeout: 60_000 }) {
+  const stableOptions = { ...options, timeout: Math.max(options.timeout ?? 0, 60_000) };
   try {
-    return await page.goto(url, options);
+    return await page.goto(url, stableOptions);
   } catch (error) {
     const navigationTimeout = error?.name === "TimeoutError" || String(error).includes("Navigation timeout");
     if (!navigationTimeout) throw error;
     log(`Navigation timeout for ${new URL(url).pathname}; retrying once without weakening assertions`);
     await page.evaluate(() => window.stop()).catch(() => {});
-    return page.goto(url, options);
+    return page.goto(url, stableOptions);
   }
 }
 

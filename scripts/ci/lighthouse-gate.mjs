@@ -127,6 +127,11 @@ for (const id of targetIds) {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`${id}: warmup HTTP ${response.status}`);
   }
+  const lighthouseWarmupCount = target.samplePolicy?.lighthouseWarmupCount ?? 0;
+  for (let i=1;i<=lighthouseWarmupCount;i++) {
+    const output=resolve(outDir, `${id.replaceAll(".","-")}-warmup-${i}.json`);
+    runLighthouse(url,target,output);
+  }
   const samples=[];
   const count=target.samplePolicy?.count ?? 1;
   for (let i=1;i<=count;i++) {
@@ -135,6 +140,7 @@ for (const id of targetIds) {
     samples.push(await summarize(output));
   }
   const metrics=aggregate(samples,target.samplePolicy?.selection ?? "single");
+  console.log(`[CI Lighthouse] ${id} samples=${JSON.stringify(samples)} aggregate=${JSON.stringify(metrics)}`);
   check(id,metrics,target);
   await checkBaseline(id,metrics,target);
   results[id]={metrics,samplePolicy:target.samplePolicy};

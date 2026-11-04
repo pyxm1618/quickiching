@@ -177,6 +177,31 @@
         "selection": "median-lcp",
         "warmupCount": 1
       }
+    },
+    "hexagram-hub.desktop": {
+      "path": "/hexagrams",
+      "device": "desktop",
+      "metrics": {
+        "performanceMin": 95,
+        "lcpMaxMs": 2750,
+        "accessibilityMin": 90,
+        "seoMin": 90,
+        "clsMax": 0.1,
+        "tbtMaxMs": 200,
+        "imageBytesMax": 1572864,
+        "maxImageBytesMax": 786432,
+        "scriptBytesMax": 327680
+      },
+      "samplePolicy": {
+        "count": 3,
+        "selection": "median-performance-lcp-worst-rest",
+        "warmupCount": 1,
+        "lighthouseWarmupCount": 2
+      },
+      "baseline": {
+        "file": "docs/performance/pr-76-lab-baseline.json",
+        "key": "metrics.desktop-hexagrams"
+      }
     }
   },
   "productTargets": {

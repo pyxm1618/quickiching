@@ -23,6 +23,30 @@ test("Three-Coin-only change selects Reading + Performance", () => {
   assert.deepEqual(JSON.parse(r.performance_targets), ["three-coin.desktop", "result.mobile", "result.desktop"]);
 });
 
+
+test("Reading result component selects Reading + Performance", () => {
+  const r = pick(["src/components/reading-result/reading-result-client.tsx"]);
+  assert.equal(r.reading, true);
+  assert.equal(r.performance, true);
+  assert.deepEqual(JSON.parse(r.performance_targets), ["three-coin.desktop", "result.mobile", "result.desktop"]);
+});
+
+test("Hexagram detail component selects Public/SEO + Hexagram structural gate + Performance", () => {
+  const r = pick(["src/components/hexagram-detail-page.tsx"]);
+  assert.equal(r.public_seo, true);
+  assert.equal(r.hexagram_detail, true);
+  assert.equal(r.performance, true);
+  assert.deepEqual(JSON.parse(r.performance_targets), ["home.mobile", "home.desktop", "hexagram-hub.desktop"]);
+});
+
+test("Info component selects Public/SEO + Account/Info + Info performance", () => {
+  const r = pick(["src/components/info-pages/info-pages.module.css"]);
+  assert.equal(r.public_seo, true);
+  assert.equal(r.account_info, true);
+  assert.equal(r.performance, true);
+  assert.deepEqual(JSON.parse(r.performance_targets), ["home.mobile", "home.desktop", "info.desktop"]);
+});
+
 test("Account-only change selects Account/Info + Performance", () => {
   const r = pick(["src/components/account/account-shell.tsx"]);
   assert.equal(r.account_info, true);
@@ -59,6 +83,7 @@ for (const file of [
     assert.equal(r.public_seo, true);
     assert.equal(r.account_info, true);
     assert.equal(r.payment, true);
+    assert.equal(r.hexagram_detail, true);
     assert.equal(r.performance, true);
   });
 }
@@ -66,7 +91,7 @@ for (const file of [
 test("push/main and workflow_dispatch can force FULL independently of diff", () => {
   const r = classifyChangedFiles([], { forceFull: true });
   assert.equal(r.full, true);
-  assert.equal(JSON.parse(r.performance_targets).length, 7);
+  assert.equal(JSON.parse(r.performance_targets).length, 8);
 });
 
 test("integration and release PR contexts force FULL independently of changed paths", () => {
