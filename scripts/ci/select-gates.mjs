@@ -61,10 +61,13 @@ const READING = [
   "src/server/workflows/",
   "src/server/services/",
   "src/server/casting-guards",
+  "src/server/repositories/casting-repository.ts",
+  "src/server/repositories/reading-repository.ts",
+  "src/server/repositories/review-repository.ts",
   "src/app/api/readings/",
   /^src\/lib\/(?:three-coin|completed-public-reading)/,
   /\/methods\/(?:three-coin|yarrow-stalks|mei-hua-yi-shu|manual-cast)\//,
-  /\/readings\/result\//,
+  /\/readings\/(?:result|deep)\//,
   "scripts/reading-business-browser.mjs",
   "scripts/three-coin-v2-browser-gate.mjs",
   "scripts/mei-hua-ui-browser-gate.mjs",
@@ -101,6 +104,7 @@ const ACCOUNT_INFO = [
 
 const PAYMENT = [
   "src/domain/entitlements/",
+  "src/server/repositories/entitlement-repository.ts",
   "src/server/payments/",
   "src/server/refunds/",
   "src/server/reconcile/",
