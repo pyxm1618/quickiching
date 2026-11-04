@@ -48,7 +48,6 @@ export function shouldNavigateCompletedThreeCoin(input: {
     && input.hasReadingMeta
     && !input.storageBlocked
     && !input.hasUnpersistedCommit
-    && input.completionNavigationArmed
     && !input.resultNavigationStarted;
 }
 
