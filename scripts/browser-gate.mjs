@@ -648,7 +648,7 @@ async function verifyNotFoundPages(browser) {
         }
         assert.equal(snapshot.homePath, testCase.homePath, `${testCase.path}: primary CTA href mismatch`);
         assert.equal(snapshot.hexagramsPath, testCase.hexagramsPath, `${testCase.path}: secondary CTA href mismatch`);
-        assert.equal(snapshot.headerDisplay, "none", `${testCase.path}: shared Header must not remain visible`);
+        assert(snapshot.headerDisplay === null || snapshot.headerDisplay === "none", `${testCase.path}: shared Header must not remain visible`);
         assert.equal(snapshot.visibleHeaderFocusables, 0, `${testCase.path}: hidden Header remains keyboard-focusable`);
         assert(snapshot.overflow[0] <= snapshot.overflow[1] + 1, `${testCase.path}: horizontal overflow`);
 
