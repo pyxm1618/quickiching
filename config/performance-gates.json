@@ -177,6 +177,50 @@
         "selection": "median-lcp",
         "warmupCount": 1
       }
+    },
+    "hexagram-hub.desktop": {
+      "path": "/hexagrams",
+      "device": "desktop",
+      "metrics": {
+        "performanceMin": 95,
+        "lcpMaxMs": 2750,
+        "accessibilityMin": 90,
+        "seoMin": 90,
+        "clsMax": 0.1,
+        "tbtMaxMs": 200,
+        "imageBytesMax": 1572864,
+        "maxImageBytesMax": 786432,
+        "scriptBytesMax": 327680
+      },
+      "samplePolicy": {
+        "count": 1,
+        "selection": "single",
+        "warmupCount": 1
+      },
+      "baseline": {
+        "file": "docs/performance/pr-76-lab-baseline.json",
+        "key": "metrics.desktop-hexagrams"
+      }
+    },
+    "hexagram-detail.mobile": {
+      "path": "/hexagrams/24-return",
+      "device": "mobile",
+      "metrics": {
+        "performanceMin": 90,
+        "lcpMaxMs": 2750,
+        "accessibilityMin": 90,
+        "seoMin": 90,
+        "clsMax": 0.1,
+        "tbtMaxMs": 200,
+        "imageBytesMax": 786432,
+        "maxImageBytesMax": 262144,
+        "scriptBytesMax": 327680
+      },
+      "samplePolicy": {
+        "count": 1,
+        "selection": "single",
+        "warmupCount": 1
+      }
     }
   },
   "productTargets": {
