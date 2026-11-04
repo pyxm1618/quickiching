@@ -135,6 +135,7 @@ for (const id of targetIds) {
     samples.push(await summarize(output));
   }
   const metrics=aggregate(samples,target.samplePolicy?.selection ?? "single");
+  console.log(`[CI Lighthouse] ${id} samples=${JSON.stringify(samples)} aggregate=${JSON.stringify(metrics)}`);
   check(id,metrics,target);
   await checkBaseline(id,metrics,target);
   results[id]={metrics,samplePolicy:target.samplePolicy};
