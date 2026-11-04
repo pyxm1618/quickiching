@@ -69,6 +69,8 @@ const PUBLIC_SEO = [
   "src/components/scene-navigation",
   "src/components/site-header",
   "src/components/brand-mark",
+  "scripts/hexagram-detail-ui-browser.mjs",
+  "docs/design/hexagram-detail/",
   "public/",
   /^scripts\/(?:.*seo.*|browser-gate|multilingual-browser-gate|scene-navigation-qa|logo-browser-gate|interpretation-bundle-gate)\./,
 ];
