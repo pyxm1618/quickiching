@@ -104,7 +104,10 @@ async function audit(browser, { origin, path, label, desktop = false, seed = fal
     }
     const metrics = { ...summarize(label, result), ...metricsFromReport(result.lhr) };
     assertQuality(label, metrics, indexable, enforcePerformance, desktop);
-    if (path === "/methods/manual-cast") await page.waitForFunction(() => document.body?.innerText.toLocaleLowerCase().includes("your i ching reading"), { timeout: 15_000 });
+    if (path === "/methods/manual-cast") {
+      await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
+      await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+    }
     return metrics;
   } finally {
     await context.close();
