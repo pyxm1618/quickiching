@@ -63,6 +63,12 @@ test("Info-only change selects Public/SEO + Account/Info + Performance", () => {
 });
 
 
+
+test("Root PostgreSQL integration test change selects Database", () => {
+  const r = pick(["src/server/cp6-repair.integration.test.ts"]);
+  assert.equal(r.database, true);
+});
+
 test("Deep Reading generation service selects Reading + Database", () => {
   const r = pick(["src/server/generation/deep-reading-service.ts"]);
   assert.equal(r.reading, true);
@@ -107,6 +113,10 @@ for (const file of [
   "src/app/globals.css",
   "package.json",
   ".github/workflows/ci.yml",
+  "scripts/ci/required-gate.mjs",
+  "scripts/performance-budget.mjs",
+  "src/components/ui/button.tsx",
+  "src/server/config.ts",
   "drizzle/0013_future_contract.sql",
 ]) {
   test(`${file} forces FULL mode`, () => {
