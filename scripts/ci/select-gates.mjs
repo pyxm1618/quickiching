@@ -31,6 +31,9 @@ export const FULL_PATTERNS = [
 
 const DATABASE = [
   "src/server/db/",
+  "src/server/generation/",
+  "src/server/repositories/",
+  "src/domain/entitlements/",
   "src/server/readiness/",
   "src/server/account/",
   "src/server/auth/",
@@ -49,7 +52,16 @@ const READING = [
   "src/components/three-coin-result/",
   "src/components/hex/",
   "src/domain/casting/",
+  "src/domain/generation/",
+  "src/domain/interpretation/",
+  "src/domain/questions/",
+  "src/domain/risk/",
   "src/domain/public-reading/",
+  "src/server/generation/",
+  "src/server/workflows/",
+  "src/server/services/",
+  "src/server/casting-guards",
+  "src/app/api/readings/",
   /^src\/lib\/(?:three-coin|completed-public-reading)/,
   /\/methods\/(?:three-coin|yarrow-stalks|mei-hua-yi-shu|manual-cast)\//,
   /\/readings\/result\//,
@@ -63,6 +75,7 @@ const PUBLIC_SEO = [
   "src/app/",
   "src/i18n/",
   "src/config/",
+  "src/domain/interpretation/",
   "src/components/hex/",
   "src/components/hexagram-detail-page",
   "src/components/info-pages/",
@@ -77,6 +90,7 @@ const PUBLIC_SEO = [
 
 const ACCOUNT_INFO = [
   "src/components/account/",
+  "src/components/auth/",
   "src/components/info-pages/",
   /\/account\//,
   /\/my-readings\//,
@@ -86,6 +100,7 @@ const ACCOUNT_INFO = [
 ];
 
 const PAYMENT = [
+  "src/domain/entitlements/",
   "src/server/payments/",
   "src/server/refunds/",
   "src/server/reconcile/",
@@ -169,7 +184,7 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
     }
     if (selected.account_info) {
       if (files.some((file) => /\/(?:guides|help|privacy|terms|acceptable-use)\//.test(file) || file.startsWith("src/components/info-pages/"))) targets.add("info.desktop");
-      if (files.some((file) => file.startsWith("src/components/account/") || /\/(?:account|my-readings)\//.test(file))) targets.add("account.desktop");
+      if (files.some((file) => file.startsWith("src/components/account/") || file.startsWith("src/components/auth/") || /\/(?:account|my-readings)\//.test(file))) targets.add("account.desktop");
     }
   }
 
