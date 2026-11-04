@@ -197,7 +197,7 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
     }
     if (selected.account_info) {
       if (files.some((file) => /\/(?:guides|help|privacy|terms|acceptable-use)\//.test(file) || file.startsWith("src/components/info-pages/"))) targets.add("info.desktop");
-      if (files.some((file) => file.startsWith("src/components/account/") || /\/(?:account|my-readings)\//.test(file))) targets.add("account.desktop");
+      if (files.some((file) => file.startsWith("src/components/account/") || file.startsWith("src/components/auth/") || /\/(?:account|my-readings)\//.test(file))) targets.add("account.desktop");
     }
   }
 
