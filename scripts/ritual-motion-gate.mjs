@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import puppeteer from 'puppeteer-core';
-const base='http://127.0.0.1:3028',key='quickiching:public-v1:three-coin';
+const base=process.env.PUBLIC_V1_TEST_BASE_URL||'http://127.0.0.1:3028',key='quickiching:public-v1:three-coin';
 const output='.artifacts/ritual-qa/final-closeout/motion';await mkdir(output,{recursive:true});
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1']});
 const outcomes=[];
