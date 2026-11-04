@@ -3,7 +3,8 @@ import Link from "next/link";
 import { getDictionary } from "@/i18n/dictionaries";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { zhSeoFor } from "@/content/seo/zh-pages";
-import { ThreeCoinRitualClient } from "@/components/public-reading/three-coin-ritual-client";\nimport styles from "@/app/method-seo-shell.module.css";
+import { ThreeCoinRitualClient } from "@/components/public-reading/three-coin-ritual-client";
+import styles from "@/app/method-seo-shell.module.css";
 
 const SEO = zhSeoFor("three-coin-method");
 const CANONICAL = canonicalUrl(SEO.canonicalUrl);
