@@ -137,19 +137,12 @@ async function seedCompletedReadingStorage(page) {
 }
 
 async function seedCompletedReading(page) {
-  // The anonymous completed cast must first remain concealed behind the formal Auth/Save gate.
+  // A restored anonymous completed cast must resume at the formal Auth/Save gate.
   await seedCompletedReadingStorage(page);
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForSelector('[data-ritual-view="complete"]');
-  await page.waitForFunction(()=>document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===6);
-  await new Promise((resolve) => setTimeout(resolve, 750));
-
-  const completedState = await page.evaluate(() => ({
-    pathname: location.pathname,
-    progressComplete: document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===6,
-  }));
-  assert.equal(completedState.pathname, "/", "Restoring a completed cast must not auto-navigate away from the current page");
-  assert(completedState.progressComplete, "Restored completed cast must remain available in the casting UI");
+  await page.waitForFunction((expectedPath) => location.pathname === expectedPath, { timeout: 15_000 }, RESULT_PATH);
+  await waitForText(page, "Your six lines are complete");
+  await waitForText(page, "Sign In to Save & Reveal");
 }
 
 async function assertNoHorizontalOverflow(page) {
@@ -305,7 +298,6 @@ async function verifySeededResult(browser, viewport) {
   await page.setViewport(viewport);
   try {
     await seedCompletedReading(page);
-    await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
     await waitForText(page, "Your six lines are complete");
     await waitForText(page, "Sign In to Save & Reveal");
 
@@ -326,15 +318,13 @@ async function verifySeededResult(browser, viewport) {
     assert.equal(await resultText(page), beforeRefresh, "Refresh must reproduce the same anonymous completed-cast gate");
 
     await page.goBack({ waitUntil: "networkidle0" });
-    await page.waitForSelector('[data-ritual-view="complete"]');
-  await page.waitForFunction(()=>document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length===6);
+    await page.waitForFunction((expectedPath) => location.pathname === expectedPath, { timeout: 15_000 }, RESULT_PATH);
     const storedAfterBack = await page.evaluate((key) => sessionStorage.getItem(key), STORAGE_KEY);
     assert(storedAfterBack, "Back navigation must preserve the sealed reading");
-    await page.goForward({ waitUntil: "networkidle0" });
     await waitForText(page, "Your six lines are complete");
 
     await assertNoHorizontalOverflow(page);
-    log(`${viewport.width}px completed-cast auth gate / refresh / back / forward PASS`);
+    log(`${viewport.width}px completed-cast auth gate / refresh / restored-back redirect PASS`);
   } finally {
     await context.close();
   }
