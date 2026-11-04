@@ -1,0 +1,355 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  select:
+    name: CI / Select gates
+    runs-on: ubuntu-latest
+    outputs:
+      full: ${{ steps.select.outputs.full }}
+      database: ${{ steps.select.outputs.database }}
+      reading: ${{ steps.select.outputs.reading }}
+      public_seo: ${{ steps.select.outputs.public_seo }}
+      account_info: ${{ steps.select.outputs.account_info }}
+      payment: ${{ steps.select.outputs.payment }}
+      performance: ${{ steps.select.outputs.performance }}
+      performance_targets: ${{ steps.select.outputs.performance_targets }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Select affected CI domains
+        id: select
+        env:
+          CI_FORCE_FULL: ${{ github.event_name == 'pull_request' && '0' || '1' }}
+          CI_EVENT_NAME: ${{ github.event_name }}
+          CI_HEAD_REF: ${{ github.head_ref }}
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$CI_FORCE_FULL" = "1" ]; then
+            printf '' | node scripts/ci/select-gates.mjs
+          else
+            git diff --name-only "$CI_BASE_SHA...$CI_HEAD_SHA" | node scripts/ci/select-gates.mjs
+          fi
+
+  core:
+    name: CI / Core
+    needs: select
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Diff hygiene
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${CI_BASE_SHA:-}" ] && [ "${CI_BASE_SHA}" != "0000000000000000000000000000000000000000" ]; then
+            git diff --check "$CI_BASE_SHA...$CI_HEAD_SHA"
+          else
+            git diff --check HEAD^ HEAD
+          fi
+      - name: CI architecture self-tests
+        run: node --test scripts/ci/*.test.mjs
+      - name: Migration integrity
+        run: node scripts/check-migration-integrity.mjs
+      - name: Lint
+        run: bun run lint
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Production build
+        run: bun run build
+      - name: Drizzle metadata check
+        run: bunx drizzle-kit check
+      - name: Unit tests
+        run: bun run test
+
+  database:
+    name: CI / Database
+    needs: select
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Gate selection
+        run: echo "database=${{ needs.select.outputs.database }} full=${{ needs.select.outputs.full }}"
+      - uses: actions/checkout@v6
+        if: needs.select.outputs.database == 'true'
+      - uses: actions/setup-node@v6
+        if: needs.select.outputs.database == 'true'
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        if: needs.select.outputs.database == 'true'
+        with:
+          bun-version: 1.3.14
+      - name: Install PostgreSQL tools
+        if: needs.select.outputs.database == 'true'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-client
+          echo "$(pg_config --bindir)" >> "$GITHUB_PATH"
+      - name: Install locked dependencies
+        if: needs.select.outputs.database == 'true'
+        run: bun install --frozen-lockfile
+      - name: Current migration chain + PostgreSQL integration
+        if: needs.select.outputs.database == 'true'
+        run: node scripts/test-postgres-serial.mjs
+
+  product:
+    name: CI / Product
+    needs: select
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PRODUCT_SELECTED: ${{ needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true' || needs.select.outputs.account_info == 'true' || needs.select.outputs.payment == 'true' }}
+    steps:
+      - name: Gate selection
+        run: |
+          echo "reading=${{ needs.select.outputs.reading }}"
+          echo "public_seo=${{ needs.select.outputs.public_seo }}"
+          echo "account_info=${{ needs.select.outputs.account_info }}"
+          echo "payment=${{ needs.select.outputs.payment }}"
+      - uses: actions/checkout@v6
+        if: env.PRODUCT_SELECTED == 'true'
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        if: env.PRODUCT_SELECTED == 'true'
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        if: env.PRODUCT_SELECTED == 'true'
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        if: env.PRODUCT_SELECTED == 'true'
+        run: bun install --frozen-lockfile
+      - name: Install Account local QA fixture
+        if: needs.select.outputs.account_info == 'true'
+        run: node scripts/group3-visual-qa-fixture.mjs install
+      - name: Production build for browser domains
+        id: product_build
+        if: needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true' || needs.select.outputs.account_info == 'true'
+        run: bun run build
+      - name: Install pinned browser tools
+        if: needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true' || needs.select.outputs.account_info == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(node - <<'NODE'
+          const fs=require('fs');
+          const c=JSON.parse(fs.readFileSync('config/performance-gates.json','utf8')).tooling;
+          console.log('LIGHTHOUSE_VERSION='+c.lighthouse);
+          console.log('PUPPETEER_VERSION='+c.puppeteerCore);
+          console.log('CHROMIUM_VERSION='+c.chromium);
+          NODE
+          )"
+          bun add --no-save --cache-dir=/tmp/quickiching-ci-browser-cache             "puppeteer-core@$PUPPETEER_VERSION" "@sparticuz/chromium@$CHROMIUM_VERSION" "lighthouse@$LIGHTHOUSE_VERSION"
+          CHROME_PATH="$(node -e 'import("@sparticuz/chromium").then(async m=>process.stdout.write(await m.default.executablePath()))')"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+          "$CHROME_PATH" --version
+      - name: Start production server
+        if: needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true' || needs.select.outputs.account_info == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          (GROUP3_VISUAL_QA=1 PORT=3036 HOSTNAME=127.0.0.1 CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW=1 bun run start > /tmp/qic-ci-product.log 2>&1 & echo $! > /tmp/qic-ci-product.pid)
+          for i in {1..80}; do
+            if curl -fsS http://127.0.0.1:3036/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/qic-ci-product.log
+          exit 1
+      - name: Reading Gate
+        if: always() && needs.select.outputs.reading == 'true' && steps.product_build.conclusion == 'success'
+        env:
+          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3036
+          READING_TEST_BASE_URL: http://127.0.0.1:3036
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/reading-business-browser.mjs
+          bun scripts/three-coin-v2-browser-gate.mjs --public-only
+          bun scripts/mei-hua-ui-browser-gate.mjs
+          bun scripts/public-p0-browser-gate.mjs
+      - name: Public / SEO Gate
+        if: always() && needs.select.outputs.public_seo == 'true' && steps.product_build.conclusion == 'success'
+        env:
+          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3036
+          HEXAGRAM_SEO_AUDIT_BASE_URL: http://127.0.0.1:3036
+          HEXAGRAM_SEO_BROWSER_BASE_URL: http://127.0.0.1:3036
+          CHINESE_SEO_AUDIT_BASE_URL: http://127.0.0.1:3036
+          CHINESE_INTERACTIVE_GATE_BASE_URL: http://127.0.0.1:3036
+          MULTILINGUAL_TEST_BASE_URL: http://127.0.0.1:3036
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun run seo:registry
+          bun run seo:quality
+          bun run seo:browser
+          bun run seo:zh
+          bun run gate:interactive:zh
+          bun scripts/browser-gate.mjs
+          bun scripts/on-page-seo-browser-gate.mjs
+          bun scripts/multilingual-browser-gate.mjs
+          bun scripts/interpretation-bundle-gate.mjs
+          bun scripts/logo-browser-gate.mjs
+          bun run gate:navigation
+      - name: Account / Info browser + responsive Gate
+        if: always() && needs.select.outputs.account_info == 'true' && steps.product_build.conclusion == 'success'
+        env:
+          GROUP3_QA_BASE_URL: http://127.0.0.1:3036
+        run: node scripts/group3-visual-capture.mjs .artifacts/account-info-evidence
+      - name: Payment Gate - dependency regression audit
+        if: always() && needs.select.outputs.payment == 'true'
+        run: node scripts/ci/dependency-audit-gate.mjs
+      - name: Payment Gate - plaintext secret scan
+        if: always() && needs.select.outputs.payment == 'true'
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: node scripts/ci/secret-scan.mjs
+      - name: Upload Account / Info manual visual evidence
+        if: always() && needs.select.outputs.account_info == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: account-info-manual-visual-evidence
+          path: .artifacts/account-info-evidence
+          if-no-files-found: warn
+          retention-days: 3
+      - name: Stop production server
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/qic-ci-product.pid ]; then kill "$(cat /tmp/qic-ci-product.pid)" 2>/dev/null || true; fi
+      - name: Remove Account local QA fixture
+        if: always() && needs.select.outputs.account_info == 'true'
+        run: node scripts/group3-visual-qa-fixture.mjs remove
+
+  performance:
+    name: CI / Performance
+    needs: select
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Gate selection
+        run: echo 'targets=${{ needs.select.outputs.performance_targets }}'
+      - uses: actions/checkout@v6
+        if: needs.select.outputs.performance == 'true'
+      - uses: actions/setup-node@v6
+        if: needs.select.outputs.performance == 'true'
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        if: needs.select.outputs.performance == 'true'
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        if: needs.select.outputs.performance == 'true'
+        run: bun install --frozen-lockfile
+      - name: Install Account performance fixture when selected
+        if: needs.select.outputs.performance == 'true' && contains(needs.select.outputs.performance_targets, 'account.desktop')
+        run: node scripts/group3-visual-qa-fixture.mjs install
+      - name: Production build
+        if: needs.select.outputs.performance == 'true'
+        run: bun run build
+      - name: Stable asset and bundle budgets
+        if: needs.select.outputs.performance == 'true'
+        run: node scripts/performance-asset-gate.mjs
+      - name: Install pinned Lighthouse browser stack
+        if: needs.select.outputs.performance == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(node - <<'NODE'
+          const fs=require('fs');
+          const c=JSON.parse(fs.readFileSync('config/performance-gates.json','utf8')).tooling;
+          console.log('LIGHTHOUSE_VERSION='+c.lighthouse);
+          console.log('PUPPETEER_VERSION='+c.puppeteerCore);
+          console.log('CHROMIUM_VERSION='+c.chromium);
+          NODE
+          )"
+          bun add --no-save --cache-dir=/tmp/quickiching-ci-lighthouse-cache             "puppeteer-core@$PUPPETEER_VERSION" "@sparticuz/chromium@$CHROMIUM_VERSION" "lighthouse@$LIGHTHOUSE_VERSION"
+          CHROME_PATH="$(node -e 'import("@sparticuz/chromium").then(async m=>process.stdout.write(await m.default.executablePath()))')"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+          "$CHROME_PATH" --version
+      - name: Start performance server
+        if: needs.select.outputs.performance == 'true'
+        shell: bash
+        run: |
+          (GROUP3_VISUAL_QA=1 PORT=3036 HOSTNAME=127.0.0.1 bun run start > /tmp/qic-ci-performance.log 2>&1 & echo $! > /tmp/qic-ci-performance.pid)
+          for i in {1..80}; do
+            if curl -fsS http://127.0.0.1:3036/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/qic-ci-performance.log
+          exit 1
+      - name: Targeted Lighthouse
+        if: needs.select.outputs.performance == 'true'
+        env:
+          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3036
+          CI_PERFORMANCE_TARGETS: ${{ needs.select.outputs.performance_targets }}
+        run: node scripts/ci/lighthouse-gate.mjs
+      - name: Upload Lighthouse evidence
+        if: always() && needs.select.outputs.performance == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-lighthouse-evidence
+          path: .artifacts/ci-lighthouse
+          if-no-files-found: warn
+          retention-days: 3
+      - name: Stop performance server
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/qic-ci-performance.pid ]; then kill "$(cat /tmp/qic-ci-performance.pid)" 2>/dev/null || true; fi
+      - name: Remove Account performance fixture
+        if: always() && needs.select.outputs.performance == 'true' && contains(needs.select.outputs.performance_targets, 'account.desktop')
+        run: node scripts/group3-visual-qa-fixture.mjs remove
+
+  required:
+    name: CI / Required
+    if: always()
+    needs: [select, core, database, product, performance]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Enforce required gate results
+        env:
+          SELECT_RESULT: ${{ needs.select.result }}
+          CORE_RESULT: ${{ needs.core.result }}
+          DATABASE_RESULT: ${{ needs.database.result }}
+          PRODUCT_RESULT: ${{ needs.product.result }}
+          PERFORMANCE_RESULT: ${{ needs.performance.result }}
+          DATABASE_SELECTED: ${{ needs.select.outputs.database }}
+          PRODUCT_SELECTED: ${{ needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true' || needs.select.outputs.account_info == 'true' || needs.select.outputs.payment == 'true' }}
+          PERFORMANCE_SELECTED: ${{ needs.select.outputs.performance }}
+        run: node scripts/ci/required-gate.mjs
