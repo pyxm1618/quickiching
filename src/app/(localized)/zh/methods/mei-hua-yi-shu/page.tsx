@@ -3,7 +3,8 @@ import Link from "next/link";
 import { MeiHuaNumberFlow } from "@/components/public-reading/mei-hua-number-flow";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { ZH_HANS_MEI_HUA_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
-import { zhSeoFor } from "@/content/seo/zh-pages";\nimport styles from "@/app/method-seo-shell.module.css";
+import { zhSeoFor } from "@/content/seo/zh-pages";
+import styles from "@/app/method-seo-shell.module.css";
 
 export function generateMetadata(): Metadata {
   const seo = zhSeoFor("mei-hua-yi-shu");
