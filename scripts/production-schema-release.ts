@@ -157,12 +157,28 @@ async function main(): Promise<void> {
     const beforeHistory = classifyAppliedMigrationHistory(beforeMigrations, EXPECTED_MIGRATIONS);
     const existingTables = new Set(beforeObjects.filter((object) => object.startsWith("table:")).map((object) => object.slice(6)));
     const missingExistingTables = EXISTING_COMMERCIAL_TABLES.filter((table) => !existingTables.has(table));
+    const migrationHistoryRows = beforeMigrations.map((row, index) => {
+      const expected = EXPECTED_MIGRATIONS[index];
+      return {
+        index,
+        appliedCreatedAt: row.createdAt,
+        appliedHash: row.hash,
+        expectedCreatedAt: expected?.createdAt ?? null,
+        expectedHash: expected?.hash ?? null,
+        match: Boolean(expected && expected.createdAt === row.createdAt && expected.hash === row.hash),
+      };
+    });
     const report = {
       action,
       project: "quickiching production",
       existingCommercialTableCount: EXISTING_COMMERCIAL_TABLES.length,
       missingExistingTables,
-      migrationHistory: { appliedCount: beforeMigrations.length, state: beforeHistory },
+      migrationHistory: {
+        appliedCount: beforeMigrations.length,
+        expectedCount: EXPECTED_MIGRATIONS.length,
+        state: beforeHistory,
+        rows: migrationHistoryRows,
+      },
       migration0012Schema: beforeSchema,
       existingCommercialRowCounts: null as Record<string, string> | null,
       after: null as Record<string, unknown> | null,
