@@ -195,7 +195,8 @@
       "samplePolicy": {
         "count": 3,
         "selection": "median-performance-lcp-worst-rest",
-        "warmupCount": 1
+        "warmupCount": 1,
+        "lighthouseWarmupCount": 2
       },
       "baseline": {
         "file": "docs/performance/pr-76-lab-baseline.json",
