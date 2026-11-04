@@ -7,7 +7,6 @@ import { CLASSICAL_HEXAGRAMS } from "../src/domain/public-reading/classical.ts";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const THREE_COIN_STORAGE_KEY = "quickiching:public-v1:three-coin";
-const COMPLETED_READING_STORAGE_KEY = "quickiching:public-v1:completed-reading";
 const FIXTURE_STEPS = [
   { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
   { lineIndex: 1, coinFaces: ["yin", "yin", "yin"], lineValue: 6, algorithmVersion: "three-coin-v1" },
