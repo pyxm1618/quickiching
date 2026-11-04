@@ -22,6 +22,11 @@ function visibleText(html: string): string {
     .trim();
 }
 
+function h1Text(html: string): string {
+  const match = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/iu);
+  return match ? visibleText(match[1]) : "";
+}
+
 function eligibleText(html: string): string {
   let eligible = html;
   for (const tag of ["script", "style", "nav"]) {
@@ -79,7 +84,7 @@ describe("static hexagram detail page", () => {
         />,
       );
       expect((html.match(/<h1\b/g) ?? []).length, item.locale + " " + item.number).toBe(1);
-      expect(html).toContain(">" + hexagramSeoFor(item.number, item.locale).finalH1 + "<");
+      expect(h1Text(html)).toBe(hexagramSeoFor(item.number, item.locale).finalH1);
       for (let position = 1; position <= 6; position += 1) {
         expect(html).toContain('id="line-' + position + '"');
       }
@@ -220,7 +225,7 @@ describe("static hexagram detail page", () => {
           expect(html, seo.canonicalUrl).toContain('id="line-' + position + '"');
         }
         if (locale === "en") {
-          expect(html).toContain(">" + seo.finalH1 + "<");
+          expect(h1Text(html)).toBe(seo.finalH1);
           expect(html).toContain("What This Hexagram Means");
           expect(html).toContain("Classical Text &amp; Modern Interpretation");
           expect(html).toContain("The Six Lines");
