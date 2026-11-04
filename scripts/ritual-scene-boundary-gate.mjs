@@ -10,7 +10,7 @@ const assets=JSON.parse(await readFile('docs/performance/pr-76-assets.json','utf
 const outcomes=[];
 async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFailure=false,moduleFailure=false,completedFlow=false,deferTextures=false}) {
  let page;
- const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1',...(fallback?['--disable-webgl']:[])]});
+ const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--force-device-scale-factor=1',...(fallback?['--disable-webgl']:[])]});
  try {
   page=await browser.newPage();await page.setViewport({width:1672,height:941,deviceScaleFactor:1});
   const heldTextureRequests=[];
