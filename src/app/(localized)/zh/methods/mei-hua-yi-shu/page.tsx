@@ -55,7 +55,7 @@ export default function ChineseMeiHuaPage() {
         <ul className={`${styles.listPanel} ${styles.bulletList}`}>{content.convention.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul>
       </section>
 
-      <section className="mx-auto max-w-5xl px-4 py-12" aria-labelledby="zh-interpretation-title">
+      <section className={styles.readingSection} aria-labelledby="zh-interpretation-title">
         <p className={styles.sectionKicker}>阅读结果</p>
         <h2 id="zh-interpretation-title" className={styles.sectionTitle}>{content.interpretation.heading}</h2>
         {content.interpretation.paragraphs.map((paragraph) => <p key={paragraph} className={styles.bodyText}>{paragraph}</p>)}
