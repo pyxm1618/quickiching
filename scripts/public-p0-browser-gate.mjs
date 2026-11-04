@@ -132,30 +132,8 @@ async function openSeededThreeCoinResult(page, locale = "en") {
   const methodPath = `${prefix}/methods/three-coin`;
   const resultPath = `${prefix}/readings/result`;
   await page.goto(`${BASE}${methodPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => {
-    return document.querySelector('[data-ritual-view="complete"]') !== null
-      && document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 6;
-  }, { timeout: 15_000 });
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  assert.equal(new URL(page.url()).pathname, methodPath, "Restored completed cast must not auto-navigate to an old result");
-  await page.evaluate(({ sessionKey, completedKey }) => {
-    const raw = sessionStorage.getItem(sessionKey);
-    if (!raw) throw new Error("SEEDED_THREE_COIN_SESSION_MISSING");
-    const session = JSON.parse(raw);
-    const steps = session.data?.steps;
-    if (!Array.isArray(steps) || steps.length !== 6) throw new Error("SEEDED_THREE_COIN_STEPS_INVALID");
-    sessionStorage.setItem(completedKey, JSON.stringify({
-      schemaVersion: 1,
-      id: session.id,
-      createdAt: session.createdAt,
-      method: "three-coin",
-      methodVersion: "three-coin-v1",
-      ...(session.coreQuestionAtCast ? { question: session.coreQuestionAtCast } : {}),
-      lineValuesBottomUp: steps.map(step => step.lineValue),
-      evidence: { kind: "three-coin", steps },
-    }));
-  }, { sessionKey: THREE_COIN_STORAGE_KEY, completedKey: COMPLETED_READING_STORAGE_KEY });
-  await page.goto(`${BASE}${resultPath}?session=${encodeURIComponent(await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.id ?? "", THREE_COIN_STORAGE_KEY))}`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForFunction((expectedPath) => location.pathname === expectedPath, { timeout: 15_000 }, resultPath);
+  assert.equal(new URL(page.url()).pathname, resultPath, "Restored completed cast must resume at the completed Reading route");
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
 }
 
