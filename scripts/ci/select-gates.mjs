@@ -146,7 +146,6 @@ const PERFORMANCE = [
   "next.config.",
   "scripts/performance-",
   "scripts/result-lighthouse-gate.mjs",
-  "scripts/public-p0-lighthouse-gate.mjs",
   "config/performance-gates.json",
 ];
 
