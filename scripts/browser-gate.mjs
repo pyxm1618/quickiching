@@ -558,6 +558,141 @@ async function runPage(browser, { path, viewport, flow, label, skipQuestion = tr
   }
 }
 
+
+async function verifyNotFoundPages(browser) {
+  const cases = [
+    {
+      path: "/__404-test-page",
+      locale: "EN",
+      title: "Page Not Found | Quick I Ching",
+      heading: "This Path Has No Hexagram",
+      firstLine: "The page you’re looking for does not exist or may have moved.",
+      secondLine: "Return to Quick I Ching and begin a new reading.",
+      homeLabel: "Return Home",
+      homePath: "/",
+      hexagramsLabel: "Explore the 64 Hexagrams",
+      hexagramsPath: "/hexagrams",
+    },
+    {
+      path: "/zh/__404-test-page",
+      locale: "ZH",
+      title: "页面不存在 | Quick I Ching",
+      heading: "此处无卦",
+      firstLine: "你访问的页面不存在，或已经移动。",
+      secondLine: "返回 Quick I Ching，重新开始一次起卦。",
+      homeLabel: "返回首页",
+      homePath: "/zh",
+      hexagramsLabel: "浏览六十四卦",
+      hexagramsPath: "/zh/hexagrams",
+    },
+  ];
+  const viewports = [
+    { label: "DESKTOP", width: 1440, height: 811 },
+    { label: "MOBILE", width: 390, height: 844 },
+  ];
+
+  for (const viewport of viewports) {
+    for (const testCase of cases) {
+      const context = await browser.createBrowserContext();
+      const page = await context.newPage();
+      await page.setViewport({ width: viewport.width, height: viewport.height });
+      try {
+        const response = await page.goto(`${BASE}${testCase.path}`, { waitUntil: "networkidle0", timeout: 30_000 });
+        assert.equal(response?.status(), 404, `${testCase.path}: expected browser status 404`);
+        await page.waitForSelector("h1", { timeout: 10_000 });
+
+        const snapshot = await page.evaluate((expected) => {
+          const links = [...document.querySelectorAll("a")];
+          const findLink = (label) => links.find((node) => node.textContent?.trim() === label);
+          const home = findLink(expected.homeLabel);
+          const hexagrams = findLink(expected.hexagramsLabel);
+          const heading = document.querySelector("h1");
+          const code = [...document.querySelectorAll("p")].find((node) => node.textContent?.trim() === "404");
+          const header = document.querySelector("body > header");
+          const rect = (node) => {
+            if (!node) return null;
+            const value = node.getBoundingClientRect();
+            return {
+              top: Math.round(value.top),
+              width: Math.round(value.width),
+              centerX: Math.round(value.left + value.width / 2),
+            };
+          };
+          const visibleHeaderFocusables = header
+            ? [...header.querySelectorAll("a[href],button,input,select,textarea,[tabindex]")].filter((node) => {
+                const style = getComputedStyle(node);
+                return style.display !== "none" && style.visibility !== "hidden" && node.getClientRects().length > 0;
+              }).length
+            : 0;
+          return {
+            title: document.title,
+            robots: document.querySelector('meta[name="robots"]')?.getAttribute("content") ?? "",
+            bodyText: document.body.innerText,
+            homePath: home ? new URL(home.href).pathname : null,
+            hexagramsPath: hexagrams ? new URL(hexagrams.href).pathname : null,
+            headerDisplay: header ? getComputedStyle(header).display : null,
+            visibleHeaderFocusables,
+            overflow: [document.documentElement.scrollWidth, document.documentElement.clientWidth],
+            codeRect: rect(code),
+            headingRect: rect(heading),
+            homeRect: rect(home),
+            hexagramsRect: rect(hexagrams),
+          };
+        }, testCase);
+
+        assert.equal(snapshot.title, testCase.title, `${testCase.path}: title mismatch`);
+        assert.match(snapshot.robots, /noindex/i, `${testCase.path}: robots missing noindex`);
+        assert.match(snapshot.robots, /nofollow/i, `${testCase.path}: robots missing nofollow`);
+        for (const text of ["404", testCase.heading, testCase.firstLine, testCase.secondLine, testCase.homeLabel, testCase.hexagramsLabel]) {
+          assert(snapshot.bodyText.includes(text), `${testCase.path}: missing visible text: ${text}`);
+        }
+        assert.equal(snapshot.homePath, testCase.homePath, `${testCase.path}: primary CTA href mismatch`);
+        assert.equal(snapshot.hexagramsPath, testCase.hexagramsPath, `${testCase.path}: secondary CTA href mismatch`);
+        assert.equal(snapshot.headerDisplay, "none", `${testCase.path}: shared Header must not remain visible`);
+        assert.equal(snapshot.visibleHeaderFocusables, 0, `${testCase.path}: hidden Header remains keyboard-focusable`);
+        assert(snapshot.overflow[0] <= snapshot.overflow[1] + 1, `${testCase.path}: horizontal overflow`);
+
+        if (viewport.label === "DESKTOP") {
+          assert(Math.abs(snapshot.codeRect.centerX - 720) <= 8, `${testCase.path}: desktop 404 center drift`);
+          assert(snapshot.codeRect.top >= 45 && snapshot.codeRect.top <= 95, `${testCase.path}: desktop 404 vertical drift`);
+          assert(snapshot.headingRect.top >= 205 && snapshot.headingRect.top <= 255, `${testCase.path}: desktop H1 vertical drift`);
+          assert(snapshot.homeRect.top >= 395 && snapshot.homeRect.top <= 435, `${testCase.path}: desktop CTA vertical drift`);
+          assert(Math.abs(snapshot.homeRect.top - snapshot.hexagramsRect.top) <= 2, `${testCase.path}: desktop CTA baseline mismatch`);
+        } else {
+          assert(snapshot.codeRect.top >= 40 && snapshot.codeRect.top <= 110, `${testCase.path}: mobile 404 vertical drift`);
+          assert(snapshot.homeRect.width >= 300 && snapshot.hexagramsRect.width >= 300, `${testCase.path}: mobile CTA width mismatch`);
+          assert(snapshot.homeRect.top < snapshot.hexagramsRect.top, `${testCase.path}: mobile CTAs must stack`);
+        }
+
+        for (const label of [testCase.homeLabel, testCase.hexagramsLabel]) {
+          const focused = await page.evaluate((wanted) => {
+            const link = [...document.querySelectorAll("a")].find((node) => node.textContent?.trim() === wanted);
+            if (!link) return false;
+            link.focus();
+            return document.activeElement === link;
+          }, label);
+          assert(focused, `${testCase.path}: keyboard focus failed for ${label}`);
+        }
+
+        const screenshot = await page.screenshot({
+          type: "jpeg",
+          quality: viewport.label === "DESKTOP" ? 52 : 58,
+          fullPage: false,
+          encoding: "base64",
+        });
+        const chunkSize = 48_000;
+        const chunks = Math.ceil(screenshot.length / chunkSize);
+        for (let index = 0; index < chunks; index += 1) {
+          log(`404_VISUAL_${viewport.label}_${testCase.locale}_CHUNK_${index + 1}_OF_${chunks}=${screenshot.slice(index * chunkSize, (index + 1) * chunkSize)}`);
+        }
+        log(`${viewport.width}px ${testCase.locale} 404 route/metadata/layout/focus/overflow PASS`);
+      } finally {
+        await context.close();
+      }
+    }
+  }
+}
+
 async function verifyBrowserFlows() {
   const { executablePath, usingSystemChrome } = await resolveChromeExecutable(chromium);
   log(`Launching Chromium at ${executablePath}${usingSystemChrome ? " (system runner)" : " (serverless fallback)"}`);
@@ -567,6 +702,7 @@ async function verifyBrowserFlows() {
     headless: true,
   });
   try {
+    await verifyNotFoundPages(browser);
     const desktop = { width: 1440, height: 1000 };
     const mobile = { width: 375, height: 812 };
     const infoRoutePairs = [
