@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
-import { ThreeCoinRitualClient } from "@/components/public-reading/three-coin-ritual-client";\nimport styles from "@/app/method-seo-shell.module.css";
+import { ThreeCoinRitualClient } from "@/components/public-reading/three-coin-ritual-client";
+import styles from "@/app/method-seo-shell.module.css";
 
 export const metadata: Metadata = {
   title: "I Ching Three-Coin Method — Free Online Cast",
