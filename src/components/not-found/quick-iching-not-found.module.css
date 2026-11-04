@@ -1,0 +1,393 @@
+.page {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  overflow: hidden;
+  background: #120b06;
+  color: #f7e8c7;
+  isolation: isolate;
+}
+
+.canvas {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100vw, 177.683vh);
+  height: max(100vh, 56.28vw);
+  transform: translate(-50%, -50%);
+  container-type: size;
+  overflow: hidden;
+}
+
+.background {
+  z-index: 0;
+  object-fit: cover;
+  object-position: center;
+  user-select: none;
+}
+
+.taiji,
+.atmosphere,
+.coins {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+}
+
+.taiji img,
+.atmosphere img,
+.coins img {
+  object-fit: contain;
+}
+
+.taiji {
+  z-index: 1;
+  left: 50%;
+  top: 0.7cqh;
+  width: 37.1cqw;
+  aspect-ratio: 1774 / 887;
+  transform: translateX(-50%);
+  opacity: 0.84;
+}
+
+.content {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 7.2cqh;
+  width: 72cqw;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.code {
+  margin: 0;
+  color: #fff0ce;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 10.9cqw;
+  font-weight: 500;
+  line-height: 0.96;
+  letter-spacing: -0.045em;
+  text-shadow:
+    0 0 0.08em rgba(255, 246, 214, 0.95),
+    0 0 0.22em rgba(255, 186, 62, 0.92),
+    0 0 0.52em rgba(221, 126, 25, 0.62);
+}
+
+.title {
+  margin: 1.8cqh 0 0;
+  color: #f5e8c8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 3.28cqw;
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: 0.012em;
+  text-shadow: 0 0.06em 0.2em rgba(0, 0, 0, 0.72);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1cqw;
+  width: 34.8cqw;
+  margin: 2.15cqh auto 0;
+}
+
+.dividerLine {
+  width: 13.2cqw;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(224, 160, 72, 0.88));
+}
+
+.dividerLine:last-child {
+  transform: scaleX(-1);
+}
+
+.dividerMark,
+.buttonMark {
+  display: inline-grid;
+  flex: 0 0 auto;
+}
+
+.dividerMark {
+  gap: 0.48cqh;
+  width: 2.2cqw;
+}
+
+.dividerMark > span {
+  display: block;
+  height: 0.38cqh;
+  background: #df9b4b;
+  box-shadow: 0 0 0.45em rgba(239, 161, 58, 0.28);
+}
+
+.description {
+  display: grid;
+  gap: 0.25cqh;
+  max-width: 61cqw;
+  margin: 1.8cqh auto 0;
+  color: #f1e5ca;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.43cqw;
+  font-weight: 500;
+  line-height: 1.42;
+  letter-spacing: 0.008em;
+  text-shadow: 0 1px 0.28em rgba(0, 0, 0, 0.9);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.15cqw;
+  width: 49.8cqw;
+  margin: 3.9cqh auto 0;
+}
+
+.button {
+  min-width: 0;
+  height: 7.55cqh;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.05cqw;
+  border-radius: 999px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55cqw;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.primaryButton {
+  border: 1px solid rgba(255, 225, 157, 0.9);
+  color: #2b1608;
+  background:
+    radial-gradient(circle at 45% 34%, rgba(255, 255, 239, 0.44), transparent 30%),
+    linear-gradient(180deg, #ffd879 0%, #efad3a 58%, #f7c65c 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 249, 218, 0.38),
+    inset 0 -0.24em 0.7em rgba(201, 104, 14, 0.26),
+    0 0 0.35em rgba(255, 196, 71, 0.88),
+    0 0 1.15em rgba(245, 148, 25, 0.62);
+}
+
+.secondaryButton {
+  border: 1px solid rgba(238, 184, 93, 0.95);
+  color: #f3dfba;
+  background: rgba(46, 29, 18, 0.7);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 222, 150, 0.08),
+    0 0.18em 0.7em rgba(0, 0, 0, 0.34);
+}
+
+.homeIcon {
+  width: 2.05cqw;
+  height: 2.05cqw;
+}
+
+.buttonMark {
+  gap: 0.31cqh;
+  width: 2.15cqw;
+}
+
+.buttonMark > span {
+  display: block;
+  height: 0.42cqh;
+  background: #ddb064;
+}
+
+.atmosphere {
+  z-index: 2;
+  left: 50%;
+  top: 50.7cqh;
+  width: 84cqw;
+  aspect-ratio: 2048 / 682;
+  transform: translateX(-50%);
+  opacity: 0.64;
+}
+
+.coins {
+  z-index: 3;
+  left: 50%;
+  top: 62.2cqh;
+  width: 32.8cqw;
+  aspect-ratio: 1842 / 854;
+  transform: translateX(-50%);
+}
+
+.page :global(a:focus-visible) {
+  outline: 2px solid #fff0bd;
+  outline-offset: 4px;
+}
+
+.zh .title {
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", "Noto Serif SC", serif;
+  font-size: 3.45cqw;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.zh .description,
+.zh .button {
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", "Noto Serif SC", Georgia, serif;
+}
+
+.zh .description {
+  font-size: 1.48cqw;
+}
+
+.zh .button {
+  font-size: 1.5cqw;
+}
+
+@media (max-width: 640px) {
+  .canvas {
+    width: 100vw;
+    height: 100svh;
+  }
+
+  .background {
+    object-position: center center;
+  }
+
+  .taiji {
+    top: 2.2cqh;
+    width: 86cqw;
+    opacity: 0.82;
+  }
+
+  .content {
+    top: 8.1cqh;
+    width: 92cqw;
+  }
+
+  .code {
+    font-size: 28.5cqw;
+    line-height: 0.94;
+  }
+
+  .title {
+    margin-top: 1.9cqh;
+    font-size: 7.85cqw;
+    line-height: 1.1;
+    letter-spacing: 0;
+  }
+
+  .divider {
+    gap: 2.8cqw;
+    width: 69cqw;
+    margin-top: 2.1cqh;
+  }
+
+  .dividerLine {
+    width: 26cqw;
+  }
+
+  .dividerMark {
+    gap: 0.36cqh;
+    width: 5.3cqw;
+  }
+
+  .dividerMark > span {
+    height: 0.32cqh;
+  }
+
+  .description {
+    gap: 0.35cqh;
+    max-width: 91cqw;
+    margin-top: 2.15cqh;
+    padding-inline: 1cqw;
+    font-size: 4.08cqw;
+    line-height: 1.48;
+  }
+
+  .description span {
+    display: block;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+    gap: 1.35cqh;
+    width: 84cqw;
+    margin-top: 3cqh;
+  }
+
+  .button {
+    height: 6.45cqh;
+    min-height: 52px;
+    gap: 3cqw;
+    font-size: 4.25cqw;
+  }
+
+  .homeIcon {
+    width: 5.6cqw;
+    height: 5.6cqw;
+  }
+
+  .buttonMark {
+    gap: 0.32cqh;
+    width: 5.8cqw;
+  }
+
+  .buttonMark > span {
+    height: 0.34cqh;
+  }
+
+  .atmosphere {
+    top: 68.7cqh;
+    width: 172cqw;
+    opacity: 0.56;
+  }
+
+  .coins {
+    top: auto;
+    bottom: 5.2cqh;
+    width: 89cqw;
+  }
+
+  .zh .title {
+    font-size: 8.8cqw;
+    letter-spacing: 0.08em;
+  }
+
+  .zh .description {
+    font-size: 4.05cqw;
+  }
+
+  .zh .button {
+    font-size: 4.35cqw;
+  }
+}
+
+@media (max-width: 640px) and (max-height: 720px) {
+  .content {
+    top: 6.2cqh;
+  }
+
+  .taiji {
+    top: 0.7cqh;
+  }
+
+  .description {
+    margin-top: 1.55cqh;
+  }
+
+  .actions {
+    margin-top: 2cqh;
+  }
+
+  .button {
+    height: 7cqh;
+    min-height: 48px;
+  }
+
+  .atmosphere {
+    top: 67cqh;
+  }
+
+  .coins {
+    bottom: 2.3cqh;
+  }
+}
