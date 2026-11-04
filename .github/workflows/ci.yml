@@ -163,7 +163,7 @@ jobs:
         run: node scripts/ritual-qa-fixture.mjs install
       - name: Production build for browser domains
         id: product_build
-        if: needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true' || needs.select.outputs.account_info == 'true' || needs.select.outputs.hexagram_detail == 'true' || needs.select.outputs.hexagram_detail == 'true'
+        if: needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true' || needs.select.outputs.account_info == 'true' || needs.select.outputs.hexagram_detail == 'true'
         run: bun run build
       - name: Install pinned browser tools
         if: needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true' || needs.select.outputs.account_info == 'true' || needs.select.outputs.hexagram_detail == 'true'
