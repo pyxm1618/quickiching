@@ -315,11 +315,11 @@ async function verifyBrowserFlows() {
   });
   try {
     const missingCases = [
-      ["/this-page-must-not-exist", "Page Not Found | Quick I Ching", "en", "Page Not Found"],
-      ["/fr", "Page Not Found | Quick I Ching", "en", "Page Not Found"],
-      ["/de", "Page Not Found | Quick I Ching", "en", "Page Not Found"],
-      ["/zh-Hans", "Page Not Found | Quick I Ching", "en", "Page Not Found"],
-      ["/zh/does-not-exist", "页面不存在 | Quick I Ching", "zh-Hans", "找不到这个页面"],
+      ["/this-page-must-not-exist", "Page Not Found | Quick I Ching", "en", "This Path Has No Hexagram"],
+      ["/fr", "Page Not Found | Quick I Ching", "en", "This Path Has No Hexagram"],
+      ["/de", "Page Not Found | Quick I Ching", "en", "This Path Has No Hexagram"],
+      ["/zh-Hans", "Page Not Found | Quick I Ching", "en", "This Path Has No Hexagram"],
+      ["/zh/does-not-exist", "页面不存在 | Quick I Ching", "zh-Hans", "此处无卦"],
     ];
     const metadataContext = await browser.createBrowserContext();
     const metadataPage = await metadataContext.newPage();
