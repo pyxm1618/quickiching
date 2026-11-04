@@ -4,6 +4,7 @@ import { MeiHuaNumberFlow } from "@/components/public-reading/mei-hua-number-flo
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { ZH_HANS_MEI_HUA_CONTENT } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { zhSeoFor } from "@/content/seo/zh-pages";
+import styles from "@/app/method-seo-shell.module.css";
 
 export function generateMetadata(): Metadata {
   const seo = zhSeoFor("mei-hua-yi-shu");
@@ -23,42 +24,42 @@ export default function ChineseMeiHuaPage() {
   return (
     <>
       <MeiHuaNumberFlow locale="zh-Hans" />
-      <article data-seo-primary={seo.primaryKeyword}>
-      <header className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--bronze)]">{content.eyebrow}</p>
-        <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">{seo.finalH1}</h1>
-        <p data-seo-early-copy className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">{content.introduction}</p>
+      <article className={styles.methodPage} data-seo-primary={seo.primaryKeyword}>
+      <header className={styles.intro}>
+        <p className={styles.eyebrow}>{content.eyebrow}</p>
+        <h1 className={styles.title}>{seo.finalH1}</h1>
+        <p data-seo-early-copy className={styles.lead}>{content.introduction}</p>
       </header>
 
-      <section className="mx-auto max-w-5xl px-4 pb-8">
-        <h2 className="font-display text-2xl font-medium">梅花易数起卦：数字 + 时刻规则</h2>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">本站正式流程使用一个用户数字和点击确认时的当地十二时辰序数起卦，并锁定 UTC 精确时刻与 IANA 时区，使同一份结果可以复现。</p>
+      <section className={styles.readingSection}>
+        <h2 className={styles.sectionTitle}>梅花易数起卦：数字 + 时刻规则</h2>
+        <p className={styles.bodyText}>本站正式流程使用一个用户数字和点击确认时的当地十二时辰序数起卦，并锁定 UTC 精确时刻与 IANA 时区，使同一份结果可以复现。</p>
       </section>
 
-      <section className="mx-auto max-w-5xl px-4 py-12" aria-labelledby="zh-positioning-title">
-        <p className="mystic-kicker">方法范围</p>
-        <h2 id="zh-positioning-title" className="mt-2 font-display text-3xl font-normal">{content.positioning.heading}</h2>
-        {content.positioning.paragraphs.map((paragraph) => <p key={paragraph} className="mt-4 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">{paragraph}</p>)}
-        <div className="mt-8 grid gap-5 md:grid-cols-2">
-          <div className="mystic-card-soft p-6"><h3 className="font-display text-2xl font-normal">本页支持</h3><ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-7 text-[var(--ink-2)]">{content.scope.supported.map((item) => <li key={item}>{item}</li>)}</ul></div>
-          <div className="mystic-card-soft p-6"><h3 className="font-display text-2xl font-normal">本页暂不支持</h3><ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-7 text-[var(--ink-2)]">{content.scope.notSupported.map((item) => <li key={item}>{item}</li>)}</ul></div>
+      <section className={styles.readingSection} aria-labelledby="zh-positioning-title">
+        <p className={styles.sectionKicker}>方法范围</p>
+        <h2 id="zh-positioning-title" className={styles.sectionTitle}>{content.positioning.heading}</h2>
+        {content.positioning.paragraphs.map((paragraph) => <p key={paragraph} className={styles.bodyText}>{paragraph}</p>)}
+        <div className={styles.scopeGrid}>
+          <div className={styles.scopePanel}><h3 className={styles.subTitle}>本页支持</h3><ul className={styles.bulletList}>{content.scope.supported.map((item) => <li key={item}>{item}</li>)}</ul></div>
+          <div className={styles.scopePanel}><h3 className={styles.subTitle}>本页暂不支持</h3><ul className={styles.bulletList}>{content.scope.notSupported.map((item) => <li key={item}>{item}</li>)}</ul></div>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-5xl gap-8 px-4 py-12 md:grid-cols-2" aria-labelledby="zh-convention-title">
+      <section className={`${styles.readingSection} ${styles.conventionGrid}`} aria-labelledby="zh-convention-title">
         <div>
-          <p className="mystic-kicker">数字 + 时刻规则</p>
-          <h2 id="zh-convention-title" className="mt-2 font-display text-2xl font-normal">{content.convention.heading}</h2>
-          {content.convention.paragraphs.map((paragraph) => <p key={paragraph} className="mt-4 text-sm leading-7 text-[var(--ink-2)]">{paragraph}</p>)}
+          <p className={styles.sectionKicker}>数字 + 时刻规则</p>
+          <h2 id="zh-convention-title" className={styles.sectionTitle}>{content.convention.heading}</h2>
+          {content.convention.paragraphs.map((paragraph) => <p key={paragraph} className={styles.bodyText}>{paragraph}</p>)}
         </div>
-        <ul className="mystic-card p-6 list-disc space-y-3 pl-10 text-sm leading-7 text-[var(--ink-2)]">{content.convention.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul>
+        <ul className={`${styles.listPanel} ${styles.bulletList}`}>{content.convention.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul>
       </section>
 
-      <section className="mx-auto max-w-5xl px-4 py-12" aria-labelledby="zh-interpretation-title">
-        <p className="mystic-kicker">阅读结果</p>
-        <h2 id="zh-interpretation-title" className="mt-2 font-display text-2xl font-normal">{content.interpretation.heading}</h2>
-        {content.interpretation.paragraphs.map((paragraph) => <p key={paragraph} className="mt-4 max-w-3xl text-sm leading-7 text-[var(--ink-2)]">{paragraph}</p>)}
-        <nav className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm" aria-label="中文梅花易数相关链接"><Link href="/zh" className="font-semibold text-[var(--jade)] hover:underline">{content.navigation.home}</Link><Link href="/zh/hexagrams" className="font-semibold text-[var(--jade)] hover:underline">{content.navigation.hexagrams}</Link><Link href="/zh/guides/changing-lines" className="font-semibold text-[var(--jade)] hover:underline">{content.navigation.changingLines}</Link></nav>
+      <section className={styles.readingSection} aria-labelledby="zh-interpretation-title">
+        <p className={styles.sectionKicker}>阅读结果</p>
+        <h2 id="zh-interpretation-title" className={styles.sectionTitle}>{content.interpretation.heading}</h2>
+        {content.interpretation.paragraphs.map((paragraph) => <p key={paragraph} className={styles.bodyText}>{paragraph}</p>)}
+        <nav className={styles.relatedNav} aria-label="中文梅花易数相关链接"><Link href="/zh" className={styles.relatedLink}>{content.navigation.home}</Link><Link href="/zh/hexagrams" className={styles.relatedLink}>{content.navigation.hexagrams}</Link><Link href="/zh/guides/changing-lines" className={styles.relatedLink}>{content.navigation.changingLines}</Link></nav>
       </section>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
