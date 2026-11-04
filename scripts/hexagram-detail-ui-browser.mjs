@@ -101,7 +101,7 @@ try {
       assert.deepEqual(state.auxiliaryLinks, expectedLinks);
       // Visit each lazy ornament before capturing the full document. This also verifies
       // that scrolling really loads it, rather than masking a missing image with a screenshot.
-      for (const ornament of await page.$("[data-hexagram-detail] img[loading=lazy]")) {
+      for (const ornament of await page.$$("[data-hexagram-detail] img[loading=lazy]")) {
         await ornament.evaluate((image) => image.scrollIntoView({ block: "center" }));
         const source = await ornament.evaluate((image) => image.currentSrc || image.src);
         try {
