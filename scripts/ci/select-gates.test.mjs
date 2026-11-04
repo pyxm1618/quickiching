@@ -69,6 +69,20 @@ test("Deep Reading generation service selects Reading + Database", () => {
   assert.equal(r.database, true);
 });
 
+
+test("Deep Reading route selects Reading + Public/SEO + Performance", () => {
+  const r = pick(["src/app/(default)/readings/deep/page.tsx"]);
+  assert.equal(r.reading, true);
+  assert.equal(r.public_seo, true);
+  assert.equal(r.performance, true);
+});
+
+test("Reading repository selects Reading + Database", () => {
+  const r = pick(["src/server/repositories/reading-repository.ts"]);
+  assert.equal(r.reading, true);
+  assert.equal(r.database, true);
+});
+
 test("Reading API selects Reading + Database", () => {
   const r = pick(["src/app/api/readings/route.ts"]);
   assert.equal(r.reading, true);
