@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MeiHuaNumberFlow } from "@/components/public-reading/mei-hua-number-flow";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
-import { EN_MEI_HUA_CONTENT } from "@/content/mei-hua-yi-shu/en";\nimport styles from "@/app/method-seo-shell.module.css";
+import { EN_MEI_HUA_CONTENT } from "@/content/mei-hua-yi-shu/en";
+import styles from "@/app/method-seo-shell.module.css";
 
 const CONTENT = EN_MEI_HUA_CONTENT;
 export const metadata: Metadata = {
