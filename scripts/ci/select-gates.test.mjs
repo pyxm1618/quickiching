@@ -95,6 +95,14 @@ test("Reading API selects Reading + Database", () => {
   assert.equal(r.database, true);
 });
 
+
+test("Global consent component selects Public/SEO + home performance", () => {
+  const r = pick(["src/components/analytics-consent.tsx"]);
+  assert.equal(r.public_seo, true);
+  assert.equal(r.performance, true);
+  assert.deepEqual(JSON.parse(r.performance_targets), ["home.mobile", "home.desktop"]);
+});
+
 test("Auth UI selects Account/Info + account performance", () => {
   const r = pick(["src/components/auth/user-nav-control.tsx"]);
   assert.equal(r.account_info, true);
