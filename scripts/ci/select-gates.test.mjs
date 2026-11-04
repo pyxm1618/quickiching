@@ -62,6 +62,51 @@ test("Info-only change selects Public/SEO + Account/Info + Performance", () => {
   assert.deepEqual(JSON.parse(r.performance_targets), ["home.mobile", "home.desktop", "info.desktop"]);
 });
 
+
+test("Deep Reading generation service selects Reading + Database", () => {
+  const r = pick(["src/server/generation/deep-reading-service.ts"]);
+  assert.equal(r.reading, true);
+  assert.equal(r.database, true);
+});
+
+test("Deep Reading route selects Reading + Public/SEO + Performance", () => {
+  const r = pick(["src/app/(default)/readings/deep/page.tsx"]);
+  assert.equal(r.reading, true);
+  assert.equal(r.public_seo, true);
+  assert.equal(r.performance, true);
+});
+
+test("Reading repository selects Reading + Database", () => {
+  const r = pick(["src/server/repositories/reading-repository.ts"]);
+  assert.equal(r.reading, true);
+  assert.equal(r.database, true);
+});
+
+test("Root PostgreSQL integration test selects Database", () => {
+  const r = pick(["src/server/cp6-repair.integration.test.ts"]);
+  assert.equal(r.database, true);
+});
+
+test("Auth UI selects Account/Info + account performance", () => {
+  const r = pick(["src/components/auth/user-nav-control.tsx"]);
+  assert.equal(r.account_info, true);
+  assert.equal(r.performance, true);
+  assert.deepEqual(JSON.parse(r.performance_targets), ["account.desktop"]);
+});
+
+test("Global consent component selects Public/SEO + home performance", () => {
+  const r = pick(["src/components/analytics-consent.tsx"]);
+  assert.equal(r.public_seo, true);
+  assert.equal(r.performance, true);
+  assert.deepEqual(JSON.parse(r.performance_targets), ["home.mobile", "home.desktop"]);
+});
+
+test("Entitlement domain selects Payment + Database", () => {
+  const r = pick(["src/domain/entitlements/credit-ledger.ts"]);
+  assert.equal(r.payment, true);
+  assert.equal(r.database, true);
+});
+
 test("Payment-only server change selects Payment + Database", () => {
   const r = pick(["src/server/payments/postgres-repository.ts"]);
   assert.equal(r.payment, true);
@@ -73,6 +118,9 @@ for (const file of [
   "src/app/globals.css",
   "package.json",
   ".github/workflows/ci.yml",
+  "scripts/ci/required-gate.mjs",
+  "src/components/ui/button.tsx",
+  "src/server/config.ts",
   "drizzle/0013_future_contract.sql",
 ]) {
   test(`${file} forces FULL mode`, () => {
