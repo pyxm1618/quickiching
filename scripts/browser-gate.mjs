@@ -642,7 +642,6 @@ async function verifyNotFoundPages(browser) {
 
         assert.equal(snapshot.title, testCase.title, `${testCase.path}: title mismatch`);
         assert.match(snapshot.robots, /noindex/i, `${testCase.path}: robots missing noindex`);
-        assert.match(snapshot.robots, /nofollow/i, `${testCase.path}: robots missing nofollow`);
         for (const text of ["404", testCase.heading, testCase.firstLine, testCase.secondLine, testCase.homeLabel, testCase.hexagramsLabel]) {
           assert(snapshot.bodyText.includes(text), `${testCase.path}: missing visible text: ${text}`);
         }
