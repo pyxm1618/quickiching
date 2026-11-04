@@ -39,7 +39,7 @@ async function seedManualReading(page, origin) {
   await page.evaluate(() => {
     sessionStorage.setItem("quickiching:public-v1:manual-cast", JSON.stringify({
       schemaVersion: 1,
-      id: "8e66f19e-c0de-4b60-9e28-245a0a797082",
+      id: "lighthouse-manual-reading",
       createdAt: "2026-08-19T00:00:00.000Z",
       started: true,
       coreQuestionFrozenAtCast: true,
