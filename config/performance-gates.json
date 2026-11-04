@@ -193,8 +193,8 @@
         "scriptBytesMax": 327680
       },
       "samplePolicy": {
-        "count": 1,
-        "selection": "single",
+        "count": 3,
+        "selection": "median-performance-lcp-worst-rest",
         "warmupCount": 1
       },
       "baseline": {
