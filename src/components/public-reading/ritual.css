@@ -182,9 +182,6 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-line-symbol i {display:block;background:#fff9e2;flex:1;}
 .ritual-line-symbol[data-yang='true'] {gap:0;}
 .ritual-line-symbol[data-sealed='false'] {opacity:.15;}
-[data-ritual-view='progress'] .ritual-cast-control {left:calc(890 * var(--u));top:calc(410 * var(--u));width:calc(240 * var(--u));height:calc(260 * var(--u));}
-[data-ritual-view='progress'] .hold-button {height:100%;background:transparent;border:0;border-radius:50%;color:transparent;}
-[data-ritual-view='progress'] .hold-button::after,[data-ritual-view='progress'] .ritual-cast-control > p {position:absolute!important;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
 .ritual-storage-notice {position:absolute;left:25%;top:calc(350 * var(--u));width:50%;pointer-events:auto;}
 .ritual-storage-notice:empty {display:none;}
 .ritual-storage-notice > div {background:rgba(32,13,7,.97);}
