@@ -105,6 +105,10 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
     void audioRef.current?.close();
   }, []);
 
+  useEffect(() => {
+    if (homeStage === "landing") setSceneReady(false);
+  }, [homeStage]);
+
   const lines = useMemo(() => steps.map((step) => step.lineValue), [steps]);
   const revealedSteps = useMemo(() => steps.slice(0, revealedCount), [steps, revealedCount]);
   const complete = lines.length === 6;
@@ -321,6 +325,7 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
 
     if(resetTimerRef.current)clearTimeout(resetTimerRef.current);
     resetTimerRef.current=null;setVisualResetting(false);
+    setSceneReady(false);
     holdingRef.current = false;
     ignoreSyntheticClickRef.current = false;
     if (shakeIntervalRef.current) clearInterval(shakeIntervalRef.current);
