@@ -1,0 +1,288 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  place-items: center;
+  overflow: hidden;
+  padding: 36px 24px;
+  background:
+    radial-gradient(circle at 50% 39%, rgba(111, 77, 118, 0.13) 0%, rgba(47, 31, 53, 0.07) 29%, transparent 52%),
+    radial-gradient(circle at 12% 8%, rgba(187, 139, 67, 0.06) 0%, transparent 28%),
+    radial-gradient(circle at 88% 92%, rgba(187, 139, 67, 0.05) 0%, transparent 30%),
+    linear-gradient(145deg, #0b090e 0%, #100c14 47%, #09070d 100%);
+  color: #f7f0df;
+  text-align: center;
+  isolation: isolate;
+}
+
+.screen::before,
+.screen::after {
+  position: absolute;
+  width: min(42vw, 620px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+  opacity: 0.16;
+}
+
+.screen::before {
+  top: -31%;
+  left: -18%;
+  background:
+    radial-gradient(circle at 58% 58%, transparent 0 47%, rgba(187, 139, 67, 0.22) 48% 48.4%, transparent 49%),
+    radial-gradient(circle at 58% 58%, rgba(115, 77, 43, 0.14) 0%, transparent 62%);
+}
+
+.screen::after {
+  right: -19%;
+  bottom: -34%;
+  background:
+    radial-gradient(circle at 42% 42%, transparent 0 47%, rgba(187, 139, 67, 0.2) 48% 48.4%, transparent 49%),
+    radial-gradient(circle at 42% 42%, rgba(115, 77, 43, 0.12) 0%, transparent 62%);
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: min(100%, 650px);
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(-1.5vh);
+}
+
+.emblem {
+  position: relative;
+  display: grid;
+  width: 174px;
+  height: 174px;
+  place-items: center;
+  margin-bottom: 42px;
+}
+
+.emblem::before {
+  position: absolute;
+  inset: -25px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from -26deg,
+    rgba(221, 178, 99, 0.34) 0deg,
+    #c89a54 56deg,
+    rgba(226, 186, 107, 0.74) 230deg,
+    #b98442 315deg,
+    transparent 315deg 337deg,
+    rgba(203, 156, 79, 0.74) 337deg 360deg
+  );
+  content: "";
+  pointer-events: none;
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1px), #000 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 1px), #000 0);
+}
+
+.emblem::after {
+  position: absolute;
+  inset: -44px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(208, 157, 75, 0.08) 0%, rgba(126, 83, 49, 0.035) 48%, transparent 72%);
+  content: "";
+  pointer-events: none;
+}
+
+.taiji {
+  position: relative;
+  z-index: 1;
+  width: 174px;
+  height: 174px;
+  object-fit: contain;
+}
+
+.title {
+  margin: 0;
+  color: #f6efdf;
+  font-family: var(--font-display, Georgia, "Times New Roman", serif);
+  font-size: clamp(34px, 3.3vw, 44px);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.description {
+  max-width: 520px;
+  margin: 20px 0 0;
+  color: #bcb3c3;
+  font-size: 15px;
+  line-height: 1.75;
+  text-wrap: balance;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  margin-top: 34px;
+}
+
+.button {
+  display: inline-flex;
+  min-width: 190px;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 13px 26px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.primaryButton {
+  border: 1px solid rgba(239, 205, 137, 0.88);
+  color: #24180b;
+  background: linear-gradient(180deg, #e7c883 0%, #c99a4f 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 247, 216, 0.42),
+    0 8px 28px rgba(169, 113, 42, 0.17);
+}
+
+.secondaryButton {
+  border: 1px solid rgba(203, 163, 94, 0.64);
+  color: #e7d8b8;
+  background: rgba(20, 15, 22, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(255, 236, 198, 0.025);
+}
+
+.primaryButton:hover {
+  background: linear-gradient(180deg, #eed395 0%, #d2a45a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 249, 223, 0.48),
+    0 10px 32px rgba(169, 113, 42, 0.22);
+  transform: translateY(-1px);
+}
+
+.secondaryButton:hover {
+  border-color: rgba(222, 183, 109, 0.82);
+  color: #f0e2c4;
+  background: rgba(41, 29, 38, 0.46);
+}
+
+.button:focus-visible {
+  outline: 2px solid #f3d99f;
+  outline-offset: 4px;
+}
+
+.zh .title,
+.zh .description,
+.zh .button {
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", "Noto Serif SC", Georgia, serif;
+}
+
+.zh .title {
+  letter-spacing: 0.035em;
+}
+
+@media (max-width: 640px) {
+  .screen {
+    padding: 28px 20px;
+  }
+
+  .screen::before,
+  .screen::after {
+    width: 92vw;
+    opacity: 0.12;
+  }
+
+  .content {
+    width: min(100%, 390px);
+    transform: none;
+  }
+
+  .emblem {
+    width: 126px;
+    height: 126px;
+    margin-bottom: 31px;
+  }
+
+  .emblem::before {
+    inset: -19px;
+  }
+
+  .emblem::after {
+    inset: -34px;
+  }
+
+  .taiji {
+    width: 126px;
+    height: 126px;
+  }
+
+  .title {
+    font-size: clamp(30px, 8.7vw, 36px);
+    line-height: 1.18;
+  }
+
+  .description {
+    max-width: 340px;
+    margin-top: 16px;
+    font-size: 14px;
+    line-height: 1.68;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 12px;
+    width: min(100%, 340px);
+    margin-top: 28px;
+  }
+
+  .button {
+    width: 100%;
+    min-width: 0;
+    min-height: 52px;
+  }
+
+  .zh .title {
+    font-size: 31px;
+  }
+}
+
+@media (max-height: 620px) {
+  .screen {
+    overflow-y: auto;
+    place-items: start center;
+    padding-block: 30px;
+  }
+
+  .content {
+    transform: none;
+  }
+
+  .emblem {
+    margin-bottom: 26px;
+  }
+
+  .actions {
+    margin-top: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+}
