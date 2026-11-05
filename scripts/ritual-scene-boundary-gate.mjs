@@ -74,15 +74,9 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
   await page.locator('[data-home-primary-action]').click();
   await page.waitForSelector('[data-question-confirm]');
   assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Home action must not create line one');
-  if(!fallback && !moduleFailure) {
-   if(deferTextures) {
-    await page.waitForSelector('.ritual-webgl canvas');
-    const deadline=Date.now()+15000;
-    while(heldTextureRequests.length<2 && Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,25));
-    assert.equal(heldTextureRequests.length,2,'Both official textures must be requested');
-   } else await page.waitForSelector('[data-renderer="three-webgl"]');
-   await page.evaluate(()=>{window.__initialRitualCanvas=document.querySelector('.ritual-webgl canvas');});
-  }
+  // P1 intentionally keeps the formal Three-Coin renderer unmounted on Landing.
+  // Question confirmation preserves the existing interaction-deferred scene activation;
+  // the user's Cast the Coins interaction starts the real renderer without drawing business randomness.
   await page.locator('[data-home-primary-action]').click();
   assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Entering ritual must not manufacture a cast');
   if(completedFlow) {
@@ -104,6 +98,10 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    await page.screenshot({path:acceptanceOutput+'/'+id+'-B-first-cast-ready.png'});
   }
   if(deferTextures) {
+   await page.waitForSelector('.ritual-webgl canvas');
+   const deadline=Date.now()+15000;
+   while(heldTextureRequests.length<2 && Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,25));
+   assert.equal(heldTextureRequests.length,2,'Both official textures must be requested');
    await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button');
    assert.equal(await page.$eval('.hold-button',node=>node.disabled),true,'A real cast must wait for its textures');
    await page.$eval('.hold-button',node=>node.click());
@@ -113,7 +111,6 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    await Promise.all(heldTextureRequests.map(request=>request.continue()));
    await page.waitForSelector('[data-renderer="three-webgl"]');
   }
-  if(!fallback && !moduleFailure)assert.equal(await page.evaluate(()=>window.__initialRitualCanvas===document.querySelector('[data-renderer="three-webgl"] canvas')),true,'Question confirmation and casting must retain one renderer canvas');
   await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button:not(:disabled)');
   await page.locator('[data-three-coin-presentation="ritual"] .hold-button').click();
   if(storageFailure) {
