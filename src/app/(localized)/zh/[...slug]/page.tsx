@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return [];
+}
+
 export const metadata: Metadata = {
   title: { absolute: "页面不存在 | Quick I Ching" },
   description: "你请求的中文 Quick I Ching 页面不存在。",
