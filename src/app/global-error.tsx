@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element, @next/next/no-html-link-for-pages -- Global Error intentionally avoids next/image and next/link dependencies. */
+
 import { useEffect, useState } from "react";
 import styles from "./global-error.module.css";
 
@@ -66,8 +68,8 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 className={styles.taiji}
                 src="/hexagram-detail/delivery/taiji-290.avif"
                 alt=""
-                width="156"
-                height="156"
+                width={156}
+                height={156}
                 aria-hidden="true"
               />
             </div>
