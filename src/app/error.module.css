@@ -1,0 +1,410 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  place-items: center;
+  overflow: hidden;
+  padding: 32px 24px;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(95, 61, 85, 0.12) 0%, rgba(44, 29, 45, 0.07) 31%, transparent 52%),
+    radial-gradient(circle at 8% 4%, rgba(171, 118, 55, 0.07) 0%, transparent 25%),
+    radial-gradient(circle at 92% 96%, rgba(171, 118, 55, 0.06) 0%, transparent 27%),
+    linear-gradient(145deg, #0b080d 0%, #120c13 51%, #09070c 100%);
+  color: #f4ead5;
+  text-align: center;
+  isolation: isolate;
+}
+
+.screen::before,
+.screen::after {
+  position: absolute;
+  width: min(46vw, 670px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(154, 102, 52, 0.16);
+  border-radius: 49% 51% 45% 55%;
+  content: "";
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.screen::before {
+  top: -38%;
+  left: -18%;
+  transform: rotate(-12deg);
+}
+
+.screen::after {
+  right: -20%;
+  bottom: -41%;
+  transform: rotate(16deg);
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: min(100%, 1120px);
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(-2.5vh);
+}
+
+.emblem {
+  position: relative;
+  display: grid;
+  width: 336px;
+  height: 336px;
+  place-items: center;
+  margin-bottom: 30px;
+}
+
+.emblem::before {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from -29deg,
+    #c58a3f 0deg,
+    #e0ad5a 120deg,
+    rgba(199, 139, 63, 0.74) 302deg,
+    transparent 302deg 323deg,
+    #d59a49 323deg 360deg
+  );
+  content: "";
+  pointer-events: none;
+  filter: drop-shadow(0 0 8px rgba(225, 165, 76, 0.38));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+}
+
+.emblem::after {
+  position: absolute;
+  inset: -28px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(221, 158, 72, 0.11) 0%, rgba(126, 77, 39, 0.04) 49%, transparent 72%);
+  content: "";
+  pointer-events: none;
+}
+
+.taiji {
+  position: relative;
+  z-index: 2;
+  width: 176px;
+  height: 176px;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 18px rgba(0, 0, 0, 0.35));
+}
+
+.trigrams {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.trigram {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  color: rgba(174, 119, 61, 0.78);
+  font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols 2", serif;
+  font-size: 44px;
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(184, 124, 54, 0.14);
+}
+
+.trigram0 {
+  transform: translate(-50%, -50%) translateY(-120px);
+}
+
+.trigram1 {
+  transform: translate(-50%, -50%) translate(86px, -86px) rotate(45deg);
+}
+
+.trigram2 {
+  transform: translate(-50%, -50%) translateX(122px) rotate(90deg);
+}
+
+.trigram3 {
+  transform: translate(-50%, -50%) translate(86px, 86px) rotate(135deg);
+}
+
+.trigram4 {
+  transform: translate(-50%, -50%) translateY(120px) rotate(180deg);
+}
+
+.trigram5 {
+  transform: translate(-50%, -50%) translate(-86px, 86px) rotate(225deg);
+}
+
+.trigram6 {
+  transform: translate(-50%, -50%) translateX(-122px) rotate(270deg);
+}
+
+.trigram7 {
+  transform: translate(-50%, -50%) translate(-86px, -86px) rotate(315deg);
+}
+
+.titleRow {
+  display: flex;
+  width: min(100%, 940px);
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+.titleRule {
+  width: 88px;
+  height: 1px;
+  flex: 0 0 auto;
+  background: linear-gradient(90deg, transparent, rgba(199, 145, 69, 0.86));
+}
+
+.titleRule:last-child {
+  transform: scaleX(-1);
+}
+
+.title {
+  margin: 0;
+  color: #f3e7cc;
+  font-family: var(--font-display, Georgia, "Times New Roman", serif);
+  font-size: clamp(44px, 4vw, 58px);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.28);
+}
+
+.description {
+  max-width: 850px;
+  margin: 30px 0 0;
+  color: #b9aebe;
+  font-family: var(--font-display, Georgia, "Times New Roman", serif);
+  font-size: 19px;
+  line-height: 1.6;
+  text-wrap: balance;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  width: 100%;
+  margin-top: 44px;
+}
+
+.button {
+  display: inline-flex;
+  width: 250px;
+  min-height: 60px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  padding: 14px 24px;
+  font-family: var(--font-display, Georgia, "Times New Roman", serif);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.primaryButton {
+  border: 1px solid rgba(245, 205, 125, 0.94);
+  color: #2b1a0b;
+  background: linear-gradient(180deg, #e7bb68 0%, #c88d3c 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 239, 190, 0.64),
+    inset 0 -5px 13px rgba(127, 69, 19, 0.14),
+    0 0 18px rgba(199, 132, 49, 0.2);
+}
+
+.secondaryButton {
+  border: 1px solid rgba(197, 145, 77, 0.76);
+  color: #eee0c5;
+  background: rgba(19, 13, 18, 0.36);
+  box-shadow: inset 0 0 0 1px rgba(255, 231, 185, 0.02);
+}
+
+.primaryButton:hover {
+  background: linear-gradient(180deg, #efc97c 0%, #d49a48 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 206, 0.68),
+    inset 0 -5px 13px rgba(127, 69, 19, 0.12),
+    0 0 22px rgba(199, 132, 49, 0.25);
+  transform: translateY(-1px);
+}
+
+.secondaryButton:hover {
+  border-color: rgba(222, 174, 105, 0.9);
+  color: #f5e8cf;
+  background: rgba(38, 25, 33, 0.47);
+}
+
+.button:focus-visible {
+  outline: 2px solid #f3d99f;
+  outline-offset: 4px;
+}
+
+.zh .title,
+.zh .description,
+.zh .button {
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", "Noto Serif SC", Georgia, serif;
+}
+
+.zh .title {
+  letter-spacing: 0.045em;
+}
+
+@media (max-width: 640px) {
+  .screen {
+    padding: 26px 20px;
+  }
+
+  .screen::before,
+  .screen::after {
+    width: 92vw;
+    opacity: 0.35;
+  }
+
+  .content {
+    width: min(100%, 390px);
+    transform: none;
+  }
+
+  .emblem {
+    width: 190px;
+    height: 190px;
+    margin-bottom: 30px;
+  }
+
+  .emblem::before {
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 0);
+    mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 0);
+  }
+
+  .emblem::after {
+    inset: -22px;
+  }
+
+  .taiji {
+    width: 98px;
+    height: 98px;
+  }
+
+  .trigram {
+    font-size: 25px;
+  }
+
+  .trigram0 {
+    transform: translate(-50%, -50%) translateY(-68px);
+  }
+
+  .trigram1 {
+    transform: translate(-50%, -50%) translate(48px, -48px) rotate(45deg);
+  }
+
+  .trigram2 {
+    transform: translate(-50%, -50%) translateX(69px) rotate(90deg);
+  }
+
+  .trigram3 {
+    transform: translate(-50%, -50%) translate(48px, 48px) rotate(135deg);
+  }
+
+  .trigram4 {
+    transform: translate(-50%, -50%) translateY(68px) rotate(180deg);
+  }
+
+  .trigram5 {
+    transform: translate(-50%, -50%) translate(-48px, 48px) rotate(225deg);
+  }
+
+  .trigram6 {
+    transform: translate(-50%, -50%) translateX(-69px) rotate(270deg);
+  }
+
+  .trigram7 {
+    transform: translate(-50%, -50%) translate(-48px, -48px) rotate(315deg);
+  }
+
+  .titleRow {
+    width: 100%;
+    gap: 0;
+  }
+
+  .titleRule {
+    display: none;
+  }
+
+  .title {
+    font-size: clamp(31px, 8.9vw, 36px);
+    line-height: 1.16;
+  }
+
+  .description {
+    max-width: 345px;
+    margin-top: 18px;
+    font-size: 15px;
+    line-height: 1.62;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 12px;
+    width: min(100%, 340px);
+    margin-top: 30px;
+  }
+
+  .button {
+    width: 100%;
+    min-height: 52px;
+    border-radius: 11px;
+    font-size: 18px;
+  }
+
+  .zh .title {
+    font-size: 31px;
+  }
+}
+
+@media (max-height: 700px) {
+  .screen {
+    overflow-y: auto;
+    place-items: start center;
+    padding-block: 28px;
+  }
+
+  .content {
+    transform: none;
+  }
+
+  .emblem {
+    margin-bottom: 24px;
+  }
+
+  .description {
+    margin-top: 20px;
+  }
+
+  .actions {
+    margin-top: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+}
