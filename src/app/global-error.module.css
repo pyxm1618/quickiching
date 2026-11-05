@@ -67,7 +67,7 @@
   width: min(100%, 980px);
   flex-direction: column;
   align-items: center;
-  transform: translateY(-1.5vh);
+  transform: translateY(-2.5vh);
 }
 
 .emblem {
@@ -84,12 +84,13 @@
   inset: 0;
   border-radius: 50%;
   background: conic-gradient(
-    from -31deg,
-    #c38a40 0deg,
-    #dfa958 116deg,
-    rgba(198, 138, 61, 0.76) 300deg,
-    transparent 300deg 323deg,
-    #d59b4c 323deg 360deg
+    from 0deg,
+    #dfa958 0deg 35deg,
+    transparent 35deg 53deg,
+    #d59b4c 53deg,
+    #c38a40 205deg,
+    rgba(198, 138, 61, 0.78) 315deg,
+    #dfa958 360deg
   );
   content: "";
   pointer-events: none;
