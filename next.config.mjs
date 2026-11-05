@@ -49,6 +49,8 @@ const nextConfig = {
         destination: "https://www.quickiching.com/:path*",
         permanent: true,
       },
+      { source: "/readings/three-coin/result", destination: "/readings/result", permanent: false },
+      { source: "/zh/readings/three-coin/result", destination: "/zh/readings/result", permanent: false },
       { source: "/i-ching-coin", destination: "/methods/three-coin", permanent: true },
       { source: "/three-coin-method", destination: "/methods/three-coin", permanent: true },
       { source: "/yarrow-stalk-method", destination: "/methods/yarrow-stalks", permanent: true },
