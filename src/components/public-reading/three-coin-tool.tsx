@@ -105,6 +105,10 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
     void audioRef.current?.close();
   }, []);
 
+  useEffect(() => {
+    if (homeStage === "landing") setSceneReady(false);
+  }, [homeStage]);
+
   const lines = useMemo(() => steps.map((step) => step.lineValue), [steps]);
   const revealedSteps = useMemo(() => steps.slice(0, revealedCount), [steps, revealedCount]);
   const complete = lines.length === 6;
@@ -321,6 +325,7 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
 
     if(resetTimerRef.current)clearTimeout(resetTimerRef.current);
     resetTimerRef.current=null;setVisualResetting(false);
+    setSceneReady(false);
     holdingRef.current = false;
     ignoreSyntheticClickRef.current = false;
     if (shakeIntervalRef.current) clearInterval(shakeIntervalRef.current);
@@ -389,12 +394,12 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
 
   return (
     <section data-realm="chamber" data-three-coin-presentation="ritual" data-home-stage={homeStage} aria-labelledby={showRitualControls ? "three-coin-tool-title" : undefined}>
-      <ThreeCoinVisual
+      {homeStage !== "landing" ? <ThreeCoinVisual
         faces={unpersistedCommit ? revealedSteps.at(-1)?.coinFaces ?? ["yang", "yang", "yang"] : visibleFaces}
-        phase={homeStage === "landing" ? "hero" : homeStage === "question-confirm" ? "hero-exit" : visuallyComplete ? "exit" : visualResetting ? "reset" : motion === "casting" ? "casting" : motion === "settled" ? "settled" : revealedCount > 0 ? "progress" : "ready"}
+        phase={homeStage === "question-confirm" ? "hero-exit" : visuallyComplete ? "exit" : visualResetting ? "reset" : motion === "casting" ? "casting" : motion === "settled" ? "settled" : "ready"}
         visualSeed={1618 + (visibleStep?.lineIndex ?? 0)}
         onReady={()=>setSceneReady(true)}
-      />
+      /> : null}
       {showRitualControls ? <RitualCastPresentation zh={zh} motion={motion} steps={revealedSteps}
         visibleStep={unpersistedCommit ? null : visibleStep} complete={visuallyComplete}
         canRecord={canRecordSettledThreeCoin({motion,storageBlocked,stepCount:steps.length,revealedCount})}
