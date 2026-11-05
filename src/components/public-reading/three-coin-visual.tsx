@@ -20,12 +20,12 @@ class SceneLoadBoundary extends Component<ThreeCoinSceneProps & {children:ReactN
 }
 
 export function ThreeCoinVisual(props:ThreeCoinSceneProps) {
-  const [startScene,setStartScene]=useState(()=>props.phase!=='hero');
+  const [startScene,setStartScene]=useState(false);
   useEffect(()=>{
     if(startScene)return;
-    // A landing hero may defer the renderer, but the formal ritual mounts this component
-    // only after Landing. Hero-exit and all casting phases therefore start immediately.
-    if(props.phase!=='hero') {
+    // The landing hero is presentation-only. Keep Three.js off the initial critical path;
+    // the first real interaction or any non-hero phase activates the same formal renderer.
+    if(props.phase!=='hero' && props.phase!=='hero-exit') {
       setStartScene(true);
       return;
     }
