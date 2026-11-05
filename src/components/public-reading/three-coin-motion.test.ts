@@ -50,6 +50,15 @@ describe('pure Three.js presentation contract', () => {
     }
     expect(castTrailIntensity(79,0)).toBeCloseTo(0);
   });
+  it('keeps all three coins visible in the ready state used for every next cast', () => {
+    for (let index=0;index<3;index++) {
+      const pose=coinPose({phase:'ready',face:'yang',index,time:0,seed:1618,reducedMotion:false});
+      expect(pose.opacity).toBe(1);
+      expect(pose.diameter).toBe(164);
+      expect(pose.settled).toBe(false);
+    }
+  });
+
   it('reduced motion keeps one continuous visible 3D path from the cast origin to the authoritative result anchor', () => {
     for(const face of ['yang','yin'] as const) for(let index=0;index<3;index++) {
       const input={face,index,seed:1618,reducedMotion:true};
