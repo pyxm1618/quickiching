@@ -18,19 +18,6 @@ const EN_METADATA: Metadata = {
   },
 };
 
-const ZH_METADATA: Metadata = {
-  title: "页面不存在 | Quick I Ching",
-  description: "你请求的中文 Quick I Ching 页面不存在。",
-  robots: { index: false, follow: false },
-  openGraph: {
-    title: "页面不存在 | Quick I Ching",
-    description: "你请求的中文 Quick I Ching 页面不存在。",
-    type: "website",
-    siteName: "Quick I Ching",
-    locale: "zh_CN",
-  },
-};
-
 async function getNotFoundLocale(): Promise<"en" | "zh"> {
   const pathname = (await headers()).get("x-quickiching-pathname") ?? "";
   return pathname === "/zh" || pathname.startsWith("/zh/") ? "zh" : "en";
