@@ -9,12 +9,22 @@ const output='.artifacts/ritual-qa/business-boundary';await mkdir(output,{recurs
 const acceptanceOutput=output+'/three-coin-ui-state';await mkdir(acceptanceOutput,{recursive:true});
 const assets=JSON.parse(await readFile('docs/performance/pr-76-assets.json','utf8'));
 const outcomes=[];
-async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFailure=false,moduleFailure=false,completedFlow=false,deferTextures=false}) {
+async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFailure=false,moduleFailure=false,completedFlow=false,deferTextures=false,remountReadiness=false}) {
  let page;
  const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--force-device-scale-factor=1',...(fallback?['--disable-webgl']:[])]});
  try {
   page=await browser.newPage();await page.setViewport({width:1672,height:941,deviceScaleFactor:1});
   const heldTextureRequests=[];
+  const heldRemountTextureRequests=[];
+  let holdRemountTextures=false;
+  if(remountReadiness) {
+   await page.setCacheEnabled(false);
+   await page.setRequestInterception(true);
+   page.on('request',request=>{
+    if(holdRemountTextures&&[assets.coinFrontDesktop.url,assets.coinBackDesktop.url].some(url=>request.url().endsWith(url)))heldRemountTextureRequests.push(request);
+    else request.continue();
+   });
+  }
   if(deferTextures) {
    await page.setRequestInterception(true);
    page.on('request',request=>{
@@ -96,6 +106,44 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    assert.equal(firstReady.done,0,'First Cast Ready must not show a completed line');
    assert.equal(firstReady.phase,'ready','First Cast Ready must show the real three-coin ready scene');
    await page.screenshot({path:acceptanceOutput+'/'+id+'-B-first-cast-ready.png'});
+   if(remountReadiness) {
+    await page.locator('[data-ritual-view="ready"] .ritual-back').click();
+    await page.waitForSelector('[data-experience-stage="landing"]');
+    const returnedLanding=await page.evaluate(storageKey=>{
+     const raw=sessionStorage.getItem(storageKey),current=raw?JSON.parse(raw):null;
+     return {
+      businessDraws:window.__ritualBitDraws,
+      steps:current?.data?.steps?.length??0,
+      visualLayer:Boolean(document.querySelector('.ritual-webgl')),
+     };
+    },key);
+    assert.equal(returnedLanding.businessDraws,0,'Returning to Landing before any cast must not draw business randomness');
+    assert.equal(returnedLanding.steps,0,'Returning to Landing before any cast must keep zero steps');
+    assert.equal(returnedLanding.visualLayer,false,'Returning to Landing must unmount the formal Three-Coin foreground');
+
+    await page.locator('[data-private-question]').fill(zh?'测试：重新进入后如何理解当前变化？':'QA fixture: verify renderer readiness after re-entering the ritual');
+    await page.locator('[data-home-primary-action]').click();
+    await page.waitForSelector('[data-question-confirm]');
+    await page.waitForSelector('[data-home-primary-action]:not(:disabled)');
+    holdRemountTextures=true;
+    await page.locator('[data-home-primary-action]').click();
+    await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button');
+    const remountDeadline=Date.now()+15000;
+    while(heldRemountTextureRequests.length<2&&Date.now()<remountDeadline)await new Promise(resolve=>setTimeout(resolve,25));
+    assert.equal(heldRemountTextureRequests.length,2,'Re-entered renderer must request both official textures before becoming ready');
+    assert.equal(await page.$eval('.hold-button',node=>node.disabled),true,'Re-entered ritual must keep casting disabled until the new renderer is ready');
+    await page.$eval('.hold-button',node=>node.click());
+    assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'A stale readiness flag must not allow a business cast before the remounted renderer is ready');
+    const beforeRemountReady=await page.evaluate(storageKey=>{
+     const raw=sessionStorage.getItem(storageKey),current=raw?JSON.parse(raw):null;
+     return current?.data?.steps?.length??0;
+    },key);
+    assert.equal(beforeRemountReady,0,'A stale readiness flag must not create a step before the remounted renderer is ready');
+    holdRemountTextures=false;
+    await Promise.all(heldRemountTextureRequests.map(request=>request.continue()));
+    await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button:not(:disabled)');
+    await page.waitForFunction(()=>document.querySelector('[data-renderer="three-webgl"]')?.getAttribute('data-phase')==='ready');
+   }
   }
   if(deferTextures) {
    await page.waitForSelector('.ritual-webgl canvas');
@@ -184,7 +232,7 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    assert.equal(secondReady.done,1,'Line 1 must be done after Record This Cast');
    assert.equal(secondReady.waiting,5,'Lines 2–6 must remain waiting after line one');
    assert.equal(secondReady.phase,'ready','Line 1 Recorded / Cast 2 Ready must restore the three-coin ready scene');
-   assert.match(secondReady.label,/Press & hold to shake/,'Cast 2 Ready must expose the formal casting instruction');
+   assert.match(secondReady.label,zh?/按住摇动 · 松开起爻/:/Press & hold to shake/,'Cast 2 Ready must expose the locale-appropriate formal casting instruction');
    assert(secondReady.button.width>100&&secondReady.button.height>30,'Cast 2 Ready control must have a visible hit area');
    assert.notEqual(secondReady.button.color,'rgba(0, 0, 0, 0)','Cast 2 Ready control text must not be transparent');
    assert.notEqual(secondReady.button.background,'rgba(0, 0, 0, 0)','Cast 2 Ready control must not be a transparent hot zone');
@@ -225,7 +273,7 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    const restored=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
    assert.deepEqual(restored,completed,'Refreshing the gate preserves the same completed cast');
   }
-  const outcome={bits,zh,reduced,fallback,moduleFailure,storageFailure,completedFlow,deferTextures,faces:authoritative,lineValue:session.data.steps[0].lineValue,status:'PASS'};
+  const outcome={bits,zh,reduced,fallback,moduleFailure,storageFailure,completedFlow,deferTextures,remountReadiness,faces:authoritative,lineValue:session.data.steps[0].lineValue,status:'PASS'};
   outcomes.push(outcome);console.log(JSON.stringify(outcome));
  } catch(error) {
   if(page) {
@@ -237,7 +285,7 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
 }
 const cases=Array.from({length:8},(_,mask)=>({id:`faces-${mask}`,bits:[mask&1,(mask>>1)&1,(mask>>2)&1]}));
 cases.push({id:'reduced',bits:[1,0,0],reduced:true},{id:'fallback',bits:[0,1,0],fallback:true},{id:'zh',bits:[1,0,1],zh:true},{id:'storage-retry',bits:[1,0,0],storageFailure:true},{id:'module-fallback',bits:[0,0,1],moduleFailure:true});
-cases.push({id:'six-lines-auth',bits:Array.from({length:18},(_,i)=>i%2),completedFlow:true},{id:'six-lines-auth-zh-reduced',bits:Array.from({length:18},(_,i)=>(i+1)%2),completedFlow:true,zh:true,reduced:true});
+cases.push({id:'six-lines-auth',bits:Array.from({length:18},(_,i)=>i%2),completedFlow:true,remountReadiness:true},{id:'six-lines-auth-zh-reduced',bits:Array.from({length:18},(_,i)=>(i+1)%2),completedFlow:true,zh:true,reduced:true});
 cases.push({id:'texture-readiness',bits:[1,0,1],deferTextures:true});
 const requested=process.argv.find(arg=>arg.startsWith('--case='))?.slice(7);
 const selected=requested?cases.filter(item=>item.id===requested):process.argv.includes('--smoke')?cases.slice(0,1):cases;
