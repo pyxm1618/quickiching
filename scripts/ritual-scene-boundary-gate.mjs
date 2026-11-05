@@ -6,6 +6,7 @@ const base=process.env.PUBLIC_V1_TEST_BASE_URL||'http://127.0.0.1:3028';
 if(new URL(base).hostname!=='127.0.0.1')throw new Error('This fixture gate only runs on 127.0.0.1');
 const key='quickiching:public-v1:three-coin';
 const output='.artifacts/ritual-qa/business-boundary';await mkdir(output,{recursive:true});
+const acceptanceOutput=output+'/three-coin-ui-state';await mkdir(acceptanceOutput,{recursive:true});
 const assets=JSON.parse(await readFile('docs/performance/pr-76-assets.json','utf8'));
 const outcomes=[];
 async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFailure=false,moduleFailure=false,completedFlow=false,deferTextures=false}) {
@@ -52,10 +53,26 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    };
   },bits,key,storageFailure);
   await page.goto(base+(zh?'/zh':''),{waitUntil:deferTextures?'domcontentloaded':'networkidle0'});
-  await page.waitForSelector('[data-renderer="deferred-fallback"]');
-  assert.equal(await page.$('[data-renderer="three-webgl"]'),null,'Landing must not eagerly boot the heavy Three.js renderer');
+  await page.waitForSelector('[data-experience-stage="landing"]');
+  const freshLanding=await page.evaluate(storageKey=>{
+   const raw=sessionStorage.getItem(storageKey),session=raw?JSON.parse(raw):null;
+   return {
+    businessDraws:window.__ritualBitDraws,
+    steps:session?.data?.steps?.length??0,
+    visualLayer:Boolean(document.querySelector('.ritual-webgl')),
+    renderer:Boolean(document.querySelector('[data-renderer]')),
+    fallbackCoins:document.querySelectorAll('.ritual-fallback img').length,
+   };
+  },key);
+  assert.equal(freshLanding.businessDraws,0,'Fresh Landing must not draw business randomness');
+  assert.equal(freshLanding.steps,0,'Fresh Landing must not pre-generate line one');
+  assert.equal(freshLanding.visualLayer,false,'Fresh Landing must not render the formal Three-Coin foreground layer');
+  assert.equal(freshLanding.renderer,false,'Fresh Landing must not render a Three-Coin renderer');
+  assert.equal(freshLanding.fallbackCoins,0,'Fresh Landing must not render fallback coins');
+  if(completedFlow)await page.screenshot({path:acceptanceOutput+'/'+id+'-A-fresh-landing.png'});
   await page.locator('[data-private-question]').fill(zh?'测试：如何理解当前变化？':'QA fixture: how should I understand this transition?');
   await page.locator('[data-home-primary-action]').click();
+  await page.waitForSelector('[data-question-confirm]');
   assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Home action must not create line one');
   if(!fallback && !moduleFailure) {
    if(deferTextures) {
@@ -68,6 +85,24 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
   }
   await page.locator('[data-home-primary-action]').click();
   assert.equal(await page.evaluate(()=>window.__ritualBitDraws),0,'Entering ritual must not manufacture a cast');
+  if(completedFlow) {
+   await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button:not(:disabled)');
+   await page.waitForFunction(()=>document.querySelector('[data-renderer="three-webgl"]')?.getAttribute('data-phase')==='ready');
+   const firstReady=await page.evaluate(storageKey=>{
+    const raw=sessionStorage.getItem(storageKey),session=raw?JSON.parse(raw):null;
+    return {
+     businessDraws:window.__ritualBitDraws,
+     steps:session?.data?.steps?.length??0,
+     done:document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length,
+     phase:document.querySelector('[data-renderer="three-webgl"]')?.getAttribute('data-phase'),
+    };
+   },key);
+   assert.equal(firstReady.businessDraws,0,'First Cast Ready must not draw business randomness');
+   assert.equal(firstReady.steps,0,'First Cast Ready must not pre-generate line one');
+   assert.equal(firstReady.done,0,'First Cast Ready must not show a completed line');
+   assert.equal(firstReady.phase,'ready','First Cast Ready must show the real three-coin ready scene');
+   await page.screenshot({path:acceptanceOutput+'/'+id+'-B-first-cast-ready.png'});
+  }
   if(deferTextures) {
    await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button');
    assert.equal(await page.$eval('.hold-button',node=>node.disabled),true,'A real cast must wait for its textures');
@@ -78,7 +113,7 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    await Promise.all(heldTextureRequests.map(request=>request.continue()));
    await page.waitForSelector('[data-renderer="three-webgl"]');
   }
-  if(!fallback && !moduleFailure)assert.equal(await page.evaluate(()=>window.__initialRitualCanvas===document.querySelector('[data-renderer="three-webgl"] canvas')),true,'Home, question and casting must retain one renderer canvas');
+  if(!fallback && !moduleFailure)assert.equal(await page.evaluate(()=>window.__initialRitualCanvas===document.querySelector('[data-renderer="three-webgl"] canvas')),true,'Question confirmation and casting must retain one renderer canvas');
   await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button:not(:disabled)');
   await page.locator('[data-three-coin-presentation="ritual"] .hold-button').click();
   if(storageFailure) {
@@ -90,9 +125,27 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    await page.locator('[data-three-coin-storage-error] button').click();
   }
   await page.waitForSelector('[data-record-this-cast]');
+  if(completedFlow)await page.waitForSelector('[data-record-this-cast]:not(:disabled)');
   const session=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
   assert.equal(session.data.steps.length,1);
+  assert.equal(session.data.steps[0].lineIndex,0);
   assert.equal(session.coreQuestionFrozenAtCast,true);
+  assert.equal(await page.evaluate(()=>window.__ritualBitDraws),3,'Cast 1 must use exactly three business bits');
+  if(completedFlow) {
+   const firstResult=await page.evaluate(()=>({
+    phase:document.querySelector('[data-renderer="three-webgl"]')?.getAttribute('data-phase'),
+    faces:document.querySelectorAll('.ritual-face-labels > span').length,
+    recordVisible:Boolean(document.querySelector('[data-record-this-cast]:not(:disabled)')),
+   }));
+   assert.equal(firstResult.phase,'settled','First Cast Result must show the settled three-coin result');
+   assert.equal(firstResult.faces,3,'First Cast Result must show all three authoritative coin faces');
+   assert.equal(firstResult.recordVisible,true,'First Cast Result must expose Record This Cast');
+   await page.screenshot({path:acceptanceOutput+'/'+id+'-C-first-cast-result.png'});
+   assert.equal(await page.$('.hold-button'),null,'An unrecorded result must not expose a second cast control');
+   assert.equal(await page.evaluate(()=>window.__ritualBitDraws),3,'Trying to continue before Record This Cast must not draw more business bits');
+   const stillOne=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)).data.steps.length,key);
+   assert.equal(stillOne,1,'Trying to continue before Record This Cast must not create line two');
+  }
   const authoritative=session.data.steps[0].coinFaces;
   if(fallback || moduleFailure) {
    await page.waitForSelector('[data-webgl-fallback="true"]');
@@ -105,21 +158,61 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
   }
   assert.equal(await page.evaluate(()=>window.__ritualBitDraws),3,'Presentation/retry may not draw another business result');
   if(process.argv.includes('--capture'))await page.screenshot({path:output+'/'+id+'-settled.png'});
+  await page.waitForSelector('[data-record-this-cast]:not(:disabled)');
   await page.locator('[data-record-this-cast]').click();
   const after=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
   assert.deepEqual(after.data.steps,session.data.steps,'Recording may not replace the authoritative step');
   assert.equal(after.id,session.id);
   if(completedFlow) {
+   await page.waitForSelector('[data-ritual-view="progress"]');
+   await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button:not(:disabled)');
+   await page.waitForFunction(()=>document.querySelector('[data-renderer="three-webgl"]')?.getAttribute('data-phase')==='ready');
+   const secondReady=await page.evaluate(storageKey=>{
+    const raw=sessionStorage.getItem(storageKey),current=raw?JSON.parse(raw):null;
+    const button=document.querySelector('.hold-button');
+    const style=button?getComputedStyle(button):null;
+    const rect=button?.getBoundingClientRect();
+    return {
+     steps:current?.data?.steps?.length??0,
+     businessDraws:window.__ritualBitDraws,
+     done:document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length,
+     waiting:document.querySelectorAll('.ritual-six-lines li[data-state="waiting"]').length,
+     phase:document.querySelector('[data-renderer="three-webgl"]')?.getAttribute('data-phase'),
+     label:button?.getAttribute('data-visual-label')??'',
+     button:{width:rect?.width??0,height:rect?.height??0,color:style?.color??'',background:style?.backgroundColor??'',border:style?.borderTopWidth??'',opacity:style?.opacity??''},
+    };
+   },key);
+   assert.equal(secondReady.steps,1,'Recording line one must not pre-generate line two');
+   assert.equal(secondReady.businessDraws,3,'Recording line one must not draw line two');
+   assert.equal(secondReady.done,1,'Line 1 must be done after Record This Cast');
+   assert.equal(secondReady.waiting,5,'Lines 2–6 must remain waiting after line one');
+   assert.equal(secondReady.phase,'ready','Line 1 Recorded / Cast 2 Ready must restore the three-coin ready scene');
+   assert.match(secondReady.label,/Press & hold to shake/,'Cast 2 Ready must expose the formal casting instruction');
+   assert(secondReady.button.width>100&&secondReady.button.height>30,'Cast 2 Ready control must have a visible hit area');
+   assert.notEqual(secondReady.button.color,'rgba(0, 0, 0, 0)','Cast 2 Ready control text must not be transparent');
+   assert.notEqual(secondReady.button.background,'rgba(0, 0, 0, 0)','Cast 2 Ready control must not be a transparent hot zone');
+   assert.notEqual(secondReady.button.border,'0px','Cast 2 Ready control must retain the formal ritual border');
+   assert.notEqual(secondReady.button.opacity,'0','Cast 2 Ready control must be visible');
+   await page.screenshot({path:acceptanceOutput+'/'+id+'-D-line-1-recorded-cast-2-ready.png'});
+
    for(let line=1;line<6;line++) {
+    const beforeCast=await page.evaluate(storageKey=>{
+     const current=JSON.parse(sessionStorage.getItem(storageKey));
+     return {steps:current.data.steps.length,businessDraws:window.__ritualBitDraws};
+    },key);
+    assert.equal(beforeCast.steps,line,'Cast '+(line+1)+' must start with exactly '+line+' recorded step(s)');
+    assert.equal(beforeCast.businessDraws,line*3,'Cast '+(line+1)+' requires a new user interaction before drawing randomness');
     await page.waitForSelector('[data-three-coin-presentation="ritual"] .hold-button:not(:disabled)');
+    await page.waitForFunction(()=>document.querySelector('[data-renderer="three-webgl"]')?.getAttribute('data-phase')==='ready');
     await page.locator('[data-three-coin-presentation="ritual"] .hold-button').click();
-    await page.waitForSelector('[data-record-this-cast]');
+    await page.waitForSelector('[data-record-this-cast]:not(:disabled)');
     const current=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
     assert.equal(current.id,session.id,'All six casts must stay in one session');
     assert.equal(current.data.steps.length,line+1);
     assert.deepEqual(current.data.steps.slice(0,line),after.data.steps,'A later cast must preserve earlier authoritative steps');
     after.data.steps=current.data.steps;
     assert.equal(current.data.steps[line].lineIndex,line,'Authoritative line order stays bottom-up');
+    assert.equal(await page.evaluate(()=>window.__ritualBitDraws),(line+1)*3,'Cast '+(line+1)+' must consume exactly three new business bits');
     await page.locator('[data-record-this-cast]').click();
    }
    await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
