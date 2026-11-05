@@ -26,6 +26,8 @@ const COPY = {
   },
 } as const;
 
+const TRIGRAMS = ["☷", "☴", "☵", "☶", "☰", "☱", "☲", "☳"] as const;
+
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   void error;
 
@@ -37,20 +39,35 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
     <main className={`${styles.screen} ${locale === "zh" ? styles.zh : ""}`}>
       <section className={styles.content} aria-labelledby="quick-iching-error-title">
         <div className={styles.emblem} aria-hidden="true">
+          <div className={styles.trigrams}>
+            {TRIGRAMS.map((mark, index) => (
+              <span
+                key={mark}
+                className={`${styles.trigram} ${styles[`trigram${index}`]}`}
+              >
+                {mark}
+              </span>
+            ))}
+          </div>
+
           <Image
             src="/hexagram-detail/delivery/taiji-290.avif"
             alt=""
-            width={174}
-            height={174}
+            width={176}
+            height={176}
             priority
             unoptimized
             className={styles.taiji}
           />
         </div>
 
-        <h1 id="quick-iching-error-title" className={styles.title}>
-          {copy.title}
-        </h1>
+        <div className={styles.titleRow}>
+          <span className={styles.titleRule} aria-hidden="true" />
+          <h1 id="quick-iching-error-title" className={styles.title}>
+            {copy.title}
+          </h1>
+          <span className={styles.titleRule} aria-hidden="true" />
+        </div>
 
         <p className={styles.description}>{copy.description}</p>
 
