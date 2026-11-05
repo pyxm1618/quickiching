@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { QuickIChingNotFound } from "@/components/not-found/quick-iching-not-found";
 import { NotFoundDocumentTitle } from "@/components/not-found/not-found-document-title";
-import { fontVariableClassNames } from "./fonts";
-import { localizedFontVariableClassNames } from "./localized-fonts";
 import "./globals.css";
 
 const EN_METADATA: Metadata = {
@@ -30,10 +28,7 @@ export default async function GlobalNotFound() {
   const zh = locale === "zh";
 
   return (
-    <html
-      lang={zh ? "zh-Hans" : "en"}
-      className={zh ? localizedFontVariableClassNames : fontVariableClassNames}
-    >
+    <html lang={zh ? "zh-Hans" : "en"}>
       <body className="min-h-screen bg-[var(--bg)] text-[var(--ink)] antialiased">
         <NotFoundDocumentTitle title={zh ? "页面不存在 | Quick I Ching" : "Page Not Found | Quick I Ching"} />
         <QuickIChingNotFound locale={locale} />
