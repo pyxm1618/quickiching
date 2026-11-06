@@ -4,7 +4,6 @@ import { AuthForm } from "@/components/auth/auth-form";
 
 export {
   authErrorMessage,
-  maskAuthEmail,
   runAuthRequest,
 } from "@/components/auth/auth-form";
 

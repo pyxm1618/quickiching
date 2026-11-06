@@ -1,0 +1,140 @@
+.panel {
+  position: fixed;
+  left: 50%;
+  bottom: clamp(12px, 2vw, 24px);
+  z-index: 70;
+  width: min(calc(100% - 32px), 980px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 26px;
+  padding: 18px 20px;
+  border: 1px solid rgba(232, 198, 122, 0.3);
+  border-radius: 18px;
+  color: var(--ink);
+  background:
+    linear-gradient(135deg, rgba(31, 22, 20, 0.96), rgba(17, 12, 17, 0.96));
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 240, 189, 0.035);
+  backdrop-filter: blur(18px);
+}
+
+.copy {
+  min-width: 0;
+}
+
+.kicker {
+  margin: 0 0 4px;
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.message {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
+.actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.decline,
+.allow {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  padding: 0 16px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.decline {
+  border: 1px solid rgba(232, 198, 122, 0.28);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.allow {
+  border: 1px solid rgba(255, 240, 189, 0.58);
+  color: #21170f;
+  background: linear-gradient(135deg, var(--gold-2), var(--gold));
+  box-shadow: 0 10px 28px rgba(232, 198, 122, 0.12);
+}
+
+.decline:hover,
+.allow:hover {
+  transform: translateY(-1px);
+}
+
+.decline:hover {
+  border-color: rgba(232, 198, 122, 0.5);
+  background: rgba(232, 198, 122, 0.055);
+}
+
+.allow:hover {
+  box-shadow: 0 13px 32px rgba(232, 198, 122, 0.2);
+}
+
+.decline:focus-visible,
+.allow:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+  .panel {
+    width: min(calc(100% - 20px), 620px);
+    bottom: 10px;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .decline,
+  .allow {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 400px) {
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .decline,
+  .allow {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .decline,
+  .allow {
+    transition: none;
+  }
+}
