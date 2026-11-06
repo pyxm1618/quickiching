@@ -118,7 +118,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
 
       <nav className="scene-scrolls" aria-label={zh ? "探索易经" : "Explore the I Ching"}>
         <Link href={localize("/hexagrams")} className="scene-scroll scene-scroll-hexagrams" prefetch={false}>
-          <Image unoptimized src="/navigation/scroll-64-hexagrams-no-text.webp" alt="" width={450} height={675} fetchPriority="low" />
+          <Image unoptimized src="/navigation/scroll-64-hexagrams-no-text.webp" alt="" width={450} height={675} priority />
           <span>{zh ? "六十四卦" : <>64<br />Hexagrams</>}</span>
         </Link>
         <button ref={methodsTrigger} type="button" className="scene-scroll scene-scroll-methods" aria-expanded={panel === "methods"} aria-controls={`${id}-methods`} onClick={() => setPanel(panel === "methods" ? null : "methods")} onKeyDown={event => triggerKey(event, "methods")}>
