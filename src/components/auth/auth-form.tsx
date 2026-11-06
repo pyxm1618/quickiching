@@ -358,7 +358,16 @@ export function AuthForm({
             </button>
           )}
           {error.requestNewLink ? (
-            <Link className={styles.textAction} href={authPageURL("signin", callbackURL, locale)}>
+            <Link
+              className={styles.textAction}
+              href={authPageURL("signin", callbackURL, locale)}
+              onClick={() => {
+                setError(null);
+                setEmail("");
+                setFormMode("signin");
+                setNewLinkMode(false);
+              }}
+            >
               {ui.backToSignIn}
             </Link>
           ) : (
