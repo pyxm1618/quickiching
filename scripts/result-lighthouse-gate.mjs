@@ -8,6 +8,7 @@ import { desktopConfig, navigation } from "lighthouse";
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
 const COMPLETED_STORAGE_KEY = "quickiching:public-v1:completed-reading";
+const ANALYTICS_CONSENT_STORAGE_KEY = "quickiching:analytics-consent:v1";
 const RESULT_URL = `${BASE}/readings/result`;
 const FIXTURE_STEPS = [
   { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
@@ -184,7 +185,8 @@ function summarize(label, runnerResult) {
 
 async function seedReading(page) {
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  return page.evaluate(({ key, completedKey, steps }) => {
+  return page.evaluate(({ key, completedKey, analyticsConsentKey, steps }) => {
+    localStorage.setItem(analyticsConsentKey, "denied");
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
     sessionStorage.setItem(key, JSON.stringify({
@@ -209,6 +211,7 @@ async function seedReading(page) {
   }, {
     key: STORAGE_KEY,
     completedKey: COMPLETED_STORAGE_KEY,
+    analyticsConsentKey: ANALYTICS_CONSENT_STORAGE_KEY,
     steps: FIXTURE_STEPS,
   });
 }
