@@ -39,7 +39,7 @@ const manualCastFacts: DeterministicFacts = {
 };
 
 
-async function seedCastFacts(castingId: string, now: string, facts = castFacts, methodCalculation: Record<string, unknown> = { coins: [2, 2, 3] }) {
+async function seedCastFacts(castingId: string, now: string, facts = castFacts, methodCalculation: postgres.JSONValue = { coins: [2, 2, 3] }) {
   const key = { version: "v1", material: "deep-reading-result-fixture-key" };
   const resultHmac = resultIntegrityHmac(facts, key);
   await sql`
