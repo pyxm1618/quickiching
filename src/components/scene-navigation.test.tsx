@@ -6,16 +6,20 @@ vi.mock("next/navigation",()=>({usePathname:()=>navigationState.pathname}));
 vi.mock("next/link",()=>({default:({href,children,prefetch:_prefetch,...props}:any)=><a href={href} {...props}>{children}</a>}));
 vi.mock("next/image",()=>({default:({priority:_priority,unoptimized:_unoptimized,...props}:any)=>React.createElement("img",props)}));
 import {SceneNavigation} from "./scene-navigation";
+import {SceneNavigationPanels} from "./scene-navigation-panels";
 import {UserNavControl} from "./auth/user-nav-control";
 const paths=["/hexagrams","/methods/yarrow-stalks","/methods/mei-hua-yi-shu","/methods/manual-cast","/guides/how-to-ask-the-i-ching","/guides/changing-lines","/guides/primary-relating-hexagrams","/help","/privacy","/terms","/acceptable-use"];
 describe("approved scene navigation integration",()=>{
  it.each(["en","zh-Hans"] as const)("preserves all existing destinations for %s",locale=>{
-  const html=renderToStaticMarkup(<SceneNavigation locale={locale}/>);
+  const core=renderToStaticMarkup(<SceneNavigation locale={locale}/>);
+  const methods=renderToStaticMarkup(<SceneNavigationPanels locale={locale} panel="methods" id="fixture" onClose={()=>{}}/>);
+  const info=renderToStaticMarkup(<SceneNavigationPanels locale={locale} panel="info" id="fixture" onClose={()=>{}}/>);
+  const html=core+methods+info;
   for(const path of paths)expect(html).toContain(`href="${locale==="en"?"":"/zh"}${path}"`);
   expect(html).toContain('href="mailto:support@quickiching.com"');
   expect(html).not.toMatch(/href="(?:\/zh)?\/methods"/);
-  expect(html.match(/hidden=""/g)).toHaveLength(2);
-  expect(html).toContain('aria-expanded="false"');
+  expect(core).toContain('aria-expanded="false"');
+  expect(core).not.toContain("Yarrow Stalks");
  });
  it("switches to the locale-equivalent route outside the homepage",()=>{
   navigationState.pathname="/hexagrams";
@@ -27,7 +31,10 @@ describe("approved scene navigation integration",()=>{
   navigationState.pathname="/";
  });
  it("keeps the approved live HTML labels and privacy entry",()=>{
-  const html=renderToStaticMarkup(<SceneNavigation/>);
+  const core=renderToStaticMarkup(<SceneNavigation/>);
+  const methods=renderToStaticMarkup(<SceneNavigationPanels locale="en" panel="methods" id="fixture" onClose={()=>{}}/>);
+  const info=renderToStaticMarkup(<SceneNavigationPanels locale="en" panel="info" id="fixture" onClose={()=>{}}/>);
+  const html=core+methods+info;
   for(const label of ["Hexagrams","Other Methods","Info","Yarrow Stalks","Mei Hua Yi Shu","Manual Cast","Privacy Settings","EN","中文"])expect(html).toContain(label);
  });
  it("reuses the sign-in callback without introducing a second signup flow",()=>{

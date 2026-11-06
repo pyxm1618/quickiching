@@ -5,13 +5,17 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, FileText, Globe, Mail, MessageSquare, Settings, ShieldCheck, Sparkles } from "lucide-react";
-import { PrivacySettingsButton } from "@/components/privacy-settings-button";
+import { Globe } from "lucide-react";
 import { currentRouteForPath, languageSwitchTarget } from "@/i18n/helpers";
 import type { ContentLocale } from "@/i18n/config";
 
 const UserNavControl = dynamic(
   () => import("@/components/auth/user-nav-control").then(m => m.UserNavControl),
+  { ssr: false }
+);
+
+const SceneNavigationPanels = dynamic(
+  () => import("@/components/scene-navigation-panels").then(m => m.SceneNavigationPanels),
   { ssr: false }
 );
 
@@ -59,12 +63,23 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
   useEffect(() => {
     if (!panel || !focusRequest.current) return;
     const request = focusRequest.current;
-    focusRequest.current = null;
-    const frame = requestAnimationFrame(() => {
+    let frame = 0;
+    let disposed = false;
+    const focusWhenReady = () => {
+      if (disposed) return;
       const items = panelRef.current?.querySelectorAll<HTMLElement>("section:not([hidden]) a[href],section:not([hidden]) button");
-      (request === "first" ? items?.[0] : items?.[items.length - 1])?.focus();
-    });
-    return () => cancelAnimationFrame(frame);
+      if (items?.length) {
+        focusRequest.current = null;
+        (request === "first" ? items[0] : items[items.length - 1])?.focus();
+        return;
+      }
+      frame = requestAnimationFrame(focusWhenReady);
+    };
+    frame = requestAnimationFrame(focusWhenReady);
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(frame);
+    };
   }, [panel]);
 
   function triggerKey(event: KeyboardEvent<HTMLButtonElement>, name: Panel) {
@@ -89,12 +104,6 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
     const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
     items[next]?.focus();
   }
-
-  const methods = [
-    { path: "/methods/yarrow-stalks", image: "yarrow", title: zh ? "蓍草法" : "Yarrow Stalks", description: zh ? "传统四十九根蓍草起卦" : "Traditional 49-stalk method" },
-    { path: "/methods/mei-hua-yi-shu", image: "mei-hua", title: zh ? "梅花易数" : "Mei Hua Yi Shu", description: zh ? "根据当前时间起卦" : "Cast from the current time" },
-    { path: "/methods/manual-cast", image: "manual", title: zh ? "手动起卦" : "Manual Cast", description: zh ? "输入已知卦象或六爻" : "Enter a known hexagram\nor six lines" },
-  ];
 
   return (
     <header ref={rootRef} className="scene-navigation" data-scene-panel={panel ?? "closed"} aria-label={zh ? "主导航" : "Main navigation"}>
@@ -135,39 +144,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
       <div ref={panelRef} className="scene-panels" onKeyDown={panelKey} onBlur={event => {
         if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node) && event.relatedTarget !== methodsTrigger.current && event.relatedTarget !== infoTrigger.current) setPanel(null);
       }}>
-        <section id={`${id}-methods`} className="scene-panel scene-methods-panel" aria-labelledby={`${id}-methods-title`} hidden={panel !== "methods"}>
-          <h2 id={`${id}-methods-title`}>{zh ? "其他起卦方式" : "Other Methods"}</h2>
-          <div className="scene-method-cards">
-            {methods.map(method => <Link key={method.path} href={localize(method.path)} prefetch={false} onClick={() => setPanel(null)}>
-              <Image unoptimized src={`/navigation/method-${method.image}.webp`} alt="" width={458} height={315} />
-              <h3>{method.title}</h3><p>{method.description}</p>
-            </Link>)}
-          </div>
-        </section>
-
-        <section id={`${id}-info`} className="scene-panel scene-info-panel" aria-label={zh ? "资讯" : "Info"} hidden={panel !== "info"}>
-          <div className="scene-info-columns">
-            <div>
-              <h2><Image unoptimized src="/navigation/info-guides-badge.webp" alt="" width={71} height={67} />{zh ? "指南" : "Guides"}</h2>
-              <Link href={localize("/guides/how-to-ask-the-i-ching")} onClick={() => setPanel(null)}><BookOpen aria-hidden="true" /><span className="scene-guide-label">{zh ? "如何向易经提问" : "How to Ask the I Ching"}</span></Link>
-              <Link href={localize("/guides/changing-lines")} onClick={() => setPanel(null)}><Sparkles aria-hidden="true" /><span className="scene-guide-label">{zh ? "变爻" : "Changing Lines"}</span></Link>
-              <Link href={localize("/guides/primary-relating-hexagrams")} onClick={() => setPanel(null)}><Settings aria-hidden="true" /><span className="scene-guide-label">{zh ? "本卦与变卦" : "Primary & Relating Hexagrams"}</span></Link>
-            </div>
-            <div>
-              <h2><Image unoptimized src="/navigation/info-support-badge.webp" alt="" width={68} height={67} />{zh ? "帮助与支持" : "Help & Support"}</h2>
-              <Link href={localize("/help")} onClick={() => setPanel(null)}><MessageSquare aria-hidden="true" />{zh ? "帮助与支持" : "Help & Support"}</Link>
-              <a href="mailto:support@quickiching.com" onClick={() => setPanel(null)}><Mail aria-hidden="true" /><span>{zh ? "联系支持" : "Contact Support"}<small>support@quickiching.com</small></span></a>
-            </div>
-            <div>
-              <h2><Image unoptimized src="/navigation/info-legal-badge.webp" alt="" width={71} height={67} />{zh ? "法律与隐私" : "Legal & Privacy"}</h2>
-              <Link href={localize("/privacy")} onClick={() => setPanel(null)}><FileText aria-hidden="true" />{zh ? "隐私政策" : "Privacy Policy"}</Link>
-              <Link href={localize("/terms")} onClick={() => setPanel(null)}><FileText aria-hidden="true" />{zh ? "服务条款" : "Terms of Service"}</Link>
-              <Link href={localize("/acceptable-use")} onClick={() => setPanel(null)}><ShieldCheck aria-hidden="true" />{zh ? "可接受使用政策" : "Acceptable Use"}</Link>
-              <div className="scene-privacy"><Settings aria-hidden="true" /><PrivacySettingsButton locale={locale} label={zh ? "隐私设置" : "Privacy Settings"} className="scene-privacy-button" /></div>
-            </div>
-          </div>
-          <div className="scene-info-note"><p>{zh ? "用于自我反思，并非确定性预测或专业建议。" : "For reflection, not deterministic prediction or professional advice."}</p><p>© {new Date().getFullYear()} Quick I Ching</p></div>
-        </section>
+        {panel ? <SceneNavigationPanels locale={locale} panel={panel} id={id} onClose={() => setPanel(null)} /> : null}
       </div>
     </header>
   );
