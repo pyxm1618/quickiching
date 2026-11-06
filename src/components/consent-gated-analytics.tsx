@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-import { AnalyticsConsent } from "@/components/analytics-consent";
 import {
   analyticsProvidersAllowed,
   readStoredAnalyticsConsent,
   type AnalyticsConsentState,
 } from "@/lib/analytics";
+
+const AnalyticsConsent = dynamic(
+  () => import("@/components/analytics-consent").then((module) => module.AnalyticsConsent),
+  { ssr: false },
+);
 
 const SCRIPT_IDS = ["google-analytics-loader", "microsoft-clarity-loader"] as const;
 const ANALYTICS_COOKIE_PREFIXES = ["_ga", "_clck", "_clsk"] as const;
