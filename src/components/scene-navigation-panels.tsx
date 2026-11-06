@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, FileText, Mail, MessageSquare, Settings, ShieldCheck, Sparkles } from "lucide-react";
