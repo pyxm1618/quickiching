@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { ReactElement, ReactNode } from "react";
+import * as React from "react";
 import { isValidElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -57,6 +58,8 @@ vi.mock("better-auth/client", () => ({
   createAuthClient: mocks.createAuthClient,
 }));
 vi.mock("better-auth/client/plugins", () => ({ magicLinkClient: () => ({}) }));
+
+vi.stubGlobal("React", React);
 
 import {
   AuthForm,
