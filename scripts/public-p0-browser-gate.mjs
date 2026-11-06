@@ -539,6 +539,8 @@ const browser = await puppeteer.launch({
 try {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
+  await page.goto(`${BASE}/robots.txt`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await page.evaluate(() => localStorage.setItem("quickiching:analytics-consent:v1", "denied"));
   await verifySeoAssets(page);
   await verifyQuestionReading(page);
   await verifyQuestionReading(page, "zh-Hans");
