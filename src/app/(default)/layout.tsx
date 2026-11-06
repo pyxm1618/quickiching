@@ -30,7 +30,7 @@ export default function DefaultRootLayout({ children }: { children: React.ReactN
       <body className="flex min-h-screen flex-col">
         <SiteHeader locale="en" authEnabled={authEnabled} />
         <main className="flex-1">{children}</main>
-        <AccountModalClient locale="en" />
+        {authEnabled ? <AccountModalClient locale="en" /> : null}
         <SiteAnalytics />
       </body>
     </html>

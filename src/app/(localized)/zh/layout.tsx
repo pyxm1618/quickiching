@@ -33,7 +33,7 @@ export default function LocalizedRootLayout({
       <body className="flex min-h-screen flex-col">
         <SiteHeader locale="zh-Hans" authEnabled={authEnabled} />
         <main className="flex-1">{children}</main>
-        <AccountModalClient locale="zh-Hans" />
+        {authEnabled ? <AccountModalClient locale="zh-Hans" /> : null}
         <SiteAnalytics />
       </body>
     </html>
