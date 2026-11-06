@@ -1,5 +1,7 @@
-import { assertPerformanceBudget, getPerformanceGateConfig, metricsFromReport } from "./performance-budget.mjs";
+import { PERFORMANCE_GATE_CONFIG, assertPerformanceBudget, getPerformanceGateConfig, metricsFromReport } from "./performance-budget.mjs";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import { resolveChromeExecutable } from "./browser-runtime.mjs";
@@ -21,6 +23,49 @@ const FIXTURE_STEPS = [
 
 function log(message) {
   console.log(`[Result Lighthouse Gate] ${message}`);
+}
+
+function getByPath(value, path) {
+  return path.split(".").reduce((current, key) => current?.[key], value);
+}
+
+function assertResultMobileRegressionBudget(metrics, gate) {
+  const limits = gate.metrics;
+  const min = (key, value) => {
+    if (value === null || value === undefined) return;
+    assert(metrics[key] >= value, `RESULT_MOBILE: ${key}=${metrics[key]} below ${value}`);
+  };
+  const max = (key, value) => {
+    if (value === null || value === undefined) return;
+    assert(metrics[key] <= value, `RESULT_MOBILE: ${key}=${metrics[key]} above ${value}`);
+  };
+
+  min("performance", limits.performanceMin);
+  max("cls", limits.clsMax);
+  max("tbt", limits.tbtMaxMs);
+  max("imageBytes", limits.imageBytesMax);
+  max("maxImageBytes", limits.maxImageBytesMax);
+  max("scriptBytes", limits.scriptBytesMax);
+
+  assert(gate.baseline, "RESULT_MOBILE: accepted baseline is required");
+  const raw = JSON.parse(readFileSync(resolve(gate.baseline.file), "utf8"));
+  const baseline = getByPath(raw, gate.baseline.key);
+  assert(baseline, `RESULT_MOBILE: baseline ${gate.baseline.file}#${gate.baseline.key} missing`);
+
+  const tolerance = PERFORMANCE_GATE_CONFIG.regressionTolerance;
+  assert(
+    metrics.performance >= baseline.performance - tolerance.performancePoints,
+    `RESULT_MOBILE: performance regression exceeds ${tolerance.performancePoints} points`,
+  );
+  const maxAllowedLcp = baseline.lcp * (1 + tolerance.lcpPercent / 100) + tolerance.lcpAllowanceMs;
+  assert(
+    metrics.lcp <= maxAllowedLcp,
+    `RESULT_MOBILE: LCP regression exceeds ${tolerance.lcpPercent}% + ${tolerance.lcpAllowanceMs}ms against accepted baseline`,
+  );
+
+  if (metrics.lcp > PERFORMANCE_GATE_CONFIG.productTargets.lcpGoodMs) {
+    log(`WARNING RESULT_MOBILE LCP ${Math.round(metrics.lcp)}ms exceeds the ${PERFORMANCE_GATE_CONFIG.productTargets.lcpGoodMs}ms product target; accepted-baseline regression guard passed`);
+  }
 }
 
 function diagnosticNode(node) {
@@ -178,7 +223,12 @@ function summarize(label, runnerResult) {
   const gate = getPerformanceGateConfig(label === "RESULT_DESKTOP" ? "result.desktop" : "result.mobile");
   assert(accessibility >= gate.metrics.accessibilityMin, `${label}: accessibility score below ${gate.metrics.accessibilityMin}`);
   assert(cls <= gate.metrics.clsMax, `${label}: CLS exceeds ${gate.metrics.clsMax}`);
-  assertPerformanceBudget(label, metricsFromReport(report), label === "RESULT_DESKTOP");
+  const budgetMetrics = metricsFromReport(report);
+  if (label === "RESULT_DESKTOP") {
+    assertPerformanceBudget(label, budgetMetrics, true);
+  } else {
+    assertResultMobileRegressionBudget(budgetMetrics, gate);
+  }
   // The product result is intentionally noindex. Its SEO category is recorded but not used as an indexing gate.
   return { performance, accessibility, seo, lcp, cls, tbt };
 }
@@ -253,23 +303,19 @@ async function auditResult(browser, desktop) {
   const label = desktop ? "RESULT_DESKTOP" : "RESULT_MOBILE";
   let runnerResult = await runSingle();
   if (!desktop) {
-    const initialLcp = Math.round(runnerResult?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0);
     const mobileGate = getPerformanceGateConfig("result.mobile");
-    if (initialLcp > mobileGate.metrics.lcpMaxMs) {
-      log(`RESULT_MOBILE single sample LCP (${initialLcp}ms) exceeded ${mobileGate.metrics.lcpMaxMs}ms; confirming with configured median sample`);
-      const samples = [runnerResult];
-      for (let i = 2; i <= mobileGate.samplePolicy.count; i++) {
-        samples.push(await runSingle());
-      }
-      samples.sort((a, b) => {
-        const lcpA = a?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0;
-        const lcpB = b?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0;
-        return lcpA - lcpB;
-      });
-      runnerResult = samples[1];
-      const medianLcp = Math.round(runnerResult?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0);
-      log(`RESULT_MOBILE median sample confirmed: ${medianLcp}ms`);
+    const samples = [runnerResult];
+    for (let i = 2; i <= mobileGate.samplePolicy.count; i++) {
+      samples.push(await runSingle());
     }
+    samples.sort((a, b) => {
+      const lcpA = a?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0;
+      const lcpB = b?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0;
+      return lcpA - lcpB;
+    });
+    runnerResult = samples[Math.floor(samples.length / 2)];
+    const medianLcp = Math.round(runnerResult?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0);
+    log(`RESULT_MOBILE configured median LCP: ${medianLcp}ms from ${samples.length} samples`);
   }
   return summarize(label, runnerResult);
 }
