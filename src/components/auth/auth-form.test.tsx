@@ -18,7 +18,6 @@ vi.mock("better-auth/client/plugins", () => ({ magicLinkClient: () => ({}) }));
 
 import {
   authErrorMessage,
-  maskAuthEmail,
   runAuthRequest,
   toAbsoluteAuthURL,
 } from "./auth-form";
@@ -48,33 +47,29 @@ describe("shared passwordless AuthForm", () => {
   });
 
   it("renders Google first, then email, with no password UI", () => {
-    const googleIndex = source.indexOf("copy.continueGoogle") !== -1
-      ? source.indexOf("copy.continueGoogle")
-      : source.indexOf("Continue with Google");
-    const emailIndex = source.indexOf("copy.continueEmail") !== -1
-      ? source.indexOf("copy.continueEmail")
-      : source.indexOf("Continue with email");
+    const googleIndex = source.indexOf("copy.continueGoogle");
+    const emailIndex = source.indexOf("copy.continueEmail");
 
     expect(googleIndex).toBeGreaterThanOrEqual(0);
     expect(emailIndex).toBeGreaterThan(googleIndex);
-    expect(source).toContain("you@example.com");
+    expect(source).toContain("Enter your email address");
     expect(source).not.toMatch(/type="password"|forgot password|reset password|confirm password/i);
   });
 
   it("contains explicit loading, sent, accessibility, and recovery states", () => {
-    expect(source.includes("Connecting to Google…") || source.includes("copy.connectingGoogle")).toBe(true);
-    expect(source.includes("Sending…") || source.includes("copy.sending")).toBe(true);
-    expect(source.includes("Check your email") || source.includes("copy.checkEmail")).toBe(true);
-    expect(source.includes("The link expires in 10 minutes.") || source.includes("copy.expires")).toBe(true);
+    expect(source).toContain("copy.connectingGoogle");
+    expect(source).toContain("copy.sending");
+    expect(source).toContain("copy.checkEmail");
     expect(source).toContain('role="alert"');
     expect(source).toContain('aria-live="polite"');
-    expect(source.includes("Send a new link") || source.includes("copy.sendNewLink")).toBe(true);
+    expect(source).toContain("Request a new sign-in link");
+    expect(source).toContain("copy.sendNewLink");
   });
 
   it("maps internal Magic Link errors without exposing internal codes", () => {
     const mapped = authErrorMessage("INVALID_TOKEN");
     expect(mapped).toEqual({
-      message: "This sign-in link is no longer valid. Request a new link and try again.",
+      message: "For your security, sign-in links are only valid for a limited time.",
       requestNewLink: true,
     });
     expect(mapped?.message).not.toContain("INVALID_TOKEN");
@@ -87,8 +82,15 @@ describe("shared passwordless AuthForm", () => {
     expect(mapped?.requestNewLink).toBe(false);
   });
 
-  it("masks the email shown in the sent state", () => {
-    expect(maskAuthEmail(" User.Name@Example.COM ")).toBe("u***@example.com");
+  it("shows the full email from the immediately preceding successful form submission", () => {
+    expect(source).toContain("setSentEmail(email.trim())");
+    expect(source).not.toContain("maskAuthEmail");
+  });
+
+  it("does not add an automatic resend-email capability", () => {
+    expect(source).not.toMatch(/resend email/i);
+    expect(source).toContain("setNewLinkMode(true)");
+    expect(source).toContain("authClient.signIn.magicLink");
   });
 
   it("turns rejected and Better Auth error results into generic request failures", async () => {

@@ -14,7 +14,7 @@ vi.mock("better-auth/client", () => ({
 }));
 vi.mock("better-auth/client/plugins", () => ({ magicLinkClient: () => ({}) }));
 
-import { authErrorMessage, maskAuthEmail, runAuthRequest } from "./sign-in-form";
+import { authErrorMessage, runAuthRequest } from "./sign-in-form";
 
 describe("sign-in network boundary", () => {
   it("uses a client base path that is safe during server module evaluation", () => {
@@ -26,17 +26,13 @@ describe("sign-in network boundary", () => {
 
   it("maps internal auth failures to user-facing recovery copy", () => {
     expect(authErrorMessage("INVALID_TOKEN")).toEqual({
-      message: "This sign-in link is no longer valid. Request a new link and try again.",
+      message: "For your security, sign-in links are only valid for a limited time.",
       requestNewLink: true,
     });
     expect(authErrorMessage("account_not_linked")).toEqual({
       message: "We couldn't connect that Google account to this Quick I Ching account. Try another sign-in method.",
       requestNewLink: false,
     });
-  });
-
-  it("masks the email shown after sending a Magic Link", () => {
-    expect(maskAuthEmail(" User.Name@Example.COM ")).toBe("u***@example.com");
   });
 
   it("turns a rejected client request into a generic failure result", async () => {
