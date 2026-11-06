@@ -49,4 +49,3 @@ body:has(.scene-navigation[data-scene-panel='methods']) .home-oracle [data-exper
  .scene-scroll span {font-size:10px;}.scene-scroll-info span {font-size:12px;}
 }
 /* Final visible-glyph calibration against the raster reference, not container boxes. */
-
