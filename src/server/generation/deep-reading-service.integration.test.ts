@@ -48,7 +48,7 @@ async function seedCastFacts(castingId: string, now: string, facts = castFacts, 
       method_calculation, algorithm_version, classic_mapping_version, result_hmac, result_hmac_key_version, created_at
     ) values (
       ${castingId}, ${facts.lineValuesBottomUp}, ${facts.primaryHexagramNumber}, ${facts.movingLinePositions}, null,
-      ${sql.json(methodCalculation)}, ${facts.algorithmVersion}, ${facts.classicMappingVersion}, ${resultHmac}, 'v1', ${now}
+      ${JSON.stringify(methodCalculation)}::jsonb, ${facts.algorithmVersion}, ${facts.classicMappingVersion}, ${resultHmac}, 'v1', ${now}
     )
   `;
 }
