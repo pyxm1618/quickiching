@@ -68,7 +68,7 @@ async function captureVisual(label) {
 page.on("pageerror", error=>console.log("PAGE_ERROR",error.message));
 try {
  for(const locale of ['en','zh']) {
-  for(const method of ['three_coin','yarrow_stalk','mei_hua_number_time']) {
+  for(const method of ['three_coin','yarrow_stalk','mei_hua_number_time','manual']) {
    console.log('checking',locale,method);
    await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}`,{waitUntil:'networkidle0'});
    await page.waitForSelector('[data-public-reading-result] [data-free-reading-ritual]');
@@ -80,7 +80,7 @@ try {
     text:document.body.innerText,
    }));
    assert.equal(free.ctas,2); assert.equal(free.forms,0); assert.equal(free.overall,true);
-   assert.equal(free.method,method==='three_coin'?'three-coin':method==='yarrow_stalk'?'yarrow-stalks':'mei-hua-yi-shu');
+   assert.equal(free.method,method==='three_coin'?'three-coin':method==='yarrow_stalk'?'yarrow-stalks':method==='mei_hua_number_time'?'mei-hua-yi-shu':'manual');
    assert.ok(free.text.includes(locale==='zh'?'整体解读':'Overall Reading'));
    const deepLinks=await page.evaluate(()=>[...document.querySelectorAll('[data-deep-reading-cta] a[href]')].map(node=>node.getAttribute('href')));
    assert.ok(deepLinks.length>=1);

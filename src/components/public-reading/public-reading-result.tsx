@@ -125,17 +125,9 @@ export function PublicReadingResult({
       setDeepEntryError(true);
     }
   }
-  const deepUnavailable = reading.method === "manual";
-  const deepUnavailableMessage = deepUnavailable
-    ? (isChinese
-      ? "本次起卦缺少深度解读所需的受支持起卦依据。你仍可查看免费解读。"
-      : "Deep Reading is unavailable for this cast because supported casting evidence is missing. You can still read this Free Reading.")
-    : null;
-  const deepAction = deepUnavailable
-    ? null
-    : onDeepReading
-      ? <button type="button" onClick={onDeepReading} className="mystic-button">{isChinese ? "获取我的深度解读" : "Get My Deep Reading"}</button>
-      : <Link href={deepHref} onClick={prepareDeepReading} className="mystic-button">{isChinese ? "获取我的深度解读" : "Get My Deep Reading"}</Link>;
+  const deepAction = onDeepReading
+    ? <button type="button" onClick={onDeepReading} className="mystic-button">{isChinese ? "获取我的深度解读" : "Get My Deep Reading"}</button>
+    : <Link href={deepHref} onClick={prepareDeepReading} className="mystic-button">{isChinese ? "获取我的深度解读" : "Get My Deep Reading"}</Link>;
 
   const reveal = showRitualReveal && reading.method === "three-coin";
 
@@ -157,7 +149,7 @@ export function PublicReadingResult({
           model={model}
           dictionary={dictionary}
           deepAction={deepAction}
-          deepUnavailableMessage={deepUnavailableMessage}
+          deepUnavailableMessage={null}
           deepEntryError={deepEntryError
             ? (isChinese ? "无法保存本次起卦以继续深度解读，请检查浏览器存储后重试。" : "Could not save this cast to continue to Deep Reading. Check browser storage and retry.")
             : null}

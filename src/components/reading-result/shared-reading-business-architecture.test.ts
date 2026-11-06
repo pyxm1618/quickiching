@@ -16,9 +16,11 @@ describe("shared post-Reading business architecture", () => {
     expect(shared).toContain("data-auth-reading-intent");
     expect(shared).toContain("/readings/deep?session=");
     expect(shared).not.toContain("readThreeCoinSession");
+    expect(shared).not.toContain("manualDeepUnavailable");
+    expect(shared).not.toContain('data-deep-reading-blocked="manual"');
   });
-  it("hands Three-Coin, Yarrow and Mei Hua into the same completed Reading boundary", () => {
-    for (const relative of ["../public-reading/three-coin-tool.tsx","../public-reading/yarrow-tool.tsx","../public-reading/mei-hua-number-flow.tsx"]) {
+  it("hands Three-Coin, Yarrow, Mei Hua and Manual into the same completed Reading boundary", () => {
+    for (const relative of ["../public-reading/three-coin-tool.tsx","../public-reading/yarrow-tool.tsx","../public-reading/mei-hua-number-flow.tsx","../public-reading/manual-cast-tool.tsx"]) {
       const method = source(relative);
       expect(method).toContain("writeCompletedPublicReading");
       expect(method).toContain("completedPublicReadingPath");

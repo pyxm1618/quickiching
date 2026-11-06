@@ -25,7 +25,7 @@ const variants = {
   all: [6, 9, 6, 9, 6, 9],
 } satisfies Record<string, LineValue[]>;
 
-for (const method of ["three-coin", "yarrow-stalks", "mei-hua-yi-shu"] as const satisfies readonly PublicReadingMethod[]) {
+for (const method of ["three-coin", "yarrow-stalks", "mei-hua-yi-shu", "manual"] as const satisfies readonly PublicReadingMethod[]) {
   describe(`concise Free reading: ${method}`, () => {
     for (const [variant, lines] of Object.entries(variants)) {
       it(`renders ${variant} cast with actual changes and two dedicated deep links`, async () => {
@@ -59,17 +59,8 @@ for (const method of ["three-coin", "yarrow-stalks", "mei-hua-yi-shu"] as const 
 
 
 describe("Deep Reading handoff boundaries", () => {
-  it("keeps manual casts on Free Reading without a Deep Reading action", () => {
-    const reading = buildPublicReading({ id: "manual-cast", createdAt: "2026-10-31T00:00:00.000Z", method: "manual", lineValuesBottomUp: variants.still, evidence: evidenceFor("manual") });
-    const html = renderToStaticMarkup(<PublicReadingResult reading={reading} />);
-    expect(html).toContain("Overall Reading");
-    expect(html).toContain("Deep Reading is unavailable for this cast");
-    expect(html).not.toContain("Get My Deep Reading");
-    expect(html).not.toContain(["data", "save", "reading"].join("-"));
-  });
-
-  for (const method of ["three-coin", "yarrow-stalks", "mei-hua-yi-shu"] as const) {
-    it(`links supported ${method} casts to the canonical Deep Reading route`, () => {
+  for (const method of ["three-coin", "yarrow-stalks", "mei-hua-yi-shu", "manual"] as const) {
+    it(`links ${method} casts to the canonical Deep Reading route`, () => {
       const id = `saved-${method}`;
       const reading = buildPublicReading({ id, createdAt: "2026-10-31T00:00:00.000Z", method, lineValuesBottomUp: variants.still, evidence: evidenceFor(method) });
       const html = renderToStaticMarkup(<PublicReadingResult reading={reading} />);

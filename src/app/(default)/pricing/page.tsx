@@ -43,7 +43,7 @@ export default async function PricingPage(props: {
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Deep Reading · Not on sale</p>
         <h1 className="mt-3 font-display text-4xl font-medium tracking-tight">Personalized deep readings are not on sale</h1>
         <p className="mt-5 text-lg leading-8 text-[var(--ink-2)]">All four methods include a complete free interpretation of the cast itself, and free readings never call AI. Deep Reading credits are not available for purchase while checkout is disabled.</p>
-        <div className="mt-8 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-6 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--ink)]">Deep Reading scope:</strong> when available, it connects a Three-Coin cast and its actual changing lines and relating hexagram, when present, to the core question frozen before the first toss, the situation context you add, and cited Quick I Ching source material. It requires sign-in, enough context, a passing risk review, and a credit. Purchase terms appear here when checkout is enabled.</div>
+        <div className="mt-8 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-6 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--ink)]">Deep Reading scope:</strong> when available, it connects any of Quick I Ching's four formal casting methods—Three-Coin, Yarrow Stalks, Mei Hua Yi Shu, or Manual Cast—and the cast's actual changing lines and relating hexagram, when present, to the core question frozen before casting, the situation context you add, and cited Quick I Ching source material. It requires sign-in, enough context, a passing risk review, and a credit. Purchase terms appear here when checkout is enabled.</div>
         <p className="mt-8 text-sm leading-7 text-[var(--ink-2)]"><Link href="/" className="font-semibold text-[var(--jade)] hover:underline">Return to the free I Ching online reading</Link>.</p>
       </section>
     );
@@ -54,15 +54,15 @@ export default async function PricingPage(props: {
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Personalized Deep Reading</p>
       <h1 className="mt-3 font-display text-4xl font-medium tracking-tight">Choose a reading credit pack</h1>
       <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">
-        Personalized Deep Reading addresses what your cast means for your specific situation. It combines the core question frozen before casting, the situation and interpretation goal you supply, your exact Three-Coin cast and moving lines, any relating hexagram, and cited Quick I Ching source material. The free interpretation still explains the cast itself and never calls AI.
+        Personalized Deep Reading addresses what your cast means for your specific situation. It combines the core question frozen before casting, the situation and interpretation goal you supply, your exact cast facts and moving lines, any relating hexagram, and cited Quick I Ching source material. The free interpretation still explains the cast itself and never calls AI.
       </p>
       <ul className="mt-4 grid gap-2 text-sm leading-6 text-[var(--ink-2)] sm:grid-cols-2" data-deep-reading-scope>
         <li>• Your question and real-world context</li>
-        <li>• Exact Three-Coin cast facts and changing lines</li>
+        <li>• Exact cast facts and changing lines</li>
         <li>• Primary and relating hexagram source material</li>
         <li>• Evidence-backed, conditional guidance and signals to watch</li>
       </ul>
-      <p className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--paper-raised)] p-4 text-sm leading-6 text-[var(--ink-2)]">Currently supported method: <strong className="text-[var(--ink)]">Three-Coin only</strong>. Other methods remain fully available as free readings and cannot be purchased for Deep Reading.</p>
+      <p className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--paper-raised)] p-4 text-sm leading-6 text-[var(--ink-2)]">Deep Reading is available for <strong className="text-[var(--ink)]">Three-Coin, Yarrow Stalks, Mei Hua Yi Shu, and Manual Cast</strong> when the cast has a valid locked question and meets the same saved-cast, risk, credit, and capability requirements.</p>
 
       <div className="mt-10 grid gap-5 md:grid-cols-3">
         {pricing.products.map((product) => (

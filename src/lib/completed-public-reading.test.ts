@@ -62,6 +62,38 @@ describe("common completed reading handoff", () => {
   });
 
 
+  it("serializes Manual line-values through the shared save contract", () => {
+    const manual = buildPublicReading({
+      id: "3d0a4f0d-37e8-42bf-9232-9d40518f1e4f",
+      method: "manual",
+      lineValuesBottomUp: [7, 8, 9, 6, 7, 8],
+      evidence: { kind: "manual", mode: "line-values" },
+    });
+    expect(publicReadingSaveInput(manual)).toMatchObject({
+      clientCastingId: manual.id,
+      method: "manual",
+      algorithmVersion: "manual-cast-v1",
+      lineValuesBottomUp: [7, 8, 9, 6, 7, 8],
+      methodCalculation: { mode: "line-values" },
+    });
+  });
+
+  it("serializes Manual primary-changing through the shared save contract", () => {
+    const manual = buildPublicReading({
+      id: "4d0a4f0d-37e8-42bf-9232-9d40518f1e4f",
+      method: "manual",
+      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+      evidence: { kind: "manual", mode: "primary-changing", primaryHexagramNumber: 1, changingLines: [] },
+    });
+    expect(publicReadingSaveInput(manual)).toMatchObject({
+      clientCastingId: manual.id,
+      method: "manual",
+      algorithmVersion: "manual-cast-v1",
+      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+      methodCalculation: { mode: "primary-changing", primaryHexagramNumber: 1, changingLines: [] },
+    });
+  });
+
   it("fails closed on corrupt storage and propagates blocked writes", () => {
     vi.stubGlobal("window", { sessionStorage: { getItem: () => "{broken", setItem: () => { throw new Error("blocked"); } } });
     expect(readCompletedPublicReading()).toBeNull();

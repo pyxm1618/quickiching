@@ -7,7 +7,7 @@ import { generateYarrowLine } from '../../src/domain/casting/yarrow/algorithm';
 import { meiHuaFromNumberAndTime } from '../../src/domain/casting/mei-hua/number-time';
 
 const query = new URLSearchParams(location.search);
-const method = (query.get('method') ?? 'three_coin') as 'three_coin' | 'yarrow_stalk' | 'mei_hua_number_time';
+const method = (query.get('method') ?? 'three_coin') as 'three_coin' | 'yarrow_stalk' | 'mei_hua_number_time' | 'manual';
 const yarrowLines = Array.from({length:6},(_,index)=>generateYarrowLine(index as 0|1|2|3|4|5,()=>2));
 const meiHuaInput = {number:29,utcMillis:Date.UTC(2026,9,31,12,0,0),ianaTimeZone:'UTC'};
 const meiHua = meiHuaFromNumberAndTime(meiHuaInput);
@@ -20,7 +20,9 @@ const methodCalculation = method === 'yarrow_stalk'
   ? {kind:'yarrow-stalks',version:'yarrow-zhu-xi-digital-v2',changes:yarrowLines.flatMap(line=>line.changes)}
   : method === 'mei_hua_number_time'
     ? meiHua.methodCalculation
-    : {kind:'three-coin',version:'three-coin-v1'};
+    : method === 'manual'
+      ? {kind:'manual',version:'manual-cast-v1',mode:'line-values'}
+      : {kind:'three-coin',version:'three-coin-v1'};
 const zh = query.get('locale') === 'zh';
 const question = zh ? '我现在是否适合换一份工作？' : 'Should I change to a new job?';
 const viewModel = zh ? {
@@ -76,7 +78,9 @@ createRoot(document.getElementById('root')!).render(<ThreeCoinResultClient
       ? 'three-coin-v1'
       : method==='yarrow_stalk'
         ? 'yarrow-zhu-xi-digital-v2'
-        : 'mei-hua-number-moment-classical-v1',
+        : method==='mei_hua_number_time'
+          ? 'mei-hua-number-moment-classical-v1'
+          : 'manual-cast-v1',
     context:question,
     lineValuesBottomUp:lineValues,
     methodCalculation,

@@ -95,7 +95,7 @@ export const activeDeepReadingContextSnapshotSchema = z.object({
   schemaVersion: z.literal("deep-reading-context-v2"),
   coreQuestionAtCast: z.string().trim().min(8).max(1000),
   scene: sceneSchema,
-  castMethod: z.enum(["three_coin", "yarrow_stalk", "mei_hua_number_time"]),
+  castMethod: z.enum(["three_coin", "yarrow_stalk", "mei_hua_number_time", "manual"]),
   methodVersion: z.string().min(1).max(120),
   facts: deterministicFactsSchema,
   snapshotAt: z.string().datetime({ offset: true }),

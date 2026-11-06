@@ -110,12 +110,14 @@ describe("Deep Reading input and evidence contract", () => {
     expect(deepReadingRequestSchema.safeParse({ contextNotes: "extra facts" }).success).toBe(false);
     expect(deepReadingRequestSchema.safeParse({ locale: "fr" }).success).toBe(false);
   });
-  it.each(["three_coin", "yarrow_stalk", "mei_hua_number_time"] as const)("seals active %s snapshots only", (method) => {
+  it.each(["three_coin", "yarrow_stalk", "mei_hua_number_time", "manual"] as const)("seals active %s snapshots only", (method) => {
     const methodVersion = method === "three_coin"
       ? "three-coin-v1"
       : method === "yarrow_stalk"
         ? "yarrow-zhu-xi-digital-v2"
-        : "mei-hua-number-moment-classical-v1";
+        : method === "mei_hua_number_time"
+          ? "mei-hua-number-moment-classical-v1"
+          : "manual-cast-v1";
     const current = {
       ...snapshot,
       castMethod: method,

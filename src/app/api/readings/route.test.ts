@@ -144,6 +144,11 @@ describe("Save Reading Route (POST /api/readings)", () => {
       lifecycle: "revealed",
     });
     expect(repo.getLatestQuestionContext(CLIENT_CASTING_ID)).toBe("What should I understand about this choice?");
+    expect(repo.getCastResult(CLIENT_CASTING_ID)?.methodCalculation).toMatchObject({
+      kind: "manual",
+      version: "manual-cast-v1",
+      mode: "line-values",
+    });
   });
 
   it("validates Manual primary-changing evidence and rejects duplicate or conflicting positions", async () => {
@@ -153,8 +158,17 @@ describe("Save Reading Route (POST /api/readings)", () => {
       algorithmVersion: "manual-cast-v1",
       lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
       methodCalculation: { mode: "primary-changing", primaryHexagramNumber: 1, changingLines: [] },
+      question: "What should I understand about this choice?",
     };
     expect((await POST(createReq(valid))).status).toBe(201);
+    expect(repo.getLatestQuestionContext(CLIENT_CASTING_ID)).toBe("What should I understand about this choice?");
+    expect(repo.getCastResult(CLIENT_CASTING_ID)?.methodCalculation).toMatchObject({
+      kind: "manual",
+      version: "manual-cast-v1",
+      mode: "primary-changing",
+      primaryHexagramNumber: 1,
+      changingLines: [],
+    });
 
     expect((await POST(createReq({
       ...valid,
