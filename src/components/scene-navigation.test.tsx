@@ -20,10 +20,9 @@ describe("approved scene navigation integration",()=>{
   expect(html).not.toMatch(/href="(?:\/zh)?\/methods"/);
   expect(core).toContain('aria-expanded="false"');
   expect(core).toContain("data-scene-route-graph");
-  expect(core).toContain(`href="${locale==="en"?"":"/zh"}/methods/yarrow-stalks"`);
-  expect(core).toContain(`href="${locale==="en"?"":"/zh"}/methods/mei-hua-yi-shu"`);
-  expect(core).toContain(`href="${locale==="en"?"":"/zh"}/methods/manual-cast"`);
+  for(const path of paths.filter(path=>path!=="/hexagrams"))expect(core).toContain(`href="${locale==="en"?"":"/zh"}${path}"`);
   expect(core).not.toContain("scene-methods-panel");
+  expect(core).not.toContain("scene-info-panel");
   expect(core).not.toContain("/navigation/method-yarrow.webp");
  });
  it("switches to the locale-equivalent route outside the homepage",()=>{
