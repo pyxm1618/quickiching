@@ -81,8 +81,8 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
   }, [panel]);
 
   async function openPanel(name: Panel) {
-    const module = await loadSceneNavigationPanels();
-    panelComponentRef.current = module.SceneNavigationPanels;
+    const panelsModule = await loadSceneNavigationPanels();
+    panelComponentRef.current = panelsModule.SceneNavigationPanels;
     setPanel(name);
   }
 
