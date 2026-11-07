@@ -92,7 +92,7 @@
       "fixture": "completed-reading",
       "metrics": {
         "performanceMin": 90,
-        "lcpMaxMs": null,
+        "lcpMaxMs": 2750,
         "accessibilityMin": 90,
         "seoMin": null,
         "clsMax": 0.1,
@@ -103,12 +103,8 @@
       },
       "samplePolicy": {
         "count": 3,
-        "selection": "median-lcp",
+        "selection": "median-performance-lcp-worst-rest",
         "warmupCount": 1
-      },
-      "baseline": {
-        "file": "docs/performance/result-mobile-accepted-baseline.json",
-        "key": "aggregate"
       }
     },
     "result.desktop": {

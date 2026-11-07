@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Check, ArrowRight, UserRound } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { RitualRevealTransition } from "@/components/public-reading/ritual-reveal-transition";
-import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import type { HexagramInterpretationBundle } from "@/domain/interpretation/v2/types";
@@ -19,13 +19,22 @@ import type {
 } from "@/domain/generation/deep-reading-view-model";
 import { buildPricingHref, buildResultSigninHref } from "@/lib/commercial-navigation";
 import { evaluateRisk } from "@/domain/risk/engine";
-import { AiDeepReadingResult, AiDeepReadingState } from "@/components/three-coin-result/ai-deep-reading-result";
 import styles from "@/components/three-coin-result/result-page.module.css";
 import { readCompletedPublicReading, publicReadingSaveInput, clearCompletedReadingForRestart } from "@/lib/completed-public-reading";
 import { clearThreeCoinCompletedBackup } from "@/lib/three-coin-session";
 import type { PublicReading, PublicReadingEvidence, PublicReadingMethod } from "@/domain/public-reading/types";
 import type { LineValue } from "@/domain/casting/types";
 import type { YarrowChange, YarrowLineResult } from "@/domain/casting/yarrow/algorithm";
+
+const PublicReadingResult = dynamic(() =>
+  import("@/components/public-reading/public-reading-result").then((module) => module.PublicReadingResult),
+);
+const AiDeepReadingResult = dynamic(() =>
+  import("@/components/three-coin-result/ai-deep-reading-result").then((module) => module.AiDeepReadingResult),
+);
+const AiDeepReadingState = dynamic(() =>
+  import("@/components/three-coin-result/ai-deep-reading-result").then((module) => module.AiDeepReadingState),
+);
 import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
 export type ResultState =
   | { kind: "loading" }
