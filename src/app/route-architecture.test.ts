@@ -24,13 +24,18 @@ describe("App Router multilingual architecture", () => {
     expect(existsSync(localizedCatchAll)).toBe(false);
   });
 
-  it("keeps English global 404 metadata isolated from homepage metadata", async () => {
+  it("keeps global 404 metadata localized and isolated from homepage metadata", async () => {
     expect(existsSync(globalNotFound)).toBe(true);
     const notFoundModule = await import("./global-not-found");
-    expect(notFoundModule.metadata.title).toBe("Page Not Found | Quick I Ching");
-    expect(notFoundModule.metadata.robots).toEqual({ index: false, follow: false });
-    expect(notFoundModule.metadata.alternates).toBeUndefined();
-    expect(notFoundModule.metadata.openGraph).not.toHaveProperty("url");
+    const english = notFoundModule.notFoundMetadata("en");
+    const chinese = notFoundModule.notFoundMetadata("zh");
+    expect(english.title).toBe("Page Not Found | Quick I Ching");
+    expect(chinese.title).toBe("页面不存在 | Quick I Ching");
+    for (const metadata of [english, chinese]) {
+      expect(metadata.robots).toEqual({ index: false, follow: false });
+      expect(metadata.alternates).toBeUndefined();
+      expect(metadata.openGraph).not.toHaveProperty("url");
+    }
   });
 
   it("gives localized 404s their own noindex metadata", async () => {

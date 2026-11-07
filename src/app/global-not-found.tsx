@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { QuickIChingNotFound } from "@/components/not-found/quick-iching-not-found";
-import { NotFoundDocumentTitle } from "@/components/not-found/not-found-document-title";
 import "./globals.css";
 
 const EN_METADATA: Metadata = {
@@ -16,12 +15,31 @@ const EN_METADATA: Metadata = {
   },
 };
 
+const ZH_METADATA: Metadata = {
+  title: "页面不存在 | Quick I Ching",
+  description: "你请求的 Quick I Ching 页面不存在。",
+  robots: { index: false, follow: false },
+  openGraph: {
+    title: "页面不存在 | Quick I Ching",
+    description: "你请求的 Quick I Ching 页面不存在。",
+    type: "website",
+    siteName: "Quick I Ching",
+    locale: "zh_CN",
+  },
+};
+
+export function notFoundMetadata(locale: "en" | "zh"): Metadata {
+  return locale === "zh" ? ZH_METADATA : EN_METADATA;
+}
+
 async function getNotFoundLocale(): Promise<"en" | "zh"> {
   const pathname = (await headers()).get("x-quickiching-pathname") ?? "";
   return pathname === "/zh" || pathname.startsWith("/zh/") ? "zh" : "en";
 }
 
-export const metadata: Metadata = EN_METADATA;
+export async function generateMetadata(): Promise<Metadata> {
+  return notFoundMetadata(await getNotFoundLocale());
+}
 
 export default async function GlobalNotFound() {
   const locale = await getNotFoundLocale();
@@ -30,7 +48,6 @@ export default async function GlobalNotFound() {
   return (
     <html lang={zh ? "zh-Hans" : "en"}>
       <body className="min-h-screen bg-[var(--bg)] text-[var(--ink)] antialiased">
-        <NotFoundDocumentTitle title={zh ? "页面不存在 | Quick I Ching" : "Page Not Found | Quick I Ching"} />
         <QuickIChingNotFound locale={locale} />
       </body>
     </html>
