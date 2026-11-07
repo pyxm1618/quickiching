@@ -1,8 +1,8 @@
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('next/link', () => ({default: ({href, children, ...rest}: any) => <a href={href} {...rest}>{children}</a>}));
 import { ThreeCoinResultClient } from './three-coin-result-client';
+import { renderToResolvedMarkup } from '@/test/render-resolved-markup';
 const question = 'Should I change to a new job?';
 const props = {
   initialUser: {id:'user',email:'test@example.com'}, initialCredits:1,
@@ -10,15 +10,15 @@ const props = {
   initialCastingView: {castingId:'saved-cast',context:question,lineValuesBottomUp:[7,7,7,7,7,7],owns:true},
 };
 describe('one reading system with independent pages', () => {
-  it('Free links to the dedicated deep page and has no questionnaire or paid body', () => {
-    const html=renderToStaticMarkup(<ThreeCoinResultClient {...props}/>);
+  it('Free links to the dedicated deep page and has no questionnaire or paid body', async () => {
+    const html=await renderToResolvedMarkup(<ThreeCoinResultClient {...props}/>);
     expect(html).toContain('/readings/deep?session=saved-cast');
     expect(html).not.toContain('data-context-enrichment-form');
     expect(html).not.toContain('data-start-deep-reading');
     expect(html).not.toContain('data-ai-deep-reading-report');
   });
-  it('Deep uses the locked question without duplicating the free hexagram interpretation', () => {
-    const html=renderToStaticMarkup(<ThreeCoinResultClient {...props} pageMode="deep"/>);
+  it('Deep uses the locked question without duplicating the free hexagram interpretation', async () => {
+    const html=await renderToResolvedMarkup(<ThreeCoinResultClient {...props} pageMode="deep"/>);
     expect(html).toContain('AI Deep Reading');
     expect(html).toContain('Your Question');
     expect(html).toContain(question);

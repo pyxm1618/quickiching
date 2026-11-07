@@ -1,6 +1,7 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
+import { renderToResolvedMarkup } from "@/test/render-resolved-markup";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/link", () => ({
@@ -151,7 +152,7 @@ describe("ThreeCoinResultClient interpretation bundle readiness", () => {
     const primary = await loadHexagramInterpretation(current.primaryHexagram);
     const relating = await loadHexagramInterpretation(current.relatingHexagram!);
 
-    const html = renderToStaticMarkup(
+    const html = await renderToResolvedMarkup(
       <ThreeCoinResultClient
         locale="en"
         initialUser={{ id: "usr_1", email: "test@example.com" }}
@@ -187,7 +188,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       "Should I file a lawsuit against my landlord?",
       "Should I buy bitcoin with my savings?",
       "I want to hurt myself tonight.",
-    ])("keeps the free result but offers no purchase or generation for %s", (question) => {
+    ])("keeps the free result but offers no purchase or generation for %s", async (question) => {
       const result = <ThreeCoinResultClient initialUser={user} initialCredits={credits}
           initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question }}
           initialCastingView={{
@@ -196,8 +197,8 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
             lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
             owns: true,
           }} />;
-      const freeHtml = renderToStaticMarkup(result);
-      const html = renderToStaticMarkup(React.cloneElement(result, { pageMode: "deep" }));
+      const freeHtml = await renderToResolvedMarkup(result);
+      const html = await renderToResolvedMarkup(React.cloneElement(result, { pageMode: "deep" }));
       expect(freeHtml).toContain("data-primary-card");
       expect(freeHtml).not.toContain("data-start-deep-reading");
       expect(freeHtml).not.toContain("Choose a Deep Reading pack");
@@ -214,8 +215,8 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
   it.each([
     { question: "我要自杀", expected: "紧急服务" },
     { question: "停止用药", expected: "合格专业人士" },
-  ])("shows risk guidance before the short-question fallback for $question", ({ question, expected }) => {
-    const html = renderToStaticMarkup(
+  ])("shows risk guidance before the short-question fallback for $question", async ({ question, expected }) => {
+    const html = await renderToResolvedMarkup(
       <ThreeCoinResultClient
         pageMode="deep" locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialUser={{ id: "usr_1", email: "test@example.com" }}
@@ -294,7 +295,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).toContain("The sealed reading could not be interpreted");
   });
 
-  it("keeps the paid request disabled until an authenticated user has a credit", () => {
+  it("keeps the paid request disabled until an authenticated user has a credit", async () => {
     const freeReading: any = {
       primary: { number: 1, englishName: "The Creative", chineseName: "乾", upper: "qian", lower: "qian" },
       relating: null,
@@ -312,7 +313,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
       activeLines: [],
       synthesis: { situation: "A beginning", whereChangeIsHappening: "No moving lines", directionOfChange: "Stable", bottomLine: "Proceed steadily" },
     };
-    const html = renderToStaticMarkup(
+    const html = await renderToResolvedMarkup(
       <ThreeCoinResultClient
         pageMode="deep"
         locale="en"
@@ -330,8 +331,8 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).not.toContain("data-start-deep-reading");
   });
 
-  it("keeps the complete free interpretation and early Deep Reading entry in one localized result", () => {
-    const html = renderToStaticMarkup(
+  it("keeps the complete free interpretation and early Deep Reading entry in one localized result", async () => {
+    const html = await renderToResolvedMarkup(
       <ThreeCoinResultClient
         locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialUser={{ id: "usr_1", email: "test@example.com" }}
@@ -364,8 +365,8 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(freeDetailsPosition).toBeGreaterThan(deepPosition);
   });
 
-  it("keeps retired context forms, enrichment fields and purchase UI out of localized Free pages", () => {
-    const htmlZh = renderToStaticMarkup(
+  it("keeps retired context forms, enrichment fields and purchase UI out of localized Free pages", async () => {
+    const htmlZh = await renderToResolvedMarkup(
       <ThreeCoinResultClient
         locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialUser={{ id: "usr_1", email: "test@example.com" }}
@@ -388,7 +389,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(htmlZh.match(/获取我的深度解读/g)).toHaveLength(2);
     for (const retired of ["说明你的具体处境与关键事实", "你最想看清什么？", "data-context-enrichment-form", "<textarea", "选择深度解读次数包", "data-start-deep-reading"]) expect(htmlZh).not.toContain(retired);
 
-    const htmlEn = renderToStaticMarkup(
+    const htmlEn = await renderToResolvedMarkup(
       <ThreeCoinResultClient
         locale="en"
         initialUser={{ id: "usr_1", email: "test@example.com" }}
