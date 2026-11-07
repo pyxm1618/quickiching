@@ -14,8 +14,10 @@ const UserNavControl = dynamic(
   { ssr: false }
 );
 
+const loadSceneNavigationPanels = () => import("@/components/scene-navigation-panels");
+
 const SceneNavigationPanels = dynamic(
-  () => import("@/components/scene-navigation-panels").then(m => m.SceneNavigationPanels),
+  () => loadSceneNavigationPanels().then(m => m.SceneNavigationPanels),
   { ssr: false }
 );
 
@@ -82,6 +84,15 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
     };
   }, [panel]);
 
+  async function togglePanel(name: Panel) {
+    if (panel === name) {
+      setPanel(null);
+      return;
+    }
+    await loadSceneNavigationPanels();
+    setPanel(name);
+  }
+
   function triggerKey(event: KeyboardEvent<HTMLButtonElement>, name: Panel) {
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
     event.preventDefault();
@@ -91,7 +102,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
       (first ? items?.[0] : items?.[items.length - 1])?.focus();
     } else {
       focusRequest.current = first ? "first" : "last";
-      setPanel(name);
+      void loadSceneNavigationPanels().then(() => setPanel(name));
     }
   }
 
@@ -130,11 +141,11 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
           <Image src="/navigation/scroll-64-hexagrams-no-text.webp" alt="" width={450} height={675} sizes="(max-width: 800px) 94px, 151px" quality={90} priority fetchPriority="high" decoding="sync" />
           <span>{zh ? "六十四卦" : <>64<br />Hexagrams</>}</span>
         </Link>
-        <button ref={methodsTrigger} type="button" className="scene-scroll scene-scroll-methods" aria-expanded={panel === "methods"} aria-controls={`${id}-methods`} onClick={() => setPanel(panel === "methods" ? null : "methods")} onKeyDown={event => triggerKey(event, "methods")}>
+        <button ref={methodsTrigger} type="button" className="scene-scroll scene-scroll-methods" aria-expanded={panel === "methods"} aria-controls={`${id}-methods`} onClick={() => void togglePanel("methods")} onKeyDown={event => triggerKey(event, "methods")}>
           <Image src="/navigation/scroll-other-methods-no-text.webp" alt="" width={338} height={675} sizes="(max-width: 800px) 76px, 122px" quality={90} fetchPriority="low" />
           <span>{zh ? "其他起卦" : <>Other<br />Methods</>}</span>
         </button>
-        <button ref={infoTrigger} type="button" className="scene-scroll scene-scroll-info" aria-expanded={panel === "info"} aria-controls={`${id}-info`} onClick={() => setPanel(panel === "info" ? null : "info")} onKeyDown={event => triggerKey(event, "info")}>
+        <button ref={infoTrigger} type="button" className="scene-scroll scene-scroll-info" aria-expanded={panel === "info"} aria-controls={`${id}-info`} onClick={() => void togglePanel("info")} onKeyDown={event => triggerKey(event, "info")}>
           <Image src="/navigation/scroll-info-no-text.webp" alt="" width={338} height={675} sizes="(max-width: 800px) 69px, 111px" quality={90} fetchPriority="low" />
           <span>{zh ? "资讯" : "Info"}</span>
         </button>
