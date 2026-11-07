@@ -145,6 +145,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
         <Link href={localize("/guides/changing-lines")} prefetch={false}>{zh ? "变爻" : "Changing Lines"}</Link>
         <Link href={localize("/guides/primary-relating-hexagrams")} prefetch={false}>{zh ? "本卦与变卦" : "Primary & Relating Hexagrams"}</Link>
         <Link href={localize("/help")} prefetch={false}>{zh ? "帮助与支持" : "Help & Support"}</Link>
+        <a href="mailto:support@quickiching.com">{zh ? "联系支持" : "Contact Support"}</a>
         <Link href={localize("/privacy")} prefetch={false}>{zh ? "隐私政策" : "Privacy Policy"}</Link>
         <Link href={localize("/terms")} prefetch={false}>{zh ? "服务条款" : "Terms of Service"}</Link>
         <Link href={localize("/acceptable-use")} prefetch={false}>{zh ? "可接受使用政策" : "Acceptable Use"}</Link>
