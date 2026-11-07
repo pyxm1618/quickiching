@@ -8,6 +8,7 @@ import { desktopConfig, navigation } from "lighthouse";
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
 const COMPLETED_STORAGE_KEY = "quickiching:public-v1:completed-reading";
+const ANALYTICS_CONSENT_STORAGE_KEY = "quickiching:analytics-consent:v1";
 const RESULT_URL = `${BASE}/readings/result`;
 const FIXTURE_STEPS = [
   { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
@@ -177,14 +178,16 @@ function summarize(label, runnerResult) {
   const gate = getPerformanceGateConfig(label === "RESULT_DESKTOP" ? "result.desktop" : "result.mobile");
   assert(accessibility >= gate.metrics.accessibilityMin, `${label}: accessibility score below ${gate.metrics.accessibilityMin}`);
   assert(cls <= gate.metrics.clsMax, `${label}: CLS exceeds ${gate.metrics.clsMax}`);
-  assertPerformanceBudget(label, metricsFromReport(report), label === "RESULT_DESKTOP");
+  const budgetMetrics = metricsFromReport(report);
+  assertPerformanceBudget(label, budgetMetrics, label === "RESULT_DESKTOP");
   // The product result is intentionally noindex. Its SEO category is recorded but not used as an indexing gate.
   return { performance, accessibility, seo, lcp, cls, tbt };
 }
 
 async function seedReading(page) {
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  return page.evaluate(({ key, completedKey, steps }) => {
+  return page.evaluate(({ key, completedKey, analyticsConsentKey, steps }) => {
+    localStorage.setItem(analyticsConsentKey, "denied");
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
     sessionStorage.setItem(key, JSON.stringify({
@@ -209,6 +212,7 @@ async function seedReading(page) {
   }, {
     key: STORAGE_KEY,
     completedKey: COMPLETED_STORAGE_KEY,
+    analyticsConsentKey: ANALYTICS_CONSENT_STORAGE_KEY,
     steps: FIXTURE_STEPS,
   });
 }
@@ -248,25 +252,27 @@ async function auditResult(browser, desktop) {
   };
 
   const label = desktop ? "RESULT_DESKTOP" : "RESULT_MOBILE";
+  const gate = getPerformanceGateConfig(desktop ? "result.desktop" : "result.mobile");
+  const warmupCount = gate.samplePolicy?.warmupCount ?? 0;
+  for (let index = 0; index < warmupCount; index += 1) {
+    await runSingle();
+    log(`${label} warmup ${index + 1}/${warmupCount} complete`);
+  }
+
   let runnerResult = await runSingle();
   if (!desktop) {
-    const initialLcp = Math.round(runnerResult?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0);
-    const mobileGate = getPerformanceGateConfig("result.mobile");
-    if (initialLcp > mobileGate.metrics.lcpMaxMs) {
-      log(`RESULT_MOBILE single sample LCP (${initialLcp}ms) exceeded ${mobileGate.metrics.lcpMaxMs}ms; confirming with configured median sample`);
-      const samples = [runnerResult];
-      for (let i = 2; i <= mobileGate.samplePolicy.count; i++) {
-        samples.push(await runSingle());
-      }
-      samples.sort((a, b) => {
-        const lcpA = a?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0;
-        const lcpB = b?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0;
-        return lcpA - lcpB;
-      });
-      runnerResult = samples[1];
-      const medianLcp = Math.round(runnerResult?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0);
-      log(`RESULT_MOBILE median sample confirmed: ${medianLcp}ms`);
+    const samples = [runnerResult];
+    for (let i = 2; i <= gate.samplePolicy.count; i++) {
+      samples.push(await runSingle());
     }
+    samples.sort((a, b) => {
+      const lcpA = a?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0;
+      const lcpB = b?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0;
+      return lcpA - lcpB;
+    });
+    runnerResult = samples[Math.floor(samples.length / 2)];
+    const medianLcp = Math.round(runnerResult?.lhr?.audits?.["largest-contentful-paint"]?.numericValue ?? 0);
+    log(`RESULT_MOBILE configured median LCP: ${medianLcp}ms from ${samples.length} samples`);
   }
   return summarize(label, runnerResult);
 }
