@@ -16,11 +16,6 @@ const UserNavControl = dynamic(
 
 const loadSceneNavigationPanels = () => import("@/components/scene-navigation-panels");
 
-const SceneNavigationPanels = dynamic(
-  () => loadSceneNavigationPanels().then(m => m.SceneNavigationPanels),
-  { ssr: false }
-);
-
 type Panel = "methods" | "info";
 
 export function SceneNavigation({ locale = "en", authEnabled = false }: { locale?: ContentLocale; authEnabled?: boolean }) {
@@ -32,6 +27,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
   const methodsTrigger = useRef<HTMLButtonElement>(null);
   const infoTrigger = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const panelComponentRef = useRef<(typeof import("@/components/scene-navigation-panels"))["SceneNavigationPanels"] | null>(null);
   const focusRequest = useRef<"first" | "last" | null>(null);
   const localize = (path: string) => zh ? `/zh${path === "/" ? "" : path}` : path;
   const route = currentRouteForPath(pathname);
@@ -84,13 +80,18 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
     };
   }, [panel]);
 
+  async function openPanel(name: Panel) {
+    const module = await loadSceneNavigationPanels();
+    panelComponentRef.current = module.SceneNavigationPanels;
+    setPanel(name);
+  }
+
   async function togglePanel(name: Panel) {
     if (panel === name) {
       setPanel(null);
       return;
     }
-    await loadSceneNavigationPanels();
-    setPanel(name);
+    await openPanel(name);
   }
 
   function triggerKey(event: KeyboardEvent<HTMLButtonElement>, name: Panel) {
@@ -102,7 +103,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
       (first ? items?.[0] : items?.[items.length - 1])?.focus();
     } else {
       focusRequest.current = first ? "first" : "last";
-      void loadSceneNavigationPanels().then(() => setPanel(name));
+      void openPanel(name);
     }
   }
 
@@ -155,7 +156,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
       <div ref={panelRef} className="scene-panels" onKeyDown={panelKey} onBlur={event => {
         if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node) && event.relatedTarget !== methodsTrigger.current && event.relatedTarget !== infoTrigger.current) setPanel(null);
       }}>
-        {panel ? <SceneNavigationPanels locale={locale} panel={panel} id={id} onClose={() => setPanel(null)} /> : null}
+        {panel && panelComponentRef.current ? React.createElement(panelComponentRef.current, { locale, panel, id, onClose: () => setPanel(null) }) : null}
       </div>
     </header>
   );
