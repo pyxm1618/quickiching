@@ -19,7 +19,12 @@ describe("approved scene navigation integration",()=>{
   expect(html).toContain('href="mailto:support@quickiching.com"');
   expect(html).not.toMatch(/href="(?:\/zh)?\/methods"/);
   expect(core).toContain('aria-expanded="false"');
-  expect(core).not.toContain("Yarrow Stalks");
+  expect(core).toContain("data-scene-route-graph");
+  expect(core).toContain(`href="${locale==="en"?"":"/zh"}/methods/yarrow-stalks"`);
+  expect(core).toContain(`href="${locale==="en"?"":"/zh"}/methods/mei-hua-yi-shu"`);
+  expect(core).toContain(`href="${locale==="en"?"":"/zh"}/methods/manual-cast"`);
+  expect(core).not.toContain("scene-methods-panel");
+  expect(core).not.toContain("/navigation/method-yarrow.webp");
  });
  it("switches to the locale-equivalent route outside the homepage",()=>{
   navigationState.pathname="/hexagrams";
