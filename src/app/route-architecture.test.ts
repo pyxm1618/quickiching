@@ -19,9 +19,9 @@ describe("App Router multilingual architecture", () => {
     expect(readFileSync(localizedLayout, "utf8")).toContain('<html lang="zh-Hans"');
   });
 
-  it("uses a static zh segment so unknown English paths cannot be captured as locales", () => {
+  it("uses a static zh segment without a localized catch-all soft-404 route", () => {
     expect(existsSync(dynamicLocaleRoot)).toBe(false);
-    expect(existsSync(localizedCatchAll)).toBe(true);
+    expect(existsSync(localizedCatchAll)).toBe(false);
   });
 
   it("keeps English global 404 metadata isolated from homepage metadata", async () => {
@@ -44,12 +44,10 @@ describe("App Router multilingual architecture", () => {
     expect(localizedNotFoundModule.metadata.openGraph).not.toHaveProperty("url");
   });
 
-  it("attaches localized 404 metadata to the catch-all route before notFound()", async () => {
-    const catchAllModule = await import("./(localized)/zh/[...slug]/page");
-    expect(catchAllModule.metadata).toBeDefined();
-    if (!catchAllModule.metadata) return;
-    expect(catchAllModule.metadata.title).toEqual({ absolute: "页面不存在 | Quick I Ching" });
-    expect(catchAllModule.metadata.robots).toEqual({ index: false, follow: false });
+  it("routes unmatched localized URLs through global-not-found instead of a streamed catch-all", () => {
+    expect(existsSync(localizedCatchAll)).toBe(false);
+    const middleware = readFileSync(new URL("../middleware.ts", import.meta.url), "utf8");
+    expect(middleware).toContain('requestHeaders.set("x-quickiching-pathname", pathname)');
   });
 
   it("keeps only the reviewed commercial API surface and does not retain the retired commercial runtime", () => {
