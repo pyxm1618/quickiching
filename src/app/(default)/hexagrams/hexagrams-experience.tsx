@@ -429,6 +429,12 @@ export function HexagramsExperience({
       <Link href={homeHref} data-seo-home-link={homeHref} tabIndex={-1} aria-hidden="true" className={styles.srOnly}>
         {ui.homeText}
       </Link>
+      <Link href={isChinese ? "/zh/methods/yarrow-stalks" : "/methods/yarrow-stalks"} tabIndex={-1} aria-hidden="true" className={styles.srOnly}>
+        {isChinese ? "蓍草法起卦" : "I Ching Yarrow Stalk Method"}
+      </Link>
+      <Link href={isChinese ? "/zh/methods/mei-hua-yi-shu" : "/methods/mei-hua-yi-shu"} tabIndex={-1} aria-hidden="true" className={styles.srOnly}>
+        {isChinese ? "梅花易数起卦" : "Mei Hua Yi Shu"}
+      </Link>
     </article>
   );
 }
