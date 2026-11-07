@@ -137,6 +137,12 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
         <span>Quick I Ching</span>
       </Link>
 
+      <nav hidden aria-hidden="true" data-scene-route-graph>
+        <Link href={localize("/methods/yarrow-stalks")} prefetch={false}>{zh ? "蓍草法" : "Yarrow Stalks"}</Link>
+        <Link href={localize("/methods/mei-hua-yi-shu")} prefetch={false}>{zh ? "梅花易数" : "Mei Hua Yi Shu"}</Link>
+        <Link href={localize("/methods/manual-cast")} prefetch={false}>{zh ? "手动起卦" : "Manual Cast"}</Link>
+      </nav>
+
       <nav className="scene-scrolls" aria-label={zh ? "探索易经" : "Explore the I Ching"}>
         <Link href={localize("/hexagrams")} className="scene-scroll scene-scroll-hexagrams" prefetch={false}>
           <Image src="/navigation/scroll-64-hexagrams-no-text.webp" alt="" width={450} height={675} sizes="(max-width: 800px) 94px, 151px" quality={90} priority fetchPriority="high" decoding="sync" />
