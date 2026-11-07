@@ -21,6 +21,7 @@ describe("approved scene navigation integration",()=>{
   expect(core).toContain('aria-expanded="false"');
   expect(core).toContain("data-scene-route-graph");
   for(const path of paths.filter(path=>path!=="/hexagrams"))expect(core).toContain(`href="${locale==="en"?"":"/zh"}${path}"`);
+  expect(core).toContain('href="mailto:support@quickiching.com"');
   expect(core).not.toContain("scene-methods-panel");
   expect(core).not.toContain("scene-info-panel");
   expect(core).not.toContain("/navigation/method-yarrow.webp");
