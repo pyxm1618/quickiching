@@ -1,7 +1,8 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import Loadable from "next/dist/shared/lib/loadable.shared-runtime";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, prefetch: _prefetch, ...rest }: any) => (
@@ -17,6 +18,10 @@ import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
 import { normalizeDeepReadingViewModel } from "@/domain/generation/deep-reading-view-model";
+
+beforeAll(async () => {
+  await Loadable.preloadAll();
+});
 
 const ZH_TEST_READING_CONTENT = zhHansReadingContentFor([1, 9]);
 

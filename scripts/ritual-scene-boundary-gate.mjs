@@ -43,6 +43,7 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
   }
   await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:reduced?'reduce':'no-preference'}]);
   await page.evaluateOnNewDocument((fixtureBits,storageKey,failStorage)=>{
+   try { localStorage.setItem('quickiching:analytics-consent:v1','denied'); } catch {}
    window.__ritualBitDraws=0;const remaining=[...fixtureBits];
    const originalRandom=Crypto.prototype.getRandomValues;
    Crypto.prototype.getRandomValues=function(array){

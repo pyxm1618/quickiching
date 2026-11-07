@@ -103,7 +103,7 @@
       },
       "samplePolicy": {
         "count": 3,
-        "selection": "median-performance-lcp-worst-rest",
+        "selection": "median-lcp",
         "warmupCount": 1
       }
     },

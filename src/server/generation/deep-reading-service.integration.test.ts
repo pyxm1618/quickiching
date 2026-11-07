@@ -30,9 +30,16 @@ const castFacts: DeterministicFacts = {
   relatingHexagramNumber: null,
   readingVariant: "still_hexagram",
 };
+const manualCastFacts: DeterministicFacts = {
+  ...castFacts,
+  method: "manual",
+  algorithmVersion: "manual-cast-v1",
+  lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+  primaryHexagramNumber: 1,
+};
 
 
-async function seedCastFacts(castingId: string, now: string, facts = castFacts) {
+async function seedCastFacts(castingId: string, now: string, facts = castFacts, methodCalculation: postgres.JSONValue = { coins: [2, 2, 3] }) {
   const key = { version: "v1", material: "deep-reading-result-fixture-key" };
   const resultHmac = resultIntegrityHmac(facts, key);
   await sql`
@@ -41,7 +48,7 @@ async function seedCastFacts(castingId: string, now: string, facts = castFacts) 
       method_calculation, algorithm_version, classic_mapping_version, result_hmac, result_hmac_key_version, created_at
     ) values (
       ${castingId}, ${facts.lineValuesBottomUp}, ${facts.primaryHexagramNumber}, ${facts.movingLinePositions}, null,
-      '{"coins":[2,2,3]}'::jsonb, ${facts.algorithmVersion}, ${facts.classicMappingVersion}, ${resultHmac}, 'v1', ${now}
+      ${JSON.stringify(methodCalculation)}::jsonb, ${facts.algorithmVersion}, ${facts.classicMappingVersion}, ${resultHmac}, 'v1', ${now}
     )
   `;
 }
@@ -60,7 +67,7 @@ async function seedQuestionVersion(castingId: string, question: string, now: str
   `;
 }
 
-async function seedDeepReadingCandidateWithCredit(userId: string, method: DeterministicFacts["method"] = "three_coin") {
+async function seedDeepReadingCandidateWithCredit(userId: string, method: DeterministicFacts["method"] = "three_coin", manualMode: "line-values" | "primary-changing" = "line-values") {
   const orderId = randomUUID();
   const batchId = randomUUID();
   const castingId = randomUUID();
@@ -86,9 +93,21 @@ async function seedDeepReadingCandidateWithCredit(userId: string, method: Determ
     insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
     values (${castingId}, ${userId}, ${method}, 'revealed', 'allowed', 'career', 'guidance', ${now}, ${now})
   `;
-  await seedCastFacts(castingId, now, { ...castFacts, method });
+  const facts = method === "manual" ? manualCastFacts : { ...castFacts, method };
+  const methodCalculation = method === "manual"
+    ? manualMode === "primary-changing"
+      ? {
+          kind: "manual",
+          version: "manual-cast-v1",
+          mode: "primary-changing",
+          primaryHexagramNumber: facts.primaryHexagramNumber,
+          changingLines: facts.movingLinePositions,
+        }
+      : { kind: "manual", version: "manual-cast-v1", mode: "line-values" }
+    : { coins: [2, 2, 3] };
+  await seedCastFacts(castingId, now, facts, methodCalculation);
   await seedQuestionVersion(castingId, "What should I focus on in this transition?", now);
-  return { orderId, batchId, castingId };
+  return { orderId, batchId, castingId, facts };
 }
 
 describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () => {
@@ -97,12 +116,12 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
   const userTwoId = "cp5-deep-user-2";
   const userZeroId = "cp5-deep-user-zero";
 
-  it.each(["three_coin", "yarrow_stalk", "mei_hua_number_time"] as const)("derives a sealed %s snapshot with default English and one reservation", async (method) => {
+  it.each(["three_coin", "yarrow_stalk", "mei_hua_number_time", "manual"] as const)("derives a sealed %s snapshot with default English and one reservation", async (method) => {
     const userId = `method-${randomUUID()}`;
-    const { castingId } = await seedDeepReadingCandidateWithCredit(userId, method);
-    const facts = { ...castFacts, method };
+    const { castingId, facts } = await seedDeepReadingCandidateWithCredit(userId, method);
     const result = await deepReadingService.requestDeepReading({ userId, castingId });
     expect(result.status).toBe("queued");
+    expect(result.creditReservationCreated).toBe(true);
     const restored = await deepReadingService.getDeepReadingStatus({ userId, castingId });
     expect(restored.snapshot).toMatchObject({ schemaVersion: "deep-reading-context-v2", castMethod: method, locale: "en", facts });
     expect(restored.snapshot).not.toHaveProperty("context");
@@ -113,48 +132,37 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
   });
 
 
-  it("rejects Manual Cast Deep Reading before reserving a credit", async () => {
-    const userId = `manual-${randomUUID()}`;
-    const orderId = randomUUID();
-    const batchId = randomUUID();
-    const castingId = randomUUID();
-    const now = new Date().toISOString();
+  it.each(["line-values", "primary-changing"] as const)("accepts persisted Manual %s casts for Deep Reading with one idempotent reservation", async (manualMode) => {
+    const userId = `manual-${manualMode}-${randomUUID()}`;
+    const { castingId, facts } = await seedDeepReadingCandidateWithCredit(userId, "manual", manualMode);
 
-    await sql`
-      insert into users (id, name, email, email_verified, created_at, updated_at)
-      values (${userId}, 'Manual User', ${`${userId}@example.com`}, true, ${now}, ${now})
-      on conflict (id) do nothing
-    `;
-    await sql`
-      insert into payment_orders (
-        id, user_id, product_key, quantity, amount_minor, currency, request_id,
-        provider, provider_environment, provider_product_id, provider_order_id, provider_payment_id,
-        status, paid_at, created_at, updated_at
-      ) values (${orderId}, ${userId}, 'one', 1, 299, 'USD', ${`req-${orderId}`}, 'waffo', 'test', 'prod-1', ${`ord-${orderId}`}, ${`pay-${orderId}`}, 'paid', ${now}, ${now}, ${now})
-    `;
-    await sql`
-      insert into entitlement_batches (
-        id, user_id, order_id, quantity_total, quantity_available, quantity_reserved, quantity_consumed, quantity_revoked, expires_at, created_at, updated_at
-      ) values (${batchId}, ${userId}, ${orderId}, 1, 1, 0, 0, 0, now() + interval '12 months', ${now}, ${now})
-    `;
-    await sql`
-      insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
-      values (${castingId}, ${userId}, 'manual', 'revealed', 'allowed', 'career', 'what_do_i_need_to_see_clearly', ${now}, ${now})
-    `;
+    const result = await deepReadingService.requestDeepReading({ userId, castingId, locale: "en" });
+    expect(result.status).toBe("queued");
+    expect(result.creditReservationCreated).toBe(true);
 
-    await expect(deepReadingService.requestDeepReading({ userId, castingId }))
-      .rejects.toThrow("MANUAL_DEEP_READING_UNAVAILABLE");
+    const restored = await deepReadingService.getDeepReadingStatus({ userId, castingId });
+    expect(restored.snapshot).toMatchObject({
+      schemaVersion: "deep-reading-context-v2",
+      castMethod: "manual",
+      facts: { ...facts, method: "manual", algorithmVersion: "manual-cast-v1" },
+    });
+    expect(restored.snapshot?.knowledge.evidence.length).toBeGreaterThan(0);
 
-    const batches = await sql`
-      select quantity_available, quantity_reserved, quantity_consumed
-      from entitlement_batches where id = ${batchId}
-    `;
-    expect(batches[0]).toMatchObject({ quantity_available: 1, quantity_reserved: 0, quantity_consumed: 0 });
-    const reservations = await sql`
+    const reservationsBeforeRetry = await sql`
       select count(*)::integer as count from entitlement_reservations where casting_id = ${castingId}
-    `;
-    expect(reservations[0]?.count).toBe(0);
+    ` as Array<{ count: number }>;
+    expect(reservationsBeforeRetry[0]?.count).toBe(1);
+
+    const retry = await deepReadingService.requestDeepReading({ userId, castingId, locale: "zh-Hans" });
+    expect(retry.jobId).toBe(result.jobId);
+    expect(retry.creditReservationCreated).toBe(false);
+
+    const reservationsAfterRetry = await sql`
+      select count(*)::integer as count from entitlement_reservations where casting_id = ${castingId}
+    ` as Array<{ count: number }>;
+    expect(reservationsAfterRetry[0]?.count).toBe(1);
   });
+
 
   beforeAll(async () => {
     await migrate(db, { migrationsFolder: "drizzle" });
@@ -300,9 +308,9 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     expect(batchRowsAfterRetry[0]).toMatchObject({ quantity_available: 1, quantity_reserved: 0 });
   });
 
-  it("returns authoritative credits after a failed workflow start releases the reservation", async () => {
-    const userId = `cp5-failed-${randomUUID()}`;
-    const { batchId, castingId } = await seedDeepReadingCandidateWithCredit(userId);
+  it.each(["three_coin", "manual"] as const)("returns authoritative credits after a failed %s workflow start releases the reservation", async (method) => {
+    const userId = `cp5-failed-${method}-${randomUUID()}`;
+    const { batchId, castingId } = await seedDeepReadingCandidateWithCredit(userId, method);
     const failingService = createDeepReadingService({
       sql,
       env: integrationEnv,

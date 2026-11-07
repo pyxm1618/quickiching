@@ -600,6 +600,11 @@ async function verifyNotFoundPages(browser) {
         const response = await page.goto(`${BASE}${testCase.path}`, { waitUntil: "networkidle0", timeout: 30_000 });
         assert.equal(response?.status(), 404, `${testCase.path}: expected browser status 404`);
         await page.waitForSelector("h1", { timeout: 10_000 });
+        await page.waitForFunction(
+          expectedTitle => document.title === expectedTitle,
+          { timeout: 10_000 },
+          testCase.title,
+        );
 
         const snapshot = await page.evaluate((expected) => {
           const links = [...document.querySelectorAll("a")];

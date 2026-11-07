@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Check, ArrowRight, UserRound } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { RitualRevealTransition } from "@/components/public-reading/ritual-reveal-transition";
-import { PublicReadingResult } from "@/components/public-reading/public-reading-result";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import type { HexagramInterpretationBundle } from "@/domain/interpretation/v2/types";
@@ -19,13 +19,23 @@ import type {
 } from "@/domain/generation/deep-reading-view-model";
 import { buildPricingHref, buildResultSigninHref } from "@/lib/commercial-navigation";
 import { evaluateRisk } from "@/domain/risk/engine";
-import { AiDeepReadingResult, AiDeepReadingState } from "@/components/three-coin-result/ai-deep-reading-result";
 import styles from "@/components/three-coin-result/result-page.module.css";
 import { readCompletedPublicReading, publicReadingSaveInput, clearCompletedReadingForRestart } from "@/lib/completed-public-reading";
 import { clearThreeCoinCompletedBackup } from "@/lib/three-coin-session";
 import type { PublicReading, PublicReadingEvidence, PublicReadingMethod } from "@/domain/public-reading/types";
 import type { LineValue } from "@/domain/casting/types";
 import type { YarrowChange, YarrowLineResult } from "@/domain/casting/yarrow/algorithm";
+
+const PublicReadingResult = dynamic(() =>
+  import("@/components/public-reading/public-reading-result").then((module) => module.PublicReadingResult),
+);
+const AiDeepReadingResult = dynamic(() =>
+  import("@/components/three-coin-result/ai-deep-reading-result").then((module) => module.AiDeepReadingResult),
+);
+const AiDeepReadingState = dynamic(() =>
+  import("@/components/three-coin-result/ai-deep-reading-result").then((module) => module.AiDeepReadingState),
+);
+
 import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
 export type ResultState =
   | { kind: "loading" }
@@ -260,7 +270,6 @@ export function ReadingResultClient({
       evidence: serverBackedReadingEvidence(method, state.lineValues, initialCastingView?.methodCalculation, initialCastingView?.method),
     });
   }, [castingId, clientCastingId, state, completedReading, initialCastingView?.method, initialCastingView?.algorithmVersion, initialCastingView?.methodCalculation]);
-  const manualDeepUnavailable = resultReading?.method === "manual";
   const resultRevealGate = getResultRevealGate({
     authenticated: Boolean(user),
     castingId,
@@ -532,7 +541,7 @@ export function ReadingResultClient({
   // Restore the paid result and the exact encrypted input snapshot for this account.
   useEffect(() => {
     const activeId = castingId;
-    if (!activeId || !user || pageMode !== "deep" || manualDeepUnavailable) return;
+    if (!activeId || !user || pageMode !== "deep") return;
 
     let active = true;
 
@@ -585,10 +594,6 @@ export function ReadingResultClient({
 
   async function handleUnlockDeepReading() {
     if (state.kind !== "ready") return;
-    if (manualDeepUnavailable) {
-      setActionError(t("Deep Reading is unavailable for Manual Cast. Free Reading remains available.", "手动起卦暂不支持深度解读；免费解卦仍可正常查看。"));
-      return;
-    }
     setActionError(null);
     if (deepRiskBlocked) return;
 
@@ -664,10 +669,6 @@ export function ReadingResultClient({
 
   async function handleOpenPricing() {
     setActionError(null);
-    if (manualDeepUnavailable) {
-      setActionError(t("Deep Reading is unavailable for Manual Cast. Free Reading remains available.", "手动起卦暂不支持深度解读；免费解卦仍可正常查看。"));
-      return;
-    }
     if (deepRiskBlocked) return;
     const activeCastingId = await persistCurrentReading(true);
     if (!activeCastingId) return;
@@ -743,7 +744,7 @@ export function ReadingResultClient({
   const intentCastId = resultReading?.id ?? clientCastingId ?? castingId ?? initialSessionId ?? "";
   const freeIntentPath = `${prefix}/readings/result?session=${encodeURIComponent(intentCastId)}`;
   const deepIntentPath = `${prefix}/readings/deep?session=${encodeURIComponent(intentCastId)}`;
-  const deepIntentAllowed = pageMode === "deep" && !manualDeepUnavailable;
+  const deepIntentAllowed = pageMode === "deep";
   const signinHref = resultSigninHref(deepIntentAllowed ? deepIntentPath : freeIntentPath);
   const alternateSigninHref = resultSigninHref(deepIntentAllowed ? freeIntentPath : deepIntentPath);
   const resultDictionary = zh ? ZH_HANS_UI_DICTIONARY : EN_UI_DICTIONARY;
@@ -767,9 +768,9 @@ export function ReadingResultClient({
               <Link href={signinHref} prefetch={false} className="ritual-gate-signin" data-auth-reading-intent={pageMode} onClick={(event) => { if (event.currentTarget.closest(".ritual-gate-card")?.getAnimations().some(animation => animation.playState === "running")) event.preventDefault(); }} aria-label={pageMode === "deep" ? t("Sign in and continue to Deep Reading", "登录并继续深度解读") : t("Sign in to save and reveal this reading", "登录、保存并查看本次卦象")}>
                 <UserRound aria-hidden="true" />{pageMode === "deep" ? t("Sign In for Deep Reading", "登录并继续深度解读") : t("Sign In to Save & Reveal", "登录、保存并查看")}<ArrowRight aria-hidden="true" />
               </Link>
-              {!manualDeepUnavailable ? <Link href={alternateSigninHref} prefetch={false} className="mt-3 inline-flex text-sm underline underline-offset-4" data-auth-reading-alternate-intent={pageMode === "deep" ? "free" : "deep"}>
+              <Link href={alternateSigninHref} prefetch={false} className="mt-3 inline-flex text-sm underline underline-offset-4" data-auth-reading-alternate-intent={pageMode === "deep" ? "free" : "deep"}>
                 {pageMode === "deep" ? t("Use Free Reading instead", "改为查看免费解卦") : t("Continue to Deep Reading instead", "改为继续深度解读")}
-              </Link> : null}
+              </Link>
             </div>
           ) : persistenceStatus === "error" ? (
             <div key="save-error" className="ritual-gate-action ritual-gate-error" data-account-reading-save-error role="alert">
@@ -829,8 +830,7 @@ export function ReadingResultClient({
       locale={locale}
       freeHref={freeHref}
     >
-      {manualDeepUnavailable ? <p data-deep-reading-blocked="manual">{t("Deep Reading is unavailable for Manual Cast. Use the Free Reading for this saved cast.", "手动起卦暂不支持深度解读；请查看这次已保存起卦的免费解卦。")}</p>
-      : deepStatus === "generating" ? <div role="status" data-deep-reading-state="generating">
+      {deepStatus === "generating" ? <div role="status" data-deep-reading-state="generating">
         {t("Reading your locked question and this cast…", "正在解读你锁定的问题与本次卦象…")}
       </div> : deepRiskBlocked ? <div role="status" data-deep-reading-blocked="risk">{deepRiskMessage}</div>
       : !deepQuestion.trim() ? <p data-deep-reading-blocked="missing-question">{t("This historical cast has no locked question. Start a new cast with a question to use Deep Reading.", "这次历史起卦没有锁定的问题。如需深度解读，请带着问题重新起卦。")}</p>

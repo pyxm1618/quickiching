@@ -279,7 +279,6 @@ export function createDeepReadingService(dependencies: {
         const session = sessionRows[0];
         if (!session || String(session.user_id) !== userId || session.deleted_at != null) throw new Error("CASTING_NOT_FOUND");
         if (session.lifecycle !== "revealed") throw new Error("CASTING_NOT_READY");
-        if (session.method === "manual") throw new Error("MANUAL_DEEP_READING_UNAVAILABLE");
         if (!session.result_hmac) throw new Error("CAST_RESULT_UNAVAILABLE");
         const currentFacts = factsFromSession(session);
         if (!verifyResultIntegrity({

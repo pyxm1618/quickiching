@@ -285,7 +285,7 @@ async function main() {
     const navHrefs = await page.evaluate(() => {
       return Array.from(document.querySelectorAll("header nav a[href]"))
         .map((a) => a.getAttribute("href"))
-        .filter((href) => href && !href.startsWith("http") && !href.startsWith("#"));
+        .filter((href) => href?.startsWith("/"));
     });
     for (const href of navHrefs) {
       if (href === "/" || href.startsWith("/?")) continue; // Language switcher to English

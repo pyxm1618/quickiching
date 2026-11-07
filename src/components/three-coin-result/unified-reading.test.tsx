@@ -1,8 +1,13 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import Loadable from 'next/dist/shared/lib/loadable.shared-runtime';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 vi.mock('next/link', () => ({default: ({href, children, ...rest}: any) => <a href={href} {...rest}>{children}</a>}));
 import { ThreeCoinResultClient } from './three-coin-result-client';
+beforeAll(async () => {
+  await Loadable.preloadAll();
+});
+
 const question = 'Should I change to a new job?';
 const props = {
   initialUser: {id:'user',email:'test@example.com'}, initialCredits:1,
