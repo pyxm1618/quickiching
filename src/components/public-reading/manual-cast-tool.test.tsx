@@ -17,7 +17,7 @@ describe("Manual Cast formal UI", () => {
       <ManualSixLinesInput values={[7, 6, 8, 9, 7, 8]} dictionary={EN_UI_DICTIONARY} onChange={() => {}} />,
     );
 
-    expect([...html.matchAll(/data-line-row-position="(\\d)"/g)].map((match) => Number(match[1])))
+    expect([...html.matchAll(/data-line-row-position="(\d)"/g)].map((match) => Number(match[1])))
       .toEqual([6, 5, 4, 3, 2, 1]);
     expect(html).not.toContain("<select");
     expect(html).toContain('data-line-position="2" data-line-value="6"');
