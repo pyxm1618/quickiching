@@ -615,7 +615,7 @@ body:has(.manual-cast-page) > header {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   width: 100%;
-  min-height: 2.45rem;
+  min-height: 2.75rem;
   padding: 0 .85rem;
   border: 1px solid rgba(235, 169, 62, .72);
   border-radius: 999px;
