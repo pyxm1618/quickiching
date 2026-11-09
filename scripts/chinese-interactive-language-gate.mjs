@@ -464,7 +464,7 @@ async function main() {
       }));
     }, manualId);
     await page.reload({ waitUntil: "networkidle0" });
-    const castManualBtn = await page.waitForSelector("section[aria-labelledby='manual-cast-tool-title'] button:not([role='tab']).mystic-button", { timeout: 5000 });
+    const castManualBtn = await page.waitForSelector("[data-manual-continue]", { timeout: 5000 });
     await castManualBtn.click();
     await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 10_000 });
     await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
