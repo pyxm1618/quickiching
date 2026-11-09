@@ -48,6 +48,27 @@ async function assertTouchTargets(page, label) {
 
 async function capture(page, name) { await page.screenshot({ path: path.join(OUT, name), fullPage: true }); }
 
+async function clickMovingLine(page, position, expectedPressed = "true") {
+  const selector = `[data-moving-line-position="${position}"]`;
+  await page.$eval(selector, (node) => node.scrollIntoView({ block: "center", inline: "center", behavior: "instant" }));
+  await page.waitForFunction((targetSelector) => {
+    const target = document.querySelector(targetSelector);
+    if (!(target instanceof HTMLElement)) return false;
+    const rect = target.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const hit = document.elementFromPoint(x, y);
+    return hit === target || Boolean(hit && target.contains(hit));
+  }, {}, selector);
+  await page.click(selector);
+  await page.waitForFunction(
+    (targetSelector, expected) => document.querySelector(targetSelector)?.getAttribute("aria-pressed") === expected,
+    {},
+    selector,
+    expectedPressed,
+  );
+}
+
 async function exerciseModeA(page, config) {
   const route = config.locale === "zh" ? "/zh/methods/manual-cast" : "/methods/manual-cast";
   const question = config.locale === "zh" ? "我是否应该换一份新的工作？" : "Should I change to a new job?";
@@ -100,10 +121,8 @@ async function exerciseModeBAndRestore(page, config) {
   await page.keyboard.press("Enter");
   await page.waitForFunction(() => !document.querySelector('[role="option"]'));
   assert((await page.$eval("[data-hexagram-picker-trigger]", el => el.textContent || "")).includes("2"), config.locale + "/" + config.width + ": keyboard picker must select Hexagram 2");
-  await page.click('[data-moving-line-position="3"]');
-  await page.waitForFunction(() => document.querySelector('[data-moving-line-position="3"]')?.getAttribute("aria-pressed") === "true");
-  await page.click('[data-moving-line-position="5"]');
-  await page.waitForFunction(() => document.querySelector('[data-moving-line-position="5"]')?.getAttribute("aria-pressed") === "true");
+  await clickMovingLine(page, 3);
+  await clickMovingLine(page, 5);
   const relating = await page.$eval("[data-relating-hexagram-number]", el => el.getAttribute("data-relating-hexagram-number"));
   assert(relating && relating !== "none", config.locale + "/" + config.width + ": relating preview");
   await page.reload({ waitUntil: "networkidle0", timeout: 30000 });
@@ -153,8 +172,8 @@ async function verifyPrimaryChangingHandoff(page) {
   await page.click('[data-manual-mode="primary-changing"]');
   await page.click("[data-hexagram-picker-trigger]");
   await page.click('[data-hexagram-number="2"]');
-  await page.click('[data-moving-line-position="3"]');
-  await page.click('[data-moving-line-position="5"]');
+  await clickMovingLine(page, 3);
+  await clickMovingLine(page, 5);
   await Promise.all([
     page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15000 }),
     page.click("[data-manual-continue]"),
