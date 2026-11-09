@@ -22,7 +22,7 @@ export default function ChineseManualCastPage() {
   const dictionary = getDictionary("zh-Hans");
   const copy = dictionary.manualCast;
   return (
-    <article className={"manual-cast-page " + ritualBrush.variable} data-seo-primary={SEO.primaryKeyword}>
+    <article className={"manual-cast-page manual-cast-page-zh " + ritualBrush.variable} data-seo-primary={SEO.primaryKeyword}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "WebPage", name: SEO.finalH1, description: SEO.finalDescription, url: CANONICAL, inLanguage: "zh-Hans" }) }} />
       <link rel="preload" as="image" href="/performance/stageDesktop.e37364561615e31f.webp" media="not all and (max-aspect-ratio:11/20)" fetchPriority="high" />
       <link rel="preload" as="image" href="/performance/stagePortrait.bde3e415eb141bc8.webp" media="(min-width:601px) and (max-aspect-ratio:11/20)" fetchPriority="high" />

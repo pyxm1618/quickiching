@@ -53,6 +53,22 @@
   filter: blur(18px);
 }
 
+
+.manual-cast-page-zh,
+.manual-cast-page-zh .manual-cast-shell,
+.manual-cast-page-zh .manual-cast-supporting {
+  font-family: var(--font-cjk), var(--font-noto-sc), "Songti SC", "STSong", serif;
+}
+
+.manual-cast-page-zh .manual-cast-title h1,
+.manual-cast-page-zh .manual-mode-heading h2 {
+  font-family: var(--font-cjk), var(--font-noto-sc), "Songti SC", "STSong", serif;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: none;
+}
+
 body:has(.manual-cast-page) {
   background: #21160c;
 }
@@ -984,6 +1000,12 @@ body:has(.manual-cast-page) > header {
 }
 
 @media (max-width: 800px) {
+
+  body:has(.manual-cast-page) .scene-scrolls,
+  body:has(.manual-cast-page) .scene-brand {
+    display: none;
+  }
+
   .manual-cast-stage {
     min-height: calc(100svh - 70px);
     padding: 1.2rem .85rem 2.5rem;
