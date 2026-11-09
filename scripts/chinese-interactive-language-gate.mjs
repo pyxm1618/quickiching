@@ -456,6 +456,9 @@ async function main() {
     const manualId = "550e8400-e29b-41d4-a716-446655440104";
     await page.goto(`${BASE}/zh/methods/manual-cast`, { waitUntil: "networkidle0" });
     await page.evaluate((id) => {
+      localStorage.setItem("quickiching:analytics-consent:v1", "denied");
+      sessionStorage.removeItem("quickiching:public-v1:manual-cast:draft:v1");
+      sessionStorage.removeItem("quickiching:public-v1:completed-reading");
       sessionStorage.setItem("quickiching:public-v1:manual-cast", JSON.stringify({
         schemaVersion: 1,
         started: true,

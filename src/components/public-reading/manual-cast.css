@@ -945,6 +945,13 @@ body:has(.manual-cast-page) > header {
   outline-offset: 3px;
 }
 
+@media (min-width: 801px) {
+  /* Keep formal Manual controls out from under the existing fixed scene-navigation scrolls. */
+  .manual-cast-stage {
+    padding-right: clamp(12.5rem, 18vw, 16rem);
+  }
+}
+
 @media (max-width: 1100px) {
   .manual-cast-frame {
     width: min(100%, 930px);
