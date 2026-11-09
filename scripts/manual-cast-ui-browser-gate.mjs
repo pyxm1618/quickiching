@@ -90,9 +90,9 @@ async function exerciseModeBAndRestore(page, config) {
   await page.focus("[data-hexagram-picker-trigger]");
   await page.keyboard.press("Enter");
   await page.waitForSelector('[role="option"]');
-  assert.equal((await page.$('[role="option"]')).length, 64, config.locale + "/" + config.width + ": picker count");
+  assert.equal((await page.$$('[role="option"]')).length, 64, config.locale + "/" + config.width + ": picker count");
   if (config.width <= 390) {
-    const optionHeights = await page.$eval('[role="option"]', nodes => nodes.slice(0, 6).map(node => node.getBoundingClientRect().height));
+    const optionHeights = await page.$$eval('[role="option"]', nodes => nodes.slice(0, 6).map(node => node.getBoundingClientRect().height));
     assert(optionHeights.every(height => height >= 44), config.locale + "/" + config.width + ": picker options must be touchable");
   }
   await page.waitForFunction(() => document.activeElement?.getAttribute("role") === "option");
