@@ -31,13 +31,12 @@ export default function ChineseManualCastPage() {
         <div className="manual-cast-room" aria-hidden="true" />
         <div className="manual-cast-frame">
           <header className="manual-cast-title">
-            <h1>{copy.title}</h1>
+            <h1>{SEO.finalH1}</h1>
             <p>{copy.subtitle}</p>
           </header>
           <QuestionFirst
             storageKey="quickiching:public-v1:manual-cast"
             dictionary={dictionary}
-            deepReadingEligible
             activeQuestionPresentation="hidden"
           >
             <ManualCastTool dictionary={dictionary} />
@@ -46,6 +45,7 @@ export default function ChineseManualCastPage() {
       </section>
 
       <div className="manual-cast-supporting">
+        <p data-seo-early-copy className="mx-auto max-w-4xl px-4 pt-10 text-lg leading-8 text-[var(--ink-2)]">手动起卦适合你已经有六个爻值、纸上卦象或明确的本卦与动爻位置时使用。它不会重新随机生成任何信息，只把你输入的结构转换成本卦、动爻和之卦。</p>
         <section className="mx-auto grid max-w-5xl gap-8 px-4 py-12 md:grid-cols-2">
           <div>
             <h2 className="font-display text-2xl font-medium">手动起卦的两种输入方式</h2>
