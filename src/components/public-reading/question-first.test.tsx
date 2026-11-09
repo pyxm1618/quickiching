@@ -183,4 +183,21 @@ describe("QuestionFirst component question freeze regressions", () => {
     expect(html).toContain("Skip — free reading only");
     expect(html).not.toContain("Skip for now");
   });
+  it("can hide only the active question presentation while preserving the casting child", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const html = renderToStaticMarkup(
+      <QuestionFirst
+        storageKey="test-manual-formal-ui"
+        initialSession={{ started: true, question: "Should I change jobs?" }}
+        activeQuestionPresentation="hidden"
+      >
+        <div data-formal-manual-child>Formal Manual UI</div>
+      </QuestionFirst>,
+    );
+
+    expect(html).toContain("data-formal-manual-child");
+    expect(html).toContain("Formal Manual UI");
+    expect(html).not.toContain('id="test-manual-formal-ui-active-question"');
+  });
+
 });
