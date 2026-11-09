@@ -19,6 +19,7 @@ type QuestionFirstProps = {
   storageKey: string;
   dictionary?: UiDictionary;
   deepReadingEligible?: boolean;
+  activeQuestionPresentation?: "default" | "hidden";
   initialSession?: {
     started?: boolean;
     question?: string;
@@ -38,6 +39,7 @@ export function QuestionFirst({
   storageKey,
   dictionary = EN_UI_DICTIONARY,
   deepReadingEligible = false,
+  activeQuestionPresentation = "default",
   initialSession,
   children,
 }: QuestionFirstProps) {
@@ -215,7 +217,7 @@ export function QuestionFirst({
             ) : null}
           </div>
         </section>
-      ) : (
+      ) : activeQuestionPresentation === "default" ? (
         <section className="mystic-card mb-8 p-5 sm:p-6" aria-labelledby={`${storageKey}-active-question-title`}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             {deepReadingEligible && !question ? (
@@ -255,7 +257,7 @@ export function QuestionFirst({
             ) : null}
           </div>
         </section>
-      )}
+      ) : null}
         {started ? children : null}
       </div>
     </QuestionFirstContext.Provider>

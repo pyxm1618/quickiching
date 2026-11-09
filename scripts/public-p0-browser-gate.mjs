@@ -69,7 +69,9 @@ async function skipQuestion(page) {
     .find((text) => text === "Skip — free reading only"));
   assert.equal(skipLabel, "Skip — free reading only", "Question skip must clearly leave this cast free-only");
   await clickText(page, skipLabel);
-  await waitForText(page, "Question · set before the first line");
+  // Manual Cast renders its own question block instead of the shared active-question card.
+  await page.waitForSelector("[data-manual-question]", { timeout: 15_000 });
+  await waitForText(page, "Free cast without a bound question");
 }
 
 async function assertNoOverflow(page, label) {
@@ -367,21 +369,22 @@ async function verifyChineseQuestionAndDeepEntry(page) {
 }
 
 async function setManualValues(page, values) {
-  await page.evaluate((nextValues) => {
-    const selects = [...document.querySelectorAll("select")].filter((node) => node.id !== "manual-primary-hexagram");
-    nextValues.forEach((value, index) => {
-      const select = selects[index];
-      if (!(select instanceof HTMLSelectElement)) return;
-      select.value = String(value);
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-  }, values);
+  for (let index = 0; index < values.length; index += 1) {
+    const position = index + 1;
+    const value = values[index];
+    const selector = `[data-line-position="${position}"][data-line-value="${value}"]`;
+    const button = await page.waitForSelector(selector, { timeout: 5000 });
+    assert(button, `Manual line ${position} value ${value} button missing`);
+    await button.click();
+  }
 }
 
 async function resetManualSession(page) {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(() => {
     sessionStorage.removeItem("quickiching:public-v1:manual-cast");
+    sessionStorage.removeItem("quickiching:public-v1:manual-cast:draft:v1");
+    sessionStorage.removeItem("quickiching:public-v1:completed-reading");
   });
 }
 
@@ -393,7 +396,7 @@ async function startManual(page) {
 
 async function buildManual(page, values) {
   await setManualValues(page, values);
-  await clickText(page, "Build reading");
+  await page.click("[data-manual-continue]");
   await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
   const state = await page.evaluate(() => {
@@ -428,13 +431,15 @@ async function verifyManualAndMovement(page) {
   assert.deepEqual(multipleChange.completed.lineValuesBottomUp, [6, 9, 8, 7, 8, 7]);
 
   await startManual(page);
-  await page.focus('[role="tab"][aria-selected="true"]');
+  await page.focus('[data-manual-mode="line-values"]');
   await page.keyboard.press("ArrowRight");
-  assert.equal(await page.$eval('[role="tab"][aria-selected="true"]', (node) => node.textContent?.trim()), "Mode B · primary + moving", "ArrowRight must activate and focus Manual mode B");
-  assert(await page.$('#manual-mode-primary-changing-panel[role="tabpanel"]'), "Manual mode B tabpanel relationship missing");
-  await page.select("#manual-primary-hexagram", "24");
-  await page.click('input[type="checkbox"]');
-  await clickText(page, "Build reading");
+  await page.waitForSelector('#manual-mode-primary-changing-panel[role="tabpanel"]');
+  assert.equal(await page.$eval('[data-manual-mode="primary-changing"]', (node) => node.getAttribute("aria-selected")), "true", "ArrowRight must activate Manual mode B");
+  await page.click("[data-hexagram-picker-trigger]");
+  await page.waitForSelector('[data-hexagram-number="24"]', { timeout: 5000 });
+  await page.click('[data-hexagram-number="24"]');
+  await page.click('[data-moving-line-position="1"]');
+  await page.click("[data-manual-continue]");
   await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
   const modeB = await page.evaluate(() => {

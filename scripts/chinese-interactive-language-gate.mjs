@@ -456,6 +456,9 @@ async function main() {
     const manualId = "550e8400-e29b-41d4-a716-446655440104";
     await page.goto(`${BASE}/zh/methods/manual-cast`, { waitUntil: "networkidle0" });
     await page.evaluate((id) => {
+      localStorage.setItem("quickiching:analytics-consent:v1", "denied");
+      sessionStorage.removeItem("quickiching:public-v1:manual-cast:draft:v1");
+      sessionStorage.removeItem("quickiching:public-v1:completed-reading");
       sessionStorage.setItem("quickiching:public-v1:manual-cast", JSON.stringify({
         schemaVersion: 1,
         started: true,
@@ -464,9 +467,13 @@ async function main() {
       }));
     }, manualId);
     await page.reload({ waitUntil: "networkidle0" });
-    const castManualBtn = await page.waitForSelector("section[aria-labelledby='manual-cast-tool-title'] button:not([role='tab']).mystic-button", { timeout: 5000 });
-    await castManualBtn.click();
-    await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 10_000 });
+    await page.waitForSelector("[data-manual-continue]", { timeout: 5000 });
+    await page.waitForFunction(() => {
+      const button = document.querySelector("[data-manual-continue]");
+      return button instanceof HTMLButtonElement && !button.disabled;
+    }, { timeout: 5000 });
+    await page.click("[data-manual-continue]");
+    await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 15_000 });
     await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
     const manualState = await page.evaluate(() => {
       const completedRaw = sessionStorage.getItem("quickiching:public-v1:completed-reading");

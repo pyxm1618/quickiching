@@ -203,11 +203,20 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/reading-business-browser.mjs
+          node scripts/manual-cast-ui-browser-gate.mjs
           node scripts/three-coin-v2-browser-gate.mjs
           node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth
           node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth-zh-reduced
           bun scripts/mei-hua-ui-browser-gate.mjs
           bun scripts/public-p0-browser-gate.mjs
+      - name: Upload Manual Cast visual evidence
+        if: always() && needs.select.outputs.reading == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: manual-cast-ui-visual-evidence
+          path: .artifacts/manual-cast-ui
+          if-no-files-found: warn
+          retention-days: 3
       - name: Public / SEO Gate
         if: always() && needs.select.outputs.public_seo == 'true' && steps.product_build.conclusion == 'success'
         env:
