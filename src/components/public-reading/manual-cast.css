@@ -69,6 +69,12 @@
   text-transform: none;
 }
 
+.manual-cast-page-zh .manual-cast-title h1 {
+  max-width: min(1000px, 90vw);
+  font-size: clamp(2.1rem, 3vw, 3rem);
+  line-height: 1.08;
+}
+
 body:has(.manual-cast-page) {
   background: #21160c;
 }
@@ -1004,6 +1010,10 @@ body:has(.manual-cast-page) > header {
   body:has(.manual-cast-page) .scene-scrolls,
   body:has(.manual-cast-page) .scene-brand {
     display: none;
+  }
+
+  body:has(.manual-cast-page) .scene-utility {
+    position: absolute;
   }
 
   .manual-cast-stage {
