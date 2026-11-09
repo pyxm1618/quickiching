@@ -830,6 +830,10 @@ body:has(.manual-cast-page) > header {
 }
 
 .manual-transform-arrow {
+  /* Decorative glyph only. In the stacked mobile layout it is rotated 90deg, which turns its
+     full-width box into a tall vertical strip across the moving-line list; without this the
+     strip swallows the real button hit targets. */
+  pointer-events: none;
   color: #ffc157;
   font-size: 2.5rem;
   text-align: center;

@@ -16,17 +16,20 @@ function log(message) { console.log("[Manual Cast UI] " + message); }
 function fixtureId(prefix, width) { return "550e8400-e29b-41d4-a716-" + prefix + String(width).padStart(4, "0"); }
 
 async function seedQuestion(page, route, id, question) {
-  await page.goto(BASE + route, { waitUntil: "networkidle0", timeout: 30000 });
+  // The tool resumes a saved cast on mount, so a completed cast left by an earlier handoff in this
+  // tab would redirect the route before the seed could clear it. Reset on a neutral page first.
+  await page.goto(BASE + "/robots.txt", { waitUntil: "domcontentloaded", timeout: 30000 });
   await page.evaluate((input) => {
     sessionStorage.removeItem(input.completedKey);
     sessionStorage.removeItem(input.draftKey);
+    sessionStorage.removeItem(input.sessionKey);
     localStorage.setItem(input.consentKey, "denied");
     sessionStorage.setItem(input.sessionKey, JSON.stringify({
       schemaVersion: 1, id: input.id, createdAt: new Date().toISOString(), started: true,
       question: input.question, coreQuestionFrozenAtCast: false,
     }));
   }, { sessionKey: SESSION_KEY, completedKey: COMPLETED_KEY, draftKey: DRAFT_KEY, consentKey: CONSENT_KEY, id, question });
-  await page.reload({ waitUntil: "networkidle0", timeout: 30000 });
+  await page.goto(BASE + route, { waitUntil: "networkidle0", timeout: 30000 });
   await page.waitForSelector("[data-manual-cast-tool]", { timeout: 10000 });
 }
 

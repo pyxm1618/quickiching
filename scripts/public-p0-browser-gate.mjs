@@ -69,7 +69,9 @@ async function skipQuestion(page) {
     .find((text) => text === "Skip — free reading only"));
   assert.equal(skipLabel, "Skip — free reading only", "Question skip must clearly leave this cast free-only");
   await clickText(page, skipLabel);
-  await waitForText(page, "Question · set before the first line");
+  // Manual Cast renders its own question block instead of the shared active-question card.
+  await page.waitForSelector("[data-manual-question]", { timeout: 15_000 });
+  await waitForText(page, "Free cast without a bound question");
 }
 
 async function assertNoOverflow(page, label) {
