@@ -70,9 +70,9 @@ async function exerciseModeA(page, config) {
   await page.waitForSelector("[data-manual-line-values-panel]");
   assert.equal(await page.$eval('[data-manual-mode="line-values"]', el => el.getAttribute("aria-selected")), "true", "ArrowLeft must reactivate first mode");
   await page.click('[data-line-position="4"][data-line-value="9"]');
+  await page.waitForFunction(() => document.querySelector('[data-line-position="4"][data-line-value="9"]')?.getAttribute("aria-pressed") === "true");
   await page.click('[data-line-position="2"][data-line-value="6"]');
-  assert.equal(await page.$eval('[data-line-position="4"][data-line-value="9"]', el => el.getAttribute("aria-pressed")), "true");
-  assert.equal(await page.$eval('[data-line-position="2"][data-line-value="6"]', el => el.getAttribute("aria-pressed")), "true");
+  await page.waitForFunction(() => document.querySelector('[data-line-position="2"][data-line-value="6"]')?.getAttribute("aria-pressed") === "true");
   await assertNoOverflow(page, config.locale + "/" + config.width + "/mode-a");
   if (config.width <= 390) await assertTouchTargets(page, config.locale + "/" + config.width + "/mode-a");
   if (config.captureName) await capture(page, config.captureName);
@@ -101,9 +101,9 @@ async function exerciseModeBAndRestore(page, config) {
   await page.waitForFunction(() => !document.querySelector('[role="option"]'));
   assert((await page.$eval("[data-hexagram-picker-trigger]", el => el.textContent || "")).includes("2"), config.locale + "/" + config.width + ": keyboard picker must select Hexagram 2");
   await page.click('[data-moving-line-position="3"]');
+  await page.waitForFunction(() => document.querySelector('[data-moving-line-position="3"]')?.getAttribute("aria-pressed") === "true");
   await page.click('[data-moving-line-position="5"]');
-  assert.equal(await page.$eval('[data-moving-line-position="3"]', el => el.getAttribute("aria-pressed")), "true");
-  assert.equal(await page.$eval('[data-moving-line-position="5"]', el => el.getAttribute("aria-pressed")), "true");
+  await page.waitForFunction(() => document.querySelector('[data-moving-line-position="5"]')?.getAttribute("aria-pressed") === "true");
   const relating = await page.$eval("[data-relating-hexagram-number]", el => el.getAttribute("data-relating-hexagram-number"));
   assert(relating && relating !== "none", config.locale + "/" + config.width + ": relating preview");
   await page.reload({ waitUntil: "networkidle0", timeout: 30000 });

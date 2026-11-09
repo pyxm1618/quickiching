@@ -464,9 +464,13 @@ async function main() {
       }));
     }, manualId);
     await page.reload({ waitUntil: "networkidle0" });
-    const castManualBtn = await page.waitForSelector("[data-manual-continue]", { timeout: 5000 });
-    await castManualBtn.click();
-    await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 10_000 });
+    await page.waitForSelector("[data-manual-continue]", { timeout: 5000 });
+    await page.waitForFunction(() => {
+      const button = document.querySelector("[data-manual-continue]");
+      return button instanceof HTMLButtonElement && !button.disabled;
+    }, { timeout: 5000 });
+    await page.click("[data-manual-continue]");
+    await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 15_000 });
     await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
     const manualState = await page.evaluate(() => {
       const completedRaw = sessionStorage.getItem("quickiching:public-v1:completed-reading");
