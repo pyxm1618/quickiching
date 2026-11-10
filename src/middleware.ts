@@ -221,6 +221,22 @@ export const config = {
     // The Next-Action safety boundary is pathname-independent. A `has` matcher
     // keeps it global at the routing layer without re-introducing a catch-all
     // for ordinary traffic (Workflow routes and assets do not send this header).
+    //
+    // Contract (verified against the installed Next.js 15.5.25 runtime):
+    // only a NON-EMPTY `next-action` value can be a Server Action request.
+    // `getServerActionRequestMetadata` treats the header as a possible-action
+    // prefilter, but `handleAction`'s `getActionModIdOrError` rejects a falsy
+    // actionId with InvariantError("Missing 'next-action' header.") before any
+    // worker forwarding, module lookup, reply decode or `executeAction`, and
+    // answers with 404 + `x-nextjs-action-not-found: 1`. Valid IDs are 42-char
+    // server reference IDs (`SERVER_REFERENCE_ID_LENGTH`), so an empty value is
+    // not resolvable. A `has` matcher without `value` requires a truthy header
+    // value (matchHas: `if (!hasItem.value && value)`), hence `Next-Action: ""`
+    // no longer starts Middleware; Next.js's own 404 is the authoritative
+    // boundary. Restoring the old `headers.has()` literal semantics for this
+    // case would require the "/:path*" catch-all -- do not reintroduce it.
+    // Re-validate this comment on any Next.js upgrade; see
+    // src/middleware.matcher.test.ts "empty Next-Action" suite.
     {
       source: "/:path*",
       has: [{ type: "header", key: "next-action" }],

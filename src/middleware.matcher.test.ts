@@ -1,5 +1,13 @@
+import { NextRequest } from "next/server";
+import { ACTION_HEADER } from "next/dist/client/components/app-router-headers";
 import { unstable_doesMiddlewareMatch } from "next/dist/experimental/testing/server/middleware-testing-utils";
-import { describe, expect, it } from "vitest";
+import { handleAction } from "next/dist/server/app-render/action-handler";
+import { getServerActionRequestMetadata } from "next/dist/server/lib/server-action-request-meta";
+import {
+  SERVER_REFERENCE_ID_LENGTH,
+  mightBeServerReferenceId,
+} from "next/dist/shared/lib/server-reference-info";
+import { describe, expect, it, vi } from "vitest";
 import nextConfig from "../next.config.mjs";
 import { config } from "./middleware";
 
@@ -170,5 +178,101 @@ describe("config.matcher contract (Next.js unstable_doesMiddlewareMatch)", () =>
       expect(await middlewareInvoked("/")).toBe(false);
       expect(await middlewareInvoked("/", NEXT_ACTION_HEADERS)).toBe(true);
     });
+  });
+});
+
+// Regression / contract suite for the empty `Next-Action: ""` semantic
+// difference. The `has` matcher requires a truthy header value (Next.js
+// prepare-destination.js matchHas: `if (!hasItem.value && value)`), so an
+// empty value no longer invokes Middleware, whereas the previous "/:path*" +
+// `request.headers.has("next-action")` did. This is safe and intentional:
+// Next.js 15.5.25 never recognizes an empty value as a Server Action request.
+//
+//   server/lib/server-action-request-meta.js  getServerActionRequestMetadata
+//     isFetchAction = string actionId && POST   -> possible-action PREFILTER
+//   server/app-render/action-handler.js        getActionModIdOrError
+//     `if (!actionId) throw InvariantError("Missing 'next-action' header.")`
+//     (all four fetch-action branches) -> handleUnrecognizedFetchAction
+//     -> 404 + x-nextjs-action-not-found: 1, before any decodeReply,
+//     selectWorkerForForwarding, module require or executeAction.
+//   shared/lib/server-reference-info.js       SERVER_REFERENCE_ID_LENGTH = 42
+//     mightBeServerReferenceId("") === false
+//
+// The real safety boundary is therefore a NON-EMPTY, valid action ID, not the
+// literal presence of the header. No `has` matcher (even with value ".*" or
+// "^$") can match an empty-valued header, so preserving the old literal
+// semantics would require restoring the "/:path*" catch-all. Do not do that.
+// Re-validate against the real runtime on any Next.js upgrade.
+describe("empty Next-Action is not a Server Action request (Next.js 15.5.25)", () => {
+  const path = "/methods/three-coin";
+
+  it("does not invoke Middleware, while a non-empty value still does", async () => {
+    expect(await middlewareInvoked(path, { [ACTION_HEADER]: "" })).toBe(false);
+    expect(await middlewareInvoked(path, NEXT_ACTION_HEADERS)).toBe(true);
+  });
+
+  it("is only a possible-action prefilter on POST, and not an action on GET", () => {
+    const post = new NextRequest(`${ORIGIN}${path}`, {
+      method: "POST",
+      headers: { [ACTION_HEADER]: "", "content-type": "text/plain" },
+    });
+    const metadata = getServerActionRequestMetadata(post);
+    expect(metadata.actionId).toBe("");
+    expect(metadata.isFetchAction).toBe(true);
+    // `isPossibleServerAction` is only Next.js's documented false-positive-prone
+    // prefilter, NOT a "this is a Server Action request" determination.
+    expect(metadata.isPossibleServerAction).toBe(true);
+
+    const get = new NextRequest(`${ORIGIN}${path}`, {
+      method: "GET",
+      headers: { [ACTION_HEADER]: "" },
+    });
+    expect(getServerActionRequestMetadata(get).isPossibleServerAction).toBe(false);
+  });
+
+  it("cannot resolve to an action: the empty value fails action ID validation", () => {
+    expect(SERVER_REFERENCE_ID_LENGTH).toBe(42);
+    expect(mightBeServerReferenceId("")).toBe(false);
+    expect(mightBeServerReferenceId("a".repeat(SERVER_REFERENCE_ID_LENGTH))).toBe(true);
+  });
+
+  it("Next.js handleAction answers the empty value with a 404 and executes nothing", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const responseHeaders: Record<string, string> = {};
+      const res = {
+        statusCode: 200,
+        setHeader: (key: string, value: string) => {
+          responseHeaders[key.toLowerCase()] = value;
+        },
+        getHeaders: () => ({}),
+      };
+      const requireActionModule = vi.fn(() => {
+        throw new Error("Server Action module must not be loaded for an empty action ID");
+      });
+      const req = {
+        method: "POST",
+        url: path,
+        headers: { "content-type": "text/plain", [ACTION_HEADER]: "" },
+      };
+
+      const outcome = await handleAction({
+        req,
+        res,
+        ComponentMod: { __next_app__: { require: requireActionModule } },
+        // This app defines no Server Actions; its built
+        // server-reference-manifest.json has empty node/edge maps.
+        ctx: { renderOpts: { serverActionsManifest: { node: {}, edge: {} } } },
+      } as unknown as Parameters<typeof handleAction>[0]);
+
+      expect(outcome?.type).toBe("done");
+      expect(res.statusCode).toBe(404);
+      expect(responseHeaders["x-nextjs-action-not-found"]).toBe("1");
+      expect(requireActionModule).not.toHaveBeenCalled();
+      // Next.js rejected the empty value as an invalid server reference ID.
+      expect(warn.mock.calls[0]?.[0]).toBeInstanceOf(Error);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
