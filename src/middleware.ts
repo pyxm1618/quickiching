@@ -194,6 +194,36 @@ export function middleware(request: NextRequest) {
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
+// Positive allowlist. Middleware is a Vercel Fluid Active CPU cost on every
+// invocation, so requests that do not need a capability decision must never
+// start it. The previous "/:path*" catch-all invoked middleware for every
+// public page, static asset and Workflow internal route.
 export const config = {
-  matcher: ["/:path*"],
+  matcher: [
+    // Closed API boundary: auth, checkout, refunds, Waffo webhook, reconcile,
+    // deep reading, internal APIs and unknown /api/* paths.
+    "/api/:path*",
+
+    // Page-level capability gates and retired-route responses, including their
+    // existing subpath semantics.
+    "/signin/:path*",
+    "/signup/:path*",
+    "/account/:path*",
+    "/checkout/:path*",
+    "/result/:path*",
+    "/cast/:path*",
+
+    // Chinese surface: localized capability gating, Chinese unavailable copy
+    // and the x-quickiching-pathname header used by global 404 locale detection.
+    "/zh",
+    "/zh/:path*",
+
+    // The Next-Action safety boundary is pathname-independent. A `has` matcher
+    // keeps it global at the routing layer without re-introducing a catch-all
+    // for ordinary traffic (Workflow routes and assets do not send this header).
+    {
+      source: "/:path*",
+      has: [{ type: "header", key: "next-action" }],
+    },
+  ],
 };
