@@ -15,6 +15,9 @@ const result = await Bun.build({
       builder.onResolve({ filter: /^next\/image$/ }, () => ({
         path: resolve("scripts/fixtures/next-image-stub.mjs"),
       }));
+      builder.onResolve({ filter: /^next\/navigation$/ }, () => ({
+        path: resolve("scripts/fixtures/next-navigation-stub.mjs"),
+      }));
     },
   }],
 });
