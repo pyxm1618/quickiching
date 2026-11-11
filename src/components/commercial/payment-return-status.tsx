@@ -1,5 +1,7 @@
 "use client";
 
+import React from "react";
+
 import { CheckCircle2, Clock3, LoaderCircle } from "lucide-react";
 import { getDictionary } from "@/i18n/dictionaries";
 import styles from "./commercial-ui.module.css";
