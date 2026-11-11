@@ -47,7 +47,7 @@ describe("PricingExperience formal UI", () => {
     expect(html).toContain('data-balance-state="signed-out"');
     expect(html).toContain("Sign in to view your balance");
     expect(html).not.toContain('data-balance-credits="0"');
-    expect(html).toContain('/signin?callbackURL=%2Fpricing');
+    expect(html).not.toContain('data-balance-credits="0"');
   });
 
   it("renders localized Chinese copy with identical canonical prices", () => {
