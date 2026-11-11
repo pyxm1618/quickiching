@@ -2,11 +2,15 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ThreeCoinResultClient } from '../../src/components/three-coin-result/three-coin-result-client';
+import { PricingExperience } from '../../src/components/commercial/pricing-experience';
+import { PaymentReturnStatus } from '../../src/components/commercial/payment-return-status';
+import { buildPricingView } from '../../src/app/(default)/pricing/pricing-model';
 import '../../src/components/public-reading/ritual.css';
 import { generateYarrowLine } from '../../src/domain/casting/yarrow/algorithm';
 import { meiHuaFromNumberAndTime } from '../../src/domain/casting/mei-hua/number-time';
 
 const query = new URLSearchParams(location.search);
+const surface = query.get('surface') ?? 'reading';
 const method = (query.get('method') ?? 'three_coin') as 'three_coin' | 'yarrow_stalk' | 'mei_hua_number_time' | 'manual';
 const yarrowLines = Array.from({length:6},(_,index)=>generateYarrowLine(index as 0|1|2|3|4|5,()=>2));
 const meiHuaInput = {number:29,utcMillis:Date.UTC(2026,9,31,12,0,0),ianaTimeZone:'UTC'};
@@ -15,7 +19,9 @@ const lineValues = method === 'yarrow_stalk'
   ? yarrowLines.map(line=>line.lineValue)
   : method === 'mei_hua_number_time'
     ? [...meiHua.lineValuesBottomUp]
-    : [7,7,7,7,7,7];
+    : method === 'manual'
+      ? [9,7,8,6,7,8]
+      : [7,7,7,7,7,7];
 const methodCalculation = method === 'yarrow_stalk'
   ? {kind:'yarrow-stalks',version:'yarrow-zhu-xi-digital-v2',changes:yarrowLines.flatMap(line=>line.changes)}
   : method === 'mei_hua_number_time'
@@ -24,6 +30,7 @@ const methodCalculation = method === 'yarrow_stalk'
       ? {kind:'manual',version:'manual-cast-v1',mode:'line-values'}
       : {kind:'three-coin',version:'three-coin-v1'};
 const zh = query.get('locale') === 'zh';
+const locale = zh ? 'zh-Hans' as const : 'en' as const;
 const question = zh ? '我现在是否适合换一份工作？' : 'Should I change to a new job?';
 const viewModel = zh ? {
   schemaVersion: 'ai-deep-reading-view-v1' as const,
@@ -52,6 +59,10 @@ let posted = false;
 (window as any).__requests = [];
 window.fetch = async (url, init) => {
   (window as any).__requests.push({url:String(url),method:init?.method ?? 'GET',body:init?.body});
+  if (surface === 'pricing' && init?.method === 'POST') {
+    if (query.has('signedout')) return Response.json({error:'AUTH_REQUIRED'},{status:401});
+    return Response.json({orderId:'fixture-order',checkoutUrl:'https://pancake.waffo.ai/checkout/session#token=fixture'});
+  }
   if (init?.method === 'POST') {
     posted = true;
     return Response.json({status:'queued',creditReservationCreated:true});
@@ -61,29 +72,53 @@ window.fetch = async (url, init) => {
       ? (query.has('invalid')
           ? {status:'completed',availableCredits:0}
           : {status:'completed',viewModel,context,availableCredits:0})
-      : {status:'not_started',context,availableCredits:1},
+      : {status:'not_started',context,availableCredits:query.get('credits') === '0' ? 0 : 1},
   );
 };
 
-createRoot(document.getElementById('root')!).render(<ThreeCoinResultClient
-  locale={zh ? 'zh-Hans' : 'en'}
-  pageMode={query.get('page') === 'deep' ? 'deep' : 'free'}
-  initialUser={query.has('anon') ? null : {id:'browser-fixture-owner',email:'fixture@example.com'}}
-  initialCredits={1}
-  initialState={{kind:'ready',lineValues,question}}
-  initialCastingView={{
-    castingId:'browser-fixture-cast',
-    method,
-    algorithmVersion:method==='three_coin'
-      ? 'three-coin-v1'
-      : method==='yarrow_stalk'
-        ? 'yarrow-zhu-xi-digital-v2'
-        : method==='mei_hua_number_time'
-          ? 'mei-hua-number-moment-classical-v1'
-          : 'manual-cast-v1',
-    context:question,
-    lineValuesBottomUp:lineValues,
-    methodCalculation,
-    owns:true,
-  }}
-/>);
+const root=createRoot(document.getElementById('root')!);
+if (surface === 'pricing') {
+  root.render(<PricingExperience
+    locale={locale}
+    pricing={buildPricingView(true)}
+    signedIn={!query.has('signedout')}
+    balance={Number(query.get('balance') ?? (query.has('signedout') ? 0 : 4))}
+    returnUrl={query.get('returnUrl') ?? undefined}
+  />);
+} else if (surface === 'payment') {
+  const phase=(query.get('phase') ?? 'checking') as 'checking'|'confirmed'|'delayed';
+  root.render(<main style={{minHeight:'100vh',padding:'72px 20px',background:'linear-gradient(#103635,#071f26)'}}>
+    <PaymentReturnStatus
+      phase={phase}
+      credits={Number(query.get('balance') ?? 3)}
+      locale={locale}
+      hasReadingReturn={query.get('reading') === '1'}
+      onCheckAgain={()=>{(window as any).__checkedAgain=true;}}
+      onReturnToReading={()=>{(window as any).__returnedToReading=true;}}
+      onFinishPricing={()=>{(window as any).__finishedPricing=true;}}
+    />
+  </main>);
+} else {
+  root.render(<ThreeCoinResultClient
+    locale={locale}
+    pageMode={query.get('page') === 'deep' ? 'deep' : 'free'}
+    initialUser={query.has('anon') ? null : {id:'browser-fixture-owner',email:'fixture@example.com'}}
+    initialCredits={query.get('credits') === '0' ? 0 : 1}
+    initialState={{kind:'ready',lineValues,question}}
+    initialCastingView={{
+      castingId:'browser-fixture-cast',
+      method,
+      algorithmVersion:method==='three_coin'
+        ? 'three-coin-v1'
+        : method==='yarrow_stalk'
+          ? 'yarrow-zhu-xi-digital-v2'
+          : method==='mei_hua_number_time'
+            ? 'mei-hua-number-moment-classical-v1'
+            : 'manual-cast-v1',
+      context:question,
+      lineValuesBottomUp:lineValues,
+      methodCalculation,
+      owns:true,
+    }}
+  />);
+}
