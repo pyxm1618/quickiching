@@ -322,6 +322,7 @@
   line-height: 1.7;
 }
 .paymentCard {
+  box-sizing: border-box;
   width: min(820px, 100%);
   margin: 38px auto 0;
   padding: 42px;
