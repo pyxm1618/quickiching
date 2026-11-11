@@ -193,7 +193,7 @@ try {
   assert.ok(pricingUi.text.includes(locale==='zh'?'12 个月':'12 months'));
   assert.ok(Math.max(...pricingUi.tops)-Math.min(...pricingUi.tops)<20,'desktop packs must share one row');
   await verifyCommercialResponsive(`pricing-${locale}`,'[data-checkout-button="true"]');
-  const mobileTops=await page.$eval('[data-pack]',nodes=>nodes.map(node=>Math.round(node.getBoundingClientRect().top)));
+  const mobileTops=await page.$$eval('[data-pack]',nodes=>nodes.map(node=>Math.round(node.getBoundingClientRect().top)));
   assert.ok(mobileTops[0]<mobileTops[1]&&mobileTops[1]<mobileTops[2],'mobile packs must stack vertically');
 
   await page.setViewport({width:390,height:844,deviceScaleFactor:1});
