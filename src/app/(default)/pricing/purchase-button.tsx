@@ -11,6 +11,62 @@ import {
 import { buildCheckoutReturnContext, writeCheckoutReturnContext } from "./checkout-return-context";
 import styles from "./purchase-button.module.css";
 
+type CheckoutResponseBody = {
+  orderId?: unknown;
+  checkoutUrl?: unknown;
+  expiresAt?: unknown;
+  error?: unknown;
+};
+
+export function completeCheckoutNavigation(input: {
+  body: CheckoutResponseBody | null;
+  storage: Pick<Storage, "setItem">;
+  returnUrl?: string;
+  creditsBeforeCheckout: number;
+  nowMs: number;
+  beforeNavigate: () => void;
+  navigate: (url: string) => void;
+}): boolean {
+  const { body, nowMs } = input;
+  if (
+    !Number.isFinite(nowMs)
+    || typeof body?.orderId !== "string"
+    || body.orderId.length === 0
+    || typeof body.checkoutUrl !== "string"
+    || body.checkoutUrl.length === 0
+    || typeof body.expiresAt !== "string"
+    || body.expiresAt.trim().length === 0
+  ) {
+    return false;
+  }
+
+  const expiresAt = Date.parse(body.expiresAt);
+  if (!Number.isFinite(expiresAt) || expiresAt <= nowMs) {
+    return false;
+  }
+
+  let checkoutUrl: URL;
+  try {
+    checkoutUrl = new URL(body.checkoutUrl);
+  } catch {
+    return false;
+  }
+  if (checkoutUrl.protocol !== "https:") {
+    return false;
+  }
+
+  writeCheckoutReturnContext(input.storage as Storage, buildCheckoutReturnContext({
+    returnUrl: input.returnUrl,
+    creditsBeforeCheckout: input.creditsBeforeCheckout,
+    orderId: body.orderId,
+    createdAt: nowMs,
+    expiresAt,
+  }));
+  input.beforeNavigate();
+  input.navigate(checkoutUrl.toString());
+  return true;
+}
+
 export function PurchaseButton({
   productKey,
   returnUrl,
@@ -50,34 +106,28 @@ export function PurchaseButton({
         return;
       }
 
-      const body = await response.json().catch(() => null) as {
-        orderId?: unknown;
-        checkoutUrl?: unknown;
-        error?: unknown;
-      } | null;
+      const body = await response.json().catch(() => null) as CheckoutResponseBody | null;
 
-      if (!response.ok || typeof body?.checkoutUrl !== "string" || typeof body.orderId !== "string") {
+      if (!response.ok) {
         requestIdentity.retain(productKey);
         setError(checkoutFailurePresentation(response.status, locale).message);
         return;
       }
 
-      const checkoutUrl = new URL(body.checkoutUrl);
-      if (checkoutUrl.protocol !== "https:") {
+      const completed = completeCheckoutNavigation({
+        body,
+        storage: window.sessionStorage,
+        returnUrl,
+        creditsBeforeCheckout,
+        nowMs: Date.now(),
+        beforeNavigate: () => requestIdentity.complete(productKey),
+        navigate: (url) => window.location.assign(url),
+      });
+      if (!completed) {
         requestIdentity.retain(productKey);
         setError(checkoutFailurePresentation(503, locale).message);
         return;
       }
-
-      writeCheckoutReturnContext(window.sessionStorage, buildCheckoutReturnContext({
-        returnUrl,
-        creditsBeforeCheckout,
-        orderId: body.orderId,
-        createdAt: Date.now(),
-      }));
-
-      requestIdentity.complete(productKey);
-      window.location.assign(checkoutUrl.toString());
     } catch {
       requestIdentity.retain(productKey);
       setError(checkoutFailurePresentation(503, locale).message);

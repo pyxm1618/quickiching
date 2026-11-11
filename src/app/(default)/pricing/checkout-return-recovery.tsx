@@ -25,11 +25,10 @@ export function resolveCheckoutReturnPhase(input: {
 }): ReturnPhase {
   if (!input.orderId) return "inactive";
   const matchingContext = input.context?.orderId === input.orderId ? input.context : null;
-  if (
-    matchingContext
-    && isCheckoutReturnContextFresh(matchingContext, input.nowMs ?? Date.now())
-    && input.credits > matchingContext.creditsBeforeCheckout
-  ) return "confirmed";
+  if (!matchingContext || !isCheckoutReturnContextFresh(matchingContext, input.nowMs ?? Date.now())) {
+    return "inactive";
+  }
+  if (input.credits > matchingContext.creditsBeforeCheckout) return "confirmed";
   if ((input.elapsedMs ?? 0) >= CHECKOUT_CONFIRMATION_WINDOW_MS) return "delayed";
   return "checking";
 }

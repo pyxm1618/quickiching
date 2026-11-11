@@ -1,11 +1,11 @@
 export const CHECKOUT_RETURN_CONTEXT_KEY = "quickiching:commercial:checkout-return:v1";
-export const CHECKOUT_RETURN_CONTEXT_TTL_MS = 20 * 60 * 1000;
 
 export type CheckoutReturnContext = {
   returnUrl?: string;
   creditsBeforeCheckout: number;
   orderId: string;
   createdAt: number;
+  expiresAt: number;
 };
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -23,12 +23,14 @@ export function buildCheckoutReturnContext(input: {
   creditsBeforeCheckout: number;
   orderId: string;
   createdAt: number;
+  expiresAt: number;
 }): CheckoutReturnContext {
   return {
     ...(isSafeReturnUrl(input.returnUrl) && input.returnUrl ? { returnUrl: input.returnUrl } : {}),
     creditsBeforeCheckout: input.creditsBeforeCheckout,
     orderId: input.orderId,
     createdAt: input.createdAt,
+    expiresAt: input.expiresAt,
   };
 }
 
@@ -42,16 +44,18 @@ function isContext(value: unknown): value is CheckoutReturnContext {
     && typeof candidate.orderId === "string"
     && candidate.orderId.length > 0
     && typeof candidate.createdAt === "number"
-    && Number.isFinite(candidate.createdAt);
+    && Number.isFinite(candidate.createdAt)
+    && typeof candidate.expiresAt === "number"
+    && Number.isFinite(candidate.expiresAt);
 }
 
 export function isCheckoutReturnContextFresh(
   context: CheckoutReturnContext,
   nowMs: number = Date.now(),
 ): boolean {
-  if (!Number.isFinite(nowMs)) return false;
-  const ageMs = nowMs - context.createdAt;
-  return ageMs >= 0 && ageMs <= CHECKOUT_RETURN_CONTEXT_TTL_MS;
+  return Number.isFinite(nowMs)
+    && Number.isFinite(context.expiresAt)
+    && nowMs <= context.expiresAt;
 }
 
 export function writeCheckoutReturnContext(storage: StorageLike, context: CheckoutReturnContext): void {
