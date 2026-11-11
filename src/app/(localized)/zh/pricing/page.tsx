@@ -1,3 +1,4 @@
+import React from "react";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth/session";
 import { validateAuthCallbackURL } from "@/server/auth/callback";
