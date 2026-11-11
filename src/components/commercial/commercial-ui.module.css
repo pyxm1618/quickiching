@@ -508,6 +508,15 @@
   font-size: 12px;
   line-height: 1.55;
 }
+.signInLink:focus-visible,
+.backLink:focus-visible,
+.primaryAction:focus-visible,
+.secondaryAction:focus-visible,
+.needCta:focus-visible {
+  outline: 3px solid #f3d58e;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(25, 71, 64, .88);
+}
 @keyframes commercialSpin {
   to { transform: rotate(360deg); }
 }
