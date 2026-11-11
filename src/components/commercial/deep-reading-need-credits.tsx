@@ -2,10 +2,9 @@
 
 import React from "react";
 
-import { CheckCircle2, ChevronRight } from "lucide-react";
 import type { PublicReadingMethod } from "@/domain/public-reading/types";
 import { getDictionary } from "@/i18n/dictionaries";
-import styles from "./deep-reading-need-credits.module.css";
+import styles from "@/components/three-coin-result/result-page.module.css";
 
 type Locale = "en" | "zh-Hans";
 
@@ -44,8 +43,8 @@ export function DeepReadingNeedCredits({
       aria-labelledby="need-credits-title"
     >
       <div className={styles.stageRow}>
-        <span className={styles.stageDone}><CheckCircle2 aria-hidden="true" size={15} />{copy.needCreditsStageFree}</span>
-        <ChevronRight aria-hidden="true" size={14} />
+        <span className={styles.stageDone}><span aria-hidden="true">✓</span>{copy.needCreditsStageFree}</span>
+        <span aria-hidden="true">›</span>
         <span>{copy.needCreditsStageDeep}</span>
       </div>
       <h2 id="need-credits-title">{copy.needCreditsTitle}</h2>
