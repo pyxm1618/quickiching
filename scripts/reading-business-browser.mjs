@@ -174,6 +174,44 @@ try {
   }
  }
 
+ async function verifyPaymentReturnContainment(label, expectedActionCount, capture=false) {
+  for (const [width,viewport] of commercialViewports) {
+   await page.setViewport(viewport);
+   await page.evaluate(()=>document.fonts.ready);
+   await new Promise(resolve=>setTimeout(resolve,50));
+   const metrics=await page.evaluate(()=>{
+    const card=document.querySelector('[data-payment-return-state]');
+    if(!card) return null;
+    const cardRect=card.getBoundingClientRect();
+    const actions=[...card.querySelectorAll('button,a')]
+     .filter(node=>{
+      const style=getComputedStyle(node);
+      const rect=node.getBoundingClientRect();
+      return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
+     })
+     .map(node=>({text:node.textContent?.trim()??'',rect:node.getBoundingClientRect().toJSON()}));
+    return {
+     viewport:window.innerWidth,
+     scrollWidth:document.documentElement.scrollWidth,
+     card:cardRect.toJSON(),
+     actions,
+    };
+   });
+   assert.ok(metrics,`${label} ${width}px missing payment status card`);
+   assert.ok(metrics.scrollWidth<=metrics.viewport+1,`${label} ${width}px horizontal overflow: ${metrics.scrollWidth} > ${metrics.viewport}`);
+   assert.equal(metrics.actions.length,expectedActionCount,`${label} ${width}px visible action count`);
+   for(const action of metrics.actions){
+    assert.ok(action.rect.height>=40,`${label} ${width}px action "${action.text}" is too short`);
+    assert.ok(action.rect.left>=metrics.card.left-1,`${label} ${width}px action "${action.text}" escapes status card left edge`);
+    assert.ok(action.rect.right<=metrics.card.right+1,`${label} ${width}px action "${action.text}" escapes status card right edge`);
+   }
+   if(visualOutput && capture){
+    await mkdir(visualOutput,{recursive:true});
+    await page.screenshot({path:join(visualOutput,`${label}-${width}.png`),fullPage:true});
+   }
+  }
+ }
+
  for(const locale of ['en','zh']){
   await page.setViewport({width:1440,height:1000,deviceScaleFactor:1});
   await page.goto(`${fixtureBase}/?surface=pricing&locale=${locale}&balance=4`,{waitUntil:'networkidle0'});
@@ -274,8 +312,11 @@ try {
     assert.ok(state.actions.includes(locale==='zh'?'再次检查':'Check Again'));
     assert.ok(state.actions.includes(locale==='zh'?'查看账户 / 购买记录':'View Account / Purchase History'));
    }
-   const selector=phase==='checking'?null:'[data-payment-return-state] button, [data-payment-return-state] a';
-   await verifyCommercialResponsive(`payment-${phase}-${locale}`,selector,locale==='en'&&phase==='confirmed');
+   await verifyPaymentReturnContainment(
+    `payment-${phase}-${locale}`,
+    phase==='checking'?0:2,
+    locale==='en'&&phase==='confirmed',
+   );
    evidence.push({locale,paymentReturn:phase,responsive:[1440,1024,390,375,320],ariaLive:'polite'});
   }
   await page.goto(`${fixtureBase}/?surface=payment&locale=${locale}&phase=confirmed&balance=5`,{waitUntil:'networkidle0'});
