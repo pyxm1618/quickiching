@@ -26,8 +26,6 @@ export function PricingExperience({
 }) {
   const copy = getDictionary(locale).commercial;
   const prefix = locale === "zh-Hans" ? "/zh" : "";
-  const pricingPath = prefix + "/pricing";
-  const signInHref = prefix + "/signin?callbackURL=" + encodeURIComponent(pricingPath);
   const paymentReturn = Boolean(orderId);
 
   const packLabel = (id: "one" | "three" | "five") =>
@@ -64,7 +62,7 @@ export function PricingExperience({
                   </>
                 )}
               </div>
-              {!signedIn ? <Link href={signInHref} className={styles.signInLink}>{copy.signIn}</Link> : <Gem aria-hidden="true" size={30} />}
+              {signedIn ? <Gem aria-hidden="true" size={30} /> : null}
             </section>
           ) : null}
         </header>
