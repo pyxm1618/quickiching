@@ -19,9 +19,7 @@ const lineValues = method === 'yarrow_stalk'
   ? yarrowLines.map(line=>line.lineValue)
   : method === 'mei_hua_number_time'
     ? [...meiHua.lineValuesBottomUp]
-    : method === 'manual'
-      ? [9,7,8,6,7,8]
-      : [7,7,7,7,7,7];
+    : [7,7,7,7,7,7];
 const methodCalculation = method === 'yarrow_stalk'
   ? {kind:'yarrow-stalks',version:'yarrow-zhu-xi-digital-v2',changes:yarrowLines.flatMap(line=>line.changes)}
   : method === 'mei_hua_number_time'
