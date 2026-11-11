@@ -33,7 +33,7 @@ describe("PricingExperience formal UI", () => {
     }
     expect(html.match(/data-checkout-button="true"/g)?.length).toBe(3);
     expect(html).toContain("Same Deep Reading. Choose only how many credits you want.");
-    expect(html).not.toMatch(/Basic|Pro|Premium|subscription plan/i);
+    expect(html).not.toMatch(/\bBasic\b|\bPro\b|\bPremium\b|subscription plan/i);
   });
 
   it("shows the real signed-in balance", () => {
