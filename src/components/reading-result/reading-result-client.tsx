@@ -18,7 +18,6 @@ import type {
   DeepReadingPresentationContext,
 } from "@/domain/generation/deep-reading-view-model";
 import { buildPricingHref, buildResultSigninHref } from "@/lib/commercial-navigation";
-import { DeepReadingNeedCredits } from "@/components/commercial/deep-reading-need-credits";
 import { evaluateRisk } from "@/domain/risk/engine";
 import styles from "@/components/three-coin-result/result-page.module.css";
 import { readCompletedPublicReading, publicReadingSaveInput, clearCompletedReadingForRestart } from "@/lib/completed-public-reading";
@@ -35,6 +34,9 @@ const AiDeepReadingResult = dynamic(() =>
 );
 const AiDeepReadingState = dynamic(() =>
   import("@/components/three-coin-result/ai-deep-reading-result").then((module) => module.AiDeepReadingState),
+);
+const DeepReadingNeedCredits = dynamic(() =>
+  import("@/components/commercial/deep-reading-need-credits").then((module) => module.DeepReadingNeedCredits),
 );
 
 import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
