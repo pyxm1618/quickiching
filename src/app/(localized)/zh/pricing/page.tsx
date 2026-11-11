@@ -1,13 +1,10 @@
-import React from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/session";
 import { validateAuthCallbackURL } from "@/server/auth/callback";
 import { loadEntitlementBalance } from "@/server/loaders";
 import { isCheckoutCapabilityEnabled } from "@/server/payments/capability";
+import { PricingExperience } from "@/components/commercial/pricing-experience";
 import { buildPricingView } from "@/app/(default)/pricing/pricing-model";
-import { PurchaseButton } from "@/app/(default)/pricing/purchase-button";
-import { CheckoutReturnRecovery } from "@/app/(default)/pricing/checkout-return-recovery";
 
 export const metadata: Metadata = {
   title: "深度解读次数与价格 | Quick I Ching",
@@ -19,23 +16,32 @@ export const dynamic = "force-dynamic";
 function validatedReturnUrl(candidate: string | undefined): string | undefined {
   if (!candidate) return undefined;
   const baseUrl = process.env.APP_BASE_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
-  try { return validateAuthCallbackURL(candidate, baseUrl); } catch { return undefined; }
+  try {
+    return validateAuthCallbackURL(candidate, baseUrl);
+  } catch {
+    return undefined;
+  }
 }
 
-export default async function ChinesePricingPage(props: { searchParams?: Promise<{ returnUrl?: string; preview?: string }> }) {
+export default async function ChinesePricingPage(props: {
+  searchParams?: Promise<{ returnUrl?: string; orderId?: string; preview?: string }>;
+}) {
   const searchParams = props.searchParams ? await props.searchParams : undefined;
   const returnUrl = validatedReturnUrl(searchParams?.returnUrl);
   const testPreviewAllowed = process.env.CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW === "1";
   const isPreview = testPreviewAllowed && (searchParams?.preview === "1" || searchParams?.preview === "true");
   const pricing = buildPricingView(isCheckoutCapabilityEnabled() || isPreview);
   const user = await getCurrentUser({ allowUnavailable: true });
-  const balance = user ? await loadEntitlementBalance() : { available: 0, expiringSoon: 0 };
-  if (!pricing.enabled) {
-    return <section className="mx-auto max-w-3xl px-4 py-12 sm:py-16"><p className="font-mono text-[11px] tracking-[0.14em] text-[var(--bronze)]">深度解读 · 当前未开放购买</p><h1 className="mt-3 font-display text-4xl font-medium tracking-tight">深度解读次数当前不可购买</h1><p className="mt-5 text-lg leading-8 text-[var(--ink-2)]">免费的四种起卦方法与对卦象本身的完整解读仍可使用。免费解读绝不调用 AI。支付未开放期间，无法购买深度解读次数。</p><div className="mt-8 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-6 text-sm leading-7 text-[var(--ink-2)]"><strong className="text-[var(--ink)]">深度解读范围：</strong>开放时，深度解读可用于三枚铜钱、蓍草、梅花易数和手动起卦四种正式方式，并把本次确定性卦象、实际动爻、存在时的变卦（之卦），与起卦时锁定的核心问题、你补充的现实背景和 Quick I Ching 提供的易经材料联系起来。需要登录、足够背景、通过风险检查和可用次数。支付开放后会在此展示购买条款。</div><p className="mt-8 text-sm"><Link href="/zh" className="font-semibold text-[var(--jade)] hover:underline">返回免费中文起卦 →</Link></p></section>;
-  }
-  return <section className="mx-auto max-w-5xl px-4 py-12 sm:py-16"><p className="font-mono text-[11px] tracking-[0.14em] text-[var(--bronze)]">个性化深度解读</p><h1 className="mt-3 font-display text-4xl font-medium tracking-tight">选择深度解读次数包</h1><p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">付费深度解读回答“这次卦象对我的具体处境意味着什么”。它会结合起卦前锁定的核心问题、你补充的现实背景和解释目标、本次准确的确定性卦象与动爻、之卦和 Quick I Ching 提供的易经材料，并展示可核对的解释依据。免费解读仍完整解释卦象本身，且绝不调用 AI。</p><p className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-5 text-sm leading-7 text-[var(--ink-2)]">深度解读统一支持<strong className="text-[var(--ink)]">三枚铜钱、蓍草、梅花易数和手动起卦</strong>；只要该次起卦绑定了有效锁定问题，并满足相同的保存归属、风险、次数与能力开关条件，即可进入同一套深度解读。</p>
-    <div className="mt-10 grid gap-5 md:grid-cols-3">{pricing.products.map((product) => <article key={product.id} className="relative rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-6">{product.badge ? <p className="mb-3 inline-flex rounded-full border border-[var(--line)] px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-[var(--bronze)]">推荐</p> : null}<h2 className="font-display text-2xl font-medium">{product.quantity} 次深度解读</h2><p className="mt-3 text-3xl font-semibold tracking-tight">{product.total}</p><p className="mt-1 text-sm text-[var(--ink-3)]">每次 {product.perReading} · 美元计价</p><p className="mt-4 min-h-6 text-sm font-medium text-[var(--ink-2)]">{product.quantity === 1 ? "单次使用" : product.quantity === 3 ? "适合阶段性使用" : "适合多次使用"}</p><PurchaseButton productKey={product.id} returnUrl={returnUrl} creditsBeforeCheckout={balance.available} locale="zh-Hans" /></article>)}</div>
-    <CheckoutReturnRecovery credits={balance.available} locale="zh-Hans" />
-    <div className="mt-8 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] p-6 text-sm leading-7 text-[var(--ink-2)]">解读次数自成功付款起有效 12 个月。支付前需要登录账户；启动一次付费深度解读时会先冻结一个次数，只有内容成功生成并交付后才正式扣除，生成失败或被安全规则阻断时会释放冻结次数。</div><p className="mt-8 text-sm"><Link href="/zh" className="font-semibold text-[var(--jade)] hover:underline">返回免费中文起卦 →</Link></p>
-  </section>;
+  const balance = user ? await loadEntitlementBalance(user) : { available: 0, expiringSoon: 0 };
+
+  return (
+    <PricingExperience
+      locale="zh-Hans"
+      pricing={pricing}
+      signedIn={Boolean(user)}
+      balance={balance.available}
+      returnUrl={returnUrl}
+      orderId={searchParams?.orderId}
+    />
+  );
 }

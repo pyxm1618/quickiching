@@ -1,7 +1,7 @@
 export const CHECKOUT_RETURN_CONTEXT_KEY = "quickiching:commercial:checkout-return:v1";
 
 export type CheckoutReturnContext = {
-  returnUrl: string;
+  returnUrl?: string;
   creditsBeforeCheckout: number;
   orderId: string;
   createdAt: number;
@@ -9,12 +9,18 @@ export type CheckoutReturnContext = {
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
+function isSafeReturnUrl(value: unknown): value is string | undefined {
+  return value === undefined || (
+    typeof value === "string"
+    && value.startsWith("/")
+    && !value.startsWith("//")
+  );
+}
+
 function isContext(value: unknown): value is CheckoutReturnContext {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Record<string, unknown>;
-  return typeof candidate.returnUrl === "string"
-    && candidate.returnUrl.startsWith("/")
-    && !candidate.returnUrl.startsWith("//")
+  return isSafeReturnUrl(candidate.returnUrl)
     && typeof candidate.creditsBeforeCheckout === "number"
     && Number.isInteger(candidate.creditsBeforeCheckout)
     && candidate.creditsBeforeCheckout >= 0

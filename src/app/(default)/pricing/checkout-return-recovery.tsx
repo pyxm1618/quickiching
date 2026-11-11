@@ -1,49 +1,72 @@
 "use client";
 
+import { CheckCircle2, Clock3, LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { getDictionary } from "@/i18n/dictionaries";
+import styles from "@/components/commercial/commercial-ui.module.css";
 import {
   clearCheckoutReturnContext,
   readCheckoutReturnContext,
+  type CheckoutReturnContext,
 } from "./checkout-return-context";
 
 const AUTO_REFRESH_WINDOW_MS = 30_000;
 const AUTO_REFRESH_INTERVAL_MS = 5_000;
 
-export function CheckoutReturnRecovery({ credits, locale = "en" }: { credits: number; locale?: "en" | "zh-Hans" }) {
+type ReturnPhase = "inactive" | "checking" | "confirmed" | "delayed";
+
+export function resolveCheckoutReturnPhase(input: {
+  orderId?: string;
+  context: CheckoutReturnContext | null;
+  credits: number;
+}): "inactive" | "checking" | "confirmed" {
+  if (!input.orderId) return "inactive";
+  if (!input.context || input.context.orderId !== input.orderId) return "checking";
+  return input.credits > input.context.creditsBeforeCheckout ? "confirmed" : "checking";
+}
+
+export function CheckoutReturnRecovery({
+  credits,
+  orderId,
+  locale = "en",
+}: {
+  credits: number;
+  orderId?: string;
+  locale?: "en" | "zh-Hans";
+}) {
+  const copy = getDictionary(locale).commercial;
   const zh = locale === "zh-Hans";
-  const t = (en: string, cn: string) => zh ? cn : en;
   const router = useRouter();
   const startedAtRef = useRef(Date.now());
-  const [waiting, setWaiting] = useState(false);
-  const [timedOut, setTimedOut] = useState(false);
+  const [phase, setPhase] = useState<ReturnPhase>(orderId ? "checking" : "inactive");
+  const [context, setContext] = useState<CheckoutReturnContext | null>(null);
   const [refreshPending, startRefreshTransition] = useTransition();
-  // tick increments each time we want to re-poll, even when credits hasn't changed.
-  // This forces useEffect to re-run after every router.refresh() cycle.
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    const context = readCheckoutReturnContext(window.sessionStorage);
-    if (!context) {
-      setWaiting(false);
+    if (!orderId) {
+      setPhase("inactive");
+      setContext(null);
       return;
     }
 
-    if (credits > context.creditsBeforeCheckout) {
-      clearCheckoutReturnContext(window.sessionStorage);
-      window.location.assign(context.returnUrl);
+    const stored = readCheckoutReturnContext(window.sessionStorage);
+    const matched = stored?.orderId === orderId ? stored : null;
+    setContext(matched);
+
+    if (resolveCheckoutReturnPhase({ orderId, context: matched, credits }) === "confirmed") {
+      setPhase("confirmed");
       return;
     }
-
-    setWaiting(true);
 
     if (refreshPending) return;
-
     if (Date.now() - startedAtRef.current >= AUTO_REFRESH_WINDOW_MS) {
-      setTimedOut(true);
+      setPhase("delayed");
       return;
     }
 
+    setPhase("checking");
     const timer = window.setTimeout(() => {
       startRefreshTransition(() => {
         router.refresh();
@@ -51,38 +74,82 @@ export function CheckoutReturnRecovery({ credits, locale = "en" }: { credits: nu
       });
     }, AUTO_REFRESH_INTERVAL_MS);
     return () => window.clearTimeout(timer);
-  }, [credits, refreshPending, router, tick]);
+  }, [credits, orderId, refreshPending, router, tick]);
 
-  if (!waiting) return null;
+  if (phase === "inactive") return null;
 
-  if (timedOut) {
-    return (
-      <p className="mt-6 text-center text-sm leading-6 text-[var(--ink-2)]" role="status">
-        {t("Credit confirmation is taking longer than expected.", "支付确认比预期更久。")}{" "}
-        <button
-          type="button"
-          className="underline"
-          disabled={refreshPending}
-          onClick={() => {
-            setTimedOut(false);
-            startedAtRef.current = Date.now();
-            startRefreshTransition(() => {
-              router.refresh();
-              setTick((value) => value + 1);
-            });
-          }}
-        >
-          {t("Check again", "再次检查")}
-        </button>
-        {t(", or return to your reading from", "，或者从")}{" "}
-        <a href={zh ? "/zh/account" : "/account"} className="underline">{t("account history", "账户记录")}</a>{t(".", "返回你的解读。")}
-      </p>
-    );
-  }
+  const accountHref = zh ? "/zh/account" : "/account";
+  const pricingHref = zh ? "/zh/pricing" : "/pricing";
+  const returnToReading = () => {
+    if (!context?.returnUrl) return;
+    clearCheckoutReturnContext(window.sessionStorage);
+    window.location.assign(context.returnUrl);
+  };
+  const clearAndStayOnPricing = () => {
+    clearCheckoutReturnContext(window.sessionStorage);
+  };
 
   return (
-    <p className="mt-6 text-center text-sm leading-6 text-[var(--ink-2)]" role="status">
-      {t("Payment confirmation is being checked from your account. This page will return to your reading after the credit is posted.", "正在从你的账户检查支付确认。解读次数到账后，本页面会自动返回之前的解读。")}
-    </p>
+    <section
+      className={styles.paymentCard}
+      data-payment-return-state={phase}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <div className={styles.paymentIcon} aria-hidden="true">
+        {phase === "checking" ? <LoaderCircle className={styles.spinner} /> : phase === "confirmed" ? <CheckCircle2 /> : <Clock3 />}
+      </div>
+
+      {phase === "checking" ? (
+        <>
+          <p className={styles.statusKicker}>{copy.paymentCheckingKicker}</p>
+          <h2 className={styles.statusTitle}>{copy.paymentCheckingTitle}</h2>
+          <p className={styles.statusText}>{copy.paymentCheckingDescription}</p>
+          <p className={styles.statusSafety}>{copy.paymentDoNotRepurchase}</p>
+        </>
+      ) : phase === "confirmed" ? (
+        <>
+          <p className={styles.statusKicker}>{copy.paymentConfirmedKicker}</p>
+          <h2 className={styles.statusTitle}>{copy.paymentConfirmedTitle}</h2>
+          <p className={styles.statusText}>{copy.paymentConfirmedDescription}</p>
+          <div className={styles.confirmedBalance}>{copy.currentBalance}: {credits} {credits === 1 ? copy.creditSingular : copy.creditPlural}</div>
+          {!context?.returnUrl ? <p className={styles.statusSafety}>{copy.directConfirmedNote}</p> : null}
+          <div className={styles.actions}>
+            {context?.returnUrl ? (
+              <button type="button" className={styles.primaryAction} onClick={returnToReading}>{copy.returnReading}</button>
+            ) : (
+              <a href={pricingHref} className={styles.primaryAction} onClick={clearAndStayOnPricing}>{copy.backToPacks}</a>
+            )}
+            <a href={accountHref} className={styles.secondaryAction}>{copy.viewAccount}</a>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className={styles.statusKicker}>{copy.paymentDelayedKicker}</p>
+          <h2 className={styles.statusTitle}>{copy.paymentDelayedTitle}</h2>
+          <p className={styles.statusText}>{copy.paymentDelayedDescription}</p>
+          <p className={styles.statusSafety}>{copy.paymentDoNotRepurchase}</p>
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.primaryAction}
+              disabled={refreshPending}
+              onClick={() => {
+                startedAtRef.current = Date.now();
+                setPhase("checking");
+                startRefreshTransition(() => {
+                  router.refresh();
+                  setTick((value) => value + 1);
+                });
+              }}
+            >
+              {copy.checkAgain}
+            </button>
+            <a href={accountHref} className={styles.secondaryAction}>{copy.viewAccount}</a>
+          </div>
+        </>
+      )}
+    </section>
   );
 }
