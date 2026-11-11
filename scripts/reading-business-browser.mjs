@@ -202,8 +202,8 @@ try {
    assert.equal(metrics.actions.length,expectedActionCount,`${label} ${width}px visible action count`);
    for(const action of metrics.actions){
     assert.ok(action.rect.height>=40,`${label} ${width}px action "${action.text}" is too short`);
-    assert.ok(action.rect.left>=metrics.card.left-1,`${label} ${width}px action "${action.text}" escapes status card left edge`);
-    assert.ok(action.rect.right<=metrics.card.right+1,`${label} ${width}px action "${action.text}" escapes status card right edge`);
+    assert.ok(action.rect.left>=metrics.card.left-1,`${label} ${width}px action "${action.text}" left ${action.rect.left} < card left ${metrics.card.left}`);
+    assert.ok(action.rect.right<=metrics.card.right+1,`${label} ${width}px action "${action.text}" right ${action.rect.right} > card right ${metrics.card.right}`);
    }
    if(visualOutput && capture){
     await mkdir(visualOutput,{recursive:true});
@@ -321,7 +321,7 @@ try {
   }
   await page.goto(`${fixtureBase}/?surface=payment&locale=${locale}&phase=confirmed&balance=5`,{waitUntil:'networkidle0'});
   const direct=await page.evaluate(()=>document.body.innerText);
-  assert.ok(direct.includes(locale==='zh'?'本次购买直接从 Pricing 发起':'started directly from Pricing'));
+  assert.ok(direct.includes(locale==='zh'?'本次购买直接从次数包页面发起，因此没有需要返回的原解卦。':'started directly from Pricing'));
   assert.ok(!direct.includes(locale==='zh'?'返回原来的解读':'Return to your Reading'));
   evidence.push({locale,directPricingConfirmed:true});
  }

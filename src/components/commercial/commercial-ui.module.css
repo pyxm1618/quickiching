@@ -400,6 +400,9 @@
 }
 .primaryAction,
 .secondaryAction {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
   min-height: 48px;
   display: inline-flex;
   align-items: center;
@@ -407,6 +410,7 @@
   padding: 0 20px;
   border-radius: 999px;
   font-weight: 750;
+  text-align: center;
 }
 .primaryAction {
   border: 1px solid #70441f;

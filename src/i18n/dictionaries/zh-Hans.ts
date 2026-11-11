@@ -106,7 +106,7 @@ export const ZH_HANS_UI_DICTIONARY = {
     viewAccount: "查看账户 / 购买记录",
     returnReading: "返回原来的解读",
     backToPacks: "返回次数包",
-    directConfirmedNote: "本次购买直接从 Pricing 发起，因此没有需要返回的原 Reading。",
+    directConfirmedNote: "本次购买直接从次数包页面发起，因此没有需要返回的原解卦。",
   },
   questionFirst: {
     kicker: "问题 · 免费起卦可跳过",

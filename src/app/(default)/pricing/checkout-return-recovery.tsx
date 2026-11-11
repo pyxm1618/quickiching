@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { PaymentReturnStatus, type VisiblePaymentReturnPhase } from "@/components/commercial/payment-return-status";
 import {
   clearCheckoutReturnContext,
+  isCheckoutReturnContextFresh,
   readCheckoutReturnContext,
   type CheckoutReturnContext,
 } from "./checkout-return-context";
@@ -20,9 +21,15 @@ export function resolveCheckoutReturnPhase(input: {
   context: CheckoutReturnContext | null;
   credits: number;
   elapsedMs?: number;
+  nowMs?: number;
 }): ReturnPhase {
   if (!input.orderId) return "inactive";
-  if (input.context?.orderId === input.orderId && input.credits > input.context.creditsBeforeCheckout) return "confirmed";
+  const matchingContext = input.context?.orderId === input.orderId ? input.context : null;
+  if (
+    matchingContext
+    && isCheckoutReturnContextFresh(matchingContext, input.nowMs ?? Date.now())
+    && input.credits > matchingContext.creditsBeforeCheckout
+  ) return "confirmed";
   if ((input.elapsedMs ?? 0) >= CHECKOUT_CONFIRMATION_WINDOW_MS) return "delayed";
   return "checking";
 }
@@ -49,14 +56,22 @@ export function CheckoutReturnRecovery({
       setContext(null);
       return;
     }
-    const stored = readCheckoutReturnContext(window.sessionStorage);
+    const nowMs = Date.now();
+    const stored = readCheckoutReturnContext(window.sessionStorage, nowMs);
     const matched = stored?.orderId === orderId ? stored : null;
+    if (!matched) {
+      setContext(null);
+      setPhase("inactive");
+      router.replace(locale === "zh-Hans" ? "/zh/pricing" : "/pricing");
+      return;
+    }
     setContext(matched);
     const nextPhase = resolveCheckoutReturnPhase({
       orderId,
       context: matched,
       credits,
-      elapsedMs: Date.now() - startedAtRef.current,
+      elapsedMs: nowMs - startedAtRef.current,
+      nowMs,
     });
     setPhase(nextPhase);
     if (nextPhase !== "checking" || refreshPending) return;
@@ -67,7 +82,7 @@ export function CheckoutReturnRecovery({
       });
     }, AUTO_REFRESH_INTERVAL_MS);
     return () => window.clearTimeout(timer);
-  }, [credits, orderId, refreshPending, router, tick]);
+  }, [credits, locale, orderId, refreshPending, router, tick]);
 
   if (phase === "inactive") return null;
 

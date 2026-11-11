@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CHECKOUT_RETURN_CONTEXT_KEY,
+  CHECKOUT_RETURN_CONTEXT_TTL_MS,
   buildCheckoutReturnContext,
   readCheckoutReturnContext,
   writeCheckoutReturnContext,
@@ -45,11 +46,30 @@ describe("checkout return context", () => {
     })).toEqual({ creditsBeforeCheckout: 2, orderId: "order-safe", createdAt: 789 });
   });
 
-  it("round-trips direct checkout context through session storage", () => {
+  it("round-trips a fresh direct checkout context through session storage", () => {
     const storage = new StorageStub();
-    const direct = buildCheckoutReturnContext({ creditsBeforeCheckout: 1, orderId: "direct", createdAt: 1 });
+    const now = 2_000_000;
+    const direct = buildCheckoutReturnContext({
+      creditsBeforeCheckout: 1,
+      orderId: "direct",
+      createdAt: now - CHECKOUT_RETURN_CONTEXT_TTL_MS,
+    });
     writeCheckoutReturnContext(storage as unknown as Storage, direct);
-    expect(readCheckoutReturnContext(storage as unknown as Storage)).toEqual(direct);
+    expect(readCheckoutReturnContext(storage as unknown as Storage, now)).toEqual(direct);
     expect(storage.getItem(CHECKOUT_RETURN_CONTEXT_KEY)).not.toBeNull();
+  });
+
+  it("clears and ignores stale checkout return context", () => {
+    const storage = new StorageStub();
+    const now = 2_000_000;
+    const stale = buildCheckoutReturnContext({
+      creditsBeforeCheckout: 1,
+      orderId: "stale-order",
+      createdAt: now - CHECKOUT_RETURN_CONTEXT_TTL_MS - 1,
+    });
+    writeCheckoutReturnContext(storage as unknown as Storage, stale);
+
+    expect(readCheckoutReturnContext(storage as unknown as Storage, now)).toBeNull();
+    expect(storage.getItem(CHECKOUT_RETURN_CONTEXT_KEY)).toBeNull();
   });
 });

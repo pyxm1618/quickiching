@@ -1,4 +1,5 @@
 export const CHECKOUT_RETURN_CONTEXT_KEY = "quickiching:commercial:checkout-return:v1";
+export const CHECKOUT_RETURN_CONTEXT_TTL_MS = 20 * 60 * 1000;
 
 export type CheckoutReturnContext = {
   returnUrl?: string;
@@ -44,16 +45,28 @@ function isContext(value: unknown): value is CheckoutReturnContext {
     && Number.isFinite(candidate.createdAt);
 }
 
+export function isCheckoutReturnContextFresh(
+  context: CheckoutReturnContext,
+  nowMs: number = Date.now(),
+): boolean {
+  if (!Number.isFinite(nowMs)) return false;
+  const ageMs = nowMs - context.createdAt;
+  return ageMs >= 0 && ageMs <= CHECKOUT_RETURN_CONTEXT_TTL_MS;
+}
+
 export function writeCheckoutReturnContext(storage: StorageLike, context: CheckoutReturnContext): void {
   storage.setItem(CHECKOUT_RETURN_CONTEXT_KEY, JSON.stringify(context));
 }
 
-export function readCheckoutReturnContext(storage: StorageLike): CheckoutReturnContext | null {
+export function readCheckoutReturnContext(
+  storage: StorageLike,
+  nowMs: number = Date.now(),
+): CheckoutReturnContext | null {
   const raw = storage.getItem(CHECKOUT_RETURN_CONTEXT_KEY);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as unknown;
-    if (!isContext(parsed)) {
+    if (!isContext(parsed) || !isCheckoutReturnContextFresh(parsed, nowMs)) {
       storage.removeItem(CHECKOUT_RETURN_CONTEXT_KEY);
       return null;
     }
