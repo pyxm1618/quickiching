@@ -1,5 +1,7 @@
 "use client";
 
+import React from "react";
+
 import { CheckCircle2, ChevronRight } from "lucide-react";
 import type { PublicReadingMethod } from "@/domain/public-reading/types";
 import { getDictionary } from "@/i18n/dictionaries";
