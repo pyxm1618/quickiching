@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import { CircleDollarSign, Gem, Layers3 } from "lucide-react";
 import type { PricingView } from "@/app/(default)/pricing/pricing-model";
