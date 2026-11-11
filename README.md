@@ -1,95 +1,105 @@
 # Quick I Ching
 
-Quick I Ching is an online I Ching platform with multiple casting methods. The repository contains the **credential-free Public SEO V1** and a separate, deployment-gated **paid Deep Reading** product.
+Quick I Ching is a production **I Ching online** application with four casting methods, bilingual English / Simplified Chinese public reading content, free hexagram interpretation, and capability-gated account, credit, checkout, and Deep Reading features.
 
-## Current launch stage: Public SEO V1
+**Live website:** https://www.quickiching.com
 
-The first Google + Bing indexing release is intentionally independent of production auth, database, AI, and payment credentials.
+## What Quick I Ching does
 
-### SEO position
+- Cast an I Ching reading with the Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, or Manual Cast method.
+- Show the complete six-line hexagram, primary hexagram, changing lines, and relating hexagram when moving lines exist.
+- Provide an original free basic interpretation of the cast without sending the free reading to an AI provider.
+- Publish guides plus a 64-hexagram reference library in English and Simplified Chinese.
+- Provide account-backed My Readings, one-time Deep Reading credit packs, checkout, and personalized Deep Reading surfaces when their production capabilities are enabled.
 
-- Homepage primary keyword / intent: **`i ching online`**
-- Homepage default tool: **Three-Coin Method**
-- Canonical production origin: **`https://www.quickiching.com`**
-- One primary intent = one canonical URL; near-synonym doorway pages are redirected rather than duplicated.
-
-### Public V1 casting methods
+## Public casting methods
 
 1. `/` and `/methods/three-coin` — Three-Coin Method
 2. `/methods/yarrow-stalks` — Yarrow Stalk Method
-3. `/methods/mei-hua-yi-shu` — Mei Hua Yi Shu current-time casting
+3. `/methods/mei-hua-yi-shu` — Mei Hua Yi Shu Gregorian current-time adaptation
 4. `/methods/manual-cast` — deterministic Manual Cast
 
-All four free flows end with:
+All four free methods use the same shared King Wen mapping and primary / relating hexagram computation.
 
-- complete six-line hexagram;
-- primary hexagram number/name;
-- changing-line positions;
-- relating hexagram when moving lines exist;
-- original free basic interpretation;
-- reflection / non-deterministic / non-professional-advice boundary.
+The free interpretation explains the cast itself. It does not use the user's private situation as model input and does not require sign-in, payment, credits, a production database, or an AI request.
 
-Completed readings can be saved explicitly to browser-only `/history/`; no account or cloud sync is involved in the free flow. Free interpretation explains the cast itself and never calls AI. Paid Deep Reading is a separate, server-gated Three-Coin product that relates a frozen core question and user-supplied context to the exact cast and cited I Ching material.
+## Public knowledge and SEO surfaces
 
-No sign-in, payment, credit, database, or production AI call is required for the free flow. Production Deep Reading, checkout, and account availability remain deployment-controlled and require live acceptance evidence.
+English public content includes:
 
-### Public knowledge pages
+- `/`
+- four casting-method pages
+- three I Ching guides
+- `/hexagrams`
+- 64 fixed hexagram detail pages
 
-- `/guides/how-to-ask-the-i-ching`
-- `/guides/changing-lines`
-- `/guides/primary-relating-hexagrams`
-- `/hexagrams` — 64 Hexagrams hub
-- `/hexagrams/[fixed-slug]` — 64 fixed entity pages with six line anchors
+Simplified Chinese provides an equivalent public set under `/zh`.
 
-### Simplified Chinese public coverage
+The route registry currently exposes **73 English + 73 Simplified Chinese indexable URLs = 146 canonical indexable URLs**. Equivalent English / Chinese pages emit canonical and bidirectional `hreflang` metadata.
 
-- `/zh` — 中文首页
-- `/zh/methods/*` — 4 个公开起卦方法页
-- `/zh/guides/*` — 3 个公开指南页
-- `/zh/hexagrams` — 中文六十四卦目录
-- `/zh/hexagrams/[fixed-slug]` — 64 个中文卦象详情页
-- `src/i18n/routes.ts` 是公开本地化路由的事实源；当前共有 73 个英文与 73 个简体中文可索引 URL，共 146 个，等价页面提供 canonical 与双向 `hreflang`。
+The canonical production host is:
 
-### Technical SEO
+`https://www.quickiching.com`
 
-- `www.quickiching.com` is the canonical host.
-- Legacy intent URLs use permanent redirects to their relevant canonical pages.
-- Obsolete account/checkout routes do not soft-redirect to the homepage.
-- `/sitemap.xml` lists only canonical indexable Public V1 pages.
-- `/robots.txt` references the production sitemap.
-- The sitemap inventory contains 146 canonical indexable URLs: 73 English and 73 Simplified Chinese; equivalent pages emit canonical and bidirectional `hreflang` metadata.
-- IndexNow is implemented as a dry-run-first CLI; **do not use `--submit` before independent final audit approval**.
+Homepage primary search intent:
 
-```bash
-bun run indexnow
-```
+`i ching online`
 
-## Deep Reading product boundary
+Legacy near-synonym routes use permanent redirects to the relevant canonical page rather than creating duplicate doorway pages.
 
-Public SEO V1 remains independent of commercial credentials and does not require a paid account to cast, read, or save a reading locally. The separate Three-Coin Deep Reading product is server-gated by the current deployment capabilities and account entitlement.
+Commercial, account, reading-result, and other private utility surfaces are excluded from the public SEO sitemap or marked non-indexable as appropriate.
 
-- **Free:** complete general interpretation of the cast. Free flows never call AI or send the question to an AI provider.
-- **Paid Deep Reading:** connects the frozen question, user-supplied situation, exact Three-Coin cast, and cited I Ching source material. It requires sufficient context, a passing risk check, sign-in, and an available credit.
+## Reading and account surfaces
 
-After all six lines are safely saved, the browser opens the unified result page directly. That page shows the free cast interpretation and places the situation-based Deep Reading experience before the longer free details. Yarrow, Mei Hua, and Manual Cast remain fully available as free methods; Deep Reading currently supports Three-Coin only.
+- Free reading results use the unified private result experience.
+- `/my-readings` is the account-backed reading history surface and requires an authenticated user.
+- Account, sign-in, pricing, purchase-return, and reading-management surfaces have English and Simplified Chinese counterparts where implemented.
+- The former browser-only `/history` description is no longer the current account-history model.
 
-Whether paid generation, checkout, and production account flows are enabled still depends on deployment configuration and live provider acceptance. Repository implementation and a green readiness endpoint do not prove production availability.
+## Deep Reading
+
+Deep Reading is the paid, situation-aware interpretation product. It connects a frozen core question and user-supplied context to the exact cast and cited I Ching source material.
+
+The current product contract is method-independent: Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, and Manual Cast can enter the same Deep Reading flow when the reading has the required locked question, complete deterministic cast facts, persisted ownership, risk clearance, available credit, and enabled commercial capabilities.
+
+Deep Reading generation is server-side and fail-closed. A successful reading consumes a reserved credit only after successful completion; failed or timed-out generation releases the reservation.
+
+Production availability is controlled by server-side capability resolution. Repository implementation, UI presence, or a green readiness check does not by itself prove that a live commercial provider capability is enabled.
+
+## Pricing and payments
+
+Quick I Ching implements one-time Deep Reading credit packs and a formal pricing / purchase flow.
+
+Checkout availability is capability-gated. When checkout is disabled or its required provider configuration is invalid, the product remains unavailable rather than falling back to an unsafe payment path.
+
+Waffo is the approved payment integration for the current one-time credit-pack implementation. Provider payment state, amount, currency, entitlement grant, refund eligibility, and refund settlement remain server-authoritative.
+
+Operational payment rules are documented in `docs/PAYMENT_CLOSEOUT_RUNBOOK.md`.
+
+## Trust and safety
+
+Public readings are framed as reflection rather than deterministic prediction and are not medical, legal, financial, or safety advice.
+
+Risk checks and commercial eligibility are handled before paid generation. A blocked or insufficient-context Deep Reading must not create a generation job or consume a credit.
 
 ## Domain architecture
 
-Shared pure domain logic lives under `src/domain/casting`:
+Shared pure casting logic lives under `src/domain/casting`, including:
 
-- `three-coin/algorithm.ts`
-- `yarrow/algorithm.ts`
-- `mei-hua/algorithm.ts`
-- `hexagrams/compute.ts`
-- `hexagrams/king-wen.ts`
+- Three-Coin
+- Yarrow Stalk
+- Mei Hua Yi Shu
+- shared hexagram computation
+- King Wen mapping
 
-Browser-only randomness is adapted through `src/lib/browser-random.ts` using Web Crypto. Public UI components call the shared domain functions rather than maintaining separate casting formulas.
+Browser randomness is adapted through Web Crypto rather than `Math.random()`.
 
-Original free interpretation content lives in `src/domain/interpretation/basic.ts`.
+Original free interpretation content lives under `src/domain/interpretation`.
 
-Algorithm/content provenance and the exact Yarrow + Mei Hua conventions are documented in `docs/PUBLIC_SEO_V1_PROVENANCE.md`.
+Casting-algorithm and content provenance are documented in:
+
+- `docs/PUBLIC_SEO_V1_PROVENANCE.md`
+- `docs/PUBLIC_READING_CLASSICAL_PROVENANCE.md`
 
 ## Stack
 
@@ -99,17 +109,31 @@ Algorithm/content provenance and the exact Yarrow + Mei Hua conventions are docu
 - TypeScript
 - Tailwind CSS v4
 - Vitest
-- Better Auth 1.7.1 for deployment-gated production auth
-- Drizzle ORM 0.45.x + PostgreSQL for deployment-gated commercial persistence
-- Waffo Pancake TS 0.19.1 for deployment-gated one-time credit-pack payments
+- Better Auth 1.7.1
+- Drizzle ORM 0.45.x + PostgreSQL
+- AI SDK
+- Waffo Pancake TS 0.19.1
+- Vercel Workflow 4.8.5
 
-## Deployment and commercial capability contract
+## Deployment and capability model
 
-Vercel is the production deployment target. `vercel.json` enables Git deployments for `main` and `staging`, installs with Bun 1.3.14 using the frozen lockfile, builds with `bun run build`, and schedules `/api/internal/reconcile` daily.
+Vercel is the production deployment target.
 
-Commercial V2 is controlled only by server-side capability resolution. The current capability set is `auth`, `checkout`, `webhookIngestion`, `paidDeepReading`, and `reconcile`. Missing/false capability flags remain disabled, invalid configuration fails closed, and implementation presence alone does not prove that a production capability is live.
+`vercel.json` enables Git deployments for `main` and `staging`, installs with Bun 1.3.14 using the frozen lockfile, builds with `bun run build`, and schedules `/api/internal/reconcile` daily.
 
-## Local quality commands
+Commercial production behavior is controlled by the server-side capability system in `src/server/capabilities.ts`.
+
+Current commercial capabilities are:
+
+- `auth`
+- `checkout`
+- `webhookIngestion`
+- `paidDeepReading`
+- `reconcile`
+
+Missing, disabled, or invalid capability requirements fail closed.
+
+## Local verification
 
 ```bash
 bun install --frozen-lockfile
@@ -117,8 +141,31 @@ bun run lint
 bun run typecheck
 bun run test
 bun run build
-bun run verify:classical-sources  # fixed Wikisource oldid check; requires network
-bun run indexnow        # dry-run only
+bun run verify:classical-sources
+bun run indexnow
 ```
 
-The paid Deep Reading implementation remains deployment-gated. See `docs/PRD.md` and `docs/技术设计文档.md` for its product and service contracts.
+`bun run indexnow` is dry-run first. Production submission should only be used under the repository's release and audit controls.
+
+CI additionally selects and runs targeted database, reading, public SEO, account/info, payment, hexagram-detail, and performance gates based on the changed files.
+
+## Sources of truth
+
+- Product requirements: `docs/PRD.md`
+- Technical design: `docs/技术设计文档.md`
+- Localized public route registry: `src/i18n/routes.ts`
+- Commercial capability resolution: `src/server/capabilities.ts`
+- Payment operations: `docs/PAYMENT_CLOSEOUT_RUNBOOK.md`
+- Public casting provenance: `docs/PUBLIC_SEO_V1_PROVENANCE.md`
+- Classical reading provenance: `docs/PUBLIC_READING_CLASSICAL_PROVENANCE.md`
+- Dependency versions and scripts: `package.json`
+- Production deployment contract: `vercel.json`
+- CI gates: `.github/workflows/ci.yml`
+
+Executable configuration and current code control live runtime behavior. Product and technical documents define the intended contracts but do not override current capability resolution or deployment state.
+
+## License
+
+This repository does not currently grant an open-source license for the Quick I Ching application source code, first-party interpretation content, or first-party project assets.
+
+Third-party libraries, classical source material, fonts, and other external assets remain subject to their respective licenses, provenance requirements, terms, and notices.
