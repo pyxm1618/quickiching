@@ -9,6 +9,7 @@ import {
   createCheckoutRequestIdentityStore,
 } from "./checkout-request-identity";
 import { buildCheckoutReturnContext, writeCheckoutReturnContext } from "./checkout-return-context";
+import styles from "./purchase-button.module.css";
 
 export function PurchaseButton({
   productKey,
@@ -94,11 +95,11 @@ export function PurchaseButton({
         data-purchase-product={productKey}
         onClick={beginCheckout}
         disabled={pending}
-        className="min-h-12 w-full rounded-full border border-[#83502a] bg-[linear-gradient(135deg,#9a551f,#642f14)] px-4 py-3 text-sm font-semibold text-[#fff1d2] transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
+        className={styles.button}
       >
         {pending ? copy.openingCheckout : copy.buyCredits}
       </button>
-      {error ? <p data-checkout-error="true" className="mt-2 text-xs leading-5 text-[var(--danger)]" role="alert">{error}</p> : null}
+      {error ? <p data-checkout-error="true" className={styles.error} role="alert">{error}</p> : null}
     </div>
   );
 }
