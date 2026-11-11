@@ -8,12 +8,15 @@ const result = await Bun.build({
   outdir,
   target: "browser",
   minify: true,
-  external: ["/ai-deep-reading/*", "/performance/*", "/ritual/*", "/free-reading/*"],
+  external: ["/ai-deep-reading/*", "/performance/*", "/ritual/*", "/free-reading/*", "/account/*"],
   plugins: [{
     name: "reading-fixture-next-image",
     setup(builder) {
       builder.onResolve({ filter: /^next\/image$/ }, () => ({
         path: resolve("scripts/fixtures/next-image-stub.mjs"),
+      }));
+      builder.onResolve({ filter: /^next\/navigation$/ }, () => ({
+        path: resolve("scripts/fixtures/next-navigation-stub.mjs"),
       }));
     },
   }],

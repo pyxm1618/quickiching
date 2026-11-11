@@ -35,6 +35,9 @@ const AiDeepReadingResult = dynamic(() =>
 const AiDeepReadingState = dynamic(() =>
   import("@/components/three-coin-result/ai-deep-reading-result").then((module) => module.AiDeepReadingState),
 );
+const DeepReadingNeedCredits = dynamic(() =>
+  import("@/components/commercial/deep-reading-need-credits").then((module) => module.DeepReadingNeedCredits),
+);
 
 import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
 export type ResultState =
@@ -834,10 +837,15 @@ export function ReadingResultClient({
         {t("Reading your locked question and this cast…", "正在解读你锁定的问题与本次卦象…")}
       </div> : deepRiskBlocked ? <div role="status" data-deep-reading-blocked="risk">{deepRiskMessage}</div>
       : !deepQuestion.trim() ? <p data-deep-reading-blocked="missing-question">{t("This historical cast has no locked question. Start a new cast with a question to use Deep Reading.", "这次历史起卦没有锁定的问题。如需深度解读，请带着问题重新起卦。")}</p>
-      : credits <= 0 ? <div>
-        <button type="button" onClick={handleOpenPricing} className="mystic-button">{t("Choose a Deep Reading pack", "选择深度解读次数包")}</button>
-        <p>{t("No generation starts until a credit is available.", "获得次数前不会启动生成。")}</p>
-      </div> : <div>
+      : credits <= 0 ? <DeepReadingNeedCredits
+        locale={locale}
+        balance={credits}
+        method={resultReading!.method}
+        primaryHexagram={resultReading!.primaryHexagram}
+        changingLines={resultReading!.changingLines}
+        relatingHexagram={resultReading!.relatingHexagram}
+        onOpenPricing={handleOpenPricing}
+      /> : <div>
         <button type="button" onClick={handleUnlockDeepReading} className="mystic-button" data-start-deep-reading>{deepStatus === "failed" ? t("Retry this reading", "重试本次解读") : t("Get My Deep Reading", "获取我的深度解读")}</button>
         <p>{t(`${credits} credits available. One reserved per generation; released on failure.`, `可用 ${credits} 次；每次生成预留 1 次，失败释放。`)}</p>
       </div>}

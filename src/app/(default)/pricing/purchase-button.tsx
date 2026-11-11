@@ -3,11 +3,69 @@
 import React, { useState } from "react";
 import type { ProductId } from "@/domain/entitlements/pricing";
 import { buildPricingSigninHref } from "@/lib/commercial-navigation";
+import { getDictionary } from "@/i18n/dictionaries";
 import {
   checkoutFailurePresentation,
   createCheckoutRequestIdentityStore,
 } from "./checkout-request-identity";
-import { writeCheckoutReturnContext } from "./checkout-return-context";
+import { buildCheckoutReturnContext, writeCheckoutReturnContext } from "./checkout-return-context";
+import styles from "./purchase-button.module.css";
+
+type CheckoutResponseBody = {
+  orderId?: unknown;
+  checkoutUrl?: unknown;
+  expiresAt?: unknown;
+  error?: unknown;
+};
+
+export function completeCheckoutNavigation(input: {
+  body: CheckoutResponseBody | null;
+  storage: Pick<Storage, "setItem">;
+  returnUrl?: string;
+  creditsBeforeCheckout: number;
+  nowMs: number;
+  beforeNavigate: () => void;
+  navigate: (url: string) => void;
+}): boolean {
+  const { body, nowMs } = input;
+  if (
+    !Number.isFinite(nowMs)
+    || typeof body?.orderId !== "string"
+    || body.orderId.length === 0
+    || typeof body.checkoutUrl !== "string"
+    || body.checkoutUrl.length === 0
+    || typeof body.expiresAt !== "string"
+    || body.expiresAt.trim().length === 0
+  ) {
+    return false;
+  }
+
+  const expiresAt = Date.parse(body.expiresAt);
+  if (!Number.isFinite(expiresAt) || expiresAt <= nowMs) {
+    return false;
+  }
+
+  let checkoutUrl: URL;
+  try {
+    checkoutUrl = new URL(body.checkoutUrl);
+  } catch {
+    return false;
+  }
+  if (checkoutUrl.protocol !== "https:") {
+    return false;
+  }
+
+  writeCheckoutReturnContext(input.storage as Storage, buildCheckoutReturnContext({
+    returnUrl: input.returnUrl,
+    creditsBeforeCheckout: input.creditsBeforeCheckout,
+    orderId: body.orderId,
+    createdAt: nowMs,
+    expiresAt,
+  }));
+  input.beforeNavigate();
+  input.navigate(checkoutUrl.toString());
+  return true;
+}
 
 export function PurchaseButton({
   productKey,
@@ -20,8 +78,8 @@ export function PurchaseButton({
   creditsBeforeCheckout: number;
   locale?: "en" | "zh-Hans";
 }) {
+  const copy = getDictionary(locale).commercial;
   const zh = locale === "zh-Hans";
-  const t = (en: string, cn: string) => zh ? cn : en;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,15 +95,10 @@ export function PurchaseButton({
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productKey,
-          requestId,
-          locale,
-        }),
+        body: JSON.stringify({ productKey, requestId, locale }),
       });
 
       if (response.status === 401) {
-        // No provider/local checkout was created before the authentication gate.
         requestIdentity.complete(productKey);
         window.location.assign(returnUrl
           ? buildPricingSigninHref(returnUrl, locale)
@@ -53,41 +106,28 @@ export function PurchaseButton({
         return;
       }
 
-      const body = await response.json().catch(() => null) as {
-        orderId?: unknown;
-        checkoutUrl?: unknown;
-        error?: unknown;
-      } | null;
+      const body = await response.json().catch(() => null) as CheckoutResponseBody | null;
 
-      if (!response.ok || typeof body?.checkoutUrl !== "string" || typeof body.orderId !== "string") {
-        // 409, transport uncertainty and retryable failures must keep the same
-        // requestId. The server remains the authority for the existing order.
+      if (!response.ok) {
         requestIdentity.retain(productKey);
         setError(checkoutFailurePresentation(response.status, locale).message);
         return;
       }
 
-      const checkoutUrl = new URL(body.checkoutUrl);
-      if (checkoutUrl.protocol !== "https:") {
+      const completed = completeCheckoutNavigation({
+        body,
+        storage: window.sessionStorage,
+        returnUrl,
+        creditsBeforeCheckout,
+        nowMs: Date.now(),
+        beforeNavigate: () => requestIdentity.complete(productKey),
+        navigate: (url) => window.location.assign(url),
+      });
+      if (!completed) {
         requestIdentity.retain(productKey);
         setError(checkoutFailurePresentation(503, locale).message);
         return;
       }
-
-      if (returnUrl) {
-        writeCheckoutReturnContext(window.sessionStorage, {
-          returnUrl,
-          creditsBeforeCheckout,
-          orderId: body.orderId,
-          createdAt: Date.now(),
-        });
-      }
-
-      // A provider checkout URL has now been authoritatively created/resolved.
-      // Clear only at the confirmed handoff so a later deliberate purchase can
-      // start a fresh transaction identity.
-      requestIdentity.complete(productKey);
-      window.location.assign(checkoutUrl.toString());
     } catch {
       requestIdentity.retain(productKey);
       setError(checkoutFailurePresentation(503, locale).message);
@@ -105,11 +145,11 @@ export function PurchaseButton({
         data-purchase-product={productKey}
         onClick={beginCheckout}
         disabled={pending}
-        className="w-full rounded-lg bg-[var(--jade)] px-4 py-3 text-sm font-semibold text-[#071414] transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+        className={styles.button}
       >
-        {pending ? t("Opening secure checkout…", "正在打开安全支付页面…") : t("Buy reading credits", "购买深度解读次数")}
+        {pending ? copy.openingCheckout : copy.buyCredits}
       </button>
-      {error ? <p data-checkout-error="true" className="mt-2 text-xs leading-5 text-[var(--danger)]" role="alert">{error}</p> : null}
+      {error ? <p data-checkout-error="true" className={styles.error} role="alert">{error}</p> : null}
     </div>
   );
 }

@@ -6,6 +6,11 @@ import {
   writeCheckoutReturnContext,
   type CheckoutReturnContext,
 } from "./checkout-return-context";
+import {
+  CHECKOUT_CONFIRMATION_WINDOW_MS,
+  CheckoutReturnRecovery,
+  resolveCheckoutReturnPhase,
+} from "./checkout-return-recovery";
 
 // Setup minimal DOM shim for React 19 createRoot in Node environment
 class MockNode {
@@ -107,6 +112,7 @@ class MockSessionStorage {
 
 const mockRouter = {
   refresh: vi.fn(),
+  replace: vi.fn(),
 };
 
 vi.mock("next/navigation", () => ({
@@ -144,8 +150,6 @@ mockDoc.defaultView = mockWindow;
 (globalThis as any).document = mockDoc;
 (globalThis as any).window = mockWindow;
 
-import { CheckoutReturnRecovery } from "./checkout-return-recovery";
-
 async function flushMicrotasks() {
   for (let i = 0; i < 20; i++) {
     await Promise.resolve();
@@ -166,6 +170,84 @@ async function advanceTimersAndFlush(ms: number) {
   });
 }
 
+describe("checkout return reconciliation", () => {
+  it("never confirms from orderId alone", () => {
+    expect(resolveCheckoutReturnPhase({
+      orderId: "order-1",
+      context: null,
+      credits: 99,
+    })).toBe("inactive");
+
+    expect(resolveCheckoutReturnPhase({
+      orderId: "order-1",
+      context: {
+        orderId: "other",
+        creditsBeforeCheckout: 0,
+        createdAt: 1,
+        expiresAt: Number.MAX_SAFE_INTEGER,
+      },
+      credits: 99,
+    })).toBe("inactive");
+  });
+
+  it("confirms only after a fresh matched checkout context observes a real balance increase", () => {
+    const now = 2_000_000;
+    const context: CheckoutReturnContext = {
+      orderId: "order-1",
+      creditsBeforeCheckout: 2,
+      createdAt: now - 1,
+      expiresAt: now + 60_000,
+    };
+
+    expect(resolveCheckoutReturnPhase({
+      orderId: "order-1",
+      context,
+      credits: 2,
+      nowMs: now,
+    })).toBe("checking");
+
+    expect(resolveCheckoutReturnPhase({
+      orderId: "order-1",
+      context,
+      credits: 3,
+      nowMs: now,
+    })).toBe("confirmed");
+  });
+
+  it("never confirms an expired matched order after an unrelated balance increase", () => {
+    const now = 2_000_000;
+    const context: CheckoutReturnContext = {
+      orderId: "order-old",
+      creditsBeforeCheckout: 0,
+      createdAt: now - 1_000,
+      expiresAt: now - 1,
+    };
+
+    expect(resolveCheckoutReturnPhase({
+      orderId: "order-old",
+      context,
+      credits: 99,
+      nowMs: now,
+    })).toBe("inactive");
+  });
+
+  it("enters DELAYED after the bounded confirmation window only for a fresh matched context", () => {
+    const context: CheckoutReturnContext = {
+      orderId: "order-1",
+      creditsBeforeCheckout: 2,
+      createdAt: 1,
+      expiresAt: Number.MAX_SAFE_INTEGER,
+    };
+
+    expect(resolveCheckoutReturnPhase({
+      orderId: "order-1",
+      context,
+      credits: 2,
+      elapsedMs: CHECKOUT_CONFIRMATION_WINDOW_MS,
+    })).toBe("delayed");
+  });
+});
+
 describe("CheckoutReturnRecovery actual React component lifecycle", () => {
   let container: MockElement;
   let root: Root;
@@ -173,6 +255,7 @@ describe("CheckoutReturnRecovery actual React component lifecycle", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     mockRouter.refresh.mockClear();
+    mockRouter.replace.mockClear();
     mockAssign.mockClear();
     mockStorage.clear();
     container = mockDoc.createElement("div");
@@ -187,40 +270,42 @@ describe("CheckoutReturnRecovery actual React component lifecycle", () => {
     vi.useRealTimers();
   });
 
-  it("continuously polls via router.refresh() when credits unchanged, and navigates when credits arrive later", async () => {
+  it("continuously polls while credits are unchanged, then stops without auto-navigation when credits arrive", async () => {
     const initialContext: CheckoutReturnContext = {
-      returnUrl: "/readings/three-coin/result?id=test-casting-123",
+      returnUrl: "/readings/deep?session=test-casting-123",
       creditsBeforeCheckout: 0,
       orderId: "ord-test-456",
       createdAt: Date.now(),
+      expiresAt: Date.now() + 10 * 60_000,
     };
-    writeCheckoutReturnContext(mockStorage, initialContext);
+    writeCheckoutReturnContext(mockStorage as unknown as Storage, initialContext);
 
-    // 1. 初始挂载：credits 为 0（未到账）
-    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, { credits: 0 }));
+    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, {
+      credits: 0,
+      orderId: "ord-test-456",
+    }));
     await advanceTimersAndFlush(0);
 
     expect(mockRouter.refresh).not.toHaveBeenCalled();
 
-    // 2. 推进 5000ms -> 第 1 次轮询 tick 触发
     await advanceTimersAndFlush(5000);
     expect(mockRouter.refresh).toHaveBeenCalledTimes(1);
 
-    // 3. 再次推进 5000ms -> 第 2 次轮询 tick 触发（证明 credits 没变时依然持续轮询）
     await advanceTimersAndFlush(5000);
     expect(mockRouter.refresh).toHaveBeenCalledTimes(2);
 
-    // 4. 再次推进 5000ms -> 第 3 次轮询 tick 触发
     await advanceTimersAndFlush(5000);
     expect(mockRouter.refresh).toHaveBeenCalledTimes(3);
 
-    // 5. 额度稍后到账！重新渲染组件：credits 变为 1
-    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, { credits: 1 }));
+    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, {
+      credits: 1,
+      orderId: "ord-test-456",
+    }));
     await advanceTimersAndFlush(0);
 
-    // 验证：sessionStorage context 被清除，且通过 location.assign 返回原起卦页
-    expect(mockStorage.getItem(CHECKOUT_RETURN_CONTEXT_KEY)).toBeNull();
-    expect(mockAssign).toHaveBeenCalledWith("/readings/three-coin/result?id=test-casting-123");
+    expect(mockStorage.getItem(CHECKOUT_RETURN_CONTEXT_KEY)).not.toBeNull();
+    expect(mockAssign).not.toHaveBeenCalled();
+
     const refreshesAtCompletion = mockRouter.refresh.mock.calls.length;
     await advanceTimersAndFlush(10_000);
     expect(mockRouter.refresh.mock.calls.length).toBe(refreshesAtCompletion);
@@ -228,36 +313,108 @@ describe("CheckoutReturnRecovery actual React component lifecycle", () => {
 
   it("stops polling after 30s timeout when credits never arrive", async () => {
     const initialContext: CheckoutReturnContext = {
-      returnUrl: "/readings/three-coin/result?id=test-casting-timeout",
+      returnUrl: "/readings/deep?session=test-casting-timeout",
       creditsBeforeCheckout: 0,
       orderId: "ord-test-timeout",
       createdAt: Date.now(),
+      expiresAt: Date.now() + 10 * 60_000,
     };
-    writeCheckoutReturnContext(mockStorage, initialContext);
+    writeCheckoutReturnContext(mockStorage as unknown as Storage, initialContext);
 
-    // 初始挂载
-    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, { credits: 0 }));
+    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, {
+      credits: 0,
+      orderId: "ord-test-timeout",
+    }));
     await advanceTimersAndFlush(0);
 
-    // 推进 25000ms (5 次 5000ms 轮询)
     for (let i = 0; i < 5; i++) {
       await advanceTimersAndFlush(5000);
     }
     const refreshesBeforeTimeout = mockRouter.refresh.mock.calls.length;
     expect(refreshesBeforeTimeout).toBe(5);
 
-    // 超过 30s 窗口（推进到 31000ms）
     await advanceTimersAndFlush(6000);
-
     const refreshesAtTimeout = mockRouter.refresh.mock.calls.length;
 
-    // 再次推进 5000ms，验证轮询彻底停止，不再产生新的 refresh 调用
     await advanceTimersAndFlush(5000);
     expect(mockRouter.refresh.mock.calls.length).toBe(refreshesAtTimeout);
-
-    // 从未跳转
     expect(mockAssign).not.toHaveBeenCalled();
-    // context 保留供从账户历史查看
     expect(mockStorage.getItem(CHECKOUT_RETURN_CONTEXT_KEY)).not.toBeNull();
+  });
+
+  it("clears expired matching context and exits the payment-return state", async () => {
+    const initialContext: CheckoutReturnContext = {
+      returnUrl: "/readings/deep?session=stale-casting",
+      creditsBeforeCheckout: 0,
+      orderId: "ord-stale",
+      createdAt: Date.now() - 60_000,
+      expiresAt: Date.now() - 1,
+    };
+    writeCheckoutReturnContext(mockStorage as unknown as Storage, initialContext);
+
+    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, {
+      credits: 99,
+      orderId: "ord-stale",
+    }));
+    await advanceTimersAndFlush(0);
+
+    expect(mockStorage.getItem(CHECKOUT_RETURN_CONTEXT_KEY)).toBeNull();
+    expect(mockRouter.replace).toHaveBeenCalledWith("/pricing");
+    expect(mockRouter.refresh).not.toHaveBeenCalled();
+    expect(mockAssign).not.toHaveBeenCalled();
+  });
+
+  it("clears old schema without expiresAt and exits without reconciliation", async () => {
+    mockStorage.setItem(CHECKOUT_RETURN_CONTEXT_KEY, JSON.stringify({
+      returnUrl: "/readings/deep?session=legacy",
+      creditsBeforeCheckout: 0,
+      orderId: "ord-legacy",
+      createdAt: Date.now(),
+    }));
+
+    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, {
+      credits: 99,
+      orderId: "ord-legacy",
+    }));
+    await advanceTimersAndFlush(0);
+
+    expect(mockStorage.getItem(CHECKOUT_RETURN_CONTEXT_KEY)).toBeNull();
+    expect(mockRouter.replace).toHaveBeenCalledWith("/pricing");
+    expect(mockRouter.refresh).not.toHaveBeenCalled();
+    expect(mockAssign).not.toHaveBeenCalled();
+  });
+
+  it("normalizes an expired Chinese return to /zh/pricing without reconciliation", async () => {
+    const initialContext: CheckoutReturnContext = {
+      creditsBeforeCheckout: 0,
+      orderId: "ord-stale-zh",
+      createdAt: Date.now() - 60_000,
+      expiresAt: Date.now() - 1,
+    };
+    writeCheckoutReturnContext(mockStorage as unknown as Storage, initialContext);
+
+    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, {
+      credits: 99,
+      orderId: "ord-stale-zh",
+      locale: "zh-Hans",
+    }));
+    await advanceTimersAndFlush(0);
+
+    expect(mockStorage.getItem(CHECKOUT_RETURN_CONTEXT_KEY)).toBeNull();
+    expect(mockRouter.replace).toHaveBeenCalledWith("/zh/pricing");
+    expect(mockRouter.refresh).not.toHaveBeenCalled();
+    expect(mockAssign).not.toHaveBeenCalled();
+  });
+
+  it("does not reconcile or confirm when the return URL has only an orderId", async () => {
+    await renderAndFlush(root, React.createElement(CheckoutReturnRecovery, {
+      credits: 99,
+      orderId: "ord-url-only",
+    }));
+    await advanceTimersAndFlush(0);
+
+    expect(mockRouter.replace).toHaveBeenCalledWith("/pricing");
+    expect(mockRouter.refresh).not.toHaveBeenCalled();
+    expect(mockAssign).not.toHaveBeenCalled();
   });
 });

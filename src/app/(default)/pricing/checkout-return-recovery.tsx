@@ -1,49 +1,79 @@
 "use client";
 
+import React from "react";
+
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { PaymentReturnStatus, type VisiblePaymentReturnPhase } from "@/components/commercial/payment-return-status";
 import {
   clearCheckoutReturnContext,
+  isCheckoutReturnContextFresh,
   readCheckoutReturnContext,
+  type CheckoutReturnContext,
 } from "./checkout-return-context";
 
-const AUTO_REFRESH_WINDOW_MS = 30_000;
+export const CHECKOUT_CONFIRMATION_WINDOW_MS = 30_000;
 const AUTO_REFRESH_INTERVAL_MS = 5_000;
+type ReturnPhase = "inactive" | VisiblePaymentReturnPhase;
 
-export function CheckoutReturnRecovery({ credits, locale = "en" }: { credits: number; locale?: "en" | "zh-Hans" }) {
-  const zh = locale === "zh-Hans";
-  const t = (en: string, cn: string) => zh ? cn : en;
+export function resolveCheckoutReturnPhase(input: {
+  orderId?: string;
+  context: CheckoutReturnContext | null;
+  credits: number;
+  elapsedMs?: number;
+  nowMs?: number;
+}): ReturnPhase {
+  if (!input.orderId) return "inactive";
+  const matchingContext = input.context?.orderId === input.orderId ? input.context : null;
+  if (!matchingContext || !isCheckoutReturnContextFresh(matchingContext, input.nowMs ?? Date.now())) {
+    return "inactive";
+  }
+  if (input.credits > matchingContext.creditsBeforeCheckout) return "confirmed";
+  if ((input.elapsedMs ?? 0) >= CHECKOUT_CONFIRMATION_WINDOW_MS) return "delayed";
+  return "checking";
+}
+
+export function CheckoutReturnRecovery({
+  credits,
+  orderId,
+  locale = "en",
+}: {
+  credits: number;
+  orderId?: string;
+  locale?: "en" | "zh-Hans";
+}) {
   const router = useRouter();
   const startedAtRef = useRef(Date.now());
-  const [waiting, setWaiting] = useState(false);
-  const [timedOut, setTimedOut] = useState(false);
+  const [phase, setPhase] = useState<ReturnPhase>(orderId ? "checking" : "inactive");
+  const [context, setContext] = useState<CheckoutReturnContext | null>(null);
   const [refreshPending, startRefreshTransition] = useTransition();
-  // tick increments each time we want to re-poll, even when credits hasn't changed.
-  // This forces useEffect to re-run after every router.refresh() cycle.
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    const context = readCheckoutReturnContext(window.sessionStorage);
-    if (!context) {
-      setWaiting(false);
+    if (!orderId) {
+      setPhase("inactive");
+      setContext(null);
       return;
     }
-
-    if (credits > context.creditsBeforeCheckout) {
-      clearCheckoutReturnContext(window.sessionStorage);
-      window.location.assign(context.returnUrl);
+    const nowMs = Date.now();
+    const stored = readCheckoutReturnContext(window.sessionStorage, nowMs);
+    const matched = stored?.orderId === orderId ? stored : null;
+    if (!matched) {
+      setContext(null);
+      setPhase("inactive");
+      router.replace(locale === "zh-Hans" ? "/zh/pricing" : "/pricing");
       return;
     }
-
-    setWaiting(true);
-
-    if (refreshPending) return;
-
-    if (Date.now() - startedAtRef.current >= AUTO_REFRESH_WINDOW_MS) {
-      setTimedOut(true);
-      return;
-    }
-
+    setContext(matched);
+    const nextPhase = resolveCheckoutReturnPhase({
+      orderId,
+      context: matched,
+      credits,
+      elapsedMs: nowMs - startedAtRef.current,
+      nowMs,
+    });
+    setPhase(nextPhase);
+    if (nextPhase !== "checking" || refreshPending) return;
     const timer = window.setTimeout(() => {
       startRefreshTransition(() => {
         router.refresh();
@@ -51,38 +81,33 @@ export function CheckoutReturnRecovery({ credits, locale = "en" }: { credits: nu
       });
     }, AUTO_REFRESH_INTERVAL_MS);
     return () => window.clearTimeout(timer);
-  }, [credits, refreshPending, router, tick]);
+  }, [credits, locale, orderId, refreshPending, router, tick]);
 
-  if (!waiting) return null;
+  if (phase === "inactive") return null;
 
-  if (timedOut) {
-    return (
-      <p className="mt-6 text-center text-sm leading-6 text-[var(--ink-2)]" role="status">
-        {t("Credit confirmation is taking longer than expected.", "支付确认比预期更久。")}{" "}
-        <button
-          type="button"
-          className="underline"
-          disabled={refreshPending}
-          onClick={() => {
-            setTimedOut(false);
-            startedAtRef.current = Date.now();
-            startRefreshTransition(() => {
-              router.refresh();
-              setTick((value) => value + 1);
-            });
-          }}
-        >
-          {t("Check again", "再次检查")}
-        </button>
-        {t(", or return to your reading from", "，或者从")}{" "}
-        <a href={zh ? "/zh/account" : "/account"} className="underline">{t("account history", "账户记录")}</a>{t(".", "返回你的解读。")}
-      </p>
-    );
-  }
+  const returnToReading = () => {
+    if (!context?.returnUrl) return;
+    clearCheckoutReturnContext(window.sessionStorage);
+    window.location.assign(context.returnUrl);
+  };
+  const clearAndStayOnPricing = () => clearCheckoutReturnContext(window.sessionStorage);
+  const checkAgain = () => {
+    startedAtRef.current = Date.now();
+    setPhase("checking");
+    startRefreshTransition(() => {
+      router.refresh();
+      setTick((value) => value + 1);
+    });
+  };
 
-  return (
-    <p className="mt-6 text-center text-sm leading-6 text-[var(--ink-2)]" role="status">
-      {t("Payment confirmation is being checked from your account. This page will return to your reading after the credit is posted.", "正在从你的账户检查支付确认。解读次数到账后，本页面会自动返回之前的解读。")}
-    </p>
-  );
+  return <PaymentReturnStatus
+    phase={phase}
+    credits={credits}
+    locale={locale}
+    hasReadingReturn={Boolean(context?.returnUrl)}
+    refreshPending={refreshPending}
+    onCheckAgain={checkAgain}
+    onReturnToReading={returnToReading}
+    onFinishPricing={clearAndStayOnPricing}
+  />;
 }

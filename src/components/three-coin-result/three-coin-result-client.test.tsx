@@ -329,7 +329,7 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     );
 
     expect(html).toContain("Choose a Deep Reading pack");
-    expect(html).toContain("No generation starts until a credit is available");
+    expect(html).toContain("Buying credits does not start generation.");
     expect(html).not.toContain("data-context-enrichment-form");
     expect(html).not.toContain("<textarea");
     expect(html).not.toContain("data-start-deep-reading");
