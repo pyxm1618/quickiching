@@ -323,6 +323,9 @@ try {
   const direct=await page.evaluate(()=>document.body.innerText);
   assert.ok(direct.includes(locale==='zh'?'本次购买直接从次数包页面发起，因此没有需要返回的原解卦。':'started directly from Pricing'));
   assert.ok(!direct.includes(locale==='zh'?'返回原来的解读':'Return to your Reading'));
+  if(locale==='zh'){
+   await verifyPaymentReturnContainment('payment-confirmed-direct-zh',2,true);
+  }
   evidence.push({locale,directPricingConfirmed:true});
  }
  await page.setViewport({width:1440,height:1000,deviceScaleFactor:1});
