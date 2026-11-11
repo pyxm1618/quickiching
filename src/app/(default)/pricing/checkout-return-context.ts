@@ -17,6 +17,20 @@ function isSafeReturnUrl(value: unknown): value is string | undefined {
   );
 }
 
+export function buildCheckoutReturnContext(input: {
+  returnUrl?: string;
+  creditsBeforeCheckout: number;
+  orderId: string;
+  createdAt: number;
+}): CheckoutReturnContext {
+  return {
+    ...(isSafeReturnUrl(input.returnUrl) && input.returnUrl ? { returnUrl: input.returnUrl } : {}),
+    creditsBeforeCheckout: input.creditsBeforeCheckout,
+    orderId: input.orderId,
+    createdAt: input.createdAt,
+  };
+}
+
 function isContext(value: unknown): value is CheckoutReturnContext {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Record<string, unknown>;
@@ -30,10 +44,7 @@ function isContext(value: unknown): value is CheckoutReturnContext {
     && Number.isFinite(candidate.createdAt);
 }
 
-export function writeCheckoutReturnContext(
-  storage: StorageLike,
-  context: CheckoutReturnContext,
-): void {
+export function writeCheckoutReturnContext(storage: StorageLike, context: CheckoutReturnContext): void {
   storage.setItem(CHECKOUT_RETURN_CONTEXT_KEY, JSON.stringify(context));
 }
 
