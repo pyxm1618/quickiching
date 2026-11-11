@@ -99,7 +99,7 @@ describe("ChinesePricingPage (Server Component) preview isolation and security g
     const html = renderToStaticMarkup(vnode);
 
     expect(html).toContain("个性化深度解读");
-    expect(html).toContain("选择深度解读次数包");
+    expect(html).toContain("三种选择是同一种深度解读，只是购买次数不同。");
     expect(html).toContain('data-checkout-button="true"');
     expect(html).toContain("购买深度解读次数");
   });
