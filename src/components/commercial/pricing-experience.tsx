@@ -1,5 +1,3 @@
-"use server";
-
 import Link from "next/link";
 import { CircleDollarSign, Gem, Layers3 } from "lucide-react";
 import type { PricingView } from "@/app/(default)/pricing/pricing-model";
@@ -10,7 +8,7 @@ import styles from "./commercial-ui.module.css";
 
 type Locale = "en" | "zh-Hans";
 
-export async function PricingExperience({
+export function PricingExperience({
   locale,
   pricing,
   signedIn,
