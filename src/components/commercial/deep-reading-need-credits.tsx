@@ -5,7 +5,7 @@ import React from "react";
 import { CheckCircle2, ChevronRight } from "lucide-react";
 import type { PublicReadingMethod } from "@/domain/public-reading/types";
 import { getDictionary } from "@/i18n/dictionaries";
-import styles from "./commercial-ui.module.css";
+import styles from "./deep-reading-need-credits.module.css";
 
 type Locale = "en" | "zh-Hans";
 
