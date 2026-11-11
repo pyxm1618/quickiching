@@ -94,7 +94,7 @@ export function PurchaseButton({
         data-purchase-product={productKey}
         onClick={beginCheckout}
         disabled={pending}
-        className="w-full rounded-full border border-[#83502a] bg-[linear-gradient(135deg,#9a551f,#642f14)] px-4 py-3 text-sm font-semibold text-[#fff1d2] transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
+        className="min-h-12 w-full rounded-full border border-[#83502a] bg-[linear-gradient(135deg,#9a551f,#642f14)] px-4 py-3 text-sm font-semibold text-[#fff1d2] transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
       >
         {pending ? copy.openingCheckout : copy.buyCredits}
       </button>
