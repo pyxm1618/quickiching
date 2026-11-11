@@ -1,29 +1,28 @@
 "use client";
 
-import { CheckCircle2, Clock3, LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { getDictionary } from "@/i18n/dictionaries";
-import styles from "@/components/commercial/commercial-ui.module.css";
+import { PaymentReturnStatus, type VisiblePaymentReturnPhase } from "@/components/commercial/payment-return-status";
 import {
   clearCheckoutReturnContext,
   readCheckoutReturnContext,
   type CheckoutReturnContext,
 } from "./checkout-return-context";
 
-const AUTO_REFRESH_WINDOW_MS = 30_000;
+export const CHECKOUT_CONFIRMATION_WINDOW_MS = 30_000;
 const AUTO_REFRESH_INTERVAL_MS = 5_000;
-
-type ReturnPhase = "inactive" | "checking" | "confirmed" | "delayed";
+type ReturnPhase = "inactive" | VisiblePaymentReturnPhase;
 
 export function resolveCheckoutReturnPhase(input: {
   orderId?: string;
   context: CheckoutReturnContext | null;
   credits: number;
-}): "inactive" | "checking" | "confirmed" {
+  elapsedMs?: number;
+}): ReturnPhase {
   if (!input.orderId) return "inactive";
-  if (!input.context || input.context.orderId !== input.orderId) return "checking";
-  return input.credits > input.context.creditsBeforeCheckout ? "confirmed" : "checking";
+  if (input.context?.orderId === input.orderId && input.credits > input.context.creditsBeforeCheckout) return "confirmed";
+  if ((input.elapsedMs ?? 0) >= CHECKOUT_CONFIRMATION_WINDOW_MS) return "delayed";
+  return "checking";
 }
 
 export function CheckoutReturnRecovery({
@@ -35,8 +34,6 @@ export function CheckoutReturnRecovery({
   orderId?: string;
   locale?: "en" | "zh-Hans";
 }) {
-  const copy = getDictionary(locale).commercial;
-  const zh = locale === "zh-Hans";
   const router = useRouter();
   const startedAtRef = useRef(Date.now());
   const [phase, setPhase] = useState<ReturnPhase>(orderId ? "checking" : "inactive");
@@ -50,23 +47,17 @@ export function CheckoutReturnRecovery({
       setContext(null);
       return;
     }
-
     const stored = readCheckoutReturnContext(window.sessionStorage);
     const matched = stored?.orderId === orderId ? stored : null;
     setContext(matched);
-
-    if (resolveCheckoutReturnPhase({ orderId, context: matched, credits }) === "confirmed") {
-      setPhase("confirmed");
-      return;
-    }
-
-    if (refreshPending) return;
-    if (Date.now() - startedAtRef.current >= AUTO_REFRESH_WINDOW_MS) {
-      setPhase("delayed");
-      return;
-    }
-
-    setPhase("checking");
+    const nextPhase = resolveCheckoutReturnPhase({
+      orderId,
+      context: matched,
+      credits,
+      elapsedMs: Date.now() - startedAtRef.current,
+    });
+    setPhase(nextPhase);
+    if (nextPhase !== "checking" || refreshPending) return;
     const timer = window.setTimeout(() => {
       startRefreshTransition(() => {
         router.refresh();
@@ -78,78 +69,29 @@ export function CheckoutReturnRecovery({
 
   if (phase === "inactive") return null;
 
-  const accountHref = zh ? "/zh/account" : "/account";
-  const pricingHref = zh ? "/zh/pricing" : "/pricing";
   const returnToReading = () => {
     if (!context?.returnUrl) return;
     clearCheckoutReturnContext(window.sessionStorage);
     window.location.assign(context.returnUrl);
   };
-  const clearAndStayOnPricing = () => {
-    clearCheckoutReturnContext(window.sessionStorage);
+  const clearAndStayOnPricing = () => clearCheckoutReturnContext(window.sessionStorage);
+  const checkAgain = () => {
+    startedAtRef.current = Date.now();
+    setPhase("checking");
+    startRefreshTransition(() => {
+      router.refresh();
+      setTick((value) => value + 1);
+    });
   };
 
-  return (
-    <section
-      className={styles.paymentCard}
-      data-payment-return-state={phase}
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-    >
-      <div className={styles.paymentIcon} aria-hidden="true">
-        {phase === "checking" ? <LoaderCircle className={styles.spinner} /> : phase === "confirmed" ? <CheckCircle2 /> : <Clock3 />}
-      </div>
-
-      {phase === "checking" ? (
-        <>
-          <p className={styles.statusKicker}>{copy.paymentCheckingKicker}</p>
-          <h2 className={styles.statusTitle}>{copy.paymentCheckingTitle}</h2>
-          <p className={styles.statusText}>{copy.paymentCheckingDescription}</p>
-          <p className={styles.statusSafety}>{copy.paymentDoNotRepurchase}</p>
-        </>
-      ) : phase === "confirmed" ? (
-        <>
-          <p className={styles.statusKicker}>{copy.paymentConfirmedKicker}</p>
-          <h2 className={styles.statusTitle}>{copy.paymentConfirmedTitle}</h2>
-          <p className={styles.statusText}>{copy.paymentConfirmedDescription}</p>
-          <div className={styles.confirmedBalance}>{copy.currentBalance}: {credits} {credits === 1 ? copy.creditSingular : copy.creditPlural}</div>
-          {!context?.returnUrl ? <p className={styles.statusSafety}>{copy.directConfirmedNote}</p> : null}
-          <div className={styles.actions}>
-            {context?.returnUrl ? (
-              <button type="button" className={styles.primaryAction} onClick={returnToReading}>{copy.returnReading}</button>
-            ) : (
-              <a href={pricingHref} className={styles.primaryAction} onClick={clearAndStayOnPricing}>{copy.backToPacks}</a>
-            )}
-            <a href={accountHref} className={styles.secondaryAction}>{copy.viewAccount}</a>
-          </div>
-        </>
-      ) : (
-        <>
-          <p className={styles.statusKicker}>{copy.paymentDelayedKicker}</p>
-          <h2 className={styles.statusTitle}>{copy.paymentDelayedTitle}</h2>
-          <p className={styles.statusText}>{copy.paymentDelayedDescription}</p>
-          <p className={styles.statusSafety}>{copy.paymentDoNotRepurchase}</p>
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={styles.primaryAction}
-              disabled={refreshPending}
-              onClick={() => {
-                startedAtRef.current = Date.now();
-                setPhase("checking");
-                startRefreshTransition(() => {
-                  router.refresh();
-                  setTick((value) => value + 1);
-                });
-              }}
-            >
-              {copy.checkAgain}
-            </button>
-            <a href={accountHref} className={styles.secondaryAction}>{copy.viewAccount}</a>
-          </div>
-        </>
-      )}
-    </section>
-  );
+  return <PaymentReturnStatus
+    phase={phase}
+    credits={credits}
+    locale={locale}
+    hasReadingReturn={Boolean(context?.returnUrl)}
+    refreshPending={refreshPending}
+    onCheckAgain={checkAgain}
+    onReturnToReading={returnToReading}
+    onFinishPricing={clearAndStayOnPricing}
+  />;
 }
