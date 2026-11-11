@@ -12,7 +12,7 @@ execFileSync('bun',['scripts/fixtures/build-reading-business-fixture.mjs',direct
 const server = createServer(async (request,response) => {
   const path = new URL(request.url,'http://localhost').pathname;
   const asset = path === '/reading-business-entry.js' || path === '/reading-business-entry.css' ? path.slice(1) : null;
-  const publicAsset = ['/free-reading/','/ai-deep-reading/','/ritual/','/performance/'].some(prefix=>path.startsWith(prefix))
+  const publicAsset = ['/free-reading/','/ai-deep-reading/','/ritual/','/performance/','/account/'].some(prefix=>path.startsWith(prefix))
     ? join(process.cwd(),'public',path.slice(1))
     : null;
   try {
@@ -143,6 +143,149 @@ try {
    evidence.push({locale,method,refreshBackForwardSameCast:true});
   }
  }
+ // Pricing / Purchase formal UI: real Chromium verification of the three formal design states.
+ const commercialViewports=[
+  ['1440',{width:1440,height:1000,deviceScaleFactor:1}],
+  ['1024',{width:1024,height:900,deviceScaleFactor:1}],
+  ['390',{width:390,height:844,deviceScaleFactor:1}],
+  ['375',{width:375,height:812,deviceScaleFactor:1}],
+  ['320',{width:320,height:760,deviceScaleFactor:1}],
+ ];
+ async function verifyCommercialResponsive(label, actionSelector=null) {
+  for (const [width,viewport] of commercialViewports) {
+   await page.setViewport(viewport);
+   await page.evaluate(()=>document.fonts.ready);
+   await new Promise(resolve=>setTimeout(resolve,50));
+   const metrics=await page.evaluate((selector)=>({
+    viewport:window.innerWidth,
+    scrollWidth:document.documentElement.scrollWidth,
+    action:selector?document.querySelector(selector)?.getBoundingClientRect().toJSON():null,
+   }),actionSelector);
+   assert.ok(metrics.scrollWidth<=metrics.viewport+1,`${label} ${width}px horizontal overflow: ${metrics.scrollWidth} > ${metrics.viewport}`);
+   if(actionSelector){
+    assert.ok(metrics.action,`${label} ${width}px missing action ${actionSelector}`);
+    assert.ok(metrics.action.height>=40,`${label} ${width}px action is too short`);
+    assert.ok(metrics.action.width<=metrics.viewport,`${label} ${width}px action exceeds viewport`);
+   }
+   if(visualOutput){
+    await mkdir(visualOutput,{recursive:true});
+    await page.screenshot({path:join(visualOutput,`${label}-${width}.png`),fullPage:true});
+   }
+  }
+ }
+
+ for(const locale of ['en','zh']){
+  await page.setViewport({width:1440,height:1000,deviceScaleFactor:1});
+  await page.goto(`${fixtureBase}/?surface=pricing&locale=${locale}&balance=4`,{waitUntil:'networkidle0'});
+  await page.waitForSelector('[data-pricing-formal-ui="true"]');
+  const pricingUi=await page.evaluate(()=>({
+   packs:[...document.querySelectorAll('[data-pack]')].map(node=>node.getAttribute('data-pack')),
+   checkoutButtons:document.querySelectorAll('[data-checkout-button="true"]').length,
+   balance:document.querySelector('[data-balance-credits]')?.getAttribute('data-balance-credits'),
+   text:document.body.innerText,
+   tops:[...document.querySelectorAll('[data-pack]')].map(node=>Math.round(node.getBoundingClientRect().top)),
+  }));
+  assert.deepEqual(pricingUi.packs,['one','three','five']);
+  assert.equal(pricingUi.checkoutButtons,3);
+  assert.equal(pricingUi.balance,'4');
+  for(const price of ['$2.99','$6.99','$9.99','$2.33','$2.00'])assert.ok(pricingUi.text.includes(price),price);
+  assert.ok(pricingUi.text.includes(locale==='zh'?'一次性购买':'One-time purchase'));
+  assert.ok(pricingUi.text.includes(locale==='zh'?'12 个月':'12 months'));
+  assert.ok(Math.max(...pricingUi.tops)-Math.min(...pricingUi.tops)<20,'desktop packs must share one row');
+  await verifyCommercialResponsive(`pricing-${locale}`,'[data-checkout-button="true"]');
+  const mobileTops=await page.$eval('[data-pack]',nodes=>nodes.map(node=>Math.round(node.getBoundingClientRect().top)));
+  assert.ok(mobileTops[0]<mobileTops[1]&&mobileTops[1]<mobileTops[2],'mobile packs must stack vertically');
+
+  await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+  await page.goto(`${fixtureBase}/?surface=pricing&locale=${locale}&signedout=1`,{waitUntil:'networkidle0'});
+  const signedOut=await page.evaluate(()=>({
+   state:document.querySelector('[data-balance-state]')?.getAttribute('data-balance-state'),
+   zero:!!document.querySelector('[data-balance-credits="0"]'),
+   text:document.body.innerText,
+  }));
+  assert.equal(signedOut.state,'signed-out');
+  assert.equal(signedOut.zero,false);
+  assert.ok(signedOut.text.includes(locale==='zh'?'登录后查看当前余额':'Sign in to view your balance'));
+  await page.click('[data-checkout-button="true"]');
+  await page.waitForFunction(()=>location.pathname.includes('/signin'));
+  const signInUrl=new URL(page.url());
+  assert.equal(signInUrl.pathname,locale==='zh'?'/zh/signin':'/signin');
+  assert.ok(signInUrl.searchParams.get('callbackURL')?.includes(locale==='zh'?'/zh/pricing':'/pricing'));
+  evidence.push({locale,pricing:{packs:3,signedInBalance:true,signedOutNotZero:true,authRequired:true,responsive:[1440,1024,390,375,320]}});
+ }
+
+ for(const locale of ['en','zh']){
+  for(const method of ['three_coin','yarrow_stalk','mei_hua_number_time','manual']){
+   const deepPath=locale==='zh'?'/zh/readings/deep':'/readings/deep';
+   await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+   await page.goto(`${fixtureBase}${deepPath}?surface=reading&page=deep&credits=0&locale=${locale}&method=${method}`,{waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-deep-reading-state="need-credits"]');
+   const need=await page.evaluate(()=>({
+    method:document.querySelector('[data-deep-reading-state="need-credits"]')?.getAttribute('data-casting-method'),
+    balance:document.querySelector('[data-deep-reading-state="need-credits"]')?.getAttribute('data-current-balance'),
+    question:document.querySelector('[data-core-question-at-cast]')?.textContent??'',
+    freeHref:[...document.querySelectorAll('a[href]')].map(node=>node.getAttribute('href')).find(href=>href?.includes('/readings/result?session='))??null,
+    text:document.body.innerText,
+   }));
+   const publicMethod=method==='three_coin'?'three-coin':method==='yarrow_stalk'?'yarrow-stalks':method==='mei_hua_number_time'?'mei-hua-yi-shu':'manual';
+   assert.equal(need.method,publicMethod);
+   assert.equal(need.balance,'0');
+   assert.ok(need.question.includes(locale==='zh'?'我现在是否适合换一份工作？':'Should I change to a new job?'));
+   assert.ok(need.freeHref?.includes('session=browser-fixture-cast'));
+   assert.ok(need.text.includes(locale==='zh'?'继续需要 1 次深度解读额度':'1 credit is needed to continue'));
+   assert.equal(await page.$('[data-start-deep-reading]'),null);
+   if(method==='three_coin') await verifyCommercialResponsive(`need-credits-${locale}`,'[data-deep-reading-state="need-credits"] button');
+   await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+   await page.click('[data-deep-reading-state="need-credits"] button');
+   await page.waitForFunction(()=>location.pathname.endsWith('/pricing'));
+   const pricingUrl=new URL(page.url());
+   assert.equal(pricingUrl.pathname,locale==='zh'?'/zh/pricing':'/pricing');
+   const returnUrl=pricingUrl.searchParams.get('returnUrl');
+   assert.ok(returnUrl);
+   const restored=new URL(returnUrl,fixtureBase);
+   assert.equal(restored.pathname,deepPath);
+   assert.equal(restored.searchParams.get('session'),'browser-fixture-cast');
+   assert.equal(restored.searchParams.get('method'),method);
+   evidence.push({locale,method,needCredits:{balance:0,sessionPreserved:true,returnUrlPreserved:true,freeExit:true}});
+  }
+ }
+
+ for(const locale of ['en','zh']){
+  for(const phase of ['checking','confirmed','delayed']){
+   const reading=phase==='confirmed'?'&reading=1':'';
+   await page.setViewport({width:1440,height:1000,deviceScaleFactor:1});
+   await page.goto(`${fixtureBase}/?surface=payment&locale=${locale}&phase=${phase}&balance=3${reading}`,{waitUntil:'networkidle0'});
+   await page.waitForSelector(`[data-payment-return-state="${phase}"]`);
+   const state=await page.evaluate(()=>({
+    live:document.querySelector('[role="status"]')?.getAttribute('aria-live'),
+    busy:document.querySelector('[role="status"]')?.getAttribute('aria-busy'),
+    text:document.body.innerText,
+    actions:[...document.querySelectorAll('button,a')].map(node=>node.textContent?.trim()).filter(Boolean),
+   }));
+   assert.equal(state.live,'polite');
+   if(phase==='checking'){
+    assert.equal(state.busy,'true');
+    assert.ok(state.text.includes(locale==='zh'?'确认期间无需再次购买':'do not need to purchase again'));
+    assert.ok(!state.actions.some(text=>text.includes(locale==='zh'?'购买深度解读次数':'Buy Deep Reading credits')));
+   }else if(phase==='confirmed'){
+    assert.ok(state.text.includes(locale==='zh'?'当前余额: 3 次':'Current Balance: 3 credits'));
+    assert.ok(state.actions.includes(locale==='zh'?'返回原来的解读':'Return to your Reading'));
+   }else{
+    assert.ok(state.actions.includes(locale==='zh'?'再次检查':'Check Again'));
+    assert.ok(state.actions.includes(locale==='zh'?'查看账户 / 购买记录':'View Account / Purchase History'));
+   }
+   const selector=phase==='checking'?null:'[data-payment-return-state] button, [data-payment-return-state] a';
+   await verifyCommercialResponsive(`payment-${phase}-${locale}`,selector);
+   evidence.push({locale,paymentReturn:phase,responsive:[1440,1024,390,375,320],ariaLive:'polite'});
+  }
+  await page.goto(`${fixtureBase}/?surface=payment&locale=${locale}&phase=confirmed&balance=5`,{waitUntil:'networkidle0'});
+  const direct=await page.evaluate(()=>document.body.innerText);
+  assert.ok(direct.includes(locale==='zh'?'本次购买直接从 Pricing 发起':'started directly from Pricing'));
+  assert.ok(!direct.includes(locale==='zh'?'返回原来的解读':'Return to your Reading'));
+  evidence.push({locale,directPricingConfirmed:true});
+ }
+ await page.setViewport({width:1440,height:1000,deviceScaleFactor:1});
+
  await page.goto(`${fixtureBase}/?page=deep&invalid=1`,{waitUntil:'networkidle0'});
  await page.waitForSelector('[data-start-deep-reading]'); await page.click('[data-start-deep-reading]');
  await page.waitForFunction(()=>document.querySelector('[role="alert"]')?.textContent.includes('invalid'),{timeout:10000});
