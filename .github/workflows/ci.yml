@@ -199,6 +199,7 @@ jobs:
         env:
           PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3036
           READING_TEST_BASE_URL: http://127.0.0.1:3036
+          READING_VISUAL_OUTPUT: .artifacts/pricing-purchase-ui
         shell: bash
         run: |
           set -euo pipefail
@@ -209,6 +210,14 @@ jobs:
           node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth-zh-reduced
           bun scripts/mei-hua-ui-browser-gate.mjs
           bun scripts/public-p0-browser-gate.mjs
+      - name: Upload Pricing / purchase visual evidence
+        if: always() && needs.select.outputs.reading == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pricing-purchase-ui-visual-evidence
+          path: .artifacts/pricing-purchase-ui
+          if-no-files-found: error
+          retention-days: 3
       - name: Upload Manual Cast visual evidence
         if: always() && needs.select.outputs.reading == 'true'
         uses: actions/upload-artifact@v4
