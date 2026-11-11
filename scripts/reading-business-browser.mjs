@@ -151,7 +151,7 @@ try {
   ['375',{width:375,height:812,deviceScaleFactor:1}],
   ['320',{width:320,height:760,deviceScaleFactor:1}],
  ];
- async function verifyCommercialResponsive(label, actionSelector=null) {
+ async function verifyCommercialResponsive(label, actionSelector=null, capture=false) {
   for (const [width,viewport] of commercialViewports) {
    await page.setViewport(viewport);
    await page.evaluate(()=>document.fonts.ready);
@@ -167,7 +167,7 @@ try {
     assert.ok(metrics.action.height>=40,`${label} ${width}px action is too short`);
     assert.ok(metrics.action.width<=metrics.viewport,`${label} ${width}px action exceeds viewport`);
    }
-   if(visualOutput){
+   if(visualOutput && capture){
     await mkdir(visualOutput,{recursive:true});
     await page.screenshot({path:join(visualOutput,`${label}-${width}.png`),fullPage:true});
    }
@@ -192,7 +192,7 @@ try {
   assert.ok(pricingUi.text.includes(locale==='zh'?'一次性购买':'One-time purchase'));
   assert.ok(pricingUi.text.includes(locale==='zh'?'12 个月':'12 months'));
   assert.ok(Math.max(...pricingUi.tops)-Math.min(...pricingUi.tops)<20,'desktop packs must share one row');
-  await verifyCommercialResponsive(`pricing-${locale}`,'[data-checkout-button="true"]');
+  await verifyCommercialResponsive(`pricing-${locale}`,'[data-checkout-button="true"]',locale==='en');
   const mobileTops=await page.$$eval('[data-pack]',nodes=>nodes.map(node=>Math.round(node.getBoundingClientRect().top)));
   assert.ok(mobileTops[0]<mobileTops[1]&&mobileTops[1]<mobileTops[2],'mobile packs must stack vertically');
 
@@ -234,7 +234,7 @@ try {
    assert.ok(need.freeHref?.includes('session=browser-fixture-cast'));
    assert.ok(need.text.includes(locale==='zh'?'继续需要 1 次深度解读额度':'1 credit is needed to continue'));
    assert.equal(await page.$('[data-start-deep-reading]'),null);
-   if(method==='three_coin') await verifyCommercialResponsive(`need-credits-${locale}`,'[data-deep-reading-state="need-credits"] button');
+   if(method==='three_coin') await verifyCommercialResponsive(`need-credits-${locale}`,'[data-deep-reading-state="need-credits"] button',locale==='en');
    await page.setViewport({width:390,height:844,deviceScaleFactor:1});
    await page.click('[data-deep-reading-state="need-credits"] button');
    await page.waitForFunction(()=>location.pathname.endsWith('/pricing'));
@@ -275,7 +275,7 @@ try {
     assert.ok(state.actions.includes(locale==='zh'?'查看账户 / 购买记录':'View Account / Purchase History'));
    }
    const selector=phase==='checking'?null:'[data-payment-return-state] button, [data-payment-return-state] a';
-   await verifyCommercialResponsive(`payment-${phase}-${locale}`,selector);
+   await verifyCommercialResponsive(`payment-${phase}-${locale}`,selector,locale==='en'&&phase==='confirmed');
    evidence.push({locale,paymentReturn:phase,responsive:[1440,1024,390,375,320],ariaLive:'polite'});
   }
   await page.goto(`${fixtureBase}/?surface=payment&locale=${locale}&phase=confirmed&balance=5`,{waitUntil:'networkidle0'});
