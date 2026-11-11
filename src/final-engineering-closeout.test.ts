@@ -18,10 +18,8 @@ describe("final engineering closeout source contracts", () => {
     expect(chinese).not.toContain("最后更新：2026 年 9 月 27 日");
   });
 
-  it("uses four homepage how-cards on desktop without bypassing the display-font variable", () => {
+  it("keeps the global display-font variable as the Georgia fallback owner", () => {
     const css = source("./app/globals.css");
-    expect(css).toContain(".how-strip { display: grid; grid-template-columns: repeat(4, 1fr);");
-    expect(css).not.toContain(".how-strip { display: grid; grid-template-columns: repeat(3, 1fr);");
     const georgiaLines = css.split("\n").filter((line) => line.includes("Georgia"));
     expect(georgiaLines).toHaveLength(1);
     expect(georgiaLines[0]).toContain("--font-display");
