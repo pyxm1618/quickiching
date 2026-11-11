@@ -8,7 +8,7 @@ import {
   checkoutFailurePresentation,
   createCheckoutRequestIdentityStore,
 } from "./checkout-request-identity";
-import { writeCheckoutReturnContext } from "./checkout-return-context";
+import { buildCheckoutReturnContext, writeCheckoutReturnContext } from "./checkout-return-context";
 
 export function PurchaseButton({
   productKey,
@@ -68,12 +68,12 @@ export function PurchaseButton({
         return;
       }
 
-      writeCheckoutReturnContext(window.sessionStorage, {
-        ...(returnUrl ? { returnUrl } : {}),
+      writeCheckoutReturnContext(window.sessionStorage, buildCheckoutReturnContext({
+        returnUrl,
         creditsBeforeCheckout,
         orderId: body.orderId,
         createdAt: Date.now(),
-      });
+      }));
 
       requestIdentity.complete(productKey);
       window.location.assign(checkoutUrl.toString());
