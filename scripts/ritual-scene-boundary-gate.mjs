@@ -271,7 +271,8 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    assert.equal(completed.id,session.id);
    assert.deepEqual(completed.data.steps,after.data.steps);
    await page.reload({waitUntil:'networkidle0'});
-   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+   await page.waitForSelector('[data-result-choice]');
+   assert.equal(await page.$('[data-completed-cast-gate]'),null,'Refreshing Result Choice must not introduce authentication');
    const restored=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
    assert.deepEqual(restored,completed,'Refreshing Result Choice preserves the same completed cast');
   }
