@@ -88,6 +88,10 @@ describe("final engineering closeout source contracts", () => {
     for (const path of ["./app/(default)/readings/result/page.tsx", "./app/(default)/readings/deep/page.tsx", "./app/(localized)/zh/readings/result/page.tsx", "./app/(localized)/zh/readings/deep/page.tsx"]) {
       expect(source(path)).toContain("<ReadingPage");
     }
+    for (const path of ["./app/(default)/readings/choice/page.tsx", "./app/(localized)/zh/readings/choice/page.tsx"]) {
+      expect(source(path)).toContain("<ResultChoicePage");
+      expect(source(path)).not.toContain("<ReadingPage");
+    }
   });
 
   it("does not mechanically lowercase trusted interpretation prose", () => {

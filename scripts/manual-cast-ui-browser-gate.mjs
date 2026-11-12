@@ -153,7 +153,7 @@ async function exerciseModeBAndRestore(page, config) {
 
 async function verifyContinueHandoff(page, locale) {
   const route = locale === "zh" ? "/zh/methods/manual-cast" : "/methods/manual-cast";
-  const resultPath = locale === "zh" ? "/zh/readings/result" : "/readings/result";
+  const resultPath = locale === "zh" ? "/zh/readings/choice" : "/readings/choice";
   const question = locale === "zh" ? "我现在是否适合换一份工作？" : "Should I change to a new job?";
   const id = locale === "zh" ? "750e8400-e29b-41d4-a716-446655440001" : "750e8400-e29b-41d4-a716-446655440002";
   await page.setViewport({ width: 1024, height: 900 });
@@ -164,7 +164,7 @@ async function verifyContinueHandoff(page, locale) {
     page.waitForFunction((expected) => location.pathname === expected, { timeout: 15000 }, resultPath),
     page.click("[data-manual-continue]"),
   ]);
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10000 });
+  await page.waitForSelector("[data-result-choice]", { timeout: 10000 });
   const state = await page.evaluate((input) => ({
     completed: JSON.parse(sessionStorage.getItem(input.completedKey) || "null"),
     current: JSON.parse(sessionStorage.getItem(input.sessionKey) || "null"),
@@ -190,10 +190,10 @@ async function verifyPrimaryChangingHandoff(page) {
   await clickMovingLine(page, 3);
   await clickMovingLine(page, 5);
   await Promise.all([
-    page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15000 }),
+    page.waitForFunction(() => location.pathname === "/readings/choice", { timeout: 15000 }),
     page.click("[data-manual-continue]"),
   ]);
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10000 });
+  await page.waitForSelector("[data-result-choice]", { timeout: 10000 });
   const completed = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null"), COMPLETED_KEY);
   assert.equal(completed.evidence.mode, "primary-changing");
   assert.equal(completed.evidence.primaryHexagramNumber, 2);

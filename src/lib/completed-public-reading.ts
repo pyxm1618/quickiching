@@ -36,7 +36,7 @@ const completedSchema = z.object({
 });
 
 export function completedPublicReadingPath(id: string, zh = false): string {
-  return `${zh ? "/zh" : ""}/readings/result?session=${encodeURIComponent(id)}`;
+  return `${zh ? "/zh" : ""}/readings/choice?session=${encodeURIComponent(id)}`;
 }
 
 export function writeCompletedPublicReading(reading: PublicReading): void {

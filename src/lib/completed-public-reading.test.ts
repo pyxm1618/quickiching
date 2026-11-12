@@ -27,7 +27,7 @@ describe("common completed reading handoff", () => {
     writeCompletedPublicReading(reading);
     expect(readCompletedPublicReading(reading.id)).toEqual(reading);
     expect(readCompletedPublicReading("another-session")).toBeNull();
-    expect(completedPublicReadingPath(reading.id, true)).toBe(`/zh/readings/result?session=${reading.id}`);
+    expect(completedPublicReadingPath(reading.id, true)).toBe(`/zh/readings/choice?session=${reading.id}`);
   });
 
   it("saves active Mei Hua as number + moment with only bounded raw source inputs", () => {
@@ -56,7 +56,7 @@ describe("common completed reading handoff", () => {
     ]) {
       writeCompletedPublicReading(completed);
       expect(readCompletedPublicReading(completed.id)).toEqual(completed);
-      expect(completedPublicReadingPath(completed.id)).toBe(`/readings/result?session=${completed.id}`);
+      expect(completedPublicReadingPath(completed.id)).toBe(`/readings/choice?session=${completed.id}`);
       expect(publicReadingSaveInput(completed).algorithmVersion).toBe(completed.methodVersion);
     }
   });

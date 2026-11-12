@@ -150,6 +150,8 @@ async function verifyHttpAndSeo() {
     "/zh/acceptable-use",
     "/readings/result",
     "/zh/readings/result",
+    "/readings/choice",
+    "/zh/readings/choice",
   ];
   for (const path of noindexPaths) {
     const response = await expectStatus(path, 200);
@@ -197,13 +199,11 @@ async function verifyHttpAndSeo() {
     assert.equal(location.pathname, destination, `${path}: wrong redirect destination`);
   }
 
-  for (const [path, destination] of [
-    ["/readings/three-coin/result", "/readings/result"],
-    ["/zh/readings/three-coin/result", "/zh/readings/result"],
+  for (const path of [
+    "/readings/three-coin/result",
+    "/zh/readings/three-coin/result",
   ]) {
-    const response = await expectStatus(path, 307);
-    const location = new URL(response.headers.get("location"), BASE);
-    assert.equal(location.pathname, destination, `${path}: wrong canonical result redirect`);
+    await expectStatus(path, 404);
   }
 
   const castingMethods = await expectStatus("/casting-methods", 308);
@@ -327,9 +327,12 @@ async function assertNoOverflow(page) {
 }
 
 async function assertCompletedMethodHandoff(page, expectedMethod) {
-  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
-  assert.equal(await page.$("[data-public-reading-result]"), null, `${expectedMethod}: unsigned completed cast must remain behind the save/auth gate`);
+  await page.waitForFunction(() => location.pathname === "/readings/choice", { timeout: 15_000 });
+  await page.waitForSelector("[data-result-choice]", { timeout: 10_000 });
+  assert.equal(await page.$("[data-completed-cast-gate]"), null, `${expectedMethod}: Result Choice must appear before authentication`);
+  assert.equal(await page.$("[data-public-reading-result]"), null, `${expectedMethod}: Result Choice must not render Free Reading content`);
+  assert(await page.$("[data-result-choice-free]"), `${expectedMethod}: Result Choice must offer Free Reading`);
+  assert(await page.$("[data-result-choice-deep]"), `${expectedMethod}: Result Choice must offer Deep Reading`);
 
   const completed = await page.evaluate((storageKey) => {
     const raw = sessionStorage.getItem(storageKey);
@@ -360,7 +363,7 @@ async function assertCompletedMethodHandoff(page, expectedMethod) {
   assert(completed.lineValuesBottomUp.every((value) => [6, 7, 8, 9].includes(value)), `${expectedMethod}: completed-reading contains an invalid line value`);
 
   const currentUrl = new URL(page.url());
-  assert.equal(currentUrl.searchParams.get("session"), completed.id, `${expectedMethod}: result URL must preserve the exact completed-reading id`);
+  assert.equal(currentUrl.searchParams.get("session"), completed.id, `${expectedMethod}: Result Choice URL must preserve the exact completed-reading id`);
 
   if (expectedMethod === "yarrow-stalks") {
     assert.equal(completed.yarrowLineCount, 6, "Yarrow completed-reading must preserve six evidence lines");
@@ -375,10 +378,11 @@ async function assertCompletedMethodHandoff(page, expectedMethod) {
   }
 
   await page.reload({ waitUntil: "networkidle0" });
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+  await page.waitForSelector("[data-result-choice]", { timeout: 10_000 });
+  assert.equal(await page.$("[data-completed-cast-gate]"), null, `${expectedMethod}: refresh must remain before authentication`);
   const preservedRaw = await page.evaluate((storageKey) => sessionStorage.getItem(storageKey), "quickiching:public-v1:completed-reading");
-  assert.equal(preservedRaw, completed.raw, `${expectedMethod}: refresh must preserve the exact completed cast before authentication`);
-  assert.equal(await page.$("[data-public-reading-result]"), null, `${expectedMethod}: refresh must not reveal before authentication`);
+  assert.equal(preservedRaw, completed.raw, `${expectedMethod}: refresh must preserve the exact completed cast`);
+  assert.equal(await page.$("[data-public-reading-result]"), null, `${expectedMethod}: refresh must remain on Result Choice`);
 }
 
 async function waitForRecordedLines(page,count) {
@@ -480,9 +484,11 @@ async function finishThreeCoin(page) {
     if (line < 6) await waitForRecordedLines(page,line);
   }
 
-  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
+  await page.waitForFunction(() => location.pathname === "/readings/choice", { timeout: 15_000 });
+  await page.waitForSelector("[data-result-choice]", { timeout: 10_000 });
+  assert.equal(await page.$("[data-completed-cast-gate]"), null, "Completed Three-Coin cast must see Result Choice before authentication");
   const sealedBeforeGate = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
-  assert(sealedBeforeGate, "Completed Three-Coin reading must remain sealed after result navigation");
+  assert(sealedBeforeGate, "Completed Three-Coin reading must remain sealed after Result Choice navigation");
   const castLineValues = await page.evaluate((key) => {
     const parsed = JSON.parse(sessionStorage.getItem(key) || "null");
     const steps = Array.isArray(parsed) ? parsed : parsed?.data?.steps;
@@ -491,18 +497,20 @@ async function finishThreeCoin(page) {
   assert.equal(castLineValues?.length, 6, "Completed Three-Coin reading must preserve all six cast lines");
   assert(castLineValues.every((value) => [6, 7, 8, 9].includes(value)), "Completed Three-Coin reading must preserve valid line values");
 
-  await waitForText(page, "Your six lines are complete");
-  await waitForText(page, "Sign In to Save & Reveal");
-  assert(await page.$("[data-auth-required-before-reveal]"), "Anonymous completed cast must enter auth-before-reveal gate");
-  assert.equal(await page.$("[data-primary-card]"), null, "Primary hexagram must not reveal before authentication and account persistence");
-  assert.equal(await page.$("[data-deep-reading-entry]"), null, "Deep Reading must remain downstream of the result reveal gate");
+  await waitForText(page, "Primary Hexagram");
+  await waitForText(page, "Free Reading");
+  await waitForText(page, "Deep Reading");
+  assert(await page.$("[data-result-choice-primary]"), "Result Choice must show the primary hexagram summary");
+  assert.equal(await page.$("[data-primary-card]"), null, "Result Choice must not render Free Reading content");
+  assert.equal(await page.$("[data-deep-reading-entry]"), null, "Result Choice must not render Deep Reading content");
 
-  const gateBeforeRefresh = await page.$eval("main", (node) => node.textContent ?? "");
+  const choiceBeforeRefresh = await page.$eval("main", (node) => node.textContent ?? "");
   await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, "Your six lines are complete");
-  assert.equal(await page.$eval("main", (node) => node.textContent ?? ""), gateBeforeRefresh, "Anonymous auth gate must restore the same completed cast after refresh");
+  await page.waitForSelector("[data-result-choice]", { timeout: 10_000 });
+  assert.equal(await page.$("[data-completed-cast-gate]"), null, "Result Choice refresh must remain before authentication");
+  assert.equal(await page.$eval("main", (node) => node.textContent ?? ""), choiceBeforeRefresh, "Result Choice must restore the same completed cast after refresh");
   const sealedAfterRefresh = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
-  assert.equal(sealedAfterRefresh, sealedBeforeGate, "Auth gate refresh must not alter the completed six-line cast");
+  assert.equal(sealedAfterRefresh, sealedBeforeGate, "Result Choice refresh must not alter the completed six-line cast");
 }
 
 async function finishYarrow(page, verifyResume) {

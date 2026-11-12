@@ -285,11 +285,12 @@ async function verifyChineseReading(page, viewport) {
   const confirmSelector = ".mei-confirm-actions .mei-button:not(.mei-button-outline)";
   await assertClickTargetUnobstructed(page, confirmSelector, `${label} Confirm & Cast`);
   await page.click(confirmSelector);
-  await page.waitForSelector('[data-completed-cast-gate="auth-required"]', { timeout: 30_000 });
-  assert.equal(new URL(page.url()).pathname, "/zh/readings/result", "Completed Mei Hua cast must enter the Chinese shared result route");
-  assert.equal(await page.$("[data-public-reading-result]"), null, "Anonymous result must remain concealed");
-  const resultGateText = await page.$eval('[data-completed-cast-gate="auth-required"]', node => node.textContent ?? "");
-  assert(resultGateText.includes("登录、保存并查看"), "Chinese auth-before-reveal action copy missing");
+  await page.waitForSelector("[data-result-choice]", { timeout: 30_000 });
+  assert.equal(new URL(page.url()).pathname, "/zh/readings/choice", "Completed Mei Hua cast must enter the Chinese Result Choice route");
+  assert.equal(await page.$("[data-completed-cast-gate]"), null, "Result Choice must appear before authentication");
+  assert.equal(await page.$("[data-public-reading-result]"), null, "Result Choice must not render Free Reading content");
+  assert(await page.$("[data-result-choice-free]"), "Chinese Result Choice must offer Free Reading");
+  assert(await page.$("[data-result-choice-deep]"), "Chinese Result Choice must offer Deep Reading");
   const completedKey = "quickiching:public-v1:completed-reading";
   const completed = await page.evaluate(key => sessionStorage.getItem(key), completedKey);
   const reading = JSON.parse(completed ?? "null");
@@ -299,10 +300,11 @@ async function verifyChineseReading(page, viewport) {
   assert.equal(reading?.evidence?.calculation?.methodCalculation?.number, 29, "Mei Hua number must survive the cross-language flow");
   assert.equal(new URL(page.url()).searchParams.get("session"), reading.id);
   await page.reload({ waitUntil: "networkidle0" });
-  await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+  await page.waitForSelector("[data-result-choice]");
+  assert.equal(await page.$("[data-completed-cast-gate]"), null, "Refreshed Result Choice must remain before authentication");
   assert.equal(await page.evaluate(key => sessionStorage.getItem(key), completedKey), completed, "Refresh changed saved reading facts");
-  await assertNoOverflow(page, `${label} result gate`);
-  log(`${label}: cross-language question/session preservation + completed cast auth-before-reveal PASS`);
+  await assertNoOverflow(page, `${label} Result Choice`);
+  log(`${label}: cross-language question/session preservation + Result Choice-before-auth PASS`);
 }
 
 async function verifyBrowserFlows() {
