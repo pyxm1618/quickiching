@@ -70,10 +70,6 @@ function callbackFromHref(href){
 async function runCase({path,viewport,zh=false,capturePrefix}){
   const p=await browser.newPage();
   try{
-    // The approved Result Choice scene adds decoded visual work on shared CI runners.
-    // Keep every real click and assertion intact; only allow the same contract more scheduling time.
-    p.setDefaultTimeout(60_000);
-    p.setDefaultNavigationTimeout(60_000);
     await p.setViewport(viewport);
     await p.emulateMediaFeatures([{name:"prefers-reduced-motion",value:"reduce"}]);
     await p.evaluateOnNewDocument(()=>localStorage.setItem("quickiching:analytics-consent:v1","denied"));
@@ -95,8 +91,8 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
     const expectedChoice=zh?"/zh/readings/choice":"/readings/choice";
     const expectedFree=zh?"/zh/readings/result":"/readings/result";
     const expectedDeep=zh?"/zh/readings/deep":"/readings/deep";
-    await p.waitForFunction(expected=>location.pathname===expected,{},expectedChoice);
     await p.waitForSelector('[data-result-choice]');
+    assert.equal(new URL(p.url()).pathname,expectedChoice,"Confirm & Cast must navigate to the shared Result Choice route");
     assert.equal(await p.$('[data-completed-cast-gate]'),null,"Result Choice must be visible before authentication");
     const after=Date.now();
 
@@ -121,11 +117,9 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
 
     if(capturePrefix)await capture(p,`${capturePrefix}-result-choice`);
     const beforeReload=await p.evaluate(k=>sessionStorage.getItem(k),COMPLETED_KEY);
-    await Promise.all([
-      p.waitForFunction(expected=>location.pathname===expected,{},expectedFree),
-      p.click('[data-result-choice-free]'),
-    ]);
+    await p.click('[data-result-choice-free]');
     await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
+    assert.equal(new URL(p.url()).pathname,expectedFree,"Free Reading must navigate to the downstream auth-gated route");
     const freeHref=await p.$eval('[data-auth-reading-intent="free"]',e=>e.getAttribute("href"));
     const deepHref=await p.$eval('[data-auth-reading-alternate-intent="deep"]',e=>e.getAttribute("href"));
     const free=callbackFromHref(freeHref),deep=callbackFromHref(deepHref);
