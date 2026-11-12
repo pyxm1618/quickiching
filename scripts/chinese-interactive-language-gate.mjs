@@ -432,11 +432,10 @@ async function main() {
     // =========================================================================
     // Test 5: Four Casting Methods Interactive Result Generation & Purity
     // =========================================================================
-    log("Test 5: Four Casting Methods -> current result handoff, auth gate, and unified manual result");
+    log("Test 5: Four Casting Methods -> shared Result Choice before downstream auth");
 
 
-    // 5.a-5.c: Current shared Reading auth gate for the three persisted casting methods.
-    // Use the canonical completed-reading seam instead of retired per-method result-route recovery.
+    // 5.a-5.c: Completed casts from all persisted methods enter the same anonymous Result Choice.
     for (const fixture of [
       { label: "Three-Coin", method: "three-coin", id: "550e8400-e29b-41d4-a716-446655440101" },
       { label: "Yarrow Stalk", method: "yarrow-stalks", id: "550e8400-e29b-41d4-a716-446655440102" },
@@ -445,14 +444,17 @@ async function main() {
       await page.goto(`${BASE}/zh`, { waitUntil: "networkidle0" });
       await page.evaluate(() => sessionStorage.clear());
       await seedCompletedReading(page, fixture);
-      await page.goto(`${BASE}/zh/readings/result?session=${fixture.id}`, { waitUntil: "networkidle0" });
-      await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
-      assert.equal(await page.$("[data-public-reading-result]"), null, `Unsigned ${fixture.label} result must stay behind the current save/auth gate`);
-      await assertPurity(page, `${fixture.label} Current Result Auth Gate`);
-      log(`Method simulation PASS: ${fixture.method} canonical completed-reading auth gate`);
+      await page.goto(`${BASE}/zh/readings/choice?session=${fixture.id}`, { waitUntil: "networkidle0" });
+      await page.waitForSelector("[data-result-choice]", { timeout: 10_000 });
+      assert.equal(await page.$("[data-completed-cast-gate]"), null, `${fixture.label} Result Choice must appear before authentication`);
+      assert.equal(await page.$("[data-public-reading-result]"), null, `${fixture.label} Result Choice must not render Free Reading content`);
+      assert(await page.$("[data-result-choice-free]"), `${fixture.label} Result Choice must offer Free Reading`);
+      assert(await page.$("[data-result-choice-deep]"), `${fixture.label} Result Choice must offer Deep Reading`);
+      await assertPurity(page, `${fixture.label} Result Choice`);
+      log(`Method simulation PASS: ${fixture.method} shared Result Choice before auth`);
     }
 
-    // 5.d: Manual Cast -> canonical completed-reading -> shared result auth gate.
+    // 5.d: Manual Cast -> canonical completed-reading -> shared Result Choice.
     const manualId = "550e8400-e29b-41d4-a716-446655440104";
     await page.goto(`${BASE}/zh/methods/manual-cast`, { waitUntil: "networkidle0" });
     await page.evaluate((id) => {
@@ -473,7 +475,7 @@ async function main() {
       return button instanceof HTMLButtonElement && !button.disabled;
     }, { timeout: 5000 });
     await page.click("[data-manual-continue]");
-    await page.waitForFunction(() => location.pathname === "/zh/readings/result", { timeout: 15_000 });
+    await page.waitForFunction(() => location.pathname === "/zh/readings/choice", { timeout: 15_000 });
     await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
     const manualState = await page.evaluate(() => {
       const completedRaw = sessionStorage.getItem("quickiching:public-v1:completed-reading");
@@ -481,7 +483,7 @@ async function main() {
       return {
         completed: completedRaw ? JSON.parse(completedRaw) : null,
         current: currentRaw ? JSON.parse(currentRaw) : null,
-        resultVisible: document.querySelector("[data-public-reading-result]") !== null,
+        resultVisible: document.querySelector("[data-public-reading-result]") !== null,\n        authGate: document.querySelector("[data-completed-cast-gate]") !== null,\n        freeChoice: document.querySelector("[data-result-choice-free]") !== null,\n        deepChoice: document.querySelector("[data-result-choice-deep]") !== null,
       };
     });
     assert(manualState.completed, "Manual cast must write canonical completed-reading");
