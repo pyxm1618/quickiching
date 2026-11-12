@@ -146,12 +146,12 @@ export function ResultChoiceView({
         </div>
 
         <nav className={styles.actions} aria-label={zh ? "选择解读方式" : "Choose a reading"}>
-          <Link href={deepHref} className={styles.deepAction} data-result-choice-deep>
+          <a href={deepHref} className={styles.deepAction} data-result-choice-deep>
             <strong>{zh ? "深度解读" : "Deep Reading"}</strong>
-          </Link>
-          <Link href={freeHref} className={styles.freeAction} data-result-choice-free>
+          </a>
+          <a href={freeHref} className={styles.freeAction} data-result-choice-free>
             {zh ? "免费解卦" : "Free Reading"}
-          </Link>
+          </a>
         </nav>
       </div>
     </main>
