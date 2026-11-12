@@ -12,15 +12,12 @@ import { readingFingerprint } from "@/domain/public-reading/reading";
 import type { PublicReading } from "@/domain/public-reading/types";
 import { writeCompletedPublicReading } from "@/lib/completed-public-reading";
 import { FreeReadingRitualView } from "./free-reading-ritual-view";
-import { RitualResultCard } from "./ritual-result-card";
 
 export function PublicReadingResult({
   reading,
   onNewReading,
   deepReadingHref,
   onDeepReading,
-  showRitualReveal = false,
-  savedReadingHref,
   dictionary = EN_UI_DICTIONARY,
   localizedContent,
   initialBundles,
@@ -32,8 +29,6 @@ export function PublicReadingResult({
   onNewReading?: () => void;
   deepReadingHref?: string;
   onDeepReading?: () => void;
-  showRitualReveal?: boolean;
-  savedReadingHref?: string;
   dictionary?: UiDictionary;
   localizedContent?: LocalizedReadingContent;
   initialBundles?: { primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null };
@@ -129,21 +124,11 @@ export function PublicReadingResult({
     ? <button type="button" onClick={onDeepReading} className="mystic-button">{isChinese ? "获取我的深度解读" : "Get My Deep Reading"}</button>
     : <Link href={deepHref} onClick={prepareDeepReading} className="mystic-button">{isChinese ? "获取我的深度解读" : "Get My Deep Reading"}</Link>;
 
-  const reveal = showRitualReveal && reading.method === "three-coin";
 
   return (
     <section aria-live="polite" data-public-reading-result data-reading-fingerprint={readingFingerprint(reading)}>
       <h1 id="public-reading-result-title" className="sr-only">{title}</h1>
-      {reveal ? (
-        <RitualResultCard
-          reading={reading}
-          primary={model.primary}
-          zh={isChinese}
-          onNewReading={onNewReading}
-          savedHref={savedReadingHref ?? (isChinese ? "/zh/my-readings" : "/my-readings")}
-        />
-      ) : null}
-      <div className={reveal ? "ritual-result-details" : undefined}>
+      <div>
         <FreeReadingRitualView
           reading={reading}
           model={model}
