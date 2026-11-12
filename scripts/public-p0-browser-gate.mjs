@@ -568,7 +568,7 @@ async function verifyAccountPersistenceBoundary(page) {
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
 
   const freeState = await page.evaluate(() => ({
-    authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
+    authGate: document.querySelector("[data-completed-cast-gate='auth-required']") !== null,
     primaryCard: document.querySelector("[data-primary-card]") !== null,
   }));
   assert(freeState.authGate, "Anonymous Free Reading must wait for account persistence after the user chooses Free Reading");
