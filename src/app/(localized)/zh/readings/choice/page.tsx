@@ -5,6 +5,10 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "选择解读方式",
   description: "为这次已经完成的 Quick I Ching 起卦选择免费解卦或深度解读。",
+  openGraph: {
+    title: "选择解读方式",
+    description: "为这次已经完成的 Quick I Ching 起卦选择免费解卦或深度解读。",
+  },
   robots: { index: false, follow: true },
 };
 
