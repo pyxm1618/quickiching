@@ -552,13 +552,28 @@ async function verifyAccountPersistenceBoundary(page) {
   await seedThreeCoin(page, "Same completed cast must wait for account persistence");
   await openSeededThreeCoinResult(page);
 
-  const state = await page.evaluate(() => ({
+  const choiceState = await page.evaluate(() => ({
+    authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
+    primaryCard: document.querySelector("[data-primary-card]") !== null,
+    freeChoice: document.querySelector("[data-result-choice-free]") !== null,
+  }));
+  assert.equal(choiceState.authGate, false, "Result Choice must appear before account persistence");
+  assert.equal(choiceState.primaryCard, false, "Result Choice must not render Free Reading content");
+  assert(choiceState.freeChoice, "Result Choice must offer Free Reading");
+
+  await Promise.all([
+    page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 }),
+    page.click("[data-result-choice-free]"),
+  ]);
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+
+  const freeState = await page.evaluate(() => ({
     authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
     primaryCard: document.querySelector("[data-primary-card]") !== null,
   }));
-  assert(state.authGate, "Anonymous result route must wait for account persistence");
-  assert.equal(state.primaryCard, false, "Anonymous result route must not reveal before account persistence");
-  log("Three-Coin reveal boundary requires formal account persistence PASS");
+  assert(freeState.authGate, "Anonymous Free Reading must wait for account persistence after the user chooses Free Reading");
+  assert.equal(freeState.primaryCard, false, "Free Reading must not reveal before account persistence");
+  log("Three-Coin Result Choice precedes formal Free Reading account persistence PASS");
 }
 
 async function verifyResponsiveKeyboard(page) {
