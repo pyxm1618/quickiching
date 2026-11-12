@@ -417,7 +417,8 @@
     align-items: center;
     gap: 2px;
     margin: 0 auto;
-    padding: 24px 12px calc(150px + env(safe-area-inset-bottom));
+    /* Reserve the full footprint of the fixed mobile scene navigation so both CTAs remain unobscured and hit-testable. */
+    padding: 24px 12px calc(200px + env(safe-area-inset-bottom));
   }
 
   .artLayer,
