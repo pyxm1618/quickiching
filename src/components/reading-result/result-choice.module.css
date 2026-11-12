@@ -70,10 +70,10 @@
 
 .questionBanner > img {
   position: absolute;
-  left: 0;
-  top: calc(-63 * var(--u));
-  width: 100%;
-  height: calc(294 * var(--u));
+  left: calc(-44 * var(--u));
+  top: calc(-66 * var(--u));
+  width: calc(987 * var(--u));
+  height: calc(308 * var(--u));
   object-fit: fill;
 }
 
@@ -88,7 +88,7 @@
 }
 
 .questionLabel {
-  top: calc(13 * var(--u));
+  top: calc(8 * var(--u));
   color: #2d1c0e;
   font-size: calc(23 * var(--u));
   font-weight: 700;
@@ -146,7 +146,7 @@
 
 .stoneTitle {
   left: 50%;
-  top: 16.2%;
+  top: 8.3%;
   width: 50%;
   transform: translateX(-50%);
   margin: 0;
@@ -252,7 +252,7 @@
   line-height: 1.35;
 }
 
-.changingStone .stoneTitle { top: 17.3%; width: 44%; }
+.changingStone .stoneTitle { top: 9.8%; width: 44%; }
 .changingStone .stoneName { top: 24.7%; left: 17%; width: 61%; }
 .changingStone .stoneSecondary { top: 32.2%; left: 17%; width: 61%; }
 .changingStone .lines { left: 35%; top: 40%; width: 24%; }
@@ -261,11 +261,11 @@
 .changingStone .stoneCopy { left: 17%; bottom: 11.3%; width: 61%; }
 
 .transition {
-  left: calc(718 * var(--u));
-  top: calc(244 * var(--u));
+  left: calc(693 * var(--u));
+  top: calc(245 * var(--u));
   z-index: 6;
-  width: calc(473 * var(--u));
-  height: calc(316 * var(--u));
+  width: calc(585 * var(--u));
+  height: calc(390 * var(--u));
   pointer-events: none;
 }
 
@@ -278,7 +278,7 @@
   position: absolute;
   z-index: 2;
   left: 50%;
-  bottom: calc(-12 * var(--u));
+  bottom: calc(70 * var(--u));
   width: 76%;
   transform: translateX(-50%);
   margin: 0;
@@ -291,7 +291,7 @@
 }
 
 .rightForeground {
-  left: calc(1500 * var(--u));
+  left: calc(1440 * var(--u));
   top: calc(218 * var(--u));
   z-index: 4;
   width: calc(610 * var(--u));
@@ -452,7 +452,13 @@
     height: 118px;
     margin-bottom: -4px;
   }
-  .questionLabel { top: 23%; font-size: 17px; }
+  .questionBanner > img {
+    left: -5%;
+    top: -20px;
+    width: 110%;
+    height: auto;
+  }
+  .questionLabel { top: 8%; font-size: 17px; }
   .questionText {
     top: 43%;
     display: -webkit-box;
@@ -471,12 +477,12 @@
     z-index: 4;
     width: min(100%, 410px);
     height: auto;
-    aspect-ratio: 800 / 735;
+    aspect-ratio: 700 / 643;
     margin-top: -8px;
   }
 
   .changingStone {
-    aspect-ratio: 800 / 714;
+    aspect-ratio: 700 / 625;
     margin-top: -22px;
   }
 
@@ -497,7 +503,7 @@
     z-index: 6;
     width: min(72%, 290px);
     height: auto;
-    aspect-ratio: 760 / 507;
+    aspect-ratio: 560 / 373;
     margin: -32px auto -28px;
   }
   .changingAnnotation {
