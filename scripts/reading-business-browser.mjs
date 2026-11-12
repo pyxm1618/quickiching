@@ -337,12 +337,11 @@ try {
  evidence.push({invalidCompletedOutput:'explicit-error-no-stuck-spinner'});
  if (process.env.READING_TEST_BASE_URL) {
   const errors=[]; page.on('pageerror',error=>errors.push(error.message));
-  for (const path of ['/readings/three-coin/result','/readings/deep','/zh/readings/result','/zh/readings/deep']) {
+  for (const path of ['/readings/choice','/readings/result','/readings/deep','/zh/readings/choice','/zh/readings/result','/zh/readings/deep']) {
     await page.goto(process.env.READING_TEST_BASE_URL+path,{waitUntil:'networkidle0'});
-    await page.waitForFunction(()=>document.body.innerText.includes('No completed reading found') || document.body.innerText.includes('没有找到已完成的起卦'));
+    await page.waitForFunction(()=>document.body.innerText.includes('No completed reading found') || document.body.innerText.includes('没有找到已完成的起卦') || document.body.innerText.includes('No completed cast was found') || document.body.innerText.includes('没有找到这次已完成的起卦'));
     assert.equal(errors.length,0);
     assert.equal(await page.$$eval('textarea',nodes=>nodes.length),0);
-    if(path==='/readings/three-coin/result') assert.equal(new URL(page.url()).pathname,'/readings/result');
     evidence.push({actualNextRoute:path,emptyState:true,pageErrors:0});
   }
  }
