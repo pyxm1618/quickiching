@@ -55,8 +55,7 @@
 
 
 .manual-cast-page-zh,
-.manual-cast-page-zh .manual-cast-shell,
-.manual-cast-page-zh .manual-cast-supporting {
+.manual-cast-page-zh .manual-cast-shell {
   font-family: var(--font-cjk), var(--font-noto-sc), "Songti SC", "STSong", serif;
 }
 
@@ -944,27 +943,6 @@ body:has(.manual-cast-page) > header {
   line-height: 1;
 }
 
-.manual-cast-supporting {
-  position: relative;
-  z-index: 1;
-  background: #0c0704;
-}
-
-.manual-cast-supporting > section {
-  color: #e9dcc6;
-}
-
-.manual-cast-supporting h2 {
-  color: #f2ddb4;
-}
-
-.manual-cast-supporting p {
-  color: #c9b99f !important;
-}
-
-.manual-cast-supporting a {
-  color: #efbd5c !important;
-}
 
 .manual-cast-stage :focus-visible {
   outline: 2px solid #ffe59a;

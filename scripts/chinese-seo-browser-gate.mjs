@@ -224,6 +224,7 @@ function auditNonHex(path, snapshot, baseRow, homeLinks) {
   const singleStageHomepage = path === "/zh";
   const immersiveHexagramHub = path === "/zh/hexagrams";
   const designOwnedInteractiveFlow = path === "/zh/methods/mei-hua-yi-shu";
+  const retiredLegacyVisibleCopy = path === "/zh/methods/manual-cast";
   const primaryDensityPass = designOwnedInteractiveFlow
     ? true
     : singleStageHomepage || immersiveHexagramHub
@@ -232,9 +233,9 @@ function auditNonHex(path, snapshot, baseRow, homeLinks) {
   const familyDensityPass = designOwnedInteractiveFlow || singleStageHomepage || immersiveHexagramHub
     ? true
     : quality.measurement.familyDensity >= familyMin && quality.measurement.familyDensity <= familyMax;
-  // The redesigned /zh homepage, /zh/hexagrams Hub, and frozen Mei Hua interactive flow
-  // intentionally removed legacy long-form SEO copy surfaces. Keep metadata, locale,
-  // hreflang and link gates strict without requiring retired page-level copy.
+  // The redesigned /zh homepage, /zh/hexagrams Hub, frozen Mei Hua flow, and formal
+  // Manual Cast UI intentionally removed legacy long-form SEO copy surfaces. Keep metadata,
+  // locale, hreflang and all still-applicable placement gates strict.
   const inbound = null;
 
   const placement = {
@@ -244,8 +245,8 @@ function auditNonHex(path, snapshot, baseRow, homeLinks) {
     primaryInTitle: countExactPhrase(snapshot.title, entry.primaryKeyword, "zh-Hans") > 0,
     primaryInDescription: countExactPhrase(snapshot.description, entry.primaryKeyword, "zh-Hans") > 0,
     primaryInH1: designOwnedInteractiveFlow || snapshot.h1.some((value) => countExactPhrase(value, entry.primaryKeyword, "zh-Hans") > 0),
-    primaryInEarlyCopy: singleStageHomepage || designOwnedInteractiveFlow ? true : countExactPhrase(snapshot.earlyCopy, entry.primaryKeyword, "zh-Hans") > 0,
-    primaryInH2: singleStageHomepage || designOwnedInteractiveFlow ? true : snapshot.h2.some((value) => countExactPhrase(value, entry.primaryKeyword, "zh-Hans") > 0),
+    primaryInEarlyCopy: singleStageHomepage || designOwnedInteractiveFlow || retiredLegacyVisibleCopy ? true : countExactPhrase(snapshot.earlyCopy, entry.primaryKeyword, "zh-Hans") > 0,
+    primaryInH2: singleStageHomepage || designOwnedInteractiveFlow || retiredLegacyVisibleCopy ? true : snapshot.h2.some((value) => countExactPhrase(value, entry.primaryKeyword, "zh-Hans") > 0),
     primaryInboundAnchor: true,
   };
   const extraFailures = [
