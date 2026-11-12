@@ -1,0 +1,66 @@
+name: Result Choice Browser Evidence
+
+on:
+  push:
+    branches:
+      - qa/result-choice-browser-evidence-b6e25f
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Production build
+        run: bun run build
+      - name: Install pinned browser tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(node - <<'NODE'
+          const fs=require('fs');
+          const c=JSON.parse(fs.readFileSync('config/performance-gates.json','utf8')).tooling;
+          console.log('PUPPETEER_VERSION='+c.puppeteerCore);
+          console.log('CHROMIUM_VERSION='+c.chromium);
+          NODE
+          )"
+          bun add --no-save --cache-dir=/tmp/qic-result-choice-browser-cache "puppeteer-core@$PUPPETEER_VERSION" "@sparticuz/chromium@$CHROMIUM_VERSION"
+      - name: Start production server
+        shell: bash
+        run: |
+          set -euo pipefail
+          (PORT=3036 HOSTNAME=127.0.0.1 bun run start > /tmp/qic-result-choice.log 2>&1 & echo $! > /tmp/qic-result-choice.pid)
+          for i in {1..80}; do
+            if curl -fsS http://127.0.0.1:3036/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/qic-result-choice.log
+          exit 1
+      - name: Capture populated Result Choice
+        env:
+          RESULT_CHOICE_QA_BASE_URL: http://127.0.0.1:3036
+        run: node scripts/result-choice-browser-evidence.mjs
+      - name: Upload Result Choice browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-choice-browser-evidence
+          path: .artifacts/result-choice-visual
+          if-no-files-found: error
+          retention-days: 3
+      - name: Stop production server
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/qic-result-choice.pid ]; then kill "$(cat /tmp/qic-result-choice.pid)" || true; fi
