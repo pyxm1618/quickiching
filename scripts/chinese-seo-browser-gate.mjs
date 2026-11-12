@@ -171,7 +171,6 @@ function auditBase(path, snapshot) {
   const contamination = latinContamination(snapshot.visibleText);
   const wrongInternalLinks = ordinaryEnglishLinks(snapshot, path);
   const designOwnedInteractiveFlow = path === "/zh/methods/mei-hua-yi-shu";
-  const retiredLegacyVisibleCopy = path === "/zh/methods/manual-cast";
   const failures = [
     snapshot.title ? null : "title:missing",
     snapshot.description ? null : "description:missing",
@@ -225,6 +224,7 @@ function auditNonHex(path, snapshot, baseRow, homeLinks) {
   const singleStageHomepage = path === "/zh";
   const immersiveHexagramHub = path === "/zh/hexagrams";
   const designOwnedInteractiveFlow = path === "/zh/methods/mei-hua-yi-shu";
+  const retiredLegacyVisibleCopy = path === "/zh/methods/manual-cast";
   const primaryDensityPass = designOwnedInteractiveFlow
     ? true
     : singleStageHomepage || immersiveHexagramHub
