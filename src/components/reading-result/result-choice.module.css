@@ -1,0 +1,258 @@
+.page {
+  position: relative;
+  z-index: 2;
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 48px 0 64px;
+  color: #21150c;
+  font-family: Georgia, "Songti SC", "STSong", serif;
+}
+
+.questionCard,
+.resultCard,
+.actions {
+  border: 1px solid rgba(151, 94, 36, .62);
+  background:
+    linear-gradient(rgba(255, 248, 224, .96), rgba(247, 229, 190, .96)),
+    radial-gradient(circle at 50% 0%, rgba(189, 27, 13, .08), transparent 52%);
+  box-shadow: 0 18px 54px rgba(0, 0, 0, .34), inset 0 0 0 1px rgba(255, 255, 255, .52);
+}
+
+.questionCard {
+  max-width: 760px;
+  margin: 0 auto 22px;
+  padding: 20px 30px 22px;
+  text-align: left;
+}
+
+.questionCard > p,
+.eyebrow {
+  margin: 0;
+  color: #7a4c20;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.questionCard h1 {
+  margin: 8px 0 0;
+  font-size: clamp(24px, 3vw, 38px);
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.resultCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 18px;
+  padding: 28px;
+}
+
+.hexagramCard {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid rgba(151, 94, 36, .28);
+  background: rgba(255, 251, 238, .62);
+  text-align: center;
+}
+
+.hexagramCard h2 {
+  margin: 8px 0 0;
+  font-size: clamp(21px, 2.2vw, 30px);
+  line-height: 1.2;
+}
+
+.secondaryName {
+  min-height: 22px;
+  margin: 6px 0 0;
+  color: #70583d;
+  font-size: 14px;
+}
+
+.transition {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #7f4b18;
+  text-align: center;
+}
+
+.transition p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.arrow {
+  font-size: 42px;
+  line-height: 1;
+}
+
+.lines {
+  width: min(180px, 76%);
+  margin: 24px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.line {
+  display: flex;
+  height: 12px;
+  gap: 16px;
+}
+
+.line span {
+  display: block;
+  flex: 1;
+  border-radius: 2px;
+  background: #17120e;
+}
+
+.line.yang {
+  gap: 0;
+}
+
+.line.changing span {
+  background: #b72316;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  max-width: 760px;
+  margin: 22px auto 0;
+  padding: 22px;
+}
+
+.deepAction,
+.freeAction {
+  display: flex;
+  min-height: 78px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.deepAction {
+  border: 1px solid #f4cc75;
+  background: linear-gradient(180deg, #54200f, #2d1008);
+  box-shadow: 0 0 24px rgba(211, 131, 41, .42), inset 0 0 0 1px rgba(255, 230, 158, .14);
+  color: #fff1c9;
+}
+
+.freeAction {
+  border: 1px solid rgba(111, 67, 28, .52);
+  background: rgba(255, 250, 232, .78);
+  color: #2b1b0f;
+}
+
+.deepAction:hover,
+.freeAction:hover {
+  transform: translateY(-1px);
+}
+
+.deepAction:hover {
+  box-shadow: 0 0 30px rgba(211, 131, 41, .58), inset 0 0 0 1px rgba(255, 230, 158, .2);
+}
+
+.freeAction:hover {
+  border-color: rgba(111, 67, 28, .78);
+  box-shadow: 0 8px 24px rgba(85, 51, 20, .12);
+}
+
+.deepAction strong,
+.freeAction strong {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.deepAction span,
+.freeAction span {
+  font-size: 13px;
+  opacity: .78;
+}
+
+.status {
+  position: relative;
+  z-index: 2;
+  padding: 120px 20px;
+  color: #fff1cf;
+  text-align: center;
+  font-family: Georgia, "Songti SC", "STSong", serif;
+}
+
+@media (max-width: 800px) {
+  .page {
+    width: min(100% - 20px, 680px);
+    padding: 24px 0 40px;
+  }
+
+  .questionCard {
+    margin-bottom: 14px;
+    padding: 18px 20px;
+  }
+
+  .questionCard h1 {
+    font-size: 25px;
+  }
+
+  .resultCard {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .hexagramCard {
+    padding: 20px 16px;
+  }
+
+  .transition {
+    min-height: 72px;
+  }
+
+  .arrow {
+    font-size: 34px;
+  }
+
+  .lines {
+    width: min(170px, 72%);
+  }
+
+  .actions {
+    margin-top: 14px;
+    padding: 14px;
+  }
+
+  .deepAction,
+  .freeAction {
+    min-height: 74px;
+    padding: 10px 16px;
+  }
+
+  .deepAction strong,
+  .freeAction strong {
+    font-size: 22px;
+  }
+
+  .deepAction span,
+  .freeAction span {
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deepAction,
+  .freeAction {
+    transition: none;
+  }
+}
