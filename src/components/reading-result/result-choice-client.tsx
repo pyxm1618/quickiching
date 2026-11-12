@@ -124,7 +124,7 @@ export function ResultChoiceView({
               <p className={styles.verticalName}>{relating.chineseName}</p>
               <p className={styles.stoneSeal}>变卦</p>
               <p className={styles.stoneCopy}>
-                {zh ? `之卦 · 第 ${relating.number} 卦` : `Relating pattern · Hexagram ${relating.number}`}
+                {zh ? `之卦 · 第 ${relating.number} 卦` : `Relating · Hexagram ${relating.number}`}
               </p>
             </>
           ) : (
