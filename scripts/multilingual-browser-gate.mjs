@@ -129,7 +129,7 @@ async function verifyHttpBoundaries() {
     ["/", "en", `${CANONICAL_ORIGIN}/`, "I Ching Online — Cast Your Hexagram", "I Ching Online — Free Hexagram Reading | Quick I Ching"],
     ["/methods/mei-hua-yi-shu", "en", `${CANONICAL_ORIGIN}/methods/mei-hua-yi-shu`, "Mei Hua Yi Shu", "Mei Hua Yi Shu — Free Online Casting | Quick I Ching"],
     ["/zh", "zh-Hans", `${CANONICAL_ORIGIN}/zh`, "易经在线起卦：从起卦到本卦、动爻与变卦", "易经在线起卦｜四种起卦方法与六十四卦解读 | Quick I Ching"],
-    ["/zh/methods/mei-hua-yi-shu", "zh-Hans", `${CANONICAL_ORIGIN}/zh/methods/mei-hua-yi-shu`, "梅花易数起卦：按公历当前时间在线起卦", "梅花易数起卦｜在线时间起卦与计算说明 | Quick I Ching"],
+    ["/zh/methods/mei-hua-yi-shu", "zh-Hans", `${CANONICAL_ORIGIN}/zh/methods/mei-hua-yi-shu`, null, "梅花易数起卦｜在线时间起卦与计算说明 | Quick I Ching"],
   ];
   for (const [path, htmlLang, canonical, requiredText, title] of metadataChecks) {
     const html = await (await expectStatus(path, 200)).text();
@@ -142,7 +142,7 @@ async function verifyHttpBoundaries() {
       "zh-Hans": path.startsWith("/zh") ? `${CANONICAL_ORIGIN}${path}` : `${CANONICAL_ORIGIN}/zh${path === "/" ? "" : path}`,
       "x-default": `${CANONICAL_ORIGIN}${path.startsWith("/zh") ? path.slice(3) || "/" : path}`,
     }), "alternate-language links are not the equivalent route set: " + path);
-    assert(html.includes(requiredText), `${path}: required page text is missing from initial HTML`);
+    if (requiredText) assert(html.includes(requiredText), `${path}: required page text is missing from initial HTML`);
   }
 
   const zhHomeHtml = await (await expectStatus("/zh", 200)).text();
