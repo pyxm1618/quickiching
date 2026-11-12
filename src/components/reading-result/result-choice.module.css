@@ -32,9 +32,14 @@
 .artLayer,
 .questionBanner,
 .stone,
-.transition,
+.transition {
+  position: absolute;
+  pointer-events: none;
+}
+
 .actions {
   position: absolute;
+  pointer-events: auto;
 }
 
 .artLayer > img,
