@@ -20,7 +20,9 @@ export default function ChineseMeiHuaPage() {
 
   return (
     <>
-      <MeiHuaNumberFlow locale="zh-Hans" />
+      <div style={{ paddingBottom: 96 }}>
+        <MeiHuaNumberFlow locale="zh-Hans" />
+      </div>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         "@context": "https://schema.org",
         "@type": "Article",
