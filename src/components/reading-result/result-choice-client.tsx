@@ -96,7 +96,7 @@ export function ResultChoiceView({
           <p className={styles.stoneTitle}>{zh ? "本卦" : "Primary Hexagram"}</p>
           <h2 className={styles.stoneName}>{zh ? primary.chineseName : primary.englishName}</h2>
           <p className={styles.stoneSecondary}>
-            {zh ? `${primary.englishName} · 第 ${primary.number} 卦` : `${primary.chineseName} · Hexagram ${primary.number}`}
+            {zh ? `第 ${primary.number} 卦` : `${primary.chineseName} · Hexagram ${primary.number}`}
           </p>
           <HexagramGlyph lines={reading.lineValuesBottomUp} movingPositions={reading.changingLines} />
           <p className={styles.verticalName}>{primary.chineseName}</p>
@@ -118,7 +118,7 @@ export function ResultChoiceView({
             <>
               <h2 className={styles.stoneName}>{zh ? relating.chineseName : relating.englishName}</h2>
               <p className={styles.stoneSecondary}>
-                {zh ? `${relating.englishName} · 第 ${relating.number} 卦` : `${relating.chineseName} · Hexagram ${relating.number}`}
+                {zh ? `第 ${relating.number} 卦` : `${relating.chineseName} · Hexagram ${relating.number}`}
               </p>
               <HexagramGlyph lines={changedLines} />
               <p className={styles.verticalName}>{relating.chineseName}</p>
