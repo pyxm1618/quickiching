@@ -309,7 +309,7 @@ async function verifyQuestionReading(page, locale = "en") {
     page.waitForFunction(prefix => location.pathname === `${prefix}/readings/result`, { timeout: 15_000 }, prefix),
     page.click("[data-result-choice-free]"),
   ]);
-  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
   const signinHref = await page.$eval('[data-auth-reading-intent="free"]', node => node.getAttribute("href"));
   const callback = new URL(signinHref, BASE).searchParams.get("callbackURL");
   assert.equal(new URL(callback, BASE).searchParams.get("session"), choiceState.session.id, "Free Reading sign-in callback must preserve this exact cast identity");
@@ -323,7 +323,7 @@ async function verifyQuestionReading(page, locale = "en") {
 
   const sessionBeforeRefresh = JSON.stringify(choiceState.session);
   await page.reload({ waitUntil: "networkidle0" });
-  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
   await assertQuestionPrivacy(page, question, { requireVisible: false });
   const sessionAfterRefresh = await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin"));
   assert.equal(sessionAfterRefresh, sessionBeforeRefresh, "Free Reading auth-gate refresh must restore the exact same completed cast and question");
@@ -494,8 +494,8 @@ async function verifyManualAndMovement(page) {
   assert.equal(modeB.evidence?.mode, "primary-changing");
   assert.equal(modeB.evidence?.primaryHexagramNumber, 24);
   assert.deepEqual(modeB.evidence?.changingLines, [1]);
-  await assertNoOverflow(page, "Manual result auth gate 390px");
-  log("Manual A/B, keyboard tabs, canonical completed-reading, stable id, and auth-before-reveal PASS");
+  await assertNoOverflow(page, "Manual Result Choice 390px");
+  log("Manual A/B, keyboard tabs, canonical completed-reading, stable id, and Result Choice handoff PASS");
 }
 
 async function verifyPartialRestart(page) {
