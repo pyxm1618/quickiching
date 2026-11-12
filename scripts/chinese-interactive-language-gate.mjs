@@ -476,14 +476,17 @@ async function main() {
     }, { timeout: 5000 });
     await page.click("[data-manual-continue]");
     await page.waitForFunction(() => location.pathname === "/zh/readings/choice", { timeout: 15_000 });
-    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10_000 });
+    await page.waitForSelector("[data-result-choice]", { timeout: 10_000 });
     const manualState = await page.evaluate(() => {
       const completedRaw = sessionStorage.getItem("quickiching:public-v1:completed-reading");
       const currentRaw = sessionStorage.getItem("quickiching:public-v1:manual-cast");
       return {
         completed: completedRaw ? JSON.parse(completedRaw) : null,
         current: currentRaw ? JSON.parse(currentRaw) : null,
-        resultVisible: document.querySelector("[data-public-reading-result]") !== null,\n        authGate: document.querySelector("[data-completed-cast-gate]") !== null,\n        freeChoice: document.querySelector("[data-result-choice-free]") !== null,\n        deepChoice: document.querySelector("[data-result-choice-deep]") !== null,
+        resultVisible: document.querySelector("[data-public-reading-result]") !== null,
+        authGate: document.querySelector("[data-completed-cast-gate]") !== null,
+        freeChoice: document.querySelector("[data-result-choice-free]") !== null,
+        deepChoice: document.querySelector("[data-result-choice-deep]") !== null,
       };
     });
     assert(manualState.completed, "Manual cast must write canonical completed-reading");
@@ -491,9 +494,11 @@ async function main() {
     assert.equal(manualState.completed.method, "manual", "Manual completed-reading method mismatch");
     assert.equal(manualState.completed.id, manualId, "Manual completed-reading must preserve the stable casting id");
     assert.equal(manualState.current.id, manualId, "Manual current session must preserve the stable casting id");
-    assert.equal(manualState.resultVisible, false, "Unsigned Manual cast must remain behind auth-before-reveal");
-    await assertPurity(page, "Manual Cast Current Result Auth Gate");
-    log("Method simulation PASS: manual-cast canonical completed-reading auth gate");
+    assert.equal(manualState.resultVisible, false, "Manual Result Choice must not render Free Reading content");
+    assert.equal(manualState.authGate, false, "Manual Result Choice must appear before authentication");
+    assert(manualState.freeChoice && manualState.deepChoice, "Manual Result Choice must offer both reading paths");
+    await assertPurity(page, "Manual Cast Result Choice");
+    log("Method simulation PASS: manual-cast shared Result Choice before auth");
 
     // =========================================================================
     // Test 6: Unified Result Route (/zh/readings/result) States
