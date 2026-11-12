@@ -102,7 +102,7 @@ export function ResultChoiceView({
           <p className={styles.verticalName}>{primary.chineseName}</p>
           <p className={styles.stoneSeal}>{zh ? "本卦" : "本卦"}</p>
           <p className={styles.stoneCopy}>
-            {zh ? `本次起卦的当前卦象 · 第 ${primary.number} 卦` : `Current pattern of this cast · Hexagram ${primary.number}`}
+            {zh ? `当前卦象 · 第 ${primary.number} 卦` : `Current pattern · Hexagram ${primary.number}`}
           </p>
         </section>
 
@@ -124,7 +124,7 @@ export function ResultChoiceView({
               <p className={styles.verticalName}>{relating.chineseName}</p>
               <p className={styles.stoneSeal}>变卦</p>
               <p className={styles.stoneCopy}>
-                {zh ? `动爻变化后的卦象 · 第 ${relating.number} 卦` : `Pattern after the moving lines · Hexagram ${relating.number}`}
+                {zh ? `动爻变化后 · 第 ${relating.number} 卦` : `After the moving lines · Hexagram ${relating.number}`}
               </p>
             </>
           ) : (
@@ -135,7 +135,7 @@ export function ResultChoiceView({
               <p className={styles.verticalName}>{primary.chineseName}</p>
               <p className={styles.stoneSeal}>不变</p>
               <p className={styles.stoneCopy}>
-                {zh ? "本次没有动爻，因此没有之卦。" : "There are no moving lines, so there is no relating hexagram."}
+                {zh ? "无动爻 · 无之卦" : "No moving lines · no relating hexagram"}
               </p>
             </>
           )}
