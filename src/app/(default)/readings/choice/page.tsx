@@ -5,6 +5,10 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Choose Your Reading",
   description: "Choose Free Reading or Deep Reading for this completed Quick I Ching cast.",
+  openGraph: {
+    title: "Choose Your Reading",
+    description: "Choose Free Reading or Deep Reading for this completed Quick I Ching cast.",
+  },
   robots: { index: false, follow: true },
 };
 
