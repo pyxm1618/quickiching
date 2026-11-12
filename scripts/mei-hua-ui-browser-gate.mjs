@@ -70,6 +70,10 @@ function callbackFromHref(href){
 async function runCase({path,viewport,zh=false,capturePrefix}){
   const p=await browser.newPage();
   try{
+    // The approved Result Choice scene adds decoded visual work on shared CI runners.
+    // Keep every real click and assertion intact; only allow the same contract more scheduling time.
+    p.setDefaultTimeout(60_000);
+    p.setDefaultNavigationTimeout(60_000);
     await p.setViewport(viewport);
     await p.emulateMediaFeatures([{name:"prefers-reduced-motion",value:"reduce"}]);
     await p.evaluateOnNewDocument(()=>localStorage.setItem("quickiching:analytics-consent:v1","denied"));
