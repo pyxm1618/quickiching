@@ -193,7 +193,7 @@ async function verifyPrimaryChangingHandoff(page) {
     page.waitForFunction(() => location.pathname === "/readings/choice", { timeout: 15000 }),
     page.click("[data-manual-continue]"),
   ]);
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 10000 });
+  await page.waitForSelector("[data-result-choice]", { timeout: 10000 });
   const completed = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null"), COMPLETED_KEY);
   assert.equal(completed.evidence.mode, "primary-changing");
   assert.equal(completed.evidence.primaryHexagramNumber, 2);
