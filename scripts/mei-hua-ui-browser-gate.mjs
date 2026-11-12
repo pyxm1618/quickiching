@@ -117,6 +117,8 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
 
     if(capturePrefix)await capture(p,`${capturePrefix}-result-choice`);
     const beforeReload=await p.evaluate(k=>sessionStorage.getItem(k),COMPLETED_KEY);
+    await p.$eval('[data-result-choice-free]',element=>element.scrollIntoView({block:"center",inline:"center"}));
+    await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const clickProbe=await p.$eval('[data-result-choice-free]',element=>{
       const rect=element.getBoundingClientRect();
       const x=rect.left+rect.width/2;
