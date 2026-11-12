@@ -12,5 +12,9 @@ export const metadata: Metadata = {
 };
 
 export default function MeiHuaPage() {
-  return <MeiHuaNumberFlow />;
+  return (
+    <div style={{ paddingBottom: 96 }}>
+      <MeiHuaNumberFlow />
+    </div>
+  );
 }
