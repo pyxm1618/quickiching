@@ -2,6 +2,13 @@ import "@/components/public-reading/ritual.css";
 import { ResultChoiceClient } from "@/components/reading-result/result-choice-client";
 import { visualRuntimeAssets } from "@/lib/visual-runtime-assets";
 
+const RESULT_CHOICE_PRELOADS = [
+  "/result-choice/question-banner.avif",
+  "/result-choice/primary-stone.avif",
+  "/result-choice/taiji-transition.avif",
+  "/result-choice/changing-stone.avif",
+] as const;
+
 export async function ResultChoicePage({
   searchParams,
   locale = "en",
@@ -14,8 +21,10 @@ export async function ResultChoicePage({
 
   return (
     <div data-realm="chamber" className="ritual-result-scene" data-result-choice-page>
-      <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
-      <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
+      <link rel="preload" as="image" href={visualRuntimeAssets.stageDesktop} media="(min-width:801px)" fetchPriority="high" />
+      {RESULT_CHOICE_PRELOADS.map((href) => (
+        <link key={href} rel="preload" as="image" href={href} fetchPriority="high" />
+      ))}
       <div className="ritual-room" aria-hidden="true" />
       <ResultChoiceClient initialSessionId={sessionId} locale={locale} />
     </div>
