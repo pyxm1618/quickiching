@@ -87,7 +87,8 @@ describe("App Router multilingual architecture", () => {
     ]) {
       expect(existsSync(`${appRoot}(localized)/zh/${route}/page.tsx`), route).toBe(true);
     }
-    expect(existsSync(`${appRoot}(localized)/zh/readings/three-coin/result/page.tsx`)).toBe(true);
+    expect(existsSync(`${appRoot}(localized)/zh/readings/choice/page.tsx`)).toBe(true);
+    expect(existsSync(`${appRoot}(localized)/zh/readings/three-coin/result/page.tsx`)).toBe(false);
   });
 
   it("permanently redirects English-prefixed paths to unprefixed paths", async () => {
