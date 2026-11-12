@@ -96,20 +96,23 @@ async function seedThreeCoin(page, question) {
 async function verifyChineseNoChangingLines(page) {
   await seedThreeCoinSession(page, randomUUID(), new Date().toISOString(), NO_CHANGE_STEPS, "这次起卦没有动爻吗？");
   await openSeededThreeCoinResult(page, "zh-Hans");
-  const gate = await page.evaluate(() => ({
-    hasSixLines: document.querySelector("[data-completed-six-lines]") !== null,
-    signInAria: document.querySelector(".ritual-gate-signin")?.getAttribute("aria-label"),
-    primaryCard: document.querySelector("[data-primary-card]") !== null,
-    relatingCard: document.querySelector("[data-relating-card]") !== null,
+  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
+  const choice = await page.evaluate(() => ({
+    authGate: document.querySelector("[data-completed-cast-gate]") !== null,
+    primaryChoice: document.querySelector("[data-result-choice-primary]") !== null,
+    relatingChoice: document.querySelector("[data-result-choice-relating]") !== null,
+    freeChoice: document.querySelector("[data-result-choice-free]") !== null,
+    deepChoice: document.querySelector("[data-result-choice-deep]") !== null,
     text: document.body?.innerText ?? "",
   }));
-  assert(gate.hasSixLines, "Chinese auth gate must preserve the completed six lines");
-  assert.equal(gate.primaryCard, false, "Chinese anonymous gate must not reveal the primary hexagram");
-  assert.equal(gate.relatingCard, false, "Chinese anonymous gate must not reveal whether a relating hexagram exists");
-  assert.equal(gate.signInAria, "登录、保存并查看本次卦象", "Formal Chinese sign-in action must retain its accessible purpose");
-  assert(gate.text.includes("登录、保存并查看"), "Chinese completed cast must require sign-in before reveal");
-  await assertNoOverflow(page, "Chinese no-changing completed-cast gate 390px");
-  log("Chinese no-changing completed cast remains sealed behind auth-before-reveal PASS");
+  assert.equal(choice.authGate, false, "Chinese Result Choice must not require sign-in");
+  assert(choice.primaryChoice, "Chinese Result Choice must show the primary hexagram");
+  assert(choice.relatingChoice, "Chinese Result Choice must show the changing/relating summary");
+  assert(choice.freeChoice && choice.deepChoice, "Chinese Result Choice must offer both reading paths");
+  assert(choice.text.includes("卦象不变"), "No-changing cast must explicitly show an unchanged result");
+  assert(choice.text.includes("无动爻"), "No-changing cast must explicitly show that there are no moving lines");
+  await assertNoOverflow(page, "Chinese no-changing Result Choice 390px");
+  log("Chinese no-changing completed cast renders Result Choice before auth PASS");
 }
 
 async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, question = "") {
