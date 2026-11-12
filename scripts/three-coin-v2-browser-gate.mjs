@@ -6,7 +6,7 @@ const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
 const COMPLETED_READING_KEY = "quickiching:public-v1:completed-reading";
 const FIXTURE_CASTING_ID = "11111111-1111-4111-8111-111111111111";
-const RESULT_PATH = "/readings/result";
+const RESULT_PATH = "/readings/choice";
 const HOME_TITLE = "I Ching Online — Free Hexagram Reading | Quick I Ching";
 const HOME_DESCRIPTION = "Use the I Ching online with Three-Coin, Yarrow Stalk, Mei Hua Yi Shu, or Manual Cast. See changing lines and get a free grounded interpretation.";
 const NOT_FOUND_TITLE = "Page Not Found | Quick I Ching";
@@ -137,7 +137,7 @@ async function seedCompletedReadingStorage(page) {
 }
 
 async function seedCompletedReading(page) {
-  // A restored six-line cast must recover directly into the canonical sealed result route.
+  // A restored six-line cast must recover directly into the canonical Result Choice route.
   await seedCompletedReadingStorage(page);
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForFunction(
@@ -146,8 +146,8 @@ async function seedCompletedReading(page) {
     RESULT_PATH,
     FIXTURE_CASTING_ID,
   );
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
-  await page.waitForSelector("[data-completed-six-lines]", { timeout: 15_000 });
+  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
+  assert.equal(await page.$("[data-completed-cast-gate]"), null, "Result Choice must appear before authentication");
 
   const completedState = await page.evaluate(({ completedKey, castingId }) => {
     const raw = sessionStorage.getItem(completedKey);
@@ -159,8 +159,8 @@ async function seedCompletedReading(page) {
       ritualCompleteViewVisible: document.querySelector('[data-ritual-view="complete"]') !== null,
     };
   }, { completedKey: COMPLETED_READING_KEY, castingId: FIXTURE_CASTING_ID });
-  assert.equal(completedState.pathname, RESULT_PATH, "Restored completed cast must recover into the canonical result route");
-  assert.equal(completedState.session, FIXTURE_CASTING_ID, "Recovered result route must preserve the same stable casting id");
+  assert.equal(completedState.pathname, RESULT_PATH, "Restored completed cast must recover into the canonical Result Choice route");
+  assert.equal(completedState.session, FIXTURE_CASTING_ID, "Recovered Result Choice route must preserve the same stable casting id");
   assert.equal(completedState.completedId, FIXTURE_CASTING_ID, "Recovered completed-reading payload must preserve the same stable casting id");
   assert.equal(completedState.ritualCompleteViewVisible, false, "Restored six-line cast must not leave the user stuck on a completed casting screen");
 }
@@ -201,8 +201,7 @@ async function verifyInvalidResult(browser) {
   try {
     const response = await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
     assert.equal(response?.status(), 200, "Product result route should remain HTTP 200 even without a completed browser reading");
-    await waitForText(page, "No completed reading found");
-    await waitForText(page, "Complete a casting method before opening its saved result.");
+    await waitForText(page, "No completed cast was found");
     const body = await resultText(page);
     assert(!body.includes("Fellowship"), "Invalid result state must not manufacture a reading");
     const href = await page.$eval('a[href="/"]', (node) => node.getAttribute("href"));
@@ -319,24 +318,32 @@ async function verifySeededResult(browser, viewport) {
   try {
     await seedCompletedReading(page);
     await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
-    await waitForText(page, "Your six lines are complete");
-    await waitForText(page, "Sign In to Save & Reveal");
+    await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
+    await waitForText(page, "Primary Hexagram");
+    await waitForText(page, "Deep Reading");
+    await waitForText(page, "Free Reading");
 
-    const gateState = await page.evaluate(() => ({
+    const choiceState = await page.evaluate(() => ({
       authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
-      sixLines: document.querySelector("[data-completed-six-lines]") !== null,
+      choice: document.querySelector("[data-result-choice]") !== null,
+      primaryChoice: document.querySelector("[data-result-choice-primary]") !== null,
+      relatingChoice: document.querySelector("[data-result-choice-relating]") !== null,
+      freeChoice: document.querySelector("[data-result-choice-free]") !== null,
+      deepChoice: document.querySelector("[data-result-choice-deep]") !== null,
       primaryCard: document.querySelector("[data-primary-card]") !== null,
       deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
     }));
-    assert(gateState.authGate, "Anonymous completed cast must enter auth-before-reveal gate");
-    assert(gateState.sixLines, "Auth gate must preserve and display the six completed lines");
-    assert.equal(gateState.primaryCard, false, "Auth gate must not reveal the primary hexagram");
-    assert.equal(gateState.deepEntry, false, "Deep Reading must remain downstream of saved result reveal");
+    assert(choiceState.choice, "Anonymous completed cast must render Result Choice");
+    assert.equal(choiceState.authGate, false, "Result Choice must not require authentication");
+    assert(choiceState.primaryChoice && choiceState.relatingChoice, "Result Choice must show the completed cast summary");
+    assert(choiceState.freeChoice && choiceState.deepChoice, "Result Choice must offer both reading destinations");
+    assert.equal(choiceState.primaryCard, false, "Result Choice must not render Free Reading content");
+    assert.equal(choiceState.deepEntry, false, "Result Choice must not render Deep Reading content");
 
     const beforeRefresh = await resultText(page);
     await page.reload({ waitUntil: "networkidle0" });
-    await waitForText(page, "Your six lines are complete");
-    assert.equal(await resultText(page), beforeRefresh, "Refresh must reproduce the same anonymous completed-cast gate");
+    await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
+    assert.equal(await resultText(page), beforeRefresh, "Refresh must reproduce the same anonymous Result Choice");
 
     await page.goBack({ waitUntil: "networkidle0" });
     await page.waitForFunction(
@@ -345,14 +352,14 @@ async function verifySeededResult(browser, viewport) {
       RESULT_PATH,
       FIXTURE_CASTING_ID,
     );
-    await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+    await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
+    assert.equal(await page.$("[data-completed-cast-gate]"), null, "Back navigation must stay before authentication");
     const storedAfterBack = await page.evaluate((key) => sessionStorage.getItem(key), STORAGE_KEY);
     assert(storedAfterBack, "Back navigation must preserve the sealed reading");
     assert.equal(await page.$('[data-ritual-view="complete"]'), null, "Back navigation must not strand the user on the completed casting screen");
-    await waitForText(page, "Your six lines are complete");
 
     await assertNoHorizontalOverflow(page);
-    log(`${viewport.width}px completed-cast auth gate / refresh / back recovery PASS`);
+    log(`${viewport.width}px completed-cast Result Choice / refresh / back recovery PASS`);
   } finally {
     await context.close();
   }
