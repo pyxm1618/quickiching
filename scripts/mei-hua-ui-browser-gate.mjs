@@ -1,4 +1,4 @@
-// Production UI verification for the Mei Hua casting layer and the shared post-Reading auth boundary.
+// Production UI verification for Mei Hua completion, shared Result Choice, and downstream auth handoff.
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import puppeteer from "puppeteer-core";
@@ -11,7 +11,7 @@ const COMPLETED_KEY="quickiching:public-v1:completed-reading";
 await mkdir(OUT,{recursive:true});
 const runtime=await resolveChromeExecutable({ executablePath: async () => { throw new Error("CHROME_PATH_OR_SYSTEM_CHROME_REQUIRED"); } });
 const browser=await puppeteer.launch({executablePath:runtime.executablePath,headless:true,args:["--no-sandbox"]});
-const results={base:BASE,authVerification:"Anonymous shared-auth boundary verified; real provider login requires staging acceptance",captures:[],checks:[]};
+const results={base:BASE,authVerification:"Anonymous Result Choice verified before downstream Free/Deep auth; real provider login requires staging acceptance",captures:[],checks:[]};
 
 const button=async(p,text)=>{
   const state=await p.evaluate(t=>{
