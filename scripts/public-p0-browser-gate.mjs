@@ -316,7 +316,7 @@ async function verifyQuestionReading(page, locale = "en") {
 
   const lineDescriptions = zh ? { 6: "阴爻，动爻", 7: "阳爻", 8: "阴爻", 9: "阳爻，动爻" } : { 6: "yin, moving", 7: "yang", 8: "yin", 9: "yang, moving" };
   const expectedLabels = choiceState.session.data.steps.map((step, index) => zh ? `第 ${index + 1} 爻：${lineDescriptions[step.lineValue]}` : `Line ${index + 1}: ${lineDescriptions[step.lineValue]}`).reverse();
-  assert.deepEqual(await page.$eval('[data-completed-six-lines] [role="img"]', nodes => nodes.map(node => node.getAttribute("aria-label"))), expectedLabels, "Free Reading auth gate must preserve this cast's six lines");
+  assert.deepEqual(await page.$$eval('[data-completed-six-lines] [role="img"]', nodes => nodes.map(node => node.getAttribute("aria-label"))), expectedLabels, "Free Reading auth gate must preserve this cast's six lines");
   assert.equal(choiceState.session.coreQuestionAtCast, question, "The frozen question must be stored with this cast");
   assert.equal(choiceState.session.coreQuestionFrozenAtCast, true, "The session must record the first-real-cast question freeze");
   assert.equal(choiceState.session.data?.steps?.length, 6, "The completed browser session must preserve all six authoritative steps");
