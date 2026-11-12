@@ -104,6 +104,7 @@ async function main() {
     const page = await browser.newPage();
     const evidence = {};
     for (const [name,w,h] of [
+      ["reference-1983x793",1983,793],
       ["desktop-2048x768",2048,768],
       ["desktop-1672x941",1672,941],
       ["tablet-1024x900",1024,900],
