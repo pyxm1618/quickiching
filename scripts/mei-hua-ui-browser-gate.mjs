@@ -88,9 +88,12 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
 
     const before=Date.now();
     await button(p,zh?"☯确认并起卦":"☯Confirm & Cast");
-    const expectedResult=zh?"/zh/readings/result":"/readings/result";
-    await p.waitForFunction(expected=>location.pathname===expected,{},expectedResult);
-    await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
+    const expectedChoice=zh?"/zh/readings/choice":"/readings/choice";
+    const expectedFree=zh?"/zh/readings/result":"/readings/result";
+    const expectedDeep=zh?"/zh/readings/deep":"/readings/deep";
+    await p.waitForFunction(expected=>location.pathname===expected,{},expectedChoice);
+    await p.waitForSelector('[data-result-choice]');
+    assert.equal(await p.$('[data-completed-cast-gate]'),null,"Result Choice must be visible before authentication");
     const after=Date.now();
 
     const sealed=await p.evaluate(k=>JSON.parse(sessionStorage.getItem(k)),CAST_KEY);
@@ -104,22 +107,35 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
     assert.deepEqual(completed.lineValuesBottomUp,sealed.data.result.lineValuesBottomUp);
     assert.equal(completed.evidence.calculation.methodCalculation.number,29);
 
+    const freeChoiceHref=await p.$eval('[data-result-choice-free]',e=>e.getAttribute("href"));
+    const deepChoiceHref=await p.$eval('[data-result-choice-deep]',e=>e.getAttribute("href"));
+    const freeChoice=new URL(freeChoiceHref,BASE),deepChoice=new URL(deepChoiceHref,BASE);
+    assert.equal(freeChoice.pathname,expectedFree);
+    assert.equal(freeChoice.searchParams.get("session"),sealed.id);
+    assert.equal(deepChoice.pathname,expectedDeep);
+    assert.equal(deepChoice.searchParams.get("session"),sealed.id);
+
+    if(capturePrefix)await capture(p,`${capturePrefix}-result-choice`);
+    const beforeReload=await p.evaluate(k=>sessionStorage.getItem(k),COMPLETED_KEY);
+    await Promise.all([
+      p.waitForFunction(expected=>location.pathname===expected,{},expectedFree),
+      p.click('[data-result-choice-free]'),
+    ]);
+    await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
     const freeHref=await p.$eval('[data-auth-reading-intent="free"]',e=>e.getAttribute("href"));
     const deepHref=await p.$eval('[data-auth-reading-alternate-intent="deep"]',e=>e.getAttribute("href"));
     const free=callbackFromHref(freeHref),deep=callbackFromHref(deepHref);
     assert.equal(free.login.pathname,zh?"/zh/signin":"/signin");
-    assert.equal(free.callback.pathname,expectedResult);
+    assert.equal(free.callback.pathname,expectedFree);
     assert.equal(free.callback.searchParams.get("session"),sealed.id);
-    assert.equal(deep.callback.pathname,zh?"/zh/readings/deep":"/readings/deep");
+    assert.equal(deep.callback.pathname,expectedDeep);
     assert.equal(deep.callback.searchParams.get("session"),sealed.id);
 
-    if(capturePrefix)await capture(p,`${capturePrefix}-shared-reading`);
-    const beforeReload=await p.evaluate(k=>sessionStorage.getItem(k),COMPLETED_KEY);
     await p.reload({waitUntil:"networkidle0"});
     await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
     assert.equal(await p.evaluate(k=>sessionStorage.getItem(k),COMPLETED_KEY),beforeReload);
     assert.equal(new URL(p.url()).searchParams.get("session"),sealed.id);
-    results.checks.push(`${zh?"ZH":"EN"} ${viewport.width}px: number+moment cast → canonical Reading → shared auth Free/Deep callbacks → reload same cast PASS`);
+    results.checks.push(`${zh?"ZH":"EN"} ${viewport.width}px: number+moment cast → Result Choice → Free auth handoff + Deep callback → reload same cast PASS`);
     return {id:sealed.id,algorithmVersion:sealed.data.result.algorithmVersion};
   }finally{await p.close();}
 }
