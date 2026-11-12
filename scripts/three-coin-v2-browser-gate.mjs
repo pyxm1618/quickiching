@@ -532,12 +532,12 @@ try {
     await verifySeededResult(browser, { width, height: 844 });
   }
   if (process.argv.includes("--public-only")) {
-    log("PUBLIC THREE-COIN AUTH-BEFORE-REVEAL GATES PASS; authenticated fixture cases run separately in Three-Coin engineering regression");
+    log("PUBLIC THREE-COIN RESULT-CHOICE-FIRST GATES PASS; authenticated Free/Deep fixture cases run separately in Three-Coin engineering regression");
   } else {
     await verifyHistorySaveRetry(browser);
     await verifyClearFailure(browser);
     await verifyExplicitReset(browser);
-    log("ALL THREE-COIN V2 AUTH-BEFORE-REVEAL GATES PASS");
+    log("ALL THREE-COIN V2 RESULT-CHOICE-FIRST GATES PASS");
   }
 } finally {
   await browser.close();
