@@ -278,37 +278,56 @@ async function verifyQuestionReading(page, locale = "en") {
   await clickText(page, zh ? "开始掷币" : "Cast the Coins");
   for (let line = 1; line <= 6; line += 1) await recordFormalLine(page, line, locale);
 
-  await page.waitForFunction(prefix => location.pathname === `${prefix}/readings/result`, { timeout: 15_000 }, prefix);
-  await waitForText(page, zh ? "六爻已经完成" : "Your six lines are complete");
+  await page.waitForFunction(prefix => location.pathname === `${prefix}/readings/choice`, { timeout: 15_000 }, prefix);
+  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
   await assertQuestionPrivacy(page, question, { requireVisible: false });
 
-  const questionState = await page.evaluate(() => ({
+  const choiceState = await page.evaluate(() => ({
     session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
+    completed: JSON.parse(sessionStorage.getItem("quickiching:public-v1:completed-reading") || "null"),
     authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
     primaryCard: document.querySelector("[data-primary-card]") !== null,
     deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
+    freeHref: document.querySelector("[data-result-choice-free]")?.getAttribute("href") ?? "",
+    deepHref: document.querySelector("[data-result-choice-deep]")?.getAttribute("href") ?? "",
   }));
-  assert.equal(new URL(page.url()).searchParams.get("session"), questionState.session.id, "Completion URL must select this exact formal Three-Coin cast, even when another completed reading exists");
-  const signinHref = await page.$eval('.ritual-gate-signin', node => node.getAttribute("href"));
-  const callback = new URL(signinHref, BASE).searchParams.get("callbackURL");
-  assert.equal(new URL(callback, BASE).searchParams.get("session"), questionState.session.id, "Sign-in callback must preserve this exact cast identity");
-  const lineDescriptions = zh ? { 6: "阴爻，动爻", 7: "阳爻", 8: "阴爻", 9: "阳爻，动爻" } : { 6: "yin, moving", 7: "yang", 8: "yin", 9: "yang, moving" };
-  const expectedLabels = questionState.session.data.steps.map((step, index) => zh ? `第 ${index + 1} 爻：${lineDescriptions[step.lineValue]}` : `Line ${index + 1}: ${lineDescriptions[step.lineValue]}`).reverse();
-  assert.deepEqual(await page.$$eval('[data-completed-six-lines] [role="img"]', nodes => nodes.map(node => node.getAttribute("aria-label"))), expectedLabels, "Result gate must preserve this cast's six lines rather than the previous reading");
-  assert.equal(questionState.session.coreQuestionAtCast, question, "The frozen question must be stored with this cast");
-  assert.equal(questionState.session.coreQuestionFrozenAtCast, true, "The session must record the first-real-cast question freeze");
-  assert.equal(questionState.session.data?.steps?.length, 6, "The completed browser session must preserve all six authoritative steps");
-  assert(questionState.authGate, "Anonymous completed cast must enter auth-before-reveal");
-  assert.equal(questionState.primaryCard, false, "Free result must not reveal before sign-in and account persistence");
-  assert.equal(questionState.deepEntry, false, "Deep Reading must remain downstream of the result reveal gate");
+  assert.equal(new URL(page.url()).searchParams.get("session"), choiceState.session.id, "Result Choice URL must select this exact formal Three-Coin cast, even when another completed reading exists");
+  assert.equal(choiceState.completed?.id, choiceState.session.id, "Result Choice must use the new completed cast, not a stale completed reading");
+  assert.deepEqual(choiceState.completed?.lineValuesBottomUp, choiceState.session.data.steps.map(step => step.lineValue), "Result Choice handoff must preserve all six authoritative line values");
+  assert.equal(choiceState.authGate, false, "Result Choice must be visible before authentication");
+  assert.equal(choiceState.primaryCard, false, "Result Choice must not render Free Reading content");
+  assert.equal(choiceState.deepEntry, false, "Result Choice must not render Deep Reading content");
 
-  const sessionBeforeRefresh = JSON.stringify(questionState.session);
+  const freeUrl = new URL(choiceState.freeHref, BASE);
+  const deepUrl = new URL(choiceState.deepHref, BASE);
+  assert.equal(freeUrl.pathname, `${prefix}/readings/result`);
+  assert.equal(deepUrl.pathname, `${prefix}/readings/deep`);
+  assert.equal(freeUrl.searchParams.get("session"), choiceState.session.id);
+  assert.equal(deepUrl.searchParams.get("session"), choiceState.session.id);
+
+  await Promise.all([
+    page.waitForFunction(prefix => location.pathname === `${prefix}/readings/result`, { timeout: 15_000 }, prefix),
+    page.click("[data-result-choice-free]"),
+  ]);
+  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
+  const signinHref = await page.$eval('[data-auth-reading-intent="free"]', node => node.getAttribute("href"));
+  const callback = new URL(signinHref, BASE).searchParams.get("callbackURL");
+  assert.equal(new URL(callback, BASE).searchParams.get("session"), choiceState.session.id, "Free Reading sign-in callback must preserve this exact cast identity");
+
+  const lineDescriptions = zh ? { 6: "阴爻，动爻", 7: "阳爻", 8: "阴爻", 9: "阳爻，动爻" } : { 6: "yin, moving", 7: "yang", 8: "yin", 9: "yang, moving" };
+  const expectedLabels = choiceState.session.data.steps.map((step, index) => zh ? `第 ${index + 1} 爻：${lineDescriptions[step.lineValue]}` : `Line ${index + 1}: ${lineDescriptions[step.lineValue]}`).reverse();
+  assert.deepEqual(await page.$eval('[data-completed-six-lines] [role="img"]', nodes => nodes.map(node => node.getAttribute("aria-label"))), expectedLabels, "Free Reading auth gate must preserve this cast's six lines");
+  assert.equal(choiceState.session.coreQuestionAtCast, question, "The frozen question must be stored with this cast");
+  assert.equal(choiceState.session.coreQuestionFrozenAtCast, true, "The session must record the first-real-cast question freeze");
+  assert.equal(choiceState.session.data?.steps?.length, 6, "The completed browser session must preserve all six authoritative steps");
+
+  const sessionBeforeRefresh = JSON.stringify(choiceState.session);
   await page.reload({ waitUntil: "networkidle0" });
-  await waitForText(page, zh ? "六爻已经完成" : "Your six lines are complete");
+  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
   await assertQuestionPrivacy(page, question, { requireVisible: false });
   const sessionAfterRefresh = await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin"));
-  assert.equal(sessionAfterRefresh, sessionBeforeRefresh, "Auth-gate refresh must restore the exact same completed cast and question");
-  log(`${locale}: current cast selection over stale reading, sign-in callback, six-line facts, privacy and restore PASS`);
+  assert.equal(sessionAfterRefresh, sessionBeforeRefresh, "Free Reading auth-gate refresh must restore the exact same completed cast and question");
+  log(`${locale}: Result Choice first, same-session Free handoff, auth callback, six-line facts, privacy and restore PASS`);
 }
 
 
@@ -326,21 +345,26 @@ async function verifyQuestionSkipFreeOnly(page) {
   assert.equal(await page.$("button[data-question-restart]"), null, "A frozen free-only cast must not offer late question restart");
   for (let line = 2; line <= 6; line += 1) await recordFormalLine(page, line);
 
-  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
-  await waitForText(page, "Your six lines are complete");
+  await page.waitForFunction(() => location.pathname === "/readings/choice", { timeout: 15_000 });
+  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
   const state = await page.evaluate(() => ({
     session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
+    completed: JSON.parse(sessionStorage.getItem("quickiching:public-v1:completed-reading") || "null"),
     authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
     primaryCard: document.querySelector("[data-primary-card]") !== null,
     deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
+    freeChoice: document.querySelector("[data-result-choice-free]") !== null,
+    deepChoice: document.querySelector("[data-result-choice-deep]") !== null,
   }));
   assert.equal(state.session.coreQuestionFrozenAtCast, true, "Questionless cast must still freeze the no-question decision at first cast");
   assert.equal(state.session.coreQuestionAtCast ?? "", "", "Questionless cast must not manufacture a question");
   assert.equal(state.session.data?.steps?.length, 6, "Questionless completed cast must preserve six lines");
-  assert(state.authGate, "Questionless completed cast still requires account save before result reveal");
-  assert.equal(state.primaryCard, false, "Questionless cast must not reveal free result before account save");
-  assert.equal(state.deepEntry, false, "Questionless cast must not expose Deep Reading before result reveal");
-  log("Optional question skip, first-line freeze, six-line completion, and auth-before-reveal PASS");
+  assert.deepEqual(state.completed?.lineValuesBottomUp, state.session.data.steps.map(step => step.lineValue));
+  assert.equal(state.authGate, false, "Questionless completed cast must still see Result Choice before authentication");
+  assert.equal(state.primaryCard, false, "Result Choice must not reveal Free Reading content");
+  assert.equal(state.deepEntry, false, "Result Choice must not reveal Deep Reading content");
+  assert(state.freeChoice && state.deepChoice, "Result Choice must offer both Free Reading and Deep Reading");
+  log("Optional question skip, first-line freeze, six-line completion, and Result Choice-before-auth PASS");
 }
 
 
@@ -348,25 +372,44 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   const question = "面对职业选择，我现在最需要看清什么？";
   await seedThreeCoin(page, question);
   await openSeededThreeCoinResult(page, "zh-Hans");
-  await waitForText(page, "六爻已经完成");
-  await waitForText(page, "保存本次起卦");
+  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
+  await waitForText(page, question);
   await assertQuestionPrivacy(page, question, { requireVisible: false });
 
   const state = await page.evaluate(() => ({
     authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
     primaryCard: document.querySelector("[data-primary-card]") !== null,
     deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
+    deepHref: document.querySelector("[data-result-choice-deep]")?.getAttribute("href") ?? "",
+    freeHref: document.querySelector("[data-result-choice-free]")?.getAttribute("href") ?? "",
     session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
   }));
-  assert(state.authGate, "Chinese anonymous completed cast must enter auth-before-reveal");
-  assert.equal(state.primaryCard, false, "Chinese primary hexagram must remain hidden before account persistence");
-  assert.equal(state.deepEntry, false, "Chinese Deep Reading must remain downstream of saved result reveal");
-  assert.equal(state.session.question, question, "Chinese callback source session must preserve the same question");
-  assert.equal(state.session.coreQuestionAtCast, question, "Chinese callback source session must preserve the frozen core question");
-  assert.equal(state.session.data?.steps?.length, 6, "Chinese callback source session must preserve the same six lines");
-  await assertNoOverflow(page, "Chinese completed-cast auth gate 390px");
-  log("Chinese question binding, same-cast restore source, privacy, and auth-before-reveal PASS");
+  assert.equal(state.authGate, false, "Chinese Result Choice must be visible before authentication");
+  assert.equal(state.primaryCard, false, "Chinese Result Choice must not render Free Reading content");
+  assert.equal(state.deepEntry, false, "Chinese Result Choice must not render Deep Reading content");
+  assert.equal(state.session.question, question, "Chinese choice source session must preserve the same question");
+  assert.equal(state.session.coreQuestionAtCast, question, "Chinese choice source session must preserve the frozen core question");
+  assert.equal(state.session.data?.steps?.length, 6, "Chinese choice source session must preserve the same six lines");
+  const deepUrl = new URL(state.deepHref, BASE);
+  const freeUrl = new URL(state.freeHref, BASE);
+  assert.equal(deepUrl.pathname, "/zh/readings/deep");
+  assert.equal(freeUrl.pathname, "/zh/readings/result");
+  assert.equal(deepUrl.searchParams.get("session"), state.session.id);
+  assert.equal(freeUrl.searchParams.get("session"), state.session.id);
+
+  await Promise.all([
+    page.waitForFunction(() => location.pathname === "/zh/readings/deep", { timeout: 15_000 }),
+    page.click("[data-result-choice-deep]"),
+  ]);
+  await page.waitForSelector('[data-completed-cast-gate="auth-required"]', { timeout: 15_000 });
+  const deepSigninHref = await page.$eval('[data-auth-reading-intent="deep"]', node => node.getAttribute("href"));
+  const callback = new URL(new URL(deepSigninHref, BASE).searchParams.get("callbackURL"), BASE);
+  assert.equal(callback.pathname, "/zh/readings/deep");
+  assert.equal(callback.searchParams.get("session"), state.session.id);
+  await assertNoOverflow(page, "Chinese Deep Reading auth gate 390px");
+  log("Chinese Result Choice, same-cast Deep handoff, privacy, and auth-after-choice PASS");
 }
+
 
 async function setManualValues(page, values) {
   for (let index = 0; index < values.length; index += 1) {
@@ -397,8 +440,8 @@ async function startManual(page) {
 async function buildManual(page, values) {
   await setManualValues(page, values);
   await page.click("[data-manual-continue]");
-  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+  await page.waitForFunction(() => location.pathname === "/readings/choice", { timeout: 15_000 });
+  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
   const state = await page.evaluate(() => {
     const completedRaw = sessionStorage.getItem("quickiching:public-v1:completed-reading");
     const manualRaw = sessionStorage.getItem("quickiching:public-v1:manual-cast");
@@ -440,8 +483,8 @@ async function verifyManualAndMovement(page) {
   await page.click('[data-hexagram-number="24"]');
   await page.click('[data-moving-line-position="1"]');
   await page.click("[data-manual-continue]");
-  await page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 });
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+  await page.waitForFunction(() => location.pathname === "/readings/choice", { timeout: 15_000 });
+  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
   const modeB = await page.evaluate(() => {
     const raw = sessionStorage.getItem("quickiching:public-v1:completed-reading");
     return raw ? JSON.parse(raw) : null;
