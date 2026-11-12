@@ -117,9 +117,12 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
 
     if(capturePrefix)await capture(p,`${capturePrefix}-result-choice`);
     const beforeReload=await p.evaluate(k=>sessionStorage.getItem(k),COMPLETED_KEY);
-    await p.click('[data-result-choice-free]');
-    await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
+    await Promise.all([
+      p.waitForNavigation({waitUntil:"domcontentloaded"}),
+      p.click('[data-result-choice-free]'),
+    ]);
     assert.equal(new URL(p.url()).pathname,expectedFree,"Free Reading must navigate to the downstream auth-gated route");
+    await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
     const freeHref=await p.$eval('[data-auth-reading-intent="free"]',e=>e.getAttribute("href"));
     const deepHref=await p.$eval('[data-auth-reading-alternate-intent="deep"]',e=>e.getAttribute("href"));
     const free=callbackFromHref(freeHref),deep=callbackFromHref(deepHref);
