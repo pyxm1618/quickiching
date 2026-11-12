@@ -132,7 +132,7 @@ async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, 
 async function openSeededThreeCoinResult(page, locale = "en") {
   const prefix = locale === "zh-Hans" ? "/zh" : "";
   const methodPath = `${prefix}/methods/three-coin`;
-  const resultPath = `${prefix}/readings/result`;
+  const resultPath = `${prefix}/readings/choice`;
   const seededId = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.id ?? "", THREE_COIN_STORAGE_KEY);
   assert(seededId, "Seeded Three-Coin session must have a stable id");
 
@@ -143,8 +143,8 @@ async function openSeededThreeCoinResult(page, locale = "en") {
     { timeout: 30_000 },
     { resultPath, seededId },
   );
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
-  await page.waitForSelector("[data-completed-six-lines]", { timeout: 15_000 });
+  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
+  assert.equal(await page.$("[data-completed-cast-gate]"), null, "Result Choice must appear before any auth/save gate");
 
   const state = await page.evaluate(({ completedKey, seededId }) => {
     const raw = sessionStorage.getItem(completedKey);
@@ -158,8 +158,8 @@ async function openSeededThreeCoinResult(page, locale = "en") {
     };
   }, { completedKey: COMPLETED_READING_STORAGE_KEY, seededId });
 
-  assert.equal(state.pathname, resultPath, "Restored completed cast must recover into the canonical result route");
-  assert.equal(state.session, seededId, "Recovered result route must preserve the same stable casting id");
+  assert.equal(state.pathname, resultPath, "Restored completed cast must recover into the canonical Result Choice route");
+  assert.equal(state.session, seededId, "Recovered Result Choice route must preserve the same stable casting id");
   assert.equal(state.completed?.id, seededId, "Canonical completed-reading must preserve the same stable casting id");
   assert.equal(state.completed?.method, "three-coin", "Canonical completed-reading must preserve the Three-Coin method");
   assert.equal(state.ritualCompleteViewVisible, false, "Restored six-line cast must not remain on a completed casting screen");
