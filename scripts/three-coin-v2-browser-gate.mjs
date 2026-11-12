@@ -69,8 +69,10 @@ async function verifySeoAnd404() {
   assert(/\bnoindex\b/i.test(resultRobots[0]), "Result page must be noindex");
   assert(/\bfollow\b/i.test(resultRobots[0]) && !/\bnofollow\b/i.test(resultRobots[0]), "Result page must be follow");
   assert.deepEqual(canonicalValues(resultHtml), [], "Result page must not emit a canonical URL");
-  assert(!resultHtml.includes(HOME_TITLE), "Result page must not inherit homepage title");
-  assert(!resultHtml.includes(HOME_DESCRIPTION), "Result page must not inherit homepage description");
+  assert.deepEqual(titleValues(resultHtml), ["Choose Your Reading | Quick I Ching"], "Result Choice must emit its explicit private-page title");
+  const resultDescriptions = metadataContents(resultHtml, "description");
+  assert(resultDescriptions.includes("Choose Free Reading or Deep Reading for this completed Quick I Ching cast."), "Result Choice must emit its explicit description");
+  assert(!titleValues(resultHtml).includes(HOME_TITLE), "Result Choice title must not fall back to the homepage title");
 
   const missingResponse = await fetch(`${BASE}/this-page-must-not-exist`);
   assert.equal(missingResponse.status, 404, "Random missing URL must remain HTTP 404");
