@@ -261,10 +261,11 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
     assert.equal(await page.evaluate(()=>window.__ritualBitDraws),(line+1)*3,'Cast '+(line+1)+' must consume exactly three new business bits');
     await page.locator('[data-record-this-cast]').click();
    }
-   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+   await page.waitForSelector('[data-result-choice]');
+   assert.equal(await page.$('[data-completed-cast-gate]'),null,'Result Choice must precede authentication');
    assert.equal(await page.evaluate(()=>window.__ritualBitDraws),18,'Six casts require exactly eighteen business bits');
    for(const selector of ['[data-primary-card]','[data-relating-card]','[data-deep-reading-entry]']) {
-    assert.equal(await page.$(selector),null,'Auth gate must conceal '+selector);
+    assert.equal(await page.$(selector),null,'Result Choice must not render Free/Deep result content '+selector);
    }
    const completed=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
    assert.equal(completed.id,session.id);
@@ -272,7 +273,7 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    await page.reload({waitUntil:'networkidle0'});
    await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
    const restored=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
-   assert.deepEqual(restored,completed,'Refreshing the gate preserves the same completed cast');
+   assert.deepEqual(restored,completed,'Refreshing Result Choice preserves the same completed cast');
   }
   const outcome={bits,zh,reduced,fallback,moduleFailure,storageFailure,completedFlow,deferTextures,remountReadiness,faces:authoritative,lineValue:session.data.steps[0].lineValue,status:'PASS'};
   outcomes.push(outcome);console.log(JSON.stringify(outcome));
