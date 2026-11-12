@@ -452,6 +452,7 @@ async function buildManual(page, values) {
       completed: completedRaw ? JSON.parse(completedRaw) : null,
       manual: manualRaw ? JSON.parse(manualRaw) : null,
       revealed: document.querySelector("[data-public-reading-result]") !== null,
+      authGate: document.querySelector("[data-completed-cast-gate]") !== null,
     };
   });
   assert(state.completed, "Manual Build Reading must write canonical completed-reading");
@@ -459,7 +460,8 @@ async function buildManual(page, values) {
   assert.equal(state.completed.method, "manual", "Manual completed-reading must use the canonical manual method");
   assert.equal(state.completed.id, state.manual.id, "Manual result handoff must preserve the same casting id");
   assert.deepEqual(state.completed.lineValuesBottomUp, values, "Manual result handoff must preserve all six authoritative values");
-  assert.equal(state.revealed, false, "Manual result must remain sealed before authentication and account persistence");
+  assert.equal(state.revealed, false, "Manual Result Choice must not render Free Reading content");
+  assert.equal(state.authGate, false, "Manual Result Choice must appear before authentication");
   return state;
 }
 
