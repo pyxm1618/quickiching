@@ -258,7 +258,7 @@
 .changingStone .lines { left: 35%; top: 40%; width: 24%; }
 .changingStone .verticalName { left: 63%; top: 39.5%; }
 .changingStone .stoneSeal { left: 62.2%; top: 54.7%; }
-.changingStone .stoneCopy { left: 17%; bottom: 17.5%; width: 61%; }
+.changingStone .stoneCopy { left: 20%; bottom: 17.5%; width: 43%; }
 
 .transition {
   left: calc(693 * var(--u));
