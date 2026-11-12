@@ -136,13 +136,9 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
     });
     assert.equal(clickProbe.href,freeChoiceHref,"Free Reading DOM href must stay bound to this completed cast");
     assert(clickProbe.contained&&clickProbe.hitHref===freeChoiceHref,`Free Reading center hit-test must target its own link: ${JSON.stringify(clickProbe)}`);
-    const [navigationResponse]=await Promise.all([
-      p.waitForNavigation({waitUntil:"domcontentloaded"}),
-      p.click('[data-result-choice-free]'),
-    ]);
-    const redirectChain=navigationResponse?.request().redirectChain().map(request=>request.url())??[];
-    assert.equal(new URL(p.url()).pathname,expectedFree,`Free Reading must navigate to the downstream auth-gated route; final=${p.url()} redirects=${JSON.stringify(redirectChain)} probe=${JSON.stringify(clickProbe)}`);
+    await p.click('[data-result-choice-free]');
     await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
+    assert.equal(new URL(p.url()).pathname,expectedFree,`Free Reading must navigate to the downstream auth-gated route; final=${p.url()} probe=${JSON.stringify(clickProbe)}`);
     const freeHref=await p.$eval('[data-auth-reading-intent="free"]',e=>e.getAttribute("href"));
     const deepHref=await p.$eval('[data-auth-reading-alternate-intent="deep"]',e=>e.getAttribute("href"));
     const free=callbackFromHref(freeHref),deep=callbackFromHref(deepHref);

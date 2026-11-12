@@ -417,7 +417,7 @@
     align-items: center;
     gap: 2px;
     margin: 0 auto;
-    padding: 24px 12px max(54px, env(safe-area-inset-bottom));
+    padding: 24px 12px calc(150px + env(safe-area-inset-bottom));
   }
 
   .artLayer,
