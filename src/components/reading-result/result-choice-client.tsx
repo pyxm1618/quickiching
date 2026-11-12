@@ -78,7 +78,7 @@ export function ResultChoiceView({
         <div className={styles.hexagramCard} data-result-choice-primary>
           <p className={styles.eyebrow}>{zh ? "本卦" : "Primary Hexagram"}</p>
           <h2>{zh ? `第 ${primary.number} 卦 · ${primary.chineseName}` : `Hexagram ${primary.number} · ${primary.englishName}`}</h2>
-          <p className={styles.secondaryName}>{zh ? primary.englishName : primary.chineseName}</p>
+          {!zh ? <p className={styles.secondaryName}>{primary.chineseName}</p> : null}
           <HexagramGlyph lines={reading.lineValuesBottomUp} movingPositions={reading.changingLines} />
         </div>
 
@@ -92,7 +92,7 @@ export function ResultChoiceView({
           {relating ? (
             <>
               <h2>{zh ? `第 ${relating.number} 卦 · ${relating.chineseName}` : `Hexagram ${relating.number} · ${relating.englishName}`}</h2>
-              <p className={styles.secondaryName}>{zh ? relating.englishName : relating.chineseName}</p>
+              {!zh ? <p className={styles.secondaryName}>{relating.chineseName}</p> : null}
               <HexagramGlyph lines={changedLines} />
             </>
           ) : (
