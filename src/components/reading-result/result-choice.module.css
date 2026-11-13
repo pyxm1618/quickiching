@@ -1,12 +1,12 @@
 /* Canonical approved Result Choice composition: 1983 × 793 CSS px.
-   Measured target boxes (x, y, w, h):
-   Question 535, 49, 902, 175
-   Primary 205, 179, 573, 487
-   Taiji 730, 260, 454, 302
-   Changing 1161, 190, 530, 480
-   Deep CTA 735, 573, 456, 92
-   Free CTA center 963, y 700
-   All desktop layers share this one coordinate system and scale uniformly. */
+   Every desktop layer below is bound to a landmark measured on the approved
+   artwork itself, not to a guess:
+     primary gold plate centre  (549, 272)   → stone box 227.5 / 171.5
+     changing gold plate centre (1430, 270)  → stone box 1175 / 161.5
+     Deep CTA                   755, 592, 472 × 95
+     Free Reading text centre   997.5, y 727.5
+   The stone boxes keep their approved 606 × 557 / 637 × 569 size, so the
+   percentage layout of the copy inside each stone is untouched. */
 .page {
   --scene-w: 1983;
   --scene-h: 793;
@@ -33,6 +33,17 @@
   :global(body):has(.page) :global(.scene-navigation) { display: none; }
   :global(body):has(.page) :global(.ritual-result-scene) { min-height: 100svh; }
   :global(body):has(.page) :global(.ritual-room) { background-size: cover; background-position: center; }
+  /* RC-FA-M02: on a pristine visit the analytics panel used to sit exactly on top of
+     Free Reading. On this route only it is docked to the bottom-right corner, clear of
+     both CTAs; the panel keeps its size, copy, z-order and both legal actions, so the
+     consent contract is unchanged — only its position on this one composition. */
+  :global(body):has(.page) :global([role="region"][aria-label="Analytics Consent"]),
+  :global(body):has(.page) :global([role="region"][aria-label="分析工具同意设置"]) {
+    left: auto;
+    right: clamp(12px, 1.2vw, 24px);
+    width: min(calc(100vw - 48px), 640px);
+    transform: none;
+  }
 }
 
 .scene {
@@ -68,7 +79,7 @@
 }
 
 .leftBlossom {
-  left: calc(-106 * var(--u));
+  left: calc(-120 * var(--u));
   top: calc(-7 * var(--u));
   z-index: 8;
   width: calc(624 * var(--u));
@@ -127,8 +138,8 @@
 }
 
 .primaryStone {
-  left: calc(188 * var(--u));
-  top: calc(162 * var(--u));
+  left: calc(227.5 * var(--u));
+  top: calc(171.5 * var(--u));
   z-index: 5;
   width: calc(606 * var(--u));
   height: calc(557 * var(--u));
@@ -137,8 +148,8 @@
 }
 
 .changingStone {
-  left: calc(1112 * var(--u));
-  top: calc(156 * var(--u));
+  left: calc(1175 * var(--u));
+  top: calc(161.5 * var(--u));
   z-index: 5;
   width: calc(637 * var(--u));
   height: calc(569 * var(--u));
@@ -164,13 +175,18 @@
 }
 
 .stoneTitle {
-  left: 50%;
+  /* The gold plate sits at 53.05 % of the stone artwork's width (primary) and
+     40.03 % (changing), so the label is centred on the plate on every breakpoint. */
+  left: 53.05%;
   top: 16.2%;
   width: 50%;
   transform: translateX(-50%);
   margin: 0;
   text-align: center;
-  font-size: calc(21 * var(--u));
+  /* RC-FA-H01: the approved plate is a fixed piece of artwork ~243 px wide, so the
+     label is sized to the plate instead of the stone box. 14.5 px reproduces the
+     approved cap height (10 px) and leaves ~48 px of plate on each side. */
+  font-size: calc(14.5 * var(--u));
   font-weight: 700;
   line-height: 1;
   text-shadow: none;
@@ -262,16 +278,23 @@
 }
 
 .stoneCopy {
-  left: 21%;
+  left: 28.3%;
   bottom: 15%;
-  width: 58%;
+  width: 49.5%;
   margin: 0;
   text-align: center;
   font-size: calc(18 * var(--u));
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
-.changingStone .stoneTitle { top: 17.3%; width: 52%; font-size: calc(17 * var(--u)); white-space: nowrap; }
+/* The approved stone carries a two-to-three line copy slot; the real data line is
+   split across two block spans so it fills that slot instead of sitting on the
+   stone's gold rule as a single synthetic row. */
+.stoneCopy span {
+  display: block;
+}
+
+.changingStone .stoneTitle { left: 40.03%; top: 17.3%; width: 52%; font-size: calc(13.5 * var(--u)); white-space: nowrap; }
 .changingStone .stoneName { top: 24.7%; left: 17%; width: 61%; }
 .changingStone .stoneSecondary { top: 32.2%; left: 17%; width: 61%; }
 .changingStone .lines { left: 35%; top: 40%; width: 24%; }
@@ -279,22 +302,39 @@
 .changingStone .stoneSeal { left: 62.2%; top: 54.7%; }
 .changingStone .stoneCopy { left: 20%; bottom: 17.5%; width: 43%; }
 
-/* RC-VA-M01: the approved stone reserves a two-line name slot above the secondary
-   line. Binding the name to that slot's bottom edge instead of a top offset lets a
-   wrapped classical translation grow upward inside the reservation, where a top offset
-   used to push it straight through the secondary line. Paired with the length tier so
-   the longest name also needs less height. */
+/* RC-VA-M01 + RC-FA-H01 + RC-FA-H03: on desktop the plate inside each stone artwork
+   is not centred in its own 650 px canvas (primary plate centre sits at 53.05 % of the
+   box, changing plate centre at 40.03 %). Binding the title and the name to those two
+   landmarks keeps them inside the gold plate and gives the longest classical name a
+   reserved slot that clears both the plate and the left foreground blossom. The name
+   keeps its bottom edge anchored so a wrapped translation grows upward into the slot
+   instead of through the secondary line. */
 @media (min-width: 801px) {
+  .stoneTitle {
+    left: 53.05%;
+    width: 46%;
+  }
+
+  .changingStone .stoneTitle {
+    left: 40.03%;
+    width: 42%;
+  }
   .stoneName {
     top: auto;
     bottom: 69.64%;
+    left: 53.05%;
+    width: 49.5%;
+    transform: translateX(-50%);
     font-size: calc(30 * var(--u) * var(--name-scale, 1));
-    line-height: 1.05;
+    line-height: 1.03;
   }
 
   .changingStone .stoneName {
     top: auto;
     bottom: 69.76%;
+    left: 40.03%;
+    width: 52%;
+    transform: translateX(-50%);
     font-size: calc(30 * var(--u) * var(--name-scale, 1));
   }
 
@@ -320,25 +360,26 @@
   filter: drop-shadow(0 0 calc(14 * var(--u)) rgba(255, 171, 54, .42));
 }
 
+/* The approved composition has no free-floating changing-lines caption over the
+   haloes. The real changing data is still announced: the node stays in the DOM as
+   visually-hidden text and the crimson lines carry the same information visually. */
 .changingAnnotation {
   position: absolute;
   z-index: 2;
-  left: 50%;
-  bottom: calc(70 * var(--u));
-  width: 76%;
-  transform: translateX(-50%);
-  margin: 0;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
   color: #f8dfad;
   font-size: calc(14 * var(--u));
   line-height: 1.3;
-  text-align: center;
-  text-shadow: 0 calc(2 * var(--u)) calc(5 * var(--u)) #160c04;
-  white-space: nowrap;
 }
 
 .rightForeground {
-  left: calc(1440 * var(--u));
-  top: calc(218 * var(--u));
+  left: calc(1610 * var(--u));
+  top: calc(236 * var(--u));
   z-index: 4;
   width: calc(610 * var(--u));
   height: calc(386 * var(--u));
@@ -346,10 +387,10 @@
 }
 
 .actions {
-  left: calc(735 * var(--u));
-  top: calc(573 * var(--u));
+  left: calc(755 * var(--u));
+  top: calc(592 * var(--u));
   z-index: 9;
-  width: calc(456 * var(--u));
+  width: calc(472 * var(--u));
   text-align: center;
 }
 
@@ -358,12 +399,12 @@
   isolation: isolate;
   display: flex;
   width: 100%;
-  height: calc(92 * var(--u));
+  height: calc(95 * var(--u));
   align-items: center;
   justify-content: center;
   overflow: hidden;
   border: calc(2 * var(--u)) solid #ffe09a;
-  border-radius: calc(55 * var(--u));
+  border-radius: calc(57 * var(--u));
   background:
     radial-gradient(ellipse at 50% 12%, rgba(255, 249, 206, .94) 0%, rgba(255, 220, 119, .92) 30%, rgba(245, 177, 74, .96) 72%, rgba(210, 126, 38, .98) 100%);
   box-shadow:
@@ -395,21 +436,43 @@
   position: relative;
   z-index: 1;
   font-size: calc(36 * var(--u));
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1;
   letter-spacing: -.01em;
 }
 
 .freeAction {
+  position: relative;
   display: inline-block;
-  margin-top: calc(24 * var(--u));
-  color: #ffe7b6;
-  font-size: calc(21 * var(--u));
+  margin-top: calc(26 * var(--u));
+  /* The approved artwork sets the secondary link 6.5 px right of the pill axis. */
+  transform: translateX(calc(6.5 * var(--u)));
+  color: #fff1cd;
+  font-size: calc(22 * var(--u));
   line-height: 1.2;
   text-decoration: underline;
   text-decoration-thickness: calc(1 * var(--u));
   text-underline-offset: calc(4 * var(--u));
-  text-shadow: 0 calc(2 * var(--u)) calc(6 * var(--u)) #160c04;
+  text-shadow:
+    0 calc(2 * var(--u)) calc(6 * var(--u)) #160c04,
+    0 0 calc(12 * var(--u)) rgba(22, 12, 4, .9);
+}
+
+/* RC-FA-L03: the secondary CTA sits over the lit floor of the room, where a text
+   shadow alone is not enough. A soft, low-contrast scrim keeps the link legible
+   without promoting it to a second button. */
+.freeAction::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: calc(250 * var(--u));
+  height: calc(58 * var(--u));
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(18, 9, 3, .62) 0%, rgba(18, 9, 3, .34) 45%, rgba(18, 9, 3, 0) 72%);
+  pointer-events: none;
 }
 
 .deepAction:hover { transform: translateY(calc(-1.5 * var(--u))); filter: brightness(1.04); }
@@ -513,7 +576,9 @@
     overflow: hidden;
     font-size: clamp(20px, 6vw, 27px);
     line-height: 1.12;
-    text-overflow: clip;
+    /* RC-FA-L02: a long question used to be hard-clipped mid-sentence. It stays a
+       two-line slot, but now advertises the truncation with an ellipsis. */
+    text-overflow: ellipsis;
     white-space: normal;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
@@ -533,8 +598,8 @@
     margin-top: -4px;
   }
 
-  .stoneTitle { font-size: clamp(13px, 3.9vw, 18px); }
-  .changingStone .stoneTitle { width: 52%; font-size: clamp(9px, 2.8vw, 12px); }
+  .stoneTitle { font-size: clamp(11px, 3.1vw, 14.5px); }
+  .changingStone .stoneTitle { width: 52%; font-size: clamp(9px, 2.6vw, 11.5px); }
   .stoneName { font-size: clamp(19px, 5.8vw, 26px); }
   .stoneSecondary { font-size: clamp(12px, 3.5vw, 16px); }
   .verticalName { font-size: clamp(15px, 4.5vw, 21px); }
@@ -554,12 +619,6 @@
     aspect-ratio: 560 / 373;
     margin: -20px auto 0;
   }
-  .changingAnnotation {
-    bottom: 4px;
-    width: 100%;
-    font-size: 12px;
-    white-space: normal;
-  }
 
   .actions {
     z-index: 8;
@@ -574,7 +633,7 @@
   .deepAction strong { font-size: clamp(25px, 7.4vw, 32px); }
   .deepAction::before,
   .deepAction::after { width: 76px; height: 28px; bottom: 4px; }
-  .freeAction { margin-top: 18px; font-size: 18px; }
+  .freeAction { margin-top: 18px; font-size: 18px; transform: none; }
 
   .emptyState { margin: 36px auto; padding: 42px 24px; }
 }

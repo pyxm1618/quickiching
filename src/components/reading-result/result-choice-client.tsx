@@ -27,16 +27,14 @@ function relatingLineValues(lines: readonly number[]): number[] {
 }
 
 /* Length-aware title tier for the approved stone slot.
-   The approved Desktop composition reserves a two-line name slot above the secondary
-   line. Classical English translations run up to 27 characters ("Difficulty at the
-   Beginning"), which wraps and then collides with the secondary line. The tier is
-   derived from the rendered name length only — never from a hexagram number — and it
-   leaves ordinary names at full size. */
+   The approved Desktop plate leaves roughly 283 px of clear width between the left
+   foreground blossom and the stone's right silhouette. Names that render wider than
+   that are stepped down once, to 80 % of the approved 30 px, which is the smallest
+   step that still keeps every one of the 64 classical names clear of both the plate
+   and the blossom without dropping to an illegible size. The tier is derived from the
+   rendered name only — never from a hexagram number. */
 function nameScaleFor(name: string): number {
-  const length = name.trim().length;
-  if (length <= 20) return 1;
-  if (length <= 24) return 0.94;
-  return 0.86;
+  return name.trim().length <= 16 ? 1 : 0.8;
 }
 
 function HexagramGlyph({
@@ -119,7 +117,8 @@ export function ResultChoiceView({
           <p className={styles.verticalName}>{primary.chineseName}</p>
           <p className={styles.stoneSeal}>{zh ? "本卦" : "本卦"}</p>
           <p className={styles.stoneCopy}>
-            {zh ? `当前卦象 · 第 ${primary.number} 卦` : `Current pattern · Hexagram ${primary.number}`}
+            <span>{zh ? "当前卦象" : "Current pattern"}</span>
+            <span>{zh ? `第 ${primary.number} 卦` : `Hexagram ${primary.number}`}</span>
           </p>
         </section>
 
@@ -137,7 +136,7 @@ export function ResultChoiceView({
           <p className={styles.stoneTitle}>
             {unchanged
               ? (zh ? "卦象不变" : "Unchanged Hexagram")
-              : (zh ? "变卦 / 之卦" : "Changing / Relating Hexagram")}
+              : (zh ? "变卦" : "Changing Hexagram")}
           </p>
           {unchanged ? (
             <>
@@ -149,7 +148,8 @@ export function ResultChoiceView({
               <p className={styles.verticalName}>{primary.chineseName}</p>
               <p className={styles.stoneSeal}>不变</p>
               <p className={styles.stoneCopy}>
-                {zh ? "无动爻 · 卦象不变" : "No moving lines · unchanged hexagram"}
+                <span>{zh ? "无动爻" : "No moving lines"}</span>
+                <span>{zh ? "卦象不变" : "Unchanged hexagram"}</span>
               </p>
             </>
           ) : relating ? (
@@ -164,7 +164,8 @@ export function ResultChoiceView({
               <p className={styles.verticalName}>{relating.chineseName}</p>
               <p className={styles.stoneSeal}>变卦</p>
               <p className={styles.stoneCopy}>
-                {zh ? `之卦 · 第 ${relating.number} 卦` : `Relating · Hex. ${relating.number}`}
+                <span>{zh ? "之卦" : "Relating"}</span>
+                <span>{zh ? `第 ${relating.number} 卦` : `Hexagram ${relating.number}`}</span>
               </p>
             </>
           ) : null}
