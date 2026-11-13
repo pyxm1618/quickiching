@@ -26,6 +26,19 @@ function relatingLineValues(lines: readonly number[]): number[] {
   return lines.map((value) => value === 6 ? 7 : value === 9 ? 8 : value);
 }
 
+/* Length-aware title tier for the approved stone slot.
+   The approved Desktop composition reserves a two-line name slot above the secondary
+   line. Classical English translations run up to 27 characters ("Difficulty at the
+   Beginning"), which wraps and then collides with the secondary line. The tier is
+   derived from the rendered name length only — never from a hexagram number — and it
+   leaves ordinary names at full size. */
+function nameScaleFor(name: string): number {
+  const length = name.trim().length;
+  if (length <= 20) return 1;
+  if (length <= 24) return 0.94;
+  return 0.86;
+}
+
 function HexagramGlyph({
   lines,
   movingPositions = [],
@@ -66,6 +79,10 @@ export function ResultChoiceView({
   const primary = hexagramByNumber(reading.primaryHexagram);
   const relating = reading.relatingHexagram === null ? null : hexagramByNumber(reading.relatingHexagram);
   const changedLines = relatingLineValues(reading.lineValuesBottomUp);
+  /* A cast with no moving line has no relating hexagram: the primary pattern simply
+     stands. The right-hand stone then speaks the no-change truth instead of
+     inventing a 变卦 / relating figure. */
+  const unchanged = reading.changingLines.length === 0 && relating === null;
   const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(reading.id)}`;
   const deepHref = `${prefix}/readings/deep?session=${encodeURIComponent(reading.id)}`;
   const changingLabel = reading.changingLines.length
@@ -94,7 +111,7 @@ export function ResultChoiceView({
         <section className={`${styles.stone} ${styles.primaryStone}`} data-result-choice-primary>
           <img src={RESULT_CHOICE_ASSETS.primary} width="650" height="597" alt="" fetchPriority="high" />
           <p className={styles.stoneTitle}>{zh ? "本卦" : "Primary Hexagram"}</p>
-          <h2 className={styles.stoneName}>{zh ? primary.chineseName : primary.englishName}</h2>
+          <h2 className={styles.stoneName} style={{ "--name-scale": nameScaleFor(zh ? primary.chineseName : primary.englishName) } as React.CSSProperties}>{zh ? primary.chineseName : primary.englishName}</h2>
           <p className={styles.stoneSecondary}>
             {zh ? `第 ${primary.number} 卦` : `${primary.chineseName} · Hexagram ${primary.number}`}
           </p>
@@ -111,34 +128,46 @@ export function ResultChoiceView({
           <p className={styles.changingAnnotation}>{changingLabel}</p>
         </div>
 
-        <section className={`${styles.stone} ${styles.changingStone}`} data-result-choice-relating>
+        <section
+          className={`${styles.stone} ${styles.changingStone}`}
+          data-result-choice-relating
+          data-result-choice-relating-state={unchanged ? "unchanged" : "changing"}
+        >
           <img src={RESULT_CHOICE_ASSETS.changing} width="650" height="580" alt="" fetchPriority="high" />
-          <p className={styles.stoneTitle}>{zh ? "变卦 / 之卦" : "Changing / Relating Hexagram"}</p>
-          {relating ? (
+          <p className={styles.stoneTitle}>
+            {unchanged
+              ? (zh ? "卦象不变" : "Unchanged Hexagram")
+              : (zh ? "变卦 / 之卦" : "Changing / Relating Hexagram")}
+          </p>
+          {unchanged ? (
             <>
-              <h2 className={styles.stoneName}>{zh ? relating.chineseName : relating.englishName}</h2>
+              <h2 className={styles.stoneName} style={{ "--name-scale": nameScaleFor(zh ? primary.chineseName : primary.englishName) } as React.CSSProperties}>{zh ? primary.chineseName : primary.englishName}</h2>
+              <p className={styles.stoneSecondary}>
+                {zh ? `第 ${primary.number} 卦` : `${primary.chineseName} · Hexagram ${primary.number}`}
+              </p>
+              <HexagramGlyph lines={reading.lineValuesBottomUp} />
+              <p className={styles.verticalName}>{primary.chineseName}</p>
+              <p className={styles.stoneSeal}>不变</p>
+              <p className={styles.stoneCopy}>
+                {zh ? "无动爻 · 卦象不变" : "No moving lines · unchanged hexagram"}
+              </p>
+            </>
+          ) : relating ? (
+            <>
+              <h2 className={styles.stoneName} style={{ "--name-scale": nameScaleFor(zh ? relating.chineseName : relating.englishName) } as React.CSSProperties}>{zh ? relating.chineseName : relating.englishName}</h2>
               <p className={styles.stoneSecondary}>
                 {zh ? `第 ${relating.number} 卦` : `${relating.chineseName} · Hexagram ${relating.number}`}
               </p>
-              <HexagramGlyph lines={changedLines} />
+              {/* The relating glyph shows the post-change yin/yang values while the
+                  real changing positions carry the crimson emphasis. */}
+              <HexagramGlyph lines={changedLines} movingPositions={reading.changingLines} />
               <p className={styles.verticalName}>{relating.chineseName}</p>
               <p className={styles.stoneSeal}>变卦</p>
               <p className={styles.stoneCopy}>
                 {zh ? `之卦 · 第 ${relating.number} 卦` : `Relating · Hex. ${relating.number}`}
               </p>
             </>
-          ) : (
-            <>
-              <h2 className={styles.stoneName}>{zh ? "卦象不变" : "Unchanged"}</h2>
-              <p className={styles.stoneSecondary}>{zh ? "无之卦" : "No relating hexagram"}</p>
-              <HexagramGlyph lines={reading.lineValuesBottomUp} />
-              <p className={styles.verticalName}>{primary.chineseName}</p>
-              <p className={styles.stoneSeal}>不变</p>
-              <p className={styles.stoneCopy}>
-                {zh ? "无动爻 · 无之卦" : "No moving lines · no relating hexagram"}
-              </p>
-            </>
-          )}
+          ) : null}
         </section>
 
         <div className={`${styles.artLayer} ${styles.rightForeground}`} aria-hidden="true">

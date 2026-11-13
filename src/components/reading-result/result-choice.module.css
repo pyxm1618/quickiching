@@ -10,15 +10,29 @@
 .page {
   --scene-w: 1983;
   --scene-h: 793;
-  --u: min(calc(100vw / 1983), calc((100svh - 75px) / 793));
+  /* RC-VA-H01: the approved canvas is 1983 × 793 CSS px at DPR 1 / zoom 1, so u must be
+     exactly 1 there. The shell used to subtract a 75px navigation band from the viewport
+     height, which capped u at 0.9054 and shrank the whole scene. */
+  --u: min(calc(100vw / 1983), calc(100svh / 793));
   position: relative;
   z-index: 2;
   display: grid;
-  min-height: calc(100svh - 75px);
+  min-height: 100svh;
   place-items: center;
   overflow: hidden;
   color: #fff0c7;
   font-family: Georgia, "Songti SC", "STSong", serif;
+}
+
+/* RC-VA-H02: on this route the approved Desktop canvas is the entire visual surface.
+   Only the shell layers the approved composition does not contain are isolated, and
+   only while the Result Choice route owns the document, so no other page's navigation
+   behaviour moves. Desktop-only: the approved mobile composition keeps the fixed scene
+   navigation it was already signed off with. */
+@media (min-width: 801px) {
+  :global(body):has(.page) :global(.scene-navigation) { display: none; }
+  :global(body):has(.page) :global(.ritual-result-scene) { min-height: 100svh; }
+  :global(body):has(.page) :global(.ritual-room) { background-size: cover; background-position: center; }
 }
 
 .scene {
@@ -264,6 +278,33 @@
 .changingStone .verticalName { left: 63%; top: 39.5%; }
 .changingStone .stoneSeal { left: 62.2%; top: 54.7%; }
 .changingStone .stoneCopy { left: 20%; bottom: 17.5%; width: 43%; }
+
+/* RC-VA-M01: the approved stone reserves a two-line name slot above the secondary
+   line. Binding the name to that slot's bottom edge instead of a top offset lets a
+   wrapped classical translation grow upward inside the reservation, where a top offset
+   used to push it straight through the secondary line. Paired with the length tier so
+   the longest name also needs less height. */
+@media (min-width: 801px) {
+  .stoneName {
+    top: auto;
+    bottom: 69.64%;
+    font-size: calc(30 * var(--u) * var(--name-scale, 1));
+    line-height: 1.05;
+  }
+
+  .changingStone .stoneName {
+    top: auto;
+    bottom: 69.76%;
+    font-size: calc(30 * var(--u) * var(--name-scale, 1));
+  }
+
+  /* RC-VA-M03: the relating stone keeps the real changed positions in crimson while
+     the glyph continues to show post-change yin/yang values. */
+  .changingStone .line.changing > span {
+    background: #c8170f;
+    box-shadow: 0 calc(1 * var(--u)) calc(2 * var(--u)) rgba(96, 0, 0, .32), 0 0 calc(6 * var(--u)) rgba(200, 23, 15, .42);
+  }
+}
 
 .transition {
   left: calc(693 * var(--u));
