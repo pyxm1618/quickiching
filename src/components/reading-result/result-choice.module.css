@@ -556,26 +556,44 @@
     height: 272px;
   }
 
+  /* RC-MQ-H01: the mobile banner box is bound to the artwork's own 900 × 300 ratio
+     instead of a fixed 118 px height. The approved ribbon paints its question plate
+     between y 88 and y 206 of those 300 px, so every offset below is expressed as a
+     percentage of that ratio and lands on the same painted landmark at every width.
+     The global `img { max-width: 100% }` used to clamp the 110 % artwork back to the
+     container, which shrank the plate and shifted it 5 % to the left; releasing the
+     clamp lets the ribbon render centred at the size it is drawn for. */
   .questionBanner {
     z-index: 5;
     width: 100%;
-    height: 118px;
+    height: auto;
+    aspect-ratio: 300 / 110;
     margin-bottom: -4px;
   }
   .questionBanner > img {
     left: -5%;
-    top: -20px;
+    top: 0;
     width: 110%;
-    height: auto;
+    height: 100%;
+    max-width: none;
   }
-  .questionLabel { top: 8%; font-size: 17px; }
+  /* The label stays centred on the small plaque (y 67–112 of the artwork). */
+  .questionLabel {
+    top: 29.8%;
+    transform: translate(-50%, -50%);
+    font-size: clamp(11.5px, 3vw, 13px);
+  }
+  /* RC-MQ-H02: the question body starts just under the plaque (y 112) and has to end
+     above the plate's lower edge (y 206). Both visible lines of the two-line clamp now
+     sit on the gold plate instead of dropping onto the dark stage behind it. */
   .questionText {
-    top: 43%;
+    top: 38.2%;
+    transform: translate(-50%, 0);
     display: -webkit-box;
     width: 82%;
     overflow: hidden;
-    font-size: clamp(20px, 6vw, 27px);
-    line-height: 1.12;
+    font-size: clamp(16.5px, 4.45vw, 19px);
+    line-height: 1.04;
     /* RC-FA-L02: a long question used to be hard-clipped mid-sentence. It stays a
        two-line slot, but now advertises the truncation with an ellipsis. */
     text-overflow: ellipsis;
@@ -640,7 +658,8 @@
 
 @media (max-width: 390px) {
   .scene { padding-inline: 8px; }
-  .questionBanner { height: 110px; }
+  /* RC-MQ-H01: the banner keeps its artwork ratio here as well; the old fixed
+     110 px height re-flattened the plate on the two smallest viewports. */
   .primaryStone,
   .changingStone { width: 100%; }
   .transition { width: 70%; }
