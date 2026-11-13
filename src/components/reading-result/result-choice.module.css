@@ -321,17 +321,17 @@
   }
   .stoneName {
     top: auto;
-    bottom: 69.64%;
+    bottom: 69.5%;
     left: 53.05%;
     width: 49.5%;
     transform: translateX(-50%);
     font-size: calc(30 * var(--u) * var(--name-scale, 1));
-    line-height: 1.03;
+    line-height: 1;
   }
 
   .changingStone .stoneName {
     top: auto;
-    bottom: 69.76%;
+    bottom: 69.6%;
     left: 40.03%;
     width: 52%;
     transform: translateX(-50%);
