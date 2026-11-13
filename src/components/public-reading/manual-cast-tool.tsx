@@ -20,6 +20,7 @@ import { buildPublicReading } from "@/domain/public-reading/reading";
 import { PUBLIC_METHOD_VERSIONS, type PublicLineTuple, type PublicReadingEvidence } from "@/domain/public-reading/types";
 import { readPublicReadingSession, writePublicReadingSession } from "@/lib/public-reading-session";
 import { completedPublicReadingPath, writeCompletedPublicReading } from "@/lib/completed-public-reading";
+import { GildedTitle } from "@/components/typography/gilded-title";
 
 const STORAGE_KEY = "quickiching:public-v1:manual-cast";
 const DRAFT_STORAGE_KEY = "quickiching:public-v1:manual-cast:draft:v1";
@@ -169,7 +170,7 @@ export function ManualSixLinesInput({
     <section className="manual-mode-panel manual-six-lines-panel" id="manual-mode-line-values-panel" role="tabpanel" aria-labelledby="manual-mode-line-values-tab" data-manual-line-values-panel>
       <div className="manual-mode-heading">
         <span className="manual-heading-ornament" aria-hidden="true" />
-        <h2>{copy.enterSixLines}</h2>
+        <GildedTitle as="h2" size="md">{copy.enterSixLines}</GildedTitle>
         <span className="manual-heading-ornament manual-heading-ornament-right" aria-hidden="true" />
         <p>{copy.enterSixLinesHelp}</p>
       </div>
@@ -382,7 +383,7 @@ export function ManualHexagramMovingInput({
     <section className="manual-mode-panel manual-hexagram-moving-panel" id="manual-mode-primary-changing-panel" role="tabpanel" aria-labelledby="manual-mode-primary-changing-tab" data-manual-primary-changing-panel>
       <div className="manual-mode-heading">
         <span className="manual-heading-ornament" aria-hidden="true" />
-        <h2>{copy.chooseHexagramMovingLines}</h2>
+        <GildedTitle as="h2" size="md">{copy.chooseHexagramMovingLines}</GildedTitle>
         <span className="manual-heading-ornament manual-heading-ornament-right" aria-hidden="true" />
         <p>{copy.chooseHexagramMovingLinesHelp}</p>
       </div>

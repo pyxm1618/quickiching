@@ -1,6 +1,20 @@
 import { existsSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import nextConfig from "../../next.config.mjs";
+
+// global-not-found mounts the same next/font variables as the root layouts.
+// next/font is compiled by Next at build time, so the Node test runtime needs
+// a stand-in for the generated variable class names.
+vi.mock("next/font/google", () => {
+  const font = () => ({ variable: "font-test-variable" });
+  return {
+    Fraunces: font,
+    IBM_Plex_Mono: font,
+    Instrument_Sans: font,
+    Pinyon_Script: font,
+    Noto_Serif_SC: font,
+  };
+});
 
 const appRoot = new URL(".", import.meta.url).pathname;
 const defaultLayout = `${appRoot}(default)/layout.tsx`;

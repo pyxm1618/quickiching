@@ -5,6 +5,7 @@ import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { zhSeoFor } from "@/content/seo/zh-pages";
 import { ThreeCoinRitualClient } from "@/components/public-reading/three-coin-ritual-client";
 import styles from "@/app/method-seo-shell.module.css";
+import { GildedTitle } from "@/components/typography/gilded-title";
 
 const SEO = zhSeoFor("three-coin-method");
 const CANONICAL = canonicalUrl(SEO.canonicalUrl);
@@ -27,7 +28,7 @@ export default function ChineseThreeCoinMethodPage() {
       }) }} />
       <header className={styles.intro}>
         <p className={styles.eyebrow}>周易起卦 · 三枚铜钱法</p>
-        <h1 className={styles.title}>{SEO.finalH1}</h1>
+        <GildedTitle size="lg" className={styles.title}>{SEO.finalH1}</GildedTitle>
         <p data-seo-early-copy className={styles.lead}>三枚铜钱起卦把六次掷币依次转换成六爻。第一次结果是最下方的初爻，之后逐爻向上；爻值 6 和 9 是动爻，会翻转形成之卦（变卦）。下面的工具直接完成完整流程，不需要切换到英文页面。</p>
       </header>
 

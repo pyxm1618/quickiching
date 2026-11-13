@@ -1,6 +1,7 @@
 import { AccountModalClient } from "@/components/account/account-modal-client";
 import type { Metadata } from "next";
 import "../../globals.css";
+import "@/components/typography/gilded-title.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { SITE_ORIGIN } from "@/lib/seo";

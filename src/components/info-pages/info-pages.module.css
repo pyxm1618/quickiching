@@ -9,8 +9,7 @@
 .heading { position: relative; max-width: 1380px; margin: 0 auto 22px; text-align: center; text-shadow: 0 2px 8px #160802; }
 
 .title {
-  margin: 0; color: #fff0cb; font-family: "Times New Roman",Georgia,serif; font-size: clamp(38px,4vw,68px);
-  font-style: italic; font-weight: 700; line-height: 1.06; letter-spacing: -.02em;
+  margin-block-start: 0; margin-inline: 0; font-size: clamp(38px,4vw,68px);
 }
 
 .titleStroke {
@@ -765,8 +764,9 @@
 }
 
 
-/* Cross-platform reference typography using the existing project display font. */
-.title,.paperHeading,.paperSubheading,.exampleCard h3,.flowColumn h3,.primerColumn>h3,.tocTitle,.legalHeading,.helpGroup h2,.helpQuestion h3,.helpSupport h2 {
+/* Cross-platform reference typography using the existing project display font.
+   `.title` is intentionally excluded: page heroes use the shared GildedTitle face. */
+.paperHeading,.paperSubheading,.exampleCard h3,.flowColumn h3,.primerColumn>h3,.tocTitle,.legalHeading,.helpGroup h2,.helpQuestion h3,.helpSupport h2 {
   font-family: var(--font-fraunces), Georgia, "Times New Roman", serif;
 }
 

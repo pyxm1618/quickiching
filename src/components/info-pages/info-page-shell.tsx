@@ -1,5 +1,6 @@
 
 import type { ReactNode } from "react";
+import { GildedTitle } from "@/components/typography/gilded-title";
 import styles from "./info-pages.module.css";
 
 export function InfoPageShell({ title, lead, meta, variant = "standard", seoPrimary, children }: {
@@ -13,7 +14,7 @@ export function InfoPageShell({ title, lead, meta, variant = "standard", seoPrim
   const content = (
     <>
       <header className={styles.heading}>
-        <h1 className={styles.title}>{title}</h1>
+        <GildedTitle size="inherit" className={styles.title}>{title}</GildedTitle>
         <span className={styles.titleStroke} aria-hidden="true" />
         {lead ? <div className={styles.lead}>{lead}</div> : null}
         {meta ? <div className={styles.meta}>{meta}</div> : null}

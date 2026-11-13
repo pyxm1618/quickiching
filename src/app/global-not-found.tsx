@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { QuickIChingNotFound } from "@/components/not-found/quick-iching-not-found";
+import { fontVariableClassNames } from "./fonts";
+import { localizedFontVariableClassNames } from "./localized-fonts";
 import "./globals.css";
+import "@/components/typography/gilded-title.css";
 
 const EN_METADATA: Metadata = {
   title: "Page Not Found | Quick I Ching",
@@ -46,7 +49,7 @@ export default async function GlobalNotFound() {
   const zh = locale === "zh";
 
   return (
-    <html lang={zh ? "zh-Hans" : "en"}>
+    <html lang={zh ? "zh-Hans" : "en"} className={zh ? localizedFontVariableClassNames : fontVariableClassNames}>
       <body className="min-h-screen bg-[var(--bg)] text-[var(--ink)] antialiased">
         <QuickIChingNotFound locale={locale} />
       </body>

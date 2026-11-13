@@ -1,0 +1,110 @@
+/*
+ * Gilded Title — the single authoritative title material for Quick I Ching.
+ *
+ * There must be exactly one definition of the title font, gradient, stroke,
+ * highlight, shadow and glow in the codebase. Page and scene stylesheets are
+ * only allowed to change size, stance and position; they must never restate the
+ * material below. The component that renders this class is
+ * `src/components/typography/gilded-title.tsx`.
+ *
+ * Two contracts keep the shared title from disturbing page layout:
+ *   1. `line-height` / `letter-spacing` live in `:where()` (zero specificity), so a
+ *      page's own stance rule always wins without a cascade order race.
+ *   2. The paint padding is cancelled in the flow through `margin-block-end`.
+ *      Pages must therefore express their own spacing as `margin-block-start` /
+ *      `margin-inline`, never as the `margin` shorthand, which would reset that
+ *      cancellation and push every element below the title down.
+ */
+
+.qic-gilded-title {
+  /* The one and only title face. Loaded through next/font in src/app/fonts.ts. */
+  font-family: var(--font-title-script), cursive;
+  font-style: normal;
+  font-weight: 400;
+
+  text-align: inherit;
+
+  /* Text stays real, selectable DOM text: the metal is painted behind the glyphs. */
+  color: #f8db99;
+  background-image:
+    linear-gradient(
+      176deg,
+      #fffdf8 0%,
+      #fffdf4 10%,
+      #fff4d3 20%,
+      #ffdf9f 34%,
+      #f5bd63 48%,
+      #e9a343 62%,
+      #d4822a 76%,
+      #b0600f 88%,
+      #8a3f0a 96%,
+      #7c3609 100%
+    );
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  /* Keeps hairline strokes crisp and gives the platinum rim its edge. */
+  -webkit-text-stroke: 0.35px rgba(255, 248, 226, 0.3);
+
+  /* Tight key shadow plus a restrained amber aura; never a blurry halo. */
+  filter:
+    drop-shadow(0 1px 1px rgba(29, 12, 4, 0.82))
+    drop-shadow(0 0 4px rgba(247, 167, 54, 0.22));
+
+  /* `background-clip: text` only paints the metal inside the border box, so the box
+     is padded to contain the swashes and descenders that overhang the line box. No
+     horizontal padding: a full-width block title must not push the document past the
+     viewport. */
+  --qic-gilded-pad-top: 0.06em;
+  --qic-gilded-pad-bottom: 0.16em;
+  padding-block: var(--qic-gilded-pad-top) var(--qic-gilded-pad-bottom);
+  /* Cancels that paint padding in the flow, so the shared title keeps the exact
+     layout it had before the material existed. See contract 2 above. */
+  margin-block-end: calc(-1 * (var(--qic-gilded-pad-top) + var(--qic-gilded-pad-bottom)));
+}
+
+/* Stance defaults (see contract 1): any page rule wins over these. */
+:where(.qic-gilded-title) {
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+}
+
+/* Size tiers. Pages that need a scene-relative size set font-size from their own
+   scoped selector (higher specificity, same material). */
+.qic-gilded-title--xl {
+  font-size: clamp(3.15rem, 6.4vw, 5.75rem);
+}
+
+.qic-gilded-title--lg {
+  font-size: clamp(2.6rem, 5.2vw, 4.875rem);
+}
+
+.qic-gilded-title--md {
+  font-size: clamp(2.2rem, 4.3vw, 4.25rem);
+}
+
+/* Chinese titles keep the product's editorial serif; only the metal is reused. */
+.qic-gilded-title:lang(zh) {
+  font-family: var(--font-noto-sc), "Songti SC", "STSong", serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  -webkit-text-stroke: 0.2px rgba(255, 246, 222, 0.3);
+}
+
+:where(.qic-gilded-title:lang(zh)) {
+  line-height: 1.18;
+}
+
+@media (max-width: 40rem) {
+  :where(.qic-gilded-title) {
+    line-height: 1.16;
+    letter-spacing: -0.01em;
+  }
+
+  :where(.qic-gilded-title:lang(zh)) {
+    letter-spacing: 0.01em;
+  }
+}

@@ -6,6 +6,7 @@ import { CheckoutReturnRecovery } from "@/app/(default)/pricing/checkout-return-
 import { PurchaseButton } from "@/app/(default)/pricing/purchase-button";
 import { getDictionary } from "@/i18n/dictionaries";
 import styles from "./commercial-ui.module.css";
+import { GildedTitle } from "@/components/typography/gilded-title";
 
 type Locale = "en" | "zh-Hans";
 
@@ -40,7 +41,7 @@ export function PricingExperience({
       <div className={styles.shell}>
         <header className={styles.hero}>
           <p className={styles.kicker}>{copy.pricingKicker}</p>
-          <h1 className={styles.title}>{copy.pricingTitle}</h1>
+          <GildedTitle size="xl" className={styles.title}>{copy.pricingTitle}</GildedTitle>
           {!paymentReturn ? <p className={styles.intro}>{copy.pricingIntro}</p> : null}
 
           {!paymentReturn ? (
