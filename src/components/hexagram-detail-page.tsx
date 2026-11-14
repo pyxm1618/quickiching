@@ -198,11 +198,13 @@ export function HexagramDetailPageView({
   ];
 
   return (
-    <article className={styles.detail} data-hexagram-detail data-seo-copy data-locale={locale} data-seo-primary={seo.primaryKeyword}>
-      {/* S04 suppresses the global shell (full-bleed detail scroll), so this
-          surface carries the crawlable destination graph itself. It is inert
-          for assistive technology and adds no visible navigation owner. */}
+    <>
+      {/* S04 suppresses the global shell (full-bleed detail scroll), so the
+          document carries the crawlable destination graph itself. It sits
+          outside the knowledge article: a detail article never contains a
+          reading CTA. Inert for assistive technology, no visible navigation. */}
       <SeoRouteGraph locale={locale} />
+      <article className={styles.detail} data-hexagram-detail data-seo-copy data-locale={locale} data-seo-primary={seo.primaryKeyword}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <DetailScrollFrame />
       <nav className={styles.sectionNav} aria-label={isChinese ? "本页目录" : "On this page"}>
@@ -350,6 +352,7 @@ export function HexagramDetailPageView({
           {next ? <Link href={detailPath(locale, next.slug)} aria-label={isChinese ? "下一卦：第" + next.number + "卦 " + next.chineseName : "Next: Hexagram " + next.number + " " + next.englishName}>{isChinese ? "下一卦" : "Next"}<span aria-hidden="true"> →</span></Link> : <span aria-disabled="true">{isChinese ? "下一卦" : "Next"}</span>}
         </nav>
       </div>
-    </article>
+      </article>
+    </>
   );
 }
