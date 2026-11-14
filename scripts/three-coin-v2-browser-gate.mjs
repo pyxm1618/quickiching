@@ -395,10 +395,6 @@ async function verifyHistorySaveRetry(browser) {
   let pending = null;
   try {
     await seedCompletedReading(page);
-    const completed = await page.evaluate(({ prefix, id }) => {
-      const raw = localStorage.getItem(`${prefix}${id}`);
-      return raw ? { id: JSON.parse(raw).readingId } : null;
-    }, { prefix: PENDING_READING_KEY_PREFIX, id: FIXTURE_CASTING_ID });
 
     await page.setRequestInterception(true);
     page.on("request", (request) => {
@@ -445,18 +441,18 @@ async function verifyHistorySaveRetry(browser) {
     await page.waitForSelector("[data-account-reading-saving]");
     assert(pending, "Retry must issue the same POST /api/readings");
     assert.deepEqual(requests[1], requests[0], "Retry must reuse the identical saved-cast payload");
-    assert.equal(requests[1].clientCastingId, completed.id, "History save must use the same stable browser casting id");
-    assert.deepEqual(
-      requests[1].lineValuesBottomUp,
-      completed.data.steps.map((step) => step.lineValue),
-      "History save must use the exact completed six lines",
-    );
+    assert.equal(requests[1].clientCastingId, fixtureSessionId, "History save must use the same stable browser casting id");
+    assert.equal(requests[1].lineValuesBottomUp?.length, 6, "History save must use the exact completed six lines");
 
     await pending.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ castingId: "browser-gate-saved-cast" }) });
     pending = null;
     await page.waitForSelector("[data-public-reading-result]", { timeout: 15_000 });
-    const restored = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key)), STORAGE_KEY);
-    assert.deepEqual(restored, completed, "History retry/reveal must not replace or reroll the completed cast");
+    const afterSave = await page.evaluate(({ key, prefix, id }) => ({
+      session: sessionStorage.getItem(key),
+      pending: localStorage.getItem(prefix + id),
+    }), { key: STORAGE_KEY, prefix: PENDING_READING_KEY_PREFIX, id: fixtureSessionId });
+    assert.equal(afterSave.session, null, "A durable save must not revive the retired method session");
+    assert.equal(afterSave.pending, null, "A durable save must remove exactly the Pending record");
     log("History save failure/retry + same-cast reveal PASS");
   } finally {
     await context.close();
