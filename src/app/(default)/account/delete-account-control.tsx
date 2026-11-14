@@ -3,13 +3,21 @@
 import React, { useState } from "react";
 import { createAuthClient } from "better-auth/client";
 import { Button } from "@/components/ui/button";
-import { THREE_COIN_BACKUP_STORAGE_KEY, THREE_COIN_SESSION_STORAGE_KEY } from "@/lib/three-coin-session";
+import { THREE_COIN_SESSION_STORAGE_KEY } from "@/lib/three-coin-session";
+import { PENDING_COMPLETED_READING_KEY_PREFIX } from "@/lib/pending-completed-reading";
 
 const authClient = createAuthClient({ basePath: "/api/auth" });
 
 function clearQuickIChingAccountStorage(): void {
+  // Replaces the retired single completed-reading record: every exact pending
+  // reading is local recovery state and must not survive account deletion.
   try {
-    window.localStorage.removeItem(THREE_COIN_BACKUP_STORAGE_KEY);
+    for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith(PENDING_COMPLETED_READING_KEY_PREFIX)) {
+        window.localStorage.removeItem(key);
+      }
+    }
   } catch {
     // Storage cleanup is best-effort after server-side deletion succeeds.
   }

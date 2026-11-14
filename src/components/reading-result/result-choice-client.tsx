@@ -5,7 +5,8 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { hexagramByNumber } from "@/domain/casting/hexagrams/king-wen";
 import type { PublicReading } from "@/domain/public-reading/types";
-import { readCompletedPublicReading } from "@/lib/completed-public-reading";
+import { readPendingCompletedReading } from "@/lib/pending-completed-reading";
+import { resolveReadingIdentity } from "@/lib/reading-identity";
 import styles from "./result-choice.module.css";
 
 type ChoiceState =
@@ -200,12 +201,18 @@ export function ResultChoiceClient({
   const zh = locale === "zh-Hans";
   const [state, setState] = useState<ChoiceState>(() => initialReading
     ? { kind: "ready", reading: initialReading }
-    : { kind: "loading" });
+    : initialSessionId?.trim()
+      ? { kind: "loading" }
+      : { kind: "empty" });
 
   useEffect(() => {
-    if (initialReading) return;
-    const reading = readCompletedPublicReading(initialSessionId);
-    setState(reading ? { kind: "ready", reading } : { kind: "empty" });
+    // C3: exact session only. Never falls back to another stored reading.
+    const resolution = resolveReadingIdentity({
+      sessionId: initialSessionId,
+      serverReading: initialReading ?? null,
+      readPending: readPendingCompletedReading,
+    });
+    setState(resolution.kind === "ready" ? { kind: "ready", reading: resolution.reading } : { kind: "empty" });
   }, [initialReading, initialSessionId]);
 
   if (state.kind === "loading") {

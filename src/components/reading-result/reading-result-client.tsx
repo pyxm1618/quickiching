@@ -20,8 +20,9 @@ import type {
 import { buildPricingHref, buildResultSigninHref } from "@/lib/commercial-navigation";
 import { evaluateRisk } from "@/domain/risk/engine";
 import styles from "@/components/three-coin-result/result-page.module.css";
-import { readCompletedPublicReading, publicReadingSaveInput, clearCompletedReadingForRestart } from "@/lib/completed-public-reading";
-import { clearThreeCoinCompletedBackup } from "@/lib/three-coin-session";
+import { publicReadingSaveInput, clearCompletedReadingForRestart } from "@/lib/completed-public-reading";
+import { readPendingCompletedReading, removePendingCompletedReading } from "@/lib/pending-completed-reading";
+import { resolveReadingIdentity, serverBackedReadingEvidence } from "@/lib/reading-identity";
 import type { PublicReading, PublicReadingEvidence, PublicReadingMethod } from "@/domain/public-reading/types";
 import type { LineValue } from "@/domain/casting/types";
 import type { YarrowChange, YarrowLineResult } from "@/domain/casting/yarrow/algorithm";
@@ -132,75 +133,6 @@ function currentBrowserReturnPath(): string {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }
 
-function serverBackedReadingEvidence(
-  method: PublicReadingMethod,
-  lineValues: readonly number[],
-  methodCalculation: unknown,
-  internalMethod?: "three_coin" | "yarrow_stalk" | "mei_hua_number_time" | "manual",
-): PublicReadingEvidence {
-  if (method === "three-coin") return { kind: "three-coin", steps: [] };
-
-  if (method === "yarrow-stalks") {
-    const record = methodCalculation && typeof methodCalculation === "object"
-      ? methodCalculation as Record<string, unknown>
-      : null;
-    const changes = record && Array.isArray(record.changes) ? record.changes as YarrowChange[] : null;
-    if (!changes || changes.length !== 18) throw new Error("YARROW_READING_EVIDENCE_UNAVAILABLE");
-    const lines: YarrowLineResult[] = Array.from({ length: 6 }, (_, rawIndex) => {
-      const lineIndex = rawIndex as 0 | 1 | 2 | 3 | 4 | 5;
-      const lineChanges = changes.filter((change) => change.lineIndex === lineIndex);
-      const lineValue = lineValues[lineIndex] as LineValue;
-      if (lineChanges.length !== 3 || ![6, 7, 8, 9].includes(lineValue)) {
-        throw new Error("YARROW_READING_EVIDENCE_INVALID");
-      }
-      return {
-        lineIndex,
-        lineValue,
-        changes: lineChanges,
-        algorithmVersion: lineChanges[0]?.algorithmVersion ?? "yarrow-zhu-xi-digital-v2",
-      };
-    });
-    return { kind: "yarrow-stalks", lines };
-  }
-
-  if (method === "mei-hua-yi-shu") {
-    const record = methodCalculation && typeof methodCalculation === "object"
-      ? methodCalculation as Record<string, unknown>
-      : null;
-    const utcMillis = record?.utcMillis;
-    const ianaTimeZone = record?.ianaTimeZone;
-    if (typeof utcMillis !== "number" || !Number.isFinite(utcMillis) || typeof ianaTimeZone !== "string") {
-      throw new Error("MEI_HUA_READING_EVIDENCE_UNAVAILABLE");
-    }
-    const calculation = meiHuaFromNumberAndTime({ number: Number(record?.number), utcMillis, ianaTimeZone });
-    if (calculation.lineValuesBottomUp.some((value, index) => value !== lineValues[index])) {
-      throw new Error("MEI_HUA_READING_EVIDENCE_INVALID");
-    }
-    return { kind: "mei-hua-yi-shu", calculation };
-  }
-
-  if (method === "manual") {
-    const record = methodCalculation && typeof methodCalculation === "object"
-      ? methodCalculation as Record<string, unknown>
-      : null;
-    if (record?.mode === "line-values") return { kind: "manual", mode: "line-values" };
-    if (record?.mode === "primary-changing"
-      && Number.isInteger(record.primaryHexagramNumber)
-      && Array.isArray(record.changingLines)
-      && record.changingLines.every((line) => Number.isInteger(line) && Number(line) >= 1 && Number(line) <= 6)
-      && new Set(record.changingLines).size === record.changingLines.length) {
-      return {
-        kind: "manual",
-        mode: "primary-changing",
-        primaryHexagramNumber: Number(record.primaryHexagramNumber),
-        changingLines: record.changingLines.map(Number).sort((left, right) => left - right),
-      };
-    }
-    throw new Error("MANUAL_READING_EVIDENCE_UNAVAILABLE");
-  }
-
-  throw new Error("READING_METHOD_EVIDENCE_UNAVAILABLE");
-}
 
 
 export function ReadingResultClient({
@@ -451,9 +383,15 @@ export function ReadingResultClient({
         return;
       }
 
-      // 否则从本地 sessionStorage 恢复，同一个本地 session.id 就是本次起卦的稳定保存身份。
-      const completed = readCompletedPublicReading(initialSessionId);
-      if (completed) {
+      // Otherwise resolve the exact session identity: Pending[A] only, never the
+      // latest stored reading, and never B when the request asked for A.
+      const resolution = resolveReadingIdentity({
+        sessionId: initialSessionId,
+        serverReading: null,
+        readPending: readPendingCompletedReading,
+      });
+      if (resolution.kind === "ready") {
+        const completed = resolution.reading;
         if (active) {
           setCompletedReading(completed);
           setClientCastingId(completed.id);
@@ -521,7 +459,12 @@ export function ReadingResultClient({
 
       setCastingId(data.castingId);
       setPersistenceStatus("saved");
-      if (completedReading?.method === "three-coin") clearThreeCoinCompletedBackup();
+      // The exact Pending[A] record is now durable as server A; drop only A.
+      try {
+        removePendingCompletedReading(completedReading?.id ?? data.castingId);
+      } catch {
+        // Durable save succeeded; stale pending cleanup is best effort.
+      }
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set("session", data.castingId);
       window.history.replaceState(null, "", currentUrl.toString());
@@ -684,7 +627,7 @@ export function ReadingResultClient({
 
   function startNewReading() {
     try {
-      const nextHref = clearCompletedReadingForRestart(resultReading?.method ?? "three-coin", zh);
+      const nextHref = clearCompletedReadingForRestart(resultReading?.method ?? "three-coin", zh, resultReading?.id);
       setClearError(null);
       window.location.assign(nextHref);
     } catch (error: unknown) {

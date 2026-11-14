@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getDictionary } from "@/i18n/dictionaries";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { zhSeoFor } from "@/content/seo/zh-pages";
-import { ThreeCoinRitualClient } from "@/components/public-reading/three-coin-ritual-client";
 import styles from "@/app/method-seo-shell.module.css";
 import { GildedTitle } from "@/components/typography/gilded-title";
 
@@ -19,7 +17,6 @@ export const metadata: Metadata = {
 };
 
 export default function ChineseThreeCoinMethodPage() {
-  const dictionary = getDictionary("zh-Hans");
   return (
     <article className={styles.methodPage} data-seo-primary={SEO.primaryKeyword}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -29,11 +26,15 @@ export default function ChineseThreeCoinMethodPage() {
       <header className={styles.intro}>
         <p className={styles.eyebrow}>周易起卦 · 三枚铜钱法</p>
         <GildedTitle size="lg" className={styles.title}>{SEO.finalH1}</GildedTitle>
-        <p data-seo-early-copy className={styles.lead}>三枚铜钱起卦把六次掷币依次转换成六爻。第一次结果是最下方的初爻，之后逐爻向上；爻值 6 和 9 是动爻，会翻转形成之卦（变卦）。下面的工具直接完成完整流程，不需要切换到英文页面。</p>
+        <p data-seo-early-copy className={styles.lead}>三枚铜钱起卦把六次掷币依次转换成六爻。第一次结果是最下方的初爻，之后逐爻向上；爻值 6 和 9 是动爻，会翻转形成之卦（变卦）。本页说明起卦原理与读法，完整起卦在首页进行。</p>
       </header>
 
-      <section className={styles.toolStage}>
-        <ThreeCoinRitualClient headingLevel={2} dictionary={dictionary} homeHeading="开始三枚铜钱起卦" homeDescription="写下一个核心问题，确认后使用与首页完全相同的六次起爻流程。" />
+      <section className={styles.toolStage} data-three-coin-method-detail-cta>
+        <div className={styles.folio}>
+          <h2 className={styles.sectionTitle}>开始三枚铜钱起卦</h2>
+          <p className={styles.bodyText}>完整起卦在 Quick I Ching 首页进行。本页说明起卦方法；真正的起卦只有一个权威入口。</p>
+          <Link href="/zh" className={styles.relatedLink} data-three-coin-cta>前往首页开始起卦 →</Link>
+        </div>
       </section>
 
       <section className={styles.readingGrid}>
