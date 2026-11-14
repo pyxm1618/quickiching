@@ -4,7 +4,6 @@ import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
 import { hexagramSeoFor } from "@/content/hexagrams/seo";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { zhSeoFor } from "@/content/seo/zh-pages";
-import { isAuthCapabilityEnabled } from "@/server/auth/capability";
 import { HexagramsExperience } from "@/app/(default)/hexagrams/hexagrams-experience";
 
 const SEO = zhSeoFor("hexagrams-hub");
@@ -57,12 +56,10 @@ export default function ChineseHexagramsHubPage() {
       />
       <HexagramsExperience
         hexagrams={hexagrams}
-        authEnabled={isAuthCapabilityEnabled()}
         locale="zh-Hans"
         title={SEO.finalH1}
         description={SEO.finalDescription}
         detailRoutePrefix="/zh/hexagrams/"
-        languageSwitchHref="/hexagrams"
         seoPrimaryKeyword={SEO.primaryKeyword}
         sectionHeading="易经六十四卦文王卦序"
       />

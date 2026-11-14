@@ -153,7 +153,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
     try {
       writeCompletedPublicReading(publicReading);
       setError("");
-      router.push(completedPublicReadingPath(publicReading.id, zh));
+      router.replace(completedPublicReadingPath(publicReading.id, zh));
     } catch {
       setError(zh
         ? "无法保存本次已完成起卦；同一个数字、时刻和卦象仍会保留，可以重试。"
@@ -266,7 +266,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
             try {
               writeCompletedPublicReading(publicReading);
               setError("");
-              router.push(completedPublicReadingPath(publicReading.id, zh));
+              router.replace(completedPublicReadingPath(publicReading.id, zh));
             } catch {
               setError(zh ? "仍无法保存本次已完成起卦；没有重新起卦，请稍后重试。" : "The completed cast still could not be handed off. No recast occurred; retry when browser session storage is available.");
             }
@@ -320,8 +320,13 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   );
 }
 
+/**
+ * Mei Hua's SceneBook is a local flow exit, never a second global Home owner.
+ * The global Home capability belongs to the shell brand; this control only
+ * leaves the task flow for the localized root and says so.
+ */
 function SceneBook({ zh }: { zh: boolean }) {
-  const homeHref = zh ? "/zh" : "/";
-  const homeLabel = zh ? "返回中文首页" : "Return to Quick I Ching";
-  return <Link href={homeHref} className="mei-scene-book" aria-label={homeLabel} title={homeLabel}><img src="/mei-hua/navigation-book.webp" alt="Quick I Ching" width="1536" height="1024" /><span>{homeLabel}</span></Link>;
+  const exitHref = zh ? "/zh" : "/";
+  const exitLabel = zh ? "退出起卦" : "Exit";
+  return <Link href={exitHref} prefetch={false} className="mei-scene-book" aria-label={exitLabel} title={exitLabel} data-flow-exit><img src="/mei-hua/navigation-book.webp" alt="" width="1536" height="1024" /><span>{exitLabel}</span></Link>;
 }

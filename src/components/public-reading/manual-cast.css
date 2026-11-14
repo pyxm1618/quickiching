@@ -980,18 +980,16 @@ body:has(.manual-cast-page) > header {
 
 @media (max-width: 800px) {
 
-  body:has(.manual-cast-page) .scene-scrolls,
-  body:has(.manual-cast-page) .scene-brand {
-    display: none;
-  }
-
+  /* Shell capabilities are identical to desktop. Only the presentation gains
+     clearance, so the fixed brand and discovery scrolls never sit on top of a
+     formal Manual control. */
   body:has(.manual-cast-page) .scene-utility {
     position: absolute;
   }
 
   .manual-cast-stage {
     min-height: calc(100svh - 70px);
-    padding: 1.2rem .85rem 2.5rem;
+    padding: 1.2rem .85rem 13rem;
   }
 
   .manual-cast-room {

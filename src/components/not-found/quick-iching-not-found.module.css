@@ -2,10 +2,6 @@ body:has(.page) {
   overflow: hidden;
 }
 
-body:has(.page) > header {
-  display: none !important;
-}
-
 .page {
   position: fixed;
   inset: 0;

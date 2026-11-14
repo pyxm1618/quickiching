@@ -183,6 +183,12 @@ export function ResultChoiceView({
             {zh ? "免费解卦" : "Free Reading"}
           </Link>
         </nav>
+
+        {/* S12 is a Flow Step: it owns an explicit local exit, so leaving the
+            reading never depends on the shell brand or discovery navigation. */}
+        <Link href={zh ? "/zh" : "/"} prefetch={false} className={styles.exitAction} data-result-choice-exit>
+          {zh ? "退出解读" : "Exit Reading"}
+        </Link>
       </div>
     </main>
   );
