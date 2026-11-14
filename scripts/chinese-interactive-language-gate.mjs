@@ -180,10 +180,15 @@ async function seedCompletedReading(page, { id, method }) {
   }
 
   await page.evaluate((reading) => {
-    sessionStorage.setItem("quickiching:public-v1:completed-reading", JSON.stringify(reading));
+    const now = Date.now();
+    localStorage.setItem(`quickiching:public-v1:pending-completed-reading:${reading.readingId}`, JSON.stringify({
+      ...reading,
+      pendingCreatedAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + 60 * 60 * 1000).toISOString(),
+    }));
   }, {
     schemaVersion: 1,
-    id,
+    readingId: id,
     createdAt,
     method,
     methodVersion,
@@ -454,13 +459,16 @@ async function main() {
       log(`Method simulation PASS: ${fixture.method} shared Result Choice before auth`);
     }
 
-    // 5.d: Manual Cast -> canonical completed-reading -> shared Result Choice.
+    // 5.d: Manual Cast -> exact Pending Completed Reading -> shared Result Choice.
     const manualId = "550e8400-e29b-41d4-a716-446655440104";
     await page.goto(`${BASE}/zh/methods/manual-cast`, { waitUntil: "networkidle0" });
     await page.evaluate((id) => {
       localStorage.setItem("quickiching:analytics-consent:v1", "denied");
       sessionStorage.removeItem("quickiching:public-v1:manual-cast:draft:v1");
-      sessionStorage.removeItem("quickiching:public-v1:completed-reading");
+      for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+        const pendingKey = localStorage.key(index);
+        if (pendingKey?.startsWith("quickiching:public-v1:pending-completed-reading:")) localStorage.removeItem(pendingKey);
+      }
       sessionStorage.setItem("quickiching:public-v1:manual-cast", JSON.stringify({
         schemaVersion: 1,
         started: true,
@@ -478,7 +486,7 @@ async function main() {
     await page.waitForFunction(() => location.pathname === "/zh/readings/choice", { timeout: 15_000 });
     await page.waitForSelector("[data-result-choice]", { timeout: 10_000 });
     const manualState = await page.evaluate(() => {
-      const completedRaw = sessionStorage.getItem("quickiching:public-v1:completed-reading");
+      const completedRaw = localStorage.getItem("quickiching:public-v1:pending-completed-reading:" + (new URLSearchParams(location.search).get("session") || ""));
       const currentRaw = sessionStorage.getItem("quickiching:public-v1:manual-cast");
       return {
         completed: completedRaw ? JSON.parse(completedRaw) : null,
@@ -489,11 +497,10 @@ async function main() {
         deepChoice: document.querySelector("[data-result-choice-deep]") !== null,
       };
     });
-    assert(manualState.completed, "Manual cast must write canonical completed-reading");
-    assert(manualState.current, "Manual cast must preserve the current formal session");
-    assert.equal(manualState.completed.method, "manual", "Manual completed-reading method mismatch");
-    assert.equal(manualState.completed.id, manualId, "Manual completed-reading must preserve the stable casting id");
-    assert.equal(manualState.current.id, manualId, "Manual current session must preserve the stable casting id");
+    assert(manualState.completed, "Manual cast must write the exact Pending Completed Reading");
+    assert.equal(manualState.current, null, "Manual method session must be retired after handoff");
+    assert.equal(manualState.completed.method, "manual", "Manual pending reading method mismatch");
+    assert.equal(manualState.completed.readingId, manualId, "Manual pending reading must preserve the stable casting id");
     assert.equal(manualState.resultVisible, false, "Manual Result Choice must not render Free Reading content");
     assert.equal(manualState.authGate, false, "Manual Result Choice must appear before authentication");
     assert(manualState.freeChoice && manualState.deepChoice, "Manual Result Choice must offer both reading paths");

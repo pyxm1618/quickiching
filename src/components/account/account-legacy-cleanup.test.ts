@@ -78,7 +78,9 @@ describe("Account legacy cleanup guard", () => {
     const deletion = read("../../app/(default)/account/delete-account-control.tsx");
     expect(deletion).toContain('className="qic-account-delete-form"');
     expect(deletion).not.toContain("presentation");
-    expect(deletion).toContain("THREE_COIN_BACKUP_STORAGE_KEY");
+    expect(deletion).toContain("PENDING_COMPLETED_READING_KEY_PREFIX");
+    expect(deletion).not.toContain("THREE_COIN_BACKUP_STORAGE_KEY");
+    expect(deletion).not.toContain("quickiching:public-v1:completed-reading");
     expect(deletion).toContain("THREE_COIN_SESSION_STORAGE_KEY");
     expect(deletion).toContain("quickiching:deep-reading-context:");
     expect(deletion).not.toContain("HISTORY_STORAGE_KEY");

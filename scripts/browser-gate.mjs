@@ -334,13 +334,15 @@ async function assertCompletedMethodHandoff(page, expectedMethod) {
   assert(await page.$("[data-result-choice-free]"), `${expectedMethod}: Result Choice must offer Free Reading`);
   assert(await page.$("[data-result-choice-deep]"), `${expectedMethod}: Result Choice must offer Deep Reading`);
 
-  const completed = await page.evaluate((storageKey) => {
-    const raw = sessionStorage.getItem(storageKey);
+  const completed = await page.evaluate((pendingPrefix) => {
+    const sessionId = new URLSearchParams(location.search).get("session");
+    if (!sessionId) return null;
+    const raw = localStorage.getItem(pendingPrefix + sessionId);
     if (!raw) return null;
     const reading = JSON.parse(raw);
     return {
       raw,
-      id: reading?.id ?? null,
+      id: reading?.readingId ?? null,
       method: reading?.method ?? null,
       methodVersion: reading?.methodVersion ?? null,
       lineValuesBottomUp: reading?.lineValuesBottomUp ?? null,
@@ -354,7 +356,7 @@ async function assertCompletedMethodHandoff(page, expectedMethod) {
       meiHuaUtcMillis: reading?.evidence?.calculation?.methodCalculation?.utcMillis ?? null,
       meiHuaTimeZone: reading?.evidence?.calculation?.methodCalculation?.ianaTimeZone ?? null,
     };
-  }, "quickiching:public-v1:completed-reading");
+  }, "quickiching:public-v1:pending-completed-reading:");
 
   assert(completed, `${expectedMethod}: completed-reading handoff was not persisted`);
   assert.equal(completed.method, expectedMethod, `${expectedMethod}: completed-reading method mismatch`);
@@ -380,7 +382,10 @@ async function assertCompletedMethodHandoff(page, expectedMethod) {
   await page.reload({ waitUntil: "networkidle0" });
   await page.waitForSelector("[data-result-choice]", { timeout: 10_000 });
   assert.equal(await page.$("[data-completed-cast-gate]"), null, `${expectedMethod}: refresh must remain before authentication`);
-  const preservedRaw = await page.evaluate((storageKey) => sessionStorage.getItem(storageKey), "quickiching:public-v1:completed-reading");
+  const preservedRaw = await page.evaluate((pendingPrefix) => {
+    const sessionId = new URLSearchParams(location.search).get("session");
+    return sessionId ? localStorage.getItem(pendingPrefix + sessionId) : null;
+  }, "quickiching:public-v1:pending-completed-reading:");
   assert.equal(preservedRaw, completed.raw, `${expectedMethod}: refresh must preserve the exact completed cast`);
   assert.equal(await page.$("[data-public-reading-result]"), null, `${expectedMethod}: refresh must remain on Result Choice`);
 }

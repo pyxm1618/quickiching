@@ -9,7 +9,7 @@ const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const OUT = path.resolve(".artifacts/manual-cast-ui");
 const SESSION_KEY = "quickiching:public-v1:manual-cast";
 const DRAFT_KEY = "quickiching:public-v1:manual-cast:draft:v1";
-const COMPLETED_KEY = "quickiching:public-v1:completed-reading";
+const PENDING_PREFIX = "quickiching:public-v1:pending-completed-reading:";
 const CONSENT_KEY = "quickiching:analytics-consent:v1";
 
 function log(message) { console.log("[Manual Cast UI] " + message); }
@@ -20,7 +20,10 @@ async function seedQuestion(page, route, id, question) {
   // tab would redirect the route before the seed could clear it. Reset on a neutral page first.
   await page.goto(BASE + "/robots.txt", { waitUntil: "domcontentloaded", timeout: 30000 });
   await page.evaluate((input) => {
-    sessionStorage.removeItem(input.completedKey);
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith(input.pendingPrefix)) localStorage.removeItem(key);
+    }
     sessionStorage.removeItem(input.draftKey);
     sessionStorage.removeItem(input.sessionKey);
     localStorage.setItem(input.consentKey, "denied");
@@ -28,7 +31,7 @@ async function seedQuestion(page, route, id, question) {
       schemaVersion: 1, id: input.id, createdAt: new Date().toISOString(), started: true,
       question: input.question, coreQuestionFrozenAtCast: false,
     }));
-  }, { sessionKey: SESSION_KEY, completedKey: COMPLETED_KEY, draftKey: DRAFT_KEY, consentKey: CONSENT_KEY, id, question });
+  }, { sessionKey: SESSION_KEY, pendingPrefix: PENDING_PREFIX, draftKey: DRAFT_KEY, consentKey: CONSENT_KEY, id, question });
   await page.goto(BASE + route, { waitUntil: "networkidle0", timeout: 30000 });
   await page.waitForSelector("[data-manual-cast-tool]", { timeout: 10000 });
 }
