@@ -104,14 +104,16 @@ describe("common completed reading handoff", () => {
 import { clearCompletedReadingForRestart } from "./completed-public-reading";
 describe("restart preserves other casting methods", () => {
   it.each([
-    ["yarrow-stalks", "quickiching:public-v1:yarrow-v2", "/methods/yarrow-stalks"],
-    ["mei-hua-yi-shu", "quickiching:public-v1:mei-hua-number-time-v1", "/methods/mei-hua-yi-shu"],
-    ["three-coin", "quickiching:public-v1:three-coin", "/methods/three-coin"],
-    ["manual", "quickiching:public-v1:manual-cast", "/methods/manual-cast"],
-  ] as const)("clears only %s and the common handoff", (method, key, href) => {
+    ["yarrow-stalks", "quickiching:public-v1:yarrow-v2", "/methods/yarrow-stalks", "/zh/methods/yarrow-stalks"],
+    ["mei-hua-yi-shu", "quickiching:public-v1:mei-hua-number-time-v1", "/methods/mei-hua-yi-shu", "/zh/methods/mei-hua-yi-shu"],
+    // V13: Three Coin's New Reading target is the canonical localized root.
+    ["three-coin", "quickiching:public-v1:three-coin", "/", "/zh"],
+    ["manual", "quickiching:public-v1:manual-cast", "/methods/manual-cast", "/zh/methods/manual-cast"],
+  ] as const)("clears only %s and the common handoff", (method, key, href, zhHref) => {
     const values = new Map([[key,"cast"],["unrelated","preserve"],["quickiching:public-v1:completed-reading","handoff"]]);
     vi.stubGlobal("window", {sessionStorage: {removeItem:(item:string)=>values.delete(item)}, localStorage:{removeItem:vi.fn()}});
-    expect(clearCompletedReadingForRestart(method, true)).toBe(`/zh${href}`);
+    expect(clearCompletedReadingForRestart(method, false)).toBe(href);
+    expect(clearCompletedReadingForRestart(method, true)).toBe(zhHref);
     expect(values.has(key)).toBe(false);
     expect(values.has("quickiching:public-v1:completed-reading")).toBe(false);
     expect(values.get("unrelated")).toBe("preserve");

@@ -116,7 +116,7 @@ export function YarrowTool({
     if (!publicReading) return;
     try {
       writeCompletedPublicReading(publicReading);
-      router.push(completedPublicReadingPath(publicReading.id, zh));
+      router.replace(completedPublicReadingPath(publicReading.id, zh));
     } catch {
       setHandoffError(zh ? "无法保存结果，请允许浏览器会话存储后重试。" : "Unable to save this result. Enable browser session storage and retry.");
     }

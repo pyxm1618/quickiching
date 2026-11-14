@@ -82,10 +82,25 @@ async function inspectBrandChrome(page, label) {
 }
 
 async function inspectHiddenGlobalChrome(page, label) {
-  await page.waitForFunction(() => {
-    const header = document.querySelector("body > header");
-    return header instanceof HTMLElement && getComputedStyle(header).display === "none";
-  }, { timeout: 15_000 });
+  // Immersive surfaces keep a full-bleed composition: the shell still owns Home,
+  // locale and account, but reserves no layout height and offers no discovery
+  // navigation. It is the Surface Contract that decides this, not page CSS.
+  const selector = 'body > header[data-navigation-surface="S03"]';
+  await page.waitForSelector(selector, { timeout: 15_000 });
+  const state = await page.$eval(selector, (header) => ({
+    height: header.getBoundingClientRect().height,
+    mode: header.getAttribute("data-navigation-mode"),
+    layout: header.getAttribute("data-shell-layout"),
+    home: header.querySelector(".scene-brand[data-shell-home]") !== null,
+    locale: header.querySelector("[data-language-switcher]") !== null,
+    discoveryNavigation: header.querySelector(".scene-scrolls") !== null,
+  }));
+  assert.equal(state.mode, "immersive", `${label}: immersive surface must declare its contract mode`);
+  assert.equal(state.layout, "overlay", `${label}: immersive shell must layer, not reserve a band`);
+  assert.equal(state.height, 0, `${label}: immersive shell must not reserve layout height`);
+  assert.equal(state.home, true, `${label}: shell Home must stay available`);
+  assert.equal(state.locale, true, `${label}: shell locale control must stay available`);
+  assert.equal(state.discoveryNavigation, false, `${label}: immersive surface must not render discovery navigation`);
   assert.equal(await page.$("body > footer"), null, `${label}: retired global Footer must stay absent`);
 }
 

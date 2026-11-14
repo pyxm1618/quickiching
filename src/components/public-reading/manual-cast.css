@@ -980,11 +980,9 @@ body:has(.manual-cast-page) > header {
 
 @media (max-width: 800px) {
 
-  body:has(.manual-cast-page) .scene-scrolls,
-  body:has(.manual-cast-page) .scene-brand {
-    display: none;
-  }
-
+  /* Shell capabilities are identical to desktop. On narrow screens the shell
+     band carries the brand instead of a fixed corner overlay, so no extra
+     bottom clearance is needed. */
   body:has(.manual-cast-page) .scene-utility {
     position: absolute;
   }

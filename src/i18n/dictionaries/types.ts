@@ -73,6 +73,7 @@ export type UiDictionary = {
     methodsTitle: string;
     methodsDescription: string;
     returnFree: string;
+    returnToReading: string;
     unavailableKicker: string;
     unavailableTitle: string;
     unavailableDescription: string;

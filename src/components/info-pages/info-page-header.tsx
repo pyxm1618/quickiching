@@ -1,37 +1,65 @@
-
 "use client";
 
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { usePathname } from "next/navigation";
-import { currentRouteForPath, languageSwitchTarget } from "@/i18n/helpers";
+import { useEffect, useState } from "react";
+import { localeSwitchTarget, shellHomeTarget } from "@/navigation/locale-navigation";
+import { surfaceContract, type SurfaceContract } from "@/navigation/surface-contract";
 import { Globe } from "lucide-react";
 import { UserNavControl } from "@/components/auth/user-nav-control";
 import type { ContentLocale } from "@/i18n/config";
 import styles from "./info-pages.module.css";
 
-export function InfoPageHeader({ locale = "en", authEnabled = false }: {
+/**
+ * Content-page shell presentation (Guides / Help / Legal).
+ *
+ * It is one of the two shell presentations, not a page-owned navigation: the
+ * shell picks it from the Surface Contract and it renders only the capabilities
+ * that contract authorizes (no discovery navigation on these surfaces).
+ */
+export function InfoPageHeader({
+  locale = "en",
+  authEnabled = false,
+  contract = surfaceContract("S09"),
+}: {
   locale?: ContentLocale;
   authEnabled?: boolean;
+  contract?: SurfaceContract;
 }) {
   const pathname = usePathname() ?? "/";
-  const route = currentRouteForPath(pathname);
-  const target = route ? languageSwitchTarget(route.id, locale) : { href: locale === "en" ? "/zh" : "/" };
-  const homeHref = locale === "zh-Hans" ? "/zh" : "/";
+  const [hash, setHash] = useState("");
+  useEffect(() => {
+    setHash(window.location.hash);
+  }, [pathname]);
+
+  const target = localeSwitchTarget({ pathname, hash, currentLocale: locale });
+  const homeHref = shellHomeTarget(locale);
   const languageLabel = locale === "zh-Hans" ? "语言" : "Language";
+  const englishLabel = locale === "zh-Hans" ? "英文" : "EN";
+
   return (
-    <header className={styles.infoHeader}>
+    <header
+      className={styles.infoHeader}
+      data-navigation-surface={contract.id}
+      data-navigation-mode={contract.mode}
+      data-shell-layout={contract.layout}
+    >
       <div className={styles.infoHeaderInner}>
-        <Link href={homeHref} prefetch={false} className={styles.infoBrand}>
+        <Link href={homeHref} prefetch={false} className={styles.infoBrand} data-shell-home>
           <BrandMark size="md" priority locale={locale} />
           <span>Quick I Ching</span>
         </Link>
         <div className={styles.headerControls}>
           <nav className={styles.headerLanguages} aria-label={languageLabel} data-language-switcher>
             <Globe aria-hidden="true" />
-            <Link href={locale === "en" ? pathname : target.href} prefetch={false} lang="en" aria-current={locale === "en" ? "page" : undefined}>{locale === "zh-Hans" ? "英文" : "EN"}</Link>
+            {locale === "zh-Hans"
+              ? <Link href={target.href} prefetch={false} hrefLang="en" lang="en">{englishLabel}</Link>
+              : <span lang="en" aria-current="page">{englishLabel}</span>}
             <span>/</span>
-            <Link href={locale === "zh-Hans" ? pathname : target.href} prefetch={false} lang="zh-Hans" aria-current={locale === "zh-Hans" ? "page" : undefined}>中文</Link>
+            {locale === "zh-Hans"
+              ? <span lang="zh-Hans" aria-current="page">中文</span>
+              : <Link href={target.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans">中文</Link>}
           </nav>
           {authEnabled ? <>
             <span className={styles.headerSeparator} aria-hidden="true">|</span>

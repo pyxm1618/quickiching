@@ -5,6 +5,7 @@ import { validateAuthCallbackURL } from "@/server/auth/callback";
 import { loadEntitlementBalance } from "@/server/loaders";
 import { isCheckoutCapabilityEnabled } from "@/server/payments/capability";
 import { PricingExperience } from "@/components/commercial/pricing-experience";
+import { PricingSurfaceState } from "@/navigation/pricing-surface-state";
 import { buildPricingView } from "./pricing-model";
 
 export const metadata: Metadata = {
@@ -36,13 +37,16 @@ export default async function PricingPage(props: {
   const balance = user ? await loadEntitlementBalance(user) : { available: 0, expiringSoon: 0 };
 
   return (
-    <PricingExperience
-      locale="en"
-      pricing={pricing}
-      signedIn={Boolean(user)}
-      balance={balance.available}
-      returnUrl={returnUrl}
-      orderId={searchParams?.orderId}
-    />
+    <>
+      <PricingSurfaceState readingContext={Boolean(returnUrl)} />
+      <PricingExperience
+        locale="en"
+        pricing={pricing}
+        signedIn={Boolean(user)}
+        balance={balance.available}
+        returnUrl={returnUrl}
+        orderId={searchParams?.orderId}
+      />
+    </>
   );
 }

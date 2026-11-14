@@ -116,6 +116,9 @@ export function clearCompletedReadingForRestart(method: PublicReadingMethod, zh 
   else if (method === "mei-hua-yi-shu") clearPublicReadingSession("quickiching:public-v1:mei-hua-number-time-v1");
   else clearPublicReadingSession("quickiching:public-v1:manual-cast");
   window.sessionStorage.removeItem(COMPLETED_PUBLIC_READING_STORAGE_KEY);
-  const slug = method === "three-coin" ? "three-coin" : method === "yarrow-stalks" ? "yarrow-stalks" : method === "mei-hua-yi-shu" ? "mei-hua-yi-shu" : "manual-cast";
+  // Three Coin has one canonical product entry: the localized root. The other
+  // methods keep their own authoritative method-flow routes.
+  if (method === "three-coin") return zh ? "/zh" : "/";
+  const slug = method === "yarrow-stalks" ? "yarrow-stalks" : method === "mei-hua-yi-shu" ? "mei-hua-yi-shu" : "manual-cast";
   return `${zh ? "/zh" : ""}/methods/${slug}`;
 }

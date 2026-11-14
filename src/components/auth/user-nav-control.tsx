@@ -8,6 +8,7 @@ import { User, Settings, FileText, ChevronDown, ChevronRight } from "lucide-reac
 import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
 import { openAccountSurface, type AccountSurface } from "@/components/account/account-events";
+import { authCallbackPath } from "@/navigation/locale-navigation";
 import "@/components/account/account.css";
 
 export type UserNavControlProps = {
@@ -107,8 +108,19 @@ export function UserNavControl({
   }
 
   const authPrefix = isChinese ? "/zh" : "";
-  const signinHref = `${authPrefix}/signin?callbackURL=${encodeURIComponent(pathname)}`;
-  const signupHref = `${authPrefix}/signup?callbackURL=${encodeURIComponent(pathname)}`;
+  // Auth must return to the same semantic surface, including the flow-critical
+  // state that surface declares (a sealed session, a pricing return target).
+  // Same-origin validation stays with validateAuthCallbackURL on the server.
+  const [callbackTarget, setCallbackTarget] = useState(pathname);
+  useEffect(() => {
+    setCallbackTarget(authCallbackPath({
+      pathname,
+      search: window.location.search,
+      hash: window.location.hash,
+    }));
+  }, [pathname]);
+  const signinHref = `${authPrefix}/signin?callbackURL=${encodeURIComponent(callbackTarget)}`;
+  const signupHref = `${authPrefix}/signup?callbackURL=${encodeURIComponent(callbackTarget)}`;
   const readingsHref = `${authPrefix}/my-readings`;
   const readingsLabel = isChinese ? "我的解读" : "My Readings";
   const accountLabel = isChinese ? "我的账户" : "My Account";

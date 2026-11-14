@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
-import { ThreeCoinRitualClient } from "@/components/public-reading/three-coin-ritual-client";
 import styles from "@/app/method-seo-shell.module.css";
 import { GildedTitle } from "@/components/typography/gilded-title";
 
@@ -21,8 +20,13 @@ export default function ThreeCoinMethodPage() {
         <p className={styles.lead}>The three-coin I Ching method turns six coin tosses into a hexagram. Each completed toss is one line, built from the bottom upward; values 6 and 9 are changing lines.</p>
       </header>
 
+      {/* SEO Method Detail, not a product entry: the canonical three-coin
+          product runs on the localized root and nowhere else. */}
       <section className={styles.toolStage}>
-        <ThreeCoinRitualClient headingLevel={2} homeHeading="Begin Your Three-Coin Reading" homeDescription="Ask one focused question, confirm it, then complete the same six-cast ritual used on the home page." />
+        <div className={styles.entryPanel} data-three-coin-canonical-entry>
+          <p>The three-coin cast itself runs on the Quick I Ching home page, where the question, the six casts and the sealed result stay in one flow. This page explains the method; it does not run a second copy of the product.</p>
+          <Link href="/" prefetch={false} className={styles.entryCta} data-three-coin-entry-cta>Cast with the three-coin method</Link>
+        </div>
       </section>
 
       <section className={styles.readingGrid}>

@@ -583,7 +583,7 @@ export function ManualCastTool({
     });
     writeCompletedPublicReading(reading);
     clearManualDraft();
-    router.push(completedPublicReadingPath(reading.id, zh));
+    router.replace(completedPublicReadingPath(reading.id, zh));
   }
 
   function selectMode(nextMode: ManualMode, focusIndex?: number) {
