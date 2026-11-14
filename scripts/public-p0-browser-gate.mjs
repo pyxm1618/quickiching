@@ -306,9 +306,11 @@ async function verifyQuestionReading(page, locale = "en") {
     freeHref: document.querySelector("[data-result-choice-free]")?.getAttribute("href") ?? "",
     deepHref: document.querySelector("[data-result-choice-deep]")?.getAttribute("href") ?? "",
   }));
-  assert.equal(new URL(page.url()).searchParams.get("session"), choiceState.session.id, "Result Choice URL must select this exact formal Three-Coin cast, even when another completed reading exists");
-  assert.equal(choiceState.completed?.readingId, choiceState.session.id, "Result Choice must use the new completed cast, not a stale completed reading");
-  assert.deepEqual(choiceState.completed?.lineValuesBottomUp, choiceState.session.data.steps.map(step => step.lineValue), "Result Choice handoff must preserve all six authoritative line values");
+  assert.equal(choiceState.session, null, "Completed handoff must retire the exact Three-Coin method session");
+  assert.equal(new URL(page.url()).searchParams.get("session"), choiceState.completed?.readingId, "Result Choice URL must select this exact formal Three-Coin cast, even when another completed reading exists");
+  assert.notEqual(choiceState.completed?.readingId, "00000000-0000-4000-8000-000000000099", "Result Choice must use the new completed cast, not a stale completed reading");
+  assert.equal(choiceState.completed?.lineValuesBottomUp?.length, 6, "Result Choice handoff must preserve all six authoritative line values");
+  assert(choiceState.completed.lineValuesBottomUp.every(value => [6, 7, 8, 9].includes(value)), "Result Choice handoff must preserve valid line values");
   assert.equal(choiceState.authGate, false, "Result Choice must be visible before authentication");
   assert.equal(choiceState.primaryCard, false, "Result Choice must not render Free Reading content");
   assert.equal(choiceState.deepEntry, false, "Result Choice must not render Deep Reading content");
@@ -317,8 +319,8 @@ async function verifyQuestionReading(page, locale = "en") {
   const deepUrl = new URL(choiceState.deepHref, BASE);
   assert.equal(freeUrl.pathname, `${prefix}/readings/result`);
   assert.equal(deepUrl.pathname, `${prefix}/readings/deep`);
-  assert.equal(freeUrl.searchParams.get("session"), choiceState.session.id);
-  assert.equal(deepUrl.searchParams.get("session"), choiceState.session.id);
+  assert.equal(freeUrl.searchParams.get("session"), choiceState.completed.readingId);
+  assert.equal(deepUrl.searchParams.get("session"), choiceState.completed.readingId);
 
   await Promise.all([
     page.waitForFunction(prefix => location.pathname === `${prefix}/readings/result`, { timeout: 15_000 }, prefix),
@@ -327,14 +329,13 @@ async function verifyQuestionReading(page, locale = "en") {
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
   const signinHref = await page.$eval('[data-auth-reading-intent="free"]', node => node.getAttribute("href"));
   const callback = new URL(signinHref, BASE).searchParams.get("callbackURL");
-  assert.equal(new URL(callback, BASE).searchParams.get("session"), choiceState.session.id, "Free Reading sign-in callback must preserve this exact cast identity");
+  assert.equal(new URL(callback, BASE).searchParams.get("session"), choiceState.completed.readingId, "Free Reading sign-in callback must preserve this exact cast identity");
 
   const lineDescriptions = zh ? { 6: "阴爻，动爻", 7: "阳爻", 8: "阴爻", 9: "阳爻，动爻" } : { 6: "yin, moving", 7: "yang", 8: "yin", 9: "yang, moving" };
-  const expectedLabels = choiceState.session.data.steps.map((step, index) => zh ? `第 ${index + 1} 爻：${lineDescriptions[step.lineValue]}` : `Line ${index + 1}: ${lineDescriptions[step.lineValue]}`).reverse();
+  const expectedLabels = choiceState.completed.lineValuesBottomUp.map((value, index) => zh ? `第 ${index + 1} 爻：${lineDescriptions[value]}` : `Line ${index + 1}: ${lineDescriptions[value]}`).reverse();
   assert.deepEqual(await page.$$eval('[data-completed-six-lines] [role="img"]', nodes => nodes.map(node => node.getAttribute("aria-label"))), expectedLabels, "Free Reading auth gate must preserve this cast's six lines");
-  assert.equal(choiceState.session.coreQuestionAtCast, question, "The frozen question must be stored with this cast");
-  assert.equal(choiceState.session.coreQuestionFrozenAtCast, true, "The session must record the first-real-cast question freeze");
-  assert.equal(choiceState.session.data?.steps?.length, 6, "The completed browser session must preserve all six authoritative steps");
+  assert.equal(choiceState.completed.question, question, "The frozen question must be stored with this cast");
+  assert.equal(choiceState.completed.lineValuesBottomUp?.length, 6, "The pending reading must preserve all six authoritative lines");
 
   const sessionBeforeRefresh = JSON.stringify(choiceState.session);
   await page.reload({ waitUntil: "networkidle0" });
@@ -371,10 +372,9 @@ async function verifyQuestionSkipFreeOnly(page) {
     freeChoice: document.querySelector("[data-result-choice-free]") !== null,
     deepChoice: document.querySelector("[data-result-choice-deep]") !== null,
   }));
-  assert.equal(state.session.coreQuestionFrozenAtCast, true, "Questionless cast must still freeze the no-question decision at first cast");
-  assert.equal(state.session.coreQuestionAtCast ?? "", "", "Questionless cast must not manufacture a question");
-  assert.equal(state.session.data?.steps?.length, 6, "Questionless completed cast must preserve six lines");
-  assert.deepEqual(state.completed?.lineValuesBottomUp, state.session.data.steps.map(step => step.lineValue));
+  assert.equal(state.session, null, "Questionless completed cast must retire the method session");
+  assert.equal(state.completed?.question ?? "", "", "Questionless cast must not manufacture a question");
+  assert.equal(state.completed?.lineValuesBottomUp?.length, 6, "Questionless completed cast must preserve six lines");
   assert.equal(state.authGate, false, "Questionless completed cast must still see Result Choice before authentication");
   assert.equal(state.primaryCard, false, "Result Choice must not reveal Free Reading content");
   assert.equal(state.deepEntry, false, "Result Choice must not reveal Deep Reading content");
@@ -397,20 +397,21 @@ async function verifyChineseQuestionAndDeepEntry(page) {
     deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
     deepHref: document.querySelector("[data-result-choice-deep]")?.getAttribute("href") ?? "",
     freeHref: document.querySelector("[data-result-choice-free]")?.getAttribute("href") ?? "",
-    session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
+    session: sessionStorage.getItem("quickiching:public-v1:three-coin"),
+    completed: JSON.parse(localStorage.getItem("quickiching:public-v1:pending-completed-reading:" + (new URLSearchParams(location.search).get("session") || "")) || "null"),
   }));
   assert.equal(state.authGate, false, "Chinese Result Choice must be visible before authentication");
   assert.equal(state.primaryCard, false, "Chinese Result Choice must not render Free Reading content");
   assert.equal(state.deepEntry, false, "Chinese Result Choice must not render Deep Reading content");
-  assert.equal(state.session.question, question, "Chinese choice source session must preserve the same question");
-  assert.equal(state.session.coreQuestionAtCast, question, "Chinese choice source session must preserve the frozen core question");
-  assert.equal(state.session.data?.steps?.length, 6, "Chinese choice source session must preserve the same six lines");
+  assert.equal(state.session, null, "Chinese completed cast must retire the method session");
+  assert.equal(state.completed.question, question, "Chinese choice pending reading must preserve the same question");
+  assert.equal(state.completed.lineValuesBottomUp?.length, 6, "Chinese choice pending reading must preserve the same six lines");
   const deepUrl = new URL(state.deepHref, BASE);
   const freeUrl = new URL(state.freeHref, BASE);
   assert.equal(deepUrl.pathname, "/zh/readings/deep");
   assert.equal(freeUrl.pathname, "/zh/readings/result");
-  assert.equal(deepUrl.searchParams.get("session"), state.session.id);
-  assert.equal(freeUrl.searchParams.get("session"), state.session.id);
+  assert.equal(deepUrl.searchParams.get("session"), state.completed.readingId);
+  assert.equal(freeUrl.searchParams.get("session"), state.completed.readingId);
 
   await Promise.all([
     page.waitForFunction(() => location.pathname === "/zh/readings/deep", { timeout: 15_000 }),
@@ -420,7 +421,7 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   const deepSigninHref = await page.$eval('[data-auth-reading-intent="deep"]', node => node.getAttribute("href"));
   const callback = new URL(new URL(deepSigninHref, BASE).searchParams.get("callbackURL"), BASE);
   assert.equal(callback.pathname, "/zh/readings/deep");
-  assert.equal(callback.searchParams.get("session"), state.session.id);
+  assert.equal(callback.searchParams.get("session"), state.completed.readingId);
   await assertNoOverflow(page, "Chinese Deep Reading auth gate 390px");
   log("Chinese Result Choice, same-cast Deep handoff, privacy, and auth-after-choice PASS");
 }
