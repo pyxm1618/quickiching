@@ -40,11 +40,11 @@ function stubLocalStorage() {
   return memory;
 }
 
-const resolve = (sessionId?: string | null, serverReading?: PublicReading | null) =>
+const resolve = (sessionId?: string | null, serverReading?: PublicReading | null, at?: number) =>
   resolveReadingIdentity({
     sessionId,
     serverReading,
-    readPending: readPendingCompletedReading,
+    readPending: (readingId) => readPendingCompletedReading(readingId, at),
   });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -102,8 +102,10 @@ describe("C3 — exact reading identity", () => {
     const now = Date.UTC(2026, 10, 14, 9, 30);
     writePendingCompletedReading(reading(ID_A), now - PENDING_COMPLETED_READING_TTL_MS - 1);
     writePendingCompletedReading(reading(ID_B), now);
-    expect(resolve(ID_A)).toEqual({ kind: "empty", reason: "not-found" });
-    expect(resolve(ID_B)).toMatchObject({ kind: "ready" });
+    expect(resolve(ID_A, null, now)).toEqual({ kind: "empty", reason: "not-found" });
+    expect(resolve(ID_B, null, now)).toMatchObject({ kind: "ready" });
+    // Both are expired once the shared reference time passes the TTL.
+    expect(resolve(ID_B, null, now + PENDING_COMPLETED_READING_TTL_MS)).toEqual({ kind: "empty", reason: "not-found" });
   });
 
   it("builds an exact server reading from persisted cast facts", () => {
