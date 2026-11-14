@@ -19,11 +19,14 @@ describe("navigation engineering closeout", () => {
     expect(header).not.toContain(legacy("guides", "TriggerRef"));
   });
 
-  it("uses route-aware language switching in SceneNavigation for non-home routes", () => {
+  it("resolves language switching from the Surface Contract instead of a route-registry lookup", () => {
     const navigation = source("./components/scene-navigation.tsx");
     expect(navigation).toContain('import { usePathname } from "next/navigation"');
     expect(navigation).toContain("const pathname = usePathname()");
-    expect(navigation).toContain("currentRouteForPath(pathname)");
+    // Navigation / Surface Authority: locale semantics are centralised so a
+    // transactional surface can never fall back to Home on a locale switch.
+    expect(navigation).toContain("localeSwitchTarget(");
+    expect(navigation).not.toContain("languageSwitchTarget");
   });
 
   it("removes the retired global footer from both locale layouts and from the repository", () => {

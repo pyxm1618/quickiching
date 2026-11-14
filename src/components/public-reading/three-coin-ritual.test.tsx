@@ -18,10 +18,19 @@ function renderMethodPage(element: React.ReactNode): string {
 }
 
 describe("ThreeCoinRitual formal flow", () => {
-  it.each([["EN", EnglishMethodPage], ["ZH", ChineseMethodPage]] as const)("keeps a single page H1 when the formal ritual is embedded in the %s method page", (_locale, Page) => {
+  it.each([["EN", EnglishMethodPage], ["ZH", ChineseMethodPage]] as const)("keeps a single page H1 and runs no second product on the %s SEO method detail", (_locale, Page) => {
     const html = renderMethodPage(<Page />);
     expect(html.match(/<h1[ >]/g)).toHaveLength(1);
-    expect(html).toContain('data-three-coin-ritual="true"');
+    // V12: the SEO method detail describes the method and hands over to the one
+    // canonical product entry; it must never mount a second casting product.
+    expect(html).not.toContain('data-three-coin-ritual="true"');
+    expect(html).toContain("data-three-coin-canonical-entry");
+    expect(html).toContain("data-three-coin-entry-cta");
+  });
+  it.each([["EN", EnglishMethodPage, "/"], ["ZH", ChineseMethodPage, "/zh"]] as const)("points the %s method detail CTA at the localized canonical entry", (_locale, Page, href) => {
+    const html = renderMethodPage(<Page />);
+    const cta = html.match(/<a[^>]*data-three-coin-entry-cta[^>]*>/u)?.[0] ?? "";
+    expect(cta).toContain(`href="${href}"`);
   });
   it("maps the current session state to the single landing / confirmation / ritual flow", () => {
     expect(threeCoinExperienceStageForSession()).toBe("landing");

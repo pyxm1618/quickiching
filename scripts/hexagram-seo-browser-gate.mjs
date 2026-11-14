@@ -195,8 +195,10 @@ try {
     const zh = entryFor(number, "zh-Hans");
     for (const entry of [en, zh]) {
       await gotoWithRetry(page, `${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
-      // The approved shared detail scroll supplies local section/sequence navigation and hides the site header in both locales.
-      assert.equal(await page.$eval("body > header", (node) => node.getBoundingClientRect().height), 0, `${pathFor(entry)}: site header must remain hidden on the shared detail scroll`);
+      // The approved shared detail scroll is a full-bleed composition. The global
+      // shell is suppressed by the Surface Contract for S04 (deferredShell) rather
+      // than by page DOM manipulation or page CSS hiding shell navigation.
+      assert.equal(await page.$("body > header"), null, `${pathFor(entry)}: global shell must not mount on the shared detail scroll`);
       await assertKeyboardFocus(page, pathFor(entry));
     }
   }
