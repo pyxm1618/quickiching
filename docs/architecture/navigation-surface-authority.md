@@ -1,6 +1,6 @@
 # Quick I Ching Navigation / Surface Authority
 
-Status: AUTHORITATIVE PLANNING SPEC — READY FOR INDEPENDENT AUTHORITY AUDIT  
+Status: AUTHORITATIVE PLANNING SPEC — READY FOR INDEPENDENT AUTHORITY RE-AUDIT  
 Repository: pyxm1618/quickiching  
 Authority baseline: f28c4476144c0a2f0f801a89977101e1283189a4  
 Authority scope: Page / Flow / Overlay / Navigation ownership and navigation-state preservation  
@@ -118,15 +118,17 @@ Navigation Mode is selected by the Surface Contract. It is not selected by pathn
 
 | Mode | Required global capabilities | Primary Nav | Typical use |
 | --- | --- | --- | --- |
-| Home | Brand/Home, Primary Nav, Locale, Account | YES | Root landing |
-| Content | Brand/Home, Primary Nav, Locale, Account | YES | Guides, legal, detail, My Readings, direct Pricing |
-| Flow | Brand/Home, Locale, Account; local Back/Exit/Next as defined by the flow | NO | Casting, auth detours, Result Choice, Free/Deep results, reading-context Pricing |
-| Immersive | Brand/Home, Locale, Account in a visually minimal shell | NO by default | Hexagrams Hub |
+| Home | Brand/Home, Locale, Account when auth capability-enabled | PER SURFACE | Root landing |
+| Content | Brand/Home, Locale, Account when auth capability-enabled | PER SURFACE | Guides, legal, detail, My Readings, direct Pricing |
+| Flow | Brand/Home, Locale, Account when auth capability-enabled; local Back/Exit/Next as defined by the flow | PER SURFACE; normally NO | Casting, auth detours, Result Choice, Free/Deep results, reading-context Pricing |
+| Immersive | Brand/Home, Locale, Account when auth capability-enabled in a visually minimal shell | PER SURFACE; normally NO | Hexagrams Hub |
 | Overlay | Inherits the underlying surface shell; overlay owns only its authorized local controls and Close | INHERIT | Panels, modal, dropdown, popover |
 | Recovery | A minimal local recovery shell when the normal global shell is not available | NO | global 404 |
 | Adapter | No rendered shell; redirects/replaces to the canonical surface | NO | /account adapter |
 
 A visual composition may be immersive without becoming navigation-less. Immersive means visual minimization, not loss of required navigation capability.
+
+Primary Navigation is not inherited from Navigation Mode. Every Surface Contract must declare its own Primary Nav value in Matrix A. Account/Auth navigation is conditional on the existing server-side authentication capability gate; see Section 6.6.
 
 ## 6. Global Invariants
 
@@ -175,13 +177,27 @@ Ordinary pages and flows must render as their own surfaces. They must not simula
 
 ### 6.5 Primary Navigation
 
-Primary Navigation is a capability, not a requirement on every surface.
+Primary Navigation is a capability, not a requirement implied by Navigation Mode.
 
-- Home and Content modes expose Primary Navigation.
-- Flow and Immersive modes do not expose Primary Navigation unless this authority explicitly says otherwise.
-- Removing Primary Navigation from a Flow does not remove Home, Locale, or Account.
+- Every Surface Contract must explicitly declare Primary Nav YES or NO in Matrix A.
+- Content mode does not automatically expose Primary Navigation.
+- S09 Guides, S10 Help, and S11 Legal explicitly use Primary Nav NO; their dedicated information-page direction remains valid.
+- S04 Hexagram Detail, S05 Three Coin SEO Method Detail, S15 Direct Pricing, and S19 My Readings explicitly use Primary Nav YES.
+- Flow and Immersive surfaces remain Primary Nav NO unless a future independently audited Surface Contract explicitly changes that row.
+- Removing Primary Navigation does not remove Home or Locale, and does not remove Account when the auth capability gate is enabled.
 
-### 6.6 Page Override
+### 6.6 Account / Auth Capability Gate
+
+The existing server-side authentication capability gate is upstream authority for whether Account/Auth navigation exists.
+
+- isAuthCapabilityEnabled() remains the capability gate; Navigation implementation must not bypass, weaken, or duplicate that gate.
+- When auth capability is enabled, a Surface Contract that says Account when capability-enabled requires the shell's authorized Account / Sign In capability.
+- When auth capability is disabled, Account / Sign In navigation does not render and Account Modal does not render.
+- Absence of Account / Sign In while auth capability is disabled is not a Navigation Authority violation.
+- Responsive invariants compare the same capability-gate state: a capability that is enabled must not disappear merely because the viewport changes.
+- This authority does not turn authentication on, change the feature gate, or make gated account surfaces reachable when the capability is disabled.
+
+### 6.7 Page Override
 
 Default: FORBIDDEN.
 
@@ -198,7 +214,7 @@ Pages and feature components must not:
 
 A surface requests a Navigation Mode from the central shell authority. The shell owns the result.
 
-### 6.7 No invented hub routes
+### 6.8 No invented hub routes
 
 This authority does not create /methods or /info pages.
 
@@ -257,16 +273,16 @@ The matrix is split into two linked tables for readability. The Surface ID is th
 | ID | Surface / Route | Surface Type | Navigation Mode | Shell Owner | Home Owner | Home Target | Semantic Parent | Step Back | Exit | Close | Primary Nav | Page Override |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | S01 | / and /zh — landing | Root | Home | Global Navigation Shell | Shell Brand | / or /zh | none | none | n/a | n/a | YES | FORBIDDEN |
-| S02 | / and /zh — Three Coin question-confirm / casting states | In-page Flow State / Flow Step | Flow | Global Navigation Shell | Shell Brand | / or /zh | S01 | previous Three Coin step while reversible | explicit local Exit from Three Coin flow; target Home; reset/resume semantics delegated to Reading Session Authority | n/a | NO | FORBIDDEN |
+| S02 | / and /zh — Three Coin question-confirm / casting states | In-page Flow State / Flow Step | Flow | Global Navigation Shell | Shell Brand | / or /zh | S01 | previous Three Coin step while reversible | explicit local Exit → localized S01 Root landing (/ or /zh); observable result must be the landing surface, not immediate restoration into active casting; persistence mechanics remain delegated to Reading Session / Resume Authority | n/a | NO | FORBIDDEN |
 | S03 | /hexagrams and /zh/hexagrams | Page | Immersive | Global Navigation Shell in Immersive mode | Shell Brand | / or /zh | site root | none required | n/a | n/a | NO | FORBIDDEN |
 | S04 | /hexagrams/[slug] and /zh/hexagrams/[slug] | SEO Detail | Content | Global Navigation Shell | Shell Brand | / or /zh | S03 | Back to 64 Hexagrams | n/a | n/a | YES | FORBIDDEN |
 | S05 | /methods/three-coin and /zh/methods/three-coin | SEO Detail | Content | Global Navigation Shell | Shell Brand | / or /zh | S01 canonical Three Coin product entry | semantic parent is S01; CTA starts canonical flow there | n/a | n/a | YES | FORBIDDEN |
-| S06 | /methods/yarrow-stalks and /zh/methods/yarrow-stalks | Task Flow | Flow | Global Navigation Shell | Shell Brand | / or /zh | Other Methods panel | previous reversible Yarrow step | explicit local Exit to Home or authorized method-exit target | n/a | NO | FORBIDDEN |
-| S07 | /methods/mei-hua-yi-shu and /zh/methods/mei-hua-yi-shu | Task Flow | Flow | Global Navigation Shell | Shell Brand | / or /zh | Other Methods panel | previous reversible Mei Hua step | local SceneBook may exist only as an authorized decorative Flow Exit, not as a second Global Home owner; target Home | n/a | NO | FORBIDDEN |
-| S08 | /methods/manual-cast and /zh/methods/manual-cast | Task Flow | Flow | Global Navigation Shell | Shell Brand | / or /zh | Other Methods panel | previous reversible Manual step | explicit local Exit to Home or authorized method-exit target | n/a | NO | FORBIDDEN |
-| S09 | three guide pairs | Page | Content | Global Navigation Shell | Shell Brand | / or /zh | Info panel | semantic content parent where exposed; otherwise browser/page navigation | n/a | n/a | YES | FORBIDDEN |
-| S10 | /help and /zh/help | Page | Content | Global Navigation Shell | Shell Brand | / or /zh | Info panel | none required | n/a | n/a | YES | FORBIDDEN |
-| S11 | /privacy, /terms, /acceptable-use and /zh counterparts | Page | Content | Global Navigation Shell | Shell Brand | / or /zh | Info panel | none required | n/a | n/a | YES | FORBIDDEN |
+| S06 | /methods/yarrow-stalks and /zh/methods/yarrow-stalks | Task Flow | Flow | Global Navigation Shell | Shell Brand | / or /zh | Other Methods panel | previous reversible Yarrow step | explicit local Exit → localized Home: EN /; ZH /zh | n/a | NO | FORBIDDEN |
+| S07 | /methods/mei-hua-yi-shu and /zh/methods/mei-hua-yi-shu | Task Flow | Flow | Global Navigation Shell | Shell Brand | / or /zh | Other Methods panel | previous reversible Mei Hua step | explicit local Exit → localized Home: EN /; ZH /zh; if SceneBook remains, it is this local Flow Exit only, never a second Global Home owner | n/a | NO | FORBIDDEN |
+| S08 | /methods/manual-cast and /zh/methods/manual-cast | Task Flow | Flow | Global Navigation Shell | Shell Brand | / or /zh | Other Methods panel | previous reversible Manual step | explicit local Exit → localized Home: EN /; ZH /zh | n/a | NO | FORBIDDEN |
+| S09 | three guide pairs | Page | Content | Global Navigation Shell | Shell Brand | / or /zh | Info panel | none required; Browser Back is not the product Step Back contract | n/a | n/a | NO | FORBIDDEN |
+| S10 | /help and /zh/help | Page | Content | Global Navigation Shell | Shell Brand | / or /zh | Info panel | none required | n/a | n/a | NO | FORBIDDEN |
+| S11 | /privacy, /terms, /acceptable-use and /zh counterparts | Page | Content | Global Navigation Shell | Shell Brand | / or /zh | Info panel | none required | n/a | n/a | NO | FORBIDDEN |
 | S12 | /readings/choice?session=… and /zh counterpart | Flow Step | Flow | Global Navigation Shell | Shell Brand | / or /zh | completed cast handoff | no Back into terminal/mutable completed-casting UI; semantic parent is the sealed completed cast, represented by session state | explicit local Exit Reading to Home | n/a | NO | FORBIDDEN |
 | S13 | /readings/result?session=… and /zh counterpart | Flow Result | Flow | Global Navigation Shell | Shell Brand | / or /zh | S12 with same session | Back to Reading Choice with same session if exposed | explicit local Exit Reading to Home; New Reading is separate local flow action | n/a | NO | FORBIDDEN |
 | S14 | /readings/deep?session=… and /zh counterpart | Flow Result | Flow | Global Navigation Shell | Shell Brand | / or /zh | S12 with same session | Back to Reading Choice with same session if exposed | explicit local Exit Reading to Home; Free Reading is local sibling navigation | n/a | NO | FORBIDDEN |
@@ -282,25 +298,25 @@ The matrix is split into two linked tables for readability. The Surface ID is th
 
 | ID | Locale Target | State Preservation | Entry Contract | History Semantics | Responsive Invariant | Local Navigation |
 | --- | --- | --- | --- | --- | --- | --- |
-| S01 | / ↔ /zh | no transactional query copying; active Three Coin state is handled by S02 | Brand, direct URL, canonical Three Coin product entry | ordinary page entry uses push/direct load | Home, Primary Nav, Locale, Account remain available on desktop/mobile; presentation may collapse | root content actions |
-| S02 | same root in other locale, rehydrating the same active Three Coin session/state | active question/cast identity and all irreversible cast facts; locale switch must never reset or recast | S01 only | in-page steps do not create route history by default; local Back owns reversible step changes; completion handoff uses replace semantics into S12 | Home, Locale, Account, and local Back/Exit capability must remain; Primary Nav remains absent | Three Coin Back, Next/Cast, Edit only while reversible, Exit; no duplicated global Home/Locale/Account |
-| S03 | /hexagrams ↔ /zh/hexagrams | stable semantic selection may be local-only; no arbitrary analytics query preservation | Primary Nav, internal links, search/direct URL | ordinary page push | visible Home, Locale, Account must exist in both desktop and mobile immersive presentations | wheel/grid interactions only; no duplicate global controls |
-| S04 | exact same hexagram slug in other locale | preserve stable semantic fragment such as a line anchor only when an equivalent anchor exists; do not copy arbitrary transient state | Hexagrams Hub, reading links, internal links, search/direct URL | ordinary detail push; prev/next and parent links push | same Home/Locale/Account/Primary Nav capabilities | Previous Hexagram, Next Hexagram, Back to 64 Hexagrams, in-page line anchors |
-| S05 | method detail counterpart | no flow session because this surface must not run the full ritual | search/direct URL and internal explanatory links; CTA starts S01 | ordinary content push; CTA push to canonical root | same Content capabilities | method-content links and CTA to S01 only |
-| S06 | Yarrow counterpart with same active session rehydrated | question, session identity, completed changes/lines, irreversible method facts | Other Methods panel, search/direct URL, internal links | in-page flow state locally managed; completed handoff to S12 uses replace | Home/Locale/Account plus local Back/Exit are invariant | restart/back while authorized, cast progression; no global duplication |
-| S07 | Mei Hua counterpart with same active session rehydrated | question, chosen number, confirmed timestamp/timezone, cast/session identity | Other Methods panel, search/direct URL, internal links | in-page steps locally managed; completed handoff to S12 uses replace | Home/Locale/Account plus local Back/Exit are invariant | Edit Question, Change Number, previous step, SceneBook as local Exit only |
-| S08 | Manual counterpart with same active session/draft rehydrated | question, mode, line values/selected hexagram, moving lines, session identity | Other Methods panel, search/direct URL, internal links | in-page steps locally managed; completed handoff to S12 uses replace; restoration adapters may replace | desktop/mobile must keep identical Home/Locale/Account and local Exit capability | mode tabs, picker, change lines, question editing while reversible, Continue/Back |
-| S09 | exact guide counterpart | stable semantic anchor may map if equivalent | Info panel, internal links, search/direct URL | ordinary push | same global capabilities | in-page related-guide links |
-| S10 | /help ↔ /zh/help | none required | Info panel, internal links, direct URL | ordinary push | same global capabilities | help links/support links |
-| S11 | exact legal counterpart | stable section anchor may map if equivalent | Info panel, signup legal links, internal/direct URL | ordinary push | same global capabilities | table-of-contents anchors |
-| S12 | same choice route in other locale with identical session | session is mandatory flow-critical state; do not copy analytics or stale overlay state | completed casting handoff; valid deep link with session; never Primary Navigation | sealed casting handoff into S12 is replace/non-reentry; S12 → S13/S14 is push; Browser Back from S12 must not resurrect a completed casting screen as an active flow | Home/Locale/Account + local Exit and reading choices must be available identically; only layout may change | Free Reading, Deep Reading, explicit Exit; no Close |
-| S13 | same result route in other locale with identical session | session; auth callback must preserve full semantic return; pricing/deep transitions preserve session | S12, My Readings, valid direct/session link, auth return | S12 → S13 push; sibling/result-parent navigation push; New Reading exits cleared result flow without allowing stale result to become active again | same Home/Locale/Account, parent/Exit/New Reading capability | New Reading, Deep Reading, Hexagram detail links, optional Back to Choice, Exit |
-| S14 | same deep route in other locale with identical session | session; auth callback; pricing returnUrl; payment-return context when applicable | S12/S13, My Readings or valid session link, auth/pricing return | S12/S13 → S14 push; auth/payment completion returns by redirect/replace to same semantic S14; sibling Free link push | same Home/Locale/Account, parent/Exit/Free capability | Free Reading, Back to Choice if exposed, Exit, deep-generation actions |
-| S15 | /pricing ↔ /zh/pricing | do not invent a reading return; do not preserve test-only preview or analytics state | direct URL, global/commercial links | ordinary push | same Content capabilities | pack selection and localized Home fallback |
-| S16 | pricing counterpart while preserving validated returnUrl and necessary fresh payment recovery identity | validated returnUrl including nested reading session; fresh payment order/recovery context needed to complete the same transaction | Reading flow, auth-commercial flow, payment provider return | enter detour with push; semantic Return and successful payment completion return to original reading context with replace/redirect semantics; invalid/expired context normalizes to localized Pricing | same Home/Locale/Account + semantic Return capability; Primary Nav absent | purchase actions, Check Again, Return to Reading, Finish Pricing |
-| S17 | signin counterpart preserving callbackURL as a nested full internal route | callbackURL including pathname + flow-critical query and semantic hash; auth error context as needed; never external unsafe targets | Account control, gated reading flow, commercial flow, direct URL | enter auth detour with push; successful auth redirects/replaces to validated callback; mode switch stays inside auth without losing callback | same Home/Locale/Account-shell intent and Cancel/Back capability; Primary Nav absent | Sign in/Sign up mode switch, provider/email actions, Cancel/Back; legal links where applicable |
-| S18 | signup counterpart preserving callbackURL | same rules as S17 | Account control or Sign In reciprocal link, gated flow, direct URL | same auth detour semantics as S17 | same as S17 | reciprocal Sign In, provider/email actions, legal links, Cancel/Back |
-| S19 | /my-readings ↔ /zh/my-readings | no reading session until a row is opened; auth detour must preserve /my-readings | Account menu, direct URL, auth return | ordinary push; unauthenticated redirect to signin with callback; row → S13 push | same Content capabilities and row access | saved-reading rows to S13 |
+| S01 | / ↔ /zh | no transactional query copying; active Three Coin state is handled by S02 | Brand, direct URL, canonical Three Coin product entry | ordinary page entry uses push/direct load | Home, Primary Nav, Locale, and Account when capability-enabled remain available on desktop/mobile; presentation may collapse | root content actions |
+| S02 | same root in other locale, rehydrating the same active Three Coin session/state | active question/cast identity and all irreversible cast facts; locale switch must never reset or recast | S01 only | in-page steps do not create route history by default; local Back owns reversible step changes; completion handoff uses replace semantics into S12; explicit Exit must resolve observably to S01 landing even though S01 and S02 share the same route | Home, Locale, Account when capability-enabled, and local Back/Exit capability must remain; Primary Nav remains absent | Three Coin Back, Next/Cast, Edit only while reversible, Exit to observable S01 landing; no duplicated global Home/Locale/Account |
+| S03 | /hexagrams ↔ /zh/hexagrams | stable semantic selection may be local-only; no arbitrary analytics query preservation | Primary Nav, internal links, search/direct URL | ordinary page push | visible Home, Locale, and Account when capability-enabled must exist in both desktop and mobile immersive presentations | wheel/grid interactions only; no duplicate global controls |
+| S04 | exact same hexagram slug in other locale | preserve stable semantic fragment such as a line anchor only when an equivalent anchor exists; do not copy arbitrary transient state | Hexagrams Hub, reading links, internal links, search/direct URL | ordinary detail push; prev/next and parent links push | Home, Locale, Primary Nav YES, and Account when capability-enabled are invariant | Previous Hexagram, Next Hexagram, Back to 64 Hexagrams, in-page line anchors |
+| S05 | method detail counterpart | no flow session because this surface must not run the full ritual | search/direct URL and internal explanatory links; CTA starts S01 | ordinary content push; CTA push to canonical root | Home, Locale, Primary Nav YES, and Account when capability-enabled are invariant | method-content links and CTA to S01 only |
+| S06 | Yarrow counterpart with same active session rehydrated | question, session identity, completed changes/lines, irreversible method facts | Other Methods panel, search/direct URL, internal links | in-page flow state locally managed; completed handoff to S12 uses replace | Home/Locale/Account when capability-enabled plus local Back/Exit are invariant; Exit target is localized Home | restart/back while authorized, cast progression; no global duplication |
+| S07 | Mei Hua counterpart with same active session rehydrated | question, chosen number, confirmed timestamp/timezone, cast/session identity | Other Methods panel, search/direct URL, internal links | in-page steps locally managed; completed handoff to S12 uses replace | Home/Locale/Account when capability-enabled plus local Back/Exit are invariant; Exit target is localized Home | Edit Question, Change Number, previous step, SceneBook as local Exit to localized Home only |
+| S08 | Manual counterpart with same active session/draft rehydrated | question, mode, line values/selected hexagram, moving lines, session identity | Other Methods panel, search/direct URL, internal links | in-page steps locally managed; completed handoff to S12 uses replace; restoration adapters may replace | desktop/mobile must keep identical Home/Locale/Account when capability-enabled and local Exit capability; Exit target is localized Home | mode tabs, picker, change lines, question editing while reversible, Continue/Back |
+| S09 | exact guide counterpart | stable semantic anchor may map if equivalent | Info panel, internal links, search/direct URL | ordinary push; Browser Back may exist as browser behavior but is not the product navigation contract | Home, Locale, and Account when capability-enabled are invariant; Primary Nav remains NO | related-guide local navigation is allowed; no product Step Back is required |
+| S10 | /help ↔ /zh/help | none required | Info panel, internal links, direct URL | ordinary push | Home, Locale, and Account when capability-enabled are invariant; Primary Nav remains NO | help links/support links |
+| S11 | exact legal counterpart | stable section anchor may map if equivalent | Info panel, signup legal links, internal/direct URL | ordinary push | Home, Locale, and Account when capability-enabled are invariant; Primary Nav remains NO | table-of-contents anchors |
+| S12 | same choice route in other locale with identical session | session is mandatory flow-critical state; do not copy analytics or stale overlay state | completed casting handoff; valid deep link with session; never Primary Navigation | sealed casting handoff into S12 is replace/non-reentry; S12 → S13/S14 is push; Browser Back from S12 must not resurrect a completed casting screen as an active flow | Home/Locale/Account when capability-enabled + local Exit and reading choices must be available identically; only layout may change | Free Reading, Deep Reading, explicit Exit; no Close |
+| S13 | same result route in other locale with identical session | session; auth callback must preserve full semantic return; pricing/deep transitions preserve session | S12, My Readings, valid direct/session link, auth return | S12 → S13 push; sibling/result-parent navigation push; New Reading exits cleared result flow without allowing stale result to become active again | same Home/Locale/Account when capability-enabled, parent/Exit/New Reading capability | New Reading, Deep Reading, Hexagram detail links, optional Back to Choice, Exit |
+| S14 | same deep route in other locale with identical session | session; auth callback; pricing returnUrl; payment-return context when applicable | S12/S13, My Readings or valid session link, auth/pricing return | S12/S13 → S14 push; auth/payment completion returns by redirect/replace to same semantic S14; sibling Free link push | same Home/Locale/Account when capability-enabled, parent/Exit/Free capability | Free Reading, Back to Choice if exposed, Exit, deep-generation actions |
+| S15 | /pricing ↔ /zh/pricing | do not invent a reading return; do not preserve test-only preview or analytics state | direct URL, global/commercial links | ordinary push | Home, Locale, Primary Nav YES, and Account when capability-enabled are invariant | pack selection and localized Home fallback |
+| S16 | pricing counterpart while preserving validated returnUrl and necessary fresh payment recovery identity | validated returnUrl including nested reading session; fresh payment order/recovery context needed to complete the same transaction | Reading flow, auth-commercial flow, payment provider return | enter detour with push; semantic Return and successful payment completion return to original reading context with replace/redirect semantics; invalid/expired context normalizes to localized Pricing | same Home/Locale/Account when capability-enabled + semantic Return capability; Primary Nav absent | purchase actions, Check Again, Return to Reading, Finish Pricing |
+| S17 | signin counterpart preserving callbackURL as a nested full internal route | callbackURL including pathname + flow-critical query and semantic hash; auth error context as needed; never external unsafe targets | Account control when auth capability-enabled, gated reading flow, commercial flow, direct URL | enter auth detour with push; successful auth redirects/replaces to validated callback; mode switch stays inside auth without losing callback | same Home/Locale and auth-capability-gated Account/Sign In shell behavior, plus Cancel/Back capability; Primary Nav absent | Sign in/Sign up mode switch, provider/email actions, Cancel/Back; legal links where applicable |
+| S18 | signup counterpart preserving callbackURL | same rules as S17 | Account control or Sign In reciprocal link when auth capability-enabled, gated flow, direct URL | same auth detour semantics as S17 | same as S17 | reciprocal Sign In, provider/email actions, legal links, Cancel/Back |
+| S19 | /my-readings ↔ /zh/my-readings | no reading session until a row is opened; auth detour must preserve /my-readings | Account menu when auth capability-enabled, direct URL, auth return | ordinary push; unauthenticated redirect to signin with callback; row → S13 push | Home, Locale, Primary Nav YES, and Account when capability-enabled are invariant when the gated surface is available | saved-reading rows to S13 |
 | S20 | /account ↔ /zh/account adapter; resolved underlying locale is preserved | requested account overlay intent only; do not persist stale overlay state across unrelated navigation | direct/legacy account URL | redirect/replace to localized Home plus Account overlay adapter; adapter must not remain as a fake page in browser history | n/a: adapter does not own responsive UI | none |
 | S21 | locale determined from requested unmatched path | no arbitrary route state preservation; recovery only | unmatched URL | recovery entry is terminal for the missing URL; Home/Hexagrams links are ordinary navigation | Home and recovery actions remain available on all viewport sizes | Return Home and Explore Hexagrams are authorized recovery navigation |
 
@@ -312,12 +328,12 @@ Transient overlays are separate Surface Contracts and never become replacement p
 | --- | --- | --- | --- | --- | --- | --- |
 | Other Methods | Panel | Global Navigation Shell | Close returns to exact underlying surface | no route history entry | links to Yarrow, Mei Hua, Manual Cast | FORBIDDEN |
 | Info | Panel | Global Navigation Shell | Close returns to exact underlying surface | no route history entry | guide/help/legal links and support actions | FORBIDDEN |
-| User account control | Dropdown / Menu | Global Navigation Shell | Escape, outside click, selection | no route history entry | My Readings, Account modal, Settings modal | FORBIDDEN |
-| Account | Modal | Account overlay owner under the global shell | Close restores exact underlying page and focus | no route history entry after canonical adapter resolution | account purchase/refund views | FORBIDDEN |
-| Settings | Modal | Account overlay owner under the global shell | Close restores exact underlying page and focus | no route history entry | settings/privacy/account actions | FORBIDDEN |
+| User account control | Dropdown / Menu | Global Navigation Shell when auth capability-enabled | Escape, outside click, selection | no route history entry | My Readings, Account modal, Settings modal | FORBIDDEN |
+| Account | Modal | Account overlay owner under the global shell when auth capability-enabled | Close restores exact underlying page and focus | no route history entry after canonical adapter resolution | account purchase/refund views | FORBIDDEN |
+| Settings | Modal | Account overlay owner under the global shell when auth capability-enabled | Close restores exact underlying page and focus | no route history entry | settings/privacy/account actions | FORBIDDEN |
 | Manual hexagram picker | Popover / local listbox | Manual Cast local flow | Close restores Manual Cast step | no route history entry | choose hexagram only | FORBIDDEN |
 
-Overlay state is normally transient and must not be blindly copied during locale switching. A locale change may close an overlay while preserving the underlying semantic page/flow state. The /account adapter is the explicit exception that converts a deep-link intent into the canonical underlying page plus overlay and then canonicalizes history.
+Overlay state is normally transient and must not be blindly copied during locale switching. A locale change may close an overlay while preserving the underlying semantic page/flow state. The /account adapter is the explicit exception that converts a deep-link intent into the canonical underlying page plus overlay and then canonicalizes history. Account-related overlays and their shell entry controls exist only when the existing auth capability gate is enabled; navigation must never force them to render when it is disabled.
 
 ## 10. Locale Navigation Contract
 
@@ -385,7 +401,7 @@ When no valid returnUrl exists, /pricing is a normal Content surface.
 
 - no Reading return is invented;
 - localized Home is the fallback destination;
-- Primary Navigation is allowed.
+- Primary Navigation is explicitly YES for S15; this is a Surface Contract decision, not a consequence of Content mode.
 
 ### Reading-context Pricing
 
@@ -441,6 +457,17 @@ A New Reading action returns to the canonical entry for the chosen method.
 
 This rule is navigation authority only. Clearing or preserving a sealed/unfinished session is controlled by Reading Session / Resume Authority.
 
+### 13.4 Explicit Three Coin Exit observable result
+
+While S02 Three Coin flow state is active, an explicit Exit has one navigation outcome:
+
+- English → S01 Root landing at /.
+- Chinese → S01 Root landing at /zh.
+- The user must observably see the Root landing surface after Exit.
+- The same-route landing must not immediately restore the user into the active casting state as the result of that Exit.
+
+This freezes the user-observable navigation result only. Whether the unfinished session is cleared, retained for later resume, archived, or represented by another persistence mechanism remains owned by Reading Session / Resume Authority.
+
 ## 14. Responsive Navigation Contract
 
 Responsive behavior may change presentation, not semantics.
@@ -451,8 +478,8 @@ Allowed examples:
 
 - Desktop: Brand + visible Primary Navigation controls.
 - Mobile: Brand + compact menu that exposes the same authorized Primary Navigation.
-- Desktop Flow: Brand + Locale + Account + local Exit.
-- Mobile Flow: compact visual equivalents of the same capabilities.
+- Desktop Flow: Brand + Locale + Account when auth capability-enabled + local Exit.
+- Mobile Flow: compact visual equivalents of the same capabilities under the same auth capability-gate state.
 
 Forbidden examples:
 
@@ -477,7 +504,7 @@ Examples explicitly authorized:
 - Yarrow restart/back while the step remains reversible.
 - Mei Hua previous step, Change Number, Edit Question.
 - Manual Cast mode/picker/step controls.
-- Account modal internal navigation.
+- Account modal internal navigation when auth capability-enabled.
 - Reading → New Reading.
 - Deep Reading → Free Reading.
 - Reading Result → Hexagram Detail.
@@ -499,6 +526,8 @@ Navigation authority owns history semantics at surface boundaries. Reading Sessi
 ### 16.1 Ordinary pages and details
 
 Normal Page/Detail navigation uses push semantics.
+
+For S09 Guides, product navigation does not require a Step Back control. Home remains available and related-guide local navigation is allowed. Browser Back may still function as browser behavior, but it is not the Guide product Navigation Contract.
 
 Examples:
 
@@ -556,7 +585,7 @@ The following patterns are architectural violations unless this authority is exp
 - header.style.display = "none";
 - page CSS such as body:has(.feature-page) .scene-navigation { display: none; };
 - feature CSS hiding .scene-brand, .scene-scrolls, or .scene-utility to change navigation semantics;
-- page-owned copies of Global Locale or Account controls;
+- page-owned copies of Global Locale or Account controls when Account is capability-enabled;
 - page-owned Global Home controls on ordinary surfaces;
 - a route-specific component deciding shell capability by viewport;
 - current-locale links that point Home;
@@ -619,9 +648,9 @@ A future Developer AI must implement this authority without redefining it.
 Expected implementation work includes, but is not limited to:
 
 1. introduce a central Surface Contract / Navigation Mode selection mechanism that can consume route plus flow state;
-2. make the global shell render Home/Primary/Locale/Account according to the selected mode;
+2. make the global shell render Home/Locale and each Surface Contract's explicit Primary Nav setting, plus Account only when the existing auth capability gate is enabled;
 3. remove page-level DOM/CSS shell overrides;
-4. migrate Hexagrams Hub to Immersive mode while retaining visible Home/Locale/Account;
+4. migrate Hexagrams Hub to Immersive mode while retaining visible Home/Locale and Account when capability-enabled;
 5. make locale controls semantic and state-preserving;
 6. normalize Flow-mode responsive capabilities;
 7. authorize Mei Hua SceneBook only as local Exit or remove it if the implementation cannot preserve a distinct Exit semantic;
@@ -654,8 +683,10 @@ Implementation conforming to this authority is acceptable only when all of the f
 - Brand/Home always targets / or /zh and never means Back/Close/Exit;
 - Back only targets semantic parent or previous flow step;
 - Close appears only on transient overlays;
-- desktop/mobile retain the same required navigation capabilities and targets;
-- Hexagrams Hub remains immersive while exposing Home/Locale/Account through the shell;
+- desktop/mobile retain the same required navigation capabilities and targets under the same auth capability-gate state;
+- Account / Sign In is required only when the existing auth capability gate is enabled; when disabled, its absence is not a violation and implementation must not bypass or weaken the gate;
+- Primary Nav is determined per Surface Contract, not inherited from Content mode; specifically S09 Guides, S10 Help, and S11 Legal are NO while S04 Hexagram Detail, S05 Three Coin SEO Detail, S15 Direct Pricing, and S19 My Readings are YES;
+- Hexagrams Hub remains immersive while exposing Home/Locale and Account when capability-enabled through the shell;
 - Hexagrams locale actions have correct destination semantics;
 - Manual Cast no longer loses Home or other required shell capability on mobile;
 - Mei Hua has one Global Home owner; any SceneBook control is local Exit only;
@@ -667,6 +698,9 @@ Implementation conforming to this authority is acceptable only when all of the f
 - / and /zh are the only authoritative Three Coin product entry;
 - /methods/three-coin is content + CTA, not a second full ritual;
 - Three Coin New Reading returns to Root;
+- explicit Three Coin Exit results in the user seeing S01 Root landing and does not immediately restore the same active casting state;
+- Yarrow Exit, Mei Hua Exit/SceneBook Exit, and Manual Exit each target localized Home deterministically: EN /; ZH /zh;
+- Guides require no product Step Back; related-guide local navigation is allowed and Browser Back is not the product navigation contract;
 - completed casting handoff cannot Browser-Back into an active terminal casting state;
 - overlays preserve underlying page context and own only authorized Close/local navigation;
 - no /methods or /info hub route is introduced;
@@ -688,6 +722,10 @@ Implementation conforming to this authority is acceptable only when all of the f
 | Q10. Are Page / Detail / Flow / Overlay definitions non-conflicting? | PASS | Yes. Overlay is transient-only; Flow and Page contracts are separate. |
 | Q11. Are Local Navigation and Global Shell Authority separated? | PASS | Yes. Authorized local controls are enumerated; global duplication is forbidden. |
 | Q12. Are Browser History semantics and the session-authority boundary explicit? | PASS | Yes. Page push, overlay no-history, adapter replace, auth/commercial detours, and sealed-cast non-reentry are defined; data restoration remains outside this authority. |
+| Q13. Is the existing Auth Capability Gate preserved? | PASS | Yes. Account / Sign In is shell-required only when isAuthCapabilityEnabled() is enabled; disabled absence is explicitly non-violating, and implementation may not bypass or weaken the gate. |
+| Q14. Is Primary Nav deterministic per Surface Contract? | PASS | Yes. Matrix A explicitly declares every surface; Content no longer implies YES. Guides/Help/Legal are NO; Hexagram Detail, Three Coin SEO Detail, Direct Pricing, and My Readings are YES. |
+| Q15. Is the observable result of Three Coin Exit deterministic? | PASS | Yes. Exit from S02 must leave the user visibly on localized S01 Root landing and must not immediately restore the active casting state; persistence mechanics remain outside this authority. |
+| Q16. Are method-flow Exit targets deterministic? | PASS | Yes. Yarrow, Mei Hua (including SceneBook if retained), and Manual Exit all target localized Home: EN /; ZH /zh. Guide Step Back is none required and does not depend on Browser Back. |
 
 Authority Freeze Gate: PASS.
 
