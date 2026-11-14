@@ -415,7 +415,23 @@ async function verifyHistorySaveRetry(browser) {
       request.continue();
     });
 
-    await page.goto(`${BASE}/ritual-qa-local?view=saving`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    const fixtureSessionId = "ritual-qa-saved-cast";
+    await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.evaluate(({ prefix, id, steps }) => {
+      const now = Date.now();
+      localStorage.setItem(`${prefix}${id}`, JSON.stringify({
+        schemaVersion: 1,
+        readingId: id,
+        method: "three-coin",
+        methodVersion: "three-coin-v1",
+        lineValuesBottomUp: steps.map((step) => step.lineValue),
+        evidence: { kind: "three-coin", steps },
+        createdAt: new Date(now).toISOString(),
+        pendingCreatedAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + 60 * 60 * 1000).toISOString(),
+      }));
+    }, { prefix: PENDING_READING_KEY_PREFIX, id: fixtureSessionId, steps: FIXTURE_STEPS });
+    await page.goto(`${BASE}/ritual-qa-local?view=saving&session=${fixtureSessionId}`, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForSelector("[data-account-reading-saving]");
     assert(pending, "Authenticated save fixture must issue POST /api/readings");
     assert.equal(await page.$("[data-public-reading-result]"), null, "Result must remain concealed while History save is pending");

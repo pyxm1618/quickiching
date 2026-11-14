@@ -272,11 +272,16 @@ async function verifyChineseReading(page, viewport) {
   const beforeSwitch = await page.evaluate(key => sessionStorage.getItem(key), methodKey);
   assert(beforeSwitch, "Bound method question must be persisted before switching language");
   await switchMethodLanguage(page, "en", "/methods/mei-hua-yi-shu");
+  // C1: the locale switch lands on the default entry; Resume restores the exact step.
+  await page.waitForSelector("[data-reading-resume-action]", { timeout: 15_000 });
+  await page.click("[data-reading-resume-action]");
   await page.waitForSelector("#mei-hua-number");
   assert.equal(await page.$eval("[data-private-question] p", node => node.textContent?.trim()), CHINESE_QUESTION);
   assert.equal(await page.evaluate(key => sessionStorage.getItem(key), methodKey), beforeSwitch);
   await assertNoOverflow(page, `${label} English method`);
   await switchMethodLanguage(page, "zh-Hans", "/zh/methods/mei-hua-yi-shu");
+  await page.waitForSelector("[data-reading-resume-action]", { timeout: 15_000 });
+  await page.click("[data-reading-resume-action]");
   await page.waitForSelector("#mei-hua-number");
   assert.equal(await page.$eval("[data-private-question] p", node => node.textContent?.trim()), CHINESE_QUESTION);
   await fillInput(page, "#mei-hua-number", "29");

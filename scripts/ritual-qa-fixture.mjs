@@ -12,13 +12,15 @@ import {loadHexagramInterpretation} from '@/domain/interpretation/v2/load-interp
 import '@/components/public-reading/ritual.css';
 export const dynamic='force-dynamic';
 export const metadata={robots:{index:false,follow:false}};
-export default async function LocalResultFixture({searchParams}:{searchParams:Promise<{view?:string}>}){
+export default async function LocalResultFixture({searchParams}:{searchParams:Promise<{view?:string;session?:string}>}){
  if(process.env.RITUAL_VISUAL_QA!=='1'||(await headers()).get('host')!==(process.env.RITUAL_QA_HOST??'127.0.0.1:3028'))notFound();
- const saving=(await searchParams).view==='saving';
+ const params=await searchParams;
+ const saving=params.view==='saving';
+ const sessionId=params.session??undefined;
  const inputs=[[true,true,false],[true,false,false],[true,true,false],[true,true,false],[true,true,false],[true,false,false]];
  const lines=inputs.map((bits,index)=>{let draw=0;return generateThreeCoinLine(index as 0|1|2|3|4|5,()=>bits[draw++]).lineValue;});
  return <div className="ritual-result-scene" data-local-qa-fixture="saved-reading"><div className="ritual-room" data-room-ready="true" aria-hidden="true"/>
-  <ThreeCoinResultClient initialState={saving?undefined:{kind:'ready',lineValues:lines}} initialUser={{id:'local-visual-fixture',email:'fixture@example.invalid'}}
+  <ThreeCoinResultClient initialState={saving?undefined:{kind:'ready',lineValues:lines}} initialSessionId={sessionId} initialUser={{id:'local-visual-fixture',email:'fixture@example.invalid'}}
    initialCastingView={saving?undefined:{castingId:'ritual-qa-saved-cast',context:'',lineValuesBottomUp:lines,deepReadingViewModel:null,owns:true}}
    initialInterpretationBundles={{primary:await loadHexagramInterpretation(4),relating:null}}/>
  </div>;
