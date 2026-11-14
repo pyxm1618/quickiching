@@ -134,7 +134,7 @@ async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, 
 
 async function openSeededThreeCoinResult(page, locale = "en") {
   const prefix = locale === "zh-Hans" ? "/zh" : "";
-  const methodPath = `${prefix}/methods/three-coin`;
+  const methodPath = prefix || "/";
   const resultPath = `${prefix}/readings/choice`;
   const seededId = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.id ?? "", THREE_COIN_STORAGE_KEY);
   assert(seededId, "Seeded Three-Coin session must have a stable id");
@@ -274,7 +274,7 @@ async function verifyQuestionReading(page, locale = "en") {
     lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
     evidence: { kind: "three-coin", steps: [] },
   })));
-  await page.goto(`${BASE}${prefix}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.goto(`${BASE}${prefix || "/"}`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector("textarea[data-private-question]");
   await page.type("textarea[data-private-question]", question);
   await clickText(page, zh ? "开始起卦" : "Start Divination");
@@ -336,7 +336,7 @@ async function verifyQuestionReading(page, locale = "en") {
 
 async function verifyQuestionSkipFreeOnly(page) {
   await resetThreeCoin(page);
-  await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
   await clickText(page, "Skip — free reading only");
   await page.waitForSelector('[data-experience-stage="question-confirm"]');
   await page.click('.ritual-back');
@@ -506,7 +506,7 @@ async function verifyManualAndMovement(page) {
 async function verifyPartialRestart(page) {
   const question = "What remains important if I begin again?";
   await seedThreeCoinSession(page, "partial-reading-before", "2026-08-19T10:00:00.000Z", FIXTURE_STEPS.slice(0, 1), question);
-  await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForFunction(() => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 1);
   const before = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
   await page.click('.ritual-back');

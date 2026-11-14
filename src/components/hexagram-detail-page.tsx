@@ -10,6 +10,7 @@ import type { PublicHexagramKnowledge } from "@/domain/public-reading/knowledge"
 import type { HexagramSeoEntry } from "@/content/hexagrams/seo";
 import type { ZhHansHexagramDetailContent } from "@/content/hexagrams/types";
 import { absoluteUrl } from "@/lib/seo";
+import { SeoRouteGraph } from "@/components/seo-route-graph";
 
 export type HexagramDetailPageViewProps = {
   locale: ContentLocale;
@@ -198,6 +199,10 @@ export function HexagramDetailPageView({
 
   return (
     <article className={styles.detail} data-hexagram-detail data-seo-copy data-locale={locale} data-seo-primary={seo.primaryKeyword}>
+      {/* S04 suppresses the global shell (full-bleed detail scroll), so this
+          surface carries the crawlable destination graph itself. It is inert
+          for assistive technology and adds no visible navigation owner. */}
+      <SeoRouteGraph locale={locale} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <DetailScrollFrame />
       <nav className={styles.sectionNav} aria-label={isChinese ? "本页目录" : "On this page"}>

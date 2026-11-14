@@ -180,7 +180,9 @@ async function resultText(page) {
 }
 
 async function verifyFormalEntryPoints(browser) {
-  for (const path of ["/", "/zh", "/methods/three-coin", "/zh/methods/three-coin"]) {
+  // V12: the canonical product entry is the localized root. /methods/three-coin is
+  // an SEO Method Detail and must never mount a second complete product.
+  for (const path of ["/", "/zh"]) {
     const context = await browser.createBrowserContext();
     const page = await context.newPage();
     try {
@@ -194,7 +196,23 @@ async function verifyFormalEntryPoints(browser) {
       await context.close();
     }
   }
-  log("EN/ZH Home + /methods/three-coin formal entry points PASS");
+  log("EN/ZH Home formal entry points PASS");
+  for (const path of ["/methods/three-coin", "/zh/methods/three-coin"]) {
+    const context = await browser.createBrowserContext();
+    const page = await context.newPage();
+    try {
+      const response = await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
+      assert.equal(response?.status(), 200, `${path} must return HTTP 200`);
+      assert.equal(await page.$("[data-three-coin-ritual]"), null, `${path} must not mount a casting product`);
+      const cta = await page.$("[data-three-coin-entry-cta]");
+      assert(cta, `${path} must hand the visitor to the canonical entry`);
+      const href = await page.evaluate((node) => node.getAttribute("href"), cta);
+      assert.equal(href, path.startsWith("/zh") ? "/zh" : "/", `${path} CTA must target the localized root`);
+    } finally {
+      await context.close();
+    }
+  }
+  log("EN/ZH SEO method detail handover (no second product) PASS");
 }
 
 async function verifyInvalidResult(browser) {
@@ -490,7 +508,7 @@ async function verifyExplicitReset(browser) {
     await page.goto(`${BASE}/ritual-qa-local`, { waitUntil: "networkidle0", timeout: 30_000 });
     await waitForText(page, "Start a New Reading");
     await clickButton(page, "Start a New Reading");
-    await page.waitForFunction(() => location.pathname === "/methods/three-coin", { timeout: 15_000 });
+    await page.waitForFunction(() => location.pathname === "/", { timeout: 15_000 });
     await clickButton(page, "Skip — free reading only");
     await page.waitForSelector('[data-experience-stage="question-confirm"]');
     await page.waitForSelector('[data-home-primary-action]:not(:disabled)', { timeout: 15_000 });
