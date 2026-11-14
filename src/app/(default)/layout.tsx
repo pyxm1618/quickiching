@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import "../globals.css";
 import "@/components/typography/gilded-title.css";
 import { SiteHeader } from "@/components/site-header";
+import { NavigationSurfaceProvider } from "@/navigation/navigation-surface-context";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { HOME_DESCRIPTION, HOME_TITLE, SITE_ORIGIN } from "@/lib/seo";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
@@ -29,9 +30,11 @@ export default function DefaultRootLayout({ children }: { children: React.ReactN
   return (
     <html lang="en" className={fontVariableClassNames} style={{ "--font-noto-sc": '"Songti SC", "STSong", serif' } as CSSProperties}>
       <body className="flex min-h-screen flex-col">
-        <SiteHeader locale="en" authEnabled={authEnabled} />
-        <main className="flex-1">{children}</main>
-        {authEnabled ? <AccountModalClient locale="en" /> : null}
+        <NavigationSurfaceProvider>
+          <SiteHeader locale="en" authEnabled={authEnabled} />
+          <main className="flex-1">{children}</main>
+          {authEnabled ? <AccountModalClient locale="en" /> : null}
+        </NavigationSurfaceProvider>
         <SiteAnalytics />
       </body>
     </html>

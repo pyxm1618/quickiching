@@ -6,7 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Globe } from "lucide-react";
-import { currentRouteForPath, languageSwitchTarget } from "@/i18n/helpers";
+import { localeSwitchTarget, shellHomeTarget } from "@/navigation/locale-navigation";
+import { surfaceContract, type SurfaceContract } from "@/navigation/surface-contract";
 import type { ContentLocale } from "@/i18n/config";
 
 const UserNavControl = dynamic(
@@ -18,10 +19,19 @@ const loadSceneNavigationPanels = () => import("@/components/scene-navigation-pa
 
 type Panel = "methods" | "info";
 
-export function SceneNavigation({ locale = "en", authEnabled = false }: { locale?: ContentLocale; authEnabled?: boolean }) {
+export function SceneNavigation({
+  locale = "en",
+  authEnabled = false,
+  contract = surfaceContract("S01"),
+}: {
+  locale?: ContentLocale;
+  authEnabled?: boolean;
+  contract?: SurfaceContract;
+}) {
   const zh = locale === "zh-Hans";
   const pathname = usePathname() ?? (zh ? "/zh" : "/");
   const [panel, setPanel] = useState<Panel | null>(null);
+  const [browserTarget, setBrowserTarget] = useState({ search: "", hash: "" });
   const id = useId();
   const rootRef = useRef<HTMLElement>(null);
   const methodsTrigger = useRef<HTMLButtonElement>(null);
@@ -30,9 +40,18 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
   const panelComponentRef = useRef<(typeof import("@/components/scene-navigation-panels"))["SceneNavigationPanels"] | null>(null);
   const focusRequest = useRef<"first" | "last" | null>(null);
   const localize = (path: string) => zh ? `/zh${path === "/" ? "" : path}` : path;
-  const route = currentRouteForPath(pathname);
-  const languageHref = route ? languageSwitchTarget(route.id, locale).href : zh ? "/" : "/zh";
+  const homeHref = shellHomeTarget(locale);
+  const localeTarget = localeSwitchTarget({
+    pathname,
+    search: browserTarget.search,
+    hash: browserTarget.hash,
+    currentLocale: locale,
+  });
   const triggerFor = (name: Panel) => name === "methods" ? methodsTrigger.current : infoTrigger.current;
+
+  useEffect(() => {
+    setBrowserTarget({ search: window.location.search, hash: window.location.hash });
+  }, [pathname]);
 
   useEffect(() => {
     setPanel(null);
@@ -118,13 +137,29 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
   }
 
   return (
-    <header ref={rootRef} className="scene-navigation" data-scene-panel={panel ?? "closed"} aria-label={zh ? "主导航" : "Main navigation"}>
+    <header
+      ref={rootRef}
+      className="scene-navigation"
+      data-scene-panel={panel ?? "closed"}
+      data-navigation-surface={contract.id}
+      data-navigation-mode={contract.mode}
+      data-shell-layout={contract.layout}
+      aria-label={zh ? "主导航" : "Main navigation"}
+    >
       <div className="scene-utility" onClick={() => setPanel(null)}>
         <div className="scene-languages" data-language-switcher aria-label={zh ? "选择语言" : "Select language"}>
           <Globe aria-hidden="true" />
-          <Link href={zh ? languageHref : "/"} prefetch={false} hrefLang="en" lang="en" aria-current={!zh ? "page" : undefined} onClick={() => setPanel(null)}>EN</Link>
+          {zh ? (
+            localeTarget.available
+              ? <Link href={localeTarget.href} prefetch={false} hrefLang="en" lang="en" onClick={() => setPanel(null)}>EN</Link>
+              : <span lang="en">EN</span>
+          ) : <span lang="en" aria-current="page">EN</span>}
           <span aria-hidden="true">/</span>
-          <Link href={zh ? "/zh" : languageHref} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" aria-current={zh ? "page" : undefined} onClick={() => setPanel(null)}>中文</Link>
+          {zh ? <span lang="zh-Hans" aria-current="page">中文</span> : (
+            localeTarget.available
+              ? <Link href={localeTarget.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" onClick={() => setPanel(null)}>中文</Link>
+              : <span lang="zh-Hans">中文</span>
+          )}
         </div>
         {authEnabled ? <>
           <span className="scene-utility-divider" aria-hidden="true" />
@@ -132,7 +167,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
         </> : null}
       </div>
 
-      <Link href={localize("/")} prefetch={false} className="scene-brand" onClick={() => setPanel(null)}>
+      <Link href={homeHref} prefetch={false} className="scene-brand" data-shell-home onClick={() => setPanel(null)}>
         <Image unoptimized src="/navigation/logo.webp" alt="" width={72} height={72} priority />
         <span>Quick I Ching</span>
       </Link>
@@ -151,7 +186,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
         <Link href={localize("/acceptable-use")} prefetch={false}>{zh ? "可接受使用政策" : "Acceptable Use"}</Link>
       </nav>
 
-      <nav className="scene-scrolls" aria-label={zh ? "探索易经" : "Explore the I Ching"}>
+      {contract.primaryNavigation ? <nav className="scene-scrolls" aria-label={zh ? "探索易经" : "Explore the I Ching"}>
         <Link href={localize("/hexagrams")} className="scene-scroll scene-scroll-hexagrams" prefetch={false}>
           <Image src="/navigation/scroll-64-hexagrams-no-text.webp" alt="" width={450} height={675} sizes="(max-width: 800px) 94px, 151px" quality={90} priority fetchPriority="high" decoding="sync" />
           <span>{zh ? "六十四卦" : <>64<br />Hexagrams</>}</span>
@@ -165,7 +200,7 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
           <span>{zh ? "资讯" : "Info"}</span>
         </button>
         <Image className="scene-scroll-holder" src="/navigation/scroll-holder.webp" alt="" width={220} height={132} sizes="(max-width: 800px) 136px, 220px" quality={90} fetchPriority="low" />
-      </nav>
+      </nav> : null}
 
       <div ref={panelRef} className="scene-panels" onKeyDown={panelKey} onBlur={event => {
         if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node) && event.relatedTarget !== methodsTrigger.current && event.relatedTarget !== infoTrigger.current) setPanel(null);

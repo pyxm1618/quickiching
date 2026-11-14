@@ -3,11 +3,15 @@
 .scene-navigation {--nav-u:min(calc(100vw / 1671),calc(100svh / 941));--nav-gold:#edd065;height:75px;position:relative;z-index:40;pointer-events:none;font-family:"Times New Roman","Songti SC",serif;color:#f9f3e7;}
 body:has(.scene-navigation) > .scene-navigation {background:transparent;}
 .scene-navigation a,.scene-navigation button {pointer-events:auto;}
+/* Full-bleed compositions keep their exact viewport geometry: the shell layers
+   over the page instead of reserving a band. Owned by the shell, keyed on the
+   shell's own contract attribute — never on a page class. */
+.scene-navigation[data-shell-layout='overlay'] {position:fixed;inset:0 0 auto;height:0;}
 .scene-navigation :is(a,button):focus-visible {outline:2px solid #ffe191;outline-offset:4px;}
 .scene-utility {position:fixed;right:calc(34 * var(--nav-u));top:calc(24 * var(--nav-u));min-width:calc(349 * var(--nav-u));min-height:calc(67 * var(--nav-u));padding:calc(10 * var(--nav-u)) calc(25 * var(--nav-u));display:flex;align-items:center;gap:calc(22 * var(--nav-u));border:calc(2 * var(--nav-u)) solid #d6bd62;border-radius:100px;background:rgba(7,6,3,.93);box-shadow:inset 0 0 0 2px #17120a,0 2px 5px #0008;font-size:calc(20 * var(--nav-u));line-height:1.2;pointer-events:auto;z-index:3;}
 .scene-languages {display:flex;align-items:center;gap:calc(9 * var(--nav-u));white-space:nowrap;transform:translate(calc(4 * var(--nav-u)),calc(1 * var(--nav-u)));}
 .scene-languages > svg {width:calc(27 * var(--nav-u));height:calc(27 * var(--nav-u));color:var(--nav-gold);margin-right:calc(2 * var(--nav-u));stroke-width:1.4;}
-.scene-languages a {display:flex;align-items:center;min-height:32px;}
+.scene-languages a,.scene-languages [aria-current] {display:flex;align-items:center;min-height:32px;}
 .scene-languages a:hover {color:#ffe191;}
 .scene-utility-divider {height:calc(24 * var(--nav-u));width:1px;background:var(--nav-gold);}
 .scene-account-trigger {display:inline-flex;align-items:center;gap:calc(14 * var(--nav-u));color:inherit;font:inherit;white-space:nowrap;min-height:32px;cursor:pointer;border:0;background:none;padding:0;transform:translate(calc(4 * var(--nav-u)),calc(1 * var(--nav-u)));}
