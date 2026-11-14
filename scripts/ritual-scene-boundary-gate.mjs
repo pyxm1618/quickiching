@@ -267,14 +267,22 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    for(const selector of ['[data-primary-card]','[data-relating-card]','[data-deep-reading-entry]']) {
     assert.equal(await page.$(selector),null,'Result Choice must not render Free/Deep result content '+selector);
    }
-   const completed=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
-   assert.equal(completed.id,session.id);
-   assert.deepEqual(completed.data.steps,after.data.steps);
+   const pendingPrefix='quickiching:public-v1:pending-completed-reading:';
+   const completedState=await page.evaluate(({prefix,id,key})=>{
+    const raw=localStorage.getItem(prefix+id);
+    return {pending:raw?JSON.parse(raw):null,sessionRaw:sessionStorage.getItem(key)};
+   },{prefix:pendingPrefix,id:session.id,key});
+   assert.equal(completedState.sessionRaw,null,'Completed handoff must retire the method session');
+   assert(completedState.pending,'Completed handoff must persist exactly Pending[A]');
+   assert.equal(completedState.pending.readingId,session.id);
+   assert.equal(completedState.pending.lineValuesBottomUp.length,6);
+   assert.deepEqual(completedState.pending.lineValuesBottomUp,after.data.steps.map(step=>step.lineValue),'Pending must preserve the exact six line values');
    await page.reload({waitUntil:'networkidle0'});
    await page.waitForSelector('[data-result-choice]');
    assert.equal(await page.$('[data-completed-cast-gate]'),null,'Refreshing Result Choice must not introduce authentication');
-   const restored=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
-   assert.deepEqual(restored,completed,'Refreshing Result Choice preserves the same completed cast');
+   const restoredPending=await page.evaluate(({prefix,id})=>localStorage.getItem(prefix+id),{prefix:pendingPrefix,id:session.id});
+   assert(restoredPending,'Refreshing Result Choice must keep the exact Pending record');
+   assert.equal(JSON.parse(restoredPending).readingId,session.id);
   }
   const outcome={bits,zh,reduced,fallback,moduleFailure,storageFailure,completedFlow,deferTextures,remountReadiness,faces:authoritative,lineValue:session.data.steps[0].lineValue,status:'PASS'};
   outcomes.push(outcome);console.log(JSON.stringify(outcome));
