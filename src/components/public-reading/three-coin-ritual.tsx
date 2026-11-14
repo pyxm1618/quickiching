@@ -7,6 +7,8 @@ import { GildedTitle } from "@/components/typography/gilded-title";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
+import { useDeclareThreeCoinStage } from "@/navigation/navigation-surface-context";
+import { consumeExplicitFlowExit, rememberExplicitFlowExit } from "@/navigation/flow-exit";
 import {
   patchThreeCoinQuestionSession,
   readThreeCoinQuestionState,
@@ -78,6 +80,11 @@ export function ThreeCoinRitual({
   const [draft, setDraft] = useState(() => initialSession?.question ?? "");
   const [error, setError] = useState("");
 
+  // The root route owns two surfaces: S01 while the visitor is on the landing
+  // surface and S02 once the deliberate flow has started. The shell resolves
+  // which one is live; the page never picks its own navigation.
+  useDeclareThreeCoinStage(experienceStage);
+
   useEffect(() => {
     if (experienceStage !== "question-confirm") {
       setConfirmationEntered(false);
@@ -97,6 +104,9 @@ export function ThreeCoinRitual({
   }, [presentationStage, experienceStage]);
 
   useEffect(() => {
+    // Explicit Exit lands on the Root landing surface. The saved session stays
+    // intact, but restoring it is the visitor's decision, never automatic.
+    if (consumeExplicitFlowExit()) return;
     const restored = readThreeCoinQuestionState();
     if (restored.question || restored.coreQuestionFrozenAtCast || restored.started) {
       setQuestionState(restored.question);
@@ -319,6 +329,19 @@ export function ThreeCoinRitual({
           </div>
         )}
         {children}
+        {experienceStage === "ritual" ? (
+          <button
+            type="button"
+            className="ritual-flow-exit"
+            data-flow-exit
+            onClick={() => {
+              rememberExplicitFlowExit();
+              window.location.assign(zh ? "/zh" : "/");
+            }}
+          >
+            {zh ? "退出起卦" : "Exit"}
+          </button>
+        ) : null}
       </section>
     </ThreeCoinRitualContext.Provider>
   );

@@ -5,6 +5,7 @@ import { validateAuthCallbackURL } from "@/server/auth/callback";
 import { loadEntitlementBalance } from "@/server/loaders";
 import { isCheckoutCapabilityEnabled } from "@/server/payments/capability";
 import { PricingExperience } from "@/components/commercial/pricing-experience";
+import { PricingSurfaceState } from "@/navigation/pricing-surface-state";
 import { buildPricingView } from "@/app/(default)/pricing/pricing-model";
 
 export const metadata: Metadata = {
@@ -36,13 +37,16 @@ export default async function ChinesePricingPage(props: {
   const balance = user ? await loadEntitlementBalance(user) : { available: 0, expiringSoon: 0 };
 
   return (
-    <PricingExperience
-      locale="zh-Hans"
-      pricing={pricing}
-      signedIn={Boolean(user)}
-      balance={balance.available}
-      returnUrl={returnUrl}
-      orderId={searchParams?.orderId}
-    />
+    <>
+      <PricingSurfaceState readingContext={Boolean(returnUrl)} />
+      <PricingExperience
+        locale="zh-Hans"
+        pricing={pricing}
+        signedIn={Boolean(user)}
+        balance={balance.available}
+        returnUrl={returnUrl}
+        orderId={searchParams?.orderId}
+      />
+    </>
   );
 }

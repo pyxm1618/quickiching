@@ -161,7 +161,7 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
     const resultPath = completedPublicReadingPath(completedReading.id, zh);
     const navigation=setTimeout(()=>{
       resultNavigationStartedRef.current=true;
-      router.push(resultPath);
+      router.replace(resultPath);
     },window.matchMedia("(prefers-reduced-motion: reduce)").matches?160:COIN_EXIT_MS);
     return ()=>clearTimeout(navigation);
   }, [complete, completedReading, readingMeta, restored, router, storageBlocked, unpersistedCommit, visuallyComplete, zh]);

@@ -280,3 +280,52 @@
     transition: none;
   }
 }
+
+/* Method SEO Detail entry. The SEO page describes the method and hands the
+   visitor to the one canonical product entry; it never runs a second product. */
+.entryPanel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  width: 100%;
+  border: 1px solid rgba(232, 198, 122, .34);
+  border-radius: 18px;
+  background: rgba(232, 198, 122, .06);
+  padding: 1.4rem 1.6rem;
+}
+
+.entryPanel p {
+  margin: 0;
+  max-width: 34rem;
+  color: var(--ink-2);
+  font-size: .95rem;
+  line-height: 1.7;
+}
+
+.entryCta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border: 1px solid rgba(232, 198, 122, .6);
+  border-radius: 999px;
+  background: rgba(232, 198, 122, .14);
+  padding: 0 1.35rem;
+  color: var(--gold-2);
+  font-size: .95rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.entryCta:hover {
+  background: rgba(232, 198, 122, .22);
+  border-color: rgba(232, 198, 122, .85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entryCta {
+    transition: none;
+  }
+}

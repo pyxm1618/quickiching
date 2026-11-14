@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getDictionary } from "@/i18n/dictionaries";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
 import { zhSeoFor } from "@/content/seo/zh-pages";
-import { ThreeCoinRitualClient } from "@/components/public-reading/three-coin-ritual-client";
 import styles from "@/app/method-seo-shell.module.css";
 import { GildedTitle } from "@/components/typography/gilded-title";
 
@@ -19,7 +17,6 @@ export const metadata: Metadata = {
 };
 
 export default function ChineseThreeCoinMethodPage() {
-  const dictionary = getDictionary("zh-Hans");
   return (
     <article className={styles.methodPage} data-seo-primary={SEO.primaryKeyword}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -29,11 +26,15 @@ export default function ChineseThreeCoinMethodPage() {
       <header className={styles.intro}>
         <p className={styles.eyebrow}>周易起卦 · 三枚铜钱法</p>
         <GildedTitle size="lg" className={styles.title}>{SEO.finalH1}</GildedTitle>
-        <p data-seo-early-copy className={styles.lead}>三枚铜钱起卦把六次掷币依次转换成六爻。第一次结果是最下方的初爻，之后逐爻向上；爻值 6 和 9 是动爻，会翻转形成之卦（变卦）。下面的工具直接完成完整流程，不需要切换到英文页面。</p>
+        <p data-seo-early-copy className={styles.lead}>三枚铜钱起卦把六次掷币依次转换成六爻。第一次结果是最下方的初爻，之后逐爻向上；爻值 6 和 9 是动爻，会翻转形成之卦（变卦）。完整流程在中文首页完成，不需要切换到英文页面。</p>
       </header>
 
+      {/* SEO Method Detail，不是产品入口：三枚铜钱的唯一产品入口是中文首页。 */}
       <section className={styles.toolStage}>
-        <ThreeCoinRitualClient headingLevel={2} dictionary={dictionary} homeHeading="开始三枚铜钱起卦" homeDescription="写下一个核心问题，确认后使用与首页完全相同的六次起爻流程。" />
+        <div className={styles.entryPanel} data-three-coin-canonical-entry>
+          <p>三枚铜钱的完整起卦在中文首页完成：问题、六次起爻与落定后的结果都在同一条流程里。本页说明这个方法，不再运行第二份产品。</p>
+          <Link href="/zh" prefetch={false} className={styles.entryCta} data-three-coin-entry-cta>用三枚铜钱起卦</Link>
+        </div>
       </section>
 
       <section className={styles.readingGrid}>

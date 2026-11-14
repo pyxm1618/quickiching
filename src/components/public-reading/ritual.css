@@ -334,3 +334,33 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 
 /* Finish the presentation even if the browser cancels or suppresses animation events. */
 .ritual-question-actions[data-entered='true'],.ritual-record-action[data-entered='true'] {animation:none;opacity:1;transform:none;}
+
+/* S02 local flow exit. The root route's deliberate flow owns an explicit way
+   out that is neither the shell brand (Home) nor the discovery navigation. */
+.ritual-flow-exit {
+  position: fixed;
+  top: max(18px, env(safe-area-inset-top));
+  left: max(18px, env(safe-area-inset-left));
+  z-index: 60;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 225, 145, .38);
+  border-radius: 999px;
+  background: rgba(8, 5, 2, .55);
+  color: #ffe9b8;
+  font-family: "Times New Roman", "Songti SC", serif;
+  font-size: 15px;
+  letter-spacing: .04em;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.ritual-flow-exit:hover {
+  background: rgba(8, 5, 2, .78);
+  border-color: rgba(255, 225, 145, .7);
+}
+
+.ritual-flow-exit:focus-visible {
+  outline: 2px solid #ffe191;
+  outline-offset: 4px;
+}
