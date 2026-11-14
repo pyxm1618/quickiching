@@ -451,6 +451,11 @@ async function verifyThreeCoinTransactionSemantics(page) {
   assert.equal(duringReveal.labelsVisible,false,"Faces must not be labelled during the initial airborne phase");
 
   await page.reload({ waitUntil: "networkidle0" });
+  // C1: a reload renders the normal entry state; the partial cast returns only
+  // after an explicit Resume.
+  await page.waitForSelector('[data-experience-stage="landing"]', { timeout: 15_000 });
+  assert.equal(await page.$(".hold-button"), null, "A restored partial cast must not expose the cast button before Resume");
+  await page.click("[data-reading-resume-action]");
   await waitForRecordedLines(page,1);
   const restored = await page.evaluate((key) => {
     const raw = sessionStorage.getItem(key);
@@ -492,13 +497,15 @@ async function finishThreeCoin(page) {
   await page.waitForFunction(() => location.pathname === "/readings/choice", { timeout: 15_000 });
   await page.waitForSelector("[data-result-choice]", { timeout: 10_000 });
   assert.equal(await page.$("[data-completed-cast-gate]"), null, "Completed Three-Coin cast must see Result Choice before authentication");
-  const sealedBeforeGate = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
-  assert(sealedBeforeGate, "Completed Three-Coin reading must remain sealed after Result Choice navigation");
-  const castLineValues = await page.evaluate((key) => {
-    const parsed = JSON.parse(sessionStorage.getItem(key) || "null");
-    const steps = Array.isArray(parsed) ? parsed : parsed?.data?.steps;
-    return Array.isArray(steps) ? steps.map((step) => step?.lineValue) : null;
-  }, storageKey);
+  const retiredSession = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
+  assert.equal(retiredSession, null, "Completed Three-Coin method session must be retired after handoff");
+  const pendingPrefix = "quickiching:public-v1:pending-completed-reading:";
+  const castLineValues = await page.evaluate((prefix) => {
+    const id = new URLSearchParams(location.search).get("session");
+    const raw = id ? localStorage.getItem(prefix + id) : null;
+    const parsed = raw ? JSON.parse(raw) : null;
+    return Array.isArray(parsed?.lineValuesBottomUp) ? parsed.lineValuesBottomUp : null;
+  }, pendingPrefix);
   assert.equal(castLineValues?.length, 6, "Completed Three-Coin reading must preserve all six cast lines");
   assert(castLineValues.every((value) => [6, 7, 8, 9].includes(value)), "Completed Three-Coin reading must preserve valid line values");
 
@@ -514,8 +521,11 @@ async function finishThreeCoin(page) {
   await page.waitForSelector("[data-result-choice]", { timeout: 10_000 });
   assert.equal(await page.$("[data-completed-cast-gate]"), null, "Result Choice refresh must remain before authentication");
   assert.equal(await page.$eval("main", (node) => node.textContent ?? ""), choiceBeforeRefresh, "Result Choice must restore the same completed cast after refresh");
-  const sealedAfterRefresh = await page.evaluate((key) => sessionStorage.getItem(key), storageKey);
-  assert.equal(sealedAfterRefresh, sealedBeforeGate, "Result Choice refresh must not alter the completed six-line cast");
+  const pendingAfterRefresh = await page.evaluate((prefix) => {
+    const id = new URLSearchParams(location.search).get("session");
+    return id ? localStorage.getItem(prefix + id) : null;
+  }, pendingPrefix);
+  assert(pendingAfterRefresh, "Result Choice refresh must keep the exact Pending Completed Reading");
 }
 
 async function finishYarrow(page, verifyResume) {
@@ -527,6 +537,9 @@ async function finishYarrow(page, verifyResume) {
       await waitForText(page, `${completed} / 18 changes`);
     }
     await page.reload({ waitUntil: "networkidle0" });
+    // C1: the reload serves the normal entry; the exact 4/18 progress returns
+    // only after an explicit Resume.
+    await page.click("[data-reading-resume-action]");
     await waitForText(page, "4 / 18 changes");
     completed = 4;
   }

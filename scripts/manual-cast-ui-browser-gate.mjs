@@ -144,6 +144,8 @@ async function exerciseModeBAndRestore(page, config) {
   const relating = await page.$eval("[data-relating-hexagram-number]", el => el.getAttribute("data-relating-hexagram-number"));
   assert(relating && relating !== "none", config.locale + "/" + config.width + ": relating preview");
   await page.reload({ waitUntil: "networkidle0", timeout: 30000 });
+  await page.waitForSelector("[data-reading-resume-action]", { timeout: 10000 });
+  await page.click("[data-reading-resume-action]");
   await page.waitForSelector("[data-manual-primary-changing-panel]", { timeout: 10000 });
   assert.equal(await page.$eval('[data-manual-mode="primary-changing"]', el => el.getAttribute("aria-selected")), "true", "mode restore");
   assert.equal(await page.$eval('[data-moving-line-position="3"]', el => el.getAttribute("aria-pressed")), "true", "line 3 restore");
@@ -169,17 +171,17 @@ async function verifyContinueHandoff(page, locale) {
   ]);
   await page.waitForSelector("[data-result-choice]", { timeout: 10000 });
   const state = await page.evaluate((input) => ({
-    completed: JSON.parse(sessionStorage.getItem(input.completedKey) || "null"),
+    completed: JSON.parse(localStorage.getItem(input.pendingPrefix + (new URLSearchParams(location.search).get("session") || "")) || "null"),
     current: JSON.parse(sessionStorage.getItem(input.sessionKey) || "null"),
     draft: sessionStorage.getItem(input.draftKey),
-  }), { completedKey: COMPLETED_KEY, sessionKey: SESSION_KEY, draftKey: DRAFT_KEY });
-  assert(state.completed, locale + ": completed reading missing");
+  }), { pendingPrefix: PENDING_PREFIX, sessionKey: SESSION_KEY, draftKey: DRAFT_KEY });
+  assert(state.completed, locale + ": exact pending reading missing");
+  assert.equal(state.completed.readingId, id);
   assert.equal(state.completed.method, "manual");
   assert.equal(state.completed.evidence.mode, "line-values");
   assert.equal(state.completed.question, question);
   assert.deepEqual(state.completed.lineValuesBottomUp, [7,6,7,9,7,7]);
-  assert.equal(state.current.id, id);
-  assert.equal(state.current.data.mode, "line-values");
+  assert.equal(state.current, null, "Manual method session must be retired after handoff");
   assert.equal(state.draft, null);
 }
 
@@ -197,7 +199,7 @@ async function verifyPrimaryChangingHandoff(page) {
     page.click("[data-manual-continue]"),
   ]);
   await page.waitForSelector("[data-result-choice]", { timeout: 10000 });
-  const completed = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null"), COMPLETED_KEY);
+  const completed = await page.evaluate((prefix) => JSON.parse(localStorage.getItem(prefix + (new URLSearchParams(location.search).get("session") || "")) || "null"), PENDING_PREFIX);
   assert.equal(completed.evidence.mode, "primary-changing");
   assert.equal(completed.evidence.primaryHexagramNumber, 2);
   assert.deepEqual(completed.evidence.changingLines, [3,5]);
