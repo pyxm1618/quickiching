@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "@/components/public-reading/manual-cast.css";
 import { ManualCastTool } from "@/components/public-reading/manual-cast-tool";
 import { QuestionFirst } from "@/components/public-reading/question-first";
-import { ritualBrush } from "@/components/public-reading/ritual-font";
+import { GildedTitle } from "@/components/typography/gilded-title";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import { alternateLanguages } from "@/i18n/helpers";
 
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function ManualCastPage() {
   const copy = EN_UI_DICTIONARY.manualCast;
   return (
-    <article className={"manual-cast-page " + ritualBrush.variable}>
+    <article className="manual-cast-page">
       <link rel="preload" as="image" href="/performance/stageDesktop.e37364561615e31f.webp" media="not all and (max-aspect-ratio:11/20)" fetchPriority="high" />
       <link rel="preload" as="image" href="/performance/stagePortrait.bde3e415eb141bc8.webp" media="(min-width:601px) and (max-aspect-ratio:11/20)" fetchPriority="high" />
       <link rel="preload" as="image" href="/performance/stageMobile.285965e6cb8c7840.webp" media="(max-width:600px) and (max-aspect-ratio:11/20)" fetchPriority="low" />
@@ -24,7 +24,7 @@ export default function ManualCastPage() {
         <div className="manual-cast-room" aria-hidden="true" />
         <div className="manual-cast-frame">
           <header className="manual-cast-title">
-            <h1>Manual I Ching Cast</h1>
+            <GildedTitle size="lg">Manual I Ching Cast</GildedTitle>
             <p>{copy.subtitle}</p>
           </header>
           <QuestionFirst

@@ -87,18 +87,11 @@
   text-shadow: 0 3px 24px rgba(18, 9, 3, 0.72);
 }
 
-.titleBlock h1 {
-  margin: 0;
-  color: #f4dfb0;
-  font-family: var(--font-fraunces), Georgia, "Times New Roman", serif;
+.titleBlock :global(.qic-gilded-title) {
+  margin-block-start: 0;
+  margin-inline: 0;
   font-size: clamp(42px, 4.45vw, 76px);
-  font-style: italic;
-  font-variation-settings: "SOFT" 70, "WONK" 1;
-  font-weight: 540;
-  letter-spacing: -0.045em;
-  line-height: 0.96;
   text-wrap: balance;
-  filter: drop-shadow(0 0 20px rgba(216, 160, 62, 0.12));
 }
 
 .titleBlock p {
@@ -515,7 +508,7 @@
     width: 66vw;
   }
 
-  .titleBlock h1 {
+  .titleBlock :global(.qic-gilded-title) {
     font-size: clamp(30px, 7vw, 48px);
   }
 

@@ -8,6 +8,7 @@ import { UserNavControl } from "@/components/auth/user-nav-control";
 import type { ContentLocale } from "@/i18n/config";
 import { TRIGRAM_BITS, type Trigram } from "@/domain/casting/hexagrams/king-wen";
 import styles from "./hexagrams.module.css";
+import { GildedTitle } from "@/components/typography/gilded-title";
 
 type HexagramItem = {
   number: number;
@@ -274,11 +275,16 @@ export function HexagramsExperience({
 
   return (
     <article className={styles.scene} data-hexagrams-immersive-page data-hexagrams-locale={locale} data-seo-primary={seoPrimaryKeyword} aria-labelledby="hexagrams-title">
+      {/* Eager but not `priority`: the generated preload was recorded at High priority in
+          Lighthouse's simulation and starved the render-blocking chain, costing
+          hexagram-hub.desktop ~375 ms of LCP. The image is the page's LCP element and is
+          discovered from the initial HTML either way. */}
       <Image
         src="/hexagrams/hero.png"
         alt=""
         fill
-        priority
+        loading="eager"
+        fetchPriority="low"
         quality={90}
         sizes="100vw"
         className={styles.heroImage}
@@ -300,7 +306,7 @@ export function HexagramsExperience({
       </div>
 
       <header className={styles.titleBlock}>
-        <h1 id="hexagrams-title">{title}</h1>
+        <GildedTitle size="lg" id="hexagrams-title">{title}</GildedTitle>
         <p data-seo-early-copy>{description}</p>
       </header>
 

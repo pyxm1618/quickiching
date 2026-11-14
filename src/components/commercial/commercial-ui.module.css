@@ -47,11 +47,8 @@
 }
 .title {
   max-width: 860px;
-  margin: 14px auto 0;
-  color: #fff4da;
-  font: 650 clamp(2.8rem, 6vw, 5.3rem)/.98 var(--font-display);
-  letter-spacing: -.045em;
-  text-shadow: 0 10px 34px rgba(0,0,0,.28);
+  margin-block-start: 14px;
+  margin-inline: auto;
 }
 .intro {
   max-width: 760px;
@@ -538,7 +535,7 @@
 }
 @media (max-width: 720px) {
   .shell { width: min(100% - 24px, 620px); padding: 48px 0 64px; }
-  .title { font-size: clamp(2.5rem, 13vw, 4rem); }
+  .pricingPage .title { font-size: clamp(2.5rem, 13vw, 4rem); }
   .intro { font-size: 14px; }
   .balanceCard { grid-template-columns: 1fr; padding: 20px; }
   .signInLink { width: fit-content; }
@@ -559,7 +556,7 @@
 }
 @media (max-width: 360px) {
   .shell { width: calc(100% - 18px); }
-  .title { font-size: 2.55rem; }
+  .pricingPage .title { font-size: 2.55rem; }
   .packCard { padding: 24px 18px 20px; }
   .price { font-size: 38px; }
   .paymentCard { padding-inline: 16px; }

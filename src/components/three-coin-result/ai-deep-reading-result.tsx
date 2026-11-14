@@ -15,6 +15,7 @@ import {
 import React, { type ReactNode } from "react";
 import type { AiDeepReadingViewModel } from "@/domain/generation/deep-reading-view-model";
 import styles from "./ai-deep-reading-result.module.css";
+import { GildedTitle } from "@/components/typography/gilded-title";
 
 type Locale = "en" | "zh-Hans";
 
@@ -111,7 +112,7 @@ function DeepReadingFrame({
       <section className={styles.hero}>
         <div className={styles.heroShade} aria-hidden="true" />
         <div className={styles.heroCopy}>
-          <h1 className={styles.heroTitle}>{t.title}</h1>
+          <GildedTitle size="inherit" className={styles.heroTitle}>{t.title}</GildedTitle>
           <p className={styles.heroSubtitle}>{t.subtitle}</p>
         </div>
       </section>
