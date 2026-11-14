@@ -7,7 +7,7 @@ import { CLASSICAL_HEXAGRAMS } from "../src/domain/public-reading/classical.ts";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const THREE_COIN_STORAGE_KEY = "quickiching:public-v1:three-coin";
-const COMPLETED_READING_STORAGE_KEY = "quickiching:public-v1:completed-reading";
+const PENDING_READING_KEY_PREFIX = "quickiching:public-v1:pending-completed-reading:";
 const FIXTURE_STEPS = [
   { lineIndex: 0, coinFaces: ["yang", "yang", "yang"], lineValue: 9, algorithmVersion: "three-coin-v1" },
   { lineIndex: 1, coinFaces: ["yin", "yin", "yin"], lineValue: 6, algorithmVersion: "three-coin-v1" },
@@ -83,8 +83,10 @@ async function resetThreeCoin(page) {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate((key) => {
     sessionStorage.removeItem(key);
-    localStorage.removeItem("quickiching:public-v1:three-coin-completed-backup");
-    sessionStorage.removeItem("quickiching:public-v1:completed-reading");
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+      const pendingKey = localStorage.key(index);
+      if (pendingKey?.startsWith("quickiching:public-v1:pending-completed-reading:")) localStorage.removeItem(pendingKey);
+    }
   }, THREE_COIN_STORAGE_KEY);
 }
 
@@ -118,8 +120,10 @@ async function verifyChineseNoChangingLines(page) {
 async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, question = "") {
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.evaluate(({ key, id: readingId, createdAt: readingCreatedAt, steps, question: coreQuestionAtCast }) => {
-    localStorage.removeItem("quickiching:public-v1:three-coin-completed-backup");
-    sessionStorage.removeItem("quickiching:public-v1:completed-reading");
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+      const pendingKey = localStorage.key(index);
+      if (pendingKey?.startsWith("quickiching:public-v1:pending-completed-reading:")) localStorage.removeItem(pendingKey);
+    }
     sessionStorage.setItem(key, JSON.stringify({
       schemaVersion: 1,
       id: readingId,
@@ -134,12 +138,15 @@ async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, 
 
 async function openSeededThreeCoinResult(page, locale = "en") {
   const prefix = locale === "zh-Hans" ? "/zh" : "";
-  const methodPath = `${prefix}/methods/three-coin`;
+  const entryPath = `${prefix}/`;
   const resultPath = `${prefix}/readings/choice`;
   const seededId = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.id ?? "", THREE_COIN_STORAGE_KEY);
   assert(seededId, "Seeded Three-Coin session must have a stable id");
 
-  await page.goto(`${BASE}${methodPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.goto(`${BASE}${entryPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForSelector("[data-reading-sealed-recovery]", { timeout: 30_000 });
+  assert.equal(new URL(page.url()).pathname, entryPath, "A restored completed cast must not navigate by itself");
+  await page.click("[data-reading-retry-handoff]");
   await page.waitForFunction(
     ({ resultPath, seededId }) => location.pathname === resultPath
       && new URLSearchParams(location.search).get("session") === seededId,
@@ -163,7 +170,7 @@ async function openSeededThreeCoinResult(page, locale = "en") {
 
   assert.equal(state.pathname, resultPath, "Restored completed cast must recover into the canonical Result Choice route");
   assert.equal(state.session, seededId, "Recovered Result Choice route must preserve the same stable casting id");
-  assert.equal(state.completed?.id, seededId, "Canonical completed-reading must preserve the same stable casting id");
+  assert.equal(state.completed?.readingId, seededId, "Canonical completed-reading must preserve the same stable casting id");
   assert.equal(state.completed?.method, "three-coin", "Canonical completed-reading must preserve the Three-Coin method");
   assert.equal(state.ritualCompleteViewVisible, false, "Restored six-line cast must not remain on a completed casting screen");
 }
@@ -265,16 +272,21 @@ async function verifyQuestionReading(page, locale = "en") {
   const prefix = zh ? "/zh" : "";
   const question = zh ? "这次变化中，我应该先守住什么？" : "What deserves my attention in this transition?";
   await resetThreeCoin(page);
-  await page.evaluate(() => sessionStorage.setItem("quickiching:public-v1:completed-reading", JSON.stringify({
-    schemaVersion: 1,
-    id: "00000000-0000-4000-8000-000000000099",
-    createdAt: "2026-08-19T00:00:00.000Z",
-    method: "three-coin", methodVersion: "three-coin-v1",
-    question: "Earlier completed reading must not replace the new cast",
-    lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
-    evidence: { kind: "three-coin", steps: [] },
-  })));
-  await page.goto(`${BASE}${prefix}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.evaluate(() => {
+    const staleNow = Date.now();
+    localStorage.setItem("quickiching:public-v1:pending-completed-reading:00000000-0000-4000-8000-000000000099", JSON.stringify({
+      schemaVersion: 1,
+      readingId: "00000000-0000-4000-8000-000000000099",
+      createdAt: "2026-08-19T00:00:00.000Z",
+      method: "three-coin", methodVersion: "three-coin-v1",
+      question: "Earlier completed reading must not replace the new cast",
+      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+      evidence: { kind: "three-coin", steps: [] },
+      pendingCreatedAt: new Date(staleNow).toISOString(),
+      expiresAt: new Date(staleNow + 60 * 60 * 1000).toISOString(),
+    }));
+  });
+  await page.goto(`${BASE}${prefix}/`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector("textarea[data-private-question]");
   await page.type("textarea[data-private-question]", question);
   await clickText(page, zh ? "开始起卦" : "Start Divination");
@@ -287,16 +299,18 @@ async function verifyQuestionReading(page, locale = "en") {
 
   const choiceState = await page.evaluate(() => ({
     session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
-    completed: JSON.parse(sessionStorage.getItem("quickiching:public-v1:completed-reading") || "null"),
+    completed: JSON.parse(localStorage.getItem("quickiching:public-v1:pending-completed-reading:" + (new URLSearchParams(location.search).get("session") || "")) || "null"),
     authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
     primaryCard: document.querySelector("[data-primary-card]") !== null,
     deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
     freeHref: document.querySelector("[data-result-choice-free]")?.getAttribute("href") ?? "",
     deepHref: document.querySelector("[data-result-choice-deep]")?.getAttribute("href") ?? "",
   }));
-  assert.equal(new URL(page.url()).searchParams.get("session"), choiceState.session.id, "Result Choice URL must select this exact formal Three-Coin cast, even when another completed reading exists");
-  assert.equal(choiceState.completed?.id, choiceState.session.id, "Result Choice must use the new completed cast, not a stale completed reading");
-  assert.deepEqual(choiceState.completed?.lineValuesBottomUp, choiceState.session.data.steps.map(step => step.lineValue), "Result Choice handoff must preserve all six authoritative line values");
+  assert.equal(choiceState.session, null, "Completed handoff must retire the exact Three-Coin method session");
+  assert.equal(new URL(page.url()).searchParams.get("session"), choiceState.completed?.readingId, "Result Choice URL must select this exact formal Three-Coin cast, even when another completed reading exists");
+  assert.notEqual(choiceState.completed?.readingId, "00000000-0000-4000-8000-000000000099", "Result Choice must use the new completed cast, not a stale completed reading");
+  assert.equal(choiceState.completed?.lineValuesBottomUp?.length, 6, "Result Choice handoff must preserve all six authoritative line values");
+  assert(choiceState.completed.lineValuesBottomUp.every(value => [6, 7, 8, 9].includes(value)), "Result Choice handoff must preserve valid line values");
   assert.equal(choiceState.authGate, false, "Result Choice must be visible before authentication");
   assert.equal(choiceState.primaryCard, false, "Result Choice must not render Free Reading content");
   assert.equal(choiceState.deepEntry, false, "Result Choice must not render Deep Reading content");
@@ -305,8 +319,8 @@ async function verifyQuestionReading(page, locale = "en") {
   const deepUrl = new URL(choiceState.deepHref, BASE);
   assert.equal(freeUrl.pathname, `${prefix}/readings/result`);
   assert.equal(deepUrl.pathname, `${prefix}/readings/deep`);
-  assert.equal(freeUrl.searchParams.get("session"), choiceState.session.id);
-  assert.equal(deepUrl.searchParams.get("session"), choiceState.session.id);
+  assert.equal(freeUrl.searchParams.get("session"), choiceState.completed.readingId);
+  assert.equal(deepUrl.searchParams.get("session"), choiceState.completed.readingId);
 
   await Promise.all([
     page.waitForFunction(prefix => location.pathname === `${prefix}/readings/result`, { timeout: 15_000 }, prefix),
@@ -315,28 +329,34 @@ async function verifyQuestionReading(page, locale = "en") {
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
   const signinHref = await page.$eval('[data-auth-reading-intent="free"]', node => node.getAttribute("href"));
   const callback = new URL(signinHref, BASE).searchParams.get("callbackURL");
-  assert.equal(new URL(callback, BASE).searchParams.get("session"), choiceState.session.id, "Free Reading sign-in callback must preserve this exact cast identity");
+  assert.equal(new URL(callback, BASE).searchParams.get("session"), choiceState.completed.readingId, "Free Reading sign-in callback must preserve this exact cast identity");
 
   const lineDescriptions = zh ? { 6: "阴爻，动爻", 7: "阳爻", 8: "阴爻", 9: "阳爻，动爻" } : { 6: "yin, moving", 7: "yang", 8: "yin", 9: "yang, moving" };
-  const expectedLabels = choiceState.session.data.steps.map((step, index) => zh ? `第 ${index + 1} 爻：${lineDescriptions[step.lineValue]}` : `Line ${index + 1}: ${lineDescriptions[step.lineValue]}`).reverse();
+  const expectedLabels = choiceState.completed.lineValuesBottomUp.map((value, index) => zh ? `第 ${index + 1} 爻：${lineDescriptions[value]}` : `Line ${index + 1}: ${lineDescriptions[value]}`).reverse();
   assert.deepEqual(await page.$$eval('[data-completed-six-lines] [role="img"]', nodes => nodes.map(node => node.getAttribute("aria-label"))), expectedLabels, "Free Reading auth gate must preserve this cast's six lines");
-  assert.equal(choiceState.session.coreQuestionAtCast, question, "The frozen question must be stored with this cast");
-  assert.equal(choiceState.session.coreQuestionFrozenAtCast, true, "The session must record the first-real-cast question freeze");
-  assert.equal(choiceState.session.data?.steps?.length, 6, "The completed browser session must preserve all six authoritative steps");
+  assert.equal(choiceState.completed.question, question, "The frozen question must be stored with this cast");
+  assert.equal(choiceState.completed.lineValuesBottomUp?.length, 6, "The pending reading must preserve all six authoritative lines");
 
-  const sessionBeforeRefresh = JSON.stringify(choiceState.session);
+  const pendingBeforeRefresh = await page.evaluate((prefix) => {
+    const id = new URLSearchParams(location.search).get("session") || "";
+    return localStorage.getItem(prefix + id);
+  }, "quickiching:public-v1:pending-completed-reading:");
   await page.reload({ waitUntil: "networkidle0" });
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
   await assertQuestionPrivacy(page, question, { requireVisible: false });
-  const sessionAfterRefresh = await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin"));
-  assert.equal(sessionAfterRefresh, sessionBeforeRefresh, "Free Reading auth-gate refresh must restore the exact same completed cast and question");
+  const pendingAfterRefresh = await page.evaluate((prefix) => {
+    const id = new URLSearchParams(location.search).get("session") || "";
+    return localStorage.getItem(prefix + id);
+  }, "quickiching:public-v1:pending-completed-reading:");
+  assert.equal(pendingAfterRefresh, pendingBeforeRefresh, "Free Reading auth-gate refresh must restore the exact same pending cast and question");
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin")), null, "Refresh must not revive the retired method session");
   log(`${locale}: Result Choice first, same-session Free handoff, auth callback, six-line facts, privacy and restore PASS`);
 }
 
 
 async function verifyQuestionSkipFreeOnly(page) {
   await resetThreeCoin(page);
-  await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
   await clickText(page, "Skip — free reading only");
   await page.waitForSelector('[data-experience-stage="question-confirm"]');
   await page.click('.ritual-back');
@@ -352,17 +372,16 @@ async function verifyQuestionSkipFreeOnly(page) {
   await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
   const state = await page.evaluate(() => ({
     session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
-    completed: JSON.parse(sessionStorage.getItem("quickiching:public-v1:completed-reading") || "null"),
+    completed: JSON.parse(localStorage.getItem("quickiching:public-v1:pending-completed-reading:" + (new URLSearchParams(location.search).get("session") || "")) || "null"),
     authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
     primaryCard: document.querySelector("[data-primary-card]") !== null,
     deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
     freeChoice: document.querySelector("[data-result-choice-free]") !== null,
     deepChoice: document.querySelector("[data-result-choice-deep]") !== null,
   }));
-  assert.equal(state.session.coreQuestionFrozenAtCast, true, "Questionless cast must still freeze the no-question decision at first cast");
-  assert.equal(state.session.coreQuestionAtCast ?? "", "", "Questionless cast must not manufacture a question");
-  assert.equal(state.session.data?.steps?.length, 6, "Questionless completed cast must preserve six lines");
-  assert.deepEqual(state.completed?.lineValuesBottomUp, state.session.data.steps.map(step => step.lineValue));
+  assert.equal(state.session, null, "Questionless completed cast must retire the method session");
+  assert.equal(state.completed?.question ?? "", "", "Questionless cast must not manufacture a question");
+  assert.equal(state.completed?.lineValuesBottomUp?.length, 6, "Questionless completed cast must preserve six lines");
   assert.equal(state.authGate, false, "Questionless completed cast must still see Result Choice before authentication");
   assert.equal(state.primaryCard, false, "Result Choice must not reveal Free Reading content");
   assert.equal(state.deepEntry, false, "Result Choice must not reveal Deep Reading content");
@@ -385,20 +404,21 @@ async function verifyChineseQuestionAndDeepEntry(page) {
     deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
     deepHref: document.querySelector("[data-result-choice-deep]")?.getAttribute("href") ?? "",
     freeHref: document.querySelector("[data-result-choice-free]")?.getAttribute("href") ?? "",
-    session: JSON.parse(sessionStorage.getItem("quickiching:public-v1:three-coin") || "null"),
+    session: sessionStorage.getItem("quickiching:public-v1:three-coin"),
+    completed: JSON.parse(localStorage.getItem("quickiching:public-v1:pending-completed-reading:" + (new URLSearchParams(location.search).get("session") || "")) || "null"),
   }));
   assert.equal(state.authGate, false, "Chinese Result Choice must be visible before authentication");
   assert.equal(state.primaryCard, false, "Chinese Result Choice must not render Free Reading content");
   assert.equal(state.deepEntry, false, "Chinese Result Choice must not render Deep Reading content");
-  assert.equal(state.session.question, question, "Chinese choice source session must preserve the same question");
-  assert.equal(state.session.coreQuestionAtCast, question, "Chinese choice source session must preserve the frozen core question");
-  assert.equal(state.session.data?.steps?.length, 6, "Chinese choice source session must preserve the same six lines");
+  assert.equal(state.session, null, "Chinese completed cast must retire the method session");
+  assert.equal(state.completed.question, question, "Chinese choice pending reading must preserve the same question");
+  assert.equal(state.completed.lineValuesBottomUp?.length, 6, "Chinese choice pending reading must preserve the same six lines");
   const deepUrl = new URL(state.deepHref, BASE);
   const freeUrl = new URL(state.freeHref, BASE);
   assert.equal(deepUrl.pathname, "/zh/readings/deep");
   assert.equal(freeUrl.pathname, "/zh/readings/result");
-  assert.equal(deepUrl.searchParams.get("session"), state.session.id);
-  assert.equal(freeUrl.searchParams.get("session"), state.session.id);
+  assert.equal(deepUrl.searchParams.get("session"), state.completed.readingId);
+  assert.equal(freeUrl.searchParams.get("session"), state.completed.readingId);
 
   await Promise.all([
     page.waitForFunction(() => location.pathname === "/zh/readings/deep", { timeout: 15_000 }),
@@ -408,7 +428,7 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   const deepSigninHref = await page.$eval('[data-auth-reading-intent="deep"]', node => node.getAttribute("href"));
   const callback = new URL(new URL(deepSigninHref, BASE).searchParams.get("callbackURL"), BASE);
   assert.equal(callback.pathname, "/zh/readings/deep");
-  assert.equal(callback.searchParams.get("session"), state.session.id);
+  assert.equal(callback.searchParams.get("session"), state.completed.readingId);
   await assertNoOverflow(page, "Chinese Deep Reading auth gate 390px");
   log("Chinese Result Choice, same-cast Deep handoff, privacy, and auth-after-choice PASS");
 }
@@ -430,7 +450,10 @@ async function resetManualSession(page) {
   await page.evaluate(() => {
     sessionStorage.removeItem("quickiching:public-v1:manual-cast");
     sessionStorage.removeItem("quickiching:public-v1:manual-cast:draft:v1");
-    sessionStorage.removeItem("quickiching:public-v1:completed-reading");
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+      const pendingKey = localStorage.key(index);
+      if (pendingKey?.startsWith("quickiching:public-v1:pending-completed-reading:")) localStorage.removeItem(pendingKey);
+    }
   });
 }
 
@@ -446,10 +469,11 @@ async function buildManual(page, values) {
   await page.waitForFunction(() => location.pathname === "/readings/choice", { timeout: 15_000 });
   await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
   const state = await page.evaluate(() => {
-    const completedRaw = sessionStorage.getItem("quickiching:public-v1:completed-reading");
+    const completedRaw = localStorage.getItem("quickiching:public-v1:pending-completed-reading:" + (new URLSearchParams(location.search).get("session") || ""));
     const manualRaw = sessionStorage.getItem("quickiching:public-v1:manual-cast");
     return {
       completed: completedRaw ? JSON.parse(completedRaw) : null,
+      session: new URLSearchParams(location.search).get("session"),
       manual: manualRaw ? JSON.parse(manualRaw) : null,
       revealed: document.querySelector("[data-public-reading-result]") !== null,
       authGate: document.querySelector("[data-completed-cast-gate]") !== null,
@@ -458,7 +482,7 @@ async function buildManual(page, values) {
   assert(state.completed, "Manual Build Reading must write canonical completed-reading");
   assert(state.manual, "Manual Build Reading must preserve its canonical current session");
   assert.equal(state.completed.method, "manual", "Manual completed-reading must use the canonical manual method");
-  assert.equal(state.completed.id, state.manual.id, "Manual result handoff must preserve the same casting id");
+  assert.equal(state.completed.readingId, state.manual.id, "Manual result handoff must preserve the same casting id");
   assert.deepEqual(state.completed.lineValuesBottomUp, values, "Manual result handoff must preserve all six authoritative values");
   assert.equal(state.revealed, false, "Manual Result Choice must not render Free Reading content");
   assert.equal(state.authGate, false, "Manual Result Choice must appear before authentication");
@@ -491,7 +515,7 @@ async function verifyManualAndMovement(page) {
   await page.waitForFunction(() => location.pathname === "/readings/choice", { timeout: 15_000 });
   await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
   const modeB = await page.evaluate(() => {
-    const raw = sessionStorage.getItem("quickiching:public-v1:completed-reading");
+    const raw = localStorage.getItem("quickiching:public-v1:pending-completed-reading:" + (new URLSearchParams(location.search).get("session") || ""));
     return raw ? JSON.parse(raw) : null;
   });
   assert(modeB, "Manual Mode B must write canonical completed-reading");
@@ -500,13 +524,13 @@ async function verifyManualAndMovement(page) {
   assert.equal(modeB.evidence?.primaryHexagramNumber, 24);
   assert.deepEqual(modeB.evidence?.changingLines, [1]);
   await assertNoOverflow(page, "Manual Result Choice 390px");
-  log("Manual A/B, keyboard tabs, canonical completed-reading, stable id, and Result Choice handoff PASS");
+  log("Manual A/B, keyboard tabs, exact pending handoff, stable id, and Result Choice PASS");
 }
 
 async function verifyPartialRestart(page) {
   const question = "What remains important if I begin again?";
   await seedThreeCoinSession(page, "partial-reading-before", "2026-08-19T10:00:00.000Z", FIXTURE_STEPS.slice(0, 1), question);
-  await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForFunction(() => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 1);
   const before = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
   await page.click('.ritual-back');

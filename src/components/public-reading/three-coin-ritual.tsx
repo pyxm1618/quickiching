@@ -8,10 +8,18 @@ import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/doma
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
 import {
+  clearThreeCoinReading,
   patchThreeCoinQuestionSession,
   readThreeCoinQuestionState,
+  readThreeCoinSession,
   THREE_COIN_SESSION_STORAGE_KEY,
 } from "@/lib/three-coin-session";
+import {
+  NO_READING_RESUME,
+  resumeProgressLabel,
+  threeCoinResumeState,
+  type ReadingResumeState,
+} from "@/lib/reading-resume";
 
 export type ThreeCoinExperienceStage = "landing" | "question-confirm" | "ritual";
 
@@ -33,6 +41,10 @@ export type ThreeCoinRitualContextValue = {
   freezeCoreQuestion: () => string | undefined | false;
   restartQuestion: (force?: boolean) => void;
   experienceStage: ThreeCoinExperienceStage;
+  /** C1: a passive snapshot, never applied until requestResume(). */
+  resumeState: ReadingResumeState;
+  resumeRequested: boolean;
+  requestResume: () => void;
 };
 
 const ThreeCoinRitualContext = createContext<ThreeCoinRitualContextValue | null>(null);
@@ -48,35 +60,60 @@ export function ThreeCoinRitual({
   homeHeading,
   homeDescription,
   headingLevel = 1,
-  initialSession,
   children,
 }: {
   dictionary?: UiDictionary;
   homeHeading?: string;
   homeDescription?: string;
   headingLevel?: 1 | 2;
-  initialSession?: {
-    started?: boolean;
-    question?: string;
-    coreQuestionAtCast?: string;
-    coreQuestionFrozenAtCast?: boolean;
-  };
   children: ReactNode;
 }) {
   const Heading = headingLevel === 1 ? "h1" : "h2";
   const zh = dictionary.locale === "zh-Hans";
-  const [experienceStage, setExperienceStage] = useState<ThreeCoinExperienceStage>(
-    () => threeCoinExperienceStageForSession(initialSession),
-  );
-  const [presentationStage, setPresentationStage] = useState<ThreeCoinExperienceStage>(
-    () => threeCoinExperienceStageForSession(initialSession),
-  );
+  // C1: the surface always starts at its normal entry state. Persisted progress is
+  // detected, not applied. Only an explicit Resume restores the exact stage.
+  const [experienceStage, setExperienceStage] = useState<ThreeCoinExperienceStage>("landing");
+  const [presentationStage, setPresentationStage] = useState<ThreeCoinExperienceStage>("landing");
   const [confirmationEntered, setConfirmationEntered] = useState(false);
-  const [question, setQuestionState] = useState<string | undefined>(() => initialSession?.question ?? undefined);
-  const [coreQuestionAtCast, setCoreQuestionAtCast] = useState<string | undefined>(() => initialSession?.coreQuestionAtCast ?? undefined);
-  const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(() => initialSession?.coreQuestionFrozenAtCast ?? false);
-  const [draft, setDraft] = useState(() => initialSession?.question ?? "");
+  const [question, setQuestionState] = useState<string | undefined>(undefined);
+  const [coreQuestionAtCast, setCoreQuestionAtCast] = useState<string | undefined>(undefined);
+  const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(false);
+  const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
+  const [resumeState, setResumeState] = useState<ReadingResumeState>(NO_READING_RESUME);
+  const [resumeRequested, setResumeRequested] = useState(false);
+
+  useEffect(() => {
+    setResumeState(threeCoinResumeState());
+  }, []);
+
+  function requestResume() {
+    let session: ReturnType<typeof readThreeCoinSession> = null;
+    try {
+      session = readThreeCoinSession();
+    } catch {
+      setError(dictionary.questionFirst.saveError);
+      return;
+    }
+    if (!session) {
+      setResumeState(threeCoinResumeState());
+      return;
+    }
+    const restored = readThreeCoinQuestionState();
+    const restoredQuestion = session.coreQuestionAtCast ?? session.question ?? restored.question;
+    setQuestionState(restoredQuestion);
+    setDraft(restoredQuestion ?? "");
+    setCoreQuestionAtCast(session.coreQuestionAtCast ?? restored.coreQuestionAtCast);
+    setCoreQuestionFrozenAtCast(session.coreQuestionFrozenAtCast === true || restored.coreQuestionFrozenAtCast);
+    setResumeRequested(true);
+    const stage = threeCoinExperienceStageForSession({
+      started: true,
+      question: restoredQuestion,
+      coreQuestionFrozenAtCast: session.coreQuestionFrozenAtCast === true || restored.coreQuestionFrozenAtCast,
+    });
+    setExperienceStage(stage);
+    setPresentationStage(stage);
+  }
 
   useEffect(() => {
     if (experienceStage !== "question-confirm") {
@@ -99,13 +136,8 @@ export function ThreeCoinRitual({
   useEffect(() => {
     const restored = readThreeCoinQuestionState();
     if (restored.question || restored.coreQuestionFrozenAtCast || restored.started) {
-      setQuestionState(restored.question);
-      setDraft(restored.question ?? "");
-      setCoreQuestionAtCast(restored.coreQuestionAtCast);
-      setCoreQuestionFrozenAtCast(restored.coreQuestionFrozenAtCast);
-      const stage = threeCoinExperienceStageForSession(restored);
-      setExperienceStage(stage);
-      setPresentationStage(stage);
+      // Recorded as resumable evidence only. It must not move the UI stage.
+      setResumeState(threeCoinResumeState());
     }
   }, []);
 
@@ -143,8 +175,23 @@ export function ThreeCoinRitual({
     }
   }
 
+  function discardUnresumedPartial(): boolean {
+    if (resumeState.kind !== "partial" || resumeRequested) return true;
+    try {
+      clearThreeCoinReading();
+    } catch {
+      setError(dictionary.questionFirst.saveError);
+      return false;
+    }
+    setResumeState(NO_READING_RESUME);
+    return true;
+  }
+
   function prepareQuestionConfirmation() {
     if (coreQuestionFrozenAtCast) return;
+    // Starting a brand-new reading is an explicit discard of an un-resumed
+    // partial, and it must not inherit the old reading id.
+    if (!discardUnresumedPartial()) return;
     try {
       const normalized = normalizePublicQuestion(draft);
       if (!persist(true, normalized)) {
@@ -193,6 +240,7 @@ export function ThreeCoinRitual({
 
   function skip() {
     if (coreQuestionFrozenAtCast) return;
+    if (!discardUnresumedPartial()) return;
     if (!persist(true, undefined)) {
       setError(dictionary.questionFirst.saveError);
       return;
@@ -214,6 +262,8 @@ export function ThreeCoinRitual({
     setCoreQuestionFrozenAtCast(false);
     setDraft("");
     setError("");
+    setResumeRequested(false);
+    setResumeState(NO_READING_RESUME);
     setExperienceStage("landing");
   }
 
@@ -240,6 +290,9 @@ export function ThreeCoinRitual({
     freezeCoreQuestion,
     restartQuestion,
     experienceStage,
+    resumeState,
+    resumeRequested,
+    requestResume,
   };
 
   const landing = experienceStage === "landing";
@@ -308,6 +361,14 @@ export function ThreeCoinRitual({
                   ? (zh ? "每个问题都值得看见。现在开始你的起卦。" : "No question is too small. Begin your divination now →")
                   : (zh ? "三枚铜钱将随机落定，为你带来一次易经起卦。" : <>Three coins will be cast at random,<br />bringing you an I Ching reading.</>)}</p>}
             </div>
+            {landing && resumeState.kind === "partial" ? (
+              <div className="ritual-resume" data-reading-resume={resumeState.method}>
+                <p>{zh ? "你有一次尚未完成的起卦。" : "You have an unfinished cast."}</p>
+                <button type="button" className="ritual-text-button" onClick={requestResume} data-reading-resume-action>
+                  {zh ? "继续上次起卦" : "Resume"} · {resumeProgressLabel(resumeState, zh)}
+                </button>
+              </div>
+            ) : null}
             {confirming && !coreQuestionFrozenAtCast ? <button type="button" onClick={() => setExperienceStage("landing")} className="ritual-back">← {zh ? "返回" : "Back"}</button> : null}
           </div>
         ) : (

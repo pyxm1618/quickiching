@@ -3,7 +3,11 @@ import { buildPublicReading } from "@/domain/public-reading/reading";
 import { generateYarrowLine } from "@/domain/casting/yarrow/algorithm";
 import { generateThreeCoinLine } from "@/domain/casting/three-coin/algorithm";
 import { meiHuaFromNumberAndTime } from "@/domain/casting/mei-hua/number-time";
-import { completedPublicReadingPath, readCompletedPublicReading, publicReadingSaveInput, writeCompletedPublicReading } from "./completed-public-reading";
+import { completedPublicReadingPath, publicReadingSaveInput, clearCompletedReadingForRestart } from "./completed-public-reading";
+import { pendingCompletedReadingStorageKey } from "./pending-completed-reading";
+import { MANUAL_SESSION_STORAGE_KEY, MEI_HUA_SESSION_STORAGE_KEY, YARROW_SESSION_STORAGE_KEY } from "./method-session-retirement";
+import { THREE_COIN_SESSION_STORAGE_KEY } from "./three-coin-session";
+import { MANUAL_CAST_DRAFT_STORAGE_KEY } from "./manual-cast-draft";
 
 const calculation = meiHuaFromNumberAndTime({
   number: 17,
@@ -20,13 +24,33 @@ const reading = buildPublicReading({
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe("common completed reading handoff", () => {
-  it("preserves method evidence and scopes recovery to the requested session", () => {
-    const values = new Map<string, string>();
-    vi.stubGlobal("window", { sessionStorage: { setItem: (key: string, value: string) => values.set(key, value), getItem: (key: string) => values.get(key) ?? null } });
-    writeCompletedPublicReading(reading);
-    expect(readCompletedPublicReading(reading.id)).toEqual(reading);
-    expect(readCompletedPublicReading("another-session")).toBeNull();
+function stubBrowserStorage() {
+  const sessionMemory = new Map<string, string>();
+  const localMemory = new Map<string, string>();
+  vi.stubGlobal("window", {
+    sessionStorage: {
+      getItem: (key: string) => sessionMemory.get(key) ?? null,
+      setItem: (key: string, value: string) => sessionMemory.set(key, value),
+      removeItem: (key: string) => sessionMemory.delete(key),
+      clear: () => sessionMemory.clear(),
+      key: (index: number) => [...sessionMemory.keys()][index] ?? null,
+      get length() { return sessionMemory.size; },
+    },
+    localStorage: {
+      getItem: (key: string) => localMemory.get(key) ?? null,
+      setItem: (key: string, value: string) => localMemory.set(key, value),
+      removeItem: (key: string) => localMemory.delete(key),
+      clear: () => localMemory.clear(),
+      key: (index: number) => [...localMemory.keys()][index] ?? null,
+      get length() { return localMemory.size; },
+    },
+  });
+  return { sessionMemory, localMemory };
+}
+
+describe("shared completed reading helpers", () => {
+  it("builds the canonical Choice path for the exact reading id", () => {
+    expect(completedPublicReadingPath(reading.id)).toBe(`/readings/choice?session=${reading.id}`);
     expect(completedPublicReadingPath(reading.id, true)).toBe(`/zh/readings/choice?session=${reading.id}`);
   });
 
@@ -44,8 +68,6 @@ describe("common completed reading handoff", () => {
   });
 
   it("hands all four active methods to the same canonical route with unchanged source evidence", () => {
-    const values = new Map<string, string>();
-    vi.stubGlobal("window", { sessionStorage: { setItem: (key: string, value: string) => values.set(key, value), getItem: (key: string) => values.get(key) ?? null } });
     const yarrow = Array.from({ length: 6 }, (_, index) => generateYarrowLine(index as 0, () => 1));
     const coins = Array.from({ length: 6 }, (_, index) => generateThreeCoinLine(index as 0, () => true));
     for (const completed of [
@@ -54,13 +76,10 @@ describe("common completed reading handoff", () => {
       buildPublicReading({ id: reading.id, method: "yarrow-stalks", lineValuesBottomUp: yarrow.map(line => line.lineValue), evidence: { kind: "yarrow-stalks", lines: yarrow } }),
       buildPublicReading({ id: reading.id, method: "manual", lineValuesBottomUp: [7, 8, 9, 6, 7, 8], evidence: { kind: "manual", mode: "line-values" } }),
     ]) {
-      writeCompletedPublicReading(completed);
-      expect(readCompletedPublicReading(completed.id)).toEqual(completed);
       expect(completedPublicReadingPath(completed.id)).toBe(`/readings/choice?session=${completed.id}`);
       expect(publicReadingSaveInput(completed).algorithmVersion).toBe(completed.methodVersion);
     }
   });
-
 
   it("serializes Manual line-values through the shared save contract", () => {
     const manual = buildPublicReading({
@@ -93,27 +112,40 @@ describe("common completed reading handoff", () => {
       methodCalculation: { mode: "primary-changing", primaryHexagramNumber: 1, changingLines: [] },
     });
   });
-
-  it("fails closed on corrupt storage and propagates blocked writes", () => {
-    vi.stubGlobal("window", { sessionStorage: { getItem: () => "{broken", setItem: () => { throw new Error("blocked"); } } });
-    expect(readCompletedPublicReading()).toBeNull();
-    expect(() => writeCompletedPublicReading(reading)).toThrow("blocked");
-  });
 });
 
-import { clearCompletedReadingForRestart } from "./completed-public-reading";
 describe("restart preserves other casting methods", () => {
   it.each([
-    ["yarrow-stalks", "quickiching:public-v1:yarrow-v2", "/methods/yarrow-stalks"],
-    ["mei-hua-yi-shu", "quickiching:public-v1:mei-hua-number-time-v1", "/methods/mei-hua-yi-shu"],
-    ["three-coin", "quickiching:public-v1:three-coin", "/methods/three-coin"],
-    ["manual", "quickiching:public-v1:manual-cast", "/methods/manual-cast"],
-  ] as const)("clears only %s and the common handoff", (method, key, href) => {
-    const values = new Map([[key,"cast"],["unrelated","preserve"],["quickiching:public-v1:completed-reading","handoff"]]);
-    vi.stubGlobal("window", {sessionStorage: {removeItem:(item:string)=>values.delete(item)}, localStorage:{removeItem:vi.fn()}});
-    expect(clearCompletedReadingForRestart(method, true)).toBe(`/zh${href}`);
-    expect(values.has(key)).toBe(false);
-    expect(values.has("quickiching:public-v1:completed-reading")).toBe(false);
-    expect(values.get("unrelated")).toBe("preserve");
+    ["yarrow-stalks", YARROW_SESSION_STORAGE_KEY, "/methods/yarrow-stalks"],
+    ["mei-hua-yi-shu", MEI_HUA_SESSION_STORAGE_KEY, "/methods/mei-hua-yi-shu"],
+    ["three-coin", THREE_COIN_SESSION_STORAGE_KEY, "/"],
+    ["manual", MANUAL_SESSION_STORAGE_KEY, "/methods/manual-cast"],
+  ] as const)("clears only %s and its exact pending record", (method, key, href) => {
+    const { sessionMemory, localMemory } = stubBrowserStorage();
+    sessionMemory.set(key, "cast");
+    sessionMemory.set("unrelated", "preserve");
+    if (method === "manual") sessionMemory.set(MANUAL_CAST_DRAFT_STORAGE_KEY, "draft");
+    localMemory.set(pendingCompletedReadingStorageKey(reading.id), "pending");
+    localMemory.set("unrelated-pending", "keep");
+
+    expect(clearCompletedReadingForRestart(method, false, reading.id)).toBe(href);
+    expect(sessionMemory.has(key)).toBe(false);
+    expect(sessionMemory.get("unrelated")).toBe("preserve");
+    expect(localMemory.has(pendingCompletedReadingStorageKey(reading.id))).toBe(false);
+    expect(localMemory.get("unrelated-pending")).toBe("keep");
+  });
+
+  it("returns the canonical Root entry for Three Coin in both locales", () => {
+    stubBrowserStorage();
+    expect(clearCompletedReadingForRestart("three-coin", false)).toBe("/");
+    expect(clearCompletedReadingForRestart("three-coin", true)).toBe("/zh");
+  });
+
+  it("does not retire any method session when only a pending record is removed", () => {
+    const { sessionMemory, localMemory } = stubBrowserStorage();
+    sessionMemory.set(YARROW_SESSION_STORAGE_KEY, "cast");
+    localMemory.set(pendingCompletedReadingStorageKey(reading.id), "pending");
+    clearCompletedReadingForRestart("mei-hua-yi-shu", false, reading.id);
+    expect(sessionMemory.get(YARROW_SESSION_STORAGE_KEY)).toBe("cast");
   });
 });
