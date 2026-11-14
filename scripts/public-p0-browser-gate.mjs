@@ -337,12 +337,19 @@ async function verifyQuestionReading(page, locale = "en") {
   assert.equal(choiceState.completed.question, question, "The frozen question must be stored with this cast");
   assert.equal(choiceState.completed.lineValuesBottomUp?.length, 6, "The pending reading must preserve all six authoritative lines");
 
-  const sessionBeforeRefresh = JSON.stringify(choiceState.session);
+  const pendingBeforeRefresh = await page.evaluate((prefix) => {
+    const id = new URLSearchParams(location.search).get("session") || "";
+    return localStorage.getItem(prefix + id);
+  }, "quickiching:public-v1:pending-completed-reading:");
   await page.reload({ waitUntil: "networkidle0" });
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
   await assertQuestionPrivacy(page, question, { requireVisible: false });
-  const sessionAfterRefresh = await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin"));
-  assert.equal(sessionAfterRefresh, sessionBeforeRefresh, "Free Reading auth-gate refresh must restore the exact same completed cast and question");
+  const pendingAfterRefresh = await page.evaluate((prefix) => {
+    const id = new URLSearchParams(location.search).get("session") || "";
+    return localStorage.getItem(prefix + id);
+  }, "quickiching:public-v1:pending-completed-reading:");
+  assert.equal(pendingAfterRefresh, pendingBeforeRefresh, "Free Reading auth-gate refresh must restore the exact same pending cast and question");
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin")), null, "Refresh must not revive the retired method session");
   log(`${locale}: Result Choice first, same-session Free handoff, auth callback, six-line facts, privacy and restore PASS`);
 }
 
