@@ -91,8 +91,8 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
     const expectedChoice=zh?"/zh/readings/choice":"/readings/choice";
     const expectedFree=zh?"/zh/readings/result":"/readings/result";
     const expectedDeep=zh?"/zh/readings/deep":"/readings/deep";
-    await p.waitForFunction(expected=>location.pathname===expected,{},expectedChoice);
     await p.waitForSelector('[data-result-choice]');
+    assert.equal(new URL(p.url()).pathname,expectedChoice,"Confirm & Cast must navigate to the shared Result Choice route");
     assert.equal(await p.$('[data-completed-cast-gate]'),null,"Result Choice must be visible before authentication");
     const after=Date.now();
 
@@ -117,11 +117,28 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
 
     if(capturePrefix)await capture(p,`${capturePrefix}-result-choice`);
     const beforeReload=await p.evaluate(k=>sessionStorage.getItem(k),COMPLETED_KEY);
-    await Promise.all([
-      p.waitForFunction(expected=>location.pathname===expected,{},expectedFree),
-      p.click('[data-result-choice-free]'),
-    ]);
+    await p.$eval('[data-result-choice-free]',element=>element.scrollIntoView({block:"center",inline:"center"}));
+    await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    const clickProbe=await p.$eval('[data-result-choice-free]',element=>{
+      const rect=element.getBoundingClientRect();
+      const x=rect.left+rect.width/2;
+      const y=rect.top+rect.height/2;
+      const hit=document.elementFromPoint(x,y);
+      const link=hit?.closest?.('a[href]');
+      return {
+        href:element.getAttribute('href'),
+        hitTag:hit?.tagName??null,
+        hitClass:typeof hit?.className==='string'?hit.className:null,
+        hitHref:link?.getAttribute('href')??null,
+        contained:hit ? element.contains(hit) : false,
+        x,y,
+      };
+    });
+    assert.equal(clickProbe.href,freeChoiceHref,"Free Reading DOM href must stay bound to this completed cast");
+    assert(clickProbe.contained&&clickProbe.hitHref===freeChoiceHref,`Free Reading center hit-test must target its own link: ${JSON.stringify(clickProbe)}`);
+    await p.click('[data-result-choice-free]');
     await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
+    assert.equal(new URL(p.url()).pathname,expectedFree,`Free Reading must navigate to the downstream auth-gated route; final=${p.url()} probe=${JSON.stringify(clickProbe)}`);
     const freeHref=await p.$eval('[data-auth-reading-intent="free"]',e=>e.getAttribute("href"));
     const deepHref=await p.$eval('[data-auth-reading-alternate-intent="deep"]',e=>e.getAttribute("href"));
     const free=callbackFromHref(freeHref),deep=callbackFromHref(deepHref);

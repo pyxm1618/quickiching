@@ -68,7 +68,7 @@ describe("shared post-cast Result Choice", () => {
       expect(html).toContain("data-result-choice-relating");
       expect(html).toContain(question);
       expect(html).toContain("Primary Hexagram");
-      expect(html).toContain("Changing / Relating Hexagram");
+      expect(html).toContain("Changing Hexagram");
       expect(html).toContain("Deep Reading");
       expect(html).toContain("Free Reading");
       expect(html).toContain(`href="/readings/result?session=${id}"`);
@@ -86,7 +86,7 @@ describe("shared post-cast Result Choice", () => {
     expect(html).toContain(`href="/zh/readings/deep?session=${id}"`);
     expect(html).toContain("你的问题");
     expect(html).toContain("本卦");
-    expect(html).toContain("变卦 / 之卦");
+    expect(html).toContain("变卦");
   });
 
   it("fully retires the legacy ritual result reveal production implementation", () => {
