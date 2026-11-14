@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Home } from "lucide-react";
+import { GildedTitle } from "@/components/typography/gilded-title";
 import styles from "./quick-iching-not-found.module.css";
 
 type NotFoundLocale = "en" | "zh";
@@ -76,9 +77,9 @@ export function QuickIChingNotFound({ locale }: { locale: NotFoundLocale }) {
 
         <div className={styles.content}>
           <p className={styles.code}>404</p>
-          <h1 id={titleId} className={styles.title}>
+          <GildedTitle id={titleId} size="inherit" className={styles.title}>
             {copy.title}
-          </h1>
+          </GildedTitle>
 
           <div className={styles.divider} aria-hidden="true">
             <span className={styles.dividerLine} />

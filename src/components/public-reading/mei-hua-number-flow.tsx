@@ -23,6 +23,7 @@ import {
   readPublicReadingSession,
   writePublicReadingSession,
 } from "@/lib/public-reading-session";
+import { GildedTitle } from "@/components/typography/gilded-title";
 
 const STORAGE_KEY = "quickiching:public-v1:mei-hua-number-time-v1";
 
@@ -282,7 +283,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
         <span>{t("Your question", "你的问题")}</span><p>{question}</p><button type="button" onClick={changeQuestion}>{t("✎ Edit", "✎ 修改")}</button>
       </div> : null}
       {step === 1 ? <form className="mei-ask" onSubmit={(event) => { event.preventDefault(); submitQuestion(); }}>
-        <header className="mei-heading">{zh ? <div className="mei-flow-title" role="heading" aria-level={2}>梅花易数</div> : <h1>Mei Hua Yi Shu</h1>}<p>{t("One thought. One hexagram. A reflection of what matters now.", "一念一卦，映照此刻最重要之事。")}</p></header>
+        <header className="mei-heading">{zh ? <GildedTitle as="span" size="lg" role="heading" aria-level={2}>梅花易数</GildedTitle> : <GildedTitle as="h1" size="lg">Mei Hua Yi Shu</GildedTitle>}<p>{t("One thought. One hexagram. A reflection of what matters now.", "一念一卦，映照此刻最重要之事。")}</p></header>
         <div className="mei-question-scroll">
           <label htmlFor="mei-hua-question">{t("What would you like to ask?", "你想问什么？")}</label>
           <textarea id="mei-hua-question" value={questionDraft} onChange={(event) => setQuestionDraft(event.target.value)}
@@ -292,7 +293,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
         </div>
       </form> : null}
       {step === 2 ? <form className="mei-choose" onSubmit={(event) => { event.preventDefault(); submitNumber(); }}>
-        <header className="mei-heading">{zh ? <div className="mei-flow-title" role="heading" aria-level={2}>梅花易数</div> : <h1>Mei Hua Yi Shu</h1>}<p>{t("One thought. One hexagram. A reflection of what matters now.", "一念一卦，映照此刻最重要之事。")}</p></header>
+        <header className="mei-heading">{zh ? <GildedTitle as="span" size="lg" role="heading" aria-level={2}>梅花易数</GildedTitle> : <GildedTitle as="h1" size="lg">Mei Hua Yi Shu</GildedTitle>}<p>{t("One thought. One hexagram. A reflection of what matters now.", "一念一卦，映照此刻最重要之事。")}</p></header>
         <h2>{t("Choose a Number", "选择一个数字")}</h2>
         <p className="mei-number-copy">{t("Keep your question in mind and enter the first number that comes to you. Don’t calculate or overthink it.", "心中保持这个问题，输入第一个自然浮现的数字。不要计算，也不要反复推敲。")}</p>
         <div className="mei-number-decoration">

@@ -3,6 +3,7 @@ import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
 import { QuestionFirst } from "@/components/public-reading/question-first";
 import { YarrowTool } from "@/components/public-reading/yarrow-tool";
+import { GildedTitle } from "@/components/typography/gilded-title";
 
 export const metadata: Metadata = {
   title: "I Ching Yarrow Stalk Method — Online Cast",
@@ -16,7 +17,7 @@ export default function YarrowStalksPage() {
     <article>
       <header className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--bronze)]">Yarrow I Ching · 49 Stalks</p>
-        <h1 className="mt-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">I Ching Yarrow Stalk Method</h1>
+        <GildedTitle size="lg" className="mt-3">I Ching Yarrow Stalk Method</GildedTitle>
         <p className="mt-5 max-w-3xl text-lg leading-8 text-[var(--ink-2)]">The yarrow stalk method forms each line through three changes. Quick I Ching makes all eighteen changes visible and resumable in your browser instead of replacing the ritual with a single random button.</p>
       </header>
 

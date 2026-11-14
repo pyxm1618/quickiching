@@ -1,6 +1,6 @@
 /* Final supplied room and cutouts. All text and controls remain DOM. */
 .mei-scene { --scene-unit:min(1vw,1.773svh); position:relative; isolation:isolate; min-height:calc(100svh - 75px); color:#fff5dd; font-family:Georgia,'Times New Roman',serif; background:#241309 url('/mei-hua/room.webp') center/cover no-repeat; }
-.mei-scene h1,.mei-scene h2,.mei-scene p {margin:0;font-family:inherit;}
+.mei-scene h1:not(.qic-gilded-title),.mei-scene h2,.mei-scene p {margin:0;font-family:inherit;}
 .mei-scene button,.mei-scene input,.mei-scene textarea {font-family:inherit;}
 .mei-scene :is(button,a,input,textarea):focus-visible {outline:3px solid #fff0af;outline-offset:5px;}
 .mei-scene-book {position:absolute;bottom:3%;right:2%;width:17%;max-width:285px;z-index:4;}
@@ -8,7 +8,7 @@
 .mei-scene-book span {position:absolute;bottom:0;right:0;white-space:nowrap;padding:5px 10px;background:#241309;color:#fff0c8;font-size:14px;opacity:0;}
 .mei-scene-book:is(:hover,:focus-visible) span {opacity:1;}
 .mei-heading {text-align:center;}
-.mei-heading h1,.mei-heading .mei-flow-title {font-size:calc(6 * var(--scene-unit));font-style:italic;font-weight:400;line-height:1.15;text-shadow:0 2px 8px #000;}
+.mei-heading .qic-gilded-title {display:block;font-size:calc(5.4 * var(--scene-unit));line-height:1.05;}
 .mei-heading p {font-size:calc(1.7 * var(--scene-unit));line-height:1.2;max-width:18em;margin:8px auto 0;}
 .mei-ask {position:relative;padding-top:calc(2.7 * var(--scene-unit));}
 .mei-question-scroll {position:relative;width:94%;max-width:1570px;aspect-ratio:3;margin:calc(.5 * var(--scene-unit)) auto 0;background:url('/mei-hua/question-scroll.webp') center/100% 100% no-repeat;color:#23180e;text-align:center;padding:5.5% 18% 4%;}
@@ -50,7 +50,7 @@
 @media(max-width:600px) {
  .mei-scene {--scene-unit:4px;min-height:calc(100svh - 64px);padding-bottom:125px;background-position:52% center;}
  .mei-scene-book {width:125px;right:10px;bottom:8px;}
- .mei-heading h1,.mei-heading .mei-flow-title {font-size:34px;}.mei-heading p {font-size:14px;max-width:275px;}
+ .mei-heading .qic-gilded-title {font-size:34px;}.mei-heading p {font-size:14px;max-width:275px;}
  .mei-ask {padding-top:48px;}.mei-question-scroll {width:100%;min-height:290px;aspect-ratio:auto;margin-top:26px;background-size:150% 100%;padding:62px 35px 30px;}
  .mei-question-scroll label {font-size:23px;}.mei-question-scroll textarea {font-size:15px;height:90px;margin-top:20px;padding:12px;}.mei-question-scroll .mei-button {width:210px;margin-top:22px;min-height:48px;font-size:19px;}
  .mei-button {font-size:19px;width:auto;min-height:48px;padding:12px 22px;gap:10px;}
@@ -67,7 +67,7 @@
 .mei-number-decoration {pointer-events:none;}
 .mei-number-decoration input {pointer-events:auto;}
 .mei-choose>.mei-button {position:relative;z-index:1;}
-@media(min-width:601px) {.mei-choose .mei-heading h1,.mei-choose .mei-heading .mei-flow-title {font-size:calc(4.2 * var(--scene-unit));}}
+@media(min-width:601px) {.mei-choose .mei-heading .qic-gilded-title {font-size:calc(3.9 * var(--scene-unit));}}
 @media(min-width:601px) {
  .mei-ask .mei-question-scroll {aspect-ratio:3.4;margin-top:calc(-2.4 * var(--scene-unit));padding-top:7.2%;}
  .mei-ask .mei-question-scroll textarea {margin-top:calc(2.5 * var(--scene-unit));}

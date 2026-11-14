@@ -3,6 +3,7 @@ import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
 import { ThreeCoinRitualClient } from "@/components/public-reading/three-coin-ritual-client";
 import styles from "@/app/method-seo-shell.module.css";
+import { GildedTitle } from "@/components/typography/gilded-title";
 
 export const metadata: Metadata = {
   title: "I Ching Three-Coin Method — Free Online Cast",
@@ -16,7 +17,7 @@ export default function ThreeCoinMethodPage() {
     <article className={styles.methodPage}>
       <header className={styles.intro}>
         <p className={styles.eyebrow}>I Ching Coin · Three Coin Method</p>
-        <h1 className={styles.title}>I Ching Three-Coin Method</h1>
+        <GildedTitle size="lg" className={styles.title}>I Ching Three-Coin Method</GildedTitle>
         <p className={styles.lead}>The three-coin I Ching method turns six coin tosses into a hexagram. Each completed toss is one line, built from the bottom upward; values 6 and 9 are changing lines.</p>
       </header>
 

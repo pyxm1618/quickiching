@@ -59,16 +59,9 @@
   font-family: var(--font-cjk), var(--font-noto-sc), "Songti SC", "STSong", serif;
 }
 
-.manual-cast-page-zh .manual-cast-title h1,
-.manual-cast-page-zh .manual-mode-heading h2 {
-  font-family: var(--font-cjk), var(--font-noto-sc), "Songti SC", "STSong", serif;
-  font-style: normal;
-  font-weight: 700;
-  letter-spacing: .04em;
-  text-transform: none;
-}
-
-.manual-cast-page-zh .manual-cast-title h1 {
+/* Chinese titles keep their existing editorial serif through :lang(zh) in
+   gilded-title.css; only the scene-specific sizing stays here. */
+.manual-cast-page-zh .manual-cast-title .qic-gilded-title {
   max-width: min(1000px, 90vw);
   font-size: clamp(2.1rem, 3vw, 3rem);
   line-height: 1.08;
@@ -119,12 +112,11 @@ body:has(.manual-cast-page) > header {
   left: calc(100% + 1rem);
 }
 
-.manual-cast-title h1 {
-  margin: 0;
-  color: #ffe4aa;
-  font: 400 clamp(2.5rem, 4.6vw, 4.25rem)/.95 var(--font-ritual-brush), "Kaushan Script", cursive;
-  letter-spacing: .02em;
-  text-transform: uppercase;
+/* Size only; the title material lives in gilded-title.css. */
+.manual-cast-title .qic-gilded-title {
+  margin-block-start: 0;
+  margin-inline: 0;
+  font-size: clamp(2.9rem, 5.2vw, 4.9rem);
 }
 
 .manual-cast-title p {
@@ -309,12 +301,11 @@ body:has(.manual-cast-page) > header {
   margin-bottom: .55rem;
 }
 
-.manual-mode-heading h2 {
+.manual-mode-heading .qic-gilded-title {
   display: inline-block;
-  margin: 0;
-  color: #ffe1a0;
-  font: 400 clamp(2rem, 3.3vw, 3rem)/1 var(--font-ritual-brush), "Kaushan Script", cursive;
-  letter-spacing: .01em;
+  margin-block-start: 0;
+  margin-inline: 0;
+  font-size: clamp(2.3rem, 3.8vw, 3.45rem);
 }
 
 .manual-mode-heading p {
@@ -1162,7 +1153,7 @@ body:has(.manual-cast-page) > header {
     margin-bottom: .95rem;
   }
 
-  .manual-cast-title h1 {
+  .manual-cast-title .qic-gilded-title {
     font-size: 2.45rem;
   }
 

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../components/scene-navigation.css";
 
 /* Shared public presentation tokens. */
 :root {
@@ -183,10 +184,14 @@ main > article:not(.home-oracle) > header,
 main > article:not(.home-oracle).mx-auto {
   isolation: isolate;
 }
-main > article:not(.home-oracle) h1,
-main > article:not(.home-oracle) h2,
-main > article:not(.home-oracle) h3 { font-family: var(--font-display); letter-spacing: -.025em; }
-main > article:not(.home-oracle) h1 { text-shadow: 0 0 55px rgba(143,112,255,.12); }
+/* `:where(:not(.home-oracle))` keeps this rule at the exact pre-GildedTitle
+   specificity (0,1,3), so page rules such as the hexagram detail `.paper h3` keep
+   winning the cascade exactly as they did before. Only the gilded exclusion adds
+   specificity, and only by the minimum needed to keep the metal's font-family. */
+main > article:where(:not(.home-oracle)) h1:not(.qic-gilded-title),
+main > article:where(:not(.home-oracle)) h2:not(.qic-gilded-title),
+main > article:where(:not(.home-oracle)) h3:not(.qic-gilded-title) { font-family: var(--font-display); letter-spacing: -.025em; }
+main > article:where(:not(.home-oracle)) h1:not(.qic-gilded-title) { text-shadow: 0 0 55px rgba(143,112,255,.12); }
 main > article:not(.home-oracle) nav a { color: var(--cyan) !important; }
 main > article:not(.home-oracle) code { color: var(--gold-2); }
 

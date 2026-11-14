@@ -82,15 +82,15 @@ body:has(.page) > header {
     0 0 0.52em rgba(221, 126, 25, 0.62);
 }
 
+/* Size is inherited from this scene's container-query scale; the metal itself is
+   defined once in gilded-title.css. */
 .title {
-  margin: 1.8cqh 0 0;
-  color: #f5e8c8;
-  font-family: Georgia, "Times New Roman", serif;
+  /* Longhand margins only: the shared GildedTitle cancels its paint padding through
+     margin-block-end, which a `margin` shorthand would reset. */
+  margin-block-start: 1.8cqh;
+  margin-inline: 0;
   font-size: 3.28cqw;
-  font-weight: 600;
   line-height: 1.04;
-  letter-spacing: 0.012em;
-  text-shadow: 0 0.06em 0.2em rgba(0, 0, 0, 0.72);
 }
 
 .divider {
@@ -244,10 +244,7 @@ body:has(.page) > header {
 }
 
 .zh .title {
-  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", "Noto Serif SC", serif;
   font-size: 3.45cqw;
-  font-weight: 700;
-  letter-spacing: 0.08em;
 }
 
 .zh .description,

@@ -2,6 +2,7 @@
 import React, {useEffect,useState,type ReactNode} from 'react';
 import {COIN_MOTION_END_MS} from './three-coin-motion';
 import {ArrowRight,Check} from 'lucide-react';
+import {GildedTitle} from '@/components/typography/gilded-title';
 import type {ThreeCoinStep} from '@/domain/casting/three-coin/algorithm';
 
 export function RitualCastPresentation({zh,motion,steps,visibleStep,complete,canRecord,resetting,restartDisabled,onRecord,onRestart,soundOn,onSound,children,error}: {
@@ -34,15 +35,15 @@ export function RitualCastPresentation({zh,motion,steps,visibleStep,complete,can
   <div className="ritual-cast-heading" key={state}>
    {state==='result'?<>
     <p className="ritual-stage-number">{t('Step 4 of 6','第 4 步 / 共 6 步')}</p>
-    <h2 id="three-coin-tool-title">{t('Casting Result','掷币结果')}</h2>
+    <GildedTitle as="h2" size="lg" id="three-coin-tool-title">{t('Casting Result','掷币结果')}</GildedTitle>
     <p>{t('These are the faces of your three coins.','这是本次三枚铜钱落定的正反面。')}<br/>{t('Click below to record this cast.','点击下方记录这一爻。')}</p>
    </>:state==='progress'||state==='complete'?<>
     <p className="ritual-stage-number">{t('Step 5','第 5 步')}</p>
-    <h2 id="three-coin-tool-title">{complete?t('Your Six Lines','六爻已成'):t('Repeat 6 Times','重复六次')}<br/>{complete?t('Are Complete','本次起卦已完成'):t('to Complete All Six Lines','完成全部六爻')}</h2>
+    <GildedTitle as="h2" size="lg" id="three-coin-tool-title">{complete?t('Your Six Lines','六爻已成'):t('Repeat 6 Times','重复六次')}<br/>{complete?t('Are Complete','本次起卦已完成'):t('to Complete All Six Lines','完成全部六爻')}</GildedTitle>
     <p>{t('Cast the coins 6 times in order.','依次掷币六次。')}<br/>{t('Each result will form one line of the hexagram.','每次结果形成卦象中的一爻。')}</p>
    </>:<>
     <span className="ritual-ink" aria-hidden="true"/>
-    <h2 id="three-coin-tool-title">{state==='casting'?t('Casting Coins…','铜钱起落…'):t('Cast the Coins','掷下铜钱')}</h2>
+    <GildedTitle as="h2" size="xl" id="three-coin-tool-title">{state==='casting'?t('Casting Coins…','铜钱起落…'):t('Cast the Coins','掷下铜钱')}</GildedTitle>
     <span className="ritual-cloud" aria-hidden="true"/>
     <p>{t('Focus on your question, keep a calm mind…','专注于你的问题，静下心来…')}<br/>{t('Three coins are being cast, and the result is about to reveal itself.','三枚铜钱即将落定，为你呈现本次结果。')}</p>
    </>}
@@ -50,7 +51,7 @@ export function RitualCastPresentation({zh,motion,steps,visibleStep,complete,can
   {resetting&&!complete&&visibleStep?<div className="ritual-result-departure" data-result-departure aria-hidden="true">
    <div className="ritual-departing-result-heading">
     <p className="ritual-stage-number">{t('Step 4 of 6','第 4 步 / 共 6 步')}</p>
-    <h2>{t('Casting Result','掷币结果')}</h2>
+    <GildedTitle as="h2" size="lg">{t('Casting Result','掷币结果')}</GildedTitle>
     <p>{t('These are the faces of your three coins.','这是本次三枚铜钱落定的正反面。')}<br/>{t('Click below to record this cast.','点击下方记录这一爻。')}</p>
    </div>
    <div className="ritual-face-labels ritual-departing-face-labels">{visibleStep.coinFaces.map((face,index)=><span key={index} data-face={face}>{face==='yang'?t('Heads','阳面'):t('Tails','阴面')}</span>)}</div>

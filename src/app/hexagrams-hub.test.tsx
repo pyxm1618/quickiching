@@ -7,9 +7,7 @@ import EnglishHexagramsHubPage from "@/app/(default)/hexagrams/page";
 import ChineseHexagramsHubPage from "@/app/(localized)/zh/hexagrams/page";
 import EnglishHomePage from "@/app/(default)/page";
 import ChineseHomePage from "@/app/(localized)/zh/page";
-// Next compiles this font loader; real font rendering is verified in browser QA.
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
-vi.mock("@/components/public-reading/ritual-font", () => ({ ritualBrush: { variable: "ritual-brush-font" } }));
 
 
 function visibleAnchorText(anchor: string): string {

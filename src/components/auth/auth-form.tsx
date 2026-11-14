@@ -8,6 +8,7 @@ import { magicLinkClient } from "better-auth/client/plugins";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
 import styles from "./auth-ui.module.css";
+import { GildedTitle } from "@/components/typography/gilded-title";
 
 const authClient = createAuthClient({
   basePath: "/api/auth",
@@ -387,7 +388,7 @@ export function AuthForm({
   return (
     <div className={styles.formState}>
       <header className={styles.formHeader}>
-        <h1 className={styles.title}>{title}</h1>
+        <GildedTitle size="inherit" className={styles.title}>{title}</GildedTitle>
         <p className={styles.description}>{description}</p>
       </header>
 

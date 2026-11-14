@@ -3,8 +3,6 @@ import sitemap from "@/app/sitemap";
 import { ZH_INDEXABLE_PAGE_SEO, zhSeoFor } from "@/content/seo/zh-pages";
 import { alternateLanguages, canonicalUrl, sitemapUrlInventory } from "./helpers";
 import { ROUTE_REGISTRY } from "./routes";
-// Next compiles this font loader; real font rendering is verified in browser QA.
-vi.mock("@/components/public-reading/ritual-font", () => ({ ritualBrush: { variable: "ritual-brush-font" } }));
 
 
 describe("multilingual metadata and sitemap integration", () => {

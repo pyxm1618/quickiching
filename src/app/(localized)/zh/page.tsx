@@ -1,4 +1,3 @@
-import { ritualBrush } from "@/components/public-reading/ritual-font";
 import type { Metadata } from "next";
 import { ThreeCoinRitual } from "@/components/public-reading/three-coin-ritual";
 import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
@@ -30,7 +29,7 @@ export default function ChineseHomePage() {
   const dictionary = getDictionary("zh-Hans");
 
   return (
-    <article className={`home-oracle ${ritualBrush.variable}`} data-seo-primary={SEO.primaryKeyword} data-three-coin-home-experience>
+    <article className="home-oracle" data-seo-primary={SEO.primaryKeyword} data-three-coin-home-experience>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBPAGE_STRUCTURED_DATA) }}
