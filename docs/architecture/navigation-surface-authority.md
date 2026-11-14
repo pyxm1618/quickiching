@@ -1,9 +1,9 @@
 # Quick I Ching Navigation / Surface Authority
 
-Status: AUTHORITATIVE PLANNING SPEC — READY FOR INDEPENDENT AUTHORITY RE-AUDIT  
-Repository: pyxm1618/quickiching  
-Authority baseline: f28c4476144c0a2f0f801a89977101e1283189a4  
-Authority scope: Page / Flow / Overlay / Navigation ownership and navigation-state preservation  
+Status: AUTHORITATIVE PLANNING SPEC — READY FOR INDEPENDENT AUTHORITY RE-AUDIT
+Repository: pyxm1618/quickiching
+Authority baseline: f28c4476144c0a2f0f801a89977101e1283189a4
+Authority scope: Page / Flow / Overlay / Navigation ownership and navigation-state preservation
 Implementation status: planning only; this document does not itself change runtime behavior
 
 > This file is the single authoritative Navigation / Surface Authority for Quick I Ching.
@@ -58,34 +58,34 @@ Where navigation depends on one of those systems, this document defines the navi
 
 ## 3. Terminology
 
-**Surface Contract**  
+**Surface Contract**
 The semantic contract for a visible user surface or visible flow state. A route is one input to the contract; it is not the contract itself.
 
-**Navigation Shell Authority**  
+**Navigation Shell Authority**
 The single global owner that renders or suppresses global navigation capabilities according to the selected Surface Contract. It may later be implemented by one or more components, but pages do not own that decision.
 
-**Global Home**  
+**Global Home**
 The brand-level Home capability. English target is / and Chinese target is /zh.
 
-**Primary Navigation**  
+**Primary Navigation**
 Site-level discovery controls such as Hexagrams, Other Methods, and Info. Primary Navigation is different from Home, Locale, Account, and local flow navigation.
 
-**Semantic Parent**  
+**Semantic Parent**
 The meaningful parent surface in the information architecture or flow, not necessarily the previous browser-history entry.
 
-**Step Back**  
+**Step Back**
 A local action to the previous flow step or semantic parent. It is never Home by definition.
 
-**Exit**  
+**Exit**
 An explicit action that leaves a task flow or reading flow. Exit may target Home, but its semantic role remains Exit and it must not masquerade as the brand Home control.
 
-**Close**  
+**Close**
 Dismisses a transient overlay and reveals the exact underlying surface. Close is not Back, Exit, or Home.
 
-**Flow-critical state**  
+**Flow-critical state**
 State required to restore the same semantic transaction or reading, such as a reading/cast session identifier, validated callback target, or commercial return context.
 
-**Page Override**  
+**Page Override**
 Any page-level code that directly hides, duplicates, repositions semantically, or otherwise takes control of Global Home, Locale, Account, Primary Navigation, or the shell itself.
 
 ## 4. Surface Taxonomy
@@ -218,7 +218,7 @@ A surface requests a Navigation Mode from the central shell authority. The shell
 
 This authority does not create /methods or /info pages.
 
-Other Methods remains a Primary Navigation Panel.  
+Other Methods remains a Primary Navigation Panel.
 Info remains a Primary Navigation Panel.
 
 ## 7. Route / Surface Inventory
@@ -597,46 +597,46 @@ The following patterns are architectural violations unless this authority is exp
 
 The following violations were independently re-verified against the baseline code. They describe current implementation defects relative to this authority; they are not normative behavior.
 
-**V01 — SiteHeader authority is pathname-coarse.**  
+**V01 — SiteHeader authority is pathname-coarse.**
 Evidence: src/components/site-header.tsx selects InfoPageHeader for a fixed info-path list and SceneNavigation for everything else. Flow state and Surface Contract are not inputs.
 
-**V02 — Hexagrams Hub directly hides shell-owned DOM.**  
+**V02 — Hexagrams Hub directly hides shell-owned DOM.**
 Evidence: src/app/(default)/hexagrams/hexagrams-experience.tsx queries body > header/footer and mutates display; it also changes body/main presentation directly.
 
-**V03 — Hexagrams Hub duplicates shell controls while lacking a visible Home capability.**  
+**V03 — Hexagrams Hub duplicates shell controls while lacking a visible Home capability.**
 Evidence: HexagramsExperience owns its own locale and UserNavControl chrome after hiding the SiteHeader. Its Home link is screen-reader-hidden, aria-hidden, and non-focusable, so it is not a user navigation capability.
 
-**V04 — Hexagrams Hub language label and target have opposite semantics.**  
+**V04 — Hexagrams Hub language label and target have opposite semantics.**
 Evidence: the visible English control says EN while linking to /zh/hexagrams; the Chinese control says 中文 while linking to /hexagrams. A locale action must identify the destination locale or be a non-navigation current-locale indicator.
 
-**V05 — Manual Cast has responsive semantic drift.**  
+**V05 — Manual Cast has responsive semantic drift.**
 Evidence: src/components/public-reading/manual-cast.css hides .scene-scrolls and .scene-brand at max-width 800px while desktop retains them.
 
-**V06 — Mei Hua currently has two Home owners.**  
+**V06 — Mei Hua currently has two Home owners.**
 Evidence: the global SceneNavigation brand links Home, while SceneBook in src/components/public-reading/mei-hua-number-flow.tsx also links to / or /zh and is labelled as a return to Quick I Ching. Under this authority SceneBook may remain only as a local Flow Exit, not a second Global Home.
 
-**V07 — Result Choice has desktop/mobile navigation drift.**  
+**V07 — Result Choice has desktop/mobile navigation drift.**
 Evidence: src/components/reading-result/result-choice.module.css hides .scene-navigation only at min-width 801px and intentionally retains it on mobile. The ready Result Choice itself exposes only Deep Reading and Free Reading and has no local Exit.
 
-**V08 — Transactional locale switching falls back to Home rather than preserving semantic surface/state.**  
+**V08 — Transactional locale switching falls back to Home rather than preserving semantic surface/state.**
 Evidence: src/i18n/routes.ts does not register readings choice/result/deep, pricing, signin/signup, my-readings, or account; SceneNavigation uses route lookup and falls back to the locale root for unknown paths.
 
-**V09 — SceneNavigation current-locale controls implicitly act as Home.**  
+**V09 — SceneNavigation current-locale controls implicitly act as Home.**
 Evidence: src/components/scene-navigation.tsx renders EN linking to / in English and 中文 linking to /zh in Chinese even while the user is on a non-root surface. Locale and Home semantics are conflated.
 
-**V10 — Global auth entry drops return-critical query/hash state.**  
+**V10 — Global auth entry drops return-critical query/hash state.**
 Evidence: src/components/auth/user-nav-control.tsx builds callbackURL from usePathname() only. A reading URL such as /readings/result?session=ABC therefore loses session when auth begins from the global account control.
 
-**V11 — Pricing visible Return ignores validated returnUrl.**  
+**V11 — Pricing visible Return ignores validated returnUrl.**
 Evidence: PricingExperience receives returnUrl and passes it into purchase flow, but its ordinary bottom Return link always targets localized Home. The visible return semantics and target can diverge.
 
-**V12 — /methods/three-coin is currently a second active Three Coin product-entry surface.**  
+**V12 — /methods/three-coin is currently a second active Three Coin product-entry surface.**
 Evidence: both Root and /methods/three-coin run the same shared ThreeCoinRitual/ThreeCoinTool implementation. This is not implementation duplication; it violates the frozen single-entry IA decision in Section 13.
 
-**V13 — Three Coin New Reading currently routes to /methods/three-coin.**  
+**V13 — Three Coin New Reading currently routes to /methods/three-coin.**
 Evidence: clearCompletedReadingForRestart in src/lib/completed-public-reading.ts builds /methods/three-coin for Three Coin. Under this authority Three Coin New Reading returns to the canonical Root entry.
 
-**V14 — completed-cast handoff history semantics are inconsistent with the frozen non-reentry contract.**  
+**V14 — completed-cast handoff history semantics are inconsistent with the frozen non-reentry contract.**
 Evidence: ThreeCoinTool, YarrowTool, MeiHuaNumberFlow, and direct Manual completion use router.push to /readings/choice; Manual restoration already uses replace in one path. The authority requires one non-reentry handoff contract.
 
 No production code is changed by this planning commit.
