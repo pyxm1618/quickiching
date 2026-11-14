@@ -509,6 +509,10 @@ async function verifyExplicitReset(browser) {
     await waitForText(page, "Start a New Reading");
     await clickButton(page, "Start a New Reading");
     await page.waitForFunction(() => location.pathname === "/", { timeout: 15_000 });
+    // The hand-off is a full document navigation, so wait for the root surface to
+    // settle before driving it; otherwise the click lands before hydration.
+    await page.waitForSelector('[data-experience-stage="landing"] [data-home-skip-question]', { timeout: 20_000 });
+    await page.waitForNetworkIdle({ idleTime: 500, timeout: 20_000 });
     await clickButton(page, "Skip — free reading only");
     await page.waitForSelector('[data-experience-stage="question-confirm"]');
     await page.waitForSelector('[data-home-primary-action]:not(:disabled)', { timeout: 15_000 });

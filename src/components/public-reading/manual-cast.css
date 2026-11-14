@@ -980,16 +980,16 @@ body:has(.manual-cast-page) > header {
 
 @media (max-width: 800px) {
 
-  /* Shell capabilities are identical to desktop. Only the presentation gains
-     clearance, so the fixed brand and discovery scrolls never sit on top of a
-     formal Manual control. */
+  /* Shell capabilities are identical to desktop. On narrow screens the shell
+     band carries the brand instead of a fixed corner overlay, so no extra
+     bottom clearance is needed. */
   body:has(.manual-cast-page) .scene-utility {
     position: absolute;
   }
 
   .manual-cast-stage {
     min-height: calc(100svh - 70px);
-    padding: 1.2rem .85rem 13rem;
+    padding: 1.2rem .85rem 2.5rem;
   }
 
   .manual-cast-room {

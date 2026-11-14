@@ -483,10 +483,14 @@ async function verifyManualAndMovement(page) {
   await page.keyboard.press("ArrowRight");
   await page.waitForSelector('#manual-mode-primary-changing-panel[role="tabpanel"]');
   assert.equal(await page.$eval('[data-manual-mode="primary-changing"]', (node) => node.getAttribute("aria-selected")), "true", "ArrowRight must activate Manual mode B");
+  await page.waitForSelector("[data-hexagram-picker-trigger]", { visible: true, timeout: 5000 });
   await page.click("[data-hexagram-picker-trigger]");
   await page.waitForSelector('[data-hexagram-number="24"]', { timeout: 5000 });
   await page.click('[data-hexagram-number="24"]');
   await page.click('[data-moving-line-position="1"]');
+  // Continue only unlocks once the moving line is committed; drive the enabled
+  // control instead of guessing that the state update already landed.
+  await page.waitForSelector("[data-manual-continue]:not(:disabled)", { timeout: 5000 });
   await page.click("[data-manual-continue]");
   await page.waitForFunction(() => location.pathname === "/readings/choice", { timeout: 15_000 });
   await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });

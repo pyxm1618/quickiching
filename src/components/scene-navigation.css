@@ -53,3 +53,11 @@ body:has(.scene-navigation[data-scene-panel='methods']) .home-oracle [data-exper
  .scene-scroll span {font-size:10px;}.scene-scroll-info span {font-size:12px;}
 }
 /* Final visible-glyph calibration against the raster reference, not container boxes. */
+@media(max-width:800px) {
+ /* Task flows, flow results and the account pages are dense form UIs: on narrow
+   screens a fixed corner brand sits on top of the form and swallows taps. The
+   brand keeps its Home capability but moves into the shell band, sharing the row
+   with the utility pill. Home and the Root flow keep the approved corner brand. */
+ .scene-navigation:is([data-navigation-surface='S06'],[data-navigation-surface='S07'],[data-navigation-surface='S08'],[data-navigation-surface='S13'],[data-navigation-surface='S14'],[data-navigation-surface='S17'],[data-navigation-surface='S18']) .scene-brand {position:absolute;left:12px;top:10px;bottom:auto;gap:4px;font-size:15px;}
+ .scene-navigation:is([data-navigation-surface='S06'],[data-navigation-surface='S07'],[data-navigation-surface='S08'],[data-navigation-surface='S13'],[data-navigation-surface='S14'],[data-navigation-surface='S17'],[data-navigation-surface='S18']) .scene-brand img {width:30px;height:29px;}
+}
