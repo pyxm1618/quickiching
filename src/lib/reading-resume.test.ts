@@ -315,6 +315,25 @@ describe("C9 — Active-Flow Locale Continuation Intent", () => {
     })).toBe(false);
   });
 
+  it("deletes an intent issued in the future and returns false", () => {
+    const sessionMemory = stubBrowserStorage();
+    expect(issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: "reading-A",
+      targetLocale: "zh-Hans",
+    })).toBe(true);
+    const future = JSON.parse(sessionMemory.get(LOCALE_CONTINUATION_STORAGE_KEY) ?? "{}");
+    future.issuedAt = Date.now() + 1_000;
+    sessionMemory.set(LOCALE_CONTINUATION_STORAGE_KEY, JSON.stringify(future));
+
+    expect(consumeLocaleContinuation({
+      method: "three-coin",
+      locale: "zh-Hans",
+      sessionId: "reading-A",
+    })).toBe(false);
+    expect(sessionMemory.has(LOCALE_CONTINUATION_STORAGE_KEY)).toBe(false);
+  });
+
   it("deletes an expired intent and returns false", () => {
     const sessionMemory = stubBrowserStorage();
     expect(issueLocaleContinuationIntent({
