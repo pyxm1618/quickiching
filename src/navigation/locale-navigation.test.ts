@@ -38,12 +38,12 @@ describe("locale switching keeps the surface and its flow-critical state", () =>
     }).href).toBe("/readings/deep?session=ABC-123");
   });
 
-  it("keeps S16 payment recovery identity but filters unrelated query state", () => {
+  it("keeps the reading return but filters unrelated or unvalidated query state", () => {
     expect(localeSwitchTarget({
       pathname: "/pricing",
       search: "?orderId=ord_9f8&returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC&utm_source=x",
       currentLocale: "en",
-    }).href).toBe("/zh/pricing?returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DABC&orderId=ord_9f8");
+    }).href).toBe("/zh/pricing?returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DABC");
   });
 
   it("maps a nested callback target inside the auth surface", () => {
@@ -85,11 +85,11 @@ describe("auth callback preservation", () => {
     })).toBe("/readings/result?session=ABC-123");
   });
 
-  it("keeps the pricing return target and payment recovery identity", () => {
+  it("keeps the pricing return target", () => {
     expect(authCallbackPath({
       pathname: "/pricing",
       search: "?returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC&orderId=ord_9f8&utm_source=x",
-    })).toBe("/pricing?returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC&orderId=ord_9f8");
+    })).toBe("/pricing?returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC");
   });
 
   it("does not smuggle opaque or unrelated query state into the callback", () => {
@@ -190,14 +190,14 @@ describe("nested semantic locale context (recursive mapping)", () => {
     expect(mapInternalPathLocale("ord_123", "zh-Hans")).toBe("ord_123");
   });
 
-  it("keeps allowlisted S16 recovery state without blindly copying outer query state", () => {
+  it("keeps allowlisted S16 return state without blindly copying outer query state", () => {
     const target = localeSwitchTarget({
       pathname: "/pricing",
       search: "?orderId=ord_9f8&utm_campaign=x&returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC",
       currentLocale: "en",
     });
     const outer = surface(target.href);
-    expect(outer.params.get("orderId")).toBe("ord_9f8");
+    expect(outer.params.get("orderId")).toBeNull();
     expect(outer.params.get("utm_campaign")).toBeNull();
     expect(outer.params.has("returnUrl")).toBe(true);
   });
