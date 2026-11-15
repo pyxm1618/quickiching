@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { clickHydratedButton, clickSettled } from "./browser-gate-helpers.mjs";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import puppeteer from "puppeteer-core";
@@ -51,15 +52,7 @@ async function waitForText(page, text, timeout = 15_000) {
 }
 
 async function clickText(page, text) {
-  if (["Cast the Coins", "Record This Cast", "开始掷币", "记录这一爻"].includes(text)) {
-    await page.waitForFunction(wanted => [...document.querySelectorAll("button")].some(node => node.textContent?.trim() === wanted && !node.disabled), {timeout:15000}, text);
-  }
-  const clicked = await page.evaluate((wanted) => {
-    const node = [...document.querySelectorAll("button")].find((candidate) => candidate.textContent?.trim() === wanted);
-    if (!(node instanceof HTMLButtonElement) || node.disabled) return false;
-    node.click();
-    return true;
-  }, text);
+  const clicked = await clickHydratedButton(page, text);
   assert(clicked, `Unable to click enabled button: ${text}`);
 }
 
@@ -326,8 +319,8 @@ async function verifyQuestionReading(page, locale = "en") {
   assert.equal(deepUrl.searchParams.get("session"), choiceState.completed.readingId);
 
   await Promise.all([
-    page.waitForFunction(prefix => location.pathname === `${prefix}/readings/result`, { timeout: 15_000 }, prefix),
-    page.evaluate(() => document.querySelector("[data-result-choice-free]")?.click()),
+    page.waitForFunction(prefix => location.pathname === `${prefix}/readings/result`, { timeout: 30_000 }, prefix),
+    clickSettled(page, "[data-result-choice-free]"),
   ]);
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
   const signinHref = await page.$eval('[data-auth-reading-intent="free"]', node => node.getAttribute("href"));
@@ -425,8 +418,8 @@ async function verifyChineseQuestionAndDeepEntry(page) {
   assert.equal(freeUrl.searchParams.get("session"), state.completed.readingId);
 
   await Promise.all([
-    page.waitForFunction(() => location.pathname === "/zh/readings/deep", { timeout: 15_000 }),
-    page.evaluate(() => document.querySelector("[data-result-choice-deep]")?.click()),
+    page.waitForFunction(() => location.pathname === "/zh/readings/deep", { timeout: 30_000 }),
+    clickSettled(page, "[data-result-choice-deep]"),
   ]);
   await page.waitForSelector('[data-completed-cast-gate="auth-required"]', { timeout: 15_000 });
   const deepSigninHref = await page.$eval('[data-auth-reading-intent="deep"]', node => node.getAttribute("href"));
@@ -595,8 +588,8 @@ async function verifyAccountPersistenceBoundary(page) {
   assert(choiceState.freeChoice, "Result Choice must offer Free Reading");
 
   await Promise.all([
-    page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 }),
-    page.evaluate(() => document.querySelector("[data-result-choice-free]")?.click()),
+    page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 30_000 }),
+    clickSettled(page, "[data-result-choice-free]"),
   ]);
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
 

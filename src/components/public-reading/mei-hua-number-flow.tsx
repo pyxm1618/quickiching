@@ -429,8 +429,11 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   );
 }
 
+/**
+ * Mei Hua's SceneBook is a local flow exit, never a second global Home owner.
+ */
 function SceneBook({ zh }: { zh: boolean }) {
-  const homeHref = zh ? "/zh" : "/";
-  const homeLabel = zh ? "返回中文首页" : "Return to Quick I Ching";
-  return <Link href={homeHref} className="mei-scene-book" aria-label={homeLabel} title={homeLabel}><img src="/mei-hua/navigation-book.webp" alt="Quick I Ching" width="1536" height="1024" /><span>{homeLabel}</span></Link>;
+  const exitHref = zh ? "/zh" : "/";
+  const exitLabel = zh ? "退出起卦" : "Exit";
+  return <Link href={exitHref} prefetch={false} className="mei-scene-book" aria-label={exitLabel} title={exitLabel} data-flow-exit><img src="/mei-hua/navigation-book.webp" alt="" width="1536" height="1024" /><span>{exitLabel}</span></Link>;
 }

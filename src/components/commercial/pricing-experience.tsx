@@ -135,7 +135,16 @@ export function PricingExperience({
           </section>
         )}
 
-        {!paymentReturn ? <Link href={prefix || "/"} className={styles.backLink}>{copy.returnFree}</Link> : null}
+        {!paymentReturn ? (
+          <Link
+            href={returnUrl ?? (prefix || "/")}
+            prefetch={false}
+            className={styles.backLink}
+            data-pricing-return={returnUrl ? "reading-context" : "direct"}
+          >
+            {returnUrl ? copy.returnToReading : copy.returnFree}
+          </Link>
+        ) : null}
       </div>
     </main>
   );

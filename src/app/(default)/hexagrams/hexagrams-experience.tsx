@@ -4,7 +4,6 @@ import { visualRuntimeAssets } from '@/lib/visual-runtime-assets';
 import React, { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type WheelEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { UserNavControl } from "@/components/auth/user-nav-control";
 import type { ContentLocale } from "@/i18n/config";
 import { TRIGRAM_BITS, type Trigram } from "@/domain/casting/hexagrams/king-wen";
 import styles from "./hexagrams.module.css";
@@ -21,12 +20,10 @@ type HexagramItem = {
 
 type Props = {
   hexagrams: HexagramItem[];
-  authEnabled: boolean;
   locale: ContentLocale;
   title: string;
   description: string;
   detailRoutePrefix: string;
-  languageSwitchHref: string;
   seoPrimaryKeyword?: string;
   sectionHeading: string;
 };
@@ -124,12 +121,10 @@ function wheelStyle(offset: number): CssVars {
 
 export function HexagramsExperience({
   hexagrams,
-  authEnabled,
   locale,
   title,
   description,
   detailRoutePrefix,
-  languageSwitchHref,
   seoPrimaryKeyword,
   sectionHeading,
 }: Props) {
@@ -139,9 +134,6 @@ export function HexagramsExperience({
   const homeHref = isChinese ? "/zh" : "/";
   const ui = isChinese
     ? {
-        currentLanguage: "中文",
-        pageControls: "页面控制",
-        switchLanguage: "切换语言",
         gridLabel: "按文王卦序排列的易经六十四卦",
         wheelLabel: "六十四卦轮盘",
         wheelInstructions: "拖动或滚动浏览全部六十四卦",
@@ -150,9 +142,6 @@ export function HexagramsExperience({
         homeText: "易经在线起卦",
       }
     : {
-        currentLanguage: "EN",
-        pageControls: "Page controls",
-        switchLanguage: "Switch language",
         gridLabel: "All 64 hexagrams in King Wen order",
         wheelLabel: "Rotating 64-hexagram wheel",
         wheelInstructions: "Drag or scroll horizontally to rotate through all 64 hexagrams",
@@ -186,45 +175,6 @@ export function HexagramsExperience({
     wheel.addEventListener("click", handleClick);
     return () => wheel.removeEventListener("click", handleClick);
   }, [detailRoutePrefix, hexagrams]);
-
-  useEffect(() => {
-    const body = document.body;
-    const main = document.querySelector<HTMLElement>("body > main");
-    const siteHeader = document.querySelector<HTMLElement>("body > header");
-    const siteFooter = document.querySelector<HTMLElement>("body > footer");
-
-    const previous = {
-      bodyOverflow: body.style.overflow,
-      bodyBackground: body.style.background,
-      mainHeight: main?.style.height ?? "",
-      mainMinHeight: main?.style.minHeight ?? "",
-      mainOverflow: main?.style.overflow ?? "",
-      headerDisplay: siteHeader?.style.display ?? "",
-      footerDisplay: siteFooter?.style.display ?? "",
-    };
-
-    body.style.overflow = "hidden";
-    body.style.background = "#100b07";
-    if (main) {
-      main.style.height = "100dvh";
-      main.style.minHeight = "100dvh";
-      main.style.overflow = "hidden";
-    }
-    if (siteHeader) siteHeader.style.display = "none";
-    if (siteFooter) siteFooter.style.display = "none";
-
-    return () => {
-      body.style.overflow = previous.bodyOverflow;
-      body.style.background = previous.bodyBackground;
-      if (main) {
-        main.style.height = previous.mainHeight;
-        main.style.minHeight = previous.mainMinHeight;
-        main.style.overflow = previous.mainOverflow;
-      }
-      if (siteHeader) siteHeader.style.display = previous.headerDisplay;
-      if (siteFooter) siteFooter.style.display = previous.footerDisplay;
-    };
-  }, []);
 
   const selectByIndex = (index: number) => {
     const next = hexagrams[wrapIndex(index, hexagrams.length)];
@@ -291,19 +241,6 @@ export function HexagramsExperience({
         aria-hidden="true"
       />
       <div className={styles.sceneShade} aria-hidden="true" />
-
-      <div className={styles.chrome} aria-label={ui.pageControls}>
-        <Link
-          href={languageSwitchHref}
-          className={styles.languageControl}
-          aria-label={ui.switchLanguage}
-          data-language-switch={languageSwitchHref}
-          data-equivalent="true"
-        >
-          {ui.currentLanguage}
-        </Link>
-        {authEnabled && <UserNavControl locale={locale} />}
-      </div>
 
       <header className={styles.titleBlock}>
         <GildedTitle size="lg" id="hexagrams-title">{title}</GildedTitle>

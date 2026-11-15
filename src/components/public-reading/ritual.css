@@ -340,3 +340,25 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 .ritual-resume p {margin:0 0 calc(6 * var(--u));font-size:calc(17 * var(--u));color:#fff9ef;opacity:.82;}
 .ritual-resume .ritual-text-button {font-size:calc(19 * var(--u));}
 @media(max-width:800px) {.ritual-resume {position:relative;inset:auto;width:100%;margin-top:18px;}}
+
+
+/* S02 local flow exit. The flow owns an explicit exit distinct from Global Home. */
+.ritual-flow-exit {
+  position: fixed;
+  top: max(18px, env(safe-area-inset-top));
+  left: max(18px, env(safe-area-inset-left));
+  z-index: 60;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 225, 145, .38);
+  border-radius: 999px;
+  background: rgba(8, 5, 2, .55);
+  color: #ffe9b8;
+  font-family: "Times New Roman", "Songti SC", serif;
+  font-size: 15px;
+  letter-spacing: .04em;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.ritual-flow-exit:hover { background: rgba(8, 5, 2, .78); border-color: rgba(255, 225, 145, .7); }
+.ritual-flow-exit:focus-visible { outline: 2px solid #ffe191; outline-offset: 4px; }

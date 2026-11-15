@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
 import { hexagramSeoFor } from "@/content/hexagrams/seo";
 import { alternateLanguages } from "@/i18n/helpers";
-import { isAuthCapabilityEnabled } from "@/server/auth/capability";
 import { HexagramsExperience } from "./hexagrams-experience";
 
 export const metadata: Metadata = {
@@ -32,12 +31,10 @@ export default function HexagramsHubPage() {
   return (
     <HexagramsExperience
       hexagrams={hexagrams}
-      authEnabled={isAuthCapabilityEnabled()}
       locale="en"
       title="64 I Ching Hexagrams"
       description="Browse all 64 hexagrams in King Wen order and open any one to explore its detail page."
       detailRoutePrefix="/hexagrams/"
-      languageSwitchHref="/zh/hexagrams"
       sectionHeading="All 64 I Ching hexagrams in King Wen order"
     />
   );

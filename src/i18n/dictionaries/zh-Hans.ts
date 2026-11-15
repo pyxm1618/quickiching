@@ -73,6 +73,7 @@ export const ZH_HANS_UI_DICTIONARY = {
     methodsTitle: "统一支持四种正式起卦方式",
     methodsDescription: "三枚铜钱 · 蓍草 · 梅花易数 · 手动起卦",
     returnFree: "返回免费中文起卦",
+    returnToReading: "返回你的解读",
     unavailableKicker: "深度解读 · 当前未开放购买",
     unavailableTitle: "深度解读次数当前不可购买",
     unavailableDescription: "四种起卦方式与完整免费解卦仍可使用；支付关闭期间不会显示购买操作。",

@@ -73,6 +73,7 @@ export const EN_UI_DICTIONARY = {
     methodsTitle: "Available for all four formal casting methods",
     methodsDescription: "Three-Coin · Yarrow Stalks · Mei Hua Yi Shu · Manual Cast",
     returnFree: "Return to the free I Ching reading",
+    returnToReading: "Return to your reading",
     unavailableKicker: "Deep Reading · Not on sale",
     unavailableTitle: "Deep Reading credits are not available for purchase",
     unavailableDescription: "All four casting methods and their complete free interpretations remain available. Purchase controls stay hidden while checkout is disabled.",

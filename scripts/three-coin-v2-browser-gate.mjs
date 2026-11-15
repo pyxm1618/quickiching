@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { clickHydratedButton } from "./browser-gate-helpers.mjs";
 import puppeteer from "puppeteer-core";
 import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
@@ -96,15 +97,7 @@ async function waitForText(page, text, timeout = 15_000) {
 }
 
 async function clickButton(page, label) {
-  if (["Cast the Coins", "Record This Cast"].includes(label)) {
-    await page.waitForFunction(wanted => [...document.querySelectorAll("button")].some(node => node.textContent?.trim() === wanted && !node.disabled), {timeout:3000}, label);
-  }
-  const clicked = await page.evaluate((wanted) => {
-    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === wanted);
-    if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
-    button.click();
-    return true;
-  }, label);
+  const clicked = await clickHydratedButton(page, label);
   assert(clicked, `Unable to click enabled button: ${label}`);
 }
 

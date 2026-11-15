@@ -25,12 +25,10 @@
 }
 
 /* RC-VA-H02: on this route the approved Desktop canvas is the entire visual surface.
-   Only the shell layers the approved composition does not contain are isolated, and
-   only while the Result Choice route owns the document, so no other page's navigation
-   behaviour moves. Desktop-only: the approved mobile composition keeps the fixed scene
-   navigation it was already signed off with. */
+   The shell is a zero-height overlay on this surface (Surface Contract S12), so the
+   composition keeps its exact geometry while Home, locale and account stay available
+   at desktop and mobile with the same capabilities. */
 @media (min-width: 801px) {
-  :global(body):has(.page) :global(.scene-navigation) { display: none; }
   :global(body):has(.page) :global(.ritual-result-scene) { min-height: 100svh; }
   :global(body):has(.page) :global(.ritual-room) { background-size: cover; background-position: center; }
   /* RC-FA-M02: on a pristine visit the analytics panel used to sit exactly on top of
@@ -668,3 +666,29 @@
 @media (prefers-reduced-motion: reduce) {
   .deepAction { transition: none; }
 }
+
+/* Local flow exit. Result Choice is a Flow Step, so it ships an explicit exit
+   action instead of borrowing the shell brand or the discovery navigation. */
+/* Fixed to the viewport's quiet top-left corner: the approved canvas keeps the
+   centre for its two reading actions, and the shell owns bottom-left (brand)
+   and bottom-right (discovery navigation). */
+.exitAction {
+  position: fixed;
+  top: max(18px, env(safe-area-inset-top));
+  left: max(18px, env(safe-area-inset-left));
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 225, 145, .38);
+  border-radius: 999px;
+  background: rgba(8, 5, 2, .55);
+  pointer-events: auto;
+  color: #ffe9b8;
+  font-size: 15px;
+  letter-spacing: .04em;
+  text-decoration: none;
+}
+.exitAction:hover { background: rgba(8, 5, 2, .78); border-color: rgba(255, 225, 145, .7); }
+.exitAction:focus-visible { outline: 2px solid #ffe191; outline-offset: 4px; }
