@@ -409,7 +409,10 @@ export function ThreeCoinRitual({
             type="button"
             className="ritual-flow-exit"
             data-flow-exit
-            onClick={() => window.location.assign(zh ? "/zh" : "/")}
+            onClick={() => {
+              clearLiveFlowRegistration();
+              window.location.assign(zh ? "/zh" : "/");
+            }}
           >
             {zh ? "退出起卦" : "Exit"}
           </button>
