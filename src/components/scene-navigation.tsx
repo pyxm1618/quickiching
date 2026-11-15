@@ -7,7 +7,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Globe } from "lucide-react";
 import { SeoRouteGraph } from "@/components/seo-route-graph";
-import { localeSwitchTarget, shellHomeTarget } from "@/navigation/locale-navigation";
+import { localeSwitchTarget, markLocaleSwitchContinuation, shellHomeTarget } from "@/navigation/locale-navigation";
 import { useNavigationLocation } from "@/navigation/navigation-location";
 import { surfaceContract, type SurfaceContract } from "@/navigation/surface-contract";
 import type { ContentLocale } from "@/i18n/config";
@@ -48,6 +48,7 @@ export function SceneNavigation({
     search: location.search,
     hash: location.hash,
     currentLocale: locale,
+    surfaceId: contract.id,
   });
   const triggerFor = (name: Panel) => name === "methods" ? methodsTrigger.current : infoTrigger.current;
 
@@ -144,31 +145,39 @@ export function SceneNavigation({
       data-shell-layout={contract.layout}
       aria-label={zh ? "主导航" : "Main navigation"}
     >
-      <div className="scene-utility" onClick={() => setPanel(null)}>
-        <div className="scene-languages" data-language-switcher aria-label={zh ? "选择语言" : "Select language"}>
-          <Globe aria-hidden="true" />
-          {zh ? (
-            localeTarget.available
-              ? <Link href={localeTarget.href} prefetch={false} hrefLang="en" lang="en" onClick={() => setPanel(null)}>EN</Link>
-              : <span lang="en">EN</span>
-          ) : <span lang="en" aria-current="page">EN</span>}
-          <span aria-hidden="true">/</span>
-          {zh ? <span lang="zh-Hans" aria-current="page">中文</span> : (
-            localeTarget.available
-              ? <Link href={localeTarget.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" onClick={() => setPanel(null)}>中文</Link>
-              : <span lang="zh-Hans">中文</span>
-          )}
+      {contract.localeControl || (contract.accountControl && authEnabled) ? (
+        <div className="scene-utility" onClick={() => setPanel(null)}>
+          {contract.localeControl ? (
+            <div className="scene-languages" data-language-switcher aria-label={zh ? "选择语言" : "Select language"}>
+              <Globe aria-hidden="true" />
+              {zh ? (
+                localeTarget.available
+                  ? <Link href={localeTarget.href} prefetch={false} hrefLang="en" lang="en" data-locale-target onClick={() => { markLocaleSwitchContinuation(contract.id); setPanel(null); }}>EN</Link>
+                  : <span lang="en">EN</span>
+              ) : <span lang="en" aria-current="page">EN</span>}
+              <span aria-hidden="true">/</span>
+              {zh ? <span lang="zh-Hans" aria-current="page">中文</span> : (
+                localeTarget.available
+                  ? <Link href={localeTarget.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" data-locale-target onClick={() => { markLocaleSwitchContinuation(contract.id); setPanel(null); }}>中文</Link>
+                  : <span lang="zh-Hans">中文</span>
+              )}
+            </div>
+          ) : null}
+          {contract.accountControl && authEnabled ? <>
+            {contract.localeControl ? <span className="scene-utility-divider" aria-hidden="true" /> : null}
+            <div data-shell-account>
+              <UserNavControl locale={locale} appearance="scene" onItemClick={() => setPanel(null)} />
+            </div>
+          </> : null}
         </div>
-        {authEnabled ? <>
-          <span className="scene-utility-divider" aria-hidden="true" />
-          <UserNavControl locale={locale} appearance="scene" onItemClick={() => setPanel(null)} />
-        </> : null}
-      </div>
+      ) : null}
 
-      <Link href={homeHref} prefetch={false} className="scene-brand" data-shell-home onClick={() => setPanel(null)}>
-        <Image unoptimized src="/navigation/logo.webp" alt="" width={72} height={72} priority />
-        <span>Quick I Ching</span>
-      </Link>
+      {contract.homeControl ? (
+        <Link href={homeHref} prefetch={false} className="scene-brand" data-shell-home onClick={() => setPanel(null)}>
+          <Image unoptimized src="/navigation/logo.webp" alt="" width={72} height={72} priority />
+          <span>Quick I Ching</span>
+        </Link>
+      ) : null}
 
       <SeoRouteGraph locale={locale} />
 
