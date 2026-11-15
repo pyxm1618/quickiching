@@ -54,7 +54,12 @@ function PricingHeader({
 }) {
   const searchParams = useSearchParams();
   const searchString = searchParams.toString();
-  const search = searchString ? `?${searchString}` : "";
+  // Next can expose an empty search snapshot for one hydration render on a
+  // direct Pricing request. The browser URL is the authoritative request
+  // location in that client-only window; using it only as an empty-snapshot
+  // fallback prevents a transient S15 locale href from dropping S16 context.
+  const browserSearch = typeof window === "undefined" ? "" : window.location.search;
+  const search = searchString ? `?${searchString}` : browserSearch;
   const authoritativeFlowState = hasPricingFlowContext(search)
     ? { ...flowState, pricingReadingContext: true }
     : flowState;
