@@ -17,6 +17,7 @@ import {
   issueLocaleContinuationIntent,
   prepareLocaleContinuationClick,
 } from "@/lib/reading-resume";
+import { readCheckoutReturnContext } from "@/app/(default)/pricing/checkout-return-context";
 
 const UserNavControl = dynamic(
   () => import("@/components/auth/user-nav-control").then(m => m.UserNavControl),
@@ -60,18 +61,37 @@ export function SceneNavigation({
   const focusRequest = useRef<"first" | "last" | null>(null);
   const localize = (path: string) => zh ? `/zh${path === "/" ? "" : path}` : path;
   const homeHref = shellHomeTarget(locale);
+  const currentSearch = requestSearch ?? location.search;
+  const currentOrderId = contract.id === "S16"
+    ? new URLSearchParams(currentSearch.startsWith("?") ? currentSearch.slice(1) : currentSearch).get("orderId")
+    : null;
+  const [freshPaymentRecoveryOrderId, setFreshPaymentRecoveryOrderId] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (contract.id !== "S16" || !currentOrderId) {
+      setFreshPaymentRecoveryOrderId(null);
+      return;
+    }
+    const context = readCheckoutReturnContext(window.sessionStorage);
+    setFreshPaymentRecoveryOrderId(context?.orderId === currentOrderId ? currentOrderId : null);
+  }, [contract.id, currentOrderId]);
+
   const computedLocaleTarget = localeSwitchTarget({
     pathname,
-    search: requestSearch ?? location.search,
+    search: currentSearch,
     hash: location.hash,
     currentLocale: locale,
+    paymentRecoveryOrderId: freshPaymentRecoveryOrderId ?? undefined,
   });
   // Pricing reading-return (S16) is query-identified. During the Suspense
   // fallback there is no authoritative request query yet, so exposing a live
   // locale link would create a brief href that can drop returnUrl. Keep the
   // locale indicator non-interactive until PricingHeader supplies requestSearch.
   // URL transformation still belongs exclusively to localeSwitchTarget().
-  const localeTarget = contract.id === "S16" && requestSearch === undefined
+  const paymentRecoveryValidationPending = contract.id === "S16"
+    && Boolean(currentOrderId)
+    && freshPaymentRecoveryOrderId === undefined;
+  const localeTarget = contract.id === "S16" && (requestSearch === undefined || paymentRecoveryValidationPending)
     ? { ...computedLocaleTarget, available: false }
     : computedLocaleTarget;
   const triggerFor = (name: Panel) => name === "methods" ? methodsTrigger.current : infoTrigger.current;
@@ -105,11 +125,15 @@ export function SceneNavigation({
       && typeof window !== "undefined"
       && (window.location.pathname === "/pricing" || window.location.pathname === "/zh/pricing")
     ) {
+      const browserSearch = window.location.search;
+      const browserOrderId = new URLSearchParams(browserSearch.startsWith("?") ? browserSearch.slice(1) : browserSearch).get("orderId");
+      const recoveryContext = browserOrderId ? readCheckoutReturnContext(window.sessionStorage) : null;
       const exactPricingTarget = localeSwitchTarget({
         pathname: window.location.pathname,
-        search: window.location.search,
+        search: browserSearch,
         hash: window.location.hash,
         currentLocale: locale,
+        paymentRecoveryOrderId: recoveryContext?.orderId === browserOrderId ? browserOrderId : undefined,
       });
       if (exactPricingTarget.available && exactPricingTarget.href !== localeTarget.href) {
         event.preventDefault();
