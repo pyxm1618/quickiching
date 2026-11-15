@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { SceneNavigation } from "@/components/scene-navigation";
 import { ContentNavigationShell } from "@/components/navigation/content-navigation-shell";
 import { useNavigationFlowState } from "@/navigation/navigation-surface-context";
-import { resolveSurfaceContract } from "@/navigation/surface-contract";
+import { useNavigationLocation } from "@/navigation/navigation-location";
+import { hasPricingFlowContext, resolveSurfaceContract } from "@/navigation/surface-contract";
 import type { ContentLocale } from "@/i18n/config";
 
 const InfoPageHeader = dynamic(() => import("@/components/info-pages/info-page-header").then(m => m.InfoPageHeader), { ssr: true });
@@ -26,7 +27,11 @@ export function SiteHeader({
 }) {
   const pathname = usePathname() ?? "/";
   const flowState = useNavigationFlowState();
-  const contract = resolveSurfaceContract({ pathname, flowState });
+  const location = useNavigationLocation();
+  const authoritativeFlowState = hasPricingFlowContext(location.search)
+    ? { ...flowState, pricingReadingContext: true }
+    : flowState;
+  const contract = resolveSurfaceContract({ pathname, flowState: authoritativeFlowState });
 
   if (contract.presentation === "none") return null;
 
