@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Clock3, MapPin } from "lucide-react";
@@ -31,6 +31,7 @@ import {
   writePublicReadingSession,
 } from "@/lib/public-reading-session";
 import { GildedTitle } from "@/components/typography/gilded-title";
+import { consumeLocaleSwitchContinuation } from "@/navigation/locale-navigation";
 
 const STORAGE_KEY = MEI_HUA_SESSION_STORAGE_KEY;
 
@@ -146,35 +147,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   const [sealedReading, setSealedReading] = useState<PublicReading | null>(null);
   const handoffStartedRef = useRef(false);
 
-  // C1: detect only. Step 1 remains the default entry state.
-  useEffect(() => {
-    try {
-      const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeData);
-      if (!current) return;
-      const restoredQuestion = current.coreQuestionAtCast ?? current.question;
-      if (current.data?.mode === "number-time") {
-        setResumeState(decideReadingResume({
-          method: "mei-hua-yi-shu",
-          partial: null,
-          sealedReadingId: current.id,
-        }));
-        setSealedReading(readingFromCast(current.id, restoredQuestion, current.data));
-        return;
-      }
-      const draft = current.data;
-      const completed = draft?.mode === "number-time-draft" ? draft.step - 1 : 1;
-      setResumeState(decideReadingResume({
-        method: "mei-hua-yi-shu",
-        partial: { completed, total: 3, unit: "steps" },
-        partialReadingId: current.id,
-        stage: "draft",
-      }));
-    } catch {
-      setError(zh ? "浏览器会话存储不可用，尚未创建正式卦象。" : "Browser session storage is unavailable. No cast has been created.");
-    }
-  }, [zh]);
-
-  function resume() {
+  const resume = useCallback(() => {
     try {
       const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeData);
       if (!current) {
@@ -193,11 +166,44 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
         setStep(2);
       }
       setResumed(true);
+      setResumeState(NO_READING_RESUME);
       setError("");
     } catch {
       setError(zh ? "无法恢复这次起卦。" : "This cast could not be resumed.");
     }
-  }
+  }, [zh]);
+
+  // C1: a normal mount detects only and leaves Step 1 passive. A locale switch
+  // consumes the one-shot shell intent and invokes this same Resume primitive.
+  useEffect(() => {
+    const continueAcrossLocale = consumeLocaleSwitchContinuation("mei-hua-yi-shu");
+    try {
+      const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeData);
+      if (!current) return;
+      const restoredQuestion = current.coreQuestionAtCast ?? current.question;
+      if (current.data?.mode === "number-time") {
+        setResumeState(decideReadingResume({
+          method: "mei-hua-yi-shu",
+          partial: null,
+          sealedReadingId: current.id,
+        }));
+        setSealedReading(readingFromCast(current.id, restoredQuestion, current.data));
+        return;
+      }
+      const draft = current.data;
+      const completed = draft?.mode === "number-time-draft" ? draft.step - 1 : 1;
+      const detected = decideReadingResume({
+        method: "mei-hua-yi-shu",
+        partial: { completed, total: 3, unit: "steps" },
+        partialReadingId: current.id,
+        stage: "draft",
+      });
+      setResumeState(detected);
+      if (detected.kind === "partial" && continueAcrossLocale) resume();
+    } catch {
+      setError(zh ? "浏览器会话存储不可用，尚未创建正式卦象。" : "Browser session storage is unavailable. No cast has been created.");
+    }
+  }, [resume, zh]);
 
   useEffect(() => {
     if (step !== 3) return;
