@@ -269,9 +269,7 @@ jobs:
           EMAIL_FROM: ci@quickiching.test
         run: |
           set -euo pipefail
-          DB_SCHEME="postgres"
-          DB_AUTH="qic:qic-ci-secret"
-          export DATABASE_URL="${DB_SCHEME}://${DB_AUTH}@127.0.0.1:5432/qic_ci"
+          export DATABASE_URL="postgres://127.0.0.1:5432/qic_ci"
           (PORT=3037 HOSTNAME=127.0.0.1 bun run start > /tmp/qic-ci-auth-surface.log 2>&1 & echo $! > /tmp/qic-ci-auth-surface.pid)
           for i in {1..80}; do
             if curl -fsS http://127.0.0.1:3037/signin >/dev/null; then exit 0; fi
