@@ -120,6 +120,7 @@ describe("Account legacy cleanup guard", () => {
     ];
     const offenders: string[] = [];
     for (const file of sourceFiles(SRC_ROOT)) {
+      if (file === SELF) continue;
       const relative = file.replace(SRC_ROOT, "src/");
       const content = readFileSync(file, "utf8");
       if (retired.some((key) => content.includes(key)) && !allowed.has(relative)) offenders.push(relative);
