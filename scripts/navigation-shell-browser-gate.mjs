@@ -266,6 +266,41 @@ async function verifyPaymentReturnSurface(page, viewport) {
   await page.click("body > header [data-locale-target]");
   await page.waitForFunction(() => location.pathname === "/pricing", { timeout: 15_000 });
   assert.equal(await page.evaluate(() => new URLSearchParams(location.search).get("orderId")), "ord_nav_A", `${tag}: ZH→EN lost orderId`);
+
+  // ZH → EN must be atomic too: as soon as the English surface is interactive,
+  // its reverse target must still contain the complete payment identity.
+  target = await page.$eval("body > header [data-locale-target]", (node) => node.getAttribute("href"));
+  parsed = new URL(target ?? "", "https://quickiching.test");
+  assert.equal(parsed.pathname, "/zh/pricing", `${tag}: EN reverse target must preserve Pricing surface`);
+  assert.equal(parsed.searchParams.get("orderId"), "ord_nav_A", `${tag}: EN reverse target lost orderId`);
+  assert.equal(parsed.searchParams.get("returnUrl"), "/zh/readings/deep?session=B", `${tag}: EN reverse nested returnUrl was not localized`);
+
+  // orderId-only is also S16 and must preserve identity in both directions.
+  for (const [startPath, targetPath] of [["/pricing", "/zh/pricing"], ["/zh/pricing", "/pricing"]]) {
+    await open(page, `${startPath}?orderId=ord_nav_only`);
+    assert(await page.$('body > header[data-navigation-surface="S16"][data-navigation-mode="flow"]'), `${tag}: orderId-only ${startPath} must stay S16`);
+    target = await page.$eval("body > header [data-locale-target]", (node) => node.getAttribute("href"));
+    parsed = new URL(target ?? "", "https://quickiching.test");
+    assert.equal(parsed.pathname, targetPath, `${tag}: orderId-only locale target changed surface`);
+    assert.equal(parsed.searchParams.get("orderId"), "ord_nav_only", `${tag}: orderId-only locale target lost orderId`);
+    assert.equal(parsed.searchParams.get("returnUrl"), null, `${tag}: orderId-only locale target invented returnUrl`);
+
+    await page.click("body > header [data-locale-target]");
+    await page.waitForFunction((expectedPath) => location.pathname === expectedPath, { timeout: 15_000 }, targetPath);
+    target = await page.$eval("body > header [data-locale-target]", (node) => node.getAttribute("href"));
+    parsed = new URL(target ?? "", "https://quickiching.test");
+    assert.equal(parsed.pathname, startPath, `${tag}: orderId-only reverse target changed surface`);
+    assert.equal(parsed.searchParams.get("orderId"), "ord_nav_only", `${tag}: orderId-only reverse target lost orderId`);
+  }
+
+  // Ordinary non-flow surfaces must not inherit arbitrary query state from the
+  // coherent snapshot just because the shell now observes the whole location.
+  await open(page, "/help?utm_source=nav_snapshot_probe");
+  target = await page.$eval("body > header [data-locale-target]", (node) => node.getAttribute("href"));
+  parsed = new URL(target ?? "", "https://quickiching.test");
+  assert.equal(parsed.pathname, "/zh/help", `${tag}: ordinary locale target changed semantic surface`);
+  assert.equal(parsed.search, "", `${tag}: ordinary locale target leaked unrelated query state`);
+
   log(`${tag}: S16 initial authority + payment locale identity PASS`);
 }
 

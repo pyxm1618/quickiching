@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { User, Settings, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
@@ -35,7 +34,6 @@ export function UserNavControl({
   const dictionary = getDictionary(locale);
   const copy = dictionary.userNav;
   const isChinese = locale === "zh-Hans";
-  const pathname = usePathname() ?? "/";
   const shouldFetchUser = initialUser === undefined;
   const { data: userResponse, isLoading: userLoading } = useSWR<{ user: UserState }>(
     shouldFetchUser ? "/api/user/me" : null,
@@ -114,7 +112,7 @@ export function UserNavControl({
   // Same-origin validation stays with validateAuthCallbackURL on the server.
   const location = useNavigationLocation();
   const callbackTarget = authCallbackPath({
-    pathname,
+    pathname: location.pathname,
     search: location.search,
     hash: location.hash,
   });

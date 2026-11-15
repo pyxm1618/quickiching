@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useSyncExternalStore } from "react";
+import React, { Suspense, useEffect, useLayoutEffect, useMemo, useSyncExternalStore } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 /**
@@ -60,11 +60,15 @@ function getServerSnapshot(): NavigationLocation {
  * itself stays server-renderable on static routes.
  */
 function LocationSync(): null {
+  const pathname = usePathname() ?? "/";
   const searchParams = useSearchParams();
 
-  useEffect(() => {
+  // Next may commit a new pathname before passive effects publish the matching
+  // query string. Publish the complete browser location in a layout effect so
+  // shell-owned controls cannot become interactive with a torn URL snapshot.
+  useLayoutEffect(() => {
     publishNavigationLocation(readWindow());
-  }, [searchParams]);
+  }, [pathname, searchParams]);
 
   useEffect(() => {
     const sync = () => publishNavigationLocation(readWindow());
@@ -107,12 +111,22 @@ export function NavigationLocationProvider({ children }: { children: React.React
 export function useNavigationLocation(): NavigationLocation {
   const routerPathname = usePathname() ?? "/";
   const reactive = useSyncExternalStore(subscribeNavigationLocation, getNavigationLocationSnapshot, getServerSnapshot);
+
+  // During a client navigation usePathname() can advance one render before the
+  // external store is published. Never splice that new pathname onto the old
+  // query/hash. Keep the previous complete snapshot until LocationSync's layout
+  // effect publishes the next complete browser location. EMPTY is the hydration
+  // sentinel, where retaining the router pathname preserves existing SSR output.
+  const coherent = reactive === EMPTY || reactive.pathname === routerPathname
+    ? { pathname: routerPathname, search: reactive.search, hash: reactive.hash }
+    : reactive;
+
   return useMemo(
     () => ({
-      pathname: routerPathname,
-      search: reactive.search,
-      hash: reactive.hash,
+      pathname: coherent.pathname,
+      search: coherent.search,
+      hash: coherent.hash,
     }),
-    [routerPathname, reactive.search, reactive.hash],
+    [coherent.pathname, coherent.search, coherent.hash],
   );
 }

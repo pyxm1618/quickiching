@@ -4,7 +4,6 @@ import React, { useEffect, useId, useRef, useState, type KeyboardEvent } from "r
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Globe } from "lucide-react";
 import { SeoRouteGraph } from "@/components/seo-route-graph";
 import { localeSwitchTarget, markLocaleSwitchContinuation, shellHomeTarget } from "@/navigation/locale-navigation";
@@ -31,7 +30,6 @@ export function SceneNavigation({
   contract?: SurfaceContract;
 }) {
   const zh = locale === "zh-Hans";
-  const pathname = usePathname() ?? (zh ? "/zh" : "/");
   const [panel, setPanel] = useState<Panel | null>(null);
   const location = useNavigationLocation();
   const id = useId();
@@ -44,7 +42,7 @@ export function SceneNavigation({
   const localize = (path: string) => zh ? `/zh${path === "/" ? "" : path}` : path;
   const homeHref = shellHomeTarget(locale);
   const localeTarget = localeSwitchTarget({
-    pathname,
+    pathname: location.pathname,
     search: location.search,
     hash: location.hash,
     currentLocale: locale,
