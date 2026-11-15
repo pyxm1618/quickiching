@@ -48,7 +48,6 @@ export function SceneNavigation({
     search: location.search,
     hash: location.hash,
     currentLocale: locale,
-    surfaceId: contract.id,
   });
   const triggerFor = (name: Panel) => name === "methods" ? methodsTrigger.current : infoTrigger.current;
 
