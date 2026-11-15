@@ -11,6 +11,7 @@ const VIEWPORTS = [
   { name: "390x844", width: 390, height: 844 },
 ];
 const HEX = "24-return";
+const CHECKOUT_RETURN_CONTEXT_KEY = "quickiching:commercial:checkout-return:v1";
 const CASES = [
   { locale: "en", pathname: `/hexagrams/${HEX}`, expectedLocalePath: `/zh/hexagrams/${HEX}`, hub: "/hexagrams", home: "/", sectionLabel: "On this page" },
   { locale: "zh-Hans", pathname: `/zh/hexagrams/${HEX}`, expectedLocalePath: `/hexagrams/${HEX}`, hub: "/zh/hexagrams", home: "/zh", sectionLabel: "本页目录" },
@@ -126,9 +127,17 @@ async function verifyS04(page, viewport, testCase, authClosed) {
     assert(visible(summary.rect, summary), `${tag}: ${group} group is not visible`);
     assert(await clickableAtCenter(page, selector), `${tag}: ${group} group is not clickable`);
     await page.click(selector);
-    const links = await page.$$eval(`body > header [data-primary-group="${group}"] ~ div a`, (nodes) => nodes.map((node) => node.getAttribute("href")));
+    const links = await page.$eval(`body > header [data-primary-group="${group}"] ~ div a`, (nodes) => nodes.map((node) => node.getAttribute("href")));
     assert(links.length > 0, `${tag}: ${group} group exposes no destinations`);
     for (const href of links) assert(href && href.startsWith("/"), `${tag}: invalid ${group} destination ${href}`);
+    if (group === "methods") {
+      const normalized = links.map((href) => href?.replace(/^\/zh/, "")).sort();
+      assert.deepEqual(normalized, [
+        "/methods/manual-cast",
+        "/methods/mei-hua-yi-shu",
+        "/methods/yarrow-stalks",
+      ], `${tag}: Other Methods must be exactly Yarrow / Mei Hua / Manual`);
+    }
     await page.click(selector);
   }
 
@@ -209,6 +218,57 @@ async function verifyReactiveContext(page, viewport) {
   log(`${tag}: same-path hash PASS`);
 }
 
+async function verifyPaymentReturnSurface(page, viewport) {
+  const tag = `${viewport.name} payment return`;
+  for (const pathname of ["/pricing?orderId=ord_nav_A", "/zh/pricing?orderId=ord_nav_A"]) {
+    const response = await fetch(`${BASE}${pathname}`);
+    assert.equal(response.status, 200, `${tag}: server render failed for ${pathname}`);
+    const html = await response.text();
+    assert(html.includes('data-navigation-surface="S16"'), `${tag}: initial server render must classify ${pathname} as S16`);
+    assert(html.includes('data-navigation-mode="flow"'), `${tag}: initial server render must be Flow mode`);
+    assert(!html.includes('data-navigation-surface="S15"'), `${tag}: initial server render must never expose S15 first`);
+  }
+
+  const returnUrl = "/readings/deep?session=B";
+  await page.evaluate(({ key, orderId, returnUrl }) => {
+    const now = Date.now();
+    sessionStorage.setItem(key, JSON.stringify({
+      orderId,
+      returnUrl,
+      creditsBeforeCheckout: 0,
+      createdAt: now,
+      expiresAt: now + 10 * 60_000,
+    }));
+  }, { key: CHECKOUT_RETURN_CONTEXT_KEY, orderId: "ord_nav_A", returnUrl });
+
+  await open(page, `/pricing?orderId=ord_nav_A&returnUrl=${encodeURIComponent(returnUrl)}`);
+  assert(await page.$('body > header[data-navigation-surface="S16"][data-navigation-mode="flow"]'), `${tag}: EN payment return must stay S16`);
+  assert.equal(await page.$("body > header .scene-scrolls"), null, `${tag}: S16 must not expose Primary Navigation`);
+
+  let target = await page.$eval("body > header [data-locale-target]", (node) => node.getAttribute("href"));
+  let parsed = new URL(target ?? "", "https://quickiching.test");
+  assert.equal(parsed.pathname, "/zh/pricing", `${tag}: locale target must preserve Pricing surface`);
+  assert.equal(parsed.searchParams.get("orderId"), "ord_nav_A", `${tag}: locale target lost orderId`);
+  assert.equal(parsed.searchParams.get("returnUrl"), "/zh/readings/deep?session=B", `${tag}: nested returnUrl was not localized`);
+
+  await page.click("body > header [data-locale-target]");
+  await page.waitForFunction(() => location.pathname === "/zh/pricing", { timeout: 15_000 });
+  assert.equal(await page.evaluate(() => new URLSearchParams(location.search).get("orderId")), "ord_nav_A", `${tag}: EN→ZH lost orderId`);
+  assert.equal(await page.evaluate(() => new URLSearchParams(location.search).get("returnUrl")), "/zh/readings/deep?session=B", `${tag}: EN→ZH lost semantic returnUrl`);
+  assert(await page.$('body > header[data-navigation-surface="S16"]'), `${tag}: localized payment return must remain S16`);
+
+  target = await page.$eval("body > header [data-locale-target]", (node) => node.getAttribute("href"));
+  parsed = new URL(target ?? "", "https://quickiching.test");
+  assert.equal(parsed.pathname, "/pricing", `${tag}: reverse locale target must preserve Pricing surface`);
+  assert.equal(parsed.searchParams.get("orderId"), "ord_nav_A", `${tag}: reverse locale target lost orderId`);
+  assert.equal(parsed.searchParams.get("returnUrl"), "/readings/deep?session=B", `${tag}: reverse nested returnUrl was not localized`);
+
+  await page.click("body > header [data-locale-target]");
+  await page.waitForFunction(() => location.pathname === "/pricing", { timeout: 15_000 });
+  assert.equal(await page.evaluate(() => new URLSearchParams(location.search).get("orderId")), "ord_nav_A", `${tag}: ZH→EN lost orderId`);
+  log(`${tag}: S16 initial authority + payment locale identity PASS`);
+}
+
 try {
   const authClosed = (await fetch(`${BASE}/account`, { redirect: "manual" })).status === 410;
   log(`Auth capability gate: ${authClosed ? "closed" : "enabled"}`);
@@ -218,6 +278,7 @@ try {
     try {
       for (const testCase of CASES) await verifyS04(page, viewport, testCase, authClosed);
       await verifyReactiveContext(page, viewport);
+      await verifyPaymentReturnSurface(page, viewport);
       assert.deepEqual(errors, [], `${viewport.name}: page errors`);
     } finally {
       await context.close();
