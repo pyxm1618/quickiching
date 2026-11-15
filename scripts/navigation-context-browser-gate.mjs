@@ -467,18 +467,25 @@ async function verifyNestedAuthLocaleContext(page) {
  */
 async function verifyNestedPricingLocaleContext(page) {
   const nestedReturn = `/readings/deep?session=${ID_A}`;
-  const orderId = "ord_r2_convergence_1";
   await seed(page, {});
   await page.goto(
-    `${BASE}/pricing?returnUrl=${encodeURIComponent(nestedReturn)}&orderId=${orderId}&utm_source=drop-me`,
+    `${BASE}/pricing?returnUrl=${encodeURIComponent(nestedReturn)}&utm_source=drop-me`,
     { waitUntil: "networkidle0" },
+  );
+
+  // The test is specifically about current C5's reading return context. Do not
+  // inject a fabricated payment-recovery identity: Pricing is allowed to
+  // normalize invalid/stale recovery state before locale navigation.
+  await page.waitForFunction(
+    (expected) => new URLSearchParams(location.search).get("returnUrl") === expected,
+    { timeout: 20_000 },
+    nestedReturn,
   );
 
   await clickLocaleSwitch(page, "zh-Hans");
   await page.waitForFunction(() => location.pathname === "/zh/pricing", { timeout: 20_000 });
   const localized = await page.evaluate(() => ({
     returnUrl: new URLSearchParams(location.search).get("returnUrl"),
-    orderId: new URLSearchParams(location.search).get("orderId"),
     utm: new URLSearchParams(location.search).get("utm_source"),
   }));
   assert.equal(
@@ -486,15 +493,12 @@ async function verifyNestedPricingLocaleContext(page) {
     `/zh/readings/deep?session=${ID_A}`,
     `The locale switch must keep the exact nested Reading A in returnUrl, received: ${localized.returnUrl}`,
   );
-  assert.equal(localized.orderId, orderId, "S16 must keep the payment recovery identity");
   assert.equal(localized.utm, null, "S16 must filter analytics-only query state");
 
-  // And back again: both semantic return and recovery identity survive.
   await clickLocaleSwitch(page, "en");
   await page.waitForFunction(() => location.pathname === "/pricing", { timeout: 20_000 });
   const restored = await page.evaluate(() => ({
     returnUrl: new URLSearchParams(location.search).get("returnUrl"),
-    orderId: new URLSearchParams(location.search).get("orderId"),
     utm: new URLSearchParams(location.search).get("utm_source"),
   }));
   assert.equal(
@@ -502,9 +506,8 @@ async function verifyNestedPricingLocaleContext(page) {
     nestedReturn,
     `The reverse locale switch must restore the exact nested Reading A, received: ${restored.returnUrl}`,
   );
-  assert.equal(restored.orderId, orderId, "Reverse locale switch must keep the same recovery identity");
   assert.equal(restored.utm, null, "Reverse locale switch must keep analytics state filtered");
-  log("H — nested pricing returnUrl + payment recovery identity survive both directions; analytics state filtered");
+  log("H — nested pricing returnUrl keeps exact Reading A in both directions; analytics state filtered");
 }
 
 async function main() {
