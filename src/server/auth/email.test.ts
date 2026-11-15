@@ -1,5 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
-import { createMagicLinkEmailTransport } from "./email";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFile, rm } from "node:fs/promises";
+import {
+  createBrowserGateMagicLinkCaptureTransport,
+  createMagicLinkEmailTransport,
+} from "./email";
+
+const captureFile = `/tmp/qic-magic-link-capture-${process.pid}.json`;
+
+afterEach(async () => {
+  await rm(captureFile, { force: true });
+});
 
 describe("Magic Link email transport", () => {
   it("is injectable for tests and sends the expected message without logging secrets", async () => {
@@ -33,6 +43,41 @@ describe("Magic Link email transport", () => {
       email: "user@example.com",
       url: "https://www.quickiching.com/link?token=secret-token",
       token: "secret-token",
+    })).rejects.toThrow("AUTH_EMAIL_DELIVERY_FAILED");
+  });
+
+  it("captures only genuine loopback Better Auth links for the R3 browser fixture", async () => {
+    const transport = createBrowserGateMagicLinkCaptureTransport({
+      captureFile,
+      baseURL: "http://127.0.0.1:3037",
+    });
+    const url = "http://127.0.0.1:3037/api/auth/magic-link/verify?token=real-generated-token&callbackURL=%2Freadings%2Fresult%3Fsession%3DA";
+    await transport.sendMagicLink({
+      email: "r3@example.com",
+      url,
+      token: "real-generated-token",
+    });
+
+    await expect(readFile(captureFile, "utf8")).resolves.toBe(JSON.stringify({
+      email: "r3@example.com",
+      url,
+    }));
+  });
+
+  it("rejects a non-loopback capture origin and cross-origin captured links", async () => {
+    expect(() => createBrowserGateMagicLinkCaptureTransport({
+      captureFile,
+      baseURL: "https://www.quickiching.com",
+    })).toThrow("AUTH_CONFIGURATION_UNAVAILABLE");
+
+    const transport = createBrowserGateMagicLinkCaptureTransport({
+      captureFile,
+      baseURL: "http://127.0.0.1:3037",
+    });
+    await expect(transport.sendMagicLink({
+      email: "r3@example.com",
+      url: "https://evil.example/api/auth/magic-link/verify?token=secret",
+      token: "secret",
     })).rejects.toThrow("AUTH_EMAIL_DELIVERY_FAILED");
   });
 });
