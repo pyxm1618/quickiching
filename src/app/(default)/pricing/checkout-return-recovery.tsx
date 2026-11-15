@@ -11,6 +11,7 @@ import {
   readCheckoutReturnContext,
   type CheckoutReturnContext,
 } from "./checkout-return-context";
+import { mapInternalPathLocale } from "@/navigation/locale-navigation";
 
 export const CHECKOUT_CONFIRMATION_WINDOW_MS = 30_000;
 const AUTO_REFRESH_INTERVAL_MS = 5_000;
@@ -87,8 +88,9 @@ export function CheckoutReturnRecovery({
 
   const returnToReading = () => {
     if (!context?.returnUrl) return;
+    const localizedReturnUrl = mapInternalPathLocale(context.returnUrl, locale);
     clearCheckoutReturnContext(window.sessionStorage);
-    window.location.assign(context.returnUrl);
+    window.location.assign(localizedReturnUrl);
   };
   const clearAndStayOnPricing = () => clearCheckoutReturnContext(window.sessionStorage);
   const checkAgain = () => {
