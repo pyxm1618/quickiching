@@ -41,6 +41,7 @@ const YARROW_QUESTION = "Should I stay on this path?";
 const YARROW_KEY = "quickiching:public-v1:yarrow-v2";
 const MANUAL_KEY = "quickiching:public-v1:manual-cast";
 const MANUAL_DRAFT_KEY = "quickiching:public-v1:manual-cast:draft:v1";
+const MEI_HUA_KEY = "quickiching:public-v1:mei-hua-number-time-v1";
 const YARROW_ID = "9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e";
 const MANUAL_ID = "0a1b2c3d-4e5f-4a6b-9c8d-7e6f5a4b3c2d";
 
@@ -476,6 +477,214 @@ async function verifyManualSealedRecoveryKeepsQuestion(page) {
   log("HIGH-002 — Manual sealed recovery keeps the frozen question across reload and Retry Handoff");
 }
 
+
+async function verifyManualSealedStartNewIdentity(page) {
+  const questionA = "Should I stay in Kyoto this winter?";
+  const questionB = "Should I visit Kyoto in spring?";
+  await page.goto(BASE + "/", { waitUntil: "networkidle0" });
+  await clearLifecycleStorage(page);
+  await page.goto(`${BASE}/methods/manual-cast`, { waitUntil: "networkidle0" });
+  await page.waitForSelector("[data-question-first] textarea[data-private-question]", { timeout: 15_000 });
+  await page.type("[data-question-first] textarea[data-private-question]", questionA);
+  await page.evaluate(() => document.querySelector("[data-question-first] button.mystic-button")?.click());
+  await page.waitForSelector("[data-manual-cast-tool]:not([data-reading-sealed])", { timeout: 15_000 });
+
+  await injectPendingWriteFailure(page);
+  await page.click("[data-manual-continue]");
+  await page.waitForSelector("[data-reading-sealed]", { timeout: 15_000 });
+  await restorePendingWriteFailure(page);
+  const readingA = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }, MANUAL_KEY);
+  assert(readingA?.id, "Manual sealed A must retain an authoritative method session");
+  assert.equal(readingA.coreQuestionAtCast, questionA, "Manual sealed A must freeze question A");
+
+  await page.click("[data-reading-start-new]");
+  await page.waitForSelector("[data-question-first] textarea[data-private-question]", { timeout: 15_000 });
+  assert.equal(await page.evaluate((key) => sessionStorage.getItem(key), MANUAL_KEY), null, "Start New must retire Manual reading A");
+  assert.equal(
+    await page.$eval("[data-question-first] textarea[data-private-question]", (node) => node.value),
+    "",
+    "Start New must not inherit A's frozen question",
+  );
+
+  await page.type("[data-question-first] textarea[data-private-question]", questionB);
+  await page.evaluate(() => document.querySelector("[data-question-first] button.mystic-button")?.click());
+  await page.waitForSelector("[data-manual-cast-tool]:not([data-reading-sealed])", { timeout: 15_000 });
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await injectPendingWriteFailure(page);
+  await page.click("[data-manual-continue]");
+  await page.waitForSelector("[data-reading-sealed]", { timeout: 15_000 });
+  await restorePendingWriteFailure(page);
+
+  const readingB = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }, MANUAL_KEY);
+  assert(readingB?.id, "Manual reading B must have a method-session identity");
+  assert.notEqual(readingB.id, readingA.id, "Manual Start New must mint B.id != A.id");
+  assert.notEqual(readingB.createdAt, readingA.createdAt, "Manual Start New must mint B.createdAt != A.createdAt");
+  assert.equal(readingB.coreQuestionAtCast, questionB, "Manual reading B must freeze only the explicitly entered question B");
+  assert.notEqual(readingB.coreQuestionAtCast, questionA, "Manual reading B must not inherit A.coreQuestionAtCast");
+  log("T1 — Manual sealed Start New retires A and mints an independent B identity");
+}
+
+async function verifyYarrowSealedStartNewLifecycle(page) {
+  const questionB = "What should guide the new Yarrow reading?";
+  await seedMethodState(page, [
+    { key: YARROW_KEY, value: methodSessionEnvelope(YARROW_ID, YARROW_QUESTION, { changes: yarrowChanges(17) }) },
+  ]);
+  await page.goto(`${BASE}/methods/yarrow-stalks`, { waitUntil: "networkidle0" });
+  await clickResume(page);
+  await page.waitForFunction(
+    () => document.querySelector(".ritual-progress-badge")?.textContent?.includes("17 / 18") === true,
+    { timeout: 15_000 },
+  );
+
+  await injectPendingWriteFailure(page);
+  await page.evaluate(() => {
+    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.includes("Perform change 18"));
+    button?.click();
+  });
+  await page.waitForSelector("[data-reading-sealed-recovery]", { timeout: 15_000 });
+  await restorePendingWriteFailure(page);
+  const readingA = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }, YARROW_KEY);
+  assert.equal(readingA?.id, YARROW_ID, "Yarrow failed handoff must keep exact reading A");
+  assert.equal(readingA?.coreQuestionAtCast, YARROW_QUESTION, "Yarrow reading A must keep its frozen question");
+
+  await page.click("[data-reading-start-new]");
+  await page.waitForSelector("[data-question-first] textarea[data-private-question]", { timeout: 15_000 });
+  assert.equal(await page.evaluate((key) => sessionStorage.getItem(key), YARROW_KEY), null, "Yarrow Start New must retire A method session");
+  assert.equal(await page.$("[data-reading-sealed-recovery]"), null, "Yarrow sealed facts must leave active method authority");
+  assert.equal(
+    await page.$eval("[data-question-first] textarea[data-private-question]", (node) => node.value),
+    "",
+    "Yarrow Start New must reset QuestionFirst frozen question",
+  );
+
+  await page.type("[data-question-first] textarea[data-private-question]", questionB);
+  await page.evaluate(() => document.querySelector("[data-question-first] button.mystic-button")?.click());
+  await page.waitForSelector(".ritual-progress-badge", { timeout: 15_000 });
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await page.evaluate(() => {
+    const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.includes("Perform change 1"));
+    button?.click();
+  });
+  await page.waitForFunction(
+    () => document.querySelector(".ritual-progress-badge")?.textContent?.includes("1 / 18") === true,
+    { timeout: 15_000 },
+  );
+  const readingB = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }, YARROW_KEY);
+  assert(readingB?.id, "Yarrow reading B must have a method-session identity");
+  assert.notEqual(readingB.id, readingA.id, "Yarrow Start New must mint B.id != A.id");
+  assert.notEqual(readingB.createdAt, readingA.createdAt, "Yarrow Start New must mint B.createdAt != A.createdAt");
+  assert.equal(readingB.coreQuestionAtCast, questionB, "Yarrow B must own the new question lifecycle");
+  log("T2 — Yarrow sealed Start New resets QuestionFirst and mints an independent B identity");
+}
+
+async function clickLocaleAndWait(page, expectedPath) {
+  await page.waitForSelector("body > header [data-locale-target]", { visible: true, timeout: 15_000 });
+  await page.click("body > header [data-locale-target]");
+  await page.waitForFunction((path) => location.pathname === path, { timeout: 20_000 }, expectedPath);
+}
+
+async function verifyActiveFlowLocaleContinuation(page) {
+  // Three Coin: direct reopen stays passive; explicit locale switch continues 4/6.
+  await seed(page, { threeCoinSession: threeCoinSessionPayload(ID_A, 4) });
+  await page.goto(BASE + "/", { waitUntil: "networkidle0" });
+  assert(await page.$("[data-reading-resume-action]"), "Three Coin direct reopen must remain passive");
+  await clickResume(page);
+  await page.waitForFunction(
+    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
+    { timeout: 15_000 },
+  );
+  await page.waitForSelector('body > header[data-navigation-surface="S02"]', { timeout: 15_000 });
+  await clickLocaleAndWait(page, "/zh");
+  await page.waitForFunction(
+    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
+    { timeout: 15_000 },
+  );
+  assert.equal(await doneLineCount(page), 4, "Three Coin locale switch must restore exact 4/6 facts without Resume");
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Three Coin locale switch must not require a second Resume");
+  assert.equal(await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.id, THREE_COIN_KEY), ID_A, "Three Coin locale switch must keep identity");
+
+  // Yarrow: direct reopen stays passive; explicit locale switch continues exact 8/18.
+  await seedMethodState(page, [
+    { key: YARROW_KEY, value: methodSessionEnvelope(YARROW_ID, YARROW_QUESTION, { changes: yarrowChanges(8) }) },
+  ]);
+  await page.goto(`${BASE}/methods/yarrow-stalks`, { waitUntil: "networkidle0" });
+  assert(await page.$("[data-reading-resume-action]"), "Yarrow direct reopen must remain passive");
+  await clickResume(page);
+  await page.waitForFunction(() => document.querySelector(".ritual-progress-badge")?.textContent?.includes("8 / 18") === true, { timeout: 15_000 });
+  assert.equal(await page.$eval("[data-flow-exit]", (node) => node.getAttribute("href")), "/", "Yarrow must expose explicit local Exit");
+  await clickLocaleAndWait(page, "/zh/methods/yarrow-stalks");
+  await page.waitForFunction(() => document.querySelector(".ritual-progress-badge")?.textContent?.includes("8 / 18") === true, { timeout: 15_000 });
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Yarrow locale switch must not require a second Resume");
+  assert.equal(await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.id, YARROW_KEY), YARROW_ID, "Yarrow locale switch must keep identity");
+
+  // Manual: direct reopen stays passive; explicit locale switch continues exact draft.
+  const manualValues = [9, 8, 7, 6, 9, 8];
+  await seedMethodState(page, [
+    { key: MANUAL_KEY, value: methodSessionEnvelope(MANUAL_ID, MANUAL_QUESTION) },
+    {
+      key: MANUAL_DRAFT_KEY,
+      value: {
+        schemaVersion: 1,
+        questionKey: MANUAL_QUESTION,
+        mode: "line-values",
+        lineValuesBottomUp: manualValues,
+        primaryHexagram: 1,
+        changingLines: [],
+      },
+    },
+  ]);
+  await page.goto(`${BASE}/methods/manual-cast`, { waitUntil: "networkidle0" });
+  assert(await page.$("[data-reading-resume-action]"), "Manual direct reopen must remain passive");
+  await clickResume(page);
+  await page.waitForSelector('[data-line-position="1"][data-line-value="9"][data-selected="true"]', { timeout: 15_000 });
+  assert.equal(await page.$eval("[data-flow-exit]", (node) => node.getAttribute("href")), "/", "Manual must expose explicit local Exit");
+  assert(await page.$("[data-question-restart]"), "Manual reversible stage must expose Back / Edit Question");
+  await clickLocaleAndWait(page, "/zh/methods/manual-cast");
+  await page.waitForSelector('[data-line-position="1"][data-line-value="9"][data-selected="true"]', { timeout: 15_000 });
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Manual locale switch must not require a second Resume");
+  assert.equal(await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.id, MANUAL_KEY), MANUAL_ID, "Manual locale switch must keep identity");
+
+  // Mei Hua: a direct open remains Step 1 with Resume; explicit switch preserves Step 3 + number.
+  const meiId = "2b3c4d5e-6f70-4a81-9b2c-3d4e5f607182";
+  const meiQuestion = "What should I understand about this transition?";
+  await seedMethodState(page, [{
+    key: MEI_HUA_KEY,
+    value: methodSessionEnvelope(meiId, meiQuestion, {
+      mode: "number-time-draft",
+      inputVersion: "mei-hua-number-time-input-v1",
+      step: 3,
+      number: 17,
+    }),
+  }]);
+  await page.goto(`${BASE}/methods/mei-hua-yi-shu`, { waitUntil: "networkidle0" });
+  assert.equal(await page.$eval("[data-mei-hua-flow]", (node) => node.getAttribute("data-mei-hua-step")), "1", "Mei Hua direct reopen must remain passive at Step 1");
+  assert(await page.$("[data-reading-resume-action]"), "Mei Hua direct reopen must offer Resume");
+  await clickResume(page);
+  await page.waitForSelector('[data-mei-hua-flow][data-mei-hua-step="3"]', { timeout: 15_000 });
+  await clickLocaleAndWait(page, "/zh/methods/mei-hua-yi-shu");
+  await page.waitForSelector('[data-mei-hua-flow][data-mei-hua-step="3"]', { timeout: 15_000 });
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Mei Hua locale switch must not require a second Resume");
+  const meiState = await page.evaluate((key) => {
+    const session = JSON.parse(sessionStorage.getItem(key) || "null");
+    return { id: session?.id, number: session?.data?.number, step: session?.data?.step };
+  }, MEI_HUA_KEY);
+  assert.deepEqual(meiState, { id: meiId, number: 17, step: 3 }, "Mei Hua locale switch must keep identity, irreversible number and semantic step");
+
+  log("T5 — explicit locale switch continues Three Coin / Yarrow / Manual / Mei Hua while direct reopen stays passive");
+}
+
 async function main() {
   const serverlessChromium = {
     executablePath: async () => {
@@ -505,6 +714,9 @@ async function main() {
     await verifyYarrowPartialReopen(page);
     await verifyManualDraftReopen(page);
     await verifyManualSealedRecoveryKeepsQuestion(page);
+    await verifyManualSealedStartNewIdentity(page);
+    await verifyYarrowSealedStartNewLifecycle(page);
+    await verifyActiveFlowLocaleContinuation(page);
     await verifyCrossMethodIdentity(page);
     const fatal = consoleErrors.filter((message) => !/favicon|Failed to load resource.*404/i.test(message));
     assert.deepEqual(fatal, [], `Unexpected browser errors: ${fatal.join(" | ")}`);
