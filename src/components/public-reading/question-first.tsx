@@ -102,6 +102,7 @@ export function QuestionFirst({
   useEffect(() => {
     if (!resumeMethod) return;
     const detected = detectMethodResume(resumeMethod);
+    const continueAcrossLocale = consumeLocaleSwitchContinuation(resumeMethod);
     setResumeState(detected);
     // Exceptional sealed facts: mount the method adapter's recovery-only
     // surface (Retry Handoff / Start New Reading), never an active cast.
@@ -109,7 +110,7 @@ export function QuestionFirst({
       setStarted(true);
       return;
     }
-    if (detected.kind === "partial" && consumeLocaleSwitchContinuation(resumeMethod)) {
+    if (detected.kind === "partial" && continueAcrossLocale) {
       restorePersistedResume();
     }
   }, [resumeMethod, restorePersistedResume]);
