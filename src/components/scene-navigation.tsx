@@ -87,9 +87,35 @@ export function SceneNavigation({
       liveFlow,
       issueIntent: issueLocaleContinuationIntent,
     });
-    // C9 write failure is fail-closed. For navigate/ignore, the existing Link
-    // keeps owning navigation and the current C5 localeTarget remains untouched.
-    if (decision === "cancel") event.preventDefault();
+    // C9 write failure is fail-closed.
+    if (decision === "cancel") {
+      event.preventDefault();
+      return;
+    }
+
+    // Pricing carries its flow identity in the query. A Next/Suspense shell can
+    // briefly render before that query snapshot reaches the header even though
+    // window.location already contains the exact request URL. On an ordinary
+    // primary click only, re-run the *existing* C5 owner against that exact
+    // browser location. This is a stale-render fail-safe, not a second URL
+    // transformation authority; modified/middle clicks remain native browser
+    // behavior because prepareLocaleContinuationClick returned "ignore".
+    if (
+      decision === "navigate"
+      && typeof window !== "undefined"
+      && (window.location.pathname === "/pricing" || window.location.pathname === "/zh/pricing")
+    ) {
+      const exactPricingTarget = localeSwitchTarget({
+        pathname: window.location.pathname,
+        search: window.location.search,
+        hash: window.location.hash,
+        currentLocale: locale,
+      });
+      if (exactPricingTarget.available && exactPricingTarget.href !== localeTarget.href) {
+        event.preventDefault();
+        window.location.assign(exactPricingTarget.href);
+      }
+    }
   }
 
   useEffect(() => {
