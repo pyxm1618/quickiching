@@ -21,10 +21,12 @@ function SurfaceHeader({
   locale,
   authEnabled,
   contract,
+  requestSearch,
 }: {
   locale: ContentLocale;
   authEnabled: boolean;
   contract: SurfaceContract;
+  requestSearch?: string;
 }) {
   if (contract.presentation === "none") return null;
 
@@ -38,7 +40,7 @@ function SurfaceHeader({
     return <InfoPageHeader locale={locale} authEnabled={authEnabled} contract={contract} />;
   }
 
-  return <SceneNavigation locale={locale} authEnabled={authEnabled} contract={contract} />;
+  return <SceneNavigation locale={locale} authEnabled={authEnabled} contract={contract} requestSearch={requestSearch} />;
 }
 
 function PricingHeader({
@@ -59,7 +61,7 @@ function PricingHeader({
     ? { ...flowState, pricingReadingContext: true }
     : flowState;
   const contract = resolveSurfaceContract({ pathname, flowState: authoritativeFlowState });
-  return <SurfaceHeader locale={locale} authEnabled={authEnabled} contract={contract} />;
+  return <SurfaceHeader locale={locale} authEnabled={authEnabled} contract={contract} requestSearch={search} />;
 }
 
 /**

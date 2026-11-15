@@ -24,10 +24,18 @@ export function SceneNavigation({
   locale = "en",
   authEnabled = false,
   contract = surfaceContract("S01"),
+  requestSearch,
 }: {
   locale?: ContentLocale;
   authEnabled?: boolean;
   contract?: SurfaceContract;
+  /**
+   * Server-render bootstrap for a shell surface whose flow identity lives in
+   * the request query. Pricing already resolves this query in SiteHeader to
+   * select S15/S16; reusing that same snapshot keeps the locale href correct
+   * before hydration when a locale switch crosses root layouts.
+   */
+  requestSearch?: string;
 }) {
   const zh = locale === "zh-Hans";
   const [panel, setPanel] = useState<Panel | null>(null);
@@ -43,7 +51,7 @@ export function SceneNavigation({
   const homeHref = shellHomeTarget(locale);
   const localeTarget = localeSwitchTarget({
     pathname: location.pathname,
-    search: location.search,
+    search: requestSearch ?? location.search,
     hash: location.hash,
     currentLocale: locale,
   });
