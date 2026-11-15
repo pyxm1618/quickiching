@@ -195,14 +195,18 @@ try {
     const zh = entryFor(number, "zh-Hans");
     for (const entry of [en, zh]) {
       await gotoWithRetry(page, `${BASE}${pathFor(entry)}`, { waitUntil: "load", timeout: 30_000 });
-      // The approved shared detail scroll is a full-bleed composition. The global
-      // shell is suppressed by the Surface Contract for S04 (deferredShell) rather
-      // than by page DOM manipulation or page CSS hiding shell navigation.
-      assert.equal(await page.$("body > header"), null, `${pathFor(entry)}: global shell must not mount on the shared detail scroll`);
+      // S04 belongs to the Global Navigation Shell. The Content presentation
+      // reserves its own band above the detail scroll; it is not hidden by the
+      // page and does not float over the knowledge article.
+      const shell = await page.$('body > header[data-navigation-surface="S04"]');
+      assert(shell, `${pathFor(entry)}: S04 must mount the Global Navigation Shell`);
+      assert(await page.$('body > header [data-shell-home]'), `${pathFor(entry)}: S04 Home must be visible`);
+      assert(await page.$('body > header [data-language-switcher]'), `${pathFor(entry)}: S04 locale must be visible`);
+      assert(await page.$('body > header [data-primary-navigation]'), `${pathFor(entry)}: S04 discovery navigation must be visible`);
       await assertKeyboardFocus(page, pathFor(entry));
     }
   }
-  log("20 sampled EN/ZH shared detail scroll header-isolation and keyboard-focus checks PASS");
+  log("20 sampled EN/ZH shared detail scroll shell-capability and keyboard-focus checks PASS");
 
   for (const [path, expectedPrefix] of [["/hexagrams", "/hexagrams/"], ["/zh/hexagrams", "/zh/hexagrams/"]]) {
     await gotoWithRetry(page, `${BASE}${path}`, { waitUntil: "load", timeout: 30_000 });

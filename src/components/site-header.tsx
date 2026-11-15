@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { SceneNavigation } from "@/components/scene-navigation";
+import { ContentNavigationShell } from "@/components/navigation/content-navigation-shell";
 import { useNavigationFlowState } from "@/navigation/navigation-surface-context";
 import { resolveSurfaceContract } from "@/navigation/surface-contract";
 import type { ContentLocale } from "@/i18n/config";
@@ -28,6 +29,12 @@ export function SiteHeader({
   const contract = resolveSurfaceContract({ pathname, flowState });
 
   if (contract.presentation === "none") return null;
+
+  // S04 owns a full-bleed composition: the Content presentation reserves its
+  // own band instead of floating over the detail scroll.
+  if (contract.presentation === "content") {
+    return <ContentNavigationShell locale={locale} authEnabled={authEnabled} contract={contract} />;
+  }
 
   if (contract.presentation === "info") {
     return <InfoPageHeader locale={locale} authEnabled={authEnabled} contract={contract} />;

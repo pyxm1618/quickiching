@@ -58,7 +58,7 @@ export type SurfaceKind =
   | "adapter";
 
 /** Which approved shell presentation renders this surface. */
-export type ShellPresentation = "scene" | "info" | "none";
+export type ShellPresentation = "scene" | "info" | "content" | "none";
 
 /**
  * band    — the shell occupies its own 75px band above the page (default).
@@ -82,12 +82,6 @@ export type SurfaceContract = {
   localeControl: boolean;
   /** Account capability, additionally gated by isAuthCapabilityEnabled(). */
   accountControl: boolean;
-  /**
-   * Set when the Authority's capability row is declared but the surface is
-   * rendered without the global shell. Every entry is an explicit, reviewable
-   * deviation — never a silent page-level override.
-   */
-  deferredShell?: string;
 };
 
 const SURFACES: Record<SurfaceId, SurfaceContract> = {
@@ -130,27 +124,20 @@ const SURFACES: Record<SurfaceId, SurfaceContract> = {
     localeControl: true,
     accountControl: true,
   },
-  // S04 Hexagram Detail — Content page.
-  //
-  // DEVIATION (declared, not hidden): the Authority's S04 row requires Home,
-  // Locale, Account and discovery navigation. This surface is an approved
-  // full-bleed "detail scroll" composition whose fixed shell decorations cover
-  // its own content and local section navigation (verified at 1440×900 and
-  // 390×844). Satisfying the row needs a content-shell presentation with
-  // discovery navigation, which is a visual-design decision the Navigation
-  // Authority does not own. Until that decision exists the shell renders
-  // nothing here — the page no longer hides shell DOM or shell CSS itself.
+  // S04 Hexagram Detail — Content page. The frozen Authority assigns this
+  // surface to the Global Navigation Shell (Home / Locale / Account / Primary
+  // Nav YES). The `content` presentation renders in normal document flow, so
+  // the approved full-bleed detail scroll keeps its own geometry.
   S04: {
     id: "S04",
     kind: "detail",
     mode: "content",
-    presentation: "none",
-    layout: "none",
+    presentation: "content",
+    layout: "band",
     primaryNavigation: true,
     homeControl: true,
     localeControl: true,
     accountControl: true,
-    deferredShell: "full-bleed detail-scroll composition; shell presentation not yet designed",
   },
   // S05 Three Coin SEO Detail — Content page.
   S05: {

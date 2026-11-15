@@ -32,6 +32,7 @@ const SHELL_PRESENTATIONS = new Set([
   "components/scene-navigation.tsx",
   "components/scene-navigation-panels.tsx",
   "components/info-pages/info-page-header.tsx",
+  "components/navigation/content-navigation-shell.tsx",
 ]);
 
 describe("Navigation / Surface Authority architecture", () => {
@@ -53,6 +54,15 @@ describe("Navigation / Surface Authority architecture", () => {
   it("keeps one shell-owned Home capability", () => {
     const owners = filesMatching(/data-shell-home/u).filter((path) => !SHELL_PRESENTATIONS.has(path));
     expect(owners).toEqual([]);
+  });
+
+  it("never suppresses the shell or hides it from a page surface", () => {
+    expect(filesMatching(/deferredShell/u)).toEqual([]);
+    const detail = readFileSync(new URL("../components/hexagram-detail-page.tsx", import.meta.url), "utf8");
+    expect(detail).not.toContain("SeoRouteGraph");
+    expect(detail).not.toContain("data-language-switcher");
+    expect(detail).not.toContain("UserNavControl");
+    expect(detail).not.toContain("data-shell-home");
   });
 
   it("allows no page-owned DOM manipulation of the global shell", () => {

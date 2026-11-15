@@ -1,0 +1,155 @@
+/* Shell-owned Content presentation (S04). Normal document flow: this band
+   reserves its own height and never floats over the detail scroll. */
+.shell {
+  position: relative;
+  z-index: 60;
+  width: 100%;
+  background: #120b06;
+  border-bottom: 1px solid rgba(214, 170, 69, .42);
+  color: #ffedc7;
+  font-family: "Times New Roman", "Songti SC", serif;
+  pointer-events: auto;
+}
+
+.shell a,
+.shell button,
+.shell summary {
+  pointer-events: auto;
+}
+
+.shell :is(a, button, summary):focus-visible {
+  outline: 2px solid #ffe191;
+  outline-offset: 3px;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 18px;
+  padding: 10px clamp(16px, 3.8vw, 56px);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: #ffedba;
+  font-size: 20px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+
+.languages {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-size: 18px;
+}
+
+.languages > svg {
+  width: 20px;
+  height: 20px;
+  color: #edd065;
+  stroke-width: 1.4;
+}
+
+.languages a,
+.languages [aria-current] {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.languages a:hover {
+  color: #ffe191;
+  text-decoration: underline;
+}
+
+.account {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* Discovery navigation stays in flow. A disclosure expands downward and pushes
+   the article, so it never overlays the scroll artwork or section navigation. */
+.primary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px clamp(10px, 2vw, 26px);
+  padding: 0 clamp(16px, 3.8vw, 56px) 10px;
+  font-size: 15px;
+}
+
+.primaryLink,
+.group > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  color: #f6e0ab;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.primaryLink:hover,
+.group > summary:hover {
+  color: #ffe191;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.group {
+  position: relative;
+}
+
+.group > summary::marker {
+  color: #edd065;
+}
+
+.groupLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px clamp(10px, 2vw, 22px);
+  padding: 6px 0 2px 18px;
+  font-size: 14px;
+}
+
+@media (max-width: 800px) {
+  .bar {
+    padding: 8px 14px;
+  }
+
+  .brand {
+    font-size: 17px;
+  }
+
+  .languages {
+    font-size: 16px;
+  }
+
+  .primary {
+    padding: 0 14px 10px;
+    gap: 4px 14px;
+    font-size: 14px;
+  }
+
+  .primaryLink,
+  .group > summary {
+    min-height: 40px;
+  }
+}

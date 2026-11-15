@@ -99,7 +99,7 @@ try {
       assert.equal(state.documentWidth, viewport.width, `${number} at ${viewport.width}: horizontal scroll`);
       assert.deepEqual(state.clipped, [], `${number} at ${viewport.width}: clipped text`);
       assert.deepEqual(state.meanings, knowledge.lines.slice().reverse().map((line) => line.meaning));
-      assert.equal(state.topLevelHeaderVisible, false);
+      assert.equal(state.topLevelHeaderVisible, true, "S04 Content shell must remain visible and in flow");
       const expectedLinks = [...(number > 1 ? [`/hexagrams/${CLASSICAL_HEXAGRAMS[number - 2].slug}`] : []), "/hexagrams", ...(number < 64 ? [`/hexagrams/${CLASSICAL_HEXAGRAMS[number].slug}`] : [])];
       assert.deepEqual(state.auxiliaryLinks, expectedLinks);
       // Visit each lazy ornament before capturing the full document. This also verifies

@@ -86,18 +86,16 @@ describe("Surface Contract", () => {
     expect(surfaceIdForPath("/totally-unknown")).toBe("S21");
   });
 
-  it("declares the one deferred shell as a contract fact instead of a page override", () => {
+  it("assigns S04 to the Global Navigation Shell with the full Content capability row", () => {
     const detail = resolveSurfaceContract({ pathname: "/hexagrams/1-the-creative" });
-    expect(detail.presentation).toBe("none");
-    expect(detail.deferredShell).toBeTruthy();
-    // The Authority's capability row stays declared, so the deviation is visible.
+    expect(detail.presentation).toBe("content");
+    expect(detail.layout).toBe("band");
+    expect(detail.mode).toBe("content");
     expect(detail.homeControl).toBe(true);
     expect(detail.localeControl).toBe(true);
+    expect(detail.accountControl).toBe(true);
     expect(detail.primaryNavigation).toBe(true);
-    // No other surface may defer.
-    for (const pathname of ["/", "/hexagrams", "/methods/three-coin", "/pricing", "/my-readings", "/readings/result", "/help"]) {
-      expect(resolveSurfaceContract({ pathname }).deferredShell, pathname).toBeUndefined();
-    }
+    expect(detail).not.toHaveProperty("deferredShell");
   });
 
   it("keeps the locale control on every surface that owns a counterpart", () => {

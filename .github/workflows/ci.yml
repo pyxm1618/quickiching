@@ -259,6 +259,11 @@ jobs:
         env:
           GROUP3_QA_BASE_URL: http://127.0.0.1:3036
         run: node scripts/group3-visual-capture.mjs .artifacts/account-info-evidence
+      - name: Navigation Shell / reactive context browser Gate
+        if: always() && steps.product_build.conclusion == 'success'
+        env:
+          PUBLIC_V1_TEST_BASE_URL: http://127.0.0.1:3036
+        run: node scripts/navigation-shell-browser-gate.mjs
       - name: Payment Gate - dependency regression audit
         if: always() && needs.select.outputs.payment == 'true'
         run: node scripts/ci/dependency-audit-gate.mjs
