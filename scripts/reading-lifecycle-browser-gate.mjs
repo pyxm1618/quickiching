@@ -13,6 +13,8 @@ import { resolveChromeExecutable } from "./browser-runtime.mjs";
  *   E. Yarrow 8/18 reopen stays on the QuestionFirst default entry; one Resume
  *      restores the frozen question and the exact 8/18 with the same id
  *   F. Manual draft reopen does the same for the exact draft line values
+ *   G. Manual sealed recovery keeps the frozen question across reload, and
+ *      Retry Handoff writes Pending[A] with the exact original identity
  */
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
@@ -380,6 +382,100 @@ async function verifyManualDraftReopen(page) {
   log("C1 — Manual draft reopen: default entry, one Resume restores question + exact draft");
 }
 
+async function injectPendingWriteFailure(page) {
+  await page.evaluate((pendingPrefix) => {
+    const original = Storage.prototype.setItem;
+    Object.defineProperty(window, "__restorePendingSetItem", {
+      configurable: true,
+      value: () => {
+        Object.defineProperty(Storage.prototype, "setItem", {
+          configurable: true,
+          writable: true,
+          value: original,
+        });
+      },
+    });
+    Object.defineProperty(Storage.prototype, "setItem", {
+      configurable: true,
+      writable: true,
+      value: function blockedSetItem(itemKey, itemValue) {
+        if (this === localStorage && String(itemKey).startsWith(pendingPrefix)) {
+          throw new DOMException("Storage blocked", "SecurityError");
+        }
+        return original.call(this, itemKey, itemValue);
+      },
+    });
+  }, PENDING_PREFIX);
+}
+
+async function restorePendingWriteFailure(page) {
+  await page.evaluate(() => window.__restorePendingSetItem?.());
+}
+
+/**
+ * HIGH-002 — Manual sealed recovery must keep the frozen question.
+ *
+ * fresh completion -> handoff failure -> sealed session remains -> reload ->
+ * exact reconstruction -> Retry Handoff -> Pending[A] with the original
+ * frozen question, same id, same lines, same evidence.
+ */
+async function verifyManualSealedRecoveryKeepsQuestion(page) {
+  const question = "Should I move to Kyoto for a year?";
+  await page.goto(BASE + "/", { waitUntil: "networkidle0" });
+  await clearLifecycleStorage(page);
+  await page.goto(`${BASE}/methods/manual-cast`, { waitUntil: "networkidle0" });
+  await page.waitForSelector("[data-question-first] textarea[data-private-question]", { timeout: 15_000 });
+  await page.type("[data-question-first] textarea[data-private-question]", question);
+  await page.evaluate(() => document.querySelector("[data-question-first] button.mystic-button")?.click());
+  await page.waitForSelector("[data-manual-cast-tool]:not([data-reading-sealed])", { timeout: 15_000 });
+
+  // Force the handoff failure: Pending[A] cannot be written, so the exact
+  // completed facts stay sealed in the Manual method session.
+  await injectPendingWriteFailure(page);
+  await page.evaluate(() => document.querySelector("[data-manual-continue]")?.click());
+  await page.waitForSelector("[data-reading-sealed]", { timeout: 15_000 });
+  const sealedId = await page.$eval("[data-reading-sealed]", (node) => node.getAttribute("data-reading-sealed") ?? "");
+  assert(sealedId, "A failed handoff must seal the Manual completed facts");
+  assert.equal(new URL(page.url()).pathname, "/methods/manual-cast", "A failed handoff must not navigate");
+  await restorePendingWriteFailure(page);
+
+  // Simulated reload: the sealed reading must be reconstructed from the
+  // authoritative Manual session, including the frozen core question.
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForSelector("[data-reading-sealed]", { timeout: 15_000 });
+  const sealedSession = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }, MANUAL_KEY);
+  assert.equal(sealedSession?.id, sealedId, "Reload must reconstruct the exact sealed reading id");
+  assert.equal(sealedSession?.coreQuestionAtCast, question, "The authoritative sealed session must keep the frozen core question");
+
+  // Retry Handoff must hand off the exact same completed reading.
+  await page.evaluate(() => document.querySelector("[data-reading-retry-handoff]")?.click());
+  await page.waitForFunction(
+    (resultPath) => location.pathname === resultPath && new URLSearchParams(location.search).get("session") !== null,
+    { timeout: 20_000 },
+    "/readings/choice",
+  );
+  const sessionId = await page.evaluate(() => new URLSearchParams(location.search).get("session"));
+  assert.equal(sessionId, sealedId, "Retry Handoff must reuse the exact sealed reading id");
+  await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
+
+  const pending = await page.evaluate((prefix) => {
+    const id = new URLSearchParams(location.search).get("session") || "";
+    const raw = localStorage.getItem(prefix + id);
+    return raw ? JSON.parse(raw) : null;
+  }, PENDING_PREFIX);
+  assert(pending, "Retry Handoff must persist exactly Pending[A]");
+  assert.equal(pending.readingId, sealedId, "Pending[A].readingId must be the original reading id");
+  assert.equal(pending.question, question, "Pending[A].question must be the original frozen question");
+  assert.deepEqual(pending.lineValuesBottomUp, [7, 7, 7, 7, 7, 7], "Pending[A] must keep the exact six line values");
+  assert.deepEqual(pending.evidence, { kind: "manual", mode: "line-values" }, "Pending[A] must keep the exact evidence");
+  assert.equal(pending.createdAt, sealedSession?.createdAt, "Pending[A].createdAt must be the original cast timestamp");
+  assert.equal(await page.evaluate((key) => sessionStorage.getItem(key), MANUAL_KEY), null, "A successful retry must retire the sealed method session");
+  log("HIGH-002 — Manual sealed recovery keeps the frozen question across reload and Retry Handoff");
+}
+
 async function main() {
   const serverlessChromium = {
     executablePath: async () => {
@@ -408,6 +504,7 @@ async function main() {
     await verifyHomeIsNotHijacked(page);
     await verifyYarrowPartialReopen(page);
     await verifyManualDraftReopen(page);
+    await verifyManualSealedRecoveryKeepsQuestion(page);
     await verifyCrossMethodIdentity(page);
     const fatal = consoleErrors.filter((message) => !/favicon|Failed to load resource.*404/i.test(message));
     assert.deepEqual(fatal, [], `Unexpected browser errors: ${fatal.join(" | ")}`);
