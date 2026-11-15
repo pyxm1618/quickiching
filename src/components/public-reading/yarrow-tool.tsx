@@ -5,6 +5,7 @@ import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading-handoff";
 import { useQuestionFirstContext, useQuestionFirstResumeBoundary } from "@/components/public-reading/question-first";
@@ -223,6 +224,7 @@ export function YarrowTool({
   }
 
   function discardSealedReading() {
+    questionContext?.restartQuestion(true);
     reset();
   }
 
@@ -282,6 +284,9 @@ export function YarrowTool({
           {complete ? t("Reading complete", "起卦完成") : (zh ? `进行第 ${changes.length + 1} 变` : `Perform change ${changes.length + 1}`)}
         </button>
         <button type="button" onClick={() => reset(true)} disabled={changes.length === 0 || complete} className="mystic-button-secondary">{t("Restart casting", "重新起卦")}</button>
+        <Link href={zh ? "/zh" : "/"} prefetch={false} className="mystic-button-secondary" data-flow-exit>
+          {t("Exit", "退出起卦")}
+        </Link>
       </div>
 
       {saveError ? <div className="mt-4"><p role="alert">{saveError}</p><button type="button" className="mystic-button-secondary mt-3" onClick={() => commitChanges(changes)}>{t("Retry saving", "重新保存")}</button></div> : null}
