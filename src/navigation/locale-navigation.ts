@@ -14,7 +14,12 @@
  */
 
 import type { ContentLocale } from "@/i18n/config";
-import { normalizeNavigationPath, surfaceIdForPath, type SurfaceId } from "./surface-contract";
+import {
+  hasPricingFlowContext,
+  normalizeNavigationPath,
+  surfaceIdForPath,
+  type SurfaceId,
+} from "./surface-contract";
 
 /** Query keys that carry meaning for a surface and must survive a locale switch. */
 const FLOW_CRITICAL_QUERY: Partial<Record<SurfaceId, readonly string[]>> = {
@@ -22,7 +27,7 @@ const FLOW_CRITICAL_QUERY: Partial<Record<SurfaceId, readonly string[]>> = {
   S13: ["session"],
   S14: ["session"],
   S15: ["returnUrl"],
-  S16: ["returnUrl"],
+  S16: ["returnUrl", "orderId"],
   S17: ["callbackURL"],
   S18: ["callbackURL"],
 };
@@ -32,6 +37,70 @@ const NESTED_CONTEXT_KEYS = new Set(["callbackURL", "returnUrl"]);
 
 /** Guards against malformed/cyclic nesting in untrusted query strings. */
 const MAX_CONTEXT_DEPTH = 4;
+
+export type LocaleContinuationMethod = "three-coin" | "yarrow-stalks" | "mei-hua-yi-shu" | "manual";
+
+const LOCALE_CONTINUATION_KEY = "quickiching:navigation:locale-continuation:v1";
+const LOCALE_CONTINUATION_TTL_MS = 60_000;
+
+type ContinuationStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+
+function continuationMethodForSurface(surfaceId: SurfaceId): LocaleContinuationMethod | null {
+  if (surfaceId === "S02") return "three-coin";
+  if (surfaceId === "S06") return "yarrow-stalks";
+  if (surfaceId === "S07") return "mei-hua-yi-shu";
+  if (surfaceId === "S08") return "manual";
+  return null;
+}
+
+function browserContinuationStorage(): ContinuationStorage | null {
+  return typeof window === "undefined" ? null : window.sessionStorage;
+}
+
+/**
+ * Explicit locale switching is a continuation intent, unlike refresh/direct
+ * reopen. The marker is short-lived and one-shot; the target method consumes it
+ * and restores through its existing Resume primitive.
+ */
+export function markLocaleSwitchContinuation(
+  surfaceId: SurfaceId,
+  storage: ContinuationStorage | null = browserContinuationStorage(),
+  nowMs = Date.now(),
+): boolean {
+  const method = continuationMethodForSurface(surfaceId);
+  if (!method || !storage || !Number.isFinite(nowMs)) return false;
+  try {
+    storage.setItem(LOCALE_CONTINUATION_KEY, JSON.stringify({ method, createdAt: nowMs }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function consumeLocaleSwitchContinuation(
+  method: LocaleContinuationMethod,
+  storage: ContinuationStorage | null = browserContinuationStorage(),
+  nowMs = Date.now(),
+): boolean {
+  if (!storage || !Number.isFinite(nowMs)) return false;
+  let raw: string | null = null;
+  try {
+    raw = storage.getItem(LOCALE_CONTINUATION_KEY);
+    storage.removeItem(LOCALE_CONTINUATION_KEY);
+  } catch {
+    return false;
+  }
+  if (!raw) return false;
+  try {
+    const parsed = JSON.parse(raw) as { method?: unknown; createdAt?: unknown };
+    return parsed.method === method
+      && typeof parsed.createdAt === "number"
+      && nowMs >= parsed.createdAt
+      && nowMs - parsed.createdAt <= LOCALE_CONTINUATION_TTL_MS;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Surfaces whose stable fragment identifies a real section of the equivalent
@@ -171,10 +240,14 @@ export function localeSwitchTarget(input: {
   hash?: string;
   currentLocale: ContentLocale;
   flowState?: Parameters<typeof surfaceIdForPath>[1];
+  surfaceId?: SurfaceId;
 }): LocaleSwitchTarget {
   const targetLocale: ContentLocale = input.currentLocale === "en" ? "zh-Hans" : "en";
   const { basePath } = normalizeNavigationPath(input.pathname);
-  const surfaceId = surfaceIdForPath(input.pathname, input.flowState);
+  const inferredFlowState = input.flowState ?? (
+    hasPricingFlowContext(input.search) ? { pricingReadingContext: true } : undefined
+  );
+  const surfaceId = input.surfaceId ?? surfaceIdForPath(input.pathname, inferredFlowState);
   if (surfaceId === "S20" || surfaceId === "S21") {
     return { href: localizedSurfaceHref(basePath, targetLocale), available: false };
   }
@@ -198,7 +271,10 @@ export function authCallbackPath(input: {
   search?: string;
   hash?: string;
 }): string {
-  const surfaceId = surfaceIdForPath(input.pathname);
+  const surfaceId = surfaceIdForPath(
+    input.pathname,
+    hasPricingFlowContext(input.search) ? { pricingReadingContext: true } : undefined,
+  );
   const keys = FLOW_CRITICAL_QUERY[surfaceId];
   if (!keys) return `${input.pathname}${preservedFragment(surfaceId, input.hash)}`;
   const source = parseParams(input.search);
