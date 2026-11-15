@@ -3,10 +3,20 @@ import { ALGORITHM_VERSIONS } from "@/domain/casting/types";
 import type { ThreeCoinStep } from "@/domain/casting/three-coin/algorithm";
 import { patchThreeCoinQuestionSession, writeThreeCoinSteps } from "./three-coin-session";
 import {
+  LOCALE_CONTINUATION_STORAGE_KEY,
+  clearLiveFlowRegistration,
+  consumeLocaleContinuation,
+  currentMethodSessionId,
   decideReadingResume,
   detectMethodResume,
+  getLiveFlowRegistration,
+  issueLocaleContinuationIntent,
   manualResumeState,
   NO_READING_RESUME,
+  prepareLocaleContinuationClick,
+  readLocaleContinuationRecord,
+  registerLiveFlow,
+  registerLiveFlowFromSession,
   resumeProgressLabel,
   threeCoinResumeState,
   yarrowResumeState,
@@ -276,5 +286,210 @@ describe("C1 — QuestionFirst-bound method adapters", () => {
   it("returns nothing when the method has no resume adapter", () => {
     expect(detectMethodResume("three-coin")).toEqual(NO_READING_RESUME);
     expect(detectMethodResume(null)).toEqual(NO_READING_RESUME);
+  });
+});
+
+
+describe("C9 — Active-Flow Locale Continuation Intent", () => {
+  it("issues, validates against the authoritative method session, and consumes exactly once", () => {
+    const sessionMemory = stubBrowserStorage();
+    writeThreeCoinSteps([step(0), step(1), step(2), step(3)]);
+    const readingId = currentMethodSessionId("three-coin");
+    expect(readingId).toBeTruthy();
+
+    expect(issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: readingId!,
+      targetLocale: "zh-Hans",
+    })).toBe(true);
+    expect(consumeLocaleContinuation({
+      method: "three-coin",
+      locale: "zh-Hans",
+      sessionId: readingId,
+    })).toBe(true);
+    expect(sessionMemory.has(LOCALE_CONTINUATION_STORAGE_KEY)).toBe(false);
+    expect(consumeLocaleContinuation({
+      method: "three-coin",
+      locale: "zh-Hans",
+      sessionId: readingId,
+    })).toBe(false);
+  });
+
+  it("deletes an expired intent and returns false", () => {
+    const sessionMemory = stubBrowserStorage();
+    expect(issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: "reading-A",
+      targetLocale: "zh-Hans",
+    })).toBe(true);
+    const stale = JSON.parse(sessionMemory.get(LOCALE_CONTINUATION_STORAGE_KEY) ?? "{}");
+    stale.issuedAt = Date.now() - 61_000;
+    sessionMemory.set(LOCALE_CONTINUATION_STORAGE_KEY, JSON.stringify(stale));
+
+    expect(consumeLocaleContinuation({
+      method: "three-coin",
+      locale: "zh-Hans",
+      sessionId: "reading-A",
+    })).toBe(false);
+    expect(sessionMemory.has(LOCALE_CONTINUATION_STORAGE_KEY)).toBe(false);
+  });
+
+  it.each([
+    ["method", { method: "yarrow-stalks" as const, locale: "zh-Hans" as const, sessionId: "reading-A" }],
+    ["readingId", { method: "three-coin" as const, locale: "zh-Hans" as const, sessionId: "reading-B" }],
+    ["locale", { method: "three-coin" as const, locale: "en" as const, sessionId: "reading-A" }],
+  ])("deletes and rejects a %s mismatch", (_label, consumeInput) => {
+    const sessionMemory = stubBrowserStorage();
+    issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: "reading-A",
+      targetLocale: "zh-Hans",
+    });
+    expect(consumeLocaleContinuation(consumeInput)).toBe(false);
+    expect(sessionMemory.has(LOCALE_CONTINUATION_STORAGE_KEY)).toBe(false);
+  });
+
+  it("deletes and rejects a malformed or payload-bearing record", () => {
+    const sessionMemory = stubBrowserStorage();
+    const badRecords = [
+      "not-json",
+      JSON.stringify({ schemaVersion: 2, nonce: "n", method: "three-coin", readingId: "A", targetLocale: "zh-Hans", issuedAt: Date.now() }),
+      JSON.stringify({ schemaVersion: 1, nonce: "n", method: "three-coin", readingId: "A", targetLocale: "zh-Hans", issuedAt: Date.now(), question: "forbidden" }),
+    ];
+    for (const raw of badRecords) {
+      sessionMemory.set(LOCALE_CONTINUATION_STORAGE_KEY, raw);
+      expect(consumeLocaleContinuation({
+        method: "three-coin",
+        locale: "zh-Hans",
+        sessionId: "A",
+      })).toBe(false);
+      expect(sessionMemory.has(LOCALE_CONTINUATION_STORAGE_KEY)).toBe(false);
+    }
+  });
+
+  it("writes only the six-field continuation record and no reading payload", () => {
+    stubBrowserStorage();
+    expect(issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: "reading-A",
+      targetLocale: "zh-Hans",
+    })).toBe(true);
+    const record = readLocaleContinuationRecord();
+    expect(record).not.toBeNull();
+    expect(Object.keys(record!).sort()).toEqual([
+      "issuedAt",
+      "method",
+      "nonce",
+      "readingId",
+      "schemaVersion",
+      "targetLocale",
+    ]);
+    const raw = JSON.stringify(record);
+    for (const forbidden of [
+      "question",
+      "lines",
+      "changes",
+      "draft",
+      "hexagram",
+      "steps",
+      "lineValues",
+      "payment",
+      "account",
+    ]) {
+      expect(raw).not.toContain(forbidden);
+    }
+  });
+
+  it("does not issue for modified or middle clicks", () => {
+    const liveFlow = {
+      method: "three-coin" as const,
+      readingId: "reading-A",
+      locale: "en" as const,
+      active: true as const,
+    };
+    for (const event of [
+      { button: 1, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false },
+      { button: 0, metaKey: true, ctrlKey: false, shiftKey: false, altKey: false },
+      { button: 0, metaKey: false, ctrlKey: true, shiftKey: false, altKey: false },
+      { button: 0, metaKey: false, ctrlKey: false, shiftKey: true, altKey: false },
+      { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: true },
+    ]) {
+      const issueIntent = vi.fn(() => true);
+      expect(prepareLocaleContinuationClick({
+        event,
+        targetLocale: "zh-Hans",
+        liveFlow,
+        issueIntent,
+      })).toBe("ignore");
+      expect(issueIntent).not.toHaveBeenCalled();
+    }
+  });
+
+  it("cancels a plain locale navigation when the active-flow intent write fails", () => {
+    const issueIntent = vi.fn(() => false);
+    expect(prepareLocaleContinuationClick({
+      event: { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false },
+      targetLocale: "zh-Hans",
+      liveFlow: {
+        method: "three-coin",
+        readingId: "reading-A",
+        locale: "en",
+        active: true,
+      },
+      issueIntent,
+    })).toBe("cancel");
+    expect(issueIntent).toHaveBeenCalledWith({
+      method: "three-coin",
+      readingId: "reading-A",
+      targetLocale: "zh-Hans",
+    });
+  });
+
+  it("returns false when sessionStorage rejects the intent write", () => {
+    vi.stubGlobal("window", {
+      sessionStorage: {
+        getItem: () => null,
+        setItem: () => { throw new DOMException("blocked", "SecurityError"); },
+        removeItem: () => {},
+      },
+    });
+    expect(issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: "reading-A",
+      targetLocale: "zh-Hans",
+    })).toBe(false);
+  });
+
+  it("keeps passive detection separate from live registration, then registers only on activation", () => {
+    stubBrowserStorage();
+    clearLiveFlowRegistration();
+    writeThreeCoinSteps([step(0)]);
+    expect(threeCoinResumeState()).toMatchObject({ kind: "partial" });
+    expect(getLiveFlowRegistration()).toBeNull();
+
+    registerLiveFlowFromSession("three-coin", "en");
+    expect(getLiveFlowRegistration()).toMatchObject({
+      method: "three-coin",
+      locale: "en",
+      active: true,
+    });
+    expect(getLiveFlowRegistration()?.readingId).toBe(currentMethodSessionId("three-coin"));
+  });
+
+  it("clears the memory-only registration at a flow-end boundary", () => {
+    clearLiveFlowRegistration();
+    registerLiveFlow({
+      method: "manual",
+      readingId: "manual-A",
+      locale: "en",
+    });
+    expect(getLiveFlowRegistration()).toEqual({
+      method: "manual",
+      readingId: "manual-A",
+      locale: "en",
+      active: true,
+    });
+    clearLiveFlowRegistration();
+    expect(getLiveFlowRegistration()).toBeNull();
   });
 });
