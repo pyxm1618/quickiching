@@ -122,18 +122,18 @@ describe("Navigation / Surface Authority architecture", () => {
     expect(scenePanels).toContain("INFO_LINKS");
     expect(scenePanels).toContain("SUPPORT_EMAIL_LINK");
     expect(contentShell).toContain("INFO_LINKS.map");
-    for (const destination of [
-      /["'`]\\/guides\\/how-to-ask-the-i-ching["'`]/u,
-      /["'`]\\/guides\\/changing-lines["'`]/u,
-      /["'`]\\/guides\\/primary-relating-hexagrams["'`]/u,
-      /["'`]\\/help["'`]/u,
-      /["'`]\\/privacy["'`]/u,
-      /["'`]\\/terms["'`]/u,
-      /["'`]\\/acceptable-use["'`]/u,
-      /["'`]mailto:support@quickiching\\.com["'`]/u,
+    for (const legacyOwner of [
+      'localize("/guides/how-to-ask-the-i-ching")',
+      'localize("/guides/changing-lines")',
+      'localize("/guides/primary-relating-hexagrams")',
+      'localize("/help")',
+      'localize("/privacy")',
+      'localize("/terms")',
+      'localize("/acceptable-use")',
+      'href="mailto:support@quickiching.com"',
     ]) {
-      expect(scenePanels).not.toMatch(destination);
-      expect(contentShell).not.toMatch(destination);
+      expect(scenePanels).not.toContain(legacyOwner);
+      expect(contentShell).not.toContain(legacyOwner);
     }
   });
 
