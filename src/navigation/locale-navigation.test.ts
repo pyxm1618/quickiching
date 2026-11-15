@@ -273,15 +273,15 @@ describe("explicit locale continuation intent", () => {
     ["S08", "manual"],
   ] as const)("continues %s only after an explicit locale switch", (surfaceId, method) => {
     const storage = new MemoryStorage();
-    expect(consumeLocaleSwitchContinuation(method, storage as Storage, 10_000)).toBe(false);
-    expect(markLocaleSwitchContinuation(surfaceId, storage as Storage, 10_000)).toBe(true);
-    expect(consumeLocaleSwitchContinuation(method, storage as Storage, 10_001)).toBe(true);
-    expect(consumeLocaleSwitchContinuation(method, storage as Storage, 10_002)).toBe(false);
+    expect(consumeLocaleSwitchContinuation(method, storage, 10_000)).toBe(false);
+    expect(markLocaleSwitchContinuation(surfaceId, storage, 10_000)).toBe(true);
+    expect(consumeLocaleSwitchContinuation(method, storage, 10_001)).toBe(true);
+    expect(consumeLocaleSwitchContinuation(method, storage, 10_002)).toBe(false);
   });
 
   it("does not create continuation intent on non-casting surfaces", () => {
     const storage = new MemoryStorage();
-    expect(markLocaleSwitchContinuation("S15", storage as Storage, 10_000)).toBe(false);
-    expect(consumeLocaleSwitchContinuation("manual", storage as Storage, 10_001)).toBe(false);
+    expect(markLocaleSwitchContinuation("S15", storage, 10_000)).toBe(false);
+    expect(consumeLocaleSwitchContinuation("manual", storage, 10_001)).toBe(false);
   });
 });
