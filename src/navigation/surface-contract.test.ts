@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  hasPricingFlowContext,
   hasReadingReturnContext,
   resolveSurfaceContract,
   surfaceIdForPath,
@@ -113,5 +114,27 @@ describe("Surface Contract", () => {
     expect(hasReadingReturnContext("?returnUrl=%2F%2Fevil.example")).toBe(false);
     expect(hasReadingReturnContext("?orderId=ord_1")).toBe(false);
     expect(hasReadingReturnContext(undefined)).toBe(false);
+  });
+
+  it("classifies either a reading return or payment recovery identity as Pricing flow context", () => {
+    expect(hasPricingFlowContext("?returnUrl=%2Freadings%2Fdeep%3Fsession%3DA")).toBe(true);
+    expect(hasPricingFlowContext("?orderId=ord_A")).toBe(true);
+    expect(hasPricingFlowContext("?orderId=ord_A&returnUrl=%2Freadings%2Fdeep%3Fsession%3DB")).toBe(true);
+    expect(hasPricingFlowContext("?utm_source=x")).toBe(false);
+    expect(hasPricingFlowContext(undefined)).toBe(false);
+
+    const contract = resolveSurfaceContract({
+      pathname: "/pricing",
+      flowState: { pricingReadingContext: hasPricingFlowContext("?orderId=ord_A") },
+    });
+    expect(contract.id).toBe("S16");
+    expect(contract.mode).toBe("flow");
+    expect(contract.primaryNavigation).toBe(false);
+  });
+
+  it("keeps account capability disabled on auth surfaces while allowed surfaces remain enabled", () => {
+    expect(resolveSurfaceContract({ pathname: "/signin" }).accountControl).toBe(false);
+    expect(resolveSurfaceContract({ pathname: "/signup" }).accountControl).toBe(false);
+    expect(resolveSurfaceContract({ pathname: "/methods/yarrow-stalks" }).accountControl).toBe(true);
   });
 });
