@@ -187,13 +187,18 @@ async function openSettings(page, expectedEmail) {
     });
     assert(clicked, "Authenticated user menu must expose Settings");
   } else {
-    // The Account modal owner is global and listens for this same event from
-    // UserNavControl. Dispatching it avoids coupling the lifecycle proof to
-    // responsive shell visibility while still exercising the real Settings UI,
-    // server Auth session and server mutation endpoints.
-    await page.evaluate(() => {
-      window.dispatchEvent(new CustomEvent("quickiching:open-account", { detail: "settings" }));
-    });
+    // AccountModalHost is dynamically mounted. Re-dispatch the same production
+    // event until its listener is installed rather than treating module-load
+    // timing as lifecycle behavior.
+    let opened = false;
+    for (let attempt = 0; attempt < 60 && !opened; attempt += 1) {
+      await page.evaluate(() => {
+        window.dispatchEvent(new CustomEvent("quickiching:open-account", { detail: "settings" }));
+      });
+      opened = await page.evaluate(() => Boolean(document.querySelector('[data-account-surface="settings"]')));
+      if (!opened) await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    assert(opened, "Production AccountModalHost must open the Settings surface");
   }
 
   await page.waitForSelector('[data-account-surface="settings"]', { visible: true, timeout: 15_000 });
