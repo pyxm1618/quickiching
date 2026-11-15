@@ -93,4 +93,38 @@ describe("Navigation / Surface Authority architecture", () => {
       expect(source).not.toContain("InfoPageHeader");
     }
   });
+
+  it("keeps Manual shell presentation in the central shell CSS, never in page-owned CSS", () => {
+    const manualCss = readFileSync(new URL("../components/public-reading/manual-cast.css", import.meta.url), "utf8");
+    const shellCss = readFileSync(new URL("../components/scene-navigation.css", import.meta.url), "utf8");
+    expect(manualCss).not.toContain("body:has(.manual-cast-page) > header");
+    expect(manualCss).not.toContain("body:has(.manual-cast-page) .scene-utility");
+    expect(shellCss).toContain(".scene-navigation[data-navigation-surface='S08']");
+  });
+
+  it("makes Other Methods one discovery authority shared by both shell presentations", () => {
+    const links = readFileSync(new URL("./discovery-links.ts", import.meta.url), "utf8");
+    const scenePanels = readFileSync(new URL("../components/scene-navigation-panels.tsx", import.meta.url), "utf8");
+    const contentShell = readFileSync(new URL("../components/navigation/content-navigation-shell.tsx", import.meta.url), "utf8");
+    expect(links).toContain("export const OTHER_METHOD_LINKS");
+    expect(scenePanels).toContain("OTHER_METHOD_LINKS.map");
+    expect(contentShell).toContain("OTHER_METHOD_LINKS.map");
+    expect(scenePanels).not.toContain('path: "/methods/yarrow-stalks"');
+    expect(contentShell).not.toContain("METHOD_LINKS.map");
+  });
+
+  it("makes every shell presentation consume contract capability flags", () => {
+    const scene = readFileSync(new URL("../components/scene-navigation.tsx", import.meta.url), "utf8");
+    const content = readFileSync(new URL("../components/navigation/content-navigation-shell.tsx", import.meta.url), "utf8");
+    const info = readFileSync(new URL("../components/info-pages/info-page-header.tsx", import.meta.url), "utf8");
+    for (const source of [scene, content, info]) {
+      expect(source).toContain("contract.homeControl");
+      expect(source).toContain("contract.localeControl");
+      expect(source).toContain("contract.accountControl");
+      expect(source).toContain("contract.primaryNavigation");
+    }
+    expect(scene).toContain("contract.accountControl && authEnabled");
+    expect(content).toContain("contract.accountControl && authEnabled");
+    expect(info).toContain("contract.accountControl && authEnabled");
+  });
 });
