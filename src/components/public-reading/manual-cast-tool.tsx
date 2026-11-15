@@ -24,6 +24,7 @@ import {
 } from "@/lib/manual-cast-sealed";
 import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading-handoff";
 import { MANUAL_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
+import { clearLiveFlowRegistration } from "@/lib/reading-resume";
 import {
   clearManualCastDraft,
   readManualCastDraft,
@@ -532,6 +533,7 @@ export function ManualCastTool({
   }
 
   function startNewFromSealed() {
+    clearLiveFlowRegistration();
     clearManualCastDraft();
     setSealedReading(null);
     setHandoffError(null);
