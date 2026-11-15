@@ -275,7 +275,21 @@ async function verifyPaymentReturnSurface(page, viewport) {
   assert.equal(parsed.searchParams.get("orderId"), "ord_nav_A", `${tag}: EN reverse target lost orderId`);
   assert.equal(parsed.searchParams.get("returnUrl"), "/zh/readings/deep?session=B", `${tag}: EN reverse nested returnUrl was not localized`);
 
-  // orderId-only is also S16 and must preserve identity in both directions.
+  // orderId-only is also S16 for a valid payment return. Keep the URL
+  // intentionally orderId-only while supplying the matching checkout context
+  // that production requires to distinguish a genuine return from a stale or
+  // forged orderId. The locale target itself must not invent returnUrl.
+  await page.evaluate(({ key, orderId, returnUrl }) => {
+    const now = Date.now();
+    sessionStorage.setItem(key, JSON.stringify({
+      orderId,
+      returnUrl,
+      creditsBeforeCheckout: 0,
+      createdAt: now,
+      expiresAt: now + 10 * 60_000,
+    }));
+  }, { key: CHECKOUT_RETURN_CONTEXT_KEY, orderId: "ord_nav_only", returnUrl });
+
   for (const [startPath, targetPath] of [["/pricing", "/zh/pricing"], ["/zh/pricing", "/pricing"]]) {
     await open(page, `${startPath}?orderId=ord_nav_only`);
     assert(await page.$('body > header[data-navigation-surface="S16"][data-navigation-mode="flow"]'), `${tag}: orderId-only ${startPath} must stay S16`);
