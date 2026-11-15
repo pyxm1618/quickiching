@@ -119,15 +119,16 @@ async function seedMethodState(page, entries) {
 }
 
 function yarrowChanges(count) {
+  const states = [
+    { startingStalks: 49, endingStalks: 44, leftGroup: 25, rightGroup: 24, leftRemainder: 1, rightRemainder: 3 },
+    { startingStalks: 44, endingStalks: 36, leftGroup: 20, rightGroup: 24, leftRemainder: 4, rightRemainder: 3 },
+    { startingStalks: 36, endingStalks: 28, leftGroup: 16, rightGroup: 20, leftRemainder: 4, rightRemainder: 3 },
+  ];
   return Array.from({ length: count }, (_, index) => ({
     lineIndex: Math.floor(index / 3),
     changeIndex: index % 3,
-    startingStalks: 49,
-    endingStalks: 28,
-    leftGroup: 20,
-    rightGroup: 28,
-    leftRemainder: 4,
-    rightRemainder: 4,
+    ...states[index % 3],
+    removedFromRight: 1,
     algorithmVersion: "yarrow-zhu-xi-digital-v2",
   }));
 }
