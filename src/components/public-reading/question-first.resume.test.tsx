@@ -35,12 +35,14 @@ describe("C1 — QuestionFirst passive resume boundary", () => {
 
   it("never writes a passively restored session state into the UI stage", () => {
     const source = readFileSync(new URL("./question-first.tsx", import.meta.url), "utf8");
-    const mountEffect = /useEffect\(\(\) => \{[\s\S]*?\}, \[resumeMethod, storageKey\]\);/u.exec(source)?.[0] ?? "";
+    const mountEffect = /useEffect\(\(\) => \{[\s\S]*?\}, \[resumeMethod, restorePersistedResume\]\);/u.exec(source)?.[0] ?? "";
     expect(mountEffect).toContain("detectMethodResume");
-    expect(mountEffect).not.toContain("setStarted(restored");
+    expect(mountEffect).toContain("consumeLocaleSwitchContinuation");
+    expect(mountEffect).toContain('detected.kind === "partial" && continueAcrossLocale');
     expect(mountEffect).not.toContain("setQuestionState");
     expect(mountEffect).not.toContain("setDraft");
     expect(source).toContain("function requestResume()");
+    expect(source).toContain("restorePersistedResume()");
     expect(source).toContain("resumeRequested");
   });
 
