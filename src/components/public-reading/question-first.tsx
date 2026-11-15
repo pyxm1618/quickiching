@@ -204,6 +204,7 @@ export function QuestionFirst({
       setError(dictionary.questionFirst.saveError);
       return;
     }
+    clearLiveFlowRegistration();
     setQuestionState(undefined);
     setDraft("");
     setError("");
@@ -213,7 +214,6 @@ export function QuestionFirst({
 
   function restartQuestion(force = false) {
     if (coreQuestionFrozenAtCast && !force) return;
-    clearLiveFlowRegistration();
     if (!persist(false, undefined, undefined, false)) {
       setError(dictionary.questionFirst.saveError);
       return;
