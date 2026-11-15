@@ -10,6 +10,9 @@ const base=process.env.PUBLIC_V1_TEST_BASE_URL||'http://127.0.0.1:3056';
 const output=resolve(process.env.NAV_QA_OUTPUT||'docs/design/scene-navigation/evidence/2026-11-01');
 await mkdir(output,{recursive:true});
 const authClosed=(await fetch(base+'/account',{redirect:'manual'})).status===410;
+const startupFameHref='https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com';
+const startupFameBadgeSrc='https://startupfa.me/badge?t=small&theme=default';
+const startupFameAlt='Quick I Ching - Featured on Startup Fame';
 const report={base,authClosed,states:[],checks:[],errors:[],status:'RUNNING'};
 function check(name,value){assert(value,name);report.checks.push({name,status:'PASS'});}
 async function openSceneHome(page,locale){
@@ -62,13 +65,41 @@ try {
   if(state!=='default')await page.click(`.scene-scroll-${state}`);
   await page.waitForFunction(value=>document.querySelector('.scene-navigation').dataset.scenePanel===(value==='default'?'closed':value),{},state);
   await page.mouse.move(1000,100);await new Promise(resolve=>setTimeout(resolve,800));
-  const metadata=await page.evaluate(()=>({url:location.href,title:document.title,viewport:{width:innerWidth,height:innerHeight},dpr:devicePixelRatio,fontsReady:document.fonts.status==='loaded',imagesReady:[...document.images].every(image=>image.complete&&image.naturalWidth>0),overflow:document.documentElement.scrollWidth>innerWidth,fullPage:false,screenshotScale:'css',panel:document.querySelector('.scene-navigation').dataset.scenePanel,elements:[...document.querySelectorAll('.scene-brand,.scene-utility,.scene-scroll,.scene-scroll-holder,.scene-panel:not([hidden]),.scene-panel:not([hidden]) h2,.scene-panel:not([hidden]) h3,.scene-panel:not([hidden]) a,.scene-panel:not([hidden]) p')].map(node=>({className:node.className,text:node.textContent,rect:node.getBoundingClientRect().toJSON(),font:getComputedStyle(node).font}))}));
+  const metadata=await page.evaluate(()=>({url:location.href,title:document.title,viewport:{width:innerWidth,height:innerHeight},dpr:devicePixelRatio,fontsReady:document.fonts.status==='loaded',imagesReady:[...document.images].filter(image=>image.alt!=='Quick I Ching - Featured on Startup Fame').every(image=>image.complete&&image.naturalWidth>0),overflow:document.documentElement.scrollWidth>innerWidth,fullPage:false,screenshotScale:'css',panel:document.querySelector('.scene-navigation').dataset.scenePanel,elements:[...document.querySelectorAll('.scene-brand,.scene-utility,.scene-scroll,.scene-scroll-holder,.scene-panel:not([hidden]),.scene-panel:not([hidden]) h2,.scene-panel:not([hidden]) h3,.scene-panel:not([hidden]) a,.scene-panel:not([hidden]) p')].map(node=>({className:node.className,text:node.textContent,rect:node.getBoundingClientRect().toJSON(),font:getComputedStyle(node).font}))}));
   check(`${state}: exact viewport and DPR`,metadata.viewport.width===width&&metadata.viewport.height===height&&metadata.dpr===1);
   check(`${state}: images and fonts ready`,metadata.imagesReady&&metadata.fontsReady);
   check(`${state}: no horizontal overflow`,!metadata.overflow);
+  if(state==='info'){
+   const badge=await page.$eval('.scene-info-note a[href^="https://startupfa.me/s/quick-i-ching"]',link=>{
+    const image=link.querySelector('img');
+    const copyright=[...link.parentElement.querySelectorAll('p')].find(node=>node.textContent?.includes('Quick I Ching'));
+    const linkRect=link.getBoundingClientRect();
+    const imageRect=image?.getBoundingClientRect();
+    const copyrightRect=copyright?.getBoundingClientRect();
+    return {
+     href:link.getAttribute('href'),
+     target:link.getAttribute('target'),
+     rel:link.getAttribute('rel')||'',
+     src:image?.getAttribute('src'),
+     alt:image?.getAttribute('alt'),
+     width:image?.getAttribute('width'),
+     height:image?.getAttribute('height'),
+     linkRect:{x:linkRect.x,y:linkRect.y,width:linkRect.width,height:linkRect.height},
+     imageRect:imageRect?{x:imageRect.x,y:imageRect.y,width:imageRect.width,height:imageRect.height}:null,
+     copyrightRect:copyrightRect?{x:copyrightRect.x,y:copyrightRect.y,width:copyrightRect.width,height:copyrightRect.height}:null,
+    };
+   });
+   check('info: Startup Fame href exact',badge.href===startupFameHref);
+   check('info: Startup Fame opens a new tab',badge.target==='_blank');
+   check('info: Startup Fame rel exact and safe',badge.rel==='noopener noreferrer');
+   check('info: Startup Fame image contract exact',badge.src===startupFameBadgeSrc&&badge.alt===startupFameAlt&&badge.width==='240'&&badge.height==='36');
+   check('info: Startup Fame renders at 240x36',!!badge.imageRect&&Math.abs(badge.imageRect.width-240)<=1&&Math.abs(badge.imageRect.height-36)<=1);
+   check('info: Startup Fame sits below copyright',!!badge.copyrightRect&&badge.linkRect.y>=badge.copyrightRect.y+badge.copyrightRect.height);
+   check('info: Startup Fame is horizontally centered',!!badge.imageRect&&Math.abs((badge.imageRect.x+badge.imageRect.width/2)-(metadata.viewport.width/2))<=1);
+  }
   const previous=JSON.parse(await readFile(`docs/design/scene-navigation/evidence/2026-10-30/${state}/facts.json`,'utf8'));
   let maximumDelta=0;
-  for(const original of previous.elements){const current=metadata.elements.find(element=>element.className===original.className&&element.text===(authClosed&&original.className==='scene-utility'?original.text.replace('Sign In',''):original.text)&&element.font===original.font);check(`${state}: approved element present (${original.className})`,!!current);for(const property of ['x','y','width','height'])maximumDelta=Math.max(maximumDelta,Math.abs(current.rect[property]-original.rect[property]));}
+  for(const original of previous.elements){const current=metadata.elements.find(element=>element.className===original.className&&element.text===(authClosed&&original.className==='scene-utility'?original.text.replace('Sign In',''):original.text)&&element.font===original.font);check(`${state}: approved element present (${original.className})`,!!current);const startupFameNoteShift=state==='info'&&(original.text==='For reflection, not deterministic prediction or professional advice.'||/^© .* Quick I Ching$/.test(original.text));if(!startupFameNoteShift)for(const property of ['x','y','width','height'])maximumDelta=Math.max(maximumDelta,Math.abs(current.rect[property]-original.rect[property]));}
   metadata.maximumApprovedGeometryDelta=maximumDelta;
   check(`${state}: approved navigation geometry retained`,maximumDelta<=1);
   await writeFile(`${output}/${state}.json`,JSON.stringify(metadata,null,2)+'\n');await page.screenshot({path:`${output}/${state}.png`,fullPage:false});report.states.push({state,viewport:metadata.viewport,dpr:metadata.dpr,maximumApprovedGeometryDelta:maximumDelta});
@@ -79,10 +110,12 @@ try {
  await page.keyboard.press('Escape');check('Escape returns Methods focus',await page.evaluate(()=>document.activeElement?.classList.contains('scene-scroll-methods')));
  await page.focus('.scene-scroll-info');await page.keyboard.press('ArrowDown');
  await page.waitForFunction(()=>document.activeElement?.getAttribute('href')==='/guides/how-to-ask-the-i-ching');check('Info keyboard enters existing guide',true);
- await page.keyboard.press('End');check('Info End reaches reused Privacy Settings',await page.evaluate(()=>document.activeElement?.classList.contains('scene-privacy-button')));
+ await page.keyboard.press('End');check('Info End reaches Startup Fame badge',await page.evaluate(expected=>document.activeElement?.getAttribute('href')===expected,startupFameHref));
+ await page.keyboard.press('ArrowUp');check('Info ArrowUp reaches reused Privacy Settings',await page.evaluate(()=>document.activeElement?.classList.contains('scene-privacy-button')));
  await page.keyboard.press('Enter');await page.waitForSelector('[aria-label="Analytics Consent"]');check('Existing privacy consent control opens',true);
  for(const button of await page.$$('[aria-label="Analytics Consent"] button'))if(await button.evaluate(node=>node.textContent==='Decline'))await button.click();
  await page.keyboard.press('Escape');
+ await openSceneHome(page,'zh');await page.click('.scene-scroll-info');await page.waitForFunction(()=>document.querySelector('.scene-navigation')?.dataset.scenePanel==='info');check('zh: Startup Fame badge omitted',await page.$('.scene-info-note a[href^="https://startupfa.me/s/quick-i-ching"]')===null);await page.keyboard.press('Escape');
  const paths=['/hexagrams','/methods/yarrow-stalks','/methods/mei-hua-yi-shu','/methods/manual-cast','/guides/how-to-ask-the-i-ching','/guides/changing-lines','/guides/primary-relating-hexagrams','/help','/privacy','/terms','/acceptable-use'];
  for(const locale of ['en','zh']) {
   await openSceneHome(page,locale);
