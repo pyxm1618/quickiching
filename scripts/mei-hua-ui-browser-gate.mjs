@@ -22,7 +22,8 @@ const button=async(p,text)=>{
     return {disabled:candidate.disabled,width:rect.width,height:rect.height,pointerEvents:getComputedStyle(candidate).pointerEvents};
   },text);
   assert(state&&state.disabled===false&&state.width>0&&state.height>0&&state.pointerEvents!=="none",`${text}: visible enabled button required`);
-  const clicked=await clickHydratedButton(p,text);\n  assert(clicked,`${text}: hydrated click required`);
+  const clicked=await clickHydratedButton(p,text);
+  assert(clicked,`${text}: hydrated click required`);
 };
 const setControlledValue=async(p,selector,value)=>{
   await p.$eval(selector,(element,nextValue)=>{
