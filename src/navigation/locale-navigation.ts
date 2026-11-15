@@ -22,7 +22,7 @@ const FLOW_CRITICAL_QUERY: Partial<Record<SurfaceId, readonly string[]>> = {
   S13: ["session"],
   S14: ["session"],
   S15: ["returnUrl"],
-  S16: ["returnUrl", "orderId"],
+  S16: ["returnUrl"],
   S17: ["callbackURL"],
   S18: ["callbackURL"],
 };
