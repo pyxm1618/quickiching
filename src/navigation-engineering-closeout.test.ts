@@ -21,8 +21,10 @@ describe("navigation engineering closeout", () => {
 
   it("resolves language switching from the Surface Contract instead of a route-registry lookup", () => {
     const navigation = source("./components/scene-navigation.tsx");
-    expect(navigation).toContain('import { usePathname } from "next/navigation"');
-    expect(navigation).toContain("const pathname = usePathname()");
+    expect(navigation).toContain('import { useNavigationLocation } from "@/navigation/navigation-location"');
+    expect(navigation).toContain("const location = useNavigationLocation()");
+    expect(navigation).toContain("pathname: location.pathname");
+    expect(navigation).not.toContain("usePathname");
     // Navigation / Surface Authority: locale semantics are centralised so a
     // transactional surface can never fall back to Home on a locale switch.
     expect(navigation).toContain("localeSwitchTarget(");
