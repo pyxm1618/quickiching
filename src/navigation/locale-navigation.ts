@@ -14,7 +14,7 @@
  */
 
 import type { ContentLocale } from "@/i18n/config";
-import { normalizeNavigationPath, surfaceIdForPath, type SurfaceId } from "./surface-contract";
+import { hasPricingFlowContext, normalizeNavigationPath, surfaceIdForPath, type SurfaceId } from "./surface-contract";
 
 /** Query keys that carry meaning for a surface and must survive a locale switch. */
 const FLOW_CRITICAL_QUERY: Partial<Record<SurfaceId, readonly string[]>> = {
@@ -22,7 +22,7 @@ const FLOW_CRITICAL_QUERY: Partial<Record<SurfaceId, readonly string[]>> = {
   S13: ["session"],
   S14: ["session"],
   S15: ["returnUrl"],
-  S16: ["returnUrl"],
+  S16: ["returnUrl", "orderId"],
   S17: ["callbackURL"],
   S18: ["callbackURL"],
 };
@@ -174,7 +174,10 @@ export function localeSwitchTarget(input: {
 }): LocaleSwitchTarget {
   const targetLocale: ContentLocale = input.currentLocale === "en" ? "zh-Hans" : "en";
   const { basePath } = normalizeNavigationPath(input.pathname);
-  const surfaceId = surfaceIdForPath(input.pathname, input.flowState);
+  const inferredFlowState = input.flowState ?? (
+    hasPricingFlowContext(input.search) ? { pricingReadingContext: true } : undefined
+  );
+  const surfaceId = surfaceIdForPath(input.pathname, inferredFlowState);
   if (surfaceId === "S20" || surfaceId === "S21") {
     return { href: localizedSurfaceHref(basePath, targetLocale), available: false };
   }
@@ -198,7 +201,10 @@ export function authCallbackPath(input: {
   search?: string;
   hash?: string;
 }): string {
-  const surfaceId = surfaceIdForPath(input.pathname);
+  const surfaceId = surfaceIdForPath(
+    input.pathname,
+    hasPricingFlowContext(input.search) ? { pricingReadingContext: true } : undefined,
+  );
   const keys = FLOW_CRITICAL_QUERY[surfaceId];
   if (!keys) return `${input.pathname}${preservedFragment(surfaceId, input.hash)}`;
   const source = parseParams(input.search);
