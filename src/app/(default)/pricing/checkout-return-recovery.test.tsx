@@ -9,6 +9,7 @@ import {
 import {
   CHECKOUT_CONFIRMATION_WINDOW_MS,
   CheckoutReturnRecovery,
+  checkoutReadingReturnTarget,
   resolveCheckoutReturnPhase,
 } from "./checkout-return-recovery";
 
@@ -171,6 +172,13 @@ async function advanceTimersAndFlush(ms: number) {
 }
 
 describe("checkout return reconciliation", () => {
+  it("keeps the same reading identity while mapping Return to Reading to the selected locale", () => {
+    expect(checkoutReadingReturnTarget("/readings/deep?session=B", "zh-Hans"))
+      .toBe("/zh/readings/deep?session=B");
+    expect(checkoutReadingReturnTarget("/zh/readings/deep?session=B", "en"))
+      .toBe("/readings/deep?session=B");
+  });
+
   it("never confirms from orderId alone", () => {
     expect(resolveCheckoutReturnPhase({
       orderId: "order-1",
