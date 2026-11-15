@@ -1,14 +1,16 @@
 /**
  * Navigation / Surface Authority — Context Navigation.
  *
- * Locale switching is a surface operation, not a string replacement: the outer
- * route must land on the equivalent surface, the flow-critical state of that
- * surface must survive, and nested return targets must be mapped as well.
+ * Locale switching is a semantic surface operation, not a string replacement:
+ * the outer route must land on the equivalent surface, its flow-critical state
+ * must survive, and nested return/callback targets must be mapped recursively.
  *
- * Explicitly NOT preserved:
- *   - external URLs (only same-site absolute paths are mapped)
- *   - orderId and other opaque transaction identifiers
- *   - any query key that no surface declares below
+ * The only values that are *transformed* are same-origin internal paths and the
+ * two declared semantic context keys (`callbackURL`, `returnUrl`). Everything
+ * else is either preserved verbatim or dropped at the outer surface by its
+ * declared allowlist. External URLs, opaque identifiers (orderId), analytics
+ * params and unsafe callback targets are never rewritten. Full same-origin
+ * validation remains with validateAuthCallbackURL on the server.
  */
 
 import type { ContentLocale } from "@/i18n/config";
@@ -25,6 +27,12 @@ const FLOW_CRITICAL_QUERY: Partial<Record<SurfaceId, readonly string[]>> = {
   S18: ["callbackURL"],
 };
 
+/** Keys whose value is itself a semantic internal location, mapped recursively. */
+const NESTED_CONTEXT_KEYS = new Set(["callbackURL", "returnUrl"]);
+
+/** Guards against malformed/cyclic nesting in untrusted query strings. */
+const MAX_CONTEXT_DEPTH = 4;
+
 /**
  * Surfaces whose stable fragment identifies a real section of the equivalent
  * localized surface. Hexagram line anchors are identical in both locales.
@@ -38,8 +46,29 @@ function parseParams(search: string | undefined): URLSearchParams {
   return new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
 }
 
-function isInternalPath(value: string): boolean {
-  return value.startsWith("/") && !value.startsWith("//") && !value.includes("\\");
+/**
+ * Same-origin internal target guard, mirroring the rules of
+ * validateAuthCallbackURL (which remains the authoritative server validator).
+ * An unsafe target is never locale-mapped: it is left untouched so the server
+ * validator can reject it exactly as it does today.
+ */
+export function isSafeInternalTarget(value: string): boolean {
+  if (!value || value.length > 2048 || value.trim() !== value) return false;
+  if (!value.startsWith("/") || value.startsWith("//")) return false;
+  if (value.includes("\\") || /%(?:25)*(?:5c)/iu.test(value)) return false;
+  const splitIndex = value.search(/[?#]/u);
+  let pathPart = splitIndex < 0 ? value : value.slice(0, splitIndex);
+  try {
+    for (let pass = 0; pass < 8; pass += 1) {
+      if (pathPart.includes("\\") || pathPart.startsWith("//") || /%(?:25)*(?:2f|5c)/iu.test(pathPart)) return false;
+      const next = decodeURIComponent(pathPart);
+      if (next === pathPart) return true;
+      pathPart = next;
+    }
+  } catch {
+    return false;
+  }
+  return false;
 }
 
 export function localizedSurfaceHref(basePath: string, targetLocale: ContentLocale): string {
@@ -48,20 +77,64 @@ export function localizedSurfaceHref(basePath: string, targetLocale: ContentLoca
   return base;
 }
 
-/**
- * Maps an internal path (optionally carrying its own query and fragment) onto
- * the equivalent localized surface. External targets and opaque values are
- * returned untouched.
- */
-export function mapInternalPathLocale(value: string, targetLocale: ContentLocale): string {
-  if (!isInternalPath(value)) return value;
-  const splitIndex = value.search(/[?#]/u);
-  const pathPart = splitIndex < 0 ? value : value.slice(0, splitIndex);
-  const rest = splitIndex < 0 ? "" : value.slice(splitIndex);
-  const { basePath } = normalizeNavigationPath(pathPart);
-  return `${localizedSurfaceHref(basePath, targetLocale)}${rest}`;
+function splitLocation(value: string): { path: string; search: string; hash: string } {
+  const hashIndex = value.indexOf("#");
+  const hash = hashIndex >= 0 ? value.slice(hashIndex) : "";
+  const withoutHash = hashIndex >= 0 ? value.slice(0, hashIndex) : value;
+  const queryIndex = withoutHash.indexOf("?");
+  const search = queryIndex >= 0 ? withoutHash.slice(queryIndex) : "";
+  const path = queryIndex >= 0 ? withoutHash.slice(0, queryIndex) : withoutHash;
+  return { path, search, hash };
 }
 
+/**
+ * Maps the search of a *nested* semantic target. Non-semantic keys (session,
+ * orderId, analytics params, opaque values) are preserved verbatim; only the
+ * two declared nested context keys are recursively mapped. This keeps the exact
+ * identity of the nested surface instead of blindly rewriting its query.
+ */
+function mapNestedSearch(search: string, targetLocale: ContentLocale, depth: number): string {
+  if (!search) return "";
+  const source = parseParams(search);
+  const result = new URLSearchParams();
+  for (const [key, value] of source.entries()) {
+    result.set(key, NESTED_CONTEXT_KEYS.has(key) ? mapInternalPathLocale(value, targetLocale, depth + 1) : value);
+  }
+  const serialized = result.toString();
+  return serialized ? `?${serialized}` : "";
+}
+
+function semanticHash(hash: string): string {
+  if (!hash) return "";
+  const candidate = hash.startsWith("#") ? hash : `#${hash}`;
+  return FRAGMENT_PATTERN.test(candidate) ? candidate : "";
+}
+
+/**
+ * Maps a same-origin internal path onto the equivalent localized surface,
+ * recursively mapping nested `callbackURL` / `returnUrl` targets.
+ *
+ * External URLs, opaque values and unsafe callback targets are returned
+ * untouched. Nested `session` values, semantic fragments and all other nested
+ * query identity are preserved verbatim.
+ */
+export function mapInternalPathLocale(
+  value: string,
+  targetLocale: ContentLocale,
+  depth = 0,
+): string {
+  if (depth > MAX_CONTEXT_DEPTH) return value;
+  if (!isSafeInternalTarget(value)) return value;
+  const { path, search, hash } = splitLocation(value);
+  const { basePath } = normalizeNavigationPath(path);
+  return (
+    localizedSurfaceHref(basePath, targetLocale) +
+    mapNestedSearch(search, targetLocale, depth) +
+    semanticHash(hash)
+  );
+}
+
+/** Outer surface: only the keys that surface declares are carried across. */
 function preservedQuery(surfaceId: SurfaceId, search: string | undefined, targetLocale: ContentLocale): string {
   const keys = FLOW_CRITICAL_QUERY[surfaceId];
   if (!keys) return "";
@@ -70,7 +143,7 @@ function preservedQuery(surfaceId: SurfaceId, search: string | undefined, target
   for (const key of keys) {
     const value = source.get(key);
     if (value === null || value === "") continue;
-    result.set(key, key === "returnUrl" || key === "callbackURL" ? mapInternalPathLocale(value, targetLocale) : value);
+    result.set(key, NESTED_CONTEXT_KEYS.has(key) ? mapInternalPathLocale(value, targetLocale) : value);
   }
   const serialized = result.toString();
   return serialized ? `?${serialized}` : "";
@@ -78,8 +151,7 @@ function preservedQuery(surfaceId: SurfaceId, search: string | undefined, target
 
 function preservedFragment(surfaceId: SurfaceId, hash: string | undefined): string {
   if (!hash || !FRAGMENT_SURFACES.has(surfaceId)) return "";
-  const candidate = hash.startsWith("#") ? hash : `#${hash}`;
-  return FRAGMENT_PATTERN.test(candidate) ? candidate : "";
+  return semanticHash(hash);
 }
 
 export type LocaleSwitchTarget = {
@@ -118,7 +190,8 @@ export function localeSwitchTarget(input: {
  *
  * Preserves the same flow-critical state the locale switch preserves, so a
  * visitor who signs in from a sealed reading returns to that reading instead of
- * the home page. Security validation stays with validateAuthCallbackURL.
+ * the home page. Nested targets stay inside the current locale. Security
+ * validation stays with validateAuthCallbackURL.
  */
 export function authCallbackPath(input: {
   pathname: string;
@@ -126,16 +199,13 @@ export function authCallbackPath(input: {
   hash?: string;
 }): string {
   const surfaceId = surfaceIdForPath(input.pathname);
-  const query = input.search ?? "";
   const keys = FLOW_CRITICAL_QUERY[surfaceId];
   if (!keys) return `${input.pathname}${preservedFragment(surfaceId, input.hash)}`;
-  const source = parseParams(query);
+  const source = parseParams(input.search);
   const result = new URLSearchParams();
   for (const key of keys) {
     const value = source.get(key);
     if (value === null || value === "") continue;
-    // The callback target stays inside the current locale; nested targets are
-    // preserved verbatim because they already point at a concrete surface.
     result.set(key, value);
   }
   const serialized = result.toString();
