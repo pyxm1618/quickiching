@@ -6,9 +6,9 @@ import { Globe } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { UserNavControl } from "@/components/auth/user-nav-control";
 import { SeoRouteGraph } from "@/components/seo-route-graph";
-import { localeSwitchTarget, shellHomeTarget } from "@/navigation/locale-navigation";
+import { localeSwitchTarget, markLocaleSwitchContinuation, shellHomeTarget } from "@/navigation/locale-navigation";
 import { useNavigationLocation } from "@/navigation/navigation-location";
-import { HEXAGRAMS_LINK, INFO_LINKS, METHOD_LINKS, type DiscoveryLink } from "@/navigation/discovery-links";
+import { HEXAGRAMS_LINK, INFO_LINKS, OTHER_METHOD_LINKS, type DiscoveryLink } from "@/navigation/discovery-links";
 import type { ContentLocale } from "@/i18n/config";
 import type { SurfaceContract } from "@/navigation/surface-contract";
 import styles from "./content-navigation-shell.module.css";
@@ -42,6 +42,7 @@ export function ContentNavigationShell({
     search: location.search,
     hash: location.hash,
     currentLocale: locale,
+    surfaceId: contract.id,
   });
   const localize = (path: string) => zh ? `/zh${path === "/" ? "" : path}` : path;
   const label = (link: DiscoveryLink) => zh ? link.zh : link.en;
@@ -57,23 +58,27 @@ export function ContentNavigationShell({
       aria-label={zh ? "主导航" : "Main navigation"}
     >
       <div className={styles.bar}>
-        <Link href={homeHref} prefetch={false} className={styles.brand} data-shell-home>
-          <BrandMark size="md" priority locale={locale} />
-          <span>Quick I Ching</span>
-        </Link>
+        {contract.homeControl ? (
+          <Link href={homeHref} prefetch={false} className={styles.brand} data-shell-home>
+            <BrandMark size="md" priority locale={locale} />
+            <span>Quick I Ching</span>
+          </Link>
+        ) : null}
 
         <div className={styles.controls}>
-          <nav className={styles.languages} data-language-switcher aria-label={zh ? "选择语言" : "Select language"}>
-            <Globe aria-hidden="true" />
-            {zh
-              ? <Link href={target.href} prefetch={false} hrefLang="en" lang="en" data-locale-target>EN</Link>
-              : <span lang="en" aria-current="page">EN</span>}
-            <span aria-hidden="true">/</span>
-            {zh
-              ? <span lang="zh-Hans" aria-current="page">中文</span>
-              : <Link href={target.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" data-locale-target>中文</Link>}
-          </nav>
-          {authEnabled ? (
+          {contract.localeControl ? (
+            <nav className={styles.languages} data-language-switcher aria-label={zh ? "选择语言" : "Select language"}>
+              <Globe aria-hidden="true" />
+              {zh
+                ? <Link href={target.href} prefetch={false} hrefLang="en" lang="en" data-locale-target onClick={() => markLocaleSwitchContinuation(contract.id)}>EN</Link>
+                : <span lang="en" aria-current="page">EN</span>}
+              <span aria-hidden="true">/</span>
+              {zh
+                ? <span lang="zh-Hans" aria-current="page">中文</span>
+                : <Link href={target.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" data-locale-target onClick={() => markLocaleSwitchContinuation(contract.id)}>中文</Link>}
+            </nav>
+          ) : null}
+          {contract.accountControl && authEnabled ? (
             <div className={styles.account} data-shell-account>
               <UserNavControl locale={locale} />
             </div>
@@ -89,7 +94,7 @@ export function ContentNavigationShell({
           <details className={styles.group}>
             <summary data-primary-group="methods">{zh ? "其他起卦" : "Other Methods"}</summary>
             <div className={styles.groupLinks}>
-              {METHOD_LINKS.map((link) => (
+              {OTHER_METHOD_LINKS.map((link) => (
                 <Link key={link.path} href={localize(link.path)} prefetch={false} className={styles.primaryLink}>{label(link)}</Link>
               ))}
             </div>
