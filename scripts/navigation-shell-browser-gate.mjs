@@ -127,7 +127,7 @@ async function verifyS04(page, viewport, testCase, authClosed) {
     assert(visible(summary.rect, summary), `${tag}: ${group} group is not visible`);
     assert(await clickableAtCenter(page, selector), `${tag}: ${group} group is not clickable`);
     await page.click(selector);
-    const links = await page.$eval(`body > header [data-primary-group="${group}"] ~ div a`, (nodes) => nodes.map((node) => node.getAttribute("href")));
+    const links = await page.$$eval(`body > header [data-primary-group="${group}"] ~ div a`, (nodes) => nodes.map((node) => node.getAttribute("href")));
     assert(links.length > 0, `${tag}: ${group} group exposes no destinations`);
     for (const href of links) assert(href && href.startsWith("/"), `${tag}: invalid ${group} destination ${href}`);
     if (group === "methods") {
