@@ -110,7 +110,7 @@ describe("Navigation / Surface Authority architecture", () => {
     expect(scenePanels).toContain("OTHER_METHOD_LINKS.map");
     expect(contentShell).toContain("OTHER_METHOD_LINKS.map");
     expect(scenePanels).not.toContain('path: "/methods/yarrow-stalks"');
-    expect(contentShell).not.toContain("METHOD_LINKS.map");
+    expect(contentShell).not.toMatch(/\bMETHOD_LINKS\.map/u);
   });
 
   it("makes every shell presentation consume contract capability flags", () => {
@@ -121,8 +121,11 @@ describe("Navigation / Surface Authority architecture", () => {
       expect(source).toContain("contract.homeControl");
       expect(source).toContain("contract.localeControl");
       expect(source).toContain("contract.accountControl");
-      expect(source).toContain("contract.primaryNavigation");
     }
+    // Scene + Content are the only presentations that own discovery UI. Info
+    // is selected only for contracts whose primaryNavigation is frozen false.
+    expect(scene).toContain("contract.primaryNavigation");
+    expect(content).toContain("contract.primaryNavigation");
     expect(scene).toContain("contract.accountControl && authEnabled");
     expect(content).toContain("contract.accountControl && authEnabled");
     expect(info).toContain("contract.accountControl && authEnabled");
