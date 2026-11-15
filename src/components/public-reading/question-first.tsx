@@ -9,8 +9,12 @@ import type { PublicReadingMethod } from "@/domain/public-reading/types";
 import { retireMethodSession } from "@/lib/method-session-retirement";
 import {
   NO_READING_RESUME,
+  clearLiveFlowRegistration,
   detectMethodResume,
+  registerLiveFlowFromSession,
   resumeProgressLabel,
+  useLiveFlowUnmountCleanup,
+  useLocaleContinuationActivation,
   type ReadingResumeState,
 } from "@/lib/reading-resume";
 
@@ -92,8 +96,18 @@ export function QuestionFirst({
     if (detected.kind === "sealed") setStarted(true);
   }, [resumeMethod, storageKey]);
 
+  useLocaleContinuationActivation({
+    method: resumeMethod ?? null,
+    locale: dictionary.locale,
+    activate: () => requestResume(),
+  });
+  useLiveFlowUnmountCleanup(dictionary.locale);
+
   function requestResume() {
-    if (resumeState.kind !== "partial") return;
+    // The continuation effect can run in the same commit as passive detection,
+    // so authorize from a fresh R1 decision rather than a stale render snapshot.
+    const detected = resumeMethod ? detectMethodResume(resumeMethod) : NO_READING_RESUME;
+    if (detected.kind !== "partial") return;
     const restored = readPublicReadingSessionState(storageKey);
     setQuestionState(restored.question);
     setDraft(restored.question ?? "");
@@ -103,6 +117,7 @@ export function QuestionFirst({
     setStarted(true);
     setResumeRequested(true);
     setResumeState(NO_READING_RESUME);
+    if (resumeMethod) registerLiveFlowFromSession(resumeMethod, dictionary.locale);
   }
 
   /** Starting a brand-new reading is an explicit discard of an un-resumed partial. */
@@ -161,6 +176,7 @@ export function QuestionFirst({
         setDraft(coreQuestionAtCast ?? "");
         setError("");
         setStarted(true);
+        if (resumeMethod) registerLiveFlowFromSession(resumeMethod, dictionary.locale);
         return;
       }
       const normalized = normalizePublicQuestion(draft);
@@ -172,6 +188,7 @@ export function QuestionFirst({
       setDraft(normalized ?? "");
       setError("");
       setStarted(true);
+      if (resumeMethod) registerLiveFlowFromSession(resumeMethod, dictionary.locale);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? dictionary.questionFirst.tooLong.replace("{max}", String(PUBLIC_QUESTION_MAX_CODE_POINTS))
@@ -191,10 +208,12 @@ export function QuestionFirst({
     setDraft("");
     setError("");
     setStarted(nextStarted);
+    if (resumeMethod) registerLiveFlowFromSession(resumeMethod, dictionary.locale);
   }
 
   function restartQuestion(force = false) {
     if (coreQuestionFrozenAtCast && !force) return;
+    clearLiveFlowRegistration();
     if (!persist(false, undefined, undefined, false)) {
       setError(dictionary.questionFirst.saveError);
       return;
