@@ -15,11 +15,21 @@ export const HOME_LINK: DiscoveryLink = { path: "/", en: "Home", zh: "首页" };
 
 export const HEXAGRAMS_LINK: DiscoveryLink = { path: "/hexagrams", en: "64 Hexagrams", zh: "六十四卦" };
 
-export const METHOD_LINKS: readonly DiscoveryLink[] = [
-  { path: "/methods/three-coin", en: "Three Coin Method", zh: "三枚铜钱" },
+export const THREE_COIN_LINK: DiscoveryLink = {
+  path: "/methods/three-coin",
+  en: "Three Coin Method",
+  zh: "三枚铜钱",
+};
+
+export const OTHER_METHOD_LINKS: readonly DiscoveryLink[] = [
   { path: "/methods/yarrow-stalks", en: "Yarrow Stalks", zh: "蓍草法" },
   { path: "/methods/mei-hua-yi-shu", en: "Mei Hua Yi Shu", zh: "梅花易数" },
   { path: "/methods/manual-cast", en: "Manual Cast", zh: "手动起卦" },
+];
+
+export const METHOD_LINKS: readonly DiscoveryLink[] = [
+  THREE_COIN_LINK,
+  ...OTHER_METHOD_LINKS,
 ];
 
 export const INFO_LINKS: readonly DiscoveryLink[] = [
