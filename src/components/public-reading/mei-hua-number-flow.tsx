@@ -9,8 +9,12 @@ import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading
 import { MEI_HUA_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
 import {
   NO_READING_RESUME,
+  clearLiveFlowRegistration,
   decideReadingResume,
+  registerLiveFlowFromSession,
   resumeProgressLabel,
+  useLiveFlowUnmountCleanup,
+  useLocaleContinuationActivation,
   type ReadingResumeState,
 } from "@/lib/reading-resume";
 import {
@@ -174,6 +178,13 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
     }
   }, [zh]);
 
+  useLocaleContinuationActivation({
+    method: "mei-hua-yi-shu",
+    locale,
+    activate: () => resume(),
+  });
+  useLiveFlowUnmountCleanup(locale);
+
   function resume() {
     try {
       const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeData);
@@ -193,6 +204,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
         setStep(2);
       }
       setResumed(true);
+      registerLiveFlowFromSession("mei-hua-yi-shu", locale);
       setError("");
     } catch {
       setError(zh ? "无法恢复这次起卦。" : "This cast could not be resumed.");
@@ -241,6 +253,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
       setError("");
       setStep(2);
       persistDraft(2, null);
+      registerLiveFlowFromSession("mei-hua-yi-shu", locale);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? t(`Keep the question within ${PUBLIC_QUESTION_MAX_CODE_POINTS} Unicode characters.`, `问题请控制在 ${PUBLIC_QUESTION_MAX_CODE_POINTS} 个 Unicode 字符以内。`)
@@ -251,6 +264,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   function changeQuestion() {
     // A changed question is a new reading identity; the locked pre-cast draft is
     // discarded explicitly instead of being silently reused.
+    clearLiveFlowRegistration();
     try {
       clearPublicReadingSession(STORAGE_KEY);
     } catch {
@@ -335,6 +349,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   }
 
   function startNewReading() {
+    clearLiveFlowRegistration();
     try {
       clearPublicReadingSession(STORAGE_KEY);
     } catch {
@@ -435,5 +450,5 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
 function SceneBook({ zh }: { zh: boolean }) {
   const exitHref = zh ? "/zh" : "/";
   const exitLabel = zh ? "退出起卦" : "Exit";
-  return <Link href={exitHref} prefetch={false} className="mei-scene-book" aria-label={exitLabel} title={exitLabel} data-flow-exit><img src="/mei-hua/navigation-book.webp" alt="" width="1536" height="1024" /><span>{exitLabel}</span></Link>;
+  return <Link href={exitHref} prefetch={false} className="mei-scene-book" aria-label={exitLabel} title={exitLabel} data-flow-exit onClick={clearLiveFlowRegistration}><img src="/mei-hua/navigation-book.webp" alt="" width="1536" height="1024" /><span>{exitLabel}</span></Link>;
 }

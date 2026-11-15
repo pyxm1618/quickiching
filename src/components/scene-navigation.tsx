@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import React, { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,6 +11,13 @@ import { localeSwitchTarget, shellHomeTarget } from "@/navigation/locale-navigat
 import { useNavigationLocation } from "@/navigation/navigation-location";
 import { surfaceContract, type SurfaceContract } from "@/navigation/surface-contract";
 import type { ContentLocale } from "@/i18n/config";
+import type { PublicReadingMethod } from "@/domain/public-reading/types";
+import {
+  getLiveFlowRegistration,
+  issueLocaleContinuationIntent,
+  prepareLocaleContinuationClick,
+} from "@/lib/reading-resume";
+import { readCheckoutReturnContext } from "@/app/(default)/pricing/checkout-return-context";
 
 const UserNavControl = dynamic(
   () => import("@/components/auth/user-nav-control").then(m => m.UserNavControl),
@@ -21,14 +28,25 @@ const loadSceneNavigationPanels = () => import("@/components/scene-navigation-pa
 
 type Panel = "methods" | "info";
 
+function continuationMethodForSurface(id: SurfaceContract["id"]): PublicReadingMethod | null {
+  if (id === "S02") return "three-coin";
+  if (id === "S06") return "yarrow-stalks";
+  if (id === "S07") return "mei-hua-yi-shu";
+  if (id === "S08") return "manual";
+  return null;
+}
+
 export function SceneNavigation({
   locale = "en",
   authEnabled = false,
   contract = surfaceContract("S01"),
+  requestSearch,
 }: {
   locale?: ContentLocale;
   authEnabled?: boolean;
   contract?: SurfaceContract;
+  /** Exact request-query snapshot for transactional surfaces such as Pricing. */
+  requestSearch?: string;
 }) {
   const zh = locale === "zh-Hans";
   const pathname = usePathname() ?? (zh ? "/zh" : "/");
@@ -43,13 +61,86 @@ export function SceneNavigation({
   const focusRequest = useRef<"first" | "last" | null>(null);
   const localize = (path: string) => zh ? `/zh${path === "/" ? "" : path}` : path;
   const homeHref = shellHomeTarget(locale);
-  const localeTarget = localeSwitchTarget({
+  const currentSearch = requestSearch ?? location.search;
+  const currentOrderId = contract.id === "S16"
+    ? new URLSearchParams(currentSearch.startsWith("?") ? currentSearch.slice(1) : currentSearch).get("orderId")
+    : null;
+  const [freshPaymentRecoveryOrderId, setFreshPaymentRecoveryOrderId] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (contract.id !== "S16" || !currentOrderId) {
+      setFreshPaymentRecoveryOrderId(null);
+      return;
+    }
+    const context = readCheckoutReturnContext(window.sessionStorage);
+    setFreshPaymentRecoveryOrderId(context?.orderId === currentOrderId ? currentOrderId : null);
+  }, [contract.id, currentOrderId]);
+
+  const computedLocaleTarget = localeSwitchTarget({
     pathname,
-    search: location.search,
+    search: currentSearch,
     hash: location.hash,
     currentLocale: locale,
+    paymentRecoveryOrderId: freshPaymentRecoveryOrderId ?? undefined,
   });
+  // Pricing reading-return (S16) is query-identified. During the Suspense
+  // fallback there is no authoritative request query yet, so exposing a live
+  // locale link would create a brief href that can drop returnUrl. Keep the
+  // locale indicator non-interactive until PricingHeader supplies requestSearch.
+  // URL transformation still belongs exclusively to localeSwitchTarget().
+  const paymentRecoveryValidationPending = contract.id === "S16"
+    && Boolean(currentOrderId)
+    && freshPaymentRecoveryOrderId === undefined;
+  const localeTarget = contract.id === "S16" && (requestSearch === undefined || paymentRecoveryValidationPending)
+    ? { ...computedLocaleTarget, available: false }
+    : computedLocaleTarget;
   const triggerFor = (name: Panel) => name === "methods" ? methodsTrigger.current : infoTrigger.current;
+
+  function handleLocaleClick(event: MouseEvent<HTMLAnchorElement>, targetLocale: ContentLocale) {
+    setPanel(null);
+    const expectedMethod = continuationMethodForSurface(contract.id);
+    const registered = getLiveFlowRegistration();
+    const liveFlow = expectedMethod && registered?.method === expectedMethod ? registered : null;
+    const decision = prepareLocaleContinuationClick({
+      event,
+      targetLocale,
+      liveFlow,
+      issueIntent: issueLocaleContinuationIntent,
+    });
+    // C9 write failure is fail-closed.
+    if (decision === "cancel") {
+      event.preventDefault();
+      return;
+    }
+
+    // Pricing carries its flow identity in the query. A Next/Suspense shell can
+    // briefly render before that query snapshot reaches the header even though
+    // window.location already contains the exact request URL. On an ordinary
+    // primary click only, re-run the *existing* C5 owner against that exact
+    // browser location. This is a stale-render fail-safe, not a second URL
+    // transformation authority; modified/middle clicks remain native browser
+    // behavior because prepareLocaleContinuationClick returned "ignore".
+    if (
+      decision === "navigate"
+      && typeof window !== "undefined"
+      && (window.location.pathname === "/pricing" || window.location.pathname === "/zh/pricing")
+    ) {
+      const browserSearch = window.location.search;
+      const browserOrderId = new URLSearchParams(browserSearch.startsWith("?") ? browserSearch.slice(1) : browserSearch).get("orderId");
+      const recoveryContext = browserOrderId ? readCheckoutReturnContext(window.sessionStorage) : null;
+      const exactPricingTarget = localeSwitchTarget({
+        pathname: window.location.pathname,
+        search: browserSearch,
+        hash: window.location.hash,
+        currentLocale: locale,
+        paymentRecoveryOrderId: recoveryContext?.orderId === browserOrderId ? browserOrderId : undefined,
+      });
+      if (exactPricingTarget.available && exactPricingTarget.href !== localeTarget.href) {
+        event.preventDefault();
+        window.location.assign(exactPricingTarget.href);
+      }
+    }
+  }
 
   useEffect(() => {
     setPanel(null);
@@ -149,13 +240,13 @@ export function SceneNavigation({
           <Globe aria-hidden="true" />
           {zh ? (
             localeTarget.available
-              ? <Link href={localeTarget.href} prefetch={false} hrefLang="en" lang="en" onClick={() => setPanel(null)}>EN</Link>
+              ? <Link href={localeTarget.href} prefetch={false} hrefLang="en" lang="en" data-locale-switch="en" onClick={(event) => handleLocaleClick(event, "en")}>EN</Link>
               : <span lang="en">EN</span>
           ) : <span lang="en" aria-current="page">EN</span>}
           <span aria-hidden="true">/</span>
           {zh ? <span lang="zh-Hans" aria-current="page">中文</span> : (
             localeTarget.available
-              ? <Link href={localeTarget.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" onClick={() => setPanel(null)}>中文</Link>
+              ? <Link href={localeTarget.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" data-locale-switch="zh-Hans" onClick={(event) => handleLocaleClick(event, "zh-Hans")}>中文</Link>
               : <span lang="zh-Hans">中文</span>
           )}
         </div>

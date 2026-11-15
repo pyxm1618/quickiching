@@ -38,11 +38,35 @@ describe("locale switching keeps the surface and its flow-critical state", () =>
     }).href).toBe("/readings/deep?session=ABC-123");
   });
 
-  it("does not copy unrelated or opaque query state", () => {
+  it("keeps the reading return but filters unrelated or unvalidated query state", () => {
     expect(localeSwitchTarget({
       pathname: "/pricing",
       search: "?orderId=ord_9f8&returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC&utm_source=x",
       currentLocale: "en",
+    }).href).toBe("/zh/pricing?returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DABC");
+  });
+
+  it("preserves S16 orderId only when the payment recovery owner validates the same fresh identity", () => {
+    const search = "?orderId=ord_9f8&returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC&utm_source=x";
+
+    expect(localeSwitchTarget({
+      pathname: "/pricing",
+      search,
+      currentLocale: "en",
+    }).href).toBe("/zh/pricing?returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DABC");
+
+    expect(localeSwitchTarget({
+      pathname: "/pricing",
+      search,
+      currentLocale: "en",
+      paymentRecoveryOrderId: "ord_9f8",
+    }).href).toBe("/zh/pricing?returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DABC&orderId=ord_9f8");
+
+    expect(localeSwitchTarget({
+      pathname: "/pricing",
+      search,
+      currentLocale: "en",
+      paymentRecoveryOrderId: "ord_other",
     }).href).toBe("/zh/pricing?returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DABC");
   });
 
@@ -88,7 +112,7 @@ describe("auth callback preservation", () => {
   it("keeps the pricing return target", () => {
     expect(authCallbackPath({
       pathname: "/pricing",
-      search: "?returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC",
+      search: "?returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC&orderId=ord_9f8&utm_source=x",
     })).toBe("/pricing?returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC");
   });
 
@@ -190,7 +214,7 @@ describe("nested semantic locale context (recursive mapping)", () => {
     expect(mapInternalPathLocale("ord_123", "zh-Hans")).toBe("ord_123");
   });
 
-  it("drops opaque outer query state instead of blindly copying it", () => {
+  it("keeps allowlisted S16 return state without blindly copying outer query state", () => {
     const target = localeSwitchTarget({
       pathname: "/pricing",
       search: "?orderId=ord_9f8&utm_campaign=x&returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC",

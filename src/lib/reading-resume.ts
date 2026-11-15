@@ -1,7 +1,13 @@
+import { useEffect, useRef } from "react";
 import type { PublicReadingMethod } from "@/domain/public-reading/types";
+import type { ContentLocale } from "@/i18n/config";
 import { completedThreeCoinSteps, readThreeCoinQuestionState, readThreeCoinSession } from "@/lib/three-coin-session";
 import { readPublicReadingSession, readPublicReadingSessionState } from "@/lib/public-reading-session";
-import { MANUAL_SESSION_STORAGE_KEY, YARROW_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
+import {
+  MANUAL_SESSION_STORAGE_KEY,
+  MEI_HUA_SESSION_STORAGE_KEY,
+  YARROW_SESSION_STORAGE_KEY,
+} from "@/lib/method-session-retirement";
 import { readManualCastDraft } from "@/lib/manual-cast-draft";
 
 /**
@@ -175,4 +181,307 @@ export function resumeProgressLabel(state: ReadingResumeState, zh: boolean): str
   if (unit === "changes") return zh ? `${completed} / ${total} 变` : `${completed} / ${total} changes`;
   if (unit === "steps") return zh ? `第 ${completed} / ${total} 步` : `step ${completed} / ${total}`;
   return zh ? `${completed} / ${total} 爻` : `${completed} / ${total} lines`;
+}
+
+
+/**
+ * C9 — Active-Flow Locale Continuation Intent.
+ *
+ * R1 C1 remains authoritative: persisted progress is passive until an explicit
+ * activation boundary runs. This one-shot intent exists only to distinguish an
+ * explicit locale switch made from a currently active flow from a refresh,
+ * direct open, or a modified-click new tab.
+ */
+export const LOCALE_CONTINUATION_STORAGE_KEY = "quickiching:public-v1:locale-continuation";
+export const LOCALE_CONTINUATION_TTL_MS = 60_000;
+const LOCALE_CONTINUATION_SCHEMA_VERSION = 1 as const;
+const CONTINUATION_RECORD_KEYS = [
+  "issuedAt",
+  "method",
+  "nonce",
+  "readingId",
+  "schemaVersion",
+  "targetLocale",
+] as const;
+
+export type LocaleContinuationRecord = {
+  schemaVersion: typeof LOCALE_CONTINUATION_SCHEMA_VERSION;
+  nonce: string;
+  method: PublicReadingMethod;
+  readingId: string;
+  targetLocale: ContentLocale;
+  issuedAt: number;
+};
+
+const PUBLIC_READING_METHODS: readonly PublicReadingMethod[] = [
+  "three-coin",
+  "yarrow-stalks",
+  "mei-hua-yi-shu",
+  "manual",
+];
+
+let continuationNonceCounter = 0;
+
+function continuationStorage(): Storage {
+  if (typeof window === "undefined" || !window.sessionStorage) {
+    throw new Error("LOCALE_CONTINUATION_UNAVAILABLE");
+  }
+  return window.sessionStorage;
+}
+
+function makeContinuationNonce(): string {
+  try {
+    if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
+  } catch {
+    // A per-runtime monotonic suffix is sufficient for this short-lived intent.
+  }
+  continuationNonceCounter += 1;
+  return "lc-" + Date.now().toString(36) + "-" + continuationNonceCounter.toString(36);
+}
+
+function parseContinuationRecord(raw: string): LocaleContinuationRecord | null {
+  try {
+    const value = JSON.parse(raw) as unknown;
+    if (!value || typeof value !== "object") return null;
+    const record = value as Record<string, unknown>;
+    const keys = Object.keys(record).sort();
+    if (keys.length !== CONTINUATION_RECORD_KEYS.length
+      || keys.some((key, index) => key !== CONTINUATION_RECORD_KEYS[index])) return null;
+    if (record.schemaVersion !== LOCALE_CONTINUATION_SCHEMA_VERSION) return null;
+    if (typeof record.nonce !== "string" || record.nonce.length === 0 || record.nonce.length > 128) return null;
+    if (!PUBLIC_READING_METHODS.includes(record.method as PublicReadingMethod)) return null;
+    if (typeof record.readingId !== "string" || record.readingId.trim().length === 0 || record.readingId.length > 256) return null;
+    if (record.targetLocale !== "en" && record.targetLocale !== "zh-Hans") return null;
+    if (typeof record.issuedAt !== "number" || !Number.isFinite(record.issuedAt)) return null;
+    return {
+      schemaVersion: LOCALE_CONTINUATION_SCHEMA_VERSION,
+      nonce: record.nonce,
+      method: record.method as PublicReadingMethod,
+      readingId: record.readingId,
+      targetLocale: record.targetLocale,
+      issuedAt: record.issuedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function issueLocaleContinuationIntent(input: {
+  method: PublicReadingMethod;
+  readingId: string;
+  targetLocale: ContentLocale;
+}): boolean {
+  try {
+    const readingId = input.readingId.trim();
+    if (!readingId || readingId.length > 256) return false;
+    const record: LocaleContinuationRecord = {
+      schemaVersion: LOCALE_CONTINUATION_SCHEMA_VERSION,
+      nonce: makeContinuationNonce(),
+      method: input.method,
+      readingId,
+      targetLocale: input.targetLocale,
+      issuedAt: Date.now(),
+    };
+    continuationStorage().setItem(LOCALE_CONTINUATION_STORAGE_KEY, JSON.stringify(record));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * One-shot semantics are deliberately destructive:
+ * read -> validate -> DELETE FIRST -> return.
+ * Any malformed, expired, or mismatched intent is deleted and fails closed.
+ */
+export function consumeLocaleContinuation(input: {
+  method: PublicReadingMethod;
+  locale: ContentLocale;
+  sessionId: string | null;
+}): boolean {
+  let raw: string | null;
+  try {
+    raw = continuationStorage().getItem(LOCALE_CONTINUATION_STORAGE_KEY);
+  } catch {
+    return false;
+  }
+  if (raw === null) return false;
+
+  const record = parseContinuationRecord(raw);
+  const now = Date.now();
+  const valid = record !== null
+    && input.sessionId !== null
+    && input.sessionId.length > 0
+    && record.method === input.method
+    && record.readingId === input.sessionId
+    && record.targetLocale === input.locale
+    && now >= record.issuedAt
+    && now - record.issuedAt <= LOCALE_CONTINUATION_TTL_MS;
+
+  try {
+    continuationStorage().removeItem(LOCALE_CONTINUATION_STORAGE_KEY);
+  } catch {
+    // One-shot deletion is part of the authorization. If deletion cannot be
+    // proven, continuation is not authorized.
+    return false;
+  }
+  return valid;
+}
+
+/** Read-only test/diagnostic view; it never authorizes continuation. */
+export function readLocaleContinuationRecord(): LocaleContinuationRecord | null {
+  try {
+    const raw = continuationStorage().getItem(LOCALE_CONTINUATION_STORAGE_KEY);
+    return raw === null ? null : parseContinuationRecord(raw);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Exact authoritative identity for the current method session. This never
+ * guesses from a rendered result or chooses a "latest" reading.
+ */
+export function currentMethodSessionId(method: PublicReadingMethod): string | null {
+  try {
+    if (method === "three-coin") return readThreeCoinSession()?.id ?? null;
+    const key = method === "yarrow-stalks"
+      ? YARROW_SESSION_STORAGE_KEY
+      : method === "mei-hua-yi-shu"
+        ? MEI_HUA_SESSION_STORAGE_KEY
+        : MANUAL_SESSION_STORAGE_KEY;
+    const session = readPublicReadingSession(key, (value) => ({ raw: value }));
+    return session?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export type LiveFlowRegistration = {
+  method: PublicReadingMethod;
+  readingId: string;
+  locale: ContentLocale;
+  active: true;
+};
+
+let liveFlowRegistration: LiveFlowRegistration | null = null;
+
+export function registerLiveFlow(input: {
+  method: PublicReadingMethod;
+  readingId: string;
+  locale: ContentLocale;
+}): void {
+  const readingId = input.readingId.trim();
+  if (!readingId) return;
+  liveFlowRegistration = {
+    method: input.method,
+    readingId,
+    locale: input.locale,
+    active: true,
+  };
+}
+
+export function registerLiveFlowFromSession(method: PublicReadingMethod, locale: ContentLocale): void {
+  const readingId = currentMethodSessionId(method);
+  if (readingId) registerLiveFlow({ method, readingId, locale });
+}
+
+export function getLiveFlowRegistration(): LiveFlowRegistration | null {
+  return liveFlowRegistration ? { ...liveFlowRegistration } : null;
+}
+
+export function clearLiveFlowRegistration(): void {
+  liveFlowRegistration = null;
+}
+
+function clearLiveFlowRegistrationForLocale(locale: ContentLocale): void {
+  if (liveFlowRegistration?.locale === locale) liveFlowRegistration = null;
+}
+
+/**
+ * StrictMode-safe unmount cleanup. React's development Strict Mode performs a
+ * setup -> cleanup -> setup probe; the microtask/generation guard prevents
+ * that probe from clearing a still-mounted flow. The locale guard also stops
+ * the old locale's unmount from clearing a newly activated target-locale flow.
+ */
+export function useLiveFlowUnmountCleanup(locale: ContentLocale): void {
+  const generationRef = useRef(0);
+  useEffect(() => {
+    generationRef.current += 1;
+    const generation = generationRef.current;
+    return () => {
+      queueMicrotask(() => {
+        if (generationRef.current === generation) clearLiveFlowRegistrationForLocale(locale);
+      });
+    };
+  }, [locale]);
+}
+
+export type LocaleContinuationClickDecision = "ignore" | "cancel" | "navigate";
+
+/**
+ * Only an unmodified primary-button click can authorize C9. Modified/middle
+ * activation remains ordinary browser behavior and never writes an intent.
+ * If an active-flow write fails, navigation is cancelled fail-closed.
+ */
+export function prepareLocaleContinuationClick(input: {
+  event: {
+    button: number;
+    metaKey: boolean;
+    ctrlKey: boolean;
+    shiftKey: boolean;
+    altKey: boolean;
+  };
+  targetLocale: ContentLocale;
+  liveFlow: LiveFlowRegistration | null;
+  issueIntent: (intent: {
+    method: PublicReadingMethod;
+    readingId: string;
+    targetLocale: ContentLocale;
+  }) => boolean;
+}): LocaleContinuationClickDecision {
+  const { event } = input;
+  const plainLeftClick = event.button === 0
+    && !event.metaKey
+    && !event.ctrlKey
+    && !event.shiftKey
+    && !event.altKey;
+  if (!plainLeftClick) return "ignore";
+
+  const live = input.liveFlow;
+  if (!live?.active || live.locale === input.targetLocale) return "navigate";
+  return input.issueIntent({
+    method: live.method,
+    readingId: live.readingId,
+    targetLocale: input.targetLocale,
+  }) ? "navigate" : "cancel";
+}
+
+/**
+ * Validated locale continuation and explicit Resume converge on the same
+ * method-owned activation callback. The key guard permits a future locale
+ * transition while preventing React Strict Mode from consuming a one-shot
+ * record twice for the same method/locale mount.
+ */
+export function useLocaleContinuationActivation(input: {
+  method: PublicReadingMethod | null;
+  locale: ContentLocale;
+  activate: () => void;
+}): void {
+  const attemptedKeyRef = useRef<string | null>(null);
+  const activateRef = useRef(input.activate);
+  activateRef.current = input.activate;
+  const { method, locale } = input;
+
+  useEffect(() => {
+    if (method === null) return;
+    const attemptKey = method + ":" + locale;
+    if (attemptedKeyRef.current === attemptKey) return;
+    attemptedKeyRef.current = attemptKey;
+    const sessionId = currentMethodSessionId(method);
+    if (!sessionId) return;
+    if (consumeLocaleContinuation({ method, locale, sessionId })) {
+      activateRef.current();
+    }
+  }, [method, locale]);
 }
