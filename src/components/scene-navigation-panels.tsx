@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BookOpen, FileText, Mail, MessageSquare, Settings, ShieldCheck, Sparkles } from "lucide-react";
 import { PrivacySettingsButton } from "@/components/privacy-settings-button";
 import type { ContentLocale } from "@/i18n/config";
+import { OTHER_METHOD_LINKS } from "@/navigation/discovery-links";
 import "@/components/scene-navigation-panels.css";
 
 type Panel = "methods" | "info";
@@ -23,11 +24,16 @@ export function SceneNavigationPanels({
 }) {
   const zh = locale === "zh-Hans";
   const localize = (path: string) => zh ? `/zh${path === "/" ? "" : path}` : path;
-  const methods = [
-    { path: "/methods/yarrow-stalks", image: "yarrow", title: zh ? "蓍草法" : "Yarrow Stalks", description: zh ? "传统四十九根蓍草起卦" : "Traditional 49-stalk method" },
-    { path: "/methods/mei-hua-yi-shu", image: "mei-hua", title: zh ? "梅花易数" : "Mei Hua Yi Shu", description: zh ? "根据当前时间起卦" : "Cast from the current time" },
-    { path: "/methods/manual-cast", image: "manual", title: zh ? "手动起卦" : "Manual Cast", description: zh ? "输入已知卦象或六爻" : "Enter a known hexagram\nor six lines" },
-  ];
+  const methodPresentation = {
+    "/methods/yarrow-stalks": { image: "yarrow", description: zh ? "传统四十九根蓍草起卦" : "Traditional 49-stalk method" },
+    "/methods/mei-hua-yi-shu": { image: "mei-hua", description: zh ? "根据当前时间起卦" : "Cast from the current time" },
+    "/methods/manual-cast": { image: "manual", description: zh ? "输入已知卦象或六爻" : "Enter a known hexagram\nor six lines" },
+  } as const;
+  const methods = OTHER_METHOD_LINKS.map((link) => ({
+    ...link,
+    title: zh ? link.zh : link.en,
+    ...methodPresentation[link.path as keyof typeof methodPresentation],
+  }));
 
   if (panel === "methods") {
     return (
