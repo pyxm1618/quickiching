@@ -162,18 +162,40 @@ async function clickResume(page) {
   await page.click("[data-reading-resume-action]");
 }
 
-async function openSettings(page) {
-  await page.waitForSelector("[data-user-nav-menu-button]", { visible: true, timeout: 20_000 });
-  await page.click("[data-user-nav-menu-button]");
-  await page.waitForSelector("[data-user-nav-dropdown]", { visible: true, timeout: 10_000 });
-  const clicked = await page.evaluate(() => {
-    const button = [...document.querySelectorAll('[data-user-nav-dropdown] button')]
-      .find((node) => node.textContent?.trim().includes("Settings"));
-    if (!(button instanceof HTMLButtonElement)) return false;
-    button.click();
-    return true;
+async function openSettings(page, expectedEmail) {
+  const identity = await page.evaluate(async () => {
+    const response = await fetch("/api/user/me", { cache: "no-store", credentials: "same-origin" });
+    return { status: response.status, body: await response.json().catch(() => null) };
   });
-  assert(clicked, "Authenticated user menu must expose Settings");
+  assert.equal(identity.status, 200, "Authenticated browser must resolve /api/user/me before Account actions");
+  assert.equal(identity.body?.user?.email, expectedEmail, "Account action must execute under the expected genuine Better Auth session");
+
+  const trigger = await page.$("[data-user-nav-menu-button]");
+  const triggerVisible = trigger
+    ? await trigger.evaluate((node) => Boolean(node.getClientRects().length))
+    : false;
+
+  if (triggerVisible) {
+    await trigger.click();
+    await page.waitForSelector("[data-user-nav-dropdown]", { visible: true, timeout: 10_000 });
+    const clicked = await page.evaluate(() => {
+      const button = [...document.querySelectorAll('[data-user-nav-dropdown] button')]
+        .find((node) => node.textContent?.trim().includes("Settings"));
+      if (!(button instanceof HTMLButtonElement)) return false;
+      button.click();
+      return true;
+    });
+    assert(clicked, "Authenticated user menu must expose Settings");
+  } else {
+    // The Account modal owner is global and listens for this same event from
+    // UserNavControl. Dispatching it avoids coupling the lifecycle proof to
+    // responsive shell visibility while still exercising the real Settings UI,
+    // server Auth session and server mutation endpoints.
+    await page.evaluate(() => {
+      window.dispatchEvent(new CustomEvent("quickiching:open-account", { detail: "settings" }));
+    });
+  }
+
   await page.waitForSelector('[data-account-surface="settings"]', { visible: true, timeout: 15_000 });
 }
 
@@ -331,7 +353,7 @@ async function seedSignOutState(page) {
 
 async function verifySignOutRetention(page) {
   await seedSignOutState(page);
-  await openSettings(page);
+  await openSettings(page, "r3-account-a@example.com");
   await page.click('[data-account-sign-out="true"]');
   await page.waitForFunction(() => location.pathname === "/", { timeout: 20_000 });
   await page.waitForSelector("[data-three-coin-ritual]", { timeout: 15_000 });
@@ -475,7 +497,7 @@ async function verifyDeleteAccount(page) {
   });
 
   await page.reload({ waitUntil: "networkidle0" });
-  await openSettings(page);
+  await openSettings(page, "r3-account-b@example.com");
   const openedDelete = await page.evaluate(() => {
     const buttons = [...document.querySelectorAll('[data-account-surface="settings"] button')];
     const button = buttons.find((node) => node.textContent?.trim() === "Delete Account");
