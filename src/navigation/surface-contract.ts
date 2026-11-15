@@ -401,6 +401,18 @@ export function hasReadingReturnContext(search: string | undefined): boolean {
   return candidate.startsWith("/") && !candidate.startsWith("//");
 }
 
+/**
+ * S16 is transactional Pricing when a reading return target or payment-return
+ * identity is present. This only classifies the Surface Contract; C5 URL
+ * transformation remains solely in locale-navigation.ts.
+ */
+export function hasPricingFlowContext(search: string | undefined): boolean {
+  if (!search) return false;
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const orderId = params.get("orderId")?.trim();
+  return hasReadingReturnContext(search) || Boolean(orderId);
+}
+
 export function surfaceIdForPath(
   pathname: string,
   flowState: NavigationFlowState = {},
