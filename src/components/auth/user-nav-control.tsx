@@ -9,6 +9,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
 import { openAccountSurface, type AccountSurface } from "@/components/account/account-events";
 import { authCallbackPath } from "@/navigation/locale-navigation";
+import { useNavigationLocation } from "@/navigation/navigation-location";
 import "@/components/account/account.css";
 
 export type UserNavControlProps = {
@@ -111,14 +112,12 @@ export function UserNavControl({
   // Auth must return to the same semantic surface, including the flow-critical
   // state that surface declares (a sealed session, a pricing return target).
   // Same-origin validation stays with validateAuthCallbackURL on the server.
-  const [callbackTarget, setCallbackTarget] = useState(pathname);
-  useEffect(() => {
-    setCallbackTarget(authCallbackPath({
-      pathname,
-      search: window.location.search,
-      hash: window.location.hash,
-    }));
-  }, [pathname]);
+  const location = useNavigationLocation();
+  const callbackTarget = authCallbackPath({
+    pathname,
+    search: location.search,
+    hash: location.hash,
+  });
   const signinHref = `${authPrefix}/signin?callbackURL=${encodeURIComponent(callbackTarget)}`;
   const signupHref = `${authPrefix}/signup?callbackURL=${encodeURIComponent(callbackTarget)}`;
   const readingsHref = `${authPrefix}/my-readings`;

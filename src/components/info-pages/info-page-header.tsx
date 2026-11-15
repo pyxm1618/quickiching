@@ -1,10 +1,11 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import { localeSwitchTarget, shellHomeTarget } from "@/navigation/locale-navigation";
+import { useNavigationLocation } from "@/navigation/navigation-location";
 import { surfaceContract, type SurfaceContract } from "@/navigation/surface-contract";
 import { Globe } from "lucide-react";
 import { UserNavControl } from "@/components/auth/user-nav-control";
@@ -27,13 +28,14 @@ export function InfoPageHeader({
   authEnabled?: boolean;
   contract?: SurfaceContract;
 }) {
+  const location = useNavigationLocation();
   const pathname = usePathname() ?? "/";
-  const [hash, setHash] = useState("");
-  useEffect(() => {
-    setHash(window.location.hash);
-  }, [pathname]);
-
-  const target = localeSwitchTarget({ pathname, hash, currentLocale: locale });
+  const target = localeSwitchTarget({
+    pathname,
+    search: location.search,
+    hash: location.hash,
+    currentLocale: locale,
+  });
   const homeHref = shellHomeTarget(locale);
   const languageLabel = locale === "zh-Hans" ? "语言" : "Language";
   const englishLabel = locale === "zh-Hans" ? "英文" : "EN";

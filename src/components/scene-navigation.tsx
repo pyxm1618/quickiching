@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { Globe } from "lucide-react";
 import { SeoRouteGraph } from "@/components/seo-route-graph";
 import { localeSwitchTarget, shellHomeTarget } from "@/navigation/locale-navigation";
+import { useNavigationLocation } from "@/navigation/navigation-location";
 import { surfaceContract, type SurfaceContract } from "@/navigation/surface-contract";
 import type { ContentLocale } from "@/i18n/config";
 
@@ -32,7 +33,7 @@ export function SceneNavigation({
   const zh = locale === "zh-Hans";
   const pathname = usePathname() ?? (zh ? "/zh" : "/");
   const [panel, setPanel] = useState<Panel | null>(null);
-  const [browserTarget, setBrowserTarget] = useState({ search: "", hash: "" });
+  const location = useNavigationLocation();
   const id = useId();
   const rootRef = useRef<HTMLElement>(null);
   const methodsTrigger = useRef<HTMLButtonElement>(null);
@@ -44,15 +45,11 @@ export function SceneNavigation({
   const homeHref = shellHomeTarget(locale);
   const localeTarget = localeSwitchTarget({
     pathname,
-    search: browserTarget.search,
-    hash: browserTarget.hash,
+    search: location.search,
+    hash: location.hash,
     currentLocale: locale,
   });
   const triggerFor = (name: Panel) => name === "methods" ? methodsTrigger.current : infoTrigger.current;
-
-  useEffect(() => {
-    setBrowserTarget({ search: window.location.search, hash: window.location.hash });
-  }, [pathname]);
 
   useEffect(() => {
     setPanel(null);
