@@ -1,11 +1,42 @@
 import React from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import EnglishMethodPage from "@/app/(default)/methods/three-coin/page";
 import ChineseMethodPage from "@/app/(localized)/zh/methods/three-coin/page";
-import { ThreeCoinRitual, threeCoinExperienceStageForSession } from "./three-coin-ritual";
+import {
+  ThreeCoinRitual,
+  threeCoinExperienceStageForSession,
+  useThreeCoinRitualContext,
+} from "./three-coin-ritual";
+import { THREE_COIN_SESSION_STORAGE_KEY } from "@/lib/three-coin-session";
+import {
+  clearLiveFlowRegistration,
+  getLiveFlowRegistration,
+  registerLiveFlow,
+} from "@/lib/reading-resume";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
+
+const originalWindow = globalThis.window;
+
+function installSessionStorage(initialMap: Record<string, string> = {}) {
+  const values = new Map<string, string>(Object.entries(initialMap));
+  const sessionStorage = {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => values.set(key, value),
+    removeItem: (key: string) => values.delete(key),
+    clear: () => values.clear(),
+    key: (index: number) => [...values.keys()][index] ?? null,
+    get length() { return values.size; },
+  } as Storage;
+  (globalThis as any).window = { sessionStorage };
+  return sessionStorage;
+}
+
+afterEach(() => {
+  clearLiveFlowRegistration();
+  (globalThis as any).window = originalWindow;
+});
 function renderMethodPage(element: React.ReactNode): string {
   const classicGlobal = globalThis as typeof globalThis & { React?: typeof React };
   const previousReact = classicGlobal.React;
@@ -42,6 +73,46 @@ describe("ThreeCoinRitual entry authority", () => {
       question: "Should I take this role?",
       coreQuestionFrozenAtCast: true,
     })).toBe("ritual");
+  });
+
+  it("clears the active Three Coin registration when restartQuestion returns to landing", () => {
+    const id = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+    const question = "Should I accept the new role?";
+    const storage = installSessionStorage({
+      [THREE_COIN_SESSION_STORAGE_KEY]: JSON.stringify({
+        schemaVersion: 1,
+        id,
+        createdAt: new Date().toISOString(),
+        started: true,
+        question,
+        coreQuestionFrozenAtCast: false,
+      }),
+    });
+    registerLiveFlow({ method: "three-coin", readingId: id, locale: "en" });
+
+    let exposedContext: ReturnType<typeof useThreeCoinRitualContext> | undefined;
+    function Capture() {
+      exposedContext = useThreeCoinRitualContext();
+      return null;
+    }
+
+    renderToStaticMarkup(
+      <ThreeCoinRitual>
+        <Capture />
+      </ThreeCoinRitual>,
+    );
+
+    expect(getLiveFlowRegistration()).toMatchObject({
+      method: "three-coin",
+      readingId: id,
+      locale: "en",
+      active: true,
+    });
+
+    exposedContext?.restartQuestion();
+
+    expect(storage.getItem(THREE_COIN_SESSION_STORAGE_KEY)).toBeNull();
+    expect(getLiveFlowRegistration()).toBeNull();
   });
 
   it("renders the normal landing entry instead of restoring a saved stage", () => {

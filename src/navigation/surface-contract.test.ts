@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  hasPricingFlowContext,
   hasReadingReturnContext,
   resolveSurfaceContract,
   surfaceIdForPath,
@@ -104,6 +105,13 @@ describe("Surface Contract", () => {
     expect(localeSwitchableSurfaces()).toContain("S16");
     expect(localeSwitchableSurfaces()).not.toContain("S21");
     expect(surfacesWithoutPrimaryNavigation()).toContain("S03");
+  });
+
+  it("classifies pricing flow context from reading return or payment recovery identity", () => {
+    expect(hasPricingFlowContext("?returnUrl=%2Freadings%2Fdeep%3Fsession%3Dabc")).toBe(true);
+    expect(hasPricingFlowContext("?orderId=ord_1")).toBe(true);
+    expect(hasPricingFlowContext("?utm_source=x")).toBe(false);
+    expect(hasPricingFlowContext(undefined)).toBe(false);
   });
 
   it("accepts only an internal return target as a reading return context", () => {

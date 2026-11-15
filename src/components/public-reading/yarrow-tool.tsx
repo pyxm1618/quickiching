@@ -15,6 +15,7 @@ import type { PublicReading } from "@/domain/public-reading/types";
 import { browserRandomInt } from "@/lib/browser-random";
 import { clearPublicReadingSession, readPublicReadingSession, restartPublicReadingSession, writePublicReadingSession } from "@/lib/public-reading-session";
 import { YARROW_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
+import { clearLiveFlowRegistration, registerLiveFlowFromSession } from "@/lib/reading-resume";
 
 const STORAGE_KEY = YARROW_SESSION_STORAGE_KEY;
 type YarrowSessionData = { changes: YarrowChange[] };
@@ -197,9 +198,14 @@ export function YarrowTool({
   }
 
   function reset(preserveQuestion = false) {
+    clearLiveFlowRegistration();
     try {
-      if (preserveQuestion) restartPublicReadingSession(STORAGE_KEY);
-      else clearPublicReadingSession(STORAGE_KEY);
+      if (preserveQuestion) {
+        restartPublicReadingSession(STORAGE_KEY);
+        registerLiveFlowFromSession("yarrow-stalks", dictionary.locale);
+      } else {
+        clearPublicReadingSession(STORAGE_KEY);
+      }
     } catch {
       // The in-memory reset still gives the user a clean new reading.
     }

@@ -14,7 +14,7 @@
  */
 
 import type { ContentLocale } from "@/i18n/config";
-import { normalizeNavigationPath, surfaceIdForPath, type SurfaceId } from "./surface-contract";
+import { hasPricingFlowContext, normalizeNavigationPath, surfaceIdForPath, type SurfaceId } from "./surface-contract";
 
 /** Query keys that carry meaning for a surface and must survive a locale switch. */
 const FLOW_CRITICAL_QUERY: Partial<Record<SurfaceId, readonly string[]>> = {
@@ -135,7 +135,12 @@ export function mapInternalPathLocale(
 }
 
 /** Outer surface: only the keys that surface declares are carried across. */
-function preservedQuery(surfaceId: SurfaceId, search: string | undefined, targetLocale: ContentLocale): string {
+function preservedQuery(
+  surfaceId: SurfaceId,
+  search: string | undefined,
+  targetLocale: ContentLocale,
+  paymentRecoveryOrderId?: string,
+): string {
   const keys = FLOW_CRITICAL_QUERY[surfaceId];
   if (!keys) return "";
   const source = parseParams(search);
@@ -144,6 +149,16 @@ function preservedQuery(surfaceId: SurfaceId, search: string | undefined, target
     const value = source.get(key);
     if (value === null || value === "") continue;
     result.set(key, NESTED_CONTEXT_KEYS.has(key) ? mapInternalPathLocale(value, targetLocale) : value);
+  }
+  // S16 may carry a payment-recovery order identity, but only after the caller
+  // has validated it against the fresh checkout-return context. A query orderId
+  // alone is not authority and is therefore dropped by default.
+  if (
+    surfaceId === "S16"
+    && paymentRecoveryOrderId
+    && source.get("orderId") === paymentRecoveryOrderId
+  ) {
+    result.set("orderId", paymentRecoveryOrderId);
   }
   const serialized = result.toString();
   return serialized ? `?${serialized}` : "";
@@ -171,16 +186,21 @@ export function localeSwitchTarget(input: {
   hash?: string;
   currentLocale: ContentLocale;
   flowState?: Parameters<typeof surfaceIdForPath>[1];
+  /** Fresh, matching S16 checkout-recovery identity validated by its owner. */
+  paymentRecoveryOrderId?: string;
 }): LocaleSwitchTarget {
   const targetLocale: ContentLocale = input.currentLocale === "en" ? "zh-Hans" : "en";
   const { basePath } = normalizeNavigationPath(input.pathname);
-  const surfaceId = surfaceIdForPath(input.pathname, input.flowState);
+  const inferredFlowState = input.flowState ?? (
+    hasPricingFlowContext(input.search) ? { pricingReadingContext: true } : undefined
+  );
+  const surfaceId = surfaceIdForPath(input.pathname, inferredFlowState);
   if (surfaceId === "S20" || surfaceId === "S21") {
     return { href: localizedSurfaceHref(basePath, targetLocale), available: false };
   }
   const href =
     localizedSurfaceHref(basePath, targetLocale) +
-    preservedQuery(surfaceId, input.search, targetLocale) +
+    preservedQuery(surfaceId, input.search, targetLocale, input.paymentRecoveryOrderId) +
     preservedFragment(surfaceId, input.hash);
   return { href, available: true };
 }
@@ -198,7 +218,10 @@ export function authCallbackPath(input: {
   search?: string;
   hash?: string;
 }): string {
-  const surfaceId = surfaceIdForPath(input.pathname);
+  const surfaceId = surfaceIdForPath(
+    input.pathname,
+    hasPricingFlowContext(input.search) ? { pricingReadingContext: true } : undefined,
+  );
   const keys = FLOW_CRITICAL_QUERY[surfaceId];
   if (!keys) return `${input.pathname}${preservedFragment(surfaceId, input.hash)}`;
   const source = parseParams(input.search);
