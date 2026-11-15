@@ -35,6 +35,7 @@ const MANUAL_KEY = "quickiching:public-v1:manual-cast";
 const MANUAL_DRAFT_KEY = "quickiching:public-v1:manual-cast:draft:v1";
 const PENDING_PREFIX = "quickiching:public-v1:pending-completed-reading:";
 const LOCALE_CONTINUATION_KEY = "quickiching:public-v1:locale-continuation";
+const CHECKOUT_RETURN_CONTEXT_KEY = "quickiching:commercial:checkout-return:v1";
 
 const ID_A = "6f1a2b3c-4d5e-4f60-9a7b-8c9d0e1f2a3b";
 const THREE_COIN_QUESTION = "Should I accept the new role?";
@@ -127,7 +128,7 @@ async function clearNavigationStorage(page) {
   }, LOCALE_CONTINUATION_KEY);
 }
 
-async function seed(page, { threeCoin, yarrow, meiHua, manual, manualDraft, pendings = [] } = {}) {
+async function seed(page, { threeCoin, yarrow, meiHua, manual, manualDraft, checkoutReturn, pendings = [] } = {}) {
   await page.goto(BASE + "/", { waitUntil: "networkidle0" });
   await clearNavigationStorage(page);
   await page.evaluate((records) => {
@@ -141,6 +142,7 @@ async function seed(page, { threeCoin, yarrow, meiHua, manual, manualDraft, pend
     ...(meiHua ? [{ key: MEI_HUA_KEY, value: meiHua }] : []),
     ...(manual ? [{ key: MANUAL_KEY, value: manual }] : []),
     ...(manualDraft ? [{ key: MANUAL_DRAFT_KEY, value: manualDraft }] : []),
+    ...(checkoutReturn ? [{ key: CHECKOUT_RETURN_CONTEXT_KEY, value: checkoutReturn }] : []),
     ...pendings.map(([id, value]) => ({ key: `${PENDING_PREFIX}${id}`, value, storage: "local" })),
   ]);
 }
@@ -507,7 +509,47 @@ async function verifyNestedPricingLocaleContext(page) {
     `The reverse locale switch must restore the exact nested Reading A, received: ${restored.returnUrl}`,
   );
   assert.equal(restored.utm, null, "Reverse locale switch must keep analytics state filtered");
-  log("H — nested pricing returnUrl keeps exact Reading A in both directions; analytics state filtered");
+
+  // Fresh payment recovery identity is flow-critical only while it matches the
+  // authoritative checkout-return context. Prove it survives the same locale
+  // operation without allowing analytics state through.
+  const orderId = "ord_r2_fresh_1";
+  const now = Date.now();
+  await seed(page, {
+    checkoutReturn: {
+      returnUrl: nestedReturn,
+      creditsBeforeCheckout: 0,
+      orderId,
+      createdAt: now,
+      expiresAt: now + 60_000,
+    },
+  });
+  await page.goto(
+    `${BASE}/pricing?returnUrl=${encodeURIComponent(nestedReturn)}&orderId=${orderId}&utm_source=drop-me`,
+    { waitUntil: "networkidle0" },
+  );
+  await page.waitForFunction(
+    (expectedOrderId) => document.querySelector('[data-locale-switch="zh-Hans"]')?.getAttribute("href")?.includes(`orderId=${expectedOrderId}`) === true,
+    { timeout: 20_000 },
+    orderId,
+  );
+  await clickLocaleSwitch(page, "zh-Hans");
+  await page.waitForFunction(
+    (expectedOrderId) => location.pathname === "/zh/pricing"
+      && new URLSearchParams(location.search).get("orderId") === expectedOrderId,
+    { timeout: 20_000 },
+    orderId,
+  );
+  const recoveryLocalized = await page.evaluate(() => ({
+    returnUrl: new URLSearchParams(location.search).get("returnUrl"),
+    orderId: new URLSearchParams(location.search).get("orderId"),
+    utm: new URLSearchParams(location.search).get("utm_source"),
+  }));
+  assert.equal(recoveryLocalized.returnUrl, `/zh/readings/deep?session=${ID_A}`);
+  assert.equal(recoveryLocalized.orderId, orderId, "Fresh payment recovery identity must survive locale switch");
+  assert.equal(recoveryLocalized.utm, null, "Payment recovery locale switch must still filter analytics state");
+
+  log("H — nested pricing returnUrl round-trip + fresh payment recovery identity preservation PASS");
 }
 
 async function main() {
