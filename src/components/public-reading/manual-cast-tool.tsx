@@ -16,9 +16,12 @@ import {
   manualFromPrimaryAndChangingLines,
   normalizeManualChangingLines,
 } from "@/domain/public-reading/manual";
-import { buildPublicReading } from "@/domain/public-reading/reading";
 import { PUBLIC_METHOD_VERSIONS, type PublicLineTuple, type PublicReading, type PublicReadingEvidence } from "@/domain/public-reading/types";
-import { readPublicReadingSession, writePublicReadingSession } from "@/lib/public-reading-session";
+import { writePublicReadingSession } from "@/lib/public-reading-session";
+import {
+  manualReadingFromSealedFacts,
+  readManualSealedFacts,
+} from "@/lib/manual-cast-sealed";
 import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading-handoff";
 import { MANUAL_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
 import {
@@ -36,66 +39,6 @@ const LINE_POSITIONS = [6, 5, 4, 3, 2, 1] as const;
 const LINE_VALUE_OPTIONS = [6, 7, 8, 9] as const;
 
 export type { ManualMode };
-
-type ManualFacts = {
-  id: string;
-  createdAt: string;
-  mode: ManualMode;
-  lineValuesBottomUp: PublicLineTuple;
-  evidence: PublicReadingEvidence;
-};
-
-type ManualSessionData = Omit<ManualFacts, "id" | "createdAt">;
-
-function readManualEvidence(value: unknown, mode: ManualMode): Extract<PublicReadingEvidence, { kind: "manual" }> | null {
-  if (!value || typeof value !== "object") return null;
-  const candidate = value as { kind?: unknown; mode?: unknown; primaryHexagramNumber?: unknown; changingLines?: unknown };
-  if (candidate.kind !== "manual" || candidate.mode !== mode) return null;
-  if (mode === "line-values") return { kind: "manual", mode };
-  if (!Number.isInteger(candidate.primaryHexagramNumber) || Number(candidate.primaryHexagramNumber) < 1 || Number(candidate.primaryHexagramNumber) > 64) return null;
-  if (!Array.isArray(candidate.changingLines) || candidate.changingLines.some((line) => !Number.isInteger(line) || Number(line) < 1 || Number(line) > 6) || new Set(candidate.changingLines).size !== candidate.changingLines.length) return null;
-  const changingLines = candidate.changingLines.map((line) => Number(line)).sort((left, right) => left - right);
-  return { kind: "manual", mode, primaryHexagramNumber: Number(candidate.primaryHexagramNumber), changingLines };
-}
-
-function parseManualData(value: unknown): ManualSessionData | null {
-  try {
-    if (!value || typeof value !== "object") return null;
-    const parsed = value as Partial<ManualFacts>;
-    if ((parsed.mode !== "line-values" && parsed.mode !== "primary-changing") || !Array.isArray(parsed.lineValuesBottomUp) || parsed.lineValuesBottomUp.length !== 6) return null;
-    const values = manualFromLineValues(parsed.lineValuesBottomUp);
-    const evidence = readManualEvidence(parsed.evidence, parsed.mode);
-    if (!evidence) return null;
-    return { mode: parsed.mode, lineValuesBottomUp: values, evidence };
-  } catch {
-    return null;
-  }
-}
-
-function readFacts(): ManualFacts | null {
-  try {
-    const session = readPublicReadingSession(STORAGE_KEY, parseManualData);
-    if (!session?.data) return null;
-    return { id: session.id, createdAt: session.createdAt, ...session.data };
-  } catch {
-    return null;
-  }
-}
-
-function manualReadingFromFacts(facts: ManualFacts, question: string | undefined): PublicReading | null {
-  try {
-    return buildPublicReading({
-      id: facts.id,
-      createdAt: facts.createdAt,
-      method: "manual",
-      question,
-      lineValuesBottomUp: facts.lineValuesBottomUp,
-      evidence: facts.evidence,
-    });
-  } catch {
-    return null;
-  }
-}
 
 function lineMeaning(dictionary: UiDictionary, value: LineValue): string {
   if (value === 6) return dictionary.manualCast.oldYin;
@@ -466,9 +409,9 @@ export function ManualCastTool({
   // Without it this adapter never mounts a stored draft as the active flow.
   // Sealed facts remain recovery-only (Retry Handoff / Start New Reading).
   useEffect(() => {
-    const facts = readFacts();
+    const facts = readManualSealedFacts();
     if (facts) {
-      setSealedReading(manualReadingFromFacts(facts, question));
+      setSealedReading(manualReadingFromSealedFacts(facts, question));
       setDraftWriteEnabled(false);
       setDraftReady(true);
       return;
@@ -550,14 +493,23 @@ export function ManualCastTool({
       return;
     }
 
-    const reading = buildPublicReading({
+    // One authority for the sealed completed reading: immutable session facts,
+    // with the frozen core question winning over the live question.
+    const reading = manualReadingFromSealedFacts({
       id: session.id,
       createdAt: session.createdAt,
-      method: "manual",
-      question: session.coreQuestionAtCast ?? session.question ?? question,
+      ...(session.question ? { question: session.question } : {}),
+      ...(session.coreQuestionAtCast ? { coreQuestionAtCast: session.coreQuestionAtCast } : {}),
+      mode,
       lineValuesBottomUp: values,
       evidence,
-    });
+    }, question);
+    if (!reading) {
+      setHandoffError(zh
+        ? "无法保存本次起卦，请允许浏览器会话存储后重试。"
+        : "This cast could not be saved. Enable browser session storage and retry.");
+      return;
+    }
 
     handoffStartedRef.current = true;
     const outcome = completeReadingHandoff({ reading, zh, router });
