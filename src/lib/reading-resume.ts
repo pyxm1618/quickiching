@@ -1,5 +1,8 @@
 import type { PublicReadingMethod } from "@/domain/public-reading/types";
 import { completedThreeCoinSteps, readThreeCoinQuestionState, readThreeCoinSession } from "@/lib/three-coin-session";
+import { readPublicReadingSession, readPublicReadingSessionState } from "@/lib/public-reading-session";
+import { MANUAL_SESSION_STORAGE_KEY, YARROW_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
+import { readManualCastDraft } from "@/lib/manual-cast-draft";
 
 /**
  * C1 — Passive Resume Authority.
@@ -99,6 +102,69 @@ export function threeCoinResumeState(): ReadingResumeState {
   } catch {
     return NO_READING_RESUME;
   }
+}
+
+/** Yarrow adapter: 1..17 stored changes are resumable, 18 are sealed completion. */
+export function yarrowResumeState(): ReadingResumeState {
+  try {
+    const session = readPublicReadingSession(YARROW_SESSION_STORAGE_KEY, (value): { changes: readonly unknown[] } | null => {
+      const raw = Array.isArray(value)
+        ? value
+        : value && typeof value === "object" && Array.isArray((value as { changes?: unknown }).changes)
+          ? (value as { changes: unknown[] }).changes
+          : null;
+      if (!raw || raw.length > 18) return null;
+      if (!raw.every((entry) => entry !== null && typeof entry === "object"
+        && Number.isInteger((entry as { lineIndex?: unknown }).lineIndex)
+        && Number.isInteger((entry as { changeIndex?: unknown }).changeIndex))) return null;
+      return { changes: raw };
+    });
+    if (!session) return NO_READING_RESUME;
+    const count = session.data?.changes.length ?? 0;
+    return decideReadingResume({
+      method: "yarrow-stalks",
+      partial: { completed: count, total: 18, unit: "changes" },
+      partialReadingId: session.id,
+      sealedReadingId: count === 18 ? session.id : null,
+      stage: count > 0 ? "ritual" : "question-confirm",
+    });
+  } catch {
+    return NO_READING_RESUME;
+  }
+}
+
+/** Manual adapter: sealed facts are recovery-only; a saved draft is resumable. */
+export function manualResumeState(): ReadingResumeState {
+  try {
+    const session = readPublicReadingSession(MANUAL_SESSION_STORAGE_KEY, (value): { sealed: true } | null => {
+      if (!value || typeof value !== "object") return null;
+      const candidate = value as { mode?: unknown; lineValuesBottomUp?: unknown };
+      const validMode = candidate.mode === "line-values" || candidate.mode === "primary-changing";
+      return validMode && Array.isArray(candidate.lineValuesBottomUp) && candidate.lineValuesBottomUp.length === 6
+        ? { sealed: true }
+        : null;
+    });
+    if (session?.data) {
+      return decideReadingResume({ method: "manual", partial: null, sealedReadingId: session.id });
+    }
+    const question = readPublicReadingSessionState(MANUAL_SESSION_STORAGE_KEY).question;
+    const draft = readManualCastDraft(question ?? null);
+    return decideReadingResume({
+      method: "manual",
+      partial: draft ? { completed: 0, total: 1, unit: "draft" } : null,
+      partialReadingId: draft ? "manual-draft" : null,
+      stage: "draft",
+    });
+  } catch {
+    return NO_READING_RESUME;
+  }
+}
+
+/** One detection owner for QuestionFirst-wrapped methods. */
+export function detectMethodResume(method?: PublicReadingMethod | null): ReadingResumeState {
+  if (method === "yarrow-stalks") return yarrowResumeState();
+  if (method === "manual") return manualResumeState();
+  return NO_READING_RESUME;
 }
 
 export function resumeProgressLabel(state: ReadingResumeState, zh: boolean): string {

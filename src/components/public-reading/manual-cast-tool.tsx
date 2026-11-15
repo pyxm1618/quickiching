@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { HexagramLines, movingMark } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
-import { useQuestionFirstContext } from "@/components/public-reading/question-first";
+import { useQuestionFirstContext, useQuestionFirstResumeBoundary } from "@/components/public-reading/question-first";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import type { LineValue } from "@/domain/casting/types";
 import { CLASSICAL_HEXAGRAMS, classicalHexagramByNumber } from "@/domain/public-reading/classical";
@@ -28,12 +28,6 @@ import {
   type ManualCastDraft,
   type ManualMode,
 } from "@/lib/manual-cast-draft";
-import {
-  NO_READING_RESUME,
-  decideReadingResume,
-  resumeProgressLabel,
-  type ReadingResumeState,
-} from "@/lib/reading-resume";
 import { GildedTitle } from "@/components/typography/gilded-title";
 
 const STORAGE_KEY = MANUAL_SESSION_STORAGE_KEY;
@@ -452,6 +446,7 @@ export function ManualCastTool({
 }) {
   const router = useRouter();
   const questionContext = useQuestionFirstContext();
+  const resumeBoundary = useQuestionFirstResumeBoundary();
   const question = questionProp ?? questionContext?.question;
   const copy = dictionary.manualCast;
   const zh = dictionary.locale === "zh-Hans";
@@ -462,48 +457,38 @@ export function ManualCastTool({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const [draftWriteEnabled, setDraftWriteEnabled] = useState(true);
-  const [resumeState, setResumeState] = useState<ReadingResumeState>(NO_READING_RESUME);
-  const [resumed, setResumed] = useState(false);
   const [sealedReading, setSealedReading] = useState<PublicReading | null>(null);
   const [handoffError, setHandoffError] = useState<string | null>(null);
   const handoffStartedRef = useRef(false);
   const modeTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  // C1 / C2: detect sealed facts and drafts, but never mount them as the flow.
+  // C1: the QuestionFirst boundary owns detection and the single Resume action.
+  // Without it this adapter never mounts a stored draft as the active flow.
+  // Sealed facts remain recovery-only (Retry Handoff / Start New Reading).
   useEffect(() => {
     const facts = readFacts();
     if (facts) {
       setSealedReading(manualReadingFromFacts(facts, question));
-      setResumeState(decideReadingResume({ method: "manual", partial: null, sealedReadingId: facts.id }));
       setDraftWriteEnabled(false);
       setDraftReady(true);
       return;
     }
-    const draft = readManualCastDraft(question ?? null);
-    setResumeState(decideReadingResume({
-      method: "manual",
-      partial: draft ? { completed: 0, total: 1, unit: "draft" } : null,
-      partialReadingId: draft ? "manual-draft" : null,
-      stage: "draft",
-    }));
-    setDraftWriteEnabled(!draft);
-    setDraftReady(true);
-  }, [question]);
-
-  function resume() {
-    const draft = readManualCastDraft(question ?? null);
-    if (!draft) {
-      setResumeState(NO_READING_RESUME);
-      setDraftWriteEnabled(true);
-      return;
+    if (resumeBoundary.resumeRequested) {
+      const draft = readManualCastDraft(question ?? null);
+      if (draft) {
+        setMode(draft.mode);
+        setLineValues(draft.lineValuesBottomUp);
+        setPrimaryHexagram(draft.primaryHexagram);
+        setChangingLines([...draft.changingLines]);
+      }
+    } else {
+      // A fresh reading discards any un-resumed draft before writing its own.
+      clearManualCastDraft();
     }
-    setMode(draft.mode);
-    setLineValues(draft.lineValuesBottomUp);
-    setPrimaryHexagram(draft.primaryHexagram);
-    setChangingLines([...draft.changingLines]);
-    setResumed(true);
     setDraftWriteEnabled(true);
-  }
+    setDraftReady(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question, resumeBoundary.resumeRequested]);
 
   useEffect(() => {
     if (!draftReady || !draftWriteEnabled) return;
@@ -602,8 +587,6 @@ export function ManualCastTool({
     setLineValues(DEFAULT_LINE_VALUES);
     setPrimaryHexagram(1);
     setChangingLines([]);
-    setResumeState(NO_READING_RESUME);
-    setResumed(false);
     setDraftWriteEnabled(true);
     handoffStartedRef.current = false;
   }
@@ -661,16 +644,6 @@ export function ManualCastTool({
         <li data-state="todo"><span aria-hidden="true" /><b>{copy.readingStep}</b></li>
       </ol>
 
-      {resumeState.kind === "partial" && !resumed ? (
-        <div className="manual-question-scroll" data-reading-resume="manual">
-          <strong>{zh ? "未完成的草稿" : "Unfinished draft"}</strong>
-          <i aria-hidden="true" />
-          <p>{resumeProgressLabel(resumeState, zh)}</p>
-          <button type="button" className="manual-continue" onClick={resume} data-reading-resume-action>
-            <strong>{zh ? "继续上次草稿" : "Resume Draft"}</strong>
-          </button>
-        </div>
-      ) : null}
       {handoffError ? <p role="alert" className="manual-question-scroll">{handoffError}</p> : null}
       <div className="manual-question-scroll" data-manual-question>
         <strong>{copy.yourQuestion}</strong>

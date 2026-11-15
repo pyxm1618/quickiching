@@ -7,7 +7,7 @@ import type { UiDictionary } from "@/i18n/dictionaries/types";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import { useRouter } from "next/navigation";
 import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading-handoff";
-import { useQuestionFirstContext } from "@/components/public-reading/question-first";
+import { useQuestionFirstContext, useQuestionFirstResumeBoundary } from "@/components/public-reading/question-first";
 import { generateYarrowChange, type YarrowChange, type YarrowLineResult } from "@/domain/casting/yarrow/algorithm";
 import type { LineValue } from "@/domain/casting/types";
 import { buildPublicReading } from "@/domain/public-reading/reading";
@@ -15,12 +15,6 @@ import type { PublicReading } from "@/domain/public-reading/types";
 import { browserRandomInt } from "@/lib/browser-random";
 import { clearPublicReadingSession, readPublicReadingSession, restartPublicReadingSession, writePublicReadingSession } from "@/lib/public-reading-session";
 import { YARROW_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
-import {
-  NO_READING_RESUME,
-  decideReadingResume,
-  resumeProgressLabel,
-  type ReadingResumeState,
-} from "@/lib/reading-resume";
 
 const STORAGE_KEY = YARROW_SESSION_STORAGE_KEY;
 type YarrowSessionData = { changes: YarrowChange[] };
@@ -113,42 +107,30 @@ export function YarrowTool({
   const [saveError, setSaveError] = useState("");
   const [handoffError, setHandoffError] = useState<string | null>(null);
   const questionContext = useQuestionFirstContext();
+  const resumeBoundary = useQuestionFirstResumeBoundary();
   const question = questionProp ?? questionContext?.question;
   const zh = dictionary.locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
   const [changes, setChanges] = useState<YarrowChange[]>([]);
   const [readingMeta, setReadingMeta] = useState<{ id: string; createdAt: string } | null>(null);
-  const [resumeState, setResumeState] = useState<ReadingResumeState>(NO_READING_RESUME);
-  const [resumed, setResumed] = useState(false);
   const [sealedReading, setSealedReading] = useState<PublicReading | null>(null);
   const [freshCompletion, setFreshCompletion] = useState(false);
   const handoffStartedRef = useRef(false);
 
-  // C1: detect, never apply. The normal entry state is the default.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // C1: the QuestionFirst boundary owns detection and the single Resume action.
+  // Without an explicit Resume this adapter never mounts stored partial facts.
+  // Sealed facts remain recovery-only (Retry Handoff / Start New Reading).
   useEffect(() => {
     const session = readYarrowSession();
     const stored = session?.data?.changes ?? [];
-    const sealed = stored.length === 18;
-    setResumeState(decideReadingResume({
-      method: "yarrow-stalks",
-      partial: { completed: stored.length, total: 18, unit: "changes" },
-      partialReadingId: session?.id,
-      sealedReadingId: sealed ? session?.id : null,
-    }));
-    if (sealed) setSealedReading(sealedReadingFromSession(session, stored));
-  }, []);
-
-  function resume() {
-    const session = readYarrowSession();
-    if (!session) {
-      setResumeState(NO_READING_RESUME);
+    if (stored.length === 18) {
+      setSealedReading(sealedReadingFromSession(session, stored));
       return;
     }
-    setChanges(session.data?.changes ?? []);
+    if (!resumeBoundary.resumeRequested || !session) return;
+    setChanges(stored);
     setReadingMeta({ id: session.id, createdAt: session.createdAt });
-    setResumed(true);
-  }
+  }, [resumeBoundary.resumeRequested]);
 
   const lines = useMemo(() => completedLineValues(changes), [changes]);
   const complete = changes.length === 18;
@@ -196,15 +178,14 @@ export function YarrowTool({
   function performChange() {
     if (complete) return;
     if (changes.length === 0) {
-      // An explicit fresh cast discards an un-resumed partial instead of
-      // silently inheriting its reading identity.
-      if (resumeState.kind === "partial" && !resumed) {
+      // An explicit fresh cast discards leftover partial facts instead of
+      // silently inheriting their reading identity.
+      if (!resumeBoundary.resumeRequested && readYarrowSession()?.data?.changes?.length) {
         try {
           clearPublicReadingSession(STORAGE_KEY);
         } catch {
           // The in-memory reading still starts clean.
         }
-        setResumeState(NO_READING_RESUME);
       }
       if (questionContext?.freezeCoreQuestion() === false) return;
     }
@@ -224,8 +205,6 @@ export function YarrowTool({
     }
     setReadingMeta(null);
     setChanges([]);
-    setResumed(false);
-    setResumeState(NO_READING_RESUME);
     setSealedReading(null);
     setHandoffError(null);
     setFreshCompletion(false);
@@ -259,14 +238,6 @@ export function YarrowTool({
             <button type="button" className="mystic-button-secondary" onClick={retrySealedHandoff} data-reading-retry-handoff>{t("Retry Handoff", "重试进入解卦")}</button>
             <button type="button" className="mystic-button-secondary" onClick={discardSealedReading} data-reading-start-new>{t("Start New Reading", "重新起卦")}</button>
           </div>
-        </div>
-      ) : null}
-      {resumeState.kind === "partial" && !resumed ? (
-        <div className="mb-6 rounded-2xl border border-white/[0.12] bg-white/[0.035] p-4" data-reading-resume="yarrow-stalks">
-          <p className="text-sm leading-6 text-[var(--ink-2)]">{t("You have an unfinished yarrow cast.", "你有一段尚未完成的蓍草起卦。")}</p>
-          <button type="button" className="mystic-button-secondary mt-3" onClick={resume} data-reading-resume-action>
-            {t("Resume", "继续")} · {resumeProgressLabel(resumeState, zh)}
-          </button>
         </div>
       ) : null}
       <div className="flex flex-wrap items-start justify-between gap-4">

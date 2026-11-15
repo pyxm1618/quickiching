@@ -31,6 +31,7 @@ export default function ManualCastPage() {
             storageKey="quickiching:public-v1:manual-cast"
             dictionary={EN_UI_DICTIONARY}
             activeQuestionPresentation="hidden"
+            resumeMethod="manual"
           >
             <ManualCastTool dictionary={EN_UI_DICTIONARY} />
           </QuestionFirst>
