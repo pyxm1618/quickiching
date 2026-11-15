@@ -75,12 +75,11 @@ export function SceneNavigationPanels({
             rel="noopener noreferrer"
             className="scene-info-badge"
           >
-            <Image
-              unoptimized
+            <img
               src="https://startupfa.me/badge?t=small&theme=default"
               alt="Quick I Ching - Featured on Startup Fame"
-              width={240}
-              height={36}
+              width="240"
+              height="36"
             />
           </a>
         )}
