@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
-import { ThreeCoinRitualClient } from "@/components/public-reading/three-coin-ritual-client";
 import styles from "@/app/method-seo-shell.module.css";
 import { GildedTitle } from "@/components/typography/gilded-title";
 
@@ -21,8 +20,12 @@ export default function ThreeCoinMethodPage() {
         <p className={styles.lead}>The three-coin I Ching method turns six coin tosses into a hexagram. Each completed toss is one line, built from the bottom upward; values 6 and 9 are changing lines.</p>
       </header>
 
-      <section className={styles.toolStage}>
-        <ThreeCoinRitualClient headingLevel={2} homeHeading="Begin Your Three-Coin Reading" homeDescription="Ask one focused question, confirm it, then complete the same six-cast ritual used on the home page." />
+      <section className={styles.toolStage} data-three-coin-method-detail-cta>
+        <div className={styles.folio}>
+          <h2 className={styles.sectionTitle}>Start your three-coin reading</h2>
+          <p className={styles.bodyText}>The complete ritual runs on the Quick I Ching home page. This page explains the method; the casting itself has one authoritative entry.</p>
+          <Link href="/" className={styles.relatedLink} data-three-coin-cta>Start a Three-Coin reading →</Link>
+        </div>
       </section>
 
       <section className={styles.readingGrid}>

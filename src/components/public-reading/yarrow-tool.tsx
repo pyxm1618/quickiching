@@ -1,20 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HexagramLines } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import { useRouter } from "next/navigation";
-import { completedPublicReadingPath, writeCompletedPublicReading } from "@/lib/completed-public-reading";
-import { useQuestionFirstContext } from "@/components/public-reading/question-first";
+import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading-handoff";
+import { useQuestionFirstContext, useQuestionFirstResumeBoundary } from "@/components/public-reading/question-first";
 import { generateYarrowChange, type YarrowChange, type YarrowLineResult } from "@/domain/casting/yarrow/algorithm";
 import type { LineValue } from "@/domain/casting/types";
 import { buildPublicReading } from "@/domain/public-reading/reading";
+import type { PublicReading } from "@/domain/public-reading/types";
 import { browserRandomInt } from "@/lib/browser-random";
 import { clearPublicReadingSession, readPublicReadingSession, restartPublicReadingSession, writePublicReadingSession } from "@/lib/public-reading-session";
+import { YARROW_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
 
-const STORAGE_KEY = "quickiching:public-v1:yarrow-v2";
+const STORAGE_KEY = YARROW_SESSION_STORAGE_KEY;
 type YarrowSessionData = { changes: YarrowChange[] };
 
 function isStoredChange(value: unknown): value is YarrowChange {
@@ -57,6 +59,39 @@ function completedLineValues(changes: YarrowChange[]): LineValue[] {
   return values;
 }
 
+function yarrowLinesFromChanges(changes: YarrowChange[]): YarrowLineResult[] {
+  return Array.from({ length: Math.floor(changes.length / 3) }, (_, index) => {
+    const lineChanges = changes.slice(index * 3, index * 3 + 3);
+    const finalChange = lineChanges[2];
+    if (!finalChange) throw new Error("YARROW_INCOMPLETE_LINE");
+    return {
+      lineIndex: index as 0 | 1 | 2 | 3 | 4 | 5,
+      lineValue: (finalChange.endingStalks / 4) as LineValue,
+      changes: lineChanges,
+      algorithmVersion: finalChange.algorithmVersion,
+    };
+  });
+}
+
+function sealedReadingFromSession(
+  session: { id: string; createdAt: string; question?: string; coreQuestionAtCast?: string } | null,
+  changes: YarrowChange[],
+): PublicReading | null {
+  if (!session || changes.length !== 18) return null;
+  try {
+    return buildPublicReading({
+      id: session.id,
+      createdAt: session.createdAt,
+      method: "yarrow-stalks",
+      question: session.coreQuestionAtCast ?? session.question,
+      lineValuesBottomUp: completedLineValues(changes),
+      evidence: { kind: "yarrow-stalks", lines: yarrowLinesFromChanges(changes) },
+    });
+  } catch {
+    return null;
+  }
+}
+
 export function YarrowTool({
   question: questionProp,
   onNewReading: onNewReadingProp,
@@ -69,39 +104,37 @@ export function YarrowTool({
   localizedContent?: LocalizedReadingContent;
 }) {
   const router = useRouter();
-  const [handoffError, setHandoffError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [handoffError, setHandoffError] = useState<string | null>(null);
   const questionContext = useQuestionFirstContext();
+  const resumeBoundary = useQuestionFirstResumeBoundary();
   const question = questionProp ?? questionContext?.question;
   const zh = dictionary.locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
   const [changes, setChanges] = useState<YarrowChange[]>([]);
   const [readingMeta, setReadingMeta] = useState<{ id: string; createdAt: string } | null>(null);
+  const [sealedReading, setSealedReading] = useState<PublicReading | null>(null);
+  const [freshCompletion, setFreshCompletion] = useState(false);
+  const handoffStartedRef = useRef(false);
 
+  // C1: the QuestionFirst boundary owns detection and the single Resume action.
+  // Without an explicit Resume this adapter never mounts stored partial facts.
+  // Sealed facts remain recovery-only (Retry Handoff / Start New Reading).
   useEffect(() => {
     const session = readYarrowSession();
     const stored = session?.data?.changes ?? [];
-    try {
-      const migrated = stored.length > 0 ? writePublicReadingSession(STORAGE_KEY, { changes: stored }) : session;
-      setReadingMeta(migrated ? { id: migrated.id, createdAt: migrated.createdAt } : null);
-    } catch {
-      setReadingMeta(session ? { id: session.id, createdAt: session.createdAt } : null);
+    if (stored.length === 18) {
+      setSealedReading(sealedReadingFromSession(session, stored));
+      return;
     }
+    if (!resumeBoundary.resumeRequested || !session) return;
     setChanges(stored);
-  }, []);
+    setReadingMeta({ id: session.id, createdAt: session.createdAt });
+  }, [resumeBoundary.resumeRequested]);
 
   const lines = useMemo(() => completedLineValues(changes), [changes]);
   const complete = changes.length === 18;
-  const yarrowLines = useMemo<YarrowLineResult[]>(() => Array.from({ length: Math.floor(changes.length / 3) }, (_, index) => {
-    const lineChanges = changes.slice(index * 3, index * 3 + 3);
-    const finalChange = lineChanges[2];
-    if (!finalChange) throw new Error("YARROW_INCOMPLETE_LINE");
-    return {
-      lineIndex: index as 0 | 1 | 2 | 3 | 4 | 5,
-      lineValue: (finalChange.endingStalks / 4) as LineValue,
-      changes: lineChanges,
-      algorithmVersion: finalChange.algorithmVersion,
-    };
-  }), [changes]);
+  const yarrowLines = useMemo<YarrowLineResult[]>(() => yarrowLinesFromChanges(changes), [changes]);
   const publicReading = useMemo(() => complete && readingMeta
     ? buildPublicReading({
         id: readingMeta.id,
@@ -112,15 +145,19 @@ export function YarrowTool({
         evidence: { kind: "yarrow-stalks", lines: yarrowLines },
       })
     : null, [complete, question, readingMeta, yarrowLines, lines]);
+
+  // C2 / C7: only a cast completed in this mounted flow hands off, exactly once,
+  // and always with replace semantics.
   useEffect(() => {
-    if (!publicReading) return;
-    try {
-      writeCompletedPublicReading(publicReading);
-      router.push(completedPublicReadingPath(publicReading.id, zh));
-    } catch {
-      setHandoffError(zh ? "无法保存结果，请允许浏览器会话存储后重试。" : "Unable to save this result. Enable browser session storage and retry.");
+    if (!freshCompletion || !publicReading || handoffStartedRef.current || sealedReading) return;
+    handoffStartedRef.current = true;
+    const outcome = completeReadingHandoff({ reading: publicReading, zh, router });
+    if (outcome.kind === "failed") {
+      setSealedReading(publicReading);
+      setHandoffError(readingHandoffFailureCopy(outcome, zh));
+      handoffStartedRef.current = false;
     }
-  }, [publicReading, router, zh]);
+  }, [freshCompletion, publicReading, router, sealedReading, zh]);
 
   const latest = changes.at(-1);
   const currentLine = complete ? 6 : Math.floor(changes.length / 3) + 1;
@@ -130,16 +167,28 @@ export function YarrowTool({
     try {
       const session = writePublicReadingSession(STORAGE_KEY, { changes: next });
       setReadingMeta({ id: session.id, createdAt: session.createdAt });
-      setHandoffError("");
+      setSaveError("");
+      if (next.length === 18) setFreshCompletion(true);
     } catch {
-      setHandoffError(t("Unable to save this cast. Enable browser session storage and retry.", "无法保存本次起卦，请允许浏览器会话存储后重试。"));
+      setSaveError(t("Unable to save this cast. Enable browser session storage and retry.", "无法保存本次起卦，请允许浏览器会话存储后重试。"));
     }
     setChanges(next);
   }
 
   function performChange() {
     if (complete) return;
-    if (changes.length === 0 && questionContext?.freezeCoreQuestion() === false) return;
+    if (changes.length === 0) {
+      // An explicit fresh cast discards leftover partial facts instead of
+      // silently inheriting their reading identity.
+      if (!resumeBoundary.resumeRequested && readYarrowSession()?.data?.changes?.length) {
+        try {
+          clearPublicReadingSession(STORAGE_KEY);
+        } catch {
+          // The in-memory reading still starts clean.
+        }
+      }
+      if (questionContext?.freezeCoreQuestion() === false) return;
+    }
     const lineIndex = Math.floor(changes.length / 3) as 0 | 1 | 2 | 3 | 4 | 5;
     const changeIndex = (changes.length % 3) as 0 | 1 | 2;
     const startingStalks = changeIndex === 0 ? 49 : changes[changes.length - 1].endingStalks;
@@ -156,10 +205,41 @@ export function YarrowTool({
     }
     setReadingMeta(null);
     setChanges([]);
+    setSealedReading(null);
+    setHandoffError(null);
+    setFreshCompletion(false);
+    handoffStartedRef.current = false;
+  }
+
+  function retrySealedHandoff() {
+    if (!sealedReading) return;
+    const outcome = completeReadingHandoff({ reading: sealedReading, zh, router });
+    if (outcome.kind === "failed") {
+      setHandoffError(readingHandoffFailureCopy(outcome, zh));
+      return;
+    }
+    setHandoffError(null);
+    setSealedReading(null);
+  }
+
+  function discardSealedReading() {
+    reset();
   }
 
   return (
     <section className="mystic-card overflow-hidden p-5 sm:p-8" aria-labelledby="yarrow-tool-title">
+      {sealedReading ? (
+        <div className="mb-6 rounded-2xl border border-[rgba(239,129,112,0.36)] bg-[rgba(239,129,112,0.08)] p-4" role="alert" data-reading-sealed-recovery={sealedReading.id}>
+          <p className="text-sm font-semibold text-[var(--danger)]">{t("This completed cast still has to reach Reading Choice.", "这次已完成的起卦还没有进入解卦选择。")}</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">
+            {handoffError ?? t("No change was recast. Retrying reuses the exact same cast.", "没有重新起卦。重试会沿用完全相同的这一次起卦。")}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button type="button" className="mystic-button-secondary" onClick={retrySealedHandoff} data-reading-retry-handoff>{t("Retry Handoff", "重试进入解卦")}</button>
+            <button type="button" className="mystic-button-secondary" onClick={discardSealedReading} data-reading-start-new>{t("Start New Reading", "重新起卦")}</button>
+          </div>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="mystic-kicker">{t("Yarrow Stalk Method", "蓍草起卦")}</p>
@@ -198,13 +278,13 @@ export function YarrowTool({
       </div>
 
       <div className="mt-7 flex flex-wrap gap-3">
-        <button type="button" onClick={performChange} disabled={complete} className="mystic-button">
+        <button type="button" onClick={performChange} disabled={complete || Boolean(sealedReading)} className="mystic-button">
           {complete ? t("Reading complete", "起卦完成") : (zh ? `进行第 ${changes.length + 1} 变` : `Perform change ${changes.length + 1}`)}
         </button>
         <button type="button" onClick={() => reset(true)} disabled={changes.length === 0 || complete} className="mystic-button-secondary">{t("Restart casting", "重新起卦")}</button>
       </div>
 
-      {handoffError ? <div className="mt-4"><p role="alert">{handoffError}</p><button type="button" className="mystic-button-secondary mt-3" onClick={() => commitChanges(changes)}>{t("Retry saving", "重新保存")}</button></div> : null}
+      {saveError ? <div className="mt-4"><p role="alert">{saveError}</p><button type="button" className="mystic-button-secondary mt-3" onClick={() => commitChanges(changes)}>{t("Retry saving", "重新保存")}</button></div> : null}
     </section>
   );
 }

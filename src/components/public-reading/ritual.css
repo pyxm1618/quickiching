@@ -334,3 +334,9 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 
 /* Finish the presentation even if the browser cancels or suppresses animation events. */
 .ritual-question-actions[data-entered='true'],.ritual-record-action[data-entered='true'] {animation:none;opacity:1;transform:none;}
+
+/* C1 — minimal passive-resume affordance. Normal entry stays the default state. */
+.ritual-resume {position:absolute;left:calc(311 * var(--u));top:calc(742 * var(--u));width:calc(417 * var(--u));z-index:2;text-align:center;}
+.ritual-resume p {margin:0 0 calc(6 * var(--u));font-size:calc(17 * var(--u));color:#fff9ef;opacity:.82;}
+.ritual-resume .ritual-text-button {font-size:calc(19 * var(--u));}
+@media(max-width:800px) {.ritual-resume {position:relative;inset:auto;width:100%;margin-top:18px;}}

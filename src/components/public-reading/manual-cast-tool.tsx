@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { HexagramLines, movingMark } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
-import { useQuestionFirstContext } from "@/components/public-reading/question-first";
+import { useQuestionFirstContext, useQuestionFirstResumeBoundary } from "@/components/public-reading/question-first";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import type { LineValue } from "@/domain/casting/types";
 import { CLASSICAL_HEXAGRAMS, classicalHexagramByNumber } from "@/domain/public-reading/classical";
@@ -16,116 +16,29 @@ import {
   manualFromPrimaryAndChangingLines,
   normalizeManualChangingLines,
 } from "@/domain/public-reading/manual";
-import { buildPublicReading } from "@/domain/public-reading/reading";
-import { PUBLIC_METHOD_VERSIONS, type PublicLineTuple, type PublicReadingEvidence } from "@/domain/public-reading/types";
-import { readPublicReadingSession, writePublicReadingSession } from "@/lib/public-reading-session";
-import { completedPublicReadingPath, writeCompletedPublicReading } from "@/lib/completed-public-reading";
+import { PUBLIC_METHOD_VERSIONS, type PublicLineTuple, type PublicReading, type PublicReadingEvidence } from "@/domain/public-reading/types";
+import { writePublicReadingSession } from "@/lib/public-reading-session";
+import {
+  manualReadingFromSealedFacts,
+  readManualSealedFacts,
+} from "@/lib/manual-cast-sealed";
+import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading-handoff";
+import { MANUAL_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
+import {
+  clearManualCastDraft,
+  readManualCastDraft,
+  writeManualCastDraft,
+  type ManualCastDraft,
+  type ManualMode,
+} from "@/lib/manual-cast-draft";
 import { GildedTitle } from "@/components/typography/gilded-title";
 
-const STORAGE_KEY = "quickiching:public-v1:manual-cast";
-const DRAFT_STORAGE_KEY = "quickiching:public-v1:manual-cast:draft:v1";
+const STORAGE_KEY = MANUAL_SESSION_STORAGE_KEY;
 const DEFAULT_LINE_VALUES: PublicLineTuple = [7, 7, 7, 7, 7, 7];
 const LINE_POSITIONS = [6, 5, 4, 3, 2, 1] as const;
 const LINE_VALUE_OPTIONS = [6, 7, 8, 9] as const;
 
-export type ManualMode = "line-values" | "primary-changing";
-
-type ManualFacts = {
-  id: string;
-  createdAt: string;
-  mode: ManualMode;
-  lineValuesBottomUp: PublicLineTuple;
-  evidence: PublicReadingEvidence;
-};
-
-type ManualSessionData = Omit<ManualFacts, "id" | "createdAt">;
-
-type ManualDraft = {
-  schemaVersion: 1;
-  questionKey: string | null;
-  mode: ManualMode;
-  lineValuesBottomUp: PublicLineTuple;
-  primaryHexagram: number;
-  changingLines: number[];
-};
-
-function readManualEvidence(value: unknown, mode: ManualMode): Extract<PublicReadingEvidence, { kind: "manual" }> | null {
-  if (!value || typeof value !== "object") return null;
-  const candidate = value as { kind?: unknown; mode?: unknown; primaryHexagramNumber?: unknown; changingLines?: unknown };
-  if (candidate.kind !== "manual" || candidate.mode !== mode) return null;
-  if (mode === "line-values") return { kind: "manual", mode };
-  if (!Number.isInteger(candidate.primaryHexagramNumber) || Number(candidate.primaryHexagramNumber) < 1 || Number(candidate.primaryHexagramNumber) > 64) return null;
-  if (!Array.isArray(candidate.changingLines) || candidate.changingLines.some((line) => !Number.isInteger(line) || Number(line) < 1 || Number(line) > 6) || new Set(candidate.changingLines).size !== candidate.changingLines.length) return null;
-  const changingLines = candidate.changingLines.map((line) => Number(line)).sort((left, right) => left - right);
-  return { kind: "manual", mode, primaryHexagramNumber: Number(candidate.primaryHexagramNumber), changingLines };
-}
-
-function parseManualData(value: unknown): ManualSessionData | null {
-  try {
-    if (!value || typeof value !== "object") return null;
-    const parsed = value as Partial<ManualFacts>;
-    if ((parsed.mode !== "line-values" && parsed.mode !== "primary-changing") || !Array.isArray(parsed.lineValuesBottomUp) || parsed.lineValuesBottomUp.length !== 6) return null;
-    const values = manualFromLineValues(parsed.lineValuesBottomUp);
-    const evidence = readManualEvidence(parsed.evidence, parsed.mode);
-    if (!evidence) return null;
-    return { mode: parsed.mode, lineValuesBottomUp: values, evidence };
-  } catch {
-    return null;
-  }
-}
-
-function readFacts(): ManualFacts | null {
-  try {
-    const session = readPublicReadingSession(STORAGE_KEY, parseManualData);
-    if (!session?.data) return null;
-    return { id: session.id, createdAt: session.createdAt, ...session.data };
-  } catch {
-    return null;
-  }
-}
-
-function readManualDraft(questionKey: string | null): ManualDraft | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.sessionStorage.getItem(DRAFT_STORAGE_KEY);
-    if (!raw) return null;
-    const candidate = JSON.parse(raw) as Partial<ManualDraft>;
-    if (candidate.schemaVersion !== 1 || candidate.questionKey !== questionKey) return null;
-    if (candidate.mode !== "line-values" && candidate.mode !== "primary-changing") return null;
-    if (!Array.isArray(candidate.lineValuesBottomUp)) return null;
-    const lineValuesBottomUp = manualFromLineValues(candidate.lineValuesBottomUp);
-    if (!Number.isInteger(candidate.primaryHexagram) || Number(candidate.primaryHexagram) < 1 || Number(candidate.primaryHexagram) > 64) return null;
-    if (!Array.isArray(candidate.changingLines)) return null;
-    const changingLines = normalizeManualChangingLines(candidate.changingLines);
-    manualFromPrimaryAndChangingLines(Number(candidate.primaryHexagram), changingLines);
-    return {
-      schemaVersion: 1,
-      questionKey,
-      mode: candidate.mode,
-      lineValuesBottomUp,
-      primaryHexagram: Number(candidate.primaryHexagram),
-      changingLines,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function writeManualDraft(draft: ManualDraft): void {
-  try {
-    window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
-  } catch {
-    // Draft restoration is presentation-only. The authoritative cast save remains unchanged.
-  }
-}
-
-function clearManualDraft(): void {
-  try {
-    window.sessionStorage.removeItem(DRAFT_STORAGE_KEY);
-  } catch {
-    // Best effort only; completed reading persistence remains authoritative.
-  }
-}
+export type { ManualMode };
 
 function lineMeaning(dictionary: UiDictionary, value: LineValue): string {
   if (value === 6) return dictionary.manualCast.oldYin;
@@ -476,6 +389,7 @@ export function ManualCastTool({
 }) {
   const router = useRouter();
   const questionContext = useQuestionFirstContext();
+  const resumeBoundary = useQuestionFirstResumeBoundary();
   const question = questionProp ?? questionContext?.question;
   const copy = dictionary.manualCast;
   const zh = dictionary.locale === "zh-Hans";
@@ -485,47 +399,43 @@ export function ManualCastTool({
   const [changingLines, setChangingLines] = useState<number[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
+  const [draftWriteEnabled, setDraftWriteEnabled] = useState(true);
+  const [sealedReading, setSealedReading] = useState<PublicReading | null>(null);
+  const [handoffError, setHandoffError] = useState<string | null>(null);
+  const handoffStartedRef = useRef(false);
   const modeTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
+  // C1: the QuestionFirst boundary owns detection and the single Resume action.
+  // Without it this adapter never mounts a stored draft as the active flow.
+  // Sealed facts remain recovery-only (Retry Handoff / Start New Reading).
   useEffect(() => {
-    const restored = readFacts();
-    if (restored) {
-      setMode(restored.mode);
-      setLineValues(restored.lineValuesBottomUp);
-      if (restored.evidence.kind === "manual" && restored.evidence.mode === "primary-changing") {
-        setPrimaryHexagram(restored.evidence.primaryHexagramNumber ?? 1);
-        setChangingLines([...(restored.evidence.changingLines ?? [])]);
-      }
-      try {
-        const reading = buildPublicReading({
-          id: restored.id,
-          createdAt: restored.createdAt,
-          method: "manual",
-          question,
-          lineValuesBottomUp: restored.lineValuesBottomUp,
-          evidence: restored.evidence,
-        });
-        writeCompletedPublicReading(reading);
-        router.replace(completedPublicReadingPath(reading.id, zh));
-      } catch {
-        // Keep the current canonical session so Continue can retry the handoff.
-      }
+    const facts = readManualSealedFacts();
+    if (facts) {
+      setSealedReading(manualReadingFromSealedFacts(facts, question));
+      setDraftWriteEnabled(false);
+      setDraftReady(true);
       return;
     }
-
-    const draft = readManualDraft(question ?? null);
-    if (draft) {
-      setMode(draft.mode);
-      setLineValues(draft.lineValuesBottomUp);
-      setPrimaryHexagram(draft.primaryHexagram);
-      setChangingLines(draft.changingLines);
+    if (resumeBoundary.resumeRequested) {
+      const draft = readManualCastDraft(question ?? null);
+      if (draft) {
+        setMode(draft.mode);
+        setLineValues(draft.lineValuesBottomUp);
+        setPrimaryHexagram(draft.primaryHexagram);
+        setChangingLines([...draft.changingLines]);
+      }
+    } else {
+      // A fresh reading discards any un-resumed draft before writing its own.
+      clearManualCastDraft();
     }
+    setDraftWriteEnabled(true);
     setDraftReady(true);
-  }, [question, router, zh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question, resumeBoundary.resumeRequested]);
 
   useEffect(() => {
-    if (!draftReady) return;
-    writeManualDraft({
+    if (!draftReady || !draftWriteEnabled) return;
+    writeManualCastDraft({
       schemaVersion: 1,
       questionKey: question ?? null,
       mode,
@@ -533,7 +443,7 @@ export function ManualCastTool({
       primaryHexagram,
       changingLines,
     });
-  }, [changingLines, draftReady, lineValues, mode, primaryHexagram, question]);
+  }, [changingLines, draftReady, draftWriteEnabled, lineValues, mode, primaryHexagram, question]);
 
   const modeBValues = useMemo(
     () => manualFromPrimaryAndChangingLines(primaryHexagram, changingLines),
@@ -572,18 +482,65 @@ export function ManualCastTool({
     const evidence: PublicReadingEvidence = mode === "line-values"
       ? { kind: "manual", mode: "line-values" }
       : { kind: "manual", mode: "primary-changing", primaryHexagramNumber: primaryHexagram, changingLines };
-    const session = writePublicReadingSession(STORAGE_KEY, { mode, lineValuesBottomUp: values, evidence });
-    const reading = buildPublicReading({
+
+    let session;
+    try {
+      session = writePublicReadingSession(STORAGE_KEY, { mode, lineValuesBottomUp: values, evidence });
+    } catch {
+      setHandoffError(zh
+        ? "无法保存本次起卦，请允许浏览器会话存储后重试。"
+        : "This cast could not be saved. Enable browser session storage and retry.");
+      return;
+    }
+
+    // One authority for the sealed completed reading: immutable session facts,
+    // with the frozen core question winning over the live question.
+    const reading = manualReadingFromSealedFacts({
       id: session.id,
       createdAt: session.createdAt,
-      method: "manual",
-      question: session.coreQuestionAtCast ?? session.question ?? question,
+      ...(session.question ? { question: session.question } : {}),
+      ...(session.coreQuestionAtCast ? { coreQuestionAtCast: session.coreQuestionAtCast } : {}),
+      mode,
       lineValuesBottomUp: values,
       evidence,
-    });
-    writeCompletedPublicReading(reading);
-    clearManualDraft();
-    router.push(completedPublicReadingPath(reading.id, zh));
+    }, question);
+    if (!reading) {
+      setHandoffError(zh
+        ? "无法保存本次起卦，请允许浏览器会话存储后重试。"
+        : "This cast could not be saved. Enable browser session storage and retry.");
+      return;
+    }
+
+    handoffStartedRef.current = true;
+    const outcome = completeReadingHandoff({ reading, zh, router });
+    if (outcome.kind === "failed") {
+      setSealedReading(reading);
+      setHandoffError(readingHandoffFailureCopy(outcome, zh));
+      handoffStartedRef.current = false;
+    }
+  }
+
+  function retrySealedHandoff() {
+    if (!sealedReading) return;
+    const outcome = completeReadingHandoff({ reading: sealedReading, zh, router });
+    if (outcome.kind === "failed") {
+      setHandoffError(readingHandoffFailureCopy(outcome, zh));
+      return;
+    }
+    setHandoffError(null);
+    setSealedReading(null);
+  }
+
+  function startNewFromSealed() {
+    clearManualCastDraft();
+    setSealedReading(null);
+    setHandoffError(null);
+    setMode("line-values");
+    setLineValues(DEFAULT_LINE_VALUES);
+    setPrimaryHexagram(1);
+    setChangingLines([]);
+    setDraftWriteEnabled(true);
+    handoffStartedRef.current = false;
   }
 
   function selectMode(nextMode: ManualMode, focusIndex?: number) {
@@ -604,6 +561,31 @@ export function ManualCastTool({
     selectMode(modes[nextIndex]!, nextIndex);
   }
 
+  if (sealedReading) {
+    // C1 / C2: sealed Manual facts are not a draft and not an editable casting step.
+    return (
+      <section className="manual-cast-shell" data-manual-cast-tool data-reading-sealed={sealedReading.id} aria-label={copy.setHexagram}>
+        <div className="manual-question-scroll" role="alert">
+          <strong>{zh ? "起卦已完成" : "Casting Complete"}</strong>
+          <i aria-hidden="true" />
+          <p>
+            {handoffError ?? (zh
+              ? "这次起卦已经落定，但还没有进入解卦选择。相同的六爻会继续沿用。"
+              : "This cast is sealed but has not reached Reading Choice yet. The same six lines are kept.")}
+          </p>
+          <div className="manual-continue-wrap">
+            <button type="button" className="manual-continue" onClick={retrySealedHandoff} data-reading-retry-handoff>
+              <strong>{zh ? "重试进入解卦" : "Retry Handoff"}</strong>
+            </button>
+            <button type="button" className="manual-continue" onClick={startNewFromSealed} data-reading-start-new>
+              <strong>{zh ? "重新起卦" : "Start New Reading"}</strong>
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="manual-cast-shell" data-manual-cast-tool aria-label={copy.setHexagram}>
       <ol className="manual-progress" aria-label={copy.progressAria}>
@@ -614,6 +596,7 @@ export function ManualCastTool({
         <li data-state="todo"><span aria-hidden="true" /><b>{copy.readingStep}</b></li>
       </ol>
 
+      {handoffError ? <p role="alert" className="manual-question-scroll">{handoffError}</p> : null}
       <div className="manual-question-scroll" data-manual-question>
         <strong>{copy.yourQuestion}</strong>
         <i aria-hidden="true" />

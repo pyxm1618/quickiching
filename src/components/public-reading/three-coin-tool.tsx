@@ -3,10 +3,12 @@
 import React, { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 import { useRouter } from "next/navigation";
 import { buildPublicReading } from "@/domain/public-reading/reading";
-import { completedPublicReadingPath, writeCompletedPublicReading } from "@/lib/completed-public-reading";
+import type { PublicReading } from "@/domain/public-reading/types";
+import { clearCompletedReadingForRestart } from "@/lib/completed-public-reading";
+import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading-handoff";
 import { ThreeCoinVisual } from "./three-coin-visual";
 import { RitualCastPresentation } from "./ritual-cast-presentation";
-import { CAST_ACTION_MS, COIN_RESET_MS, COIN_EXIT_MS } from "./three-coin-motion";
+import { CAST_ACTION_MS, COIN_RESET_MS } from "./three-coin-motion";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
 import { useThreeCoinRitualContext } from "@/components/public-reading/three-coin-ritual";
@@ -14,8 +16,10 @@ import { generateThreeCoinLine, type CoinFace, type ThreeCoinStep } from "@/doma
 import { browserRandomBit } from "@/lib/browser-random";
 import {
   clearThreeCoinReading,
+  completedThreeCoinSteps,
   readThreeCoinSession,
   writeThreeCoinSteps,
+  type ThreeCoinReadingSession,
 } from "@/lib/three-coin-session";
 
 type MotionState = "idle" | "holding" | "casting" | "settled";
@@ -32,26 +36,49 @@ export function canRecordSettledThreeCoin(input: {
     && input.stepCount > input.revealedCount;
 }
 
-export function shouldNavigateCompletedThreeCoin(input: {
-  restored: boolean;
+/**
+ * C1 / C2 — a restored completed session must never navigate. Only a cast that
+ * reached completion through this mounted flow may hand off, exactly once.
+ */
+export function shouldHandoffFreshThreeCoinCompletion(input: {
+  freshCompletion: boolean;
   complete: boolean;
   visuallyComplete: boolean;
   hasReadingMeta: boolean;
   storageBlocked: boolean;
   hasUnpersistedCommit: boolean;
-  resultNavigationStarted: boolean;
+  handoffStarted: boolean;
+  sealedRecovery: boolean;
 }): boolean {
-  return input.restored
+  return input.freshCompletion
     && input.complete
     && input.visuallyComplete
     && input.hasReadingMeta
     && !input.storageBlocked
     && !input.hasUnpersistedCommit
-    && !input.resultNavigationStarted;
+    && !input.handoffStarted
+    && !input.sealedRecovery;
 }
 
 function storageErrorCode(error: unknown): string {
   return error instanceof Error ? error.message : "THREE_COIN_SESSION_UNAVAILABLE";
+}
+
+function readingFromSealedSession(session: ThreeCoinReadingSession | null): PublicReading | null {
+  const complete = completedThreeCoinSteps(session?.data?.steps ?? []);
+  if (!session || !complete) return null;
+  try {
+    return buildPublicReading({
+      id: session.id,
+      createdAt: session.createdAt,
+      method: "three-coin",
+      question: session.coreQuestionAtCast ?? session.question,
+      lineValuesBottomUp: complete.map((entry) => entry.lineValue),
+      evidence: { kind: "three-coin", steps: complete },
+    });
+  } catch {
+    return null;
+  }
 }
 
 export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: UiDictionary }) {
@@ -71,6 +98,9 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
   const [storageError, setStorageError] = useState<string | null>(null);
   const [visualResetting,setVisualResetting]=useState(false);
   const [sceneReady,setSceneReady]=useState(false);
+  const [freshCompletion, setFreshCompletion] = useState(false);
+  const [sealedReading, setSealedReading] = useState<PublicReading | null>(null);
+  const [handoffError, setHandoffError] = useState<string | null>(null);
   const visualReady = sceneReady;
   const resetTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null);
   const [soundOn, setSoundOn] = useState(true);
@@ -79,15 +109,19 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
   const audioRef = useRef<AudioContext | null>(null);
   const shakeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const resultNavigationStartedRef = useRef(false);
+  const handoffStartedRef = useRef(false);
 
   useEffect(() => {
     try {
-      const session = readThreeCoinSession();
-      if (session) {
-        const stored = session.data?.steps ?? [];
+      const resume = questionContext.resumeState;
+      if (resume.kind === "sealed") {
+        // Completed-but-not-durable facts: recovery only, never an active cast.
+        setSealedReading(readingFromSealedSession(readThreeCoinSession()));
+      } else if (resume.kind === "partial" && questionContext.resumeRequested) {
+        const session = readThreeCoinSession();
+        const stored = session?.data?.steps ?? [];
         setSteps(stored);
-        setReadingMeta({ id: session.id, createdAt: session.createdAt });
+        setReadingMeta(session ? { id: session.id, createdAt: session.createdAt } : null);
         setRevealedCount(stored.length);
       }
       setStorageError(null);
@@ -96,7 +130,7 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
     } finally {
       setRestored(true);
     }
-  }, []);
+  }, [questionContext.resumeRequested, questionContext.resumeState]);
 
   useEffect(() => () => {
     if (shakeIntervalRef.current) clearInterval(shakeIntervalRef.current);
@@ -140,31 +174,29 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
         ? t("Reading complete", "起卦完成")
         : t("Press & hold to shake · release to cast", "按住摇动 · 松开起爻");
   useEffect(() => {
-    if (!shouldNavigateCompletedThreeCoin({
-      restored,
+    if (!shouldHandoffFreshThreeCoinCompletion({
+      freshCompletion,
       complete,
       visuallyComplete,
       hasReadingMeta: Boolean(readingMeta),
       storageBlocked,
       hasUnpersistedCommit: Boolean(unpersistedCommit),
-      resultNavigationStarted: resultNavigationStartedRef.current,
+      handoffStarted: handoffStartedRef.current,
+      sealedRecovery: Boolean(sealedReading),
     })) return;
+    if (!completedReading) return;
 
-    if (!readingMeta || !completedReading) return;
-    try {
-      writeCompletedPublicReading(completedReading);
-      setStorageError(null);
-    } catch (error: unknown) {
-      setStorageError(storageErrorCode(error));
+    handoffStartedRef.current = true;
+    const outcome = completeReadingHandoff({ reading: completedReading, zh, router });
+    if (outcome.kind === "failed") {
+      // Sealed recovery: same readingId, same cast facts, no recast, no navigation.
+      setSealedReading(completedReading);
+      setHandoffError(readingHandoffFailureCopy(outcome, zh));
+      handoffStartedRef.current = false;
       return;
     }
-    const resultPath = completedPublicReadingPath(completedReading.id, zh);
-    const navigation=setTimeout(()=>{
-      resultNavigationStartedRef.current=true;
-      router.push(resultPath);
-    },window.matchMedia("(prefers-reduced-motion: reduce)").matches?160:COIN_EXIT_MS);
-    return ()=>clearTimeout(navigation);
-  }, [complete, completedReading, readingMeta, restored, router, storageBlocked, unpersistedCommit, visuallyComplete, zh]);
+    setHandoffError(null);
+  }, [complete, completedReading, freshCompletion, readingMeta, router, sealedReading, storageBlocked, unpersistedCommit, visuallyComplete, zh]);
 
   function audio(): AudioContext | null {
     if (!soundOn || typeof window === "undefined") return null;
@@ -259,6 +291,7 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
     try {
       const session = writeThreeCoinSteps(committedSteps);
       setReadingMeta({ id: session.id, createdAt: session.createdAt });
+      if (committedSteps.length === 6) setFreshCompletion(true);
       beginVisualSettlement(committedSteps, next);
     } catch (error: unknown) {
       setPendingStep(null);
@@ -339,10 +372,37 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
     setRevealedCount(0);
     setReadingMeta(null);
     setSteps([]);
-    resultNavigationStartedRef.current = false;
+    setFreshCompletion(false);
+    setSealedReading(null);
+    setHandoffError(null);
+    handoffStartedRef.current = false;
   }
 
   function startNewReading() {
+    reset();
+    questionContext.restartQuestion(true);
+  }
+
+  function retrySealedHandoff() {
+    if (!sealedReading) return;
+    const outcome = completeReadingHandoff({ reading: sealedReading, zh, router });
+    if (outcome.kind === "failed") {
+      setHandoffError(readingHandoffFailureCopy(outcome, zh));
+      return;
+    }
+    setHandoffError(null);
+    setSealedReading(null);
+  }
+
+  function discardSealedReading() {
+    try {
+      clearCompletedReadingForRestart("three-coin", zh, sealedReading?.id);
+    } catch (error: unknown) {
+      setHandoffError(storageErrorCode(error));
+      return;
+    }
+    setSealedReading(null);
+    setHandoffError(null);
     reset();
     questionContext.restartQuestion(true);
   }
@@ -394,6 +454,28 @@ export function ThreeCoinTool({ dictionary = EN_UI_DICTIONARY }: { dictionary?: 
 
   return (
     <section data-realm="chamber" data-three-coin-presentation="ritual" data-home-stage={homeStage} aria-labelledby={showRitualControls ? "three-coin-tool-title" : undefined}>
+      {sealedReading ? (
+        <div
+          className="relative z-[3] mx-auto mb-6 max-w-2xl rounded-[1.2rem] border border-[rgba(239,129,112,0.36)] bg-[rgba(239,129,112,0.08)] px-5 py-4"
+          role="alert"
+          data-reading-sealed-recovery={sealedReading.id}
+        >
+          <p className="text-sm font-semibold text-[var(--danger)]">
+            {t("This completed cast still has to reach Reading Choice.", "这次已完成的起卦还没有进入解卦选择。")}
+          </p>
+          <p className="mt-2 text-sm leading-6 text-[var(--ink-2)]">
+            {handoffError ?? t("Nothing was recast. Retrying reuses the exact same reading.", "没有重新起卦。重试会沿用完全相同的这一次起卦。")}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button type="button" className="sound-toggle" onClick={retrySealedHandoff} data-reading-retry-handoff>
+              {t("Retry Handoff", "重试进入解卦")}
+            </button>
+            <button type="button" className="sound-toggle" onClick={discardSealedReading} data-reading-start-new>
+              {t("Start New Reading", "重新起卦")}
+            </button>
+          </div>
+        </div>
+      ) : null}
       {homeStage !== "landing" ? <ThreeCoinVisual
         faces={unpersistedCommit ? revealedSteps.at(-1)?.coinFaces ?? ["yang", "yang", "yang"] : visibleFaces}
         phase={homeStage === "question-confirm" ? "hero-exit" : visuallyComplete ? "exit" : visualResetting ? "reset" : motion === "casting" ? "casting" : motion === "settled" ? "settled" : "ready"}

@@ -67,73 +67,15 @@ function parseThreeCoinSessionData(value: unknown): ThreeCoinSessionData | null 
   return steps.length === value.steps.length ? { steps } : null;
 }
 
-
-function parseCompletedThreeCoinBackup(raw: string | null, now = Date.now()): ThreeCoinReadingSession | null {
-  if (!raw) return null;
-  try {
-    const value = JSON.parse(raw) as unknown;
-    if (!isRecord(value)
-      || value.schemaVersion !== 1
-      || typeof value.id !== "string"
-      || value.id.trim().length === 0
-      || typeof value.createdAt !== "string"
-      || Number.isNaN(Date.parse(value.createdAt))
-      || typeof value.completedBackupCreatedAt !== "string"
-      || Number.isNaN(Date.parse(value.completedBackupCreatedAt))
-      || value.coreQuestionFrozenAtCast !== true
-      || !("data" in value)) {
-      return null;
-    }
-    const backupAge = now - Date.parse(value.completedBackupCreatedAt);
-    if (backupAge < 0 || backupAge > THREE_COIN_COMPLETED_BACKUP_TTL_MS) return null;
-    const data = parseThreeCoinSessionData(value.data);
-    if (!data || data.steps.length !== 6) return null;
-    return {
-      schemaVersion: 1,
-      id: value.id,
-      createdAt: value.createdAt,
-      started: value.started === true,
-      ...(typeof value.question === "string" && value.question ? { question: value.question } : {}),
-      ...(typeof value.coreQuestionAtCast === "string" && value.coreQuestionAtCast
-        ? { coreQuestionAtCast: value.coreQuestionAtCast }
-        : {}),
-      coreQuestionFrozenAtCast: true,
-      data,
-    };
-  } catch {
-    return null;
-  }
-}
-
-export const THREE_COIN_BACKUP_STORAGE_KEY = "quickiching:public-v1:three-coin-completed-backup";
-export const THREE_COIN_COMPLETED_BACKUP_TTL_MS = 24 * 60 * 60 * 1000;
-
-function safeLocalStorage(): Storage | null {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) return null;
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
+/**
+ * C4 / C6 — the retired 24h `three-coin-completed-backup` localStorage record
+ * and its TTL are no longer read or written. A completed cast is handed off to
+ * the exact-id Pending Completed Reading store, which also serves cross-tab
+ * continuation. A method session holds active/partial casting only.
+ */
 export function readThreeCoinSession(): ThreeCoinReadingSession | null {
   try {
-    const session = readPublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, parseThreeCoinSessionData);
-    if (session) return session;
-
-    const localStorage = safeLocalStorage();
-    const rawBackup = localStorage?.getItem(THREE_COIN_BACKUP_STORAGE_KEY) ?? null;
-    const backup = parseCompletedThreeCoinBackup(rawBackup);
-    if (!backup) {
-      if (rawBackup) localStorage?.removeItem(THREE_COIN_BACKUP_STORAGE_KEY);
-      return null;
-    }
-
-    // This is the same formal session envelope, not a second session model.
-    // Preserve identity across auth/cross-tab return instead of minting a new cast id.
-    window.sessionStorage.setItem(THREE_COIN_SESSION_STORAGE_KEY, JSON.stringify(backup));
-    return backup;
+    return readPublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, parseThreeCoinSessionData);
   } catch (error) {
     if (error instanceof Error && ["PUBLIC_READING_SESSION_UNAVAILABLE", "PUBLIC_READING_SESSION_READ_FAILED"].includes(error.message)) {
       throw new Error("THREE_COIN_SESSION_UNAVAILABLE");
@@ -159,16 +101,6 @@ export function writeThreeCoinSteps(steps: readonly ThreeCoinStep[]): ThreeCoinR
       throw new Error("THREE_COIN_SESSION_EMPTY");
     }
     const session = writePublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY, { steps: [...steps] });
-    if (steps.length === 6) {
-      try {
-        safeLocalStorage()?.setItem(THREE_COIN_BACKUP_STORAGE_KEY, JSON.stringify({
-          ...session,
-          completedBackupCreatedAt: new Date().toISOString(),
-        }));
-      } catch {
-        // ignore
-      }
-    }
     return session;
   } catch (error) {
     if (error instanceof Error && ["THREE_COIN_SESSION_UNAVAILABLE", "THREE_COIN_SESSION_EMPTY"].includes(error.message)) throw error;
@@ -176,18 +108,9 @@ export function writeThreeCoinSteps(steps: readonly ThreeCoinStep[]): ThreeCoinR
   }
 }
 
-export function clearThreeCoinCompletedBackup(): void {
-  try {
-    safeLocalStorage()?.removeItem(THREE_COIN_BACKUP_STORAGE_KEY);
-  } catch {
-    // Backup cleanup must not block the current session.
-  }
-}
-
 export function clearThreeCoinReading(): void {
   try {
     clearPublicReadingSession(THREE_COIN_SESSION_STORAGE_KEY);
-    clearThreeCoinCompletedBackup();
   } catch (error) {
     if (error instanceof Error && error.message === "PUBLIC_READING_SESSION_UNAVAILABLE") throw new Error("THREE_COIN_SESSION_UNAVAILABLE");
     throw new Error("THREE_COIN_SESSION_CLEAR_FAILED");

@@ -32,7 +32,7 @@ export default function ChineseYarrowStalksPage() {
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
-        <QuestionFirst storageKey="quickiching:public-v1:yarrow-v2" dictionary={dictionary}>
+        <QuestionFirst storageKey="quickiching:public-v1:yarrow-v2" dictionary={dictionary} resumeMethod="yarrow-stalks">
           <YarrowTool dictionary={dictionary} />
         </QuestionFirst>
       </section>

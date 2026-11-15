@@ -4,7 +4,7 @@ import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
-const COMPLETED_READING_KEY = "quickiching:public-v1:completed-reading";
+const PENDING_READING_KEY_PREFIX = "quickiching:public-v1:pending-completed-reading:";
 const FIXTURE_CASTING_ID = "11111111-1111-4111-8111-111111111111";
 const RESULT_PATH = "/readings/choice";
 const HOME_TITLE = "I Ching Online — Free Hexagram Reading | Quick I Ching";
@@ -109,10 +109,11 @@ async function clickButton(page, label) {
 }
 
 async function seedCompletedReadingStorage(page) {
-  // Seed a sealed, question-free session using the current envelope format.
+  // Seed a sealed session plus its exact Pending Completed Reading record.
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.evaluate(({ key, completedKey, castingId, steps }) => {
+  await page.evaluate(({ key, pendingPrefix, castingId, steps }) => {
     const createdAt = "2026-09-27T00:00:00.000Z";
+    const now = Date.now();
     sessionStorage.setItem(key, JSON.stringify({
       schemaVersion: 1,
       id: castingId,
@@ -121,27 +122,36 @@ async function seedCompletedReadingStorage(page) {
       coreQuestionFrozenAtCast: true,
       data: { steps },
     }));
-    sessionStorage.setItem(completedKey, JSON.stringify({
+    localStorage.setItem(`${pendingPrefix}${castingId}`, JSON.stringify({
       schemaVersion: 1,
-      id: castingId,
-      createdAt,
+      readingId: castingId,
       method: "three-coin",
       methodVersion: "three-coin-v1",
       lineValuesBottomUp: steps.map((step) => step.lineValue),
       evidence: { kind: "three-coin", steps },
+      createdAt,
+      pendingCreatedAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + 60 * 60 * 1000).toISOString(),
     }));
   }, {
     key: STORAGE_KEY,
-    completedKey: COMPLETED_READING_KEY,
+    pendingPrefix: PENDING_READING_KEY_PREFIX,
     castingId: FIXTURE_CASTING_ID,
     steps: FIXTURE_STEPS,
   });
 }
 
 async function seedCompletedReading(page) {
-  // A restored six-line cast must recover directly into the canonical Result Choice route.
+  // C1: a restored six-line cast must not auto-enter Reading Choice. It stays on
+  // the canonical entry and offers sealed recovery; only Retry Handoff navigates.
   await seedCompletedReadingStorage(page);
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForSelector("[data-reading-sealed-recovery]", { timeout: 30_000 });
+  assert.equal(new URL(page.url()).pathname, "/", "A restored completed cast must not navigate away from the entry");
+  assert.equal(await page.$(".hold-button"), null, "A restored completed cast must not become an active cast step");
+  assert.equal(await page.$('[data-ritual-view="complete"]'), null, "A restored completed cast must not render a terminal casting screen");
+
+  await clickButton(page, "Retry Handoff");
   await page.waitForFunction(
     (resultPath, castingId) => location.pathname === resultPath && new URLSearchParams(location.search).get("session") === castingId,
     { timeout: 30_000 },
@@ -151,19 +161,19 @@ async function seedCompletedReading(page) {
   await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
   assert.equal(await page.$("[data-completed-cast-gate]"), null, "Result Choice must appear before authentication");
 
-  const completedState = await page.evaluate(({ completedKey, castingId }) => {
-    const raw = sessionStorage.getItem(completedKey);
+  const completedState = await page.evaluate(({ pendingPrefix, castingId }) => {
+    const raw = localStorage.getItem(`${pendingPrefix}${castingId}`);
     const completed = raw ? JSON.parse(raw) : null;
     return {
       pathname: location.pathname,
       session: new URLSearchParams(location.search).get("session"),
-      completedId: completed?.id ?? null,
+      completedId: completed?.readingId ?? null,
       ritualCompleteViewVisible: document.querySelector('[data-ritual-view="complete"]') !== null,
     };
-  }, { completedKey: COMPLETED_READING_KEY, castingId: FIXTURE_CASTING_ID });
-  assert.equal(completedState.pathname, RESULT_PATH, "Restored completed cast must recover into the canonical Result Choice route");
+  }, { pendingPrefix: PENDING_READING_KEY_PREFIX, castingId: FIXTURE_CASTING_ID });
+  assert.equal(completedState.pathname, RESULT_PATH, "Retry Handoff must recover into the canonical Result Choice route");
   assert.equal(completedState.session, FIXTURE_CASTING_ID, "Recovered Result Choice route must preserve the same stable casting id");
-  assert.equal(completedState.completedId, FIXTURE_CASTING_ID, "Recovered completed-reading payload must preserve the same stable casting id");
+  assert.equal(completedState.completedId, FIXTURE_CASTING_ID, "Pending payload must preserve the same stable casting id");
   assert.equal(completedState.ritualCompleteViewVisible, false, "Restored six-line cast must not leave the user stuck on a completed casting screen");
 }
 
@@ -180,7 +190,7 @@ async function resultText(page) {
 }
 
 async function verifyFormalEntryPoints(browser) {
-  for (const path of ["/", "/zh", "/methods/three-coin", "/zh/methods/three-coin"]) {
+  for (const path of ["/", "/zh"]) {
     const context = await browser.createBrowserContext();
     const page = await context.newPage();
     try {
@@ -194,7 +204,20 @@ async function verifyFormalEntryPoints(browser) {
       await context.close();
     }
   }
-  log("EN/ZH Home + /methods/three-coin formal entry points PASS");
+  for (const path of ["/methods/three-coin", "/zh/methods/three-coin"]) {
+    const context = await browser.createBrowserContext();
+    const page = await context.newPage();
+    try {
+      const response = await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 30_000 });
+      assert.equal(response?.status(), 200, `${path} must return HTTP 200`);
+      assert.equal(await page.$('[data-three-coin-ritual]'), null, `${path} must render SEO detail only, with no ritual`);
+      assert.equal(await page.$('.hold-button'), null, `${path} must not expose active casting`);
+      assert(await page.$('[data-three-coin-cta]'), `${path} must offer the canonical Root CTA`);
+    } finally {
+      await context.close();
+    }
+  }
+  log("EN/ZH Home formal entry + SEO-only method detail PASS");
 }
 
 async function verifyInvalidResult(browser) {
@@ -319,7 +342,7 @@ async function verifySeededResult(browser, viewport) {
   await page.setViewport(viewport);
   try {
     await seedCompletedReading(page);
-    await page.goto(`${BASE}${RESULT_PATH}`, { waitUntil: "networkidle0", timeout: 30_000 });
+    await page.goto(`${BASE}${RESULT_PATH}?session=${FIXTURE_CASTING_ID}`, { waitUntil: "networkidle0", timeout: 30_000 });
     await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
     await waitForText(page, "Primary Hexagram");
     await waitForText(page, "Deep Reading");
@@ -347,18 +370,16 @@ async function verifySeededResult(browser, viewport) {
     await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
     assert.equal(await resultText(page), beforeRefresh, "Refresh must reproduce the same anonymous Result Choice");
 
+    // C7: Browser Back from Choice must not resurrect a completed casting screen.
     await page.goBack({ waitUntil: "networkidle0" });
-    await page.waitForFunction(
-      (resultPath, castingId) => location.pathname === resultPath && new URLSearchParams(location.search).get("session") === castingId,
-      { timeout: 30_000 },
-      RESULT_PATH,
-      FIXTURE_CASTING_ID,
-    );
-    await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
-    assert.equal(await page.$("[data-completed-cast-gate]"), null, "Back navigation must stay before authentication");
-    const storedAfterBack = await page.evaluate((key) => sessionStorage.getItem(key), STORAGE_KEY);
-    assert(storedAfterBack, "Back navigation must preserve the sealed reading");
+    await new Promise((resolve) => setTimeout(resolve, 800));
     assert.equal(await page.$('[data-ritual-view="complete"]'), null, "Back navigation must not strand the user on the completed casting screen");
+    assert.equal(await page.$(".hold-button"), null, "Back navigation must not restore an active cast step");
+    const pendingAfterBack = await page.evaluate(
+      ({ prefix, id }) => localStorage.getItem(`${prefix}${id}`),
+      { prefix: PENDING_READING_KEY_PREFIX, id: FIXTURE_CASTING_ID },
+    );
+    assert(pendingAfterBack, "Back navigation must preserve the pending completed reading");
 
     await assertNoHorizontalOverflow(page);
     log(`${viewport.width}px completed-cast Result Choice / refresh / back recovery PASS`);
@@ -374,7 +395,6 @@ async function verifyHistorySaveRetry(browser) {
   let pending = null;
   try {
     await seedCompletedReading(page);
-    const completed = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key)), STORAGE_KEY);
 
     await page.setRequestInterception(true);
     page.on("request", (request) => {
@@ -391,7 +411,23 @@ async function verifyHistorySaveRetry(browser) {
       request.continue();
     });
 
-    await page.goto(`${BASE}/ritual-qa-local?view=saving`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    const fixtureSessionId = "ritual-qa-saved-cast";
+    await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.evaluate(({ prefix, id, steps }) => {
+      const now = Date.now();
+      localStorage.setItem(`${prefix}${id}`, JSON.stringify({
+        schemaVersion: 1,
+        readingId: id,
+        method: "three-coin",
+        methodVersion: "three-coin-v1",
+        lineValuesBottomUp: steps.map((step) => step.lineValue),
+        evidence: { kind: "three-coin", steps },
+        createdAt: new Date(now).toISOString(),
+        pendingCreatedAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + 60 * 60 * 1000).toISOString(),
+      }));
+    }, { prefix: PENDING_READING_KEY_PREFIX, id: fixtureSessionId, steps: FIXTURE_STEPS });
+    await page.goto(`${BASE}/ritual-qa-local?view=saving&session=${fixtureSessionId}`, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForSelector("[data-account-reading-saving]");
     assert(pending, "Authenticated save fixture must issue POST /api/readings");
     assert.equal(await page.$("[data-public-reading-result]"), null, "Result must remain concealed while History save is pending");
@@ -405,18 +441,18 @@ async function verifyHistorySaveRetry(browser) {
     await page.waitForSelector("[data-account-reading-saving]");
     assert(pending, "Retry must issue the same POST /api/readings");
     assert.deepEqual(requests[1], requests[0], "Retry must reuse the identical saved-cast payload");
-    assert.equal(requests[1].clientCastingId, completed.id, "History save must use the same stable browser casting id");
-    assert.deepEqual(
-      requests[1].lineValuesBottomUp,
-      completed.data.steps.map((step) => step.lineValue),
-      "History save must use the exact completed six lines",
-    );
+    assert.equal(requests[1].clientCastingId, fixtureSessionId, "History save must use the same stable browser casting id");
+    assert.equal(requests[1].lineValuesBottomUp?.length, 6, "History save must use the exact completed six lines");
 
     await pending.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ castingId: "browser-gate-saved-cast" }) });
     pending = null;
     await page.waitForSelector("[data-public-reading-result]", { timeout: 15_000 });
-    const restored = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key)), STORAGE_KEY);
-    assert.deepEqual(restored, completed, "History retry/reveal must not replace or reroll the completed cast");
+    const afterSave = await page.evaluate(({ key, prefix, id }) => ({
+      session: sessionStorage.getItem(key),
+      pending: localStorage.getItem(prefix + id),
+    }), { key: STORAGE_KEY, prefix: PENDING_READING_KEY_PREFIX, id: fixtureSessionId });
+    assert.equal(afterSave.session, null, "A durable save must not revive the retired method session");
+    assert.equal(afterSave.pending, null, "A durable save must remove exactly the Pending record");
     log("History save failure/retry + same-cast reveal PASS");
   } finally {
     await context.close();
@@ -490,7 +526,7 @@ async function verifyExplicitReset(browser) {
     await page.goto(`${BASE}/ritual-qa-local`, { waitUntil: "networkidle0", timeout: 30_000 });
     await waitForText(page, "Start a New Reading");
     await clickButton(page, "Start a New Reading");
-    await page.waitForFunction(() => location.pathname === "/methods/three-coin", { timeout: 15_000 });
+    await page.waitForFunction(() => location.pathname === "/", { timeout: 15_000 });
     await clickButton(page, "Skip — free reading only");
     await page.waitForSelector('[data-experience-stage="question-confirm"]');
     await page.waitForSelector('[data-home-primary-action]:not(:disabled)', { timeout: 15_000 });

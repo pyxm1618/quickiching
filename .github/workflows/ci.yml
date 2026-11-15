@@ -210,6 +210,7 @@ jobs:
           node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth-zh-reduced
           bun scripts/mei-hua-ui-browser-gate.mjs
           bun scripts/public-p0-browser-gate.mjs
+          node scripts/reading-lifecycle-browser-gate.mjs
       - name: Upload Pricing / purchase visual evidence
         if: always() && needs.select.outputs.reading == 'true'
         uses: actions/upload-artifact@v4

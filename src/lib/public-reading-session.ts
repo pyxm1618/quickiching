@@ -115,17 +115,21 @@ export function readPublicReadingSessionState(
 export function writePublicReadingSession<T>(
   key: string,
   data: T,
+  options: { freezeQuestion?: boolean } = {},
 ): PublicReadingSession<T> {
   try {
     const current = readRawSession(key).envelope;
+    const freezeQuestion = options.freezeQuestion !== false;
     const next: PublicReadingSession<T> = {
       schemaVersion: PUBLIC_READING_SESSION_SCHEMA_VERSION,
       id: current?.id ?? makeReadingId(),
       createdAt: current?.createdAt ?? new Date().toISOString(),
       started: true,
       ...(current?.question ? { question: current.question } : {}),
-      ...(current?.coreQuestionAtCast ?? current?.question ? { coreQuestionAtCast: current.coreQuestionAtCast ?? current.question } : {}),
-      coreQuestionFrozenAtCast: true,
+      ...(freezeQuestion && (current?.coreQuestionAtCast ?? current?.question)
+        ? { coreQuestionAtCast: current.coreQuestionAtCast ?? current.question }
+        : current?.coreQuestionAtCast ? { coreQuestionAtCast: current.coreQuestionAtCast } : {}),
+      ...(freezeQuestion || current?.coreQuestionFrozenAtCast === true ? { coreQuestionFrozenAtCast: true } : {}),
       data,
     };
     browserStorage().setItem(key, JSON.stringify(next));

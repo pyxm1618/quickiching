@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Clock3, MapPin } from "lucide-react";
 import "./mei-hua-scene.css";
-import { completedPublicReadingPath, writeCompletedPublicReading } from "@/lib/completed-public-reading";
+import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading-handoff";
+import { MEI_HUA_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
+import {
+  NO_READING_RESUME,
+  decideReadingResume,
+  resumeProgressLabel,
+  type ReadingResumeState,
+} from "@/lib/reading-resume";
 import {
   MEI_HUA_NUMBER_TIME_INPUT_VERSION,
   meiHuaFromNumberAndTime,
@@ -25,9 +32,9 @@ import {
 } from "@/lib/public-reading-session";
 import { GildedTitle } from "@/components/typography/gilded-title";
 
-const STORAGE_KEY = "quickiching:public-v1:mei-hua-number-time-v1";
+const STORAGE_KEY = MEI_HUA_SESSION_STORAGE_KEY;
 
-type FlowStep = 1 | 2 | 3 | "reading";
+type FlowStep = 1 | 2 | 3;
 
 type StoredNumberTimeCast = {
   mode: "number-time";
@@ -36,16 +43,38 @@ type StoredNumberTimeCast = {
   result: MeiHuaNumberTimeResult;
 };
 
+type StoredNumberTimeDraft = {
+  mode: "number-time-draft";
+  inputVersion: typeof MEI_HUA_NUMBER_TIME_INPUT_VERSION;
+  step: 2 | 3;
+  number?: number;
+};
+
+type StoredMeiHuaData = StoredNumberTimeCast | StoredNumberTimeDraft;
+
 function detectedTimeZone(): string {
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   return validIanaTimeZone(zone) ? zone : "UTC";
 }
 
-function parseNumberTimeCast(value: unknown): StoredNumberTimeCast | null {
+function parseNumberTimeData(value: unknown): StoredMeiHuaData | null {
   if (!value || typeof value !== "object") return null;
-  const candidate = value as { mode?: unknown; inputVersion?: unknown; input?: unknown };
-  if (candidate.mode !== "number-time" || candidate.inputVersion !== MEI_HUA_NUMBER_TIME_INPUT_VERSION) return null;
-  if (!candidate.input || typeof candidate.input !== "object") return null;
+  const candidate = value as { mode?: unknown; inputVersion?: unknown; input?: unknown; step?: unknown; number?: unknown };
+  if (candidate.inputVersion !== MEI_HUA_NUMBER_TIME_INPUT_VERSION) return null;
+
+  if (candidate.mode === "number-time-draft") {
+    if (candidate.step !== 2 && candidate.step !== 3) return null;
+    if (candidate.number !== undefined && (!Number.isSafeInteger(candidate.number) || Number(candidate.number) <= 0)) return null;
+    if (candidate.step === 3 && candidate.number === undefined) return null;
+    return {
+      mode: "number-time-draft",
+      inputVersion: MEI_HUA_NUMBER_TIME_INPUT_VERSION,
+      step: candidate.step,
+      ...(candidate.number !== undefined ? { number: Number(candidate.number) } : {}),
+    };
+  }
+
+  if (candidate.mode !== "number-time" || !candidate.input || typeof candidate.input !== "object") return null;
   const input = candidate.input as Partial<MeiHuaNumberTimeInput>;
   if (!Number.isSafeInteger(input.number) || Number(input.number) <= 0
     || !Number.isSafeInteger(input.utcMillis)
@@ -109,31 +138,66 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   const [questionDraft, setQuestionDraft] = useState("");
   const [numberDraft, setNumberDraft] = useState("");
   const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
-  const [cast, setCast] = useState<StoredNumberTimeCast | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState("");
+  const [resumeState, setResumeState] = useState<ReadingResumeState>(NO_READING_RESUME);
+  const [resumed, setResumed] = useState(false);
+  const [sealedReading, setSealedReading] = useState<PublicReading | null>(null);
+  const handoffStartedRef = useRef(false);
 
+  // C1: detect only. Step 1 remains the default entry state.
   useEffect(() => {
     try {
-      const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeCast);
+      const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeData);
       if (!current) return;
-      setSessionId(current.id);
       const restoredQuestion = current.coreQuestionAtCast ?? current.question;
-      setQuestion(restoredQuestion);
-      setQuestionDraft(restoredQuestion ?? "");
-      if (current.data) {
-        setCast(current.data);
-        setSelectedNumber(current.data.input.number);
-        setNumberDraft(String(current.data.input.number));
-        setStep("reading");
-      } else if (current.question) {
-        setStep(2);
+      if (current.data?.mode === "number-time") {
+        setResumeState(decideReadingResume({
+          method: "mei-hua-yi-shu",
+          partial: null,
+          sealedReadingId: current.id,
+        }));
+        setSealedReading(readingFromCast(current.id, restoredQuestion, current.data));
+        return;
       }
+      const draft = current.data;
+      const completed = draft?.mode === "number-time-draft" ? draft.step - 1 : 1;
+      setResumeState(decideReadingResume({
+        method: "mei-hua-yi-shu",
+        partial: { completed, total: 3, unit: "steps" },
+        partialReadingId: current.id,
+        stage: "draft",
+      }));
     } catch {
       setError(zh ? "浏览器会话存储不可用，尚未创建正式卦象。" : "Browser session storage is unavailable. No cast has been created.");
     }
   }, [zh]);
+
+  function resume() {
+    try {
+      const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeData);
+      if (!current) {
+        setResumeState(NO_READING_RESUME);
+        return;
+      }
+      setSessionId(current.id);
+      const restoredQuestion = current.coreQuestionAtCast ?? current.question;
+      setQuestion(restoredQuestion);
+      setQuestionDraft(restoredQuestion ?? "");
+      if (current.data?.mode === "number-time-draft") {
+        setSelectedNumber(current.data.number ?? null);
+        setNumberDraft(current.data.number ? String(current.data.number) : "");
+        setStep(current.data.step);
+      } else if (restoredQuestion) {
+        setStep(2);
+      }
+      setResumed(true);
+      setError("");
+    } catch {
+      setError(zh ? "无法恢复这次起卦。" : "This cast could not be resumed.");
+    }
+  }
 
   useEffect(() => {
     if (step !== 3) return;
@@ -143,23 +207,19 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   }, [step]);
 
   const timeZone = useMemo(detectedTimeZone, []);
-  const publicReading = useMemo(
-    () => cast && sessionId ? readingFromCast(sessionId, question, cast) : null,
-    [cast, question, sessionId],
-  );
 
-  useEffect(() => {
-    if (step !== "reading" || !publicReading) return;
+  function persistDraft(nextStep: 2 | 3, number: number | null) {
     try {
-      writeCompletedPublicReading(publicReading);
-      setError("");
-      router.push(completedPublicReadingPath(publicReading.id, zh));
+      writePublicReadingSession(STORAGE_KEY, {
+        mode: "number-time-draft",
+        inputVersion: MEI_HUA_NUMBER_TIME_INPUT_VERSION,
+        step: nextStep,
+        ...(number ? { number } : {}),
+      } satisfies StoredNumberTimeDraft, { freezeQuestion: false });
     } catch {
-      setError(zh
-        ? "无法保存本次已完成起卦；同一个数字、时刻和卦象仍会保留，可以重试。"
-        : "Unable to hand off this completed cast. The same number, moment, and cast are preserved for retry.");
+      // Pre-cast draft persistence is best effort; no cast fact is affected.
     }
-  }, [publicReading, router, step, zh]);
+  }
 
   function submitQuestion() {
     try {
@@ -180,6 +240,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
       }
       setError("");
       setStep(2);
+      persistDraft(2, null);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? t(`Keep the question within ${PUBLIC_QUESTION_MAX_CODE_POINTS} Unicode characters.`, `问题请控制在 ${PUBLIC_QUESTION_MAX_CODE_POINTS} 个 Unicode 字符以内。`)
@@ -188,6 +249,18 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   }
 
   function changeQuestion() {
+    // A changed question is a new reading identity; the locked pre-cast draft is
+    // discarded explicitly instead of being silently reused.
+    try {
+      clearPublicReadingSession(STORAGE_KEY);
+    } catch {
+      // The in-memory flow still allows editing.
+    }
+    setSessionId(null);
+    setResumeState(NO_READING_RESUME);
+    setResumed(false);
+    setSelectedNumber(null);
+    setNumberDraft("");
     setError("");
     setStep(1);
   }
@@ -199,6 +272,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
       setNumberDraft(String(nextNumber));
       setError("");
       setStep(3);
+      persistDraft(3, nextNumber);
     } catch {
       setError(t("Enter a whole number before continuing.", "请输入一个整数后继续。"));
     }
@@ -207,6 +281,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   function changeNumber() {
     setError("");
     setStep(2);
+    persistDraft(2, null);
   }
 
   function confirmAndCast() {
@@ -218,6 +293,8 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
       ianaTimeZone: timeZone,
     };
 
+    let reading: PublicReading;
+    let frozenQuestion: string | undefined;
     try {
       const result = meiHuaFromNumberAndTime(input);
       const nextCast: StoredNumberTimeCast = {
@@ -228,13 +305,33 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
       };
       const session = writePublicReadingSession(STORAGE_KEY, nextCast);
       setSessionId(session.id);
-      setQuestion(session.coreQuestionAtCast ?? session.question ?? question);
-      setCast(nextCast);
-      setError("");
-      setStep("reading");
+      frozenQuestion = session.coreQuestionAtCast ?? session.question ?? question;
+      reading = readingFromCast(session.id, frozenQuestion, nextCast);
     } catch {
       setError(t("This cast could not be locked. No official cast was created.", "本次起卦无法锁定，尚未创建正式卦象。"));
+      return;
     }
+
+    setQuestion(frozenQuestion ?? question);
+    setError("");
+    handoffStartedRef.current = true;
+    const outcome = completeReadingHandoff({ reading, zh, router });
+    if (outcome.kind === "failed") {
+      setSealedReading(reading);
+      setError(readingHandoffFailureCopy(outcome, zh) ?? "");
+      handoffStartedRef.current = false;
+    }
+  }
+
+  function retrySealedHandoff() {
+    if (!sealedReading) return;
+    const outcome = completeReadingHandoff({ reading: sealedReading, zh, router });
+    if (outcome.kind === "failed") {
+      setError(readingHandoffFailureCopy(outcome, zh) ?? "");
+      return;
+    }
+    setError("");
+    setSealedReading(null);
   }
 
   function startNewReading() {
@@ -247,30 +344,35 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
     setQuestionDraft("");
     setNumberDraft("");
     setSelectedNumber(null);
-    setCast(null);
     setSessionId(null);
     setError("");
     setStep(1);
+    setResumeState(NO_READING_RESUME);
+    setResumed(false);
+    setSealedReading(null);
+    handoffStartedRef.current = false;
   }
 
-  if (step === "reading" && cast && publicReading) {
+  if (sealedReading) {
+    // C1 / C2: a completed cast is never an editable or resumable casting step.
     return (
-      <section className="mei-scene mei-step-3" data-mei-hua-flow data-mei-hua-locked="true" aria-live="polite">
+      <section className="mei-scene mei-step-3" data-mei-hua-flow data-reading-sealed={sealedReading.id} aria-live="polite">
         <SceneBook zh={zh} />
         <div className="mei-confirm">
           {zh ? <div className="mei-flow-title" role="heading" aria-level={2}>起卦已完成</div> : <h1>Casting Complete</h1>}
-          <p className="mei-confirm-copy">{error || (zh
-            ? "正在进入统一解卦流程；同一个 cast 会继续用于登录、保存、免费解读和深度解读。"
-            : "Opening the shared Reading flow. The same cast continues through sign-in, save, Free Reading, and Deep Reading.")}</p>
-          {error ? <button type="button" className="mei-button" onClick={() => {
-            try {
-              writeCompletedPublicReading(publicReading);
-              setError("");
-              router.push(completedPublicReadingPath(publicReading.id, zh));
-            } catch {
-              setError(zh ? "仍无法保存本次已完成起卦；没有重新起卦，请稍后重试。" : "The completed cast still could not be handed off. No recast occurred; retry when browser session storage is available.");
-            }
-          }}>{zh ? "重试进入解卦" : "Retry Reading Handoff"}</button> : null}
+          <p className="mei-confirm-copy">
+            {error || (zh
+              ? "这次起卦已经落定，但还没有进入解卦选择。同一个数字、时刻和卦象会继续沿用。"
+              : "This cast is sealed but has not reached Reading Choice yet. The same number, moment, and cast are kept.")}
+          </p>
+          <div className="mei-confirm-actions">
+            <button type="button" className="mei-button" onClick={retrySealedHandoff} data-reading-retry-handoff>
+              {zh ? "重试进入解卦" : "Retry Handoff"}
+            </button>
+            <button type="button" className="mei-button mei-button-outline" onClick={startNewReading} data-reading-start-new>
+              {zh ? "重新起卦" : "Start New Reading"}
+            </button>
+          </div>
         </div>
       </section>
     );
@@ -279,6 +381,13 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   return (
     <section className={`mei-scene mei-step-${step}`} data-mei-hua-flow data-mei-hua-step={step} aria-label={t("Mei Hua Yi Shu", "梅花易数")}>
       <SceneBook zh={zh} />
+      {resumeState.kind === "partial" && !resumed ? (
+        <div className="mei-question-summary" data-reading-resume="mei-hua-yi-shu">
+          <span>{t("Unfinished cast", "未完成的起卦")}</span>
+          <p>{resumeProgressLabel(resumeState, zh)}</p>
+          <button type="button" onClick={resume} data-reading-resume-action>{t("Resume", "继续")}</button>
+        </div>
+      ) : null}
       {step !== 1 ? <div className="mei-question-summary" data-private-question="true" data-clarity-mask="true">
         <span>{t("Your question", "你的问题")}</span><p>{question}</p><button type="button" onClick={changeQuestion}>{t("✎ Edit", "✎ 修改")}</button>
       </div> : null}

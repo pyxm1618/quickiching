@@ -7,7 +7,7 @@ import { resolveChromeExecutable } from "./browser-runtime.mjs";
 const BASE=process.env.PUBLIC_V1_TEST_BASE_URL||"http://127.0.0.1:3078";
 const OUT=process.env.MEI_HUA_QA_OUTPUT||"docs/qa/mei-hua-78/screenshots";
 const CAST_KEY="quickiching:public-v1:mei-hua-number-time-v1";
-const COMPLETED_KEY="quickiching:public-v1:completed-reading";
+const PENDING_PREFIX="quickiching:public-v1:pending-completed-reading:";
 await mkdir(OUT,{recursive:true});
 const runtime=await resolveChromeExecutable({ executablePath: async () => { throw new Error("CHROME_PATH_OR_SYSTEM_CHROME_REQUIRED"); } });
 const browser=await puppeteer.launch({executablePath:runtime.executablePath,headless:true,args:["--no-sandbox"]});
@@ -59,7 +59,7 @@ async function capture(p,name){
 }
 async function clearSessions(p){
   if(!p.url().startsWith(BASE))await p.goto(BASE,{waitUntil:"domcontentloaded"});
-  await p.evaluate((castKey,completedKey)=>{sessionStorage.removeItem(castKey);sessionStorage.removeItem(completedKey);},CAST_KEY,COMPLETED_KEY);
+  await p.evaluate((castKey,pendingPrefix)=>{sessionStorage.removeItem(castKey);for(let i=localStorage.length-1;i>=0;i-=1){const key=localStorage.key(i);if(key?.startsWith(pendingPrefix))localStorage.removeItem(key);}},CAST_KEY,PENDING_PREFIX);
 }
 function callbackFromHref(href){
   const login=new URL(href,BASE);
@@ -96,27 +96,27 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
     assert.equal(await p.$('[data-completed-cast-gate]'),null,"Result Choice must be visible before authentication");
     const after=Date.now();
 
-    const sealed=await p.evaluate(k=>JSON.parse(sessionStorage.getItem(k)),CAST_KEY);
-    const completed=await p.evaluate(k=>JSON.parse(sessionStorage.getItem(k)),COMPLETED_KEY);
-    assert.equal(sealed.data.input.number,29);
-    assert(sealed.data.input.utcMillis>=before&&sealed.data.input.utcMillis<=after);
-    assert.equal(sealed.data.result.algorithmVersion,"mei-hua-number-moment-classical-v1");
-    assert.equal(completed.id,sealed.id);
+    const sessionId=new URL(p.url()).searchParams.get("session");
+    const completed=await p.evaluate(({prefix,id})=>JSON.parse(localStorage.getItem(prefix+id)||"null"),{prefix:PENDING_PREFIX,id:sessionId});
+    const retired=await p.evaluate(k=>sessionStorage.getItem(k),CAST_KEY);
+    assert.equal(retired,null,"The Mei Hua method session must be retired after handoff");
+    assert.equal(completed.readingId,sessionId);
     assert.equal(completed.method,"mei-hua-yi-shu");
-    assert.equal(completed.methodVersion,sealed.data.result.algorithmVersion);
-    assert.deepEqual(completed.lineValuesBottomUp,sealed.data.result.lineValuesBottomUp);
+    assert.equal(completed.methodVersion,"mei-hua-number-moment-classical-v1");
     assert.equal(completed.evidence.calculation.methodCalculation.number,29);
+    assert(completed.evidence.calculation.methodCalculation.utcMillis>=before&&completed.evidence.calculation.methodCalculation.utcMillis<=after);
+    assert.equal(completed.evidence.calculation.methodCalculation.ianaTimeZone.length>0,true);
 
     const freeChoiceHref=await p.$eval('[data-result-choice-free]',e=>e.getAttribute("href"));
     const deepChoiceHref=await p.$eval('[data-result-choice-deep]',e=>e.getAttribute("href"));
     const freeChoice=new URL(freeChoiceHref,BASE),deepChoice=new URL(deepChoiceHref,BASE);
     assert.equal(freeChoice.pathname,expectedFree);
-    assert.equal(freeChoice.searchParams.get("session"),sealed.id);
+    assert.equal(freeChoice.searchParams.get("session"),sessionId);
     assert.equal(deepChoice.pathname,expectedDeep);
-    assert.equal(deepChoice.searchParams.get("session"),sealed.id);
+    assert.equal(deepChoice.searchParams.get("session"),sessionId);
 
     if(capturePrefix)await capture(p,`${capturePrefix}-result-choice`);
-    const beforeReload=await p.evaluate(k=>sessionStorage.getItem(k),COMPLETED_KEY);
+    const beforeReload=await p.evaluate(({prefix,id})=>localStorage.getItem(prefix+id),{prefix:PENDING_PREFIX,id:sessionId});
     await p.$eval('[data-result-choice-free]',element=>element.scrollIntoView({block:"center",inline:"center"}));
     await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const clickProbe=await p.$eval('[data-result-choice-free]',element=>{
@@ -144,16 +144,16 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
     const free=callbackFromHref(freeHref),deep=callbackFromHref(deepHref);
     assert.equal(free.login.pathname,zh?"/zh/signin":"/signin");
     assert.equal(free.callback.pathname,expectedFree);
-    assert.equal(free.callback.searchParams.get("session"),sealed.id);
+    assert.equal(free.callback.searchParams.get("session"),sessionId);
     assert.equal(deep.callback.pathname,expectedDeep);
-    assert.equal(deep.callback.searchParams.get("session"),sealed.id);
+    assert.equal(deep.callback.searchParams.get("session"),sessionId);
 
     await p.reload({waitUntil:"networkidle0"});
     await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
-    assert.equal(await p.evaluate(k=>sessionStorage.getItem(k),COMPLETED_KEY),beforeReload);
-    assert.equal(new URL(p.url()).searchParams.get("session"),sealed.id);
+    assert.equal(await p.evaluate(({prefix,id})=>localStorage.getItem(prefix+id),{prefix:PENDING_PREFIX,id:sessionId}),beforeReload,"Reload must preserve the exact Pending record");
+    assert.equal(new URL(p.url()).searchParams.get("session"),sessionId);
     results.checks.push(`${zh?"ZH":"EN"} ${viewport.width}px: number+moment cast → Result Choice → Free auth handoff + Deep callback → reload same cast PASS`);
-    return {id:sealed.id,algorithmVersion:sealed.data.result.algorithmVersion};
+    return {id:sessionId,algorithmVersion:completed.methodVersion};
   }finally{await p.close();}
 }
 

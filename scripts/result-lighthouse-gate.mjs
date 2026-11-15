@@ -7,7 +7,7 @@ import { desktopConfig, navigation } from "lighthouse";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
 const STORAGE_KEY = "quickiching:public-v1:three-coin";
-const COMPLETED_STORAGE_KEY = "quickiching:public-v1:completed-reading";
+const PENDING_STORAGE_PREFIX = "quickiching:public-v1:pending-completed-reading:";
 const ANALYTICS_CONSENT_STORAGE_KEY = "quickiching:analytics-consent:v1";
 const RESULT_URL = `${BASE}/readings/result`;
 const FIXTURE_STEPS = [
@@ -186,10 +186,11 @@ function summarize(label, runnerResult) {
 
 async function seedReading(page) {
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  return page.evaluate(({ key, completedKey, analyticsConsentKey, steps }) => {
+  return page.evaluate(({ key, pendingPrefix, analyticsConsentKey, steps }) => {
     localStorage.setItem(analyticsConsentKey, "denied");
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
+    const now = Date.now();
     sessionStorage.setItem(key, JSON.stringify({
       schemaVersion: 1,
       id,
@@ -198,20 +199,22 @@ async function seedReading(page) {
       coreQuestionFrozenAtCast: true,
       data: { steps },
     }));
-    sessionStorage.setItem(completedKey, JSON.stringify({
+    localStorage.setItem(`${pendingPrefix}${id}`, JSON.stringify({
       schemaVersion: 1,
-      id,
-      createdAt,
+      readingId: id,
       method: "three-coin",
       methodVersion: "three-coin-v1",
       question: "Should I continue on my current path?",
       lineValuesBottomUp: steps.map((step) => step.lineValue),
       evidence: { kind: "three-coin", steps },
+      createdAt,
+      pendingCreatedAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + 60 * 60 * 1000).toISOString(),
     }));
     return id;
   }, {
     key: STORAGE_KEY,
-    completedKey: COMPLETED_STORAGE_KEY,
+    pendingPrefix: PENDING_STORAGE_PREFIX,
     analyticsConsentKey: ANALYTICS_CONSENT_STORAGE_KEY,
     steps: FIXTURE_STEPS,
   });

@@ -10,7 +10,7 @@ import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import { buildStaticReading } from "@/domain/public-reading/static-reading";
 import { readingFingerprint } from "@/domain/public-reading/reading";
 import type { PublicReading } from "@/domain/public-reading/types";
-import { writeCompletedPublicReading } from "@/lib/completed-public-reading";
+import { writePendingCompletedReading } from "@/lib/pending-completed-reading";
 import { FreeReadingRitualView } from "./free-reading-ritual-view";
 
 export function PublicReadingResult({
@@ -113,7 +113,7 @@ export function PublicReadingResult({
   function prepareDeepReading(event: React.MouseEvent<HTMLAnchorElement>) {
     if (deepReadingHref) return;
     try {
-      writeCompletedPublicReading(reading);
+      writePendingCompletedReading(reading);
       setDeepEntryError(false);
     } catch {
       event.preventDefault();

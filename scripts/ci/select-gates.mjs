@@ -79,6 +79,7 @@ const READING = [
   "scripts/three-coin-v2-browser-gate.mjs",
   "scripts/mei-hua-ui-browser-gate.mjs",
   "scripts/public-p0-browser-gate.mjs",
+  "scripts/reading-lifecycle-browser-gate.mjs",
 ];
 
 const PUBLIC_SEO = [

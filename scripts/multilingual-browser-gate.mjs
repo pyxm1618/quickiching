@@ -272,11 +272,16 @@ async function verifyChineseReading(page, viewport) {
   const beforeSwitch = await page.evaluate(key => sessionStorage.getItem(key), methodKey);
   assert(beforeSwitch, "Bound method question must be persisted before switching language");
   await switchMethodLanguage(page, "en", "/methods/mei-hua-yi-shu");
+  // C1: the locale switch lands on the default entry; Resume restores the exact step.
+  await page.waitForSelector("[data-reading-resume-action]", { timeout: 15_000 });
+  await page.click("[data-reading-resume-action]");
   await page.waitForSelector("#mei-hua-number");
   assert.equal(await page.$eval("[data-private-question] p", node => node.textContent?.trim()), CHINESE_QUESTION);
   assert.equal(await page.evaluate(key => sessionStorage.getItem(key), methodKey), beforeSwitch);
   await assertNoOverflow(page, `${label} English method`);
   await switchMethodLanguage(page, "zh-Hans", "/zh/methods/mei-hua-yi-shu");
+  await page.waitForSelector("[data-reading-resume-action]", { timeout: 15_000 });
+  await page.click("[data-reading-resume-action]");
   await page.waitForSelector("#mei-hua-number");
   assert.equal(await page.$eval("[data-private-question] p", node => node.textContent?.trim()), CHINESE_QUESTION);
   await fillInput(page, "#mei-hua-number", "29");
@@ -291,18 +296,21 @@ async function verifyChineseReading(page, viewport) {
   assert.equal(await page.$("[data-public-reading-result]"), null, "Result Choice must not render Free Reading content");
   assert(await page.$("[data-result-choice-free]"), "Chinese Result Choice must offer Free Reading");
   assert(await page.$("[data-result-choice-deep]"), "Chinese Result Choice must offer Deep Reading");
-  const completedKey = "quickiching:public-v1:completed-reading";
-  const completed = await page.evaluate(key => sessionStorage.getItem(key), completedKey);
+  const pendingPrefix = "quickiching:public-v1:pending-completed-reading:";
+  const sessionId = new URL(page.url()).searchParams.get("session");
+  const readPending = () => page.evaluate(({ prefix, id }) => localStorage.getItem(prefix + id), { prefix: pendingPrefix, id: sessionId });
+  const completed = await readPending();
   const reading = JSON.parse(completed ?? "null");
+  assert.equal(reading?.readingId, sessionId, "Pending reading must keep the exact session id");
   assert.equal(reading?.method, "mei-hua-yi-shu");
   assert.equal(reading?.question, CHINESE_QUESTION);
   assert.equal(reading?.lineValuesBottomUp?.length, 6);
   assert.equal(reading?.evidence?.calculation?.methodCalculation?.number, 29, "Mei Hua number must survive the cross-language flow");
-  assert.equal(new URL(page.url()).searchParams.get("session"), reading.id);
+  assert.equal(new URL(page.url()).searchParams.get("session"), reading.readingId);
   await page.reload({ waitUntil: "networkidle0" });
   await page.waitForSelector("[data-result-choice]");
   assert.equal(await page.$("[data-completed-cast-gate]"), null, "Refreshed Result Choice must remain before authentication");
-  assert.equal(await page.evaluate(key => sessionStorage.getItem(key), completedKey), completed, "Refresh changed saved reading facts");
+  assert.equal(await readPending(), completed, "Refresh changed saved reading facts");
   await assertNoOverflow(page, `${label} Result Choice`);
   log(`${label}: cross-language question/session preservation + Result Choice-before-auth PASS`);
 }
