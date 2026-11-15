@@ -195,7 +195,6 @@ export function resumeProgressLabel(state: ReadingResumeState, zh: boolean): str
 export const LOCALE_CONTINUATION_STORAGE_KEY = "quickiching:public-v1:locale-continuation";
 export const LOCALE_CONTINUATION_TTL_MS = 60_000;
 const LOCALE_CONTINUATION_SCHEMA_VERSION = 1 as const;
-const ISSUED_AT_MAX_FUTURE_SKEW_MS = 5_000;
 const CONTINUATION_RECORD_KEYS = [
   "issuedAt",
   "method",
@@ -316,7 +315,7 @@ export function consumeLocaleContinuation(input: {
     && record.method === input.method
     && record.readingId === input.sessionId
     && record.targetLocale === input.locale
-    && now >= record.issuedAt - ISSUED_AT_MAX_FUTURE_SKEW_MS
+    && now >= record.issuedAt
     && now - record.issuedAt <= LOCALE_CONTINUATION_TTL_MS;
 
   try {
