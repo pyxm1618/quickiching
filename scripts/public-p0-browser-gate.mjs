@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { clickHydratedButton, clickSettled } from "./browser-gate-helpers.mjs";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import puppeteer from "puppeteer-core";
@@ -50,41 +51,10 @@ async function waitForText(page, text, timeout = 15_000) {
   await page.waitForFunction((wanted) => document.body?.innerText.toLocaleLowerCase().includes(wanted.toLocaleLowerCase()), { timeout }, text);
 }
 
-/**
- * Clicks a control only after its box has settled. The Result Choice actions
- * animate into place, and a click aimed at their pre-animation box silently
- * misses the real target (this is what made the ZH Free Reading hand-off flaky
- * in CI while EN passed).
- */
-async function clickSettled(page, selector) {
-  const handle = await page.waitForSelector(selector, { visible: true, timeout: 15_000 });
-  await handle.evaluate(async (node) => {
-    node.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
-    let previous = null;
-    for (let index = 0; index < 45; index += 1) {
-      const rect = node.getBoundingClientRect().toJSON();
-      if (previous
-        && Math.abs(rect.x - previous.x) < 1
-        && Math.abs(rect.y - previous.y) < 1
-        && Math.abs(rect.width - previous.width) < 1
-        && Math.abs(rect.height - previous.height) < 1) return;
-      previous = rect;
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-    }
-  });
-  await handle.click();
-}
-
 async function clickText(page, text) {
-  if (["Cast the Coins", "Record This Cast", "开始掷币", "记录这一爻"].includes(text)) {
-    await page.waitForFunction(wanted => [...document.querySelectorAll("button")].some(node => node.textContent?.trim() === wanted && !node.disabled), {timeout:15000}, text);
-  }
-  const clicked = await page.evaluate((wanted) => {
-    const node = [...document.querySelectorAll("button")].find((candidate) => candidate.textContent?.trim() === wanted);
-    if (!(node instanceof HTMLButtonElement) || node.disabled) return false;
-    node.click();
-    return true;
-  }, text);
+  // Hydration-aware: a programmatic click before React attaches its handler is a
+  // silent no-op, which is exactly how the ZH hand-off used to time out in CI.
+  const clicked = await clickHydratedButton(page, text);
   assert(clicked, `Unable to click enabled button: ${text}`);
 }
 

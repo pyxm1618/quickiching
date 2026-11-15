@@ -1,4 +1,5 @@
 // Production UI verification for Mei Hua completion, shared Result Choice, and downstream auth handoff.
+import { clickHydratedButton } from "./browser-gate-helpers.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import puppeteer from "puppeteer-core";
@@ -21,7 +22,10 @@ const button=async(p,text)=>{
     return {disabled:candidate.disabled,width:rect.width,height:rect.height,pointerEvents:getComputedStyle(candidate).pointerEvents};
   },text);
   assert(state&&state.disabled===false&&state.width>0&&state.height>0&&state.pointerEvents!=="none",`${text}: visible enabled button required`);
-  await p.evaluate(t=>[...document.querySelectorAll("button")].find(b=>b.textContent.trim()===t)?.click(),text);
+  // Click only once React has attached its handler: a pre-hydration programmatic
+  // click is a silent no-op and the following hand-off wait then times out.
+  const clicked=await clickHydratedButton(p,text);
+  assert(clicked,`${text}: hydrated click required`);
 };
 const setControlledValue=async(p,selector,value)=>{
   await p.$eval(selector,(element,nextValue)=>{
