@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import React, { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,6 +11,12 @@ import { localeSwitchTarget, shellHomeTarget } from "@/navigation/locale-navigat
 import { useNavigationLocation } from "@/navigation/navigation-location";
 import { surfaceContract, type SurfaceContract } from "@/navigation/surface-contract";
 import type { ContentLocale } from "@/i18n/config";
+import type { PublicReadingMethod } from "@/domain/public-reading/types";
+import {
+  getLiveFlowRegistration,
+  issueLocaleContinuationIntent,
+  prepareLocaleContinuationClick,
+} from "@/lib/reading-resume";
 
 const UserNavControl = dynamic(
   () => import("@/components/auth/user-nav-control").then(m => m.UserNavControl),
@@ -20,6 +26,14 @@ const UserNavControl = dynamic(
 const loadSceneNavigationPanels = () => import("@/components/scene-navigation-panels");
 
 type Panel = "methods" | "info";
+
+function continuationMethodForSurface(id: SurfaceContract["id"]): PublicReadingMethod | null {
+  if (id === "S02") return "three-coin";
+  if (id === "S06") return "yarrow-stalks";
+  if (id === "S07") return "mei-hua-yi-shu";
+  if (id === "S08") return "manual";
+  return null;
+}
 
 export function SceneNavigation({
   locale = "en",
@@ -50,6 +64,22 @@ export function SceneNavigation({
     currentLocale: locale,
   });
   const triggerFor = (name: Panel) => name === "methods" ? methodsTrigger.current : infoTrigger.current;
+
+  function handleLocaleClick(event: MouseEvent<HTMLAnchorElement>, targetLocale: ContentLocale) {
+    setPanel(null);
+    const expectedMethod = continuationMethodForSurface(contract.id);
+    const registered = getLiveFlowRegistration();
+    const liveFlow = expectedMethod && registered?.method === expectedMethod ? registered : null;
+    const decision = prepareLocaleContinuationClick({
+      event,
+      targetLocale,
+      liveFlow,
+      issueIntent: issueLocaleContinuationIntent,
+    });
+    // C9 write failure is fail-closed. For navigate/ignore, the existing Link
+    // keeps owning navigation and the current C5 localeTarget remains untouched.
+    if (decision === "cancel") event.preventDefault();
+  }
 
   useEffect(() => {
     setPanel(null);
@@ -149,13 +179,13 @@ export function SceneNavigation({
           <Globe aria-hidden="true" />
           {zh ? (
             localeTarget.available
-              ? <Link href={localeTarget.href} prefetch={false} hrefLang="en" lang="en" onClick={() => setPanel(null)}>EN</Link>
+              ? <Link href={localeTarget.href} prefetch={false} hrefLang="en" lang="en" data-locale-switch="en" onClick={(event) => handleLocaleClick(event, "en")}>EN</Link>
               : <span lang="en">EN</span>
           ) : <span lang="en" aria-current="page">EN</span>}
           <span aria-hidden="true">/</span>
           {zh ? <span lang="zh-Hans" aria-current="page">中文</span> : (
             localeTarget.available
-              ? <Link href={localeTarget.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" onClick={() => setPanel(null)}>中文</Link>
+              ? <Link href={localeTarget.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" data-locale-switch="zh-Hans" onClick={(event) => handleLocaleClick(event, "zh-Hans")}>中文</Link>
               : <span lang="zh-Hans">中文</span>
           )}
         </div>
