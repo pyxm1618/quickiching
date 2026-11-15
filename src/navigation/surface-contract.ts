@@ -401,6 +401,20 @@ export function hasReadingReturnContext(search: string | undefined): boolean {
   return candidate.startsWith("/") && !candidate.startsWith("//");
 }
 
+/**
+ * S16 is a transactional Pricing surface when either a validated-style reading
+ * return target or a payment-return identity is present. The recovery component
+ * remains authoritative for matching orderId against the fresh sessionStorage
+ * checkout context; navigation only decides which shell capabilities are safe
+ * while that transaction is being recovered.
+ */
+export function hasPricingFlowContext(search: string | undefined): boolean {
+  if (!search) return false;
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const orderId = params.get("orderId")?.trim();
+  return hasReadingReturnContext(search) || Boolean(orderId);
+}
+
 export function surfaceIdForPath(
   pathname: string,
   flowState: NavigationFlowState = {},
