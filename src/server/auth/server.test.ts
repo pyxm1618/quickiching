@@ -63,6 +63,32 @@ describe("Better Auth server options", () => {
     });
   });
 
+  it("allows only the explicit loopback browser fixture to use local HTTP cookies", () => {
+    const options = buildAuthOptions({} as AuthDatabase, {
+      ...env,
+      NODE_ENV: "production",
+      BETTER_AUTH_URL: "http://127.0.0.1:3037",
+      AUTH_BROWSER_FIXTURE: "1",
+      AUTH_MAGIC_LINK_CAPTURE_FILE: "/tmp/qic-r3-magic-link.json",
+    }, { sendMagicLink: async () => undefined });
+
+    expect(options.trustedOrigins).toEqual(["http://127.0.0.1:3037"]);
+    expect(options.advanced?.defaultCookieAttributes).toMatchObject({
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      path: "/",
+    });
+
+    expect(() => buildAuthOptions({} as AuthDatabase, {
+      ...env,
+      NODE_ENV: "production",
+      BETTER_AUTH_URL: "http://www.quickiching.com",
+      AUTH_BROWSER_FIXTURE: "1",
+      AUTH_MAGIC_LINK_CAPTURE_FILE: "/tmp/qic-r3-magic-link.json",
+    }, { sendMagicLink: async () => undefined })).toThrow("AUTH_CONFIGURATION_UNAVAILABLE");
+  });
+
   it("rejects an insecure production origin and unapproved trusted origins", () => {
     expect(() => buildAuthOptions({} as AuthDatabase, {
       ...env,
