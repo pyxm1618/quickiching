@@ -73,7 +73,7 @@ export function SceneNavigationPanels({
             href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ display: "inline-block", marginTop: "6px" }}
+            className="scene-info-badge"
           >
             <Image
               unoptimized
@@ -81,6 +81,7 @@ export function SceneNavigationPanels({
               alt="Quick I Ching - Featured on Startup Fame"
               width={240}
               height={36}
+              onError={event => event.currentTarget.remove()}
             />
           </a>
         )}
