@@ -39,10 +39,13 @@ export function SceneNavigation({
   locale = "en",
   authEnabled = false,
   contract = surfaceContract("S01"),
+  requestSearch,
 }: {
   locale?: ContentLocale;
   authEnabled?: boolean;
   contract?: SurfaceContract;
+  /** Exact request-query snapshot for transactional surfaces such as Pricing. */
+  requestSearch?: string;
 }) {
   const zh = locale === "zh-Hans";
   const pathname = usePathname() ?? (zh ? "/zh" : "/");
@@ -59,7 +62,7 @@ export function SceneNavigation({
   const homeHref = shellHomeTarget(locale);
   const localeTarget = localeSwitchTarget({
     pathname,
-    search: location.search,
+    search: requestSearch ?? location.search,
     hash: location.hash,
     currentLocale: locale,
   });
