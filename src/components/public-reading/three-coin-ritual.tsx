@@ -17,8 +17,12 @@ import {
 } from "@/lib/three-coin-session";
 import {
   NO_READING_RESUME,
+  clearLiveFlowRegistration,
+  registerLiveFlowFromSession,
   resumeProgressLabel,
   threeCoinResumeState,
+  useLiveFlowUnmountCleanup,
+  useLocaleContinuationActivation,
   type ReadingResumeState,
 } from "@/lib/reading-resume";
 
@@ -92,6 +96,15 @@ export function ThreeCoinRitual({
     setResumeState(threeCoinResumeState());
   }, []);
 
+  // C9 continuation is an authorization to invoke the existing R1 Resume
+  // boundary; it does not own a second restore implementation.
+  useLocaleContinuationActivation({
+    method: "three-coin",
+    locale: dictionary.locale,
+    activate: () => requestResume(),
+  });
+  useLiveFlowUnmountCleanup(dictionary.locale);
+
   function requestResume() {
     let session: ReturnType<typeof readThreeCoinSession> = null;
     try {
@@ -118,6 +131,7 @@ export function ThreeCoinRitual({
     });
     setExperienceStage(stage);
     setPresentationStage(stage);
+    registerLiveFlowFromSession("three-coin", dictionary.locale);
   }
 
   useEffect(() => {
@@ -207,6 +221,7 @@ export function ThreeCoinRitual({
       setDraft(normalized ?? "");
       setError("");
       setExperienceStage("question-confirm");
+      registerLiveFlowFromSession("three-coin", dictionary.locale);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? dictionary.questionFirst.tooLong.replace("{max}", String(PUBLIC_QUESTION_MAX_CODE_POINTS))
@@ -225,6 +240,7 @@ export function ThreeCoinRitual({
         setDraft(coreQuestionAtCast ?? "");
         setError("");
         setExperienceStage("ritual");
+        registerLiveFlowFromSession("three-coin", dictionary.locale);
         return;
       }
       const normalized = normalizePublicQuestion(draft);
@@ -236,6 +252,7 @@ export function ThreeCoinRitual({
       setDraft(normalized ?? "");
       setError("");
       setExperienceStage("ritual");
+      registerLiveFlowFromSession("three-coin", dictionary.locale);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? dictionary.questionFirst.tooLong.replace("{max}", String(PUBLIC_QUESTION_MAX_CODE_POINTS))
@@ -254,10 +271,12 @@ export function ThreeCoinRitual({
     setDraft("");
     setError("");
     setExperienceStage("question-confirm");
+    registerLiveFlowFromSession("three-coin", dictionary.locale);
   }
 
   function restartQuestion(force = false) {
     if (coreQuestionFrozenAtCast && !force) return;
+    clearLiveFlowRegistration();
     if (!persist(false, undefined, undefined, false)) {
       setError(dictionary.questionFirst.saveError);
       return;
