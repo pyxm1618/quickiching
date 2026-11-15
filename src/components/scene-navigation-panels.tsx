@@ -81,8 +81,6 @@ export function SceneNavigationPanels({
               alt="Quick I Ching - Featured on Startup Fame"
               width={240}
               height={36}
-              loading="eager"
-              onError={event => event.currentTarget.remove()}
             />
           </a>
         )}
