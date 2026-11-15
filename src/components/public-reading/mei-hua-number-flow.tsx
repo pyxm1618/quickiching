@@ -9,8 +9,11 @@ import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading
 import { MEI_HUA_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
 import {
   NO_READING_RESUME,
+  clearLiveFlowRegistration,
   decideReadingResume,
+  registerLiveFlowFromSession,
   resumeProgressLabel,
+  useLocaleContinuationActivation,
   type ReadingResumeState,
 } from "@/lib/reading-resume";
 import {
@@ -174,6 +177,19 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
     }
   }, [zh]);
 
+  // C9: a validated one-shot locale continuation enters exactly the same
+  // Resume / activation boundary as an explicit Resume click — never a
+  // second Mei Hua restore implementation.
+  useLocaleContinuationActivation({
+    method: "mei-hua-yi-shu",
+    locale,
+    activate: () => resume(),
+  });
+
+  // C9: the memory-only live-flow registration lives only while this flow
+  // surface is mounted; unmount (Exit / handoff / navigation) retires it.
+  useEffect(() => () => clearLiveFlowRegistration(), []);
+
   function resume() {
     try {
       const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeData);
@@ -193,6 +209,8 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
         setStep(2);
       }
       setResumed(true);
+      // C9: an explicit Resume / validated continuation activates the live flow.
+      registerLiveFlowFromSession("mei-hua-yi-shu", locale);
       setError("");
     } catch {
       setError(zh ? "无法恢复这次起卦。" : "This cast could not be resumed.");
@@ -241,6 +259,8 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
       setError("");
       setStep(2);
       persistDraft(2, null);
+      // C9: a fresh user-started active flow registers its live flow.
+      registerLiveFlowFromSession("mei-hua-yi-shu", locale);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? t(`Keep the question within ${PUBLIC_QUESTION_MAX_CODE_POINTS} Unicode characters.`, `问题请控制在 ${PUBLIC_QUESTION_MAX_CODE_POINTS} 个 Unicode 字符以内。`)
@@ -251,6 +271,8 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   function changeQuestion() {
     // A changed question is a new reading identity; the locked pre-cast draft is
     // discarded explicitly instead of being silently reused.
+    // C9: this is a flow end — retire the live-flow registration.
+    clearLiveFlowRegistration();
     try {
       clearPublicReadingSession(STORAGE_KEY);
     } catch {
@@ -335,6 +357,8 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   }
 
   function startNewReading() {
+    // C9: Start New Reading is a flow end — retire the live-flow registration.
+    clearLiveFlowRegistration();
     try {
       clearPublicReadingSession(STORAGE_KEY);
     } catch {

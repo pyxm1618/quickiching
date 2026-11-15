@@ -9,8 +9,11 @@ import type { PublicReadingMethod } from "@/domain/public-reading/types";
 import { retireMethodSession } from "@/lib/method-session-retirement";
 import {
   NO_READING_RESUME,
+  clearLiveFlowRegistration,
   detectMethodResume,
+  registerLiveFlowFromSession,
   resumeProgressLabel,
+  useLocaleContinuationActivation,
   type ReadingResumeState,
 } from "@/lib/reading-resume";
 
@@ -92,8 +95,27 @@ export function QuestionFirst({
     if (detected.kind === "sealed") setStarted(true);
   }, [resumeMethod, storageKey]);
 
+  // C9: a validated one-shot locale continuation enters exactly the same
+  // Resume / activation boundary as an explicit Resume click — never a
+  // method-specific second restore path.
+  useLocaleContinuationActivation({
+    method: resumeMethod ?? null,
+    locale: dictionary.locale,
+    activate: () => requestResume(),
+  });
+
+  // C9: the memory-only live-flow registration lives only while this flow
+  // surface is mounted; unmount (Exit / handoff / navigation) retires it.
+  useEffect(() => () => clearLiveFlowRegistration(), []);
+
   function requestResume() {
-    if (resumeState.kind !== "partial") return;
+    // Decide from a fresh detection, not the render-time snapshot: a validated
+    // locale continuation activates in the same commit as the passive
+    // detection effect, before setResumeState re-renders. The C1 decision rule
+    // itself is unchanged — only a partial can be restored, and only on this
+    // explicit activation.
+    const detected = resumeMethod ? detectMethodResume(resumeMethod) : NO_READING_RESUME;
+    if (detected.kind !== "partial") return;
     const restored = readPublicReadingSessionState(storageKey);
     setQuestionState(restored.question);
     setDraft(restored.question ?? "");
@@ -103,6 +125,8 @@ export function QuestionFirst({
     setStarted(true);
     setResumeRequested(true);
     setResumeState(NO_READING_RESUME);
+    // C9: an explicit Resume / validated continuation activates the live flow.
+    if (resumeMethod) registerLiveFlowFromSession(resumeMethod, dictionary.locale);
   }
 
   /** Starting a brand-new reading is an explicit discard of an un-resumed partial. */
@@ -161,6 +185,7 @@ export function QuestionFirst({
         setDraft(coreQuestionAtCast ?? "");
         setError("");
         setStarted(true);
+        if (resumeMethod) registerLiveFlowFromSession(resumeMethod, dictionary.locale);
         return;
       }
       const normalized = normalizePublicQuestion(draft);
@@ -172,6 +197,8 @@ export function QuestionFirst({
       setDraft(normalized ?? "");
       setError("");
       setStarted(true);
+      // C9: a fresh user-started active flow registers its live flow.
+      if (resumeMethod) registerLiveFlowFromSession(resumeMethod, dictionary.locale);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? dictionary.questionFirst.tooLong.replace("{max}", String(PUBLIC_QUESTION_MAX_CODE_POINTS))
@@ -191,10 +218,13 @@ export function QuestionFirst({
     setDraft("");
     setError("");
     setStarted(nextStarted);
+    if (resumeMethod) registerLiveFlowFromSession(resumeMethod, dictionary.locale);
   }
 
   function restartQuestion(force = false) {
     if (coreQuestionFrozenAtCast && !force) return;
+    // C9: Restart is a flow end — retire the live-flow registration.
+    clearLiveFlowRegistration();
     if (!persist(false, undefined, undefined, false)) {
       setError(dictionary.questionFirst.saveError);
       return;

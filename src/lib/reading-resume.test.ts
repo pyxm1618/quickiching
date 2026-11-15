@@ -3,10 +3,19 @@ import { ALGORITHM_VERSIONS } from "@/domain/casting/types";
 import type { ThreeCoinStep } from "@/domain/casting/three-coin/algorithm";
 import { patchThreeCoinQuestionSession, writeThreeCoinSteps } from "./three-coin-session";
 import {
+  LOCALE_CONTINUATION_STORAGE_KEY,
+  consumeLocaleContinuation,
+  currentMethodSessionId,
+  clearLiveFlowRegistration,
   decideReadingResume,
   detectMethodResume,
+  getLiveFlowRegistration,
+  issueLocaleContinuationIntent,
   manualResumeState,
   NO_READING_RESUME,
+  readLocaleContinuationRecord,
+  registerLiveFlow,
+  registerLiveFlowFromSession,
   resumeProgressLabel,
   threeCoinResumeState,
   yarrowResumeState,
@@ -276,5 +285,190 @@ describe("C1 — QuestionFirst-bound method adapters", () => {
   it("returns nothing when the method has no resume adapter", () => {
     expect(detectMethodResume("three-coin")).toEqual(NO_READING_RESUME);
     expect(detectMethodResume(null)).toEqual(NO_READING_RESUME);
+  });
+});
+
+describe("C9 — Active-Flow Locale Continuation Intent", () => {
+  it("issues and consumes exactly once, then reports false", () => {
+    const sessionMemory = stubBrowserStorage();
+    writeThreeCoinSteps([step(0), step(1), step(2), step(3)]);
+    const readingId = currentMethodSessionId("three-coin");
+    expect(readingId).toBeTruthy();
+
+    expect(issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: readingId!,
+      targetLocale: "zh-Hans",
+    })).toBe(true);
+
+    expect(consumeLocaleContinuation({
+      method: "three-coin",
+      locale: "zh-Hans",
+      sessionId: readingId,
+    })).toBe(true);
+    // One-shot: the second consume must fail and the record must already be gone.
+    expect(sessionMemory.has(LOCALE_CONTINUATION_STORAGE_KEY)).toBe(false);
+    expect(consumeLocaleContinuation({
+      method: "three-coin",
+      locale: "zh-Hans",
+      sessionId: readingId,
+    })).toBe(false);
+  });
+
+  it("reports false when no intent was ever issued", () => {
+    stubBrowserStorage();
+    expect(consumeLocaleContinuation({
+      method: "three-coin",
+      locale: "zh-Hans",
+      sessionId: "reading-A",
+    })).toBe(false);
+  });
+
+  it("expires after the 60s TTL and deletes the record", () => {
+    const sessionMemory = stubBrowserStorage();
+    expect(issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: "reading-A",
+      targetLocale: "zh-Hans",
+    })).toBe(true);
+    const stale = JSON.parse(sessionMemory.get(LOCALE_CONTINUATION_STORAGE_KEY) ?? "{}");
+    stale.issuedAt = Date.now() - 61_000;
+    sessionMemory.set(LOCALE_CONTINUATION_STORAGE_KEY, JSON.stringify(stale));
+
+    expect(consumeLocaleContinuation({
+      method: "three-coin",
+      locale: "zh-Hans",
+      sessionId: "reading-A",
+    })).toBe(false);
+    expect(sessionMemory.has(LOCALE_CONTINUATION_STORAGE_KEY)).toBe(false);
+  });
+
+  it("deletes and rejects on method mismatch", () => {
+    const sessionMemory = stubBrowserStorage();
+    issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: "reading-A",
+      targetLocale: "zh-Hans",
+    });
+    expect(consumeLocaleContinuation({
+      method: "yarrow-stalks",
+      locale: "zh-Hans",
+      sessionId: "reading-A",
+    })).toBe(false);
+    expect(sessionMemory.has(LOCALE_CONTINUATION_STORAGE_KEY)).toBe(false);
+  });
+
+  it("deletes and rejects on readingId mismatch", () => {
+    const sessionMemory = stubBrowserStorage();
+    issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: "reading-A",
+      targetLocale: "zh-Hans",
+    });
+    expect(consumeLocaleContinuation({
+      method: "three-coin",
+      locale: "zh-Hans",
+      sessionId: "reading-B",
+    })).toBe(false);
+    expect(sessionMemory.has(LOCALE_CONTINUATION_STORAGE_KEY)).toBe(false);
+    // A missing authoritative session id can never match.
+    issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: "reading-A",
+      targetLocale: "zh-Hans",
+    });
+    expect(consumeLocaleContinuation({
+      method: "three-coin",
+      locale: "zh-Hans",
+      sessionId: null,
+    })).toBe(false);
+    expect(sessionMemory.has(LOCALE_CONTINUATION_STORAGE_KEY)).toBe(false);
+  });
+
+  it("deletes and rejects on locale mismatch", () => {
+    const sessionMemory = stubBrowserStorage();
+    issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: "reading-A",
+      targetLocale: "zh-Hans",
+    });
+    expect(consumeLocaleContinuation({
+      method: "three-coin",
+      locale: "en",
+      sessionId: "reading-A",
+    })).toBe(false);
+    expect(sessionMemory.has(LOCALE_CONTINUATION_STORAGE_KEY)).toBe(false);
+  });
+
+  it("keeps the record free of any reading payload", () => {
+    stubBrowserStorage();
+    issueLocaleContinuationIntent({
+      method: "three-coin",
+      readingId: "reading-A",
+      targetLocale: "zh-Hans",
+    });
+    const record = readLocaleContinuationRecord();
+    expect(record).not.toBeNull();
+    expect(Object.keys(record!).sort()).toEqual([
+      "issuedAt",
+      "method",
+      "nonce",
+      "readingId",
+      "schemaVersion",
+      "targetLocale",
+    ]);
+    const raw = JSON.stringify(record);
+    for (const forbidden of ["question", "lines", "changes", "draft", "hexagram", "payment", "account", "steps", "lineValues"]) {
+      expect(raw).not.toContain(forbidden);
+    }
+    expect(JSON.stringify(record).length).toBeLessThanOrEqual(512);
+  });
+
+  it("rejects a malformed or fabricated record and deletes it", () => {
+    const sessionMemory = stubBrowserStorage();
+    for (const bad of [
+      "not-json",
+      JSON.stringify({ schemaVersion: 2, nonce: "n", method: "three-coin", readingId: "a", targetLocale: "zh-Hans", issuedAt: Date.now() }),
+      JSON.stringify({ schemaVersion: 1, nonce: "", method: "three-coin", readingId: "a", targetLocale: "zh-Hans", issuedAt: Date.now() }),
+      JSON.stringify({ schemaVersion: 1, nonce: "n", method: "unknown", readingId: "a", targetLocale: "zh-Hans", issuedAt: Date.now() }),
+      JSON.stringify({ schemaVersion: 1, nonce: "n", method: "three-coin", readingId: "", targetLocale: "zh-Hans", issuedAt: Date.now() }),
+      JSON.stringify({ schemaVersion: 1, nonce: "n", method: "three-coin", readingId: "a", targetLocale: "fr", issuedAt: Date.now() }),
+      JSON.stringify({ schemaVersion: 1, nonce: "n", method: "three-coin", readingId: "a", targetLocale: "zh-Hans", issuedAt: "yesterday" }),
+    ]) {
+      sessionMemory.set(LOCALE_CONTINUATION_STORAGE_KEY, bad);
+      expect(consumeLocaleContinuation({
+        method: "three-coin",
+        locale: "zh-Hans",
+        sessionId: "a",
+      })).toBe(false);
+      expect(sessionMemory.has(LOCALE_CONTINUATION_STORAGE_KEY)).toBe(false);
+    }
+  });
+
+  it("holds only method / readingId / locale / active in the live-flow registration", () => {
+    stubBrowserStorage();
+    clearLiveFlowRegistration();
+    expect(getLiveFlowRegistration()).toBeNull();
+    // Passive storage detection must not register anything.
+    writeThreeCoinSteps([step(0)]);
+    expect(getLiveFlowRegistration()).toBeNull();
+
+    registerLiveFlowFromSession("three-coin", "zh-Hans");
+    const registration = getLiveFlowRegistration();
+    expect(registration).not.toBeNull();
+    expect(Object.keys(registration!).sort()).toEqual(["active", "locale", "method", "readingId"]);
+    expect(registration).toMatchObject({
+      method: "three-coin",
+      locale: "zh-Hans",
+      active: true,
+    });
+    expect(registration!.readingId).toBe(currentMethodSessionId("three-coin"));
+
+    clearLiveFlowRegistration();
+    expect(getLiveFlowRegistration()).toBeNull();
+
+    // A registration without an authoritative session id is refused.
+    registerLiveFlow({ method: "manual", readingId: "  ", locale: "en" });
+    expect(getLiveFlowRegistration()).toBeNull();
   });
 });

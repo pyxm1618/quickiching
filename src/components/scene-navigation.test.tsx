@@ -2,7 +2,7 @@ import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {describe,expect,it,vi} from "vitest";
 const navigationState=vi.hoisted(()=>({pathname:"/"}));
-vi.mock("next/navigation",()=>({usePathname:()=>navigationState.pathname}));
+vi.mock("next/navigation",()=>({usePathname:()=>navigationState.pathname,useRouter:()=>({push:()=>{}})}));
 vi.mock("next/link",()=>({default:({href,children,prefetch:_prefetch,...props}:any)=><a href={href} {...props}>{children}</a>}));
 vi.mock("next/image",()=>({default:({priority:_priority,unoptimized:_unoptimized,...props}:any)=>React.createElement("img",props)}));
 import {SceneNavigation} from "./scene-navigation";

@@ -3,10 +3,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { User, Settings, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
+import { useAuthReturnHrefs } from "@/lib/browser-navigation";
 import { openAccountSurface, type AccountSurface } from "@/components/account/account-events";
 import "@/components/account/account.css";
 
@@ -33,8 +33,11 @@ export function UserNavControl({
   const dictionary = getDictionary(locale);
   const copy = dictionary.userNav;
   const isChinese = locale === "zh-Hans";
-  const pathname = usePathname() ?? "/";
   const shouldFetchUser = initialUser === undefined;
+  // C5 / Section 17 — the auth return must capture the full originating
+  // context (pathname + search + hash), not pathname alone, so signing in
+  // from /readings/result?session=A#lines returns to that exact surface.
+  const authReturn = useAuthReturnHrefs(isChinese ? "/zh" : "");
   const { data: userResponse, isLoading: userLoading } = useSWR<{ user: UserState }>(
     shouldFetchUser ? "/api/user/me" : null,
     async (url: string) => {
@@ -107,8 +110,8 @@ export function UserNavControl({
   }
 
   const authPrefix = isChinese ? "/zh" : "";
-  const signinHref = `${authPrefix}/signin?callbackURL=${encodeURIComponent(pathname)}`;
-  const signupHref = `${authPrefix}/signup?callbackURL=${encodeURIComponent(pathname)}`;
+  const signinHref = authReturn.signinHref;
+  const signupHref = authReturn.signupHref;
   const readingsHref = `${authPrefix}/my-readings`;
   const readingsLabel = isChinese ? "我的解读" : "My Readings";
   const accountLabel = isChinese ? "我的账户" : "My Account";
@@ -124,7 +127,7 @@ export function UserNavControl({
 
   // Desktop/top navigation layout.
   if (!user && appearance === "scene") {
-    return <Link href={signinHref} prefetch={false} className="scene-account-trigger"><User aria-hidden="true" /><span>{isChinese ? "登录" : "Sign In"}</span></Link>;
+    return <Link href={signinHref} prefetch={false} className="scene-account-trigger" onClick={authReturn.onClickSignin}><User aria-hidden="true" /><span>{isChinese ? "登录" : "Sign In"}</span></Link>;
   }
 
   if (!user) {
@@ -133,6 +136,7 @@ export function UserNavControl({
         <Link
           href={signinHref}
           prefetch={false}
+          onClick={authReturn.onClickSignin}
           className="inline-flex min-h-11 items-center rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-[var(--ink-2)] transition-colors hover:bg-white/[0.05] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)]"
         >
               {copy.signIn}
@@ -140,6 +144,7 @@ export function UserNavControl({
         <Link
           href={signupHref}
           prefetch={false}
+          onClick={authReturn.onClickSignup}
           className="inline-flex min-h-11 items-center rounded-lg border border-[var(--gold)]/35 bg-[var(--gold)]/10 px-3 py-1.5 text-[13px] font-semibold text-[var(--gold-2)] transition-colors hover:bg-[var(--gold)]/16 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)]"
         >
               {copy.signUp}

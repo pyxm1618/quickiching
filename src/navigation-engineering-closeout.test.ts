@@ -20,10 +20,23 @@ describe("navigation engineering closeout", () => {
   });
 
   it("uses route-aware language switching in SceneNavigation for non-home routes", () => {
+    // C5: route-aware switching is owned by the single browser-navigation
+    // authority (full outer location + route registry), and every locale
+    // switcher converges on it — no second switch implementation exists.
     const navigation = source("./components/scene-navigation.tsx");
-    expect(navigation).toContain('import { usePathname } from "next/navigation"');
-    expect(navigation).toContain("const pathname = usePathname()");
-    expect(navigation).toContain("currentRouteForPath(pathname)");
+    expect(navigation).toContain('import { useLocaleSwitch } from "@/lib/browser-navigation"');
+    expect(navigation).toContain("useLocaleSwitch(");
+    expect(navigation).not.toContain("currentRouteForPath");
+    expect(navigation).not.toContain("languageSwitchTarget");
+    const infoHeader = source("./components/info-pages/info-page-header.tsx");
+    expect(infoHeader).toContain('import { useLocaleSwitch } from "@/lib/browser-navigation"');
+    expect(infoHeader).not.toContain("currentRouteForPath");
+    expect(infoHeader).not.toContain("languageSwitchTarget");
+    const owner = source("./lib/browser-navigation.ts");
+    expect(owner).toContain('from "@/i18n/routes"');
+    expect(owner).toContain("routeForPath");
+    expect(owner).toContain("transformNestedNavigationContext");
+    expect(owner).toContain("buildLocaleSwitchHref");
   });
 
   it("removes the retired global footer from both locale layouts and from the repository", () => {

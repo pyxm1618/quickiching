@@ -5,6 +5,7 @@ import {
   writePendingCompletedReading,
 } from "@/lib/pending-completed-reading";
 import { isMethodSessionRetired, retireMethodSession } from "@/lib/method-session-retirement";
+import { clearLiveFlowRegistration } from "@/lib/reading-resume";
 
 /**
  * C2 / C7 — the single Reading Handoff owner.
@@ -117,13 +118,18 @@ export function completeReadingHandoff(params: {
   router: { replace: (href: string) => void };
   dependencies?: Partial<Omit<ReadingHandoffDependencies, "navigate">>;
 }): ReadingHandoffOutcome {
-  return performReadingHandoff(params.reading, {
+  const outcome = performReadingHandoff(params.reading, {
     zh: params.zh,
     dependencies: {
       ...params.dependencies,
       navigate: (href) => params.router.replace(href),
     },
   });
+  // C9 mechanical compatibility: a fresh completion handoff is a flow end and
+  // retires the memory-only live-flow registration. This does not alter any
+  // C2/C7 handoff semantics.
+  if (outcome.kind === "navigated") clearLiveFlowRegistration();
+  return outcome;
 }
 
 export function readingHandoffFailureCopy(outcome: ReadingHandoffOutcome, zh: boolean): string | null {

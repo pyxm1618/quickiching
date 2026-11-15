@@ -1,7 +1,13 @@
+import { useEffect, useRef } from "react";
 import type { PublicReadingMethod } from "@/domain/public-reading/types";
+import type { ContentLocale } from "@/i18n/config";
 import { completedThreeCoinSteps, readThreeCoinQuestionState, readThreeCoinSession } from "@/lib/three-coin-session";
 import { readPublicReadingSession, readPublicReadingSessionState } from "@/lib/public-reading-session";
-import { MANUAL_SESSION_STORAGE_KEY, YARROW_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
+import {
+  MANUAL_SESSION_STORAGE_KEY,
+  MEI_HUA_SESSION_STORAGE_KEY,
+  YARROW_SESSION_STORAGE_KEY,
+} from "@/lib/method-session-retirement";
 import { readManualCastDraft } from "@/lib/manual-cast-draft";
 
 /**
@@ -175,4 +181,274 @@ export function resumeProgressLabel(state: ReadingResumeState, zh: boolean): str
   if (unit === "changes") return zh ? `${completed} / ${total} 变` : `${completed} / ${total} changes`;
   if (unit === "steps") return zh ? `第 ${completed} / ${total} 步` : `step ${completed} / ${total}`;
   return zh ? `${completed} / ${total} 爻` : `${completed} / ${total} lines`;
+}
+
+/**
+ * C9 — Active-Flow Locale Continuation Intent.
+ *
+ * Persistence ≠ Automatic Resume (C1) stays frozen: a passive entry never
+ * restores an active cast. But a user who actively switches language mid-flow
+ * must land on the same reading at the same partial stage. A one-shot
+ * continuation intent bridges exactly that case and nothing else: it is not
+ * reading state, it never auto-restores a new tab or a direct entry, and it
+ * dies after one consumption or one TTL window.
+ */
+
+export const LOCALE_CONTINUATION_STORAGE_KEY = "quickiching:public-v1:locale-continuation";
+export const LOCALE_CONTINUATION_TTL_MS = 60_000;
+const LOCALE_CONTINUATION_SCHEMA_VERSION = 1 as const;
+const LOCALE_CONTINUATION_MAX_SERIALIZED_BYTES = 512;
+const ISSUED_AT_MAX_FUTURE_SKEW_MS = 5_000;
+
+/**
+ * The frozen minimal intent record. It carries only continuation intent —
+ * never a question, cast lines, changes, drafts, hexagrams, completed
+ * readings, payment or account data.
+ */
+export type LocaleContinuationRecord = {
+  schemaVersion: typeof LOCALE_CONTINUATION_SCHEMA_VERSION;
+  nonce: string;
+  method: PublicReadingMethod;
+  readingId: string;
+  targetLocale: ContentLocale;
+  issuedAt: number;
+};
+
+function continuationStorage(): Storage {
+  if (typeof window === "undefined" || !window.sessionStorage) {
+    throw new Error("LOCALE_CONTINUATION_UNAVAILABLE");
+  }
+  return window.sessionStorage;
+}
+
+function makeContinuationNonce(): string {
+  try {
+    if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
+  } catch {
+    // The monotonic fallback keeps the nonce unique without Web Crypto.
+  }
+  return `lc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+const PUBLIC_READING_METHODS: readonly PublicReadingMethod[] = [
+  "three-coin",
+  "yarrow-stalks",
+  "mei-hua-yi-shu",
+  "manual",
+];
+
+function parseContinuationRecord(raw: string): LocaleContinuationRecord | null {
+  try {
+    const value = JSON.parse(raw) as unknown;
+    if (!value || typeof value !== "object") return null;
+    const record = value as Record<string, unknown>;
+    if (record.schemaVersion !== LOCALE_CONTINUATION_SCHEMA_VERSION) return null;
+    if (typeof record.nonce !== "string" || record.nonce.length === 0) return null;
+    if (!PUBLIC_READING_METHODS.includes(record.method as PublicReadingMethod)) return null;
+    if (typeof record.readingId !== "string" || record.readingId.trim().length === 0) return null;
+    if (record.targetLocale !== "en" && record.targetLocale !== "zh-Hans") return null;
+    if (typeof record.issuedAt !== "number" || !Number.isFinite(record.issuedAt)) return null;
+    return {
+      schemaVersion: LOCALE_CONTINUATION_SCHEMA_VERSION,
+      nonce: record.nonce,
+      method: record.method as PublicReadingMethod,
+      readingId: record.readingId,
+      targetLocale: record.targetLocale as ContentLocale,
+      issuedAt: record.issuedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Issues the one-shot continuation intent at an active-flow locale click.
+ * A write failure is reported to the caller, which must cancel the locale
+ * navigation rather than drop the active flow onto the other locale's entry.
+ */
+export function issueLocaleContinuationIntent(input: {
+  method: PublicReadingMethod;
+  readingId: string;
+  targetLocale: ContentLocale;
+}): boolean {
+  try {
+    const readingId = input.readingId.trim();
+    if (!readingId) return false;
+    const record: LocaleContinuationRecord = {
+      schemaVersion: LOCALE_CONTINUATION_SCHEMA_VERSION,
+      nonce: makeContinuationNonce(),
+      method: input.method,
+      readingId,
+      targetLocale: input.targetLocale,
+      issuedAt: Date.now(),
+    };
+    const serialized = JSON.stringify(record);
+    if (serialized.length > LOCALE_CONTINUATION_MAX_SERIALIZED_BYTES) return false;
+    continuationStorage().setItem(LOCALE_CONTINUATION_STORAGE_KEY, serialized);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * One-shot consumption at the target flow surface:
+ * read → validate → DELETE FIRST → return true.
+ *
+ * Every outcome — invalid schema, expiry, method mismatch, locale mismatch,
+ * readingId mismatch — deletes the record and returns false so a bad intent
+ * can never survive to hit a later entry. The readingId must equal this tab's
+ * current authoritative method session id.
+ */
+export function consumeLocaleContinuation(input: {
+  method: PublicReadingMethod;
+  locale: ContentLocale;
+  sessionId: string | null;
+}): boolean {
+  let raw: string | null = null;
+  try {
+    raw = continuationStorage().getItem(LOCALE_CONTINUATION_STORAGE_KEY);
+    if (raw === null) return false;
+  } catch {
+    return false;
+  }
+
+  let valid = false;
+  const record = parseContinuationRecord(raw);
+  const now = Date.now();
+  if (
+    record !== null
+    && input.sessionId !== null
+    && input.sessionId.length > 0
+    && record.method === input.method
+    && record.targetLocale === input.locale
+    && record.readingId === input.sessionId
+    && now - record.issuedAt <= LOCALE_CONTINUATION_TTL_MS
+    && record.issuedAt - now <= ISSUED_AT_MAX_FUTURE_SKEW_MS
+  ) {
+    valid = true;
+  }
+
+  try {
+    continuationStorage().removeItem(LOCALE_CONTINUATION_STORAGE_KEY);
+  } catch {
+    // A failed delete cannot guarantee one-shot semantics; fail closed.
+    return false;
+  }
+  return valid;
+}
+
+export function readLocaleContinuationRecord(): LocaleContinuationRecord | null {
+  try {
+    const raw = continuationStorage().getItem(LOCALE_CONTINUATION_STORAGE_KEY);
+    return raw === null ? null : parseContinuationRecord(raw);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The authoritative session identity used by the intent record and its
+ * consumption check. It is the method session's own id — never a rendered or
+ * synthesized value — so the continuation can only ever continue the exact
+ * reading this tab is already holding.
+ */
+export function currentMethodSessionId(method: PublicReadingMethod): string | null {
+  try {
+    if (method === "three-coin") return readThreeCoinSession()?.id ?? null;
+    const key = method === "yarrow-stalks"
+      ? YARROW_SESSION_STORAGE_KEY
+      : method === "mei-hua-yi-shu"
+        ? MEI_HUA_SESSION_STORAGE_KEY
+        : MANUAL_SESSION_STORAGE_KEY;
+    const session = readPublicReadingSession(key, (value) => ({ raw: value }));
+    return session?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * C9 — ephemeral, memory-only live-flow registration. It lets the global
+ * locale switcher know whether a truly active flow exists. It holds at most
+ * method / readingId / locale / active — never question, lines, changes,
+ * draft, hexagram, completed or payment state — and it is not a global
+ * reading manager.
+ */
+export type LiveFlowRegistration = {
+  method: PublicReadingMethod;
+  readingId: string;
+  locale: ContentLocale;
+  active: true;
+};
+
+let liveFlowRegistration: LiveFlowRegistration | null = null;
+
+/**
+ * Registers a live flow only after a fresh user-started active flow or an
+ * explicit Resume / locale-continuation activation. Passive storage detection
+ * must never register (C1).
+ */
+export function registerLiveFlow(input: {
+  method: PublicReadingMethod;
+  readingId: string;
+  locale: ContentLocale;
+}): void {
+  const readingId = input.readingId.trim();
+  if (!readingId) return;
+  liveFlowRegistration = {
+    method: input.method,
+    readingId,
+    locale: input.locale,
+    active: true,
+  };
+}
+
+export function clearLiveFlowRegistration(): void {
+  liveFlowRegistration = null;
+}
+
+export function getLiveFlowRegistration(): LiveFlowRegistration | null {
+  return liveFlowRegistration;
+}
+
+/**
+ * Registers from the authoritative method session. Boundaries call this on
+ * fresh user-started activation and on explicit Resume / continuation
+ * activation only.
+ */
+export function registerLiveFlowFromSession(method: PublicReadingMethod, locale: ContentLocale): void {
+  const readingId = currentMethodSessionId(method);
+  if (readingId) registerLiveFlow({ method, readingId, locale });
+}
+
+/**
+ * Shared activation boundary for explicit Resume and locale continuation.
+ *
+ * Both paths end in the exact same R1 Resume / activation boundary owned by
+ * each method surface (`requestResume` / `resume`); the only difference is
+ * what authorizes activation: a Resume click, or a just-issued, exactly
+ * validated one-shot continuation intent. The component ref guard keeps
+ * `reactStrictMode`'s effect double-invocation from consuming twice and
+ * resetting a just-activated flow, without weakening the one-shot semantics.
+ */
+export function useLocaleContinuationActivation(input: {
+  method: PublicReadingMethod | null;
+  locale: ContentLocale;
+  activate: () => void;
+}): void {
+  const attemptedRef = useRef(false);
+  const activateRef = useRef(input.activate);
+  activateRef.current = input.activate;
+  const { method, locale } = input;
+
+  useEffect(() => {
+    if (method === null) return;
+    if (attemptedRef.current) return;
+    attemptedRef.current = true;
+    const sessionId = currentMethodSessionId(method);
+    if (!sessionId) return;
+    const continued = consumeLocaleContinuation({ method, locale, sessionId });
+    if (continued) activateRef.current();
+  }, [method, locale]);
 }

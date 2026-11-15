@@ -72,7 +72,7 @@ const READING = [
   "src/server/repositories/reading-repository.ts",
   "src/server/repositories/review-repository.ts",
   "src/app/api/readings/",
-  /^src\/lib\/(?:three-coin|completed-public-reading)/,
+  /^src\/lib\/(?:three-coin|completed-public-reading|reading-resume|reading-handoff|browser-navigation)/,
   /\/methods\/(?:three-coin|yarrow-stalks|mei-hua-yi-shu|manual-cast)\//,
   /\/readings\/(?:result|deep)\//,
   "scripts/reading-business-browser.mjs",
@@ -80,6 +80,7 @@ const READING = [
   "scripts/mei-hua-ui-browser-gate.mjs",
   "scripts/public-p0-browser-gate.mjs",
   "scripts/reading-lifecycle-browser-gate.mjs",
+  "scripts/navigation-context-browser-gate.mjs",
 ];
 
 const PUBLIC_SEO = [

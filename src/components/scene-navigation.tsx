@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import React, { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Globe } from "lucide-react";
-import { currentRouteForPath, languageSwitchTarget } from "@/i18n/helpers";
+import { useLocaleSwitch } from "@/lib/browser-navigation";
 import type { ContentLocale } from "@/i18n/config";
 
 const UserNavControl = dynamic(
@@ -20,7 +19,6 @@ type Panel = "methods" | "info";
 
 export function SceneNavigation({ locale = "en", authEnabled = false }: { locale?: ContentLocale; authEnabled?: boolean }) {
   const zh = locale === "zh-Hans";
-  const pathname = usePathname() ?? (zh ? "/zh" : "/");
   const [panel, setPanel] = useState<Panel | null>(null);
   const id = useId();
   const rootRef = useRef<HTMLElement>(null);
@@ -30,9 +28,16 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
   const panelComponentRef = useRef<(typeof import("@/components/scene-navigation-panels"))["SceneNavigationPanels"] | null>(null);
   const focusRequest = useRef<"first" | "last" | null>(null);
   const localize = (path: string) => zh ? `/zh${path === "/" ? "" : path}` : path;
-  const route = currentRouteForPath(pathname);
-  const languageHref = route ? languageSwitchTarget(route.id, locale).href : zh ? "/" : "/zh";
+  // C5: the shared browser-navigation owner builds the full-context locale
+  // target (pathname + search + hash, nested context included) and owns the
+  // C9 issue/cancel rules. There is no second switch implementation.
+  const localeSwitch = useLocaleSwitch(zh ? "en" : "zh-Hans");
   const triggerFor = (name: Panel) => name === "methods" ? methodsTrigger.current : infoTrigger.current;
+
+  function handleLocaleClick(event: MouseEvent<HTMLAnchorElement>) {
+    setPanel(null);
+    localeSwitch.onClick(event);
+  }
 
   useEffect(() => {
     setPanel(null);
@@ -122,9 +127,17 @@ export function SceneNavigation({ locale = "en", authEnabled = false }: { locale
       <div className="scene-utility" onClick={() => setPanel(null)}>
         <div className="scene-languages" data-language-switcher aria-label={zh ? "选择语言" : "Select language"}>
           <Globe aria-hidden="true" />
-          <Link href={zh ? languageHref : "/"} prefetch={false} hrefLang="en" lang="en" aria-current={!zh ? "page" : undefined} onClick={() => setPanel(null)}>EN</Link>
+          {zh ? (
+            <Link href={localeSwitch.href} prefetch={false} hrefLang="en" lang="en" data-locale-switch="en" onClick={handleLocaleClick}>EN</Link>
+          ) : (
+            <span aria-current="page" lang="en" data-locale-current="en">EN</span>
+          )}
           <span aria-hidden="true">/</span>
-          <Link href={zh ? "/zh" : languageHref} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" aria-current={zh ? "page" : undefined} onClick={() => setPanel(null)}>中文</Link>
+          {!zh ? (
+            <Link href={localeSwitch.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" data-locale-switch="zh-Hans" onClick={handleLocaleClick}>中文</Link>
+          ) : (
+            <span aria-current="page" lang="zh-Hans" data-locale-current="zh-Hans">中文</span>
+          )}
         </div>
         {authEnabled ? <>
           <span className="scene-utility-divider" aria-hidden="true" />

@@ -124,6 +124,31 @@ const NON_INDEXABLE_INFO_ROUTES: readonly LocalizedRouteDefinition[] = [
   switchable: true,
 }));
 
+/**
+ * C5 — transactional surfaces participate in the stateful locale switch but
+ * never in SEO hreflang/sitemap output. They are session-bound flows, account
+ * surfaces, or redirect adapters: indexable stays false and hreflangGroup stays
+ * false; switchable stays true so the locale switcher can preserve their
+ * exact flow-critical context instead of falling back to the locale root.
+ */
+const TRANSACTIONAL_ROUTES: readonly LocalizedRouteDefinition[] = [
+  ["reading-choice", "/readings/choice", "/zh/readings/choice"],
+  ["reading-result", "/readings/result", "/zh/readings/result"],
+  ["reading-deep", "/readings/deep", "/zh/readings/deep"],
+  ["pricing", "/pricing", "/zh/pricing"],
+  ["signin", "/signin", "/zh/signin"],
+  ["signup", "/signup", "/zh/signup"],
+  ["my-readings", "/my-readings", "/zh/my-readings"],
+  ["account-adapter", "/account", "/zh/account"],
+].map(([id, en, zh]) => ({
+  id,
+  paths: { en, "zh-Hans": zh },
+  renderable: { en: true, "zh-Hans": true },
+  indexable: { en: false, "zh-Hans": false },
+  hreflangGroup: false,
+  switchable: true,
+}));
+
 const NAMED_ENGLISH_ROUTES: Record<string, string> = {
   "three-coin-method": "/methods/three-coin",
   "yarrow-stalks-method": "/methods/yarrow-stalks",
@@ -151,6 +176,7 @@ const HEXAGRAM_ROUTES = HEXAGRAM_INDEXABLE_PATHS.map(pairedHexagramRoute);
 export const ROUTE_REGISTRY: readonly LocalizedRouteDefinition[] = [
   ...EQUIVALENT_ROUTES,
   ...NON_INDEXABLE_INFO_ROUTES,
+  ...TRANSACTIONAL_ROUTES,
   ...HEXAGRAM_ROUTES,
 ];
 

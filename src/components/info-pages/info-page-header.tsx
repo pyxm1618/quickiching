@@ -3,8 +3,7 @@
 
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
-import { usePathname } from "next/navigation";
-import { currentRouteForPath, languageSwitchTarget } from "@/i18n/helpers";
+import { useLocaleSwitch } from "@/lib/browser-navigation";
 import { Globe } from "lucide-react";
 import { UserNavControl } from "@/components/auth/user-nav-control";
 import type { ContentLocale } from "@/i18n/config";
@@ -14,9 +13,10 @@ export function InfoPageHeader({ locale = "en", authEnabled = false }: {
   locale?: ContentLocale;
   authEnabled?: boolean;
 }) {
-  const pathname = usePathname() ?? "/";
-  const route = currentRouteForPath(pathname);
-  const target = route ? languageSwitchTarget(route.id, locale) : { href: locale === "en" ? "/zh" : "/" };
+  // C5: the shared browser-navigation owner — one locale-switch implementation,
+  // full outer location + nested context preserved. The current-locale label is
+  // a non-navigation indicator and must never act as Home (locale semantics only).
+  const localeSwitch = useLocaleSwitch(locale === "en" ? "zh-Hans" : "en");
   const homeHref = locale === "zh-Hans" ? "/zh" : "/";
   const languageLabel = locale === "zh-Hans" ? "语言" : "Language";
   return (
@@ -29,9 +29,17 @@ export function InfoPageHeader({ locale = "en", authEnabled = false }: {
         <div className={styles.headerControls}>
           <nav className={styles.headerLanguages} aria-label={languageLabel} data-language-switcher>
             <Globe aria-hidden="true" />
-            <Link href={locale === "en" ? pathname : target.href} prefetch={false} lang="en" aria-current={locale === "en" ? "page" : undefined}>{locale === "zh-Hans" ? "英文" : "EN"}</Link>
+            {locale === "en" ? (
+              <span aria-current="page" lang="en" data-locale-current="en">EN</span>
+            ) : (
+              <Link href={localeSwitch.href} prefetch={false} hrefLang="en" lang="en" data-locale-switch="en" onClick={localeSwitch.onClick}>英文</Link>
+            )}
             <span>/</span>
-            <Link href={locale === "zh-Hans" ? pathname : target.href} prefetch={false} lang="zh-Hans" aria-current={locale === "zh-Hans" ? "page" : undefined}>中文</Link>
+            {locale === "zh-Hans" ? (
+              <span aria-current="page" lang="zh-Hans" data-locale-current="zh-Hans">中文</span>
+            ) : (
+              <Link href={localeSwitch.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" data-locale-switch="zh-Hans" onClick={localeSwitch.onClick}>中文</Link>
+            )}
           </nav>
           {authEnabled ? <>
             <span className={styles.headerSeparator} aria-hidden="true">|</span>

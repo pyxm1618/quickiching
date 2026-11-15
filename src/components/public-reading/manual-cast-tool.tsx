@@ -23,6 +23,7 @@ import {
   readManualSealedFacts,
 } from "@/lib/manual-cast-sealed";
 import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading-handoff";
+import { clearLiveFlowRegistration } from "@/lib/reading-resume";
 import { MANUAL_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
 import {
   clearManualCastDraft,
@@ -532,6 +533,8 @@ export function ManualCastTool({
   }
 
   function startNewFromSealed() {
+    // C9: Start New Reading is a flow end — retire the live-flow registration.
+    clearLiveFlowRegistration();
     clearManualCastDraft();
     setSealedReading(null);
     setHandoffError(null);

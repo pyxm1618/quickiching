@@ -14,6 +14,7 @@ import { buildPublicReading } from "@/domain/public-reading/reading";
 import type { PublicReading } from "@/domain/public-reading/types";
 import { browserRandomInt } from "@/lib/browser-random";
 import { clearPublicReadingSession, readPublicReadingSession, restartPublicReadingSession, writePublicReadingSession } from "@/lib/public-reading-session";
+import { clearLiveFlowRegistration, registerLiveFlowFromSession } from "@/lib/reading-resume";
 import { YARROW_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
 
 const STORAGE_KEY = YARROW_SESSION_STORAGE_KEY;
@@ -203,6 +204,11 @@ export function YarrowTool({
     } catch {
       // The in-memory reset still gives the user a clean new reading.
     }
+    // C9: a restart mints a new reading identity — retire the previous
+    // registration. "Restart casting" keeps the question and continues as a
+    // fresh user-started cast; a discard is a flow end.
+    clearLiveFlowRegistration();
+    if (preserveQuestion) registerLiveFlowFromSession("yarrow-stalks", dictionary.locale);
     setReadingMeta(null);
     setChanges([]);
     setSealedReading(null);
