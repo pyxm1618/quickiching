@@ -42,7 +42,6 @@ export function ContentNavigationShell({
     search: location.search,
     hash: location.hash,
     currentLocale: locale,
-    surfaceId: contract.id,
   });
   const localize = (path: string) => zh ? `/zh${path === "/" ? "" : path}` : path;
   const label = (link: DiscoveryLink) => zh ? link.zh : link.en;
