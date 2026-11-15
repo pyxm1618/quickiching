@@ -79,8 +79,7 @@ try {
  await page.keyboard.press('Escape');check('Escape returns Methods focus',await page.evaluate(()=>document.activeElement?.classList.contains('scene-scroll-methods')));
  await page.focus('.scene-scroll-info');await page.keyboard.press('ArrowDown');
  await page.waitForFunction(()=>document.activeElement?.getAttribute('href')==='/guides/how-to-ask-the-i-ching');check('Info keyboard enters existing guide',true);
- await page.keyboard.press('End');check('Info End reaches Startup Fame badge',await page.evaluate(()=>document.activeElement?.getAttribute('href')==='https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'));
- await page.keyboard.press('ArrowUp');check('Info ArrowUp reaches reused Privacy Settings',await page.evaluate(()=>document.activeElement?.classList.contains('scene-privacy-button')));
+ await page.keyboard.press('End');check('Info End reaches reused Privacy Settings',await page.evaluate(()=>document.activeElement?.classList.contains('scene-privacy-button')));
  await page.keyboard.press('Enter');await page.waitForSelector('[aria-label="Analytics Consent"]');check('Existing privacy consent control opens',true);
  for(const button of await page.$$('[aria-label="Analytics Consent"] button'))if(await button.evaluate(node=>node.textContent==='Decline'))await button.click();
  await page.keyboard.press('Escape');
