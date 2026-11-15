@@ -35,7 +35,6 @@ export function InfoPageHeader({
     search: location.search,
     hash: location.hash,
     currentLocale: locale,
-    surfaceId: contract.id,
   });
   const homeHref = shellHomeTarget(locale);
   const languageLabel = locale === "zh-Hans" ? "语言" : "Language";
