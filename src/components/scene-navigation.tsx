@@ -82,7 +82,7 @@ export function SceneNavigation({
     let disposed = false;
     const focusWhenReady = () => {
       if (disposed) return;
-      const items = panelRef.current?.querySelectorAll<HTMLElement>("section:not([hidden]) a[href]:not(.scene-info-badge),section:not([hidden]) button");
+      const items = panelRef.current?.querySelectorAll<HTMLElement>("section:not([hidden]) a[href],section:not([hidden]) button");
       if (items?.length) {
         focusRequest.current = null;
         (request === "first" ? items[0] : items[items.length - 1])?.focus();
@@ -116,7 +116,7 @@ export function SceneNavigation({
     event.preventDefault();
     const first = event.key === "ArrowDown";
     if (panel === name) {
-      const items = panelRef.current?.querySelectorAll<HTMLElement>("section:not([hidden]) a[href]:not(.scene-info-badge),section:not([hidden]) button");
+      const items = panelRef.current?.querySelectorAll<HTMLElement>("section:not([hidden]) a[href],section:not([hidden]) button");
       (first ? items?.[0] : items?.[items.length - 1])?.focus();
     } else {
       focusRequest.current = first ? "first" : "last";
@@ -126,7 +126,7 @@ export function SceneNavigation({
 
   function panelKey(event: KeyboardEvent<HTMLDivElement>) {
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
-    const items = Array.from(panelRef.current?.querySelectorAll<HTMLElement>("section:not([hidden]) a[href]:not(.scene-info-badge),section:not([hidden]) button") ?? []);
+    const items = Array.from(panelRef.current?.querySelectorAll<HTMLElement>("section:not([hidden]) a[href],section:not([hidden]) button") ?? []);
     const index = items.indexOf(document.activeElement as HTMLElement);
     if (index < 0) return;
     event.preventDefault();
