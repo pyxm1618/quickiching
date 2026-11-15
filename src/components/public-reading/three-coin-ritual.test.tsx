@@ -90,7 +90,7 @@ describe("ThreeCoinRitual entry authority", () => {
     });
     registerLiveFlow({ method: "three-coin", readingId: id, locale: "en" });
 
-    let exposedContext: ReturnType<typeof useThreeCoinRitualContext>;
+    let exposedContext: ReturnType<typeof useThreeCoinRitualContext> | undefined;
     function Capture() {
       exposedContext = useThreeCoinRitualContext();
       return null;
