@@ -82,6 +82,7 @@ export function SceneNavigationPanels({
               width={240}
               height={36}
               loading="eager"
+              onError={event => event.currentTarget.remove()}
             />
           </a>
         )}
