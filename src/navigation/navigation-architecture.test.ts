@@ -127,4 +127,18 @@ describe("Navigation / Surface Authority architecture", () => {
     expect(content).toContain("contract.accountControl && authEnabled");
     expect(info).toContain("contract.accountControl && authEnabled");
   });
+
+  it("keeps local flow exits explicit and separate from Start New semantics", () => {
+    const yarrow = readFileSync(new URL("../components/public-reading/yarrow-tool.tsx", import.meta.url), "utf8");
+    const manual = readFileSync(new URL("../components/public-reading/manual-cast-tool.tsx", import.meta.url), "utf8");
+    const result = readFileSync(new URL("../components/reading-result/reading-result-client.tsx", import.meta.url), "utf8");
+    const auth = readFileSync(new URL("../components/auth/auth-form.tsx", import.meta.url), "utf8");
+    expect(yarrow).toContain("data-flow-exit");
+    expect(manual).toContain("data-flow-exit");
+    expect(manual).toContain("data-question-restart");
+    expect(manual).toContain("questionContext?.restartQuestion()");
+    expect(result).toContain("data-reading-exit");
+    expect(result).toContain("data-reading-start-new");
+    expect(auth).toContain("data-auth-exit");
+  });
 });
