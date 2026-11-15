@@ -1,3 +1,5 @@
+import { writeFile } from "node:fs/promises";
+import { isAbsolute } from "node:path";
 import { Resend } from "resend";
 
 export type MagicLinkData = {
@@ -25,6 +27,51 @@ function escapeHtml(value: string): string {
     '"': "&quot;",
     "'": "&#39;",
   })[character]!);
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  return hostname === "127.0.0.1" || hostname === "localhost" || hostname === "::1";
+}
+
+/**
+ * R3 browser-proof seam.
+ *
+ * There is no existing Magic Link browser fixture. This transport is usable
+ * only with an explicit absolute capture path and a loopback Better Auth URL.
+ * It captures the genuine Better Auth-generated one-time URL; it does not mint
+ * a token, alter callback ownership, or bypass Better Auth verification.
+ */
+export function createBrowserGateMagicLinkCaptureTransport(input: {
+  captureFile: string;
+  baseURL: string;
+}) {
+  const captureFile = input.captureFile.trim();
+  if (!captureFile || !isAbsolute(captureFile)) throw new Error("AUTH_CONFIGURATION_UNAVAILABLE");
+
+  let origin: string;
+  try {
+    const base = new URL(input.baseURL);
+    if (!["http:", "https:"].includes(base.protocol) || !isLoopbackHostname(base.hostname)) throw new Error();
+    origin = base.origin;
+  } catch {
+    throw new Error("AUTH_CONFIGURATION_UNAVAILABLE");
+  }
+
+  return {
+    async sendMagicLink(data: MagicLinkData): Promise<void> {
+      try {
+        const link = new URL(data.url);
+        if (link.origin !== origin) throw new Error();
+        await writeFile(
+          captureFile,
+          JSON.stringify({ email: data.email, url: data.url }),
+          { encoding: "utf8", mode: 0o600 },
+        );
+      } catch {
+        throw new Error("AUTH_EMAIL_DELIVERY_FAILED");
+      }
+    },
+  };
 }
 
 export function createMagicLinkEmailTransport(
@@ -82,28 +129,26 @@ export function createMagicLinkEmailTransport(
               <p style="margin: 0 0 24px;">Click the button below to sign in to Quick I Ching. Your reading session will be preserved.</p>
               <table border="0" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
                 <tr>
-                  <td align="center" style="border-radius: 8px; background: linear-gradient(135deg, #ebb255, #c88a2c);">
-                    <a href="${safeURL}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 15px; font-weight: 600; color: #0d0b14; text-decoration: none; border-radius: 8px;">
+                  <td align="center" style="border-radius: 8px; background: linear-gradient(135deg,#ebb255,#c88a2c);">
+                    <a href="${safeURL}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#0d0b14;text-decoration:none;border-radius:8px;">
                       Sign in to Quick I Ching
                     </a>
                   </td>
                 </tr>
               </table>
-              <div style="margin-top: 28px; padding: 16px; background-color: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; text-align: left;">
-                <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #8e887d;">
-                  <strong style="color: #ebb255;">Security Notice:</strong> This one-time link is valid for <strong>10 minutes</strong> and can only be used once. If you did not request this email, please disregard it.
-                </p>
+              <div style="margin-top:28px;padding:16px;background-color:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;text-align:left;">
+                <p style="margin:0;font-size:12px;line-height:1.5;color:#8e887d;"><strong style="color:#ebb255;">Security Notice:</strong> This one-time link is valid for <strong>10 minutes</strong> and can only be used once. If you did not request this email, please disregard it.</p>
               </div>
-              <p style="margin: 24px 0 0; font-size: 11px; line-height: 1.5; color: #6e685f; word-break: break-all; text-align: left;">
+              <p style="margin:24px 0 0;font-size:11px;line-height:1.5;color:#6e685f;word-break:break-all;text-align:left;">
                 Having trouble with the button? Copy and paste this URL into your browser:<br>
-                <a href="${safeURL}" style="color: #ebb255; text-decoration: underline;">${safeURL}</a>
+                <a href="${safeURL}" style="color:#ebb255;text-decoration:underline;">${safeURL}</a>
               </p>
             </td>
           </tr>
           <tr>
-            <td style="padding: 16px 32px; background-color: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); text-align: center; font-size: 11px; color: #5c564c;">
-              <p style="margin: 0;">Quick I Ching · Ancient Wisdom, Modern Clarification</p>
-              <p style="margin: 4px 0 0;"><a href="https://www.quickiching.com" style="color: #5c564c; text-decoration: underline;">www.quickiching.com</a></p>
+            <td style="padding:16px 32px;background-color:rgba(0,0,0,.2);border-top:1px solid rgba(255,255,255,.05);text-align:center;font-size:11px;color:#5c564c;">
+              <p style="margin:0;">Quick I Ching · Ancient Wisdom, Modern Clarification</p>
+              <p style="margin:4px 0 0;"><a href="https://www.quickiching.com" style="color:#5c564c;text-decoration:underline;">www.quickiching.com</a></p>
             </td>
           </tr>
         </table>
