@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useSyncExternalStore } from "react";
+import React, { Suspense, useEffect, useLayoutEffect, useMemo, useSyncExternalStore } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 /**
@@ -60,11 +60,15 @@ function getServerSnapshot(): NavigationLocation {
  * itself stays server-renderable on static routes.
  */
 function LocationSync(): null {
+  const pathname = usePathname() ?? "/";
   const searchParams = useSearchParams();
 
-  useEffect(() => {
+  // Publish pathname + query + hash as one browser snapshot before controls
+  // become interactive. This prevents a locale switch from combining a new
+  // pathname with the previous route's query during a client transition.
+  useLayoutEffect(() => {
     publishNavigationLocation(readWindow());
-  }, [searchParams]);
+  }, [pathname, searchParams]);
 
   useEffect(() => {
     const sync = () => publishNavigationLocation(readWindow());
@@ -107,12 +111,21 @@ export function NavigationLocationProvider({ children }: { children: React.React
 export function useNavigationLocation(): NavigationLocation {
   const routerPathname = usePathname() ?? "/";
   const reactive = useSyncExternalStore(subscribeNavigationLocation, getNavigationLocationSnapshot, getServerSnapshot);
+
+  // A Next client transition can advance usePathname() one render before the
+  // external store publishes the matching search/hash. Never splice those two
+  // different locations together: retain the previous complete snapshot until
+  // LocationSync publishes the new complete browser location.
+  const coherent = reactive === EMPTY || reactive.pathname === routerPathname
+    ? { pathname: routerPathname, search: reactive.search, hash: reactive.hash }
+    : reactive;
+
   return useMemo(
     () => ({
-      pathname: routerPathname,
-      search: reactive.search,
-      hash: reactive.hash,
+      pathname: coherent.pathname,
+      search: coherent.search,
+      hash: coherent.hash,
     }),
-    [routerPathname, reactive.search, reactive.hash],
+    [coherent.pathname, coherent.search, coherent.hash],
   );
 }
