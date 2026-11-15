@@ -450,5 +450,5 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
 function SceneBook({ zh }: { zh: boolean }) {
   const exitHref = zh ? "/zh" : "/";
   const exitLabel = zh ? "退出起卦" : "Exit";
-  return <Link href={exitHref} prefetch={false} className="mei-scene-book" aria-label={exitLabel} title={exitLabel} data-flow-exit><img src="/mei-hua/navigation-book.webp" alt="" width="1536" height="1024" /><span>{exitLabel}</span></Link>;
+  return <Link href={exitHref} prefetch={false} className="mei-scene-book" aria-label={exitLabel} title={exitLabel} data-flow-exit onClick={clearLiveFlowRegistration}><img src="/mei-hua/navigation-book.webp" alt="" width="1536" height="1024" /><span>{exitLabel}</span></Link>;
 }
