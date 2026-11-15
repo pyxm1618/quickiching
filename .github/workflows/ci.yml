@@ -250,6 +250,42 @@ jobs:
           bun scripts/interpretation-bundle-gate.mjs
           bun scripts/logo-browser-gate.mjs
           bun run gate:navigation
+      - name: Start auth-surface server for nested navigation context
+        if: always() && (needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true') && steps.product_build.conclusion == 'success'
+        shell: bash
+        env:
+          COMMERCIAL_V2_AUTH_ENABLED: "1"
+          AUTH_ADAPTER_MODE: better-auth
+          DATABASE_ADAPTER_MODE: postgres
+          DATABASE_URL: postgres://qic:qic-ci-secret@127.0.0.1:5432/qic_ci
+          QUESTION_FINGERPRINT_KEYS: v1:ci-question-fingerprint-key-material-001
+          QUESTION_ENCRYPTION_KEYS: v1:ci-question-encryption-key-material-002
+          RESULT_INTEGRITY_KEYS: v1:ci-result-integrity-key-material-003
+          ANONYMOUS_OWNER_KEYS: v1:ci-anonymous-owner-key-material-004
+          BETTER_AUTH_SECRET: ci-better-auth-secret-material-0123456789ab
+          BETTER_AUTH_URL: http://127.0.0.1:3037
+          GOOGLE_CLIENT_ID: ci-google-client-id
+          GOOGLE_CLIENT_SECRET: ci-google-client-secret
+          RESEND_API_KEY: ci-resend-api-key
+          EMAIL_FROM: ci@quickiching.test
+        run: |
+          set -euo pipefail
+          (PORT=3037 HOSTNAME=127.0.0.1 bun run start > /tmp/qic-ci-auth-surface.log 2>&1 & echo $! > /tmp/qic-ci-auth-surface.pid)
+          for i in {1..80}; do
+            if curl -fsS http://127.0.0.1:3037/signin >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/qic-ci-auth-surface.log
+          exit 1
+      - name: Navigation Context / Locale Continuation Gate (R2)
+        if: always() && (needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true') && steps.product_build.conclusion == 'success'
+        env:
+          NAV_CONTEXT_TEST_BASE_URL: http://127.0.0.1:3036
+          NAV_CONTEXT_AUTH_BASE_URL: http://127.0.0.1:3037
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/navigation-context-browser-gate.mjs
       - name: Hexagram Detail structural browser Gate
         if: always() && needs.select.outputs.hexagram_detail == 'true' && steps.product_build.conclusion == 'success'
         env:
@@ -286,6 +322,7 @@ jobs:
         shell: bash
         run: |
           if [ -f /tmp/qic-ci-product.pid ]; then kill "$(cat /tmp/qic-ci-product.pid)" 2>/dev/null || true; fi
+          if [ -f /tmp/qic-ci-auth-surface.pid ]; then kill "$(cat /tmp/qic-ci-auth-surface.pid)" 2>/dev/null || true; fi
       - name: Remove Account local QA fixture
         if: always() && needs.select.outputs.account_info == 'true'
         run: node scripts/group3-visual-qa-fixture.mjs remove
