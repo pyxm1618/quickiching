@@ -104,8 +104,14 @@ export function ThreeCoinRitual({
   }, [presentationStage, experienceStage]);
 
   useEffect(() => {
-    // Explicit Exit lands on the Root landing surface. The saved session stays
-    // intact, but restoring it is the visitor's decision, never automatic.
+    // Navigation Authority §8: an explicit Exit must really show the S01 Root
+    // landing instead of bouncing straight back into the active casting UI.
+    // This one-shot marker is navigation-only — it neither adds an explicit
+    // Resume affordance nor owns passive-resume policy. The full Passive Resume
+    // contract is owned by the parallel reading-lifecycle authority
+    // (PR #117, fix/reading-lifecycle-remediation-1, contract C1) and is an
+    // EXTERNAL MERGE DEPENDENCY of this PR; on a direct entry without that
+    // marker the base implementation below still auto-restores a partial cast.
     if (consumeExplicitFlowExit()) return;
     const restored = readThreeCoinQuestionState();
     if (restored.question || restored.coreQuestionFrozenAtCast || restored.started) {

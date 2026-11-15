@@ -7,6 +7,12 @@
  * untouched — clearing and resume policy belong to Reading Lifecycle, not to
  * navigation.
  *
+ * This marker is navigation-only. It is NOT a passive-resume implementation:
+ * it adds no Resume/Continue affordance and does not change what a direct Home
+ * entry does with a stored partial. The full Passive Resume contract is owned
+ * by PR #117 (`fix/reading-lifecycle-remediation-1` @ 4593bc60, contract C1),
+ * which is an EXTERNAL MERGE DEPENDENCY and must land before this PR is merged.
+ *
  * The marker is a one-shot signal consumed by the landing surface itself.
  */
 const STORAGE_KEY = "quickiching:navigation:explicit-flow-exit";
