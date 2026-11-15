@@ -17,6 +17,13 @@ export const CHECKOUT_CONFIRMATION_WINDOW_MS = 30_000;
 const AUTO_REFRESH_INTERVAL_MS = 5_000;
 type ReturnPhase = "inactive" | VisiblePaymentReturnPhase;
 
+export function checkoutReadingReturnTarget(
+  returnUrl: string,
+  locale: "en" | "zh-Hans",
+): string {
+  return mapInternalPathLocale(returnUrl, locale);
+}
+
 export function resolveCheckoutReturnPhase(input: {
   orderId?: string;
   context: CheckoutReturnContext | null;
@@ -88,7 +95,7 @@ export function CheckoutReturnRecovery({
 
   const returnToReading = () => {
     if (!context?.returnUrl) return;
-    const localizedReturnUrl = mapInternalPathLocale(context.returnUrl, locale);
+    const localizedReturnUrl = checkoutReadingReturnTarget(context.returnUrl, locale);
     clearCheckoutReturnContext(window.sessionStorage);
     window.location.assign(localizedReturnUrl);
   };
