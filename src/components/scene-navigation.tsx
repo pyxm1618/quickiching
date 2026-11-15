@@ -60,12 +60,20 @@ export function SceneNavigation({
   const focusRequest = useRef<"first" | "last" | null>(null);
   const localize = (path: string) => zh ? `/zh${path === "/" ? "" : path}` : path;
   const homeHref = shellHomeTarget(locale);
-  const localeTarget = localeSwitchTarget({
+  const computedLocaleTarget = localeSwitchTarget({
     pathname,
     search: requestSearch ?? location.search,
     hash: location.hash,
     currentLocale: locale,
   });
+  // Pricing reading-return (S16) is query-identified. During the Suspense
+  // fallback there is no authoritative request query yet, so exposing a live
+  // locale link would create a brief href that can drop returnUrl. Keep the
+  // locale indicator non-interactive until PricingHeader supplies requestSearch.
+  // URL transformation still belongs exclusively to localeSwitchTarget().
+  const localeTarget = contract.id === "S16" && requestSearch === undefined
+    ? { ...computedLocaleTarget, available: false }
+    : computedLocaleTarget;
   const triggerFor = (name: Panel) => name === "methods" ? methodsTrigger.current : infoTrigger.current;
 
   function handleLocaleClick(event: MouseEvent<HTMLAnchorElement>, targetLocale: ContentLocale) {
