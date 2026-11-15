@@ -566,28 +566,21 @@ async function verifyPendingClosure(page) {
   await page.waitForSelector("[data-result-choice-empty]", { timeout: 15_000 });
   assert.equal(await page.$("[data-result-choice]"), null, "Missing exact id must not choose latest/first");
 
-  // Storage unavailable: exact lookup fails closed; it cannot select B.
-  await page.evaluate((prefix) => {
+  // Storage unavailable: inject before document scripts execute so the
+  // real Choice client experiences a throwing localStorage exact read.
+  const unavailablePage = await page.browser().newPage();
+  await unavailablePage.evaluateOnNewDocument((prefix) => {
     const original = Storage.prototype.getItem;
     Storage.prototype.getItem = function(key) {
       if (this === localStorage && String(key).startsWith(prefix)) throw new DOMException("blocked", "SecurityError");
       return original.call(this, key);
     };
   }, PENDING_PREFIX);
-  await page.goto(`${BASE}/readings/choice?session=${liveId}`, { waitUntil: "networkidle0" });
-  // The navigation creates a new document, so patching must happen before a
-  // client exact read. Seed a query change without reload after patch.
-  await page.evaluate((prefix) => {
-    const original = Storage.prototype.getItem;
-    Storage.prototype.getItem = function(key) {
-      if (this === localStorage && String(key).startsWith(prefix)) throw new DOMException("blocked", "SecurityError");
-      return original.call(this, key);
-    };
-    history.replaceState(history.state, "", "/readings/choice?session=" + "22222222-2222-4222-8222-222222222222");
-  }, PENDING_PREFIX);
-  // Unit coverage owns unavailable-storage parsing; browser proof below owns
-  // transaction write/remove failures in the actual flow.
-  log("Pending — TTL, malformed, unknown, missing exact-id paths fail closed without B fallback");
+  await unavailablePage.goto(`${BASE}/readings/choice?session=${liveId}`, { waitUntil: "networkidle0" });
+  await unavailablePage.waitForSelector("[data-result-choice-empty]", { timeout: 15_000 });
+  assert.equal(await unavailablePage.$("[data-result-choice]"), null, "Unavailable localStorage must fail closed without selecting B");
+  await unavailablePage.close();
+  log("Pending — TTL, malformed, unknown, missing and unavailable storage fail closed without fallback");
 
   // Pending write failure: completion must not navigate or retire the exact method session.
   await freshOrigin(page);
