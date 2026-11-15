@@ -448,6 +448,12 @@ export function AuthForm({
         </Link>
       </p>
 
+      <p className={styles.switchLine}>
+        <Link href={callbackURL || homeHref} className={styles.inlineLink} data-auth-exit>
+          {locale === "zh-Hans" ? "取消并返回" : "Cancel / Back"}
+        </Link>
+      </p>
+
       {formMode === "signup" && (
         <p className={styles.terms}>
           {ui.termsPrefix}{" "}
