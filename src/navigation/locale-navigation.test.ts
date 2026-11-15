@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { authCallbackPath, localeSwitchTarget, mapInternalPathLocale } from "./locale-navigation";
+import {
+  authCallbackPath,
+  consumeLocaleSwitchContinuation,
+  localeSwitchTarget,
+  mapInternalPathLocale,
+  markLocaleSwitchContinuation,
+} from "./locale-navigation";
 
 describe("locale switching keeps the surface and its flow-critical state", () => {
   it.each([
@@ -43,7 +49,7 @@ describe("locale switching keeps the surface and its flow-critical state", () =>
       pathname: "/pricing",
       search: "?orderId=ord_9f8&returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC&utm_source=x",
       currentLocale: "en",
-    }).href).toBe("/zh/pricing?returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DABC");
+    }).href).toBe("/zh/pricing?returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DABC&orderId=ord_9f8");
   });
 
   it("maps a nested callback target inside the auth surface", () => {
@@ -90,6 +96,13 @@ describe("auth callback preservation", () => {
       pathname: "/pricing",
       search: "?returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC",
     })).toBe("/pricing?returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC");
+  });
+
+  it("keeps the payment recovery identity through an auth detour", () => {
+    expect(authCallbackPath({
+      pathname: "/pricing",
+      search: "?orderId=ord_A&returnUrl=%2Freadings%2Fdeep%3Fsession%3DB&utm_source=x",
+    })).toBe("/pricing?returnUrl=%2Freadings%2Fdeep%3Fsession%3DB&orderId=ord_A");
   });
 
   it("does not smuggle opaque or unrelated query state into the callback", () => {
@@ -164,6 +177,28 @@ describe("nested semantic locale context (recursive mapping)", () => {
     expect(nested.params.get("session")).toBe("XYZ");
   });
 
+  it("keeps payment orderId and maps the nested reading return in both locale directions", () => {
+    const enTarget = localeSwitchTarget({
+      pathname: "/pricing",
+      search: "?orderId=ord_A&returnUrl=%2Freadings%2Fdeep%3Fsession%3DB",
+      currentLocale: "en",
+    });
+    const zh = surface(enTarget.href);
+    expect(zh.pathname).toBe("/zh/pricing");
+    expect(zh.params.get("orderId")).toBe("ord_A");
+    expect(zh.params.get("returnUrl")).toBe("/zh/readings/deep?session=B");
+
+    const zhTarget = localeSwitchTarget({
+      pathname: "/zh/pricing",
+      search: "?orderId=ord_A&returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DB",
+      currentLocale: "zh-Hans",
+    });
+    const en = surface(zhTarget.href);
+    expect(en.pathname).toBe("/pricing");
+    expect(en.params.get("orderId")).toBe("ord_A");
+    expect(en.params.get("returnUrl")).toBe("/readings/deep?session=B");
+  });
+
   it("preserves a nested semantic fragment", () => {
     const search = new URLSearchParams({ callbackURL: "/hexagrams/1-the-creative#line-3" }).toString();
     const target = localeSwitchTarget({ pathname: "/signin", search: `?${search}`, currentLocale: "en" });
@@ -197,7 +232,7 @@ describe("nested semantic locale context (recursive mapping)", () => {
       currentLocale: "en",
     });
     const outer = surface(target.href);
-    expect(outer.params.get("orderId")).toBeNull();
+    expect(outer.params.get("orderId")).toBe("ord_9f8");
     expect(outer.params.get("utm_campaign")).toBeNull();
     expect(outer.params.has("returnUrl")).toBe(true);
   });
@@ -219,5 +254,34 @@ describe("nested semantic locale context (recursive mapping)", () => {
       expect(() => validateAuthCallbackURL(unsafe, "https://quickiching.test")).toThrow();
       expect(mapInternalPathLocale(unsafe, "zh-Hans")).toBe(unsafe);
     }
+  });
+});
+
+
+describe("explicit locale continuation intent", () => {
+  class MemoryStorage {
+    private readonly values = new Map<string, string>();
+    getItem(key: string) { return this.values.get(key) ?? null; }
+    setItem(key: string, value: string) { this.values.set(key, value); }
+    removeItem(key: string) { this.values.delete(key); }
+  }
+
+  it.each([
+    ["S02", "three-coin"],
+    ["S06", "yarrow-stalks"],
+    ["S07", "mei-hua-yi-shu"],
+    ["S08", "manual"],
+  ] as const)("continues %s only after an explicit locale switch", (surfaceId, method) => {
+    const storage = new MemoryStorage();
+    expect(consumeLocaleSwitchContinuation(method, storage as Storage, 10_000)).toBe(false);
+    expect(markLocaleSwitchContinuation(surfaceId, storage as Storage, 10_000)).toBe(true);
+    expect(consumeLocaleSwitchContinuation(method, storage as Storage, 10_001)).toBe(true);
+    expect(consumeLocaleSwitchContinuation(method, storage as Storage, 10_002)).toBe(false);
+  });
+
+  it("does not create continuation intent on non-casting surfaces", () => {
+    const storage = new MemoryStorage();
+    expect(markLocaleSwitchContinuation("S15", storage as Storage, 10_000)).toBe(false);
+    expect(consumeLocaleSwitchContinuation("manual", storage as Storage, 10_001)).toBe(false);
   });
 });
