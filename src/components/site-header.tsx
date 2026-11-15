@@ -53,7 +53,8 @@ function PricingHeader({
   flowState: NavigationFlowState;
 }) {
   const searchParams = useSearchParams();
-  const search = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+  const searchString = searchParams.toString();
+  const search = searchString ? `?${searchString}` : "";
   const authoritativeFlowState = hasPricingFlowContext(search)
     ? { ...flowState, pricingReadingContext: true }
     : flowState;
