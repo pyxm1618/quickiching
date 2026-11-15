@@ -281,6 +281,7 @@ export function ThreeCoinRitual({
       setError(dictionary.questionFirst.saveError);
       return;
     }
+    clearLiveFlowRegistration();
     setQuestionState(undefined);
     setCoreQuestionAtCast(undefined);
     setCoreQuestionFrozenAtCast(false);

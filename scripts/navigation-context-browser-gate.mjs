@@ -17,6 +17,8 @@ import { resolveChromeExecutable } from "./browser-runtime.mjs";
  *      an Authority-declared content fragment survives locale switching.
  *   G. Nested auth callback keeps the localized exact Result session.
  *   H. Nested pricing returnUrl keeps the localized exact Deep Reading session.
+ *   I. QuestionFirst New Question clears live-flow authority before locale switch.
+ *   J. Three Coin Start New Reading clears live-flow authority before locale switch.
  *
  * This gate does not implement URL transformation. It drives the existing
  * src/navigation/locale-navigation.ts authority through the real shell.
@@ -383,6 +385,109 @@ async function verifyMeiHuaActiveLocaleSwitch(page) {
  * Analytics/test query and a nonsemantic Result fragment are filtered. A
  * semantic fragment on an Authority-declared content surface is preserved.
  */
+async function verifyRestartBoundariesClearLocaleAuthority(page) {
+  // I — QuestionFirst / Yarrow: enter a fresh active flow, then New Question.
+  await seed(page, {});
+  await page.goto(BASE + "/methods/yarrow-stalks", { waitUntil: "networkidle0" });
+  await page.waitForSelector("textarea[data-private-question]", { visible: true, timeout: 15_000 });
+  await page.type("textarea[data-private-question]", "Should I keep following this path?");
+  await page.evaluate(() => {
+    const button = [...document.querySelectorAll("[data-question-first] button")]
+      .find((node) => node.textContent?.includes("Continue"));
+    if (!(button instanceof HTMLButtonElement)) throw new Error("Yarrow Continue button not found");
+    button.click();
+  });
+  await page.waitForSelector("input[data-private-question]", { visible: true, timeout: 15_000 });
+  const yarrowActiveId = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) ?? "null")?.id ?? null, YARROW_KEY);
+  assert(yarrowActiveId, "Yarrow fresh active flow must own a reading id before New Question");
+
+  await page.evaluate(() => {
+    const button = [...document.querySelectorAll("[data-question-first] button")]
+      .find((node) => node.textContent?.trim() === "New question");
+    if (!(button instanceof HTMLButtonElement)) throw new Error("Yarrow New question button not found");
+    button.click();
+  });
+  await page.waitForSelector("textarea[data-private-question]", { visible: true, timeout: 15_000 });
+  const yarrowRestarted = await page.evaluate(({ sessionKey, continuationKey }) => ({
+    session: sessionStorage.getItem(sessionKey),
+    continuation: sessionStorage.getItem(continuationKey),
+    activeInput: Boolean(document.querySelector("input[data-private-question]")),
+    resume: Boolean(document.querySelector("[data-reading-resume-action]")),
+  }), { sessionKey: YARROW_KEY, continuationKey: LOCALE_CONTINUATION_KEY });
+  assert.equal(yarrowRestarted.session, null, "New Question must retire the old Yarrow session");
+  assert.equal(yarrowRestarted.continuation, null, "New Question must leave no locale-continuation intent");
+  assert.equal(yarrowRestarted.activeInput, false, "New Question must leave the active Yarrow stage");
+  assert.equal(yarrowRestarted.resume, false, "New Question must not expose the retired Yarrow reading as resumable");
+
+  await clickLocaleSwitch(page, "zh-Hans");
+  await page.waitForFunction(() => location.pathname === "/zh/methods/yarrow-stalks", { timeout: 20_000 });
+  await page.waitForSelector("textarea[data-private-question]", { visible: true, timeout: 15_000 });
+  const yarrowTarget = await page.evaluate(({ sessionKey, continuationKey }) => ({
+    session: sessionStorage.getItem(sessionKey),
+    continuation: sessionStorage.getItem(continuationKey),
+    activeInput: Boolean(document.querySelector("input[data-private-question]")),
+    progress: Boolean(document.querySelector(".ritual-progress-badge")),
+    resume: Boolean(document.querySelector("[data-reading-resume-action]")),
+  }), { sessionKey: YARROW_KEY, continuationKey: LOCALE_CONTINUATION_KEY });
+  assert.equal(yarrowTarget.session, null, "Target locale must not reactivate the old Yarrow reading id");
+  assert.equal(yarrowTarget.continuation, null, "Target locale must have no stale continuation intent");
+  assert.equal(yarrowTarget.activeInput, false, "Target locale must stay at the normal Yarrow question entry");
+  assert.equal(yarrowTarget.progress, false, "Target locale must not auto-enter the old Yarrow cast");
+  assert.equal(yarrowTarget.resume, false, "Target locale must not offer Resume for the retired Yarrow reading");
+
+  // J — Three Coin: resume an exact active 4/6 flow, then use the ritual Back
+  // action, which is the Start New Reading boundary.
+  await seed(page, { threeCoin: threeCoinSessionPayload(ID_A, 4) });
+  await page.goto(BASE + "/", { waitUntil: "networkidle0" });
+  await clickResume(page);
+  await page.waitForFunction(
+    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
+    { timeout: 15_000 },
+  );
+  await page.waitForFunction(
+    () => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 4,
+    { timeout: 15_000 },
+  );
+  await page.waitForSelector(".ritual-cast-ui .ritual-back:not(:disabled)", { visible: true, timeout: 15_000 });
+  await page.click(".ritual-cast-ui .ritual-back");
+  await page.waitForFunction(
+    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "landing",
+    { timeout: 15_000 },
+  );
+  const threeCoinRestarted = await page.evaluate(({ sessionKey, continuationKey }) => ({
+    session: sessionStorage.getItem(sessionKey),
+    continuation: sessionStorage.getItem(continuationKey),
+    doneLines: document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length,
+    resume: Boolean(document.querySelector("[data-reading-resume-action]")),
+  }), { sessionKey: THREE_COIN_KEY, continuationKey: LOCALE_CONTINUATION_KEY });
+  assert.equal(threeCoinRestarted.session, null, "Start New Reading must retire the old Three Coin session");
+  assert.equal(threeCoinRestarted.continuation, null, "Start New Reading must leave no locale-continuation intent");
+  assert.equal(threeCoinRestarted.doneLines, 0, "Start New Reading must remove the old 4/6 cast from the UI");
+  assert.equal(threeCoinRestarted.resume, false, "Start New Reading must not expose the retired Three Coin reading as resumable");
+
+  await clickLocaleSwitch(page, "zh-Hans");
+  await page.waitForFunction(() => location.pathname === "/zh", { timeout: 20_000 });
+  const threeCoinTarget = await page.evaluate(({ sessionKey, continuationKey }) => ({
+    session: sessionStorage.getItem(sessionKey),
+    continuation: sessionStorage.getItem(continuationKey),
+    stage: document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage"),
+    doneLines: document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length,
+    resume: Boolean(document.querySelector("[data-reading-resume-action]")),
+  }), { sessionKey: THREE_COIN_KEY, continuationKey: LOCALE_CONTINUATION_KEY });
+  assert.equal(threeCoinTarget.session, null, "Target locale must not reactivate old Three Coin reading A");
+  assert.equal(threeCoinTarget.continuation, null, "Target locale must have no stale Three Coin continuation intent");
+  assert.equal(threeCoinTarget.stage, "landing", "Target locale must stay at the normal Three Coin entry");
+  assert.equal(threeCoinTarget.doneLines, 0, "Target locale must not auto-enter the old 4/6 Three Coin cast");
+  assert.equal(threeCoinTarget.resume, false, "Target locale must not offer Resume for retired Three Coin reading A");
+
+  log("I/J — restart boundaries retire the old reading and leave locale switching passive");
+}
+
+/**
+ * F — current C5 authority: Result preserves only flow-critical session state.
+ * Analytics/test query and a nonsemantic Result fragment are filtered. A
+ * semantic fragment on an Authority-declared content surface is preserved.
+ */
 async function verifyCurrentC5FilteringAndFragments(page) {
   await seed(page, {
     pendings: [[ID_A, pendingPayload(ID_A, "three-coin", THREE_COIN_QUESTION, [9, 6, 7, 8, 7, 9])]],
@@ -591,6 +696,7 @@ async function main() {
     await verifyYarrowActiveLocaleSwitch(page);
     await verifyManualDraftActiveLocaleSwitch(page);
     await verifyMeiHuaActiveLocaleSwitch(page);
+    await verifyRestartBoundariesClearLocaleAuthority(page);
     await verifyCurrentC5FilteringAndFragments(page);
     await verifyNestedAuthLocaleContext(page);
     await verifyNestedPricingLocaleContext(page);

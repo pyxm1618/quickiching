@@ -225,6 +225,7 @@ export function QuestionFirst({
         // The in-memory restart still returns to the default entry.
       }
     }
+    clearLiveFlowRegistration();
     setStarted(false);
     setQuestionState(undefined);
     setCoreQuestionAtCast(undefined);
