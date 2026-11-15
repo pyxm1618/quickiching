@@ -108,7 +108,6 @@ export function ThreeCoinRitual({
     setCoreQuestionAtCast(session.coreQuestionAtCast ?? restored.coreQuestionAtCast);
     setCoreQuestionFrozenAtCast(session.coreQuestionFrozenAtCast === true || restored.coreQuestionFrozenAtCast);
     setResumeRequested(true);
-    setResumeState(NO_READING_RESUME);
     const stage = threeCoinExperienceStageForSession({
       started: true,
       question: restoredQuestion,
