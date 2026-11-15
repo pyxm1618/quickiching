@@ -63,7 +63,7 @@ try {
           const pieces = [...side.children].map((piece) => ({ y: piece.getBoundingClientRect().top, height: piece.getBoundingClientRect().height, width: piece.getBoundingClientRect().width, repeat: getComputedStyle(piece).backgroundRepeat, size: getComputedStyle(piece).backgroundSize }));
           return { side: side.getAttribute("data-scroll-side"), pieces };
         });
-        return { url: location.href, title: document.title, viewport: { width: innerWidth, height: innerHeight }, dpr: devicePixelRatio, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight, h1: article.querySelector("h1").textContent, h1Count: article.querySelectorAll("h1").length, assetDelivery, sideFrames, lineCount: article.querySelectorAll("[data-basic-identity] [data-hexagram-line]").length, meanings, clipped, optionalSections: article.querySelectorAll("[data-reading-cases], [data-hexagram-relations]").length, auxiliaryLinks: [...auxiliary.querySelectorAll("a")].map((a) => a.getAttribute("href")), topLevelHeaderVisible: document.body.querySelector(":scope > header").getBoundingClientRect().height > 0 };
+        return { url: location.href, title: document.title, viewport: { width: innerWidth, height: innerHeight }, dpr: devicePixelRatio, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight, h1: article.querySelector("h1").textContent, h1Count: article.querySelectorAll("h1").length, assetDelivery, sideFrames, lineCount: article.querySelectorAll("[data-basic-identity] [data-hexagram-line]").length, meanings, clipped, optionalSections: article.querySelectorAll("[data-reading-cases], [data-hexagram-relations]").length, auxiliaryLinks: [...auxiliary.querySelectorAll("a")].map((a) => a.getAttribute("href")), topLevelHeaderVisible: (() => { const header = document.body.querySelector(":scope > header"); return header !== null && header.getBoundingClientRect().height > 0; })() };
       });
       const seoEntry = HEXAGRAM_SEO_REGISTRY.find((entry) => entry.locale === "en" && entry.number === number);
       assert(seoEntry, `Missing English SEO registry entry for hexagram ${number}`);
@@ -99,7 +99,7 @@ try {
       assert.equal(state.documentWidth, viewport.width, `${number} at ${viewport.width}: horizontal scroll`);
       assert.deepEqual(state.clipped, [], `${number} at ${viewport.width}: clipped text`);
       assert.deepEqual(state.meanings, knowledge.lines.slice().reverse().map((line) => line.meaning));
-      assert.equal(state.topLevelHeaderVisible, false);
+      assert.equal(state.topLevelHeaderVisible, true, "S04 Content shell must remain visible and in flow");
       const expectedLinks = [...(number > 1 ? [`/hexagrams/${CLASSICAL_HEXAGRAMS[number - 2].slug}`] : []), "/hexagrams", ...(number < 64 ? [`/hexagrams/${CLASSICAL_HEXAGRAMS[number].slug}`] : [])];
       assert.deepEqual(state.auxiliaryLinks, expectedLinks);
       // Visit each lazy ornament before capturing the full document. This also verifies

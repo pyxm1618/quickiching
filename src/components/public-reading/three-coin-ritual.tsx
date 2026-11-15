@@ -7,6 +7,7 @@ import { GildedTitle } from "@/components/typography/gilded-title";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
+import { useDeclareThreeCoinStage } from "@/navigation/navigation-surface-context";
 import {
   clearThreeCoinReading,
   patchThreeCoinQuestionSession,
@@ -82,6 +83,10 @@ export function ThreeCoinRitual({
   const [error, setError] = useState("");
   const [resumeState, setResumeState] = useState<ReadingResumeState>(NO_READING_RESUME);
   const [resumeRequested, setResumeRequested] = useState(false);
+
+  // S01/S02 are distinct surfaces on the same route; live stage declares which
+  // contract the global shell must render.
+  useDeclareThreeCoinStage(experienceStage);
 
   useEffect(() => {
     setResumeState(threeCoinResumeState());
@@ -380,6 +385,16 @@ export function ThreeCoinRitual({
           </div>
         )}
         {children}
+        {experienceStage !== "landing" ? (
+          <button
+            type="button"
+            className="ritual-flow-exit"
+            data-flow-exit
+            onClick={() => window.location.assign(zh ? "/zh" : "/")}
+          >
+            {zh ? "退出起卦" : "Exit"}
+          </button>
+        ) : null}
       </section>
     </ThreeCoinRitualContext.Provider>
   );

@@ -162,8 +162,6 @@
   .cherryBottom { width: 17px; }
 }
 /* The approved detail composition supplies its own navigation and frame. */
-:global(body):has(.detail) > :global(header),
-:global(body):has(.detail) > :global(footer) { display: none; }
 /* The two follow-up production assets are user-supplied originals, never screenshot crops. */
 .detail { background: transparent; }
 :global(body):has(.detail) { background: #160e07; }

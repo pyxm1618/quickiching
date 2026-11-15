@@ -184,6 +184,10 @@ export function ResultChoiceView({
             {zh ? "免费解卦" : "Free Reading"}
           </Link>
         </nav>
+
+        <Link href={zh ? "/zh" : "/"} prefetch={false} className={styles.exitAction} data-result-choice-exit>
+          {zh ? "退出解读" : "Exit Reading"}
+        </Link>
       </div>
     </main>
   );

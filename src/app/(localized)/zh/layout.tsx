@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import "../../globals.css";
 import "@/components/typography/gilded-title.css";
 import { SiteHeader } from "@/components/site-header";
+import { NavigationSurfaceProvider } from "@/navigation/navigation-surface-context";
+import { NavigationLocationProvider } from "@/navigation/navigation-location";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { SITE_ORIGIN } from "@/lib/seo";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
@@ -32,9 +34,13 @@ export default function LocalizedRootLayout({
   return (
     <html lang="zh-Hans" className={localizedFontVariableClassNames}>
       <body className="flex min-h-screen flex-col">
-        <SiteHeader locale="zh-Hans" authEnabled={authEnabled} />
-        <main className="flex-1">{children}</main>
-        {authEnabled ? <AccountModalClient locale="zh-Hans" /> : null}
+        <NavigationLocationProvider>
+          <NavigationSurfaceProvider>
+            <SiteHeader locale="zh-Hans" authEnabled={authEnabled} />
+            <main className="flex-1">{children}</main>
+            {authEnabled ? <AccountModalClient locale="zh-Hans" /> : null}
+          </NavigationSurfaceProvider>
+        </NavigationLocationProvider>
         <SiteAnalytics />
       </body>
     </html>
