@@ -138,7 +138,8 @@ describe("Navigation / Surface Authority architecture", () => {
     expect(manual).toContain("data-question-restart");
     expect(manual).toContain("questionContext?.restartQuestion()");
     expect(result).toContain("data-reading-exit");
-    expect(result).toContain("data-reading-start-new");
+    expect(result).toContain("onNewReading={startNewReading}");
+    expect(result).toContain("newReadingLabel");
     expect(auth).toContain("data-auth-exit");
   });
 });
