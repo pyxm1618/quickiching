@@ -10,6 +10,9 @@ import { resolveChromeExecutable } from "./browser-runtime.mjs";
  *   B. a fresh completion hands off with replace, and Browser Back cannot resurrect it
  *   C. a completed reading does not hijack the Home entry
  *   D. two completed readings keep exact identity, and a missing session fails closed
+ *   E. Yarrow 8/18 reopen stays on the QuestionFirst default entry; one Resume
+ *      restores the frozen question and the exact 8/18 with the same id
+ *   F. Manual draft reopen does the same for the exact draft line values
  */
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
@@ -32,6 +35,12 @@ const STEPS = [
 
 const THREE_COIN_QUESTION = "Should I accept the new role?";
 const MANUAL_QUESTION = "Should I move to Kyoto?";
+const YARROW_QUESTION = "Should I stay on this path?";
+const YARROW_KEY = "quickiching:public-v1:yarrow-v2";
+const MANUAL_KEY = "quickiching:public-v1:manual-cast";
+const MANUAL_DRAFT_KEY = "quickiching:public-v1:manual-cast:draft:v1";
+const YARROW_ID = "9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e";
+const MANUAL_ID = "0a1b2c3d-4e5f-4a6b-9c8d-7e6f5a4b3c2d";
 
 function log(message) {
   console.log(`[Reading Lifecycle Gate] ${message}`);
@@ -76,6 +85,9 @@ async function clearLifecycleStorage(page) {
       sessionStorage.removeItem(key);
       localStorage.removeItem(key);
     }
+    // A real visitor answers the consent banner first; seed that answer so a
+    // fixed consent panel cannot intercept the Resume / navigation clicks.
+    localStorage.setItem("quickiching:analytics-consent:v1", "denied");
   }, [RETIRED_SINGLETON_KEY, RETIRED_BACKUP_KEY]);
 }
 
@@ -93,6 +105,41 @@ async function seed(page, { threeCoinSession, pendings = [] } = {}) {
     session: threeCoinSession ?? null,
     pendingRecords: pendings,
   });
+}
+
+async function seedMethodState(page, entries) {
+  await page.goto(BASE + "/", { waitUntil: "networkidle0" });
+  await clearLifecycleStorage(page);
+  await page.evaluate((records) => {
+    for (const { key, value } of records) sessionStorage.setItem(key, JSON.stringify(value));
+  }, entries);
+}
+
+function yarrowChanges(count) {
+  return Array.from({ length: count }, (_, index) => ({
+    lineIndex: Math.floor(index / 3),
+    changeIndex: index % 3,
+    startingStalks: 49,
+    endingStalks: 28,
+    leftGroup: 20,
+    rightGroup: 28,
+    leftRemainder: 4,
+    rightRemainder: 4,
+    algorithmVersion: "yarrow-zhu-xi-digital-v2",
+  }));
+}
+
+function methodSessionEnvelope(id, question, data) {
+  return {
+    schemaVersion: 1,
+    id,
+    createdAt: new Date(Date.UTC(2026, 10, 15, 1, 0)).toISOString(),
+    started: true,
+    question,
+    coreQuestionAtCast: question,
+    coreQuestionFrozenAtCast: true,
+    ...(data ? { data } : {}),
+  };
 }
 
 async function doneLineCount(page) {
@@ -246,6 +293,93 @@ async function verifyCrossMethodIdentity(page) {
   log("C3 — exact server/pending identity: A→A, B→B, missing session and unknown session fail closed");
 }
 
+async function verifyYarrowPartialReopen(page) {
+  await seedMethodState(page, [
+    { key: YARROW_KEY, value: methodSessionEnvelope(YARROW_ID, YARROW_QUESTION, { changes: yarrowChanges(8) }) },
+  ]);
+  await page.goto(`${BASE}/methods/yarrow-stalks`, { waitUntil: "networkidle0" });
+
+  // C1: QuestionFirst must render its default entry, not the active question
+  // stage, and the Yarrow tool must not be mounted at all.
+  assert(await page.$("textarea[data-private-question]"), "A stored 8/18 cast must render the normal question entry");
+  assert.equal(await page.$('input[data-private-question]'), null, "A stored 8/18 cast must not auto-enter the active question stage");
+  assert.equal(await page.$(".ritual-progress-badge"), null, "A stored 8/18 cast must not mount the Yarrow tool before Resume");
+  await page.waitForSelector("[data-reading-resume-action]", { visible: true, timeout: 15_000 });
+  const resumeLabel = await page.$eval("[data-reading-resume-action]", (node) => node.textContent ?? "");
+  assert(resumeLabel.includes("8 / 18 changes"), `Yarrow Resume must report the exact progress, received: ${resumeLabel}`);
+
+  // One explicit Resume restores question + exact 8/18 with the same identity.
+  await clickResume(page);
+  await page.waitForFunction(
+    () => document.querySelector(".ritual-progress-badge")?.textContent?.includes("8 / 18") === true,
+    { timeout: 15_000 },
+  );
+  const badge = await page.$eval(".ritual-progress-badge", (node) => node.textContent ?? "");
+  assert(badge.includes("8 / 18"), `Resume must restore exactly 8/18 changes, received: ${badge}`);
+  const state = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    const session = raw ? JSON.parse(raw) : null;
+    return {
+      id: session?.id ?? null,
+      changes: session?.data?.changes?.length ?? null,
+      question: document.querySelector("input[data-private-question]")?.value ?? "",
+      resumeAffordance: Boolean(document.querySelector("[data-reading-resume-action]")),
+    };
+  }, YARROW_KEY);
+  assert.equal(state.id, YARROW_ID, "Resume must preserve the exact Yarrow reading id");
+  assert.equal(state.changes, 8, "Resume must preserve exactly eight changes");
+  assert.equal(state.question, YARROW_QUESTION, "Resume must restore the frozen question");
+  assert.equal(state.resumeAffordance, false, "A single Resume must consume the affordance");
+  log("C1 — Yarrow 8/18 reopen: default entry, one Resume restores question + exact 8/18");
+}
+
+async function verifyManualDraftReopen(page) {
+  const draftValues = [9, 8, 7, 6, 9, 8];
+  await seedMethodState(page, [
+    { key: MANUAL_KEY, value: methodSessionEnvelope(MANUAL_ID, MANUAL_QUESTION) },
+    {
+      key: MANUAL_DRAFT_KEY,
+      value: {
+        schemaVersion: 1,
+        questionKey: MANUAL_QUESTION,
+        mode: "line-values",
+        lineValuesBottomUp: draftValues,
+        primaryHexagram: 1,
+        changingLines: [],
+      },
+    },
+  ]);
+  await page.goto(`${BASE}/methods/manual-cast`, { waitUntil: "networkidle0" });
+
+  // C1: default entry; the draft is detected but never mounted as the flow.
+  assert(await page.$("textarea[data-private-question]"), "A stored Manual draft must render the normal question entry");
+  assert.equal(await page.$("[data-manual-cast-tool]"), null, "A stored Manual draft must not open the editor before Resume");
+  await page.waitForSelector("[data-reading-resume-action]", { visible: true, timeout: 15_000 });
+  const resumeLabel = await page.$eval("[data-reading-resume-action]", (node) => node.textContent ?? "");
+  assert(resumeLabel.includes("saved draft"), `Manual Resume must report the stored draft, received: ${resumeLabel}`);
+
+  // One explicit Resume restores the question and the exact draft line values.
+  await clickResume(page);
+  await page.waitForFunction(
+    () => document.querySelector('[data-line-position="1"][data-line-value="9"][data-selected="true"]') !== null,
+    { timeout: 15_000 },
+  );
+  const question = await page.$eval("[data-manual-question] p", (node) => node.textContent ?? "");
+  assert(question.includes(MANUAL_QUESTION), `Resume must restore the Manual question, received: ${question}`);
+  for (let index = 0; index < draftValues.length; index += 1) {
+    const position = index + 1;
+    const selector = `[data-line-position="${position}"][data-line-value="${draftValues[index]}"][data-selected="true"]`;
+    assert(await page.$(selector), `Resume must restore exact draft line ${position}=${draftValues[index]}`);
+  }
+  const storedDraft = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }, MANUAL_DRAFT_KEY);
+  assert.deepEqual(storedDraft?.lineValuesBottomUp, draftValues, "Resume must not overwrite the authoritative draft");
+  assert.equal(storedDraft?.questionKey, MANUAL_QUESTION, "Resume must preserve the draft question key");
+  log("C1 — Manual draft reopen: default entry, one Resume restores question + exact draft");
+}
+
 async function main() {
   const serverlessChromium = {
     executablePath: async () => {
@@ -272,6 +406,8 @@ async function main() {
     await verifyPartialResume(page);
     await verifyFreshCompletionNonReentry(page);
     await verifyHomeIsNotHijacked(page);
+    await verifyYarrowPartialReopen(page);
+    await verifyManualDraftReopen(page);
     await verifyCrossMethodIdentity(page);
     const fatal = consoleErrors.filter((message) => !/favicon|Failed to load resource.*404/i.test(message));
     assert.deepEqual(fatal, [], `Unexpected browser errors: ${fatal.join(" | ")}`);

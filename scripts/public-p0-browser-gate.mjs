@@ -124,6 +124,9 @@ async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, 
       const pendingKey = localStorage.key(index);
       if (pendingKey?.startsWith("quickiching:public-v1:pending-completed-reading:")) localStorage.removeItem(pendingKey);
     }
+    // Keep the consent decision seeded so a fixed consent panel cannot
+    // intercept the Resume / Choice action clicks in this gate.
+    localStorage.setItem("quickiching:analytics-consent:v1", "denied");
     sessionStorage.setItem(key, JSON.stringify({
       schemaVersion: 1,
       id: readingId,
@@ -138,7 +141,7 @@ async function seedThreeCoinSession(page, id, createdAt, steps = FIXTURE_STEPS, 
 
 async function openSeededThreeCoinResult(page, locale = "en") {
   const prefix = locale === "zh-Hans" ? "/zh" : "";
-  const entryPath = `${prefix}/`;
+  const entryPath = prefix ? "/zh" : "/";
   const resultPath = `${prefix}/readings/choice`;
   const seededId = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.id ?? "", THREE_COIN_STORAGE_KEY);
   assert(seededId, "Seeded Three-Coin session must have a stable id");
@@ -146,7 +149,7 @@ async function openSeededThreeCoinResult(page, locale = "en") {
   await page.goto(`${BASE}${entryPath}`, { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector("[data-reading-sealed-recovery]", { timeout: 30_000 });
   assert.equal(new URL(page.url()).pathname, entryPath, "A restored completed cast must not navigate by itself");
-  await page.click("[data-reading-retry-handoff]");
+  await page.evaluate(() => document.querySelector("[data-reading-retry-handoff]")?.click());
   await page.waitForFunction(
     ({ resultPath, seededId }) => location.pathname === resultPath
       && new URLSearchParams(location.search).get("session") === seededId,
@@ -156,8 +159,8 @@ async function openSeededThreeCoinResult(page, locale = "en") {
   await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
   assert.equal(await page.$("[data-completed-cast-gate]"), null, "Result Choice must appear before any auth/save gate");
 
-  const state = await page.evaluate(({ completedKey, seededId }) => {
-    const raw = sessionStorage.getItem(completedKey);
+  const state = await page.evaluate(({ pendingPrefix, seededId }) => {
+    const raw = localStorage.getItem(pendingPrefix + seededId);
     const completed = raw ? JSON.parse(raw) : null;
     return {
       completed,
@@ -166,7 +169,7 @@ async function openSeededThreeCoinResult(page, locale = "en") {
       ritualCompleteViewVisible: document.querySelector('[data-ritual-view="complete"]') !== null,
       seededId,
     };
-  }, { completedKey: COMPLETED_READING_STORAGE_KEY, seededId });
+  }, { pendingPrefix: PENDING_READING_KEY_PREFIX, seededId });
 
   assert.equal(state.pathname, resultPath, "Restored completed cast must recover into the canonical Result Choice route");
   assert.equal(state.session, seededId, "Recovered Result Choice route must preserve the same stable casting id");
@@ -359,7 +362,8 @@ async function verifyQuestionSkipFreeOnly(page) {
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
   await clickText(page, "Skip — free reading only");
   await page.waitForSelector('[data-experience-stage="question-confirm"]');
-  await page.click('.ritual-back');
+  await page.waitForSelector('.ritual-back:not(:disabled)', { timeout: 30_000 });
+  await page.evaluate(() => document.querySelector('.ritual-back')?.click());
   await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]');
   await clickText(page, "Skip — free reading only");
   await clickText(page, "Cast the Coins");
@@ -479,10 +483,10 @@ async function buildManual(page, values) {
       authGate: document.querySelector("[data-completed-cast-gate]") !== null,
     };
   });
-  assert(state.completed, "Manual Build Reading must write canonical completed-reading");
-  assert(state.manual, "Manual Build Reading must preserve its canonical current session");
-  assert.equal(state.completed.method, "manual", "Manual completed-reading must use the canonical manual method");
-  assert.equal(state.completed.readingId, state.manual.id, "Manual result handoff must preserve the same casting id");
+  assert(state.completed, "Manual Build Reading must write the exact Pending Completed Reading");
+  assert.equal(state.manual, null, "Manual Build Reading must retire the exact method session");
+  assert.equal(state.completed.method, "manual", "Manual Pending reading must use the canonical manual method");
+  assert.equal(state.completed.readingId, state.session, "Manual result handoff must preserve the same casting id");
   assert.deepEqual(state.completed.lineValuesBottomUp, values, "Manual result handoff must preserve all six authoritative values");
   assert.equal(state.revealed, false, "Manual Result Choice must not render Free Reading content");
   assert.equal(state.authGate, false, "Manual Result Choice must appear before authentication");
@@ -531,9 +535,14 @@ async function verifyPartialRestart(page) {
   const question = "What remains important if I begin again?";
   await seedThreeCoinSession(page, "partial-reading-before", "2026-08-19T10:00:00.000Z", FIXTURE_STEPS.slice(0, 1), question);
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  await page.waitForFunction(() => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 1);
+  // C1: the stored 1/6 cast stays on the default entry; one Resume restores it.
+  await page.waitForSelector("[data-reading-resume-action]", { timeout: 30_000 });
+  assert.equal(await page.$(".ritual-six-lines"), null, "A stored partial Three Coin cast must not auto-enter the ritual");
+  await page.evaluate(() => document.querySelector("[data-reading-resume-action]")?.click());
+  await page.waitForFunction(() => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 1, { timeout: 30_000 });
   const before = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
-  await page.click('.ritual-back');
+  await page.waitForSelector('.ritual-back:not(:disabled)', { timeout: 30_000 });
+  await page.evaluate(() => document.querySelector('.ritual-back')?.click());
   await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]');
   assert.equal(await page.evaluate(key => sessionStorage.getItem(key), THREE_COIN_STORAGE_KEY), null, "Formal restart must clear the old partial cast");
   await page.type("textarea[data-private-question]", question);

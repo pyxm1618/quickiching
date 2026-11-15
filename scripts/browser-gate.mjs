@@ -539,8 +539,12 @@ async function finishYarrow(page, verifyResume) {
     await page.reload({ waitUntil: "networkidle0" });
     // C1: the reload serves the normal entry; the exact 4/18 progress returns
     // only after an explicit Resume.
-    await page.click("[data-reading-resume-action]");
-    await waitForText(page, "4 / 18 changes");
+    await page.evaluate(() => document.querySelector("[data-reading-resume-action]")?.click());
+    await page.waitForSelector(".ritual-progress-badge", { timeout: 15_000 });
+    await page.waitForFunction(
+      () => document.querySelector(".ritual-progress-badge")?.textContent?.includes("4 / 18") === true,
+      { timeout: 15_000 },
+    );
     completed = 4;
   }
   for (let change = completed + 1; change <= 18; change += 1) {

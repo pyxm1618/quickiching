@@ -33,6 +33,12 @@ async function seedQuestion(page, route, id, question) {
     }));
   }, { sessionKey: SESSION_KEY, pendingPrefix: PENDING_PREFIX, draftKey: DRAFT_KEY, consentKey: CONSENT_KEY, id, question });
   await page.goto(BASE + route, { waitUntil: "networkidle0", timeout: 30000 });
+  // C1: the page always opens on the default question entry. Enter the same
+  // question explicitly to reach the Manual tool (no passive stage restore).
+  await page.waitForSelector("textarea[data-private-question]", { timeout: 10000 });
+  assert.equal(await page.$("[data-manual-cast-tool]"), null, "A seeded question must not auto-enter the Manual editor");
+  await page.type("textarea[data-private-question]", question);
+  await page.evaluate(() => document.querySelector("[data-question-first] button.mystic-button")?.click());
   await page.waitForSelector("[data-manual-cast-tool]", { timeout: 10000 });
 }
 

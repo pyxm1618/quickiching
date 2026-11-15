@@ -477,6 +477,10 @@ async function main() {
       }));
     }, manualId);
     await page.reload({ waitUntil: "networkidle0" });
+    // C1: the reload serves the default question entry; enter casting explicitly.
+    await page.waitForSelector("[data-question-first] textarea[data-private-question]", { timeout: 5000 });
+    assert.equal(await page.$("[data-manual-continue]"), null, "A seeded Manual session must not auto-enter the editor");
+    await page.evaluate(() => document.querySelector("[data-question-first] button.mystic-button")?.click());
     await page.waitForSelector("[data-manual-continue]", { timeout: 5000 });
     await page.waitForFunction(() => {
       const button = document.querySelector("[data-manual-continue]");

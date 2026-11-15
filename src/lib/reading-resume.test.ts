@@ -4,10 +4,15 @@ import type { ThreeCoinStep } from "@/domain/casting/three-coin/algorithm";
 import { patchThreeCoinQuestionSession, writeThreeCoinSteps } from "./three-coin-session";
 import {
   decideReadingResume,
+  detectMethodResume,
+  manualResumeState,
   NO_READING_RESUME,
   resumeProgressLabel,
   threeCoinResumeState,
+  yarrowResumeState,
 } from "./reading-resume";
+import { MANUAL_SESSION_STORAGE_KEY, YARROW_SESSION_STORAGE_KEY } from "./method-session-retirement";
+import { MANUAL_CAST_DRAFT_STORAGE_KEY } from "./manual-cast-draft";
 
 function step(lineIndex: number): ThreeCoinStep {
   return {
@@ -155,5 +160,121 @@ describe("C1 — Three Coin adapter", () => {
   it("reports nothing when no session exists", () => {
     stubBrowserStorage();
     expect(threeCoinResumeState()).toEqual(NO_READING_RESUME);
+  });
+});
+
+describe("C1 — QuestionFirst-bound method adapters", () => {
+  const createdAt = "2026-11-15T01:00:00.000Z";
+
+  function yarrowChanges(count: number) {
+    return Array.from({ length: count }, (_, index) => ({
+      lineIndex: Math.floor(index / 3),
+      changeIndex: index % 3,
+      startingStalks: 49,
+      endingStalks: 36,
+      leftGroup: 20,
+      rightGroup: 28,
+      leftRemainder: 4,
+      rightRemainder: 4,
+      algorithmVersion: "yarrow-zhu-xi-digital-v2",
+    }));
+  }
+
+  it("detects a stored Yarrow 8/18 partial without applying it", () => {
+    const sessionMemory = stubBrowserStorage();
+    sessionMemory.set(YARROW_SESSION_STORAGE_KEY, JSON.stringify({
+      schemaVersion: 1,
+      id: "yarrow-partial-a",
+      createdAt,
+      started: true,
+      question: "Should I stay on this path?",
+      coreQuestionAtCast: "Should I stay on this path?",
+      coreQuestionFrozenAtCast: true,
+      data: { changes: yarrowChanges(8) },
+    }));
+
+    const state = yarrowResumeState();
+    expect(state).toMatchObject({
+      kind: "partial",
+      method: "yarrow-stalks",
+      readingId: "yarrow-partial-a",
+      progress: { completed: 8, total: 18, unit: "changes" },
+      stage: "ritual",
+    });
+    expect(resumeProgressLabel(state, false)).toBe("8 / 18 changes");
+    expect(detectMethodResume("yarrow-stalks")).toEqual(state);
+  });
+
+  it("treats a completed 18/18 Yarrow session as sealed, never resumable", () => {
+    const sessionMemory = stubBrowserStorage();
+    sessionMemory.set(YARROW_SESSION_STORAGE_KEY, JSON.stringify({
+      schemaVersion: 1,
+      id: "yarrow-sealed",
+      createdAt,
+      started: true,
+      coreQuestionFrozenAtCast: true,
+      data: { changes: yarrowChanges(18) },
+    }));
+    expect(yarrowResumeState()).toMatchObject({ kind: "sealed", readingId: "yarrow-sealed" });
+  });
+
+  it("detects a stored Manual draft as a resumable partial", () => {
+    const sessionMemory = stubBrowserStorage();
+    const question = "Should I move to Kyoto?";
+    sessionMemory.set(MANUAL_SESSION_STORAGE_KEY, JSON.stringify({
+      schemaVersion: 1,
+      id: "manual-draft-session",
+      createdAt,
+      started: true,
+      question,
+    }));
+    sessionMemory.set(MANUAL_CAST_DRAFT_STORAGE_KEY, JSON.stringify({
+      schemaVersion: 1,
+      questionKey: question,
+      mode: "primary-changing",
+      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+      primaryHexagram: 1,
+      changingLines: [2, 4],
+    }));
+
+    const state = manualResumeState();
+    expect(state).toMatchObject({
+      kind: "partial",
+      method: "manual",
+      progress: { unit: "draft" },
+      stage: "draft",
+    });
+    expect(resumeProgressLabel(state, false)).toBe("saved draft");
+    expect(detectMethodResume("manual")).toEqual(state);
+  });
+
+  it("sealed Manual facts outrank a leftover draft", () => {
+    const sessionMemory = stubBrowserStorage();
+    sessionMemory.set(MANUAL_SESSION_STORAGE_KEY, JSON.stringify({
+      schemaVersion: 1,
+      id: "manual-sealed",
+      createdAt,
+      started: true,
+      coreQuestionFrozenAtCast: true,
+      data: {
+        mode: "line-values",
+        lineValuesBottomUp: [7, 8, 9, 6, 7, 8],
+        evidence: { kind: "manual", mode: "line-values" },
+      },
+    }));
+    sessionMemory.set(MANUAL_CAST_DRAFT_STORAGE_KEY, JSON.stringify({
+      schemaVersion: 1,
+      questionKey: null,
+      mode: "line-values",
+      lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+      primaryHexagram: 1,
+      changingLines: [],
+    }));
+    expect(manualResumeState()).toMatchObject({ kind: "sealed", readingId: "manual-sealed" });
+  });
+
+  it("returns nothing when the method has no resume adapter", () => {
+    expect(detectMethodResume("three-coin")).toEqual(NO_READING_RESUME);
+    expect(detectMethodResume(null)).toEqual(NO_READING_RESUME);
   });
 });
