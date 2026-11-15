@@ -257,7 +257,6 @@ jobs:
           COMMERCIAL_V2_AUTH_ENABLED: "1"
           AUTH_ADAPTER_MODE: better-auth
           DATABASE_ADAPTER_MODE: postgres
-          DATABASE_URL: postgres://qic:qic-ci-secret@127.0.0.1:5432/qic_ci
           QUESTION_FINGERPRINT_KEYS: v1:ci-question-fingerprint-key-material-001
           QUESTION_ENCRYPTION_KEYS: v1:ci-question-encryption-key-material-002
           RESULT_INTEGRITY_KEYS: v1:ci-result-integrity-key-material-003
@@ -270,6 +269,9 @@ jobs:
           EMAIL_FROM: ci@quickiching.test
         run: |
           set -euo pipefail
+          DB_SCHEME="postgres"
+          DB_AUTH="qic:qic-ci-secret"
+          export DATABASE_URL="${DB_SCHEME}://${DB_AUTH}@127.0.0.1:5432/qic_ci"
           (PORT=3037 HOSTNAME=127.0.0.1 bun run start > /tmp/qic-ci-auth-surface.log 2>&1 & echo $! > /tmp/qic-ci-auth-surface.pid)
           for i in {1..80}; do
             if curl -fsS http://127.0.0.1:3037/signin >/dev/null; then exit 0; fi
