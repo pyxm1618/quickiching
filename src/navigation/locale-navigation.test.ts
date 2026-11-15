@@ -46,6 +46,30 @@ describe("locale switching keeps the surface and its flow-critical state", () =>
     }).href).toBe("/zh/pricing?returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DABC");
   });
 
+  it("preserves S16 orderId only when the payment recovery owner validates the same fresh identity", () => {
+    const search = "?orderId=ord_9f8&returnUrl=%2Freadings%2Fdeep%3Fsession%3DABC&utm_source=x";
+
+    expect(localeSwitchTarget({
+      pathname: "/pricing",
+      search,
+      currentLocale: "en",
+    }).href).toBe("/zh/pricing?returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DABC");
+
+    expect(localeSwitchTarget({
+      pathname: "/pricing",
+      search,
+      currentLocale: "en",
+      paymentRecoveryOrderId: "ord_9f8",
+    }).href).toBe("/zh/pricing?returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DABC&orderId=ord_9f8");
+
+    expect(localeSwitchTarget({
+      pathname: "/pricing",
+      search,
+      currentLocale: "en",
+      paymentRecoveryOrderId: "ord_other",
+    }).href).toBe("/zh/pricing?returnUrl=%2Fzh%2Freadings%2Fdeep%3Fsession%3DABC");
+  });
+
   it("maps a nested callback target inside the auth surface", () => {
     expect(localeSwitchTarget({
       pathname: "/signin",
