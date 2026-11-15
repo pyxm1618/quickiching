@@ -113,6 +113,30 @@ describe("Navigation / Surface Authority architecture", () => {
     expect(contentShell).not.toMatch(/\bMETHOD_LINKS\.map/u);
   });
 
+  it("makes Info one discovery authority shared by both shell presentations", () => {
+    const links = readFileSync(new URL("./discovery-links.ts", import.meta.url), "utf8");
+    const scenePanels = readFileSync(new URL("../components/scene-navigation-panels.tsx", import.meta.url), "utf8");
+    const contentShell = readFileSync(new URL("../components/navigation/content-navigation-shell.tsx", import.meta.url), "utf8");
+    expect(links).toContain("export const INFO_LINKS");
+    expect(links).toContain("export const SUPPORT_EMAIL_LINK");
+    expect(scenePanels).toContain("INFO_LINKS");
+    expect(scenePanels).toContain("SUPPORT_EMAIL_LINK");
+    expect(contentShell).toContain("INFO_LINKS.map");
+    for (const destination of [
+      /["'`]\\/guides\\/how-to-ask-the-i-ching["'`]/u,
+      /["'`]\\/guides\\/changing-lines["'`]/u,
+      /["'`]\\/guides\\/primary-relating-hexagrams["'`]/u,
+      /["'`]\\/help["'`]/u,
+      /["'`]\\/privacy["'`]/u,
+      /["'`]\\/terms["'`]/u,
+      /["'`]\\/acceptable-use["'`]/u,
+      /["'`]mailto:support@quickiching\\.com["'`]/u,
+    ]) {
+      expect(scenePanels).not.toMatch(destination);
+      expect(contentShell).not.toMatch(destination);
+    }
+  });
+
   it("makes every shell presentation consume contract capability flags", () => {
     const scene = readFileSync(new URL("../components/scene-navigation.tsx", import.meta.url), "utf8");
     const content = readFileSync(new URL("../components/navigation/content-navigation-shell.tsx", import.meta.url), "utf8");
