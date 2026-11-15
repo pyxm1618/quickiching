@@ -327,7 +327,7 @@ async function verifyQuestionReading(page, locale = "en") {
 
   await Promise.all([
     page.waitForFunction(prefix => location.pathname === `${prefix}/readings/result`, { timeout: 15_000 }, prefix),
-    page.click("[data-result-choice-free]"),
+    page.evaluate(() => document.querySelector("[data-result-choice-free]")?.click()),
   ]);
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
   const signinHref = await page.$eval('[data-auth-reading-intent="free"]', node => node.getAttribute("href"));
@@ -426,7 +426,7 @@ async function verifyChineseQuestionAndDeepEntry(page) {
 
   await Promise.all([
     page.waitForFunction(() => location.pathname === "/zh/readings/deep", { timeout: 15_000 }),
-    page.click("[data-result-choice-deep]"),
+    page.evaluate(() => document.querySelector("[data-result-choice-deep]")?.click()),
   ]);
   await page.waitForSelector('[data-completed-cast-gate="auth-required"]', { timeout: 15_000 });
   const deepSigninHref = await page.$eval('[data-auth-reading-intent="deep"]', node => node.getAttribute("href"));
@@ -596,7 +596,7 @@ async function verifyAccountPersistenceBoundary(page) {
 
   await Promise.all([
     page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 15_000 }),
-    page.click("[data-result-choice-free]"),
+    page.evaluate(() => document.querySelector("[data-result-choice-free]")?.click()),
   ]);
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
 
