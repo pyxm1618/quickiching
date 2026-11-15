@@ -2,12 +2,13 @@
 
 import "./ritual.css";
 import { ArrowRight } from "lucide-react";
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { GildedTitle } from "@/components/typography/gilded-title";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
 import { useDeclareThreeCoinStage } from "@/navigation/navigation-surface-context";
+import { consumeLocaleSwitchContinuation } from "@/navigation/locale-navigation";
 import {
   clearThreeCoinReading,
   patchThreeCoinQuestionSession,
@@ -88,11 +89,7 @@ export function ThreeCoinRitual({
   // contract the global shell must render.
   useDeclareThreeCoinStage(experienceStage);
 
-  useEffect(() => {
-    setResumeState(threeCoinResumeState());
-  }, []);
-
-  function requestResume() {
+  const requestResume = useCallback(() => {
     let session: ReturnType<typeof readThreeCoinSession> = null;
     try {
       session = readThreeCoinSession();
@@ -111,6 +108,7 @@ export function ThreeCoinRitual({
     setCoreQuestionAtCast(session.coreQuestionAtCast ?? restored.coreQuestionAtCast);
     setCoreQuestionFrozenAtCast(session.coreQuestionFrozenAtCast === true || restored.coreQuestionFrozenAtCast);
     setResumeRequested(true);
+    setResumeState(NO_READING_RESUME);
     const stage = threeCoinExperienceStageForSession({
       started: true,
       question: restoredQuestion,
@@ -118,7 +116,14 @@ export function ThreeCoinRitual({
     });
     setExperienceStage(stage);
     setPresentationStage(stage);
-  }
+  }, [dictionary.questionFirst.saveError]);
+
+  useEffect(() => {
+    const detected = threeCoinResumeState();
+    const continueAcrossLocale = consumeLocaleSwitchContinuation("three-coin");
+    setResumeState(detected);
+    if (detected.kind === "partial" && continueAcrossLocale) requestResume();
+  }, [requestResume]);
 
   useEffect(() => {
     if (experienceStage !== "question-confirm") {
