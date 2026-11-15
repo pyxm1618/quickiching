@@ -76,10 +76,10 @@ export function SceneNavigationPanels({
             className="scene-info-badge"
           >
             <img
-              src="https://startupfa.me/badge?t=small&theme=default"
+              src="https://startupfa.me/badges/featured-badge.webp"
               alt="Quick I Ching - Featured on Startup Fame"
-              width="240"
-              height="36"
+              width="171"
+              height="54"
             />
           </a>
         )}
