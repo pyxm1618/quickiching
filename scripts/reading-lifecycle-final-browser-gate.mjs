@@ -80,15 +80,19 @@ function threeCoinSession(id, count, question = THREE_QUESTION) {
 }
 
 function yarrowChanges(count) {
+  // Keep the seeded partial session arithmetically valid. Each completed line
+  // follows a real 49 -> 44 -> 40 -> 36 sequence, so the sixth line resumes
+  // from 40 stalks before change 18. The real production RNG may then remove
+  // either 4 or 8, yielding only valid line values (9 or 8).
+  const sequence = [
+    { startingStalks: 49, leftGroup: 1, rightGroup: 48, removedFromRight: 1, leftRemainder: 1, rightRemainder: 3, endingStalks: 44 },
+    { startingStalks: 44, leftGroup: 1, rightGroup: 43, removedFromRight: 1, leftRemainder: 1, rightRemainder: 2, endingStalks: 40 },
+    { startingStalks: 40, leftGroup: 1, rightGroup: 39, removedFromRight: 1, leftRemainder: 1, rightRemainder: 2, endingStalks: 36 },
+  ];
   return Array.from({ length: count }, (_, index) => ({
+    ...sequence[index % 3],
     lineIndex: Math.floor(index / 3),
     changeIndex: index % 3,
-    startingStalks: 49,
-    endingStalks: 28,
-    leftGroup: 20,
-    rightGroup: 28,
-    leftRemainder: 4,
-    rightRemainder: 4,
     algorithmVersion: "yarrow-zhu-xi-digital-v2",
   }));
 }
@@ -753,8 +757,16 @@ async function seedHistoryMethod(page, method, id) {
     });
     await page.goto(BASE + "/methods/yarrow-stalks", { waitUntil: "networkidle0" });
     await clickResume(page);
+    await page.waitForFunction(
+      () => [...document.querySelectorAll("button")].some(
+        (node) => node.textContent?.includes("Perform change 18") && node instanceof HTMLButtonElement && !node.disabled,
+      ),
+      { timeout: 15_000 },
+    );
     const clicked = await page.evaluate(() => {
-      const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.includes("Perform change 18"));
+      const button = [...document.querySelectorAll("button")].find(
+        (node) => node.textContent?.includes("Perform change 18") && node instanceof HTMLButtonElement && !node.disabled,
+      );
       if (!(button instanceof HTMLButtonElement)) return false;
       button.click();
       return true;
