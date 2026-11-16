@@ -57,7 +57,7 @@ const SIGN_OUT_SESSION_PREFIXES = [
   DEEP_READING_CONTEXT_STORAGE_PREFIX,
 ] as const;
 
-const DELETE_LOCAL_EXACT_KEYS = [
+const DELETE_LEGACY_EXACT_KEYS = [
   RETIRED_COMPLETED_READING_STORAGE_KEY,
   RETIRED_THREE_COIN_BACKUP_STORAGE_KEY,
 ] as const;
@@ -146,6 +146,10 @@ function sessionCleanup(
 
   if (includePublicReading) {
     for (const key of PUBLIC_METHOD_SESSION_KEYS) removeExact(storage, "sessionStorage", key, removed, failures);
+    // Historical releases used different storage areas for these retired
+    // records. Delete Account removes residue from either area; neither key is
+    // ever read as a runtime authority.
+    for (const key of DELETE_LEGACY_EXACT_KEYS) removeExact(storage, "sessionStorage", key, removed, failures);
   }
 }
 
@@ -163,7 +167,7 @@ function deleteLocalCleanup(
   }
 
   removePrefix(storage, "localStorage", PENDING_COMPLETED_READING_KEY_PREFIX, removed, failures);
-  for (const key of DELETE_LOCAL_EXACT_KEYS) removeExact(storage, "localStorage", key, removed, failures);
+  for (const key of DELETE_LEGACY_EXACT_KEYS) removeExact(storage, "localStorage", key, removed, failures);
 }
 
 /**
