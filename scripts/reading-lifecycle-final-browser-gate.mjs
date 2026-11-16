@@ -365,6 +365,13 @@ async function verifySignOutRetention(page) {
   await page.click('[data-account-sign-out="true"]');
   await page.waitForFunction(() => location.pathname === "/", { timeout: 20_000 });
   await page.waitForSelector("[data-three-coin-ritual]", { timeout: 15_000 });
+  // C1 passive detection runs in QuestionFirst's mount effect. Wait for that
+  // effect to expose the affordance before asserting retention; the UI must
+  // still remain at the default landing stage until the user explicitly resumes.
+  await page.waitForSelector(
+    '[data-reading-resume="three-coin"] [data-reading-resume-action]',
+    { visible: true, timeout: 15_000 },
+  );
 
   const state = await page.evaluate((x) => ({
     three: sessionStorage.getItem(x.threeKey),
