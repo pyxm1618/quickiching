@@ -676,27 +676,34 @@ async function verifyPendingClosure(page) {
   assert.equal(sealed?.data?.steps?.length, 6, "Pending write failure must keep sealed six-line facts");
   assert.equal(await page.evaluate((key) => localStorage.getItem(key), PENDING_PREFIX + THREE_ID), null, "Failed Pending write must not pretend to exist");
 
-  // Pending remove failure: Start New Reading must stay on the exact result.
+  // Pending remove failure: exercise the real revealed Result while Account B
+  // is still authenticated. The normal durable save is allowed to complete
+  // first; it removes Pending[A] by design. Re-seed the same exact A afterward,
+  // then make only removeItem(A) fail and click the production New Reading UI.
   await freshOrigin(page);
+  const removeFailurePending = pendingPayload(ID_A, "remove failure exact A");
   await page.evaluate(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
     key: PENDING_PREFIX + ID_A,
-    value: pendingPayload(ID_A, "remove failure exact A"),
+    value: removeFailurePending,
   });
   await page.goto(`${BASE}/readings/result?session=${ID_A}`, { waitUntil: "networkidle0" });
-  await page.waitForSelector("[data-public-reading-result]", { timeout: 20_000 }).catch(() => null);
-  await page.evaluate((exactKey) => {
+  await page.waitForSelector("[data-public-reading-result]", { visible: true, timeout: 25_000 });
+  await page.waitForSelector("[data-free-reading-actions] button", { visible: true, timeout: 25_000 });
+
+  await page.evaluate(({ exactKey, value }) => {
+    localStorage.setItem(exactKey, JSON.stringify(value));
     const original = Storage.prototype.removeItem;
     Storage.prototype.removeItem = function(key) {
       if (this === localStorage && key === exactKey) throw new DOMException("blocked", "SecurityError");
       return original.call(this, key);
     };
-  }, PENDING_PREFIX + ID_A);
-  await page.waitForSelector("[data-free-reading-actions] button", { visible: true, timeout: 15_000 });
+  }, { exactKey: PENDING_PREFIX + ID_A, value: removeFailurePending });
+
   await page.click("[data-free-reading-actions] button");
   await page.waitForSelector("[data-three-coin-clear-error]", { timeout: 10_000 });
   assert.equal(new URL(page.url()).pathname, "/readings/result", "Remove failure must keep exact result open");
   assert(await page.evaluate((key) => localStorage.getItem(key), PENDING_PREFIX + ID_A), "Remove failure must not pretend Pending[A] was removed");
-  log("Pending — write failure retains sealed exact ID/no navigation; remove failure keeps result open");
+  log("Pending — write failure retains sealed exact ID/no navigation; remove failure keeps exact revealed result open");
 }
 
 async function seedHistoryMethod(page, method, id) {
@@ -887,8 +894,11 @@ async function main() {
 
     await verifySignOutRetention(page);
     await verifyCrossAccountSafety(page);
-    await verifyDeleteAccount(page);
+    // Pending remove-failure proof needs the genuine Account B revealed Result.
+    // Delete Account is intentionally after Pending closure so the test never
+    // bypasses the production auth/reveal gate.
     await verifyPendingClosure(page);
+    await verifyDeleteAccount(page);
     await verifyFourMethodHistory(page);
     await verifyLegacyNonAuthority(page);
 
