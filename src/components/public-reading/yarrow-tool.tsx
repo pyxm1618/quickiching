@@ -78,6 +78,7 @@ function yarrowLinesFromChanges(changes: YarrowChange[]): YarrowLineResult[] {
 function sealedReadingFromSession(
   session: { id: string; createdAt: string; question?: string; coreQuestionAtCast?: string } | null,
   changes: YarrowChange[],
+  fallbackQuestion?: string,
 ): PublicReading | null {
   if (!session || changes.length !== 18) return null;
   try {
@@ -85,7 +86,7 @@ function sealedReadingFromSession(
       id: session.id,
       createdAt: session.createdAt,
       method: "yarrow-stalks",
-      question: session.coreQuestionAtCast ?? session.question,
+      question: session.coreQuestionAtCast ?? session.question ?? fallbackQuestion,
       lineValuesBottomUp: completedLineValues(changes),
       evidence: { kind: "yarrow-stalks", lines: yarrowLinesFromChanges(changes) },
     });
@@ -114,9 +115,7 @@ export function YarrowTool({
   const zh = dictionary.locale === "zh-Hans";
   const t = (en: string, cn: string) => zh ? cn : en;
   const [changes, setChanges] = useState<YarrowChange[]>([]);
-  const [readingMeta, setReadingMeta] = useState<{ id: string; createdAt: string } | null>(null);
   const [sealedReading, setSealedReading] = useState<PublicReading | null>(null);
-  const [freshCompletion, setFreshCompletion] = useState(false);
   const handoffStartedRef = useRef(false);
 
   // C1: the QuestionFirst boundary owns detection and the single Resume action.
@@ -131,50 +130,48 @@ export function YarrowTool({
     }
     if (!resumeBoundary.resumeRequested || !session) return;
     setChanges(stored);
-    setReadingMeta({ id: session.id, createdAt: session.createdAt });
   }, [resumeBoundary.resumeRequested]);
 
   const lines = useMemo(() => completedLineValues(changes), [changes]);
   const complete = changes.length === 18;
-  const yarrowLines = useMemo<YarrowLineResult[]>(() => yarrowLinesFromChanges(changes), [changes]);
-  const publicReading = useMemo(() => complete && readingMeta
-    ? buildPublicReading({
-        id: readingMeta.id,
-        createdAt: readingMeta.createdAt,
-        method: "yarrow-stalks",
-        question,
-        lineValuesBottomUp: lines,
-        evidence: { kind: "yarrow-stalks", lines: yarrowLines },
-      })
-    : null, [complete, question, readingMeta, yarrowLines, lines]);
-
-  // C2 / C7: only a cast completed in this mounted flow hands off, exactly once,
-  // and always with replace semantics.
-  useEffect(() => {
-    if (!freshCompletion || !publicReading || handoffStartedRef.current || sealedReading) return;
-    handoffStartedRef.current = true;
-    const outcome = completeReadingHandoff({ reading: publicReading, zh, router });
-    if (outcome.kind === "failed") {
-      setSealedReading(publicReading);
-      setHandoffError(readingHandoffFailureCopy(outcome, zh));
-      handoffStartedRef.current = false;
-    }
-  }, [freshCompletion, publicReading, router, sealedReading, zh]);
 
   const latest = changes.at(-1);
   const currentLine = complete ? 6 : Math.floor(changes.length / 3) + 1;
   const currentChange = complete ? 3 : (changes.length % 3) + 1;
 
   function commitChanges(next: YarrowChange[]) {
+    if (handoffStartedRef.current) return;
+
+    let session;
     try {
-      const session = writePublicReadingSession(STORAGE_KEY, { changes: next });
-      setReadingMeta({ id: session.id, createdAt: session.createdAt });
-      setSaveError("");
-      if (next.length === 18) setFreshCompletion(true);
+      session = writePublicReadingSession(STORAGE_KEY, { changes: next });
     } catch {
       setSaveError(t("Unable to save this cast. Enable browser session storage and retry.", "无法保存本次起卦，请允许浏览器会话存储后重试。"));
+      setChanges(next);
+      return;
     }
+
+    setSaveError("");
     setChanges(next);
+    if (next.length !== 18) return;
+
+    // C2 / C7: the real eighteenth-change action owns fresh completion.
+    // Build from the exact session facts just written, then perform the shared
+    // Pending -> verify -> retire -> verify -> replace transaction as the last
+    // action in this event. Restored 18/18 sessions never execute this path.
+    const reading = sealedReadingFromSession(session, next, question);
+    if (!reading) {
+      setSaveError(t("Unable to seal this completed cast. Retry this exact cast.", "无法锁定这次已完成的起卦，请重试同一次起卦。"));
+      return;
+    }
+
+    handoffStartedRef.current = true;
+    const outcome = completeReadingHandoff({ reading, zh, router });
+    if (outcome.kind === "failed") {
+      setSealedReading(reading);
+      setHandoffError(readingHandoffFailureCopy(outcome, zh));
+      handoffStartedRef.current = false;
+    }
   }
 
   function performChange() {
@@ -210,11 +207,9 @@ export function YarrowTool({
     } catch {
       // The in-memory reset still gives the user a clean new reading.
     }
-    setReadingMeta(null);
     setChanges([]);
     setSealedReading(null);
     setHandoffError(null);
-    setFreshCompletion(false);
     handoffStartedRef.current = false;
   }
 
