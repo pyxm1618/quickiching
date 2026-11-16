@@ -564,7 +564,12 @@ async function verifyDeleteAccount(page) {
     language: LANGUAGE_PREF_KEY,
     appearance: APPEARANCE_PREF_KEY,
   });
-  assert(state.sessionOwned.every(([, value]) => value === null), "Delete Account must clear all owned session lifecycle state");
+  const remainingSessionOwned = state.sessionOwned.filter(([, value]) => value !== null);
+  assert.deepEqual(
+    remainingSessionOwned,
+    [],
+    `Delete Account must clear all owned session lifecycle state; remaining=${JSON.stringify(remainingSessionOwned)}`,
+  );
   assert.equal(state.pending, null, "Delete Account must clear Pending[*]");
   assert.equal(state.singleton, null, "Delete Account must remove retired completed singleton residue");
   assert.equal(state.backup, null, "Delete Account must remove retired Three Coin backup residue");
