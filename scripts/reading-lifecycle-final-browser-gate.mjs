@@ -729,6 +729,7 @@ async function seedHistoryMethod(page, method, id) {
     });
     await page.reload({ waitUntil: "networkidle0" });
     await clickResume(page);
+    await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 15_000 });
     await dispatchThreeCoinPointer(page, "pointerdown");
     await dispatchThreeCoinPointer(page, "pointerup");
     await page.waitForSelector("[data-record-this-cast]:not(:disabled)", { timeout: 15_000 });
@@ -743,13 +744,21 @@ async function seedHistoryMethod(page, method, id) {
     });
     await page.goto(BASE + "/methods/yarrow-stalks", { waitUntil: "networkidle0" });
     await clickResume(page);
+    await page.waitForFunction(
+      () => [...document.querySelectorAll("button")].some(
+        (node) => node.textContent?.includes("Perform change 18") && !node.disabled,
+      ),
+      { timeout: 15_000 },
+    );
     const clicked = await page.evaluate(() => {
-      const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.includes("Perform change 18"));
+      const button = [...document.querySelectorAll("button")].find(
+        (node) => node.textContent?.includes("Perform change 18") && !node.disabled,
+      );
       if (!(button instanceof HTMLButtonElement)) return false;
       button.click();
       return true;
     });
-    assert(clicked, "Yarrow 17/18 must expose Perform change 18");
+    assert(clicked, "Yarrow 17/18 must expose an enabled Perform change 18");
     return;
   }
 
@@ -766,13 +775,21 @@ async function seedHistoryMethod(page, method, id) {
     await page.goto(BASE + "/methods/mei-hua-yi-shu", { waitUntil: "networkidle0" });
     await clickResume(page);
     await page.waitForFunction(() => document.querySelector("[data-mei-hua-flow]")?.getAttribute("data-mei-hua-step") === "3", { timeout: 15_000 });
+    await page.waitForFunction(
+      () => [...document.querySelectorAll("button")].some(
+        (node) => node.textContent?.includes("Confirm & Cast") && !node.disabled,
+      ),
+      { timeout: 15_000 },
+    );
     const clicked = await page.evaluate(() => {
-      const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.includes("Confirm & Cast"));
+      const button = [...document.querySelectorAll("button")].find(
+        (node) => node.textContent?.includes("Confirm & Cast") && !node.disabled,
+      );
       if (!(button instanceof HTMLButtonElement)) return false;
       button.click();
       return true;
     });
-    assert(clicked, "Mei Hua step 3 must expose Confirm & Cast");
+    assert(clicked, "Mei Hua step 3 must expose an enabled Confirm & Cast");
     return;
   }
 
