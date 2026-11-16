@@ -308,10 +308,41 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/navigation-context-browser-gate.mjs
+      - name: Start R3 auth-enabled source runtime
+        if: always() && needs.select.outputs.reading == 'true' && steps.product_build.conclusion == 'success'
+        shell: bash
+        env:
+          COMMERCIAL_V2_AUTH_ENABLED: "1"
+          AUTH_ADAPTER_MODE: better-auth
+          DATABASE_ADAPTER_MODE: postgres
+          QUESTION_FINGERPRINT_KEYS: v1:ci-question-fingerprint-key-material-001
+          QUESTION_ENCRYPTION_KEYS: v1:ci-question-encryption-key-material-002
+          RESULT_INTEGRITY_KEYS: v1:ci-result-integrity-key-material-003
+          ANONYMOUS_OWNER_KEYS: v1:ci-anonymous-owner-key-material-004
+          BETTER_AUTH_SECRET: ci-better-auth-secret-material-0123456789ab
+          BETTER_AUTH_URL: http://127.0.0.1:3038
+          GOOGLE_CLIENT_ID: ci-google-client-id
+          GOOGLE_CLIENT_SECRET: ci-google-client-secret
+          RESEND_API_KEY: ci-resend-api-key
+          EMAIL_FROM: ci@quickiching.test
+          AUTH_BROWSER_FIXTURE: "1"
+          AUTH_MAGIC_LINK_CAPTURE_FILE: /tmp/qic-r3-magic-link.json
+        run: |
+          set -euo pipefail
+          export DATABASE_URL="$R3_AUTH_DATABASE_URL"
+          rm -f /tmp/qic-r3-magic-link.json
+          (bun run dev -- -H 127.0.0.1 -p 3038 > /tmp/qic-ci-r3-auth.log 2>&1 & echo $! > /tmp/qic-ci-r3-auth.pid)
+          for i in {1..120}; do
+            if curl -fsS http://127.0.0.1:3038/signin >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/qic-ci-r3-auth.log
+          exit 1
+
       - name: Reading Lifecycle Final Browser Gate (R3)
         if: always() && needs.select.outputs.reading == 'true' && steps.product_build.conclusion == 'success'
         env:
-          READING_FINAL_AUTH_BASE_URL: http://127.0.0.1:3037
+          READING_FINAL_AUTH_BASE_URL: http://127.0.0.1:3038
           R3_MAGIC_LINK_CAPTURE_FILE: /tmp/qic-r3-magic-link.json
         shell: bash
         run: |
@@ -354,6 +385,7 @@ jobs:
         run: |
           if [ -f /tmp/qic-ci-product.pid ]; then kill "$(cat /tmp/qic-ci-product.pid)" 2>/dev/null || true; fi
           if [ -f /tmp/qic-ci-auth-surface.pid ]; then kill "$(cat /tmp/qic-ci-auth-surface.pid)" 2>/dev/null || true; fi
+          if [ -f /tmp/qic-ci-r3-auth.pid ]; then kill "$(cat /tmp/qic-ci-r3-auth.pid)" 2>/dev/null || true; fi
           if [ -f /tmp/qic-r3-postgres/data/postmaster.pid ]; then
             pg_ctl -D /tmp/qic-r3-postgres/data -m fast -w stop
           fi
