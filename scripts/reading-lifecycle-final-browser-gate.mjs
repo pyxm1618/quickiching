@@ -493,6 +493,8 @@ async function verifyDeleteAccount(page) {
       [CHECKOUT_RETURN_KEY]: JSON.stringify({ orderId: "order-B" }),
       [CHECKOUT_REQUEST_KEY]: "request-B",
       [DEEP_CONTEXT_KEY]: JSON.stringify({ account: "B" }),
+      [RETIRED_SINGLETON_KEY]: "retired-session-residue",
+      [RETIRED_BACKUP_KEY]: "retired-session-residue",
       [APPEARANCE_PREF_KEY]: "dark",
     },
     local: {
@@ -538,6 +540,8 @@ async function verifyDeleteAccount(page) {
       CHECKOUT_RETURN_KEY,
       CHECKOUT_REQUEST_KEY,
       DEEP_CONTEXT_KEY,
+      RETIRED_SINGLETON_KEY,
+      RETIRED_BACKUP_KEY,
     ],
     pendingPrefix: PENDING_PREFIX,
     pendingId: ID_E,
