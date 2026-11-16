@@ -825,6 +825,15 @@ async function seedHistoryMethod(page, method, id) {
   });
   await page.goto(BASE + "/methods/manual-cast", { waitUntil: "networkidle0" });
   await clickResume(page);
+  // The Manual editor mounts before its resume effect has necessarily restored
+  // the authoritative draft. The Continue button is therefore visible before
+  // the resumed cast is semantically ready. Wait for one exact seeded draft
+  // fact, matching the established Manual lifecycle gate, before exercising
+  // the real production completion action.
+  await page.waitForFunction(
+    () => document.querySelector('[data-line-position="1"][data-line-value="9"][data-selected="true"]') !== null,
+    { timeout: 15_000 },
+  );
   await page.waitForSelector("[data-manual-continue]", { visible: true, timeout: 15_000 });
   await page.click("[data-manual-continue]");
 }
