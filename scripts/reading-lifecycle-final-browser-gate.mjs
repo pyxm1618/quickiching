@@ -796,13 +796,21 @@ async function seedHistoryMethod(page, method, id) {
     await page.goto(BASE + "/methods/mei-hua-yi-shu", { waitUntil: "networkidle0" });
     await clickResume(page);
     await page.waitForFunction(() => document.querySelector("[data-mei-hua-flow]")?.getAttribute("data-mei-hua-step") === "3", { timeout: 15_000 });
+    await page.waitForFunction(
+      () => [...document.querySelectorAll("button")].some(
+        (node) => node.textContent?.includes("Confirm & Cast") && node instanceof HTMLButtonElement && !node.disabled,
+      ),
+      { timeout: 15_000 },
+    );
     const clicked = await page.evaluate(() => {
-      const button = [...document.querySelectorAll("button")].find((node) => node.textContent?.includes("Confirm & Cast"));
+      const button = [...document.querySelectorAll("button")].find(
+        (node) => node.textContent?.includes("Confirm & Cast") && node instanceof HTMLButtonElement && !node.disabled,
+      );
       if (!(button instanceof HTMLButtonElement)) return false;
       button.click();
       return true;
     });
-    assert(clicked, "Mei Hua step 3 must expose Confirm & Cast");
+    assert(clicked, "Mei Hua step 3 must expose an enabled Confirm & Cast");
     return;
   }
 
