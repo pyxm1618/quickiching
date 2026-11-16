@@ -690,14 +690,28 @@ async function verifyPendingClosure(page) {
   await page.waitForSelector("[data-public-reading-result]", { visible: true, timeout: 25_000 });
   await page.waitForSelector("[data-free-reading-actions] button", { visible: true, timeout: 25_000 });
 
-  await page.evaluate(({ exactKey, value }) => {
+  const removeFailureInjected = await page.evaluate(({ exactKey, value }) => {
     localStorage.setItem(exactKey, JSON.stringify(value));
     const original = Storage.prototype.removeItem;
-    Storage.prototype.removeItem = function(key) {
-      if (this === localStorage && key === exactKey) throw new DOMException("blocked", "SecurityError");
-      return original.call(this, key);
-    };
+    Object.defineProperty(Storage.prototype, "removeItem", {
+      configurable: true,
+      writable: true,
+      value: function(key) {
+        if (this === localStorage && key === exactKey) throw new DOMException("blocked", "SecurityError");
+        return original.call(this, key);
+      },
+    });
+
+    let intercepted = false;
+    try {
+      localStorage.removeItem(exactKey);
+    } catch {
+      intercepted = true;
+    }
+    // The injected failure must leave exact A intact for the production click.
+    return intercepted && localStorage.getItem(exactKey) !== null;
   }, { exactKey: PENDING_PREFIX + ID_A, value: removeFailurePending });
+  assert.equal(removeFailureInjected, true, "Browser remove-failure seam must intercept exact Pending[A]");
 
   await page.click("[data-free-reading-actions] button");
   await page.waitForSelector("[data-three-coin-clear-error]", { timeout: 10_000 });
