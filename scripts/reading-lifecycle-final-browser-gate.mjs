@@ -366,8 +366,16 @@ async function seedSignOutState(page) {
 async function verifySignOutRetention(page) {
   await seedSignOutState(page);
   await openSettings(page, "r3-account-a@example.com");
-  await page.click('[data-account-sign-out="true"]');
-  await page.waitForFunction(() => location.pathname === "/", { timeout: 20_000 });
+  // Sign Out returns to the canonical Root even when Settings was opened on
+  // Root already. Waiting only for pathname === "/" is therefore a false-ready
+  // condition: it can succeed before the sign-out request and full navigation
+  // have replaced the document. Synchronize on the actual production
+  // navigation so all post-sign-out assertions run in the new document.
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "networkidle0", timeout: 25_000 }),
+    page.click('[data-account-sign-out="true"]'),
+  ]);
+  assert.equal(new URL(page.url()).pathname, "/", "Sign Out success must navigate to the canonical Root");
   await page.waitForSelector("[data-three-coin-ritual]", { timeout: 15_000 });
   // C1 passive detection runs in QuestionFirst's mount effect. Wait for that
   // effect to expose the affordance before asserting retention; the UI must
