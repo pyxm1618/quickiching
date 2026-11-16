@@ -729,6 +729,16 @@ async function seedHistoryMethod(page, method, id) {
     });
     await page.reload({ waitUntil: "networkidle0" });
     await clickResume(page);
+    // Resume restores the exact five-line session before the visual layer
+    // necessarily completes its readiness handshake. Wait for the real cast
+    // control to be enabled before dispatching the sixth-line pointer gesture,
+    // just as the Pending write-failure proof does above.
+    await page.waitForFunction(
+      () => [...document.querySelectorAll("button")].some(
+        (node) => node.textContent?.trim() === "Toss three coins" && !node.disabled,
+      ),
+      { timeout: 15_000 },
+    );
     await dispatchThreeCoinPointer(page, "pointerdown");
     await dispatchThreeCoinPointer(page, "pointerup");
     await page.waitForSelector("[data-record-this-cast]:not(:disabled)", { timeout: 15_000 });
