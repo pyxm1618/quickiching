@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { usePathname } from "next/navigation";
-import { localeSwitchTarget, markLocaleSwitchContinuation, shellHomeTarget } from "@/navigation/locale-navigation";
+import { localeSwitchTarget, shellHomeTarget } from "@/navigation/locale-navigation";
 import { useNavigationLocation } from "@/navigation/navigation-location";
 import { surfaceContract, type SurfaceContract } from "@/navigation/surface-contract";
 import { Globe } from "lucide-react";
@@ -59,12 +59,12 @@ export function InfoPageHeader({
             <nav className={styles.headerLanguages} aria-label={languageLabel} data-language-switcher>
               <Globe aria-hidden="true" />
               {locale === "zh-Hans"
-                ? <Link href={target.href} prefetch={false} hrefLang="en" lang="en" data-locale-target onClick={() => markLocaleSwitchContinuation(contract.id)}>{englishLabel}</Link>
+                ? <Link href={target.href} prefetch={false} hrefLang="en" lang="en" data-locale-target>{englishLabel}</Link>
                 : <span lang="en" aria-current="page">{englishLabel}</span>}
               <span>/</span>
               {locale === "zh-Hans"
                 ? <span lang="zh-Hans" aria-current="page">中文</span>
-                : <Link href={target.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" data-locale-target onClick={() => markLocaleSwitchContinuation(contract.id)}>中文</Link>}
+                : <Link href={target.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" data-locale-target>中文</Link>}
             </nav>
           ) : null}
           {contract.accountControl && authEnabled ? <>
