@@ -101,6 +101,75 @@ async function clickButton(page, label) {
   assert(clicked, `Unable to click enabled button: ${label}`);
 }
 
+async function waitForExactResultChoiceUrl(page, castingId, timeout = 30_000) {
+  const deadline = Date.now() + timeout;
+  let lastUrl = page.url();
+  while (Date.now() < deadline) {
+    lastUrl = page.url();
+    const current = new URL(lastUrl);
+    if (current.pathname === RESULT_PATH && current.searchParams.get("session") === castingId) return lastUrl;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error(`Exact Result Choice navigation timed out after ${timeout}ms; last URL: ${lastUrl}`);
+}
+
+async function waitForExactHandoffStorageCommit(page, castingId, timeout = 15_000) {
+  const deadline = Date.now() + timeout;
+  let lastState = null;
+  while (Date.now() < deadline) {
+    try {
+      lastState = await page.evaluate(({ pendingPrefix, storageKey, id }) => {
+        const rawPending = localStorage.getItem(`${pendingPrefix}${id}`);
+        let pendingId = null;
+        try {
+          pendingId = rawPending ? JSON.parse(rawPending)?.readingId ?? null : null;
+        } catch {
+          pendingId = null;
+        }
+        return {
+          pendingId,
+          methodSessionPresent: sessionStorage.getItem(storageKey) !== null,
+        };
+      }, { pendingPrefix: PENDING_READING_KEY_PREFIX, storageKey: STORAGE_KEY, id: castingId });
+      if (lastState.pendingId === castingId && lastState.methodSessionPresent === false) return lastState;
+    } catch {
+      // A same-origin router/document transition can briefly replace the execution
+      // context. Retry against the current document instead of treating that as a
+      // semantic failure.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error(`Exact handoff storage transaction did not commit within ${timeout}ms; last state: ${JSON.stringify(lastState)}`);
+}
+
+async function readRetryHandoffDiagnostics(page) {
+  try {
+    return await page.evaluate(({ pendingPrefix, storageKey, id }) => {
+      const rawPending = localStorage.getItem(`${pendingPrefix}${id}`);
+      let pendingId = null;
+      try {
+        pendingId = rawPending ? JSON.parse(rawPending)?.readingId ?? null : null;
+      } catch {
+        pendingId = "MALFORMED";
+      }
+      const retry = [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === "Retry Handoff");
+      return {
+        url: location.href,
+        pathname: location.pathname,
+        session: new URLSearchParams(location.search).get("session"),
+        pendingId,
+        methodSessionPresent: sessionStorage.getItem(storageKey) !== null,
+        sealedRecoveryId: document.querySelector("[data-reading-sealed-recovery]")?.getAttribute("data-reading-sealed-recovery") ?? null,
+        retryPresent: retry instanceof HTMLButtonElement,
+        retryDisabled: retry instanceof HTMLButtonElement ? retry.disabled : null,
+        historyLength: history.length,
+      };
+    }, { pendingPrefix: PENDING_READING_KEY_PREFIX, storageKey: STORAGE_KEY, id });
+  } catch (error) {
+    return { url: page.url(), evaluationError: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 async function seedCompletedReadingStorage(page) {
   // Seed a sealed session plus its exact Pending Completed Reading record.
   await page.goto(`${BASE}/robots.txt`, { waitUntil: "networkidle0", timeout: 30_000 });
@@ -144,13 +213,52 @@ async function seedCompletedReading(page) {
   assert.equal(await page.$(".hold-button"), null, "A restored completed cast must not become an active cast step");
   assert.equal(await page.$('[data-ritual-view="complete"]'), null, "A restored completed cast must not render a terminal casting screen");
 
-  await clickButton(page, "Retry Handoff");
-  await page.waitForFunction(
-    (resultPath, castingId) => location.pathname === resultPath && new URLSearchParams(location.search).get("session") === castingId,
-    { timeout: 30_000 },
-    RESULT_PATH,
-    FIXTURE_CASTING_ID,
-  );
+  const navigationEvents = [];
+  const consoleErrors = [];
+  const pageErrors = [];
+  const requestFailures = [];
+  const onFrameNavigated = (frame) => {
+    if (frame === page.mainFrame()) navigationEvents.push(frame.url());
+  };
+  const onConsole = (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  };
+  const onPageError = (error) => pageErrors.push(error.message);
+  const onRequestFailed = (request) => requestFailures.push({
+    url: request.url(),
+    error: request.failure()?.errorText ?? "UNKNOWN",
+  });
+  page.on("framenavigated", onFrameNavigated);
+  page.on("console", onConsole);
+  page.on("pageerror", onPageError);
+  page.on("requestfailed", onRequestFailed);
+
+  try {
+    // Arm both semantic observers before the click. The storage observer proves
+    // Pending[A] + method-session retirement; the Node-side URL observer is not
+    // tied to a document execution context and therefore cannot miss a fast
+    // App Router transition while Puppeteer is recreating an isolated world.
+    await Promise.all([
+      waitForExactHandoffStorageCommit(page, FIXTURE_CASTING_ID),
+      waitForExactResultChoiceUrl(page, FIXTURE_CASTING_ID),
+      clickButton(page, "Retry Handoff"),
+    ]);
+  } catch (error) {
+    const state = await readRetryHandoffDiagnostics(page);
+    console.error("[Three-Coin V2 Browser Gate] Retry Handoff diagnostics", JSON.stringify({
+      ...state,
+      navigationEvents,
+      consoleErrors,
+      pageErrors,
+      requestFailures,
+    }));
+    throw error;
+  } finally {
+    page.off("framenavigated", onFrameNavigated);
+    page.off("console", onConsole);
+    page.off("pageerror", onPageError);
+    page.off("requestfailed", onRequestFailed);
+  }
   await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
   assert.equal(await page.$("[data-completed-cast-gate]"), null, "Result Choice must appear before authentication");
 
