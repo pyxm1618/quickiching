@@ -2,6 +2,7 @@
 
 import { ArrowRight, ChevronDown } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HexagramLines, movingMark } from "@/components/hex/hexagram-lines";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
@@ -534,6 +535,7 @@ export function ManualCastTool({
 
   function startNewFromSealed() {
     clearLiveFlowRegistration();
+    questionContext?.restartQuestion(true);
     clearManualCastDraft();
     setSealedReading(null);
     setHandoffError(null);
@@ -659,6 +661,19 @@ export function ManualCastTool({
           <strong>{copy.continue}</strong>
           <ArrowRight size={27} strokeWidth={1.6} aria-hidden="true" />
         </button>
+      </div>
+      <div className="mt-4 flex flex-wrap justify-center gap-3" data-manual-local-navigation>
+        <button
+          type="button"
+          className="mystic-button-secondary"
+          onClick={() => questionContext?.restartQuestion()}
+          data-question-restart
+        >
+          {zh ? "返回 / 修改问题" : "Back / Edit Question"}
+        </button>
+        <Link href={zh ? "/zh" : "/"} prefetch={false} className="mystic-button-secondary" data-flow-exit onClick={clearLiveFlowRegistration}>
+          {zh ? "退出起卦" : "Exit"}
+        </Link>
       </div>
     </section>
   );

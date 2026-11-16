@@ -1,3 +1,5 @@
+import { writeFile } from "node:fs/promises";
+import { isAbsolute } from "node:path";
 import { Resend } from "resend";
 
 export type MagicLinkData = {
@@ -25,6 +27,51 @@ function escapeHtml(value: string): string {
     '"': "&quot;",
     "'": "&#39;",
   })[character]!);
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  return hostname === "127.0.0.1" || hostname === "localhost" || hostname === "::1";
+}
+
+/**
+ * R3 browser-proof seam.
+ *
+ * There is no existing Magic Link browser fixture. This transport is usable
+ * only with an explicit absolute capture path and a loopback Better Auth URL.
+ * It captures the genuine Better Auth-generated one-time URL; it does not mint
+ * a token, alter callback ownership, or bypass Better Auth verification.
+ */
+export function createBrowserGateMagicLinkCaptureTransport(input: {
+  captureFile: string;
+  baseURL: string;
+}) {
+  const captureFile = input.captureFile.trim();
+  if (!captureFile || !isAbsolute(captureFile)) throw new Error("AUTH_CONFIGURATION_UNAVAILABLE");
+
+  let origin: string;
+  try {
+    const base = new URL(input.baseURL);
+    if (!["http:", "https:"].includes(base.protocol) || !isLoopbackHostname(base.hostname)) throw new Error();
+    origin = base.origin;
+  } catch {
+    throw new Error("AUTH_CONFIGURATION_UNAVAILABLE");
+  }
+
+  return {
+    async sendMagicLink(data: MagicLinkData): Promise<void> {
+      try {
+        const link = new URL(data.url);
+        if (link.origin !== origin) throw new Error();
+        await writeFile(
+          captureFile,
+          JSON.stringify({ email: data.email, url: data.url }),
+          { encoding: "utf8", mode: 0o600 },
+        );
+      } catch {
+        throw new Error("AUTH_EMAIL_DELIVERY_FAILED");
+      }
+    },
+  };
 }
 
 export function createMagicLinkEmailTransport(

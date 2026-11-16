@@ -37,10 +37,20 @@ describe("C1 — QuestionFirst passive resume boundary", () => {
     const source = readFileSync(new URL("./question-first.tsx", import.meta.url), "utf8");
     const mountEffect = /useEffect\(\(\) => \{[\s\S]*?\}, \[resumeMethod, storageKey\]\);/u.exec(source)?.[0] ?? "";
     expect(mountEffect).toContain("detectMethodResume");
-    expect(mountEffect).not.toContain("setStarted(restored");
+    expect(mountEffect).toContain("setResumeState(detected)");
+    expect(mountEffect).toContain('detected.kind === "sealed"');
     expect(mountEffect).not.toContain("setQuestionState");
     expect(mountEffect).not.toContain("setDraft");
-    expect(source).toContain("function requestResume()");
+
+    // Current-main C9 authority is the shared reading-resume hook. It invokes
+    // the same explicit Resume primitive; it does not passively restore UI state.
+    expect(source).toContain("useLocaleContinuationActivation({");
+    expect(source).toContain("activate: () => requestResume()");
+    const requestResume = /function requestResume\(\) \{[\s\S]*?\n  \}/u.exec(source)?.[0] ?? "";
+    expect(requestResume).toContain("detectMethodResume");
+    expect(requestResume).toContain("readPublicReadingSessionState");
+    expect(requestResume).toContain("setQuestionState");
+    expect(requestResume).toContain("setResumeRequested(true)");
     expect(source).toContain("resumeRequested");
   });
 

@@ -4,6 +4,7 @@ import { PUBLIC_METHOD_VERSIONS, type PublicReading } from "@/domain/public-read
 import {
   PENDING_COMPLETED_READING_KEY_PREFIX,
   PENDING_COMPLETED_READING_TTL_MS,
+  PENDING_COMPLETED_READING_REMOVE_FAILED,
   PENDING_COMPLETED_READING_WRITE_FAILED,
   listPendingCompletedReadingIds,
   pendingCompletedReadingStorageKey,
@@ -165,6 +166,20 @@ describe("C4 — Pending Completed Reading store", () => {
       },
     });
     expect(() => writePendingCompletedReading(manualReading(ID_A))).toThrow(PENDING_COMPLETED_READING_WRITE_FAILED);
+  });
+
+  it("surfaces an exact-id remove failure instead of pretending cleanup succeeded", () => {
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: () => "present",
+        setItem: () => {},
+        removeItem: () => { throw new Error("blocked"); },
+        clear: () => {},
+        key: () => pendingCompletedReadingStorageKey(ID_A),
+        length: 1,
+      },
+    });
+    expect(() => removePendingCompletedReading(ID_A)).toThrow(PENDING_COMPLETED_READING_REMOVE_FAILED);
   });
 
   it("fails closed when localStorage itself is unavailable", () => {

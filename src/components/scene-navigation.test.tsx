@@ -6,6 +6,7 @@ vi.mock("next/navigation",()=>({usePathname:()=>navigationState.pathname}));
 vi.mock("next/link",()=>({default:({href,children,prefetch:_prefetch,...props}:any)=><a href={href} {...props}>{children}</a>}));
 vi.mock("next/image",()=>({default:({priority:_priority,unoptimized:_unoptimized,...props}:any)=>React.createElement("img",props)}));
 import {SceneNavigation} from "./scene-navigation";
+import { surfaceContract } from "@/navigation/surface-contract";
 import {SceneNavigationPanels} from "./scene-navigation-panels";
 import {UserNavControl} from "./auth/user-nav-control";
 const paths=["/hexagrams","/methods/yarrow-stalks","/methods/mei-hua-yi-shu","/methods/manual-cast","/guides/how-to-ask-the-i-ching","/guides/changing-lines","/guides/primary-relating-hexagrams","/help","/privacy","/terms","/acceptable-use"];
@@ -49,5 +50,13 @@ describe("approved scene navigation integration",()=>{
  it("retains the existing authenticated readings, account and settings menu",()=>{
   const html=renderToStaticMarkup(<UserNavControl appearance="scene" initialUser={{id:"fixture",email:"reader@example.com"}} initialOpen/>);
   expect(html).toContain('>Account<');expect(html).toContain('href="/my-readings"');expect(html).toContain("My Account");expect(html).toContain("Settings");
+ });
+ it("obeys accountControl even when auth capability is enabled",()=>{
+  for (const surfaceId of ["S17","S18"] as const) {
+   const html=renderToStaticMarkup(<SceneNavigation locale="en" authEnabled contract={surfaceContract(surfaceId)}/>);
+   expect(html).not.toContain("data-shell-account");
+  }
+  const allowed=renderToStaticMarkup(<SceneNavigation locale="en" authEnabled contract={surfaceContract("S06")}/>);
+  expect(allowed).toContain("data-shell-account");
  });
 });

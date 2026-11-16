@@ -809,6 +809,11 @@ export function ReadingResultClient({
         newReadingLabel={t("Start a New Reading", "重新起一卦")}
       /> : deepBody}
 
+      <div className="mx-auto mt-6 flex w-full max-w-[1180px] justify-center px-4 sm:px-6">
+        <Link href={prefix || "/"} prefetch={false} className="mystic-button-secondary" data-reading-exit>
+          {t("Exit Reading", "退出解卦")}
+        </Link>
+      </div>
 
       {clearError ? (
         <div

@@ -4,7 +4,10 @@ type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 type CreateId = () => string;
 
-const keyFor = (productKey: ProductId) => `quickiching:checkout-request:${productKey}`;
+export const CHECKOUT_REQUEST_IDENTITY_KEY_PREFIX = "quickiching:checkout-request:";
+
+export const checkoutRequestIdentityStorageKey = (productKey: ProductId) =>
+  `${CHECKOUT_REQUEST_IDENTITY_KEY_PREFIX}${productKey}`;
 
 export function checkoutFailurePresentation(status: number, locale: "en" | "zh-Hans" = "en"): {
   kind: "conflict" | "rate_limited" | "unavailable";
@@ -38,7 +41,7 @@ export function checkoutFailurePresentation(status: number, locale: "en" | "zh-H
 export function createCheckoutRequestIdentityStore(storage: StorageLike, createId: CreateId = () => crypto.randomUUID()) {
   return {
     getOrCreate(productKey: ProductId): string {
-      const key = keyFor(productKey);
+      const key = checkoutRequestIdentityStorageKey(productKey);
       const existing = storage.getItem(key)?.trim();
       if (existing) return existing;
       const created = createId();
@@ -50,7 +53,7 @@ export function createCheckoutRequestIdentityStore(storage: StorageLike, createI
       // transaction identity in session storage for the next attempt or reload.
     },
     complete(productKey: ProductId): void {
-      storage.removeItem(keyFor(productKey));
+      storage.removeItem(checkoutRequestIdentityStorageKey(productKey));
     },
   };
 }

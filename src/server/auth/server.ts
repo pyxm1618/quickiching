@@ -5,7 +5,11 @@ import { nextCookies, toNextJsHandler } from "better-auth/next-js";
 import { authSchema } from "@/server/db/auth-schema";
 import { getAuthDatabaseConnection, type AuthDatabase } from "@/server/db/client";
 import { resolveCommercialCapabilities } from "@/server/capabilities";
-import { createResendMagicLinkTransport, type MagicLinkData } from "./email";
+import {
+  createBrowserGateMagicLinkCaptureTransport,
+  createResendMagicLinkTransport,
+  type MagicLinkData,
+} from "./email";
 import { isAuthCapabilityEnabled } from "./capability";
 
 type RuntimeEnv = Record<string, string | undefined>;
@@ -21,12 +25,25 @@ function required(env: RuntimeEnv, name: string): string {
   return candidate;
 }
 
-function originOf(baseURL: string, production: boolean): string {
+function isLoopbackBrowserFixture(env: RuntimeEnv, baseURL: string): boolean {
+  if (env.AUTH_BROWSER_FIXTURE !== "1") return false;
+  const captureFile = env.AUTH_MAGIC_LINK_CAPTURE_FILE?.trim();
+  if (!captureFile) return false;
+  try {
+    const url = new URL(baseURL);
+    return (url.hostname === "127.0.0.1" || url.hostname === "localhost" || url.hostname === "::1")
+      && ["http:", "https:"].includes(url.protocol);
+  } catch {
+    return false;
+  }
+}
+
+function originOf(baseURL: string, production: boolean, allowLoopbackHttp = false): string {
   try {
     const url = new URL(baseURL);
     if (
-      (!['http:', 'https:'].includes(url.protocol) || !url.hostname || url.username || url.password) ||
-      (production && url.protocol !== "https:")
+      (!["http:", "https:"].includes(url.protocol) || !url.hostname || url.username || url.password) ||
+      (production && url.protocol !== "https:" && !allowLoopbackHttp)
     ) {
       throw new Error();
     }
@@ -48,8 +65,14 @@ export function buildAuthOptions(
   const resendApiKey = required(env, "RESEND_API_KEY");
   const emailFrom = required(env, "EMAIL_FROM");
   const production = env.NODE_ENV === "production";
-  const transport = emailTransport ?? createResendMagicLinkTransport(resendApiKey, emailFrom);
-  const origin = originOf(baseURL, production);
+  const browserFixture = isLoopbackBrowserFixture(env, baseURL);
+  const transport = emailTransport ?? (browserFixture
+    ? createBrowserGateMagicLinkCaptureTransport({
+        captureFile: required(env, "AUTH_MAGIC_LINK_CAPTURE_FILE"),
+        baseURL,
+      })
+    : createResendMagicLinkTransport(resendApiKey, emailFrom));
+  const origin = originOf(baseURL, production, browserFixture);
   const configuredTrustedOrigins = env.BETTER_AUTH_TRUSTED_ORIGINS
     ?.split(",")
     .map((candidate) => candidate.trim())
@@ -57,6 +80,8 @@ export function buildAuthOptions(
   if (production && configuredTrustedOrigins.some((candidate) => candidate !== origin)) {
     throw new Error("AUTH_CONFIGURATION_UNAVAILABLE");
   }
+
+  const secureCookies = production && !browserFixture;
 
   return {
     appName: "Quick I Ching",
@@ -99,10 +124,10 @@ export function buildAuthOptions(
       },
     },
     advanced: {
-      useSecureCookies: production,
+      useSecureCookies: secureCookies,
       defaultCookieAttributes: {
         httpOnly: true,
-        secure: production,
+        secure: secureCookies,
         sameSite: "lax",
         path: "/",
       },

@@ -93,4 +93,80 @@ describe("Navigation / Surface Authority architecture", () => {
       expect(source).not.toContain("InfoPageHeader");
     }
   });
+
+  it("keeps Manual shell presentation in the central shell CSS, never in page-owned CSS", () => {
+    const manualCss = readFileSync(new URL("../components/public-reading/manual-cast.css", import.meta.url), "utf8");
+    const shellCss = readFileSync(new URL("../components/scene-navigation.css", import.meta.url), "utf8");
+    expect(manualCss).not.toContain("body:has(.manual-cast-page) > header");
+    expect(manualCss).not.toContain("body:has(.manual-cast-page) .scene-utility");
+    expect(shellCss).toContain(".scene-navigation[data-navigation-surface='S08']");
+  });
+
+  it("makes Other Methods one discovery authority shared by both shell presentations", () => {
+    const links = readFileSync(new URL("./discovery-links.ts", import.meta.url), "utf8");
+    const scenePanels = readFileSync(new URL("../components/scene-navigation-panels.tsx", import.meta.url), "utf8");
+    const contentShell = readFileSync(new URL("../components/navigation/content-navigation-shell.tsx", import.meta.url), "utf8");
+    expect(links).toContain("export const OTHER_METHOD_LINKS");
+    expect(scenePanels).toContain("OTHER_METHOD_LINKS.map");
+    expect(contentShell).toContain("OTHER_METHOD_LINKS.map");
+    expect(scenePanels).not.toContain('path: "/methods/yarrow-stalks"');
+    expect(contentShell).not.toMatch(/\bMETHOD_LINKS\.map/u);
+  });
+
+  it("makes Info one discovery authority shared by both shell presentations", () => {
+    const links = readFileSync(new URL("./discovery-links.ts", import.meta.url), "utf8");
+    const scenePanels = readFileSync(new URL("../components/scene-navigation-panels.tsx", import.meta.url), "utf8");
+    const contentShell = readFileSync(new URL("../components/navigation/content-navigation-shell.tsx", import.meta.url), "utf8");
+    expect(links).toContain("export const INFO_LINKS");
+    expect(links).toContain("export const SUPPORT_EMAIL_LINK");
+    expect(scenePanels).toContain("INFO_LINKS");
+    expect(scenePanels).toContain("SUPPORT_EMAIL_LINK");
+    expect(contentShell).toContain("INFO_LINKS.map");
+    for (const legacyOwner of [
+      'localize("/guides/how-to-ask-the-i-ching")',
+      'localize("/guides/changing-lines")',
+      'localize("/guides/primary-relating-hexagrams")',
+      'localize("/help")',
+      'localize("/privacy")',
+      'localize("/terms")',
+      'localize("/acceptable-use")',
+      'href="mailto:support@quickiching.com"',
+    ]) {
+      expect(scenePanels).not.toContain(legacyOwner);
+      expect(contentShell).not.toContain(legacyOwner);
+    }
+  });
+
+  it("makes every shell presentation consume contract capability flags", () => {
+    const scene = readFileSync(new URL("../components/scene-navigation.tsx", import.meta.url), "utf8");
+    const content = readFileSync(new URL("../components/navigation/content-navigation-shell.tsx", import.meta.url), "utf8");
+    const info = readFileSync(new URL("../components/info-pages/info-page-header.tsx", import.meta.url), "utf8");
+    for (const source of [scene, content, info]) {
+      expect(source).toContain("contract.homeControl");
+      expect(source).toContain("contract.localeControl");
+      expect(source).toContain("contract.accountControl");
+    }
+    // Scene + Content are the only presentations that own discovery UI. Info
+    // is selected only for contracts whose primaryNavigation is frozen false.
+    expect(scene).toContain("contract.primaryNavigation");
+    expect(content).toContain("contract.primaryNavigation");
+    expect(scene).toContain("contract.accountControl && authEnabled");
+    expect(content).toContain("contract.accountControl && authEnabled");
+    expect(info).toContain("contract.accountControl && authEnabled");
+  });
+
+  it("keeps local flow exits explicit and separate from Start New semantics", () => {
+    const yarrow = readFileSync(new URL("../components/public-reading/yarrow-tool.tsx", import.meta.url), "utf8");
+    const manual = readFileSync(new URL("../components/public-reading/manual-cast-tool.tsx", import.meta.url), "utf8");
+    const result = readFileSync(new URL("../components/reading-result/reading-result-client.tsx", import.meta.url), "utf8");
+    const auth = readFileSync(new URL("../components/auth/auth-form.tsx", import.meta.url), "utf8");
+    expect(yarrow).toContain("data-flow-exit");
+    expect(manual).toContain("data-flow-exit");
+    expect(manual).toContain("data-question-restart");
+    expect(manual).toContain("questionContext?.restartQuestion()");
+    expect(result).toContain("data-reading-exit");
+    expect(result).toContain("onNewReading={startNewReading}");
+    expect(result).toContain("newReadingLabel");
+    expect(auth).toContain("data-auth-exit");
+  });
 });
