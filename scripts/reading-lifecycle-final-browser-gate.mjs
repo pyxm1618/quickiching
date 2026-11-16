@@ -813,8 +813,10 @@ async function verifyFourMethodHistory(page) {
 async function verifyLegacyNonAuthority(page) {
   await freshOrigin(page);
   await page.evaluate(({ singleton, backup, prefix, b, pendingB }) => {
-    localStorage.setItem(singleton, JSON.stringify({ readingId: "legacy-singleton" }));
-    localStorage.setItem(backup, JSON.stringify({ readingId: "legacy-backup" }));
+    localStorage.setItem(singleton, JSON.stringify({ readingId: "legacy-singleton-local" }));
+    localStorage.setItem(backup, JSON.stringify({ readingId: "legacy-backup-local" }));
+    sessionStorage.setItem(singleton, JSON.stringify({ readingId: "legacy-singleton-session" }));
+    sessionStorage.setItem(backup, JSON.stringify({ readingId: "legacy-backup-session" }));
     localStorage.setItem(prefix + b, JSON.stringify(pendingB));
   }, {
     singleton: RETIRED_SINGLETON_KEY,
