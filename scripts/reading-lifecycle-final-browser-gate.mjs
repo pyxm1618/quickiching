@@ -525,8 +525,14 @@ async function verifyDeleteAccount(page) {
   assert(openedDelete, "Settings must expose Delete Account");
   await page.waitForSelector("#delete-account-confirmation", { visible: true, timeout: 10_000 });
   await page.type("#delete-account-confirmation", "DELETE");
-  await page.click('[data-account-delete-submit="true"]');
-  await page.waitForFunction(() => location.pathname === "/", { timeout: 25_000 });
+  // The browser is already on "/". Waiting only for pathname === "/" races
+  // the delete request and cleanup. Require the actual full navigation caused
+  // by DeleteAccountControl after server deletion + owned-state cleanup.
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "networkidle0", timeout: 25_000 }),
+    page.click('[data-account-delete-submit="true"]'),
+  ]);
+  assert.equal(new URL(page.url()).pathname, "/", "Delete Account success must navigate to the canonical Root");
 
   const state = await page.evaluate((x) => ({
     sessionOwned: x.sessionKeys.map((key) => [key, sessionStorage.getItem(key)]),
