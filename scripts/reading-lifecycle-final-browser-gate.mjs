@@ -202,6 +202,9 @@ async function openSettings(page, expectedEmail) {
   }
 
   await page.waitForSelector('[data-account-surface="settings"]', { visible: true, timeout: 15_000 });
+  // SettingsView is React.lazy under Suspense. The dialog shell can be visible
+  // before the actual Account controls chunk has mounted.
+  await page.waitForSelector(".qic-account-settings-primary", { visible: true, timeout: 15_000 });
 }
 
 async function dispatchThreeCoinPointer(page, type, pointerId = 61) {
