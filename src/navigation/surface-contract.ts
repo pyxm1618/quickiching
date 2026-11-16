@@ -402,11 +402,9 @@ export function hasReadingReturnContext(search: string | undefined): boolean {
 }
 
 /**
- * S16 is a transactional Pricing surface when either a validated-style reading
- * return target or a payment-return identity is present. The recovery component
- * remains authoritative for matching orderId against the fresh sessionStorage
- * checkout context; navigation only decides which shell capabilities are safe
- * while that transaction is being recovered.
+ * S16 is transactional Pricing when a reading return target or payment-return
+ * identity is present. This only classifies the Surface Contract; C5 URL
+ * transformation remains solely in locale-navigation.ts.
  */
 export function hasPricingFlowContext(search: string | undefined): boolean {
   if (!search) return false;

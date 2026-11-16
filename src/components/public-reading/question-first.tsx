@@ -1,17 +1,20 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { patchPublicReadingSession, readPublicReadingSessionState } from "@/lib/public-reading-session";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
 import type { PublicReadingMethod } from "@/domain/public-reading/types";
 import { retireMethodSession } from "@/lib/method-session-retirement";
-import { consumeLocaleSwitchContinuation } from "@/navigation/locale-navigation";
 import {
   NO_READING_RESUME,
+  clearLiveFlowRegistration,
   detectMethodResume,
+  registerLiveFlowFromSession,
   resumeProgressLabel,
+  useLiveFlowUnmountCleanup,
+  useLocaleContinuationActivation,
   type ReadingResumeState,
 } from "@/lib/reading-resume";
 
@@ -83,7 +86,28 @@ export function QuestionFirst({
   const [resumeState, setResumeState] = useState<ReadingResumeState>(NO_READING_RESUME);
   const [resumeRequested, setResumeRequested] = useState(false);
 
-  const restorePersistedResume = useCallback(() => {
+  // C1: detect persisted progress only. Nothing here may set the UI stage.
+  useEffect(() => {
+    if (!resumeMethod) return;
+    const detected = detectMethodResume(resumeMethod);
+    setResumeState(detected);
+    // Exceptional sealed facts: mount the method adapter's recovery-only
+    // surface (Retry Handoff / Start New Reading), never an active cast.
+    if (detected.kind === "sealed") setStarted(true);
+  }, [resumeMethod, storageKey]);
+
+  useLocaleContinuationActivation({
+    method: resumeMethod ?? null,
+    locale: dictionary.locale,
+    activate: () => requestResume(),
+  });
+  useLiveFlowUnmountCleanup(dictionary.locale);
+
+  function requestResume() {
+    // The continuation effect can run in the same commit as passive detection,
+    // so authorize from a fresh R1 decision rather than a stale render snapshot.
+    const detected = resumeMethod ? detectMethodResume(resumeMethod) : NO_READING_RESUME;
+    if (detected.kind !== "partial") return;
     const restored = readPublicReadingSessionState(storageKey);
     setQuestionState(restored.question);
     setDraft(restored.question ?? "");
@@ -93,31 +117,7 @@ export function QuestionFirst({
     setStarted(true);
     setResumeRequested(true);
     setResumeState(NO_READING_RESUME);
-  }, [storageKey]);
-
-  // C1: detect persisted progress only. A normal mount remains passive.
-  // The only automatic continuation is a one-shot marker written by the
-  // shell's explicit locale switch, and it restores through the same Resume
-  // primitive as the visible Resume button.
-  useEffect(() => {
-    if (!resumeMethod) return;
-    const detected = detectMethodResume(resumeMethod);
-    const continueAcrossLocale = consumeLocaleSwitchContinuation(resumeMethod);
-    setResumeState(detected);
-    // Exceptional sealed facts: mount the method adapter's recovery-only
-    // surface (Retry Handoff / Start New Reading), never an active cast.
-    if (detected.kind === "sealed") {
-      setStarted(true);
-      return;
-    }
-    if (detected.kind === "partial" && continueAcrossLocale) {
-      restorePersistedResume();
-    }
-  }, [resumeMethod, restorePersistedResume]);
-
-  function requestResume() {
-    if (resumeState.kind !== "partial") return;
-    restorePersistedResume();
+    if (resumeMethod) registerLiveFlowFromSession(resumeMethod, dictionary.locale);
   }
 
   /** Starting a brand-new reading is an explicit discard of an un-resumed partial. */
@@ -176,6 +176,7 @@ export function QuestionFirst({
         setDraft(coreQuestionAtCast ?? "");
         setError("");
         setStarted(true);
+        if (resumeMethod) registerLiveFlowFromSession(resumeMethod, dictionary.locale);
         return;
       }
       const normalized = normalizePublicQuestion(draft);
@@ -187,6 +188,7 @@ export function QuestionFirst({
       setDraft(normalized ?? "");
       setError("");
       setStarted(true);
+      if (resumeMethod) registerLiveFlowFromSession(resumeMethod, dictionary.locale);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? dictionary.questionFirst.tooLong.replace("{max}", String(PUBLIC_QUESTION_MAX_CODE_POINTS))
@@ -202,10 +204,12 @@ export function QuestionFirst({
       setError(dictionary.questionFirst.saveError);
       return;
     }
+    clearLiveFlowRegistration();
     setQuestionState(undefined);
     setDraft("");
     setError("");
     setStarted(nextStarted);
+    if (resumeMethod) registerLiveFlowFromSession(resumeMethod, dictionary.locale);
   }
 
   function restartQuestion(force = false) {
@@ -221,6 +225,7 @@ export function QuestionFirst({
         // The in-memory restart still returns to the default entry.
       }
     }
+    clearLiveFlowRegistration();
     setStarted(false);
     setQuestionState(undefined);
     setCoreQuestionAtCast(undefined);

@@ -2,13 +2,12 @@
 
 import "./ritual.css";
 import { ArrowRight } from "lucide-react";
-import React, { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { GildedTitle } from "@/components/typography/gilded-title";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
 import type { UiDictionary } from "@/i18n/dictionaries/types";
 import { useDeclareThreeCoinStage } from "@/navigation/navigation-surface-context";
-import { consumeLocaleSwitchContinuation } from "@/navigation/locale-navigation";
 import {
   clearThreeCoinReading,
   patchThreeCoinQuestionSession,
@@ -18,8 +17,12 @@ import {
 } from "@/lib/three-coin-session";
 import {
   NO_READING_RESUME,
+  clearLiveFlowRegistration,
+  registerLiveFlowFromSession,
   resumeProgressLabel,
   threeCoinResumeState,
+  useLiveFlowUnmountCleanup,
+  useLocaleContinuationActivation,
   type ReadingResumeState,
 } from "@/lib/reading-resume";
 
@@ -89,7 +92,20 @@ export function ThreeCoinRitual({
   // contract the global shell must render.
   useDeclareThreeCoinStage(experienceStage);
 
-  const requestResume = useCallback(() => {
+  useEffect(() => {
+    setResumeState(threeCoinResumeState());
+  }, []);
+
+  // C9 continuation is an authorization to invoke the existing R1 Resume
+  // boundary; it does not own a second restore implementation.
+  useLocaleContinuationActivation({
+    method: "three-coin",
+    locale: dictionary.locale,
+    activate: () => requestResume(),
+  });
+  useLiveFlowUnmountCleanup(dictionary.locale);
+
+  function requestResume() {
     let session: ReturnType<typeof readThreeCoinSession> = null;
     try {
       session = readThreeCoinSession();
@@ -115,14 +131,8 @@ export function ThreeCoinRitual({
     });
     setExperienceStage(stage);
     setPresentationStage(stage);
-  }, [dictionary.questionFirst.saveError]);
-
-  useEffect(() => {
-    const detected = threeCoinResumeState();
-    const continueAcrossLocale = consumeLocaleSwitchContinuation("three-coin");
-    setResumeState(detected);
-    if (detected.kind === "partial" && continueAcrossLocale) requestResume();
-  }, [requestResume]);
+    registerLiveFlowFromSession("three-coin", dictionary.locale);
+  }
 
   useEffect(() => {
     if (experienceStage !== "question-confirm") {
@@ -211,6 +221,7 @@ export function ThreeCoinRitual({
       setDraft(normalized ?? "");
       setError("");
       setExperienceStage("question-confirm");
+      registerLiveFlowFromSession("three-coin", dictionary.locale);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? dictionary.questionFirst.tooLong.replace("{max}", String(PUBLIC_QUESTION_MAX_CODE_POINTS))
@@ -229,6 +240,7 @@ export function ThreeCoinRitual({
         setDraft(coreQuestionAtCast ?? "");
         setError("");
         setExperienceStage("ritual");
+        registerLiveFlowFromSession("three-coin", dictionary.locale);
         return;
       }
       const normalized = normalizePublicQuestion(draft);
@@ -240,6 +252,7 @@ export function ThreeCoinRitual({
       setDraft(normalized ?? "");
       setError("");
       setExperienceStage("ritual");
+      registerLiveFlowFromSession("three-coin", dictionary.locale);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? dictionary.questionFirst.tooLong.replace("{max}", String(PUBLIC_QUESTION_MAX_CODE_POINTS))
@@ -254,10 +267,12 @@ export function ThreeCoinRitual({
       setError(dictionary.questionFirst.saveError);
       return;
     }
+    clearLiveFlowRegistration();
     setQuestionState(undefined);
     setDraft("");
     setError("");
     setExperienceStage("question-confirm");
+    registerLiveFlowFromSession("three-coin", dictionary.locale);
   }
 
   function restartQuestion(force = false) {
@@ -266,6 +281,7 @@ export function ThreeCoinRitual({
       setError(dictionary.questionFirst.saveError);
       return;
     }
+    clearLiveFlowRegistration();
     setQuestionState(undefined);
     setCoreQuestionAtCast(undefined);
     setCoreQuestionFrozenAtCast(false);
@@ -394,7 +410,10 @@ export function ThreeCoinRitual({
             type="button"
             className="ritual-flow-exit"
             data-flow-exit
-            onClick={() => window.location.assign(zh ? "/zh" : "/")}
+            onClick={() => {
+              clearLiveFlowRegistration();
+              window.location.assign(zh ? "/zh" : "/");
+            }}
           >
             {zh ? "退出起卦" : "Exit"}
           </button>

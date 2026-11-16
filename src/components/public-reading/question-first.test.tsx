@@ -2,6 +2,12 @@ import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QuestionFirst, useQuestionFirstContext } from "./question-first";
 import { patchPublicReadingSession, readPublicReadingSessionState } from "@/lib/public-reading-session";
+import { YARROW_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
+import {
+  clearLiveFlowRegistration,
+  getLiveFlowRegistration,
+  registerLiveFlow,
+} from "@/lib/reading-resume";
 
 
 const originalWindow = globalThis.window;
@@ -26,6 +32,7 @@ describe("QuestionFirst component question freeze regressions", () => {
   });
 
   afterEach(() => {
+    clearLiveFlowRegistration();
     (globalThis as any).window = originalWindow;
   });
 
@@ -118,6 +125,51 @@ describe("QuestionFirst component question freeze regressions", () => {
     expect(state.started).toBe(true);
     expect(state.coreQuestionFrozenAtCast).toBe(true);
     expect(state.coreQuestionAtCast).toBe("My Frozen Question");
+  });
+
+  it("clears the active Yarrow registration when New Question retires the reading identity", async () => {
+    const id = "11111111-2222-4333-8444-555555555555";
+    const question = "Should I keep following this path?";
+    const storage = installSessionStorage({
+      [YARROW_SESSION_STORAGE_KEY]: JSON.stringify({
+        schemaVersion: 1,
+        id,
+        createdAt: new Date().toISOString(),
+        started: true,
+        question,
+        coreQuestionFrozenAtCast: false,
+      }),
+    });
+    registerLiveFlow({ method: "yarrow-stalks", readingId: id, locale: "en" });
+
+    let exposedContext: ReturnType<typeof useQuestionFirstContext>;
+    function Capture() {
+      exposedContext = useQuestionFirstContext();
+      return null;
+    }
+
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    renderToStaticMarkup(
+      <QuestionFirst
+        storageKey={YARROW_SESSION_STORAGE_KEY}
+        resumeMethod="yarrow-stalks"
+        initialSession={{ started: true, question, coreQuestionFrozenAtCast: false }}
+      >
+        <Capture />
+      </QuestionFirst>,
+    );
+
+    expect(getLiveFlowRegistration()).toMatchObject({
+      method: "yarrow-stalks",
+      readingId: id,
+      locale: "en",
+      active: true,
+    });
+
+    exposedContext?.restartQuestion();
+
+    expect(storage.getItem(YARROW_SESSION_STORAGE_KEY)).toBeNull();
+    expect(getLiveFlowRegistration()).toBeNull();
   });
 
   it("makes a pre-cast skip explicitly free-only and does not offer a late question field", async () => {

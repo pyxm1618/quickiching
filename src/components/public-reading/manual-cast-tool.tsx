@@ -25,6 +25,7 @@ import {
 } from "@/lib/manual-cast-sealed";
 import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading-handoff";
 import { MANUAL_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
+import { clearLiveFlowRegistration } from "@/lib/reading-resume";
 import {
   clearManualCastDraft,
   readManualCastDraft,
@@ -533,6 +534,7 @@ export function ManualCastTool({
   }
 
   function startNewFromSealed() {
+    clearLiveFlowRegistration();
     questionContext?.restartQuestion(true);
     clearManualCastDraft();
     setSealedReading(null);
@@ -669,7 +671,7 @@ export function ManualCastTool({
         >
           {zh ? "返回 / 修改问题" : "Back / Edit Question"}
         </button>
-        <Link href={zh ? "/zh" : "/"} prefetch={false} className="mystic-button-secondary" data-flow-exit>
+        <Link href={zh ? "/zh" : "/"} prefetch={false} className="mystic-button-secondary" data-flow-exit onClick={clearLiveFlowRegistration}>
           {zh ? "退出起卦" : "Exit"}
         </Link>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Clock3, MapPin } from "lucide-react";
@@ -9,8 +9,12 @@ import { completeReadingHandoff, readingHandoffFailureCopy } from "@/lib/reading
 import { MEI_HUA_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
 import {
   NO_READING_RESUME,
+  clearLiveFlowRegistration,
   decideReadingResume,
+  registerLiveFlowFromSession,
   resumeProgressLabel,
+  useLiveFlowUnmountCleanup,
+  useLocaleContinuationActivation,
   type ReadingResumeState,
 } from "@/lib/reading-resume";
 import {
@@ -31,7 +35,6 @@ import {
   writePublicReadingSession,
 } from "@/lib/public-reading-session";
 import { GildedTitle } from "@/components/typography/gilded-title";
-import { consumeLocaleSwitchContinuation } from "@/navigation/locale-navigation";
 
 const STORAGE_KEY = MEI_HUA_SESSION_STORAGE_KEY;
 
@@ -147,7 +150,42 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   const [sealedReading, setSealedReading] = useState<PublicReading | null>(null);
   const handoffStartedRef = useRef(false);
 
-  const resume = useCallback(() => {
+  // C1: detect only. Step 1 remains the default entry state.
+  useEffect(() => {
+    try {
+      const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeData);
+      if (!current) return;
+      const restoredQuestion = current.coreQuestionAtCast ?? current.question;
+      if (current.data?.mode === "number-time") {
+        setResumeState(decideReadingResume({
+          method: "mei-hua-yi-shu",
+          partial: null,
+          sealedReadingId: current.id,
+        }));
+        setSealedReading(readingFromCast(current.id, restoredQuestion, current.data));
+        return;
+      }
+      const draft = current.data;
+      const completed = draft?.mode === "number-time-draft" ? draft.step - 1 : 1;
+      setResumeState(decideReadingResume({
+        method: "mei-hua-yi-shu",
+        partial: { completed, total: 3, unit: "steps" },
+        partialReadingId: current.id,
+        stage: "draft",
+      }));
+    } catch {
+      setError(zh ? "浏览器会话存储不可用，尚未创建正式卦象。" : "Browser session storage is unavailable. No cast has been created.");
+    }
+  }, [zh]);
+
+  useLocaleContinuationActivation({
+    method: "mei-hua-yi-shu",
+    locale,
+    activate: () => resume(),
+  });
+  useLiveFlowUnmountCleanup(locale);
+
+  function resume() {
     try {
       const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeData);
       if (!current) {
@@ -166,44 +204,12 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
         setStep(2);
       }
       setResumed(true);
-      setResumeState(NO_READING_RESUME);
+      registerLiveFlowFromSession("mei-hua-yi-shu", locale);
       setError("");
     } catch {
       setError(zh ? "无法恢复这次起卦。" : "This cast could not be resumed.");
     }
-  }, [zh]);
-
-  // C1: a normal mount detects only and leaves Step 1 passive. A locale switch
-  // consumes the one-shot shell intent and invokes this same Resume primitive.
-  useEffect(() => {
-    const continueAcrossLocale = consumeLocaleSwitchContinuation("mei-hua-yi-shu");
-    try {
-      const current = readPublicReadingSession(STORAGE_KEY, parseNumberTimeData);
-      if (!current) return;
-      const restoredQuestion = current.coreQuestionAtCast ?? current.question;
-      if (current.data?.mode === "number-time") {
-        setResumeState(decideReadingResume({
-          method: "mei-hua-yi-shu",
-          partial: null,
-          sealedReadingId: current.id,
-        }));
-        setSealedReading(readingFromCast(current.id, restoredQuestion, current.data));
-        return;
-      }
-      const draft = current.data;
-      const completed = draft?.mode === "number-time-draft" ? draft.step - 1 : 1;
-      const detected = decideReadingResume({
-        method: "mei-hua-yi-shu",
-        partial: { completed, total: 3, unit: "steps" },
-        partialReadingId: current.id,
-        stage: "draft",
-      });
-      setResumeState(detected);
-      if (detected.kind === "partial" && continueAcrossLocale) resume();
-    } catch {
-      setError(zh ? "浏览器会话存储不可用，尚未创建正式卦象。" : "Browser session storage is unavailable. No cast has been created.");
-    }
-  }, [resume, zh]);
+  }
 
   useEffect(() => {
     if (step !== 3) return;
@@ -247,6 +253,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
       setError("");
       setStep(2);
       persistDraft(2, null);
+      registerLiveFlowFromSession("mei-hua-yi-shu", locale);
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
         ? t(`Keep the question within ${PUBLIC_QUESTION_MAX_CODE_POINTS} Unicode characters.`, `问题请控制在 ${PUBLIC_QUESTION_MAX_CODE_POINTS} 个 Unicode 字符以内。`)
@@ -257,6 +264,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   function changeQuestion() {
     // A changed question is a new reading identity; the locked pre-cast draft is
     // discarded explicitly instead of being silently reused.
+    clearLiveFlowRegistration();
     try {
       clearPublicReadingSession(STORAGE_KEY);
     } catch {
@@ -341,6 +349,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
   }
 
   function startNewReading() {
+    clearLiveFlowRegistration();
     try {
       clearPublicReadingSession(STORAGE_KEY);
     } catch {
@@ -441,5 +450,5 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
 function SceneBook({ zh }: { zh: boolean }) {
   const exitHref = zh ? "/zh" : "/";
   const exitLabel = zh ? "退出起卦" : "Exit";
-  return <Link href={exitHref} prefetch={false} className="mei-scene-book" aria-label={exitLabel} title={exitLabel} data-flow-exit><img src="/mei-hua/navigation-book.webp" alt="" width="1536" height="1024" /><span>{exitLabel}</span></Link>;
+  return <Link href={exitHref} prefetch={false} className="mei-scene-book" aria-label={exitLabel} title={exitLabel} data-flow-exit onClick={clearLiveFlowRegistration}><img src="/mei-hua/navigation-book.webp" alt="" width="1536" height="1024" /><span>{exitLabel}</span></Link>;
 }

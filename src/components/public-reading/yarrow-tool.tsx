@@ -16,6 +16,7 @@ import type { PublicReading } from "@/domain/public-reading/types";
 import { browserRandomInt } from "@/lib/browser-random";
 import { clearPublicReadingSession, readPublicReadingSession, restartPublicReadingSession, writePublicReadingSession } from "@/lib/public-reading-session";
 import { YARROW_SESSION_STORAGE_KEY } from "@/lib/method-session-retirement";
+import { clearLiveFlowRegistration, registerLiveFlowFromSession } from "@/lib/reading-resume";
 
 const STORAGE_KEY = YARROW_SESSION_STORAGE_KEY;
 type YarrowSessionData = { changes: YarrowChange[] };
@@ -198,9 +199,14 @@ export function YarrowTool({
   }
 
   function reset(preserveQuestion = false) {
+    clearLiveFlowRegistration();
     try {
-      if (preserveQuestion) restartPublicReadingSession(STORAGE_KEY);
-      else clearPublicReadingSession(STORAGE_KEY);
+      if (preserveQuestion) {
+        restartPublicReadingSession(STORAGE_KEY);
+        registerLiveFlowFromSession("yarrow-stalks", dictionary.locale);
+      } else {
+        clearPublicReadingSession(STORAGE_KEY);
+      }
     } catch {
       // The in-memory reset still gives the user a clean new reading.
     }
@@ -284,7 +290,7 @@ export function YarrowTool({
           {complete ? t("Reading complete", "起卦完成") : (zh ? `进行第 ${changes.length + 1} 变` : `Perform change ${changes.length + 1}`)}
         </button>
         <button type="button" onClick={() => reset(true)} disabled={changes.length === 0 || complete} className="mystic-button-secondary">{t("Restart casting", "重新起卦")}</button>
-        <Link href={zh ? "/zh" : "/"} prefetch={false} className="mystic-button-secondary" data-flow-exit>
+        <Link href={zh ? "/zh" : "/"} prefetch={false} className="mystic-button-secondary" data-flow-exit onClick={clearLiveFlowRegistration}>
           {t("Exit", "退出起卦")}
         </Link>
       </div>

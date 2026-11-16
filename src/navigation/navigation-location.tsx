@@ -63,9 +63,9 @@ function LocationSync(): null {
   const pathname = usePathname() ?? "/";
   const searchParams = useSearchParams();
 
-  // Next may commit a new pathname before passive effects publish the matching
-  // query string. Publish the complete browser location in a layout effect so
-  // shell-owned controls cannot become interactive with a torn URL snapshot.
+  // Publish pathname + query + hash as one browser snapshot before controls
+  // become interactive. This prevents a locale switch from combining a new
+  // pathname with the previous route's query during a client transition.
   useLayoutEffect(() => {
     publishNavigationLocation(readWindow());
   }, [pathname, searchParams]);
@@ -112,11 +112,10 @@ export function useNavigationLocation(): NavigationLocation {
   const routerPathname = usePathname() ?? "/";
   const reactive = useSyncExternalStore(subscribeNavigationLocation, getNavigationLocationSnapshot, getServerSnapshot);
 
-  // During a client navigation usePathname() can advance one render before the
-  // external store is published. Never splice that new pathname onto the old
-  // query/hash. Keep the previous complete snapshot until LocationSync's layout
-  // effect publishes the next complete browser location. EMPTY is the hydration
-  // sentinel, where retaining the router pathname preserves existing SSR output.
+  // A Next client transition can advance usePathname() one render before the
+  // external store publishes the matching search/hash. Never splice those two
+  // different locations together: retain the previous complete snapshot until
+  // LocationSync publishes the new complete browser location.
   const coherent = reactive === EMPTY || reactive.pathname === routerPathname
     ? { pathname: routerPathname, search: reactive.search, hash: reactive.hash }
     : reactive;

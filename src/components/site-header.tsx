@@ -30,8 +30,6 @@ function SurfaceHeader({
 }) {
   if (contract.presentation === "none") return null;
 
-  // S04 owns a full-bleed composition: the Content presentation reserves its
-  // own band instead of floating over the detail scroll.
   if (contract.presentation === "content") {
     return <ContentNavigationShell locale={locale} authEnabled={authEnabled} contract={contract} />;
   }
@@ -56,7 +54,12 @@ function PricingHeader({
 }) {
   const searchParams = useSearchParams();
   const searchString = searchParams.toString();
-  const search = searchString ? `?${searchString}` : "";
+  // Next can expose an empty search snapshot for one hydration render on a
+  // direct Pricing request. The browser URL is the authoritative request
+  // location in that client-only window; using it only as an empty-snapshot
+  // fallback prevents a transient S15 locale href from dropping S16 context.
+  const browserSearch = typeof window === "undefined" ? "" : window.location.search;
+  const search = searchString ? `?${searchString}` : browserSearch;
   const authoritativeFlowState = hasPricingFlowContext(search)
     ? { ...flowState, pricingReadingContext: true }
     : flowState;
@@ -81,9 +84,9 @@ export function SiteHeader({
   const pathname = usePathname() ?? "/";
   const flowState = useNavigationFlowState();
 
-  // Pricing is dynamic and its transaction identity is in the request query.
-  // Resolve that query inside the shell so an orderId/returnUrl request is S16
-  // on the first authoritative render instead of waiting for a page useEffect.
+  // Pricing carries transaction identity in the request query. Resolve that
+  // query in the shell so locale hrefs are correct before navigation-location's
+  // post-hydration synchronization window.
   if (pathname === "/pricing" || pathname === "/zh/pricing") {
     return (
       <Suspense
