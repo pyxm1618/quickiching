@@ -44,8 +44,6 @@
 .scene-privacy-button {border:0;background:none;padding:0;color:inherit;font:inherit;cursor:pointer;}
 .scene-info-note {position:absolute;bottom:calc(28 * var(--nav-u));left:calc(200 * var(--nav-u));right:calc(200 * var(--nav-u));text-align:center;font-size:calc(15 * var(--nav-u));line-height:1.4;color:#5a3d24;}
 .scene-info-note p {margin:0;}
-.scene-info-badge {position:absolute;top:100%;left:50%;display:block;margin-top:6px;transform:translateX(-50%);}
-.scene-info-badge img {display:block;}
 
 @media(min-width:801px) and (max-width:1100px) {.scene-info-columns {grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(30 * var(--nav-u));}.scene-info-columns a,.scene-privacy {font-size:15px;}.scene-method-cards p {font-size:16px;}}
 @media(max-width:800px) {
@@ -60,7 +58,7 @@
  .scene-info-columns a,.scene-privacy {font-size:17px;gap:10px;min-height:34px;margin-bottom:8px;}
  .scene-info-columns > div:nth-child(n) :is(a,.scene-privacy) {margin-left:0;gap:10px;}
  .scene-info-columns :is(a,.scene-privacy)>svg,.scene-info-columns > div:nth-child(2) > a > svg {width:22px;height:22px;}.scene-guide-label:lang(en) {transform:none;}
- .scene-info-columns small {font-size:14px;}.scene-info-note {position:static;font-size:12px;margin-top:18px;}.scene-info-badge {position:static;width:240px;margin:6px auto 0;transform:none;}
+ .scene-info-columns small {font-size:14px;}.scene-info-note {position:static;font-size:12px;margin-top:18px;}
 }
 @media(min-width:1101px) {
  .scene-methods-panel h2 {transform:scaleY(1.04);transform-origin:center top;}
