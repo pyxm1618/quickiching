@@ -88,21 +88,6 @@ export function SceneNavigationPanels({
       <div className="scene-info-note">
         <p>{zh ? "用于自我反思，并非确定性预测或专业建议。" : "For reflection, not deterministic prediction or professional advice."}</p>
         <p>© {new Date().getFullYear()} Quick I Ching</p>
-        {!zh && (
-          <a
-            href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="scene-info-badge"
-          >
-            <img
-              src="https://startupfa.me/badges/featured-badge.webp"
-              alt="Quick I Ching - Featured on Startup Fame"
-              width="171"
-              height="54"
-            />
-          </a>
-        )}
       </div>
     </section>
   );
