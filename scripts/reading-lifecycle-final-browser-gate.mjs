@@ -935,7 +935,29 @@ async function main() {
     // bypasses the production auth/reveal gate.
     await verifyPendingClosure(page);
     await verifyDeleteAccount(page);
-    await verifyFourMethodHistory(page);
+    try {
+      await verifyFourMethodHistory(page);
+    } catch (error) {
+      const diagnostics = await page.evaluate(({ yarrowKey, pendingPrefix, id }) => ({
+        url: location.href,
+        yarrowSession: sessionStorage.getItem(yarrowKey),
+        pending: localStorage.getItem(pendingPrefix + id),
+        progress: document.querySelector(".ritual-progress-badge")?.textContent ?? null,
+        buttons: [...document.querySelectorAll("button")].map((node) => ({
+          text: node.textContent?.trim() ?? "",
+          disabled: node.disabled,
+        })).filter((entry) => entry.text.includes("Perform change") || entry.text.includes("Reading complete")),
+        alerts: [...document.querySelectorAll('[role="alert"]')].map((node) => node.textContent?.trim() ?? ""),
+        sealedRecovery: document.querySelector("[data-reading-sealed-recovery]")?.getAttribute("data-reading-sealed-recovery") ?? null,
+      }), {
+        yarrowKey: YARROW_KEY,
+        pendingPrefix: PENDING_PREFIX,
+        id: "bbbbbbbb-2222-4222-8222-bbbbbbbb2222",
+      }).catch((diagnosticError) => ({ diagnosticError: String(diagnosticError) }));
+      console.error("[R3 Final Browser Gate] Four-method failure diagnostics", JSON.stringify(diagnostics));
+      console.error("[R3 Final Browser Gate] Browser errors before failure", JSON.stringify(consoleErrors));
+      throw error;
+    }
     await verifyLegacyNonAuthority(page);
 
     const fatal = consoleErrors.filter((message) =>
