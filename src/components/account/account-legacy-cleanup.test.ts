@@ -128,7 +128,8 @@ describe("Account legacy cleanup guard", () => {
     expect(offenders).toEqual([]);
 
     const cleanup = read("../../lib/browser-lifecycle-cleanup.ts");
-    expect(cleanup).toContain("DELETE_LOCAL_EXACT_KEYS");
+    expect(cleanup).toContain("DELETE_LEGACY_EXACT_KEYS");
+    expect(cleanup).toContain("removeExact(storage, \"sessionStorage\"");
     expect(cleanup).toContain("removeExact(storage, \"localStorage\"");
   });
 
