@@ -54,6 +54,8 @@ function seed() {
     CHECKOUT_RETURN_CONTEXT_KEY,
     requestKey,
     deepKey,
+    RETIRED_COMPLETED_READING_STORAGE_KEY,
+    RETIRED_THREE_COIN_BACKUP_STORAGE_KEY,
   ]) session.setItem(key, "owned");
   session.setItem("quickiching:appearance", "dark");
   session.setItem("unrelated:preference", "keep");
@@ -114,6 +116,8 @@ describe("R3 browser lifecycle cleanup authority", () => {
       CHECKOUT_RETURN_CONTEXT_KEY,
       requestKey,
       deepKey,
+      RETIRED_COMPLETED_READING_STORAGE_KEY,
+      RETIRED_THREE_COIN_BACKUP_STORAGE_KEY,
     ]) expect(session.getItem(key)).toBeNull();
     for (const key of [
       pendingKey,
