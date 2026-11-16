@@ -24,6 +24,9 @@ export function buildContentSecurityPolicy(environment = process.env) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // CI may build an isolated second production bundle for the R3 auth browser
+  // proof. Production does not set this variable and remains on Next's .next.
+  ...(process.env.QIC_NEXT_DIST_DIR?.trim() ? { distDir: process.env.QIC_NEXT_DIST_DIR.trim() } : {}),
   images: { minimumCacheTTL: 86400, qualities: [75, 90, 95] },
   poweredByHeader: false,
   experimental: {
