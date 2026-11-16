@@ -122,4 +122,10 @@ describe("Surface Contract", () => {
     expect(hasReadingReturnContext("?orderId=ord_1")).toBe(false);
     expect(hasReadingReturnContext(undefined)).toBe(false);
   });
+  it("keeps account capability disabled on auth surfaces while allowed surfaces remain enabled", () => {
+    expect(resolveSurfaceContract({ pathname: "/signin" }).accountControl).toBe(false);
+    expect(resolveSurfaceContract({ pathname: "/signup" }).accountControl).toBe(false);
+    expect(resolveSurfaceContract({ pathname: "/methods/yarrow-stalks" }).accountControl).toBe(true);
+  });
+
 });

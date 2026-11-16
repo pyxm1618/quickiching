@@ -158,6 +158,19 @@ describe("shared passwordless AuthForm", () => {
     expect(source).not.toMatch(/type="password"|forgot password|reset password|confirm password/i);
   });
 
+  it("renders an explicit Cancel / Back to the validated callback target", () => {
+    const callbackURL = "/readings/deep?session=cast-A";
+    const view = renderAuthForm({ mode: "signin", callbackURL });
+    const cancel = findElement(view, (element) => element.props["data-auth-exit"] === true);
+    expect(cancel.props.href).toBe(callbackURL);
+    expect(nodeText(cancel)).toBe("Cancel / Back");
+
+    const zhView = renderAuthForm({ mode: "signup", callbackURL: "/zh", locale: "zh-Hans" });
+    const zhCancel = findElement(zhView, (element) => element.props["data-auth-exit"] === true);
+    expect(zhCancel.props.href).toBe("/zh");
+    expect(nodeText(zhCancel)).toBe("取消并返回");
+  });
+
   it("contains explicit loading, sent, accessibility, and recovery states", () => {
     expect(source).toContain("copy.connectingGoogle");
     expect(source).toContain("copy.sending");

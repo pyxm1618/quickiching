@@ -48,24 +48,28 @@ export function InfoPageHeader({
       data-shell-layout={contract.layout}
     >
       <div className={styles.infoHeaderInner}>
-        <Link href={homeHref} prefetch={false} className={styles.infoBrand} data-shell-home>
-          <BrandMark size="md" priority locale={locale} />
-          <span>Quick I Ching</span>
-        </Link>
+        {contract.homeControl ? (
+          <Link href={homeHref} prefetch={false} className={styles.infoBrand} data-shell-home>
+            <BrandMark size="md" priority locale={locale} />
+            <span>Quick I Ching</span>
+          </Link>
+        ) : null}
         <div className={styles.headerControls}>
-          <nav className={styles.headerLanguages} aria-label={languageLabel} data-language-switcher>
-            <Globe aria-hidden="true" />
-            {locale === "zh-Hans"
-              ? <Link href={target.href} prefetch={false} hrefLang="en" lang="en">{englishLabel}</Link>
-              : <span lang="en" aria-current="page">{englishLabel}</span>}
-            <span>/</span>
-            {locale === "zh-Hans"
-              ? <span lang="zh-Hans" aria-current="page">中文</span>
-              : <Link href={target.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans">中文</Link>}
-          </nav>
-          {authEnabled ? <>
-            <span className={styles.headerSeparator} aria-hidden="true">|</span>
-            <div className={styles.infoAuth}>
+          {contract.localeControl ? (
+            <nav className={styles.headerLanguages} aria-label={languageLabel} data-language-switcher>
+              <Globe aria-hidden="true" />
+              {locale === "zh-Hans"
+                ? <Link href={target.href} prefetch={false} hrefLang="en" lang="en" data-locale-target>{englishLabel}</Link>
+                : <span lang="en" aria-current="page">{englishLabel}</span>}
+              <span>/</span>
+              {locale === "zh-Hans"
+                ? <span lang="zh-Hans" aria-current="page">中文</span>
+                : <Link href={target.href} prefetch={false} hrefLang="zh-Hans" lang="zh-Hans" data-locale-target>中文</Link>}
+            </nav>
+          ) : null}
+          {contract.accountControl && authEnabled ? <>
+            {contract.localeControl ? <span className={styles.headerSeparator} aria-hidden="true">|</span> : null}
+            <div className={styles.infoAuth} data-shell-account>
               <UserNavControl locale={locale} />
             </div>
           </> : null}

@@ -3,36 +3,9 @@
 import React, { useState } from "react";
 import { createAuthClient } from "better-auth/client";
 import { Button } from "@/components/ui/button";
-import { THREE_COIN_SESSION_STORAGE_KEY } from "@/lib/three-coin-session";
-import { PENDING_COMPLETED_READING_KEY_PREFIX } from "@/lib/pending-completed-reading";
+import { cleanupBrowserStateAfterDeleteAccount } from "@/lib/browser-lifecycle-cleanup";
 
 const authClient = createAuthClient({ basePath: "/api/auth" });
-
-function clearQuickIChingAccountStorage(): void {
-  // Replaces the retired single completed-reading record: every exact pending
-  // reading is local recovery state and must not survive account deletion.
-  try {
-    for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
-      const key = window.localStorage.key(index);
-      if (key?.startsWith(PENDING_COMPLETED_READING_KEY_PREFIX)) {
-        window.localStorage.removeItem(key);
-      }
-    }
-  } catch {
-    // Storage cleanup is best-effort after server-side deletion succeeds.
-  }
-  try {
-    window.sessionStorage.removeItem(THREE_COIN_SESSION_STORAGE_KEY);
-    for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
-      const key = window.sessionStorage.key(index);
-      if (key?.startsWith("quickiching:deep-reading-context:")) {
-        window.sessionStorage.removeItem(key);
-      }
-    }
-  } catch {
-    // Storage cleanup is best-effort after server-side deletion succeeds.
-  }
-}
 
 export function DeleteAccountControl({ locale = "en" }: { locale?: "en" | "zh-Hans" }) {
   const zh = locale === "zh-Hans";
@@ -47,14 +20,34 @@ export function DeleteAccountControl({ locale = "en" }: { locale?: "en" | "zh-Ha
     if (!confirmed || submitting) return;
     setSubmitting(true);
     setError(null);
+    let serverDeleted = false;
     try {
       const response = await fetch("/api/account/delete", { method: "POST", credentials: "same-origin" });
       if (!response.ok) throw new Error("ACCOUNT_DELETE_FAILED");
-      clearQuickIChingAccountStorage();
+      serverDeleted = true;
+
+      const cleanup = cleanupBrowserStateAfterDeleteAccount();
+      if (!cleanup.ok) {
+        setError(t(
+          "Your account was deleted, but this browser's reading/account recovery state could not be fully cleared. Close this tab before another account signs in.",
+          "账户已删除，但此浏览器中的解读/账户恢复状态未能完全清除。请在其他账户登录前关闭此标签页。",
+        ));
+        setSubmitting(false);
+        return;
+      }
+
       await authClient.signOut().catch(() => undefined);
       window.location.assign(zh ? "/zh" : "/");
     } catch {
-      setError(t("Account deletion could not be completed. No deletion is assumed; please try again.", "账户删除未完成；页面不会假设已经删除，请重试。"));
+      setError(serverDeleted
+        ? t(
+            "Your account was deleted, but local cleanup could not be completed. Close this tab before another account signs in.",
+            "账户已删除，但本地清理未能完成。请在其他账户登录前关闭此标签页。",
+          )
+        : t(
+            "Account deletion could not be completed. No deletion is assumed; please try again.",
+            "账户删除未完成；页面不会假设已经删除，请重试。",
+          ));
       setSubmitting(false);
     }
   }
@@ -76,7 +69,13 @@ export function DeleteAccountControl({ locale = "en" }: { locale?: "en" | "zh-Ha
         spellCheck={false}
         className="mt-2 w-full rounded-md border border-[var(--line)] bg-transparent px-3 py-2 font-mono text-sm"
       />
-      <Button className="mt-3" variant="outline" disabled={!confirmed || submitting} onClick={deleteAccount}>
+      <Button
+        className="mt-3"
+        variant="outline"
+        disabled={!confirmed || submitting}
+        onClick={deleteAccount}
+        data-account-delete-submit="true"
+      >
         {submitting ? t("Deleting…", "正在删除…") : t("Permanently Delete Account", "永久删除账户")}
       </Button>
       {error && <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{error}</p>}

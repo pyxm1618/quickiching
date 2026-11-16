@@ -96,6 +96,17 @@ test("Auth UI selects Account/Info + account performance", () => {
   assert.deepEqual(JSON.parse(r.performance_targets), ["account.desktop"]);
 });
 
+test("R3 browser lifecycle cleanup forces full cross-domain validation", () => {
+  const r = pick(["src/lib/browser-lifecycle-cleanup.ts"]);
+  assert.equal(r.full, true);
+  assert.equal(r.reading, true);
+  assert.equal(r.account_info, true);
+  assert.equal(r.payment, true);
+  assert.equal(r.database, true);
+  assert.equal(r.performance, true);
+});
+
+
 test("Global consent component selects Public/SEO + home performance", () => {
   const r = pick(["src/components/analytics-consent.tsx"]);
   assert.equal(r.public_seo, true);

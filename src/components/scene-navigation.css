@@ -2,6 +2,8 @@
    Words remain HTML; this sheet contains presentation only. */
 .scene-navigation {--nav-u:min(calc(100vw / 1671),calc(100svh / 941));--nav-gold:#edd065;height:75px;position:relative;z-index:40;pointer-events:none;font-family:"Times New Roman","Songti SC",serif;color:#f9f3e7;}
 body:has(.scene-navigation) > .scene-navigation {background:transparent;}
+/* S08 presentation belongs to the global shell, never to Manual page CSS. */
+body > .scene-navigation[data-navigation-surface='S08'] {background:rgba(0,0,0,.84);}
 .scene-navigation a,.scene-navigation button {pointer-events:auto;}
 /* Full-bleed compositions keep their exact viewport geometry: the shell layers
    over the page instead of reserving a band. Owned by the shell, keyed on the
@@ -43,6 +45,7 @@ body:has(.scene-navigation[data-scene-panel='methods']) .home-oracle [data-exper
 @media(min-width:801px) and (max-width:1100px) {.scene-utility {font-size:16px;min-height:44px;}}
 @media(max-width:800px) {
  .scene-navigation {--nav-u:1px;}
+ .scene-navigation[data-navigation-surface='S08'] .scene-utility {position:absolute;}
  .scene-utility {top:max(12px,env(safe-area-inset-top));right:12px;min-width:0;min-height:44px;padding:4px 12px;gap:12px;font-size:15px;}
  .scene-languages {gap:6px;transform:none;}.scene-languages > svg {width:19px;height:19px;}
  .scene-account-trigger {gap:7px;transform:none;}.scene-account-trigger > svg {width:28px;height:28px;}

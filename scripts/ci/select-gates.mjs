@@ -25,6 +25,7 @@ export const FULL_PATTERNS = [
   "src/server/loaders.ts",
   "src/domain/public-reading/",
   /^src\/lib\/completed-public-reading/,
+  "src/lib/browser-lifecycle-cleanup",
   "src/server/auth/",
   /^src\/server\/db\/(?:schema|.+-schema)\.ts$/,
   "drizzle/",
@@ -72,7 +73,7 @@ const READING = [
   "src/server/repositories/reading-repository.ts",
   "src/server/repositories/review-repository.ts",
   "src/app/api/readings/",
-  /^src\/lib\/(?:three-coin|completed-public-reading|reading-resume|reading-handoff)/,
+  /^src\/lib\/(?:three-coin|completed-public-reading|reading-resume|reading-handoff|browser-lifecycle-cleanup)/,
   /\/methods\/(?:three-coin|yarrow-stalks|mei-hua-yi-shu|manual-cast)\//,
   /\/readings\/(?:result|deep)\//,
   "scripts/reading-business-browser.mjs",
@@ -81,6 +82,7 @@ const READING = [
   "scripts/public-p0-browser-gate.mjs",
   "scripts/reading-lifecycle-browser-gate.mjs",
   "scripts/navigation-context-browser-gate.mjs",
+  "scripts/reading-lifecycle-final-browser-gate.mjs",
 ];
 
 const PUBLIC_SEO = [
@@ -113,6 +115,8 @@ const ACCOUNT_INFO = [
   /\/(?:guides|help|privacy|terms|acceptable-use)\//,
   "scripts/group3-visual-capture.mjs",
   "scripts/group3-visual-qa-fixture.mjs",
+  "src/lib/browser-lifecycle-cleanup",
+  "scripts/reading-lifecycle-final-browser-gate.mjs",
 ];
 
 const PAYMENT = [
@@ -123,6 +127,8 @@ const PAYMENT = [
   "src/server/reconcile/",
   /\/api\/(?:payments|refunds|webhooks)\//,
   /^scripts\/payment-/,
+  "src/lib/browser-lifecycle-cleanup",
+  "scripts/reading-lifecycle-final-browser-gate.mjs",
 ];
 
 const HEXAGRAM_DETAIL = [

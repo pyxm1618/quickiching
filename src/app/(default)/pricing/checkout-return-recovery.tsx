@@ -11,10 +11,18 @@ import {
   readCheckoutReturnContext,
   type CheckoutReturnContext,
 } from "./checkout-return-context";
+import { mapInternalPathLocale } from "@/navigation/locale-navigation";
 
 export const CHECKOUT_CONFIRMATION_WINDOW_MS = 30_000;
 const AUTO_REFRESH_INTERVAL_MS = 5_000;
 type ReturnPhase = "inactive" | VisiblePaymentReturnPhase;
+
+export function checkoutReadingReturnTarget(
+  returnUrl: string,
+  locale: "en" | "zh-Hans",
+): string {
+  return mapInternalPathLocale(returnUrl, locale);
+}
 
 export function resolveCheckoutReturnPhase(input: {
   orderId?: string;
@@ -87,8 +95,9 @@ export function CheckoutReturnRecovery({
 
   const returnToReading = () => {
     if (!context?.returnUrl) return;
+    const localizedReturnUrl = checkoutReadingReturnTarget(context.returnUrl, locale);
     clearCheckoutReturnContext(window.sessionStorage);
-    window.location.assign(context.returnUrl);
+    window.location.assign(localizedReturnUrl);
   };
   const clearAndStayOnPricing = () => clearCheckoutReturnContext(window.sessionStorage);
   const checkAgain = () => {

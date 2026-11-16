@@ -75,10 +75,6 @@ body:has(.manual-cast-page)::before {
   display: none;
 }
 
-body:has(.manual-cast-page) > header {
-  background: rgba(0, 0, 0, .84);
-}
-
 .manual-cast-frame {
   width: min(100%, 1110px);
   margin: 0 auto;
@@ -983,10 +979,6 @@ body:has(.manual-cast-page) > header {
   /* Shell capabilities are identical to desktop. On narrow screens the shell
      band carries the brand instead of a fixed corner overlay, so no extra
      bottom clearance is needed. */
-  body:has(.manual-cast-page) .scene-utility {
-    position: absolute;
-  }
-
   .manual-cast-stage {
     min-height: calc(100svh - 70px);
     padding: 1.2rem .85rem 2.5rem;

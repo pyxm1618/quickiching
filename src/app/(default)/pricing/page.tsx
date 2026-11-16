@@ -38,7 +38,7 @@ export default async function PricingPage(props: {
 
   return (
     <>
-      <PricingSurfaceState readingContext={Boolean(returnUrl)} />
+      <PricingSurfaceState readingContext={Boolean(returnUrl || searchParams?.orderId)} />
       <PricingExperience
         locale="en"
         pricing={pricing}

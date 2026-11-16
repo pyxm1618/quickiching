@@ -38,7 +38,7 @@ export default async function ChinesePricingPage(props: {
 
   return (
     <>
-      <PricingSurfaceState readingContext={Boolean(returnUrl)} />
+      <PricingSurfaceState readingContext={Boolean(returnUrl || searchParams?.orderId)} />
       <PricingExperience
         locale="zh-Hans"
         pricing={pricing}

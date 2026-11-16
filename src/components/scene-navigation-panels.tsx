@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BookOpen, FileText, Mail, MessageSquare, Settings, ShieldCheck, Sparkles } from "lucide-react";
 import { PrivacySettingsButton } from "@/components/privacy-settings-button";
 import type { ContentLocale } from "@/i18n/config";
+import { INFO_LINKS, OTHER_METHOD_LINKS, SUPPORT_EMAIL_LINK } from "@/navigation/discovery-links";
 import "@/components/scene-navigation-panels.css";
 
 type Panel = "methods" | "info";
@@ -23,11 +24,30 @@ export function SceneNavigationPanels({
 }) {
   const zh = locale === "zh-Hans";
   const localize = (path: string) => zh ? `/zh${path === "/" ? "" : path}` : path;
-  const methods = [
-    { path: "/methods/yarrow-stalks", image: "yarrow", title: zh ? "蓍草法" : "Yarrow Stalks", description: zh ? "传统四十九根蓍草起卦" : "Traditional 49-stalk method" },
-    { path: "/methods/mei-hua-yi-shu", image: "mei-hua", title: zh ? "梅花易数" : "Mei Hua Yi Shu", description: zh ? "根据当前时间起卦" : "Cast from the current time" },
-    { path: "/methods/manual-cast", image: "manual", title: zh ? "手动起卦" : "Manual Cast", description: zh ? "输入已知卦象或六爻" : "Enter a known hexagram\nor six lines" },
-  ];
+  const methodPresentation = {
+    "/methods/yarrow-stalks": { image: "yarrow", description: zh ? "传统四十九根蓍草起卦" : "Traditional 49-stalk method" },
+    "/methods/mei-hua-yi-shu": { image: "mei-hua", description: zh ? "根据当前时间起卦" : "Cast from the current time" },
+    "/methods/manual-cast": { image: "manual", description: zh ? "输入已知卦象或六爻" : "Enter a known hexagram\nor six lines" },
+  } as const;
+  const methods = OTHER_METHOD_LINKS.map((link) => ({
+    ...link,
+    title: zh ? link.zh : link.en,
+    ...methodPresentation[link.path as keyof typeof methodPresentation],
+  }));
+  const infoLink = (index: number) => {
+    const link = INFO_LINKS[index];
+    if (!link) throw new Error(`Missing INFO_LINKS entry at index ${index}`);
+    return link;
+  };
+  const howToAskLink = infoLink(0);
+  const changingLinesLink = infoLink(1);
+  const primaryRelatingLink = infoLink(2);
+  const helpLink = infoLink(3);
+  const privacyLink = infoLink(4);
+  const termsLink = infoLink(5);
+  const acceptableUseLink = infoLink(6);
+  const infoLabel = (link: { en: string; zh: string }) => zh ? link.zh : link.en;
+  const supportEmail = SUPPORT_EMAIL_LINK.href.replace(/^mailto:/u, "");
 
   if (panel === "methods") {
     return (
@@ -48,20 +68,20 @@ export function SceneNavigationPanels({
       <div className="scene-info-columns">
         <div>
           <h2><Image unoptimized src="/navigation/info-guides-badge.webp" alt="" width={71} height={67} />{zh ? "指南" : "Guides"}</h2>
-          <Link href={localize("/guides/how-to-ask-the-i-ching")} onClick={onClose}><BookOpen aria-hidden="true" /><span className="scene-guide-label">{zh ? "如何向易经提问" : "How to Ask the I Ching"}</span></Link>
-          <Link href={localize("/guides/changing-lines")} onClick={onClose}><Sparkles aria-hidden="true" /><span className="scene-guide-label">{zh ? "变爻" : "Changing Lines"}</span></Link>
-          <Link href={localize("/guides/primary-relating-hexagrams")} onClick={onClose}><Settings aria-hidden="true" /><span className="scene-guide-label">{zh ? "本卦与变卦" : "Primary & Relating Hexagrams"}</span></Link>
+          <Link href={localize(howToAskLink.path)} onClick={onClose}><BookOpen aria-hidden="true" /><span className="scene-guide-label">{infoLabel(howToAskLink)}</span></Link>
+          <Link href={localize(changingLinesLink.path)} onClick={onClose}><Sparkles aria-hidden="true" /><span className="scene-guide-label">{infoLabel(changingLinesLink)}</span></Link>
+          <Link href={localize(primaryRelatingLink.path)} onClick={onClose}><Settings aria-hidden="true" /><span className="scene-guide-label">{infoLabel(primaryRelatingLink)}</span></Link>
         </div>
         <div>
           <h2><Image unoptimized src="/navigation/info-support-badge.webp" alt="" width={68} height={67} />{zh ? "帮助与支持" : "Help & Support"}</h2>
-          <Link href={localize("/help")} onClick={onClose}><MessageSquare aria-hidden="true" />{zh ? "帮助与支持" : "Help & Support"}</Link>
-          <a href="mailto:support@quickiching.com" onClick={onClose}><Mail aria-hidden="true" /><span>{zh ? "联系支持" : "Contact Support"}<small>support@quickiching.com</small></span></a>
+          <Link href={localize(helpLink.path)} onClick={onClose}><MessageSquare aria-hidden="true" />{infoLabel(helpLink)}</Link>
+          <a href={SUPPORT_EMAIL_LINK.href} onClick={onClose}><Mail aria-hidden="true" /><span>{infoLabel(SUPPORT_EMAIL_LINK)}<small>{supportEmail}</small></span></a>
         </div>
         <div>
           <h2><Image unoptimized src="/navigation/info-legal-badge.webp" alt="" width={71} height={67} />{zh ? "法律与隐私" : "Legal & Privacy"}</h2>
-          <Link href={localize("/privacy")} onClick={onClose}><FileText aria-hidden="true" />{zh ? "隐私政策" : "Privacy Policy"}</Link>
-          <Link href={localize("/terms")} onClick={onClose}><FileText aria-hidden="true" />{zh ? "服务条款" : "Terms of Service"}</Link>
-          <Link href={localize("/acceptable-use")} onClick={onClose}><ShieldCheck aria-hidden="true" />{zh ? "可接受使用政策" : "Acceptable Use"}</Link>
+          <Link href={localize(privacyLink.path)} onClick={onClose}><FileText aria-hidden="true" />{infoLabel(privacyLink)}</Link>
+          <Link href={localize(termsLink.path)} onClick={onClose}><FileText aria-hidden="true" />{infoLabel(termsLink)}</Link>
+          <Link href={localize(acceptableUseLink.path)} onClick={onClose}><ShieldCheck aria-hidden="true" />{infoLabel(acceptableUseLink)}</Link>
           <div className="scene-privacy"><Settings aria-hidden="true" /><PrivacySettingsButton locale={locale} label={zh ? "隐私设置" : "Privacy Settings"} className="scene-privacy-button" /></div>
         </div>
       </div>
