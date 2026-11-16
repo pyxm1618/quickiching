@@ -654,6 +654,16 @@ async function verifyPendingClosure(page) {
       return original.call(this, storageKey, storageValue);
     };
   }, PENDING_PREFIX);
+  // Resume restores the exact five-line session before the Three Coin visual
+  // finishes its own readiness handshake. Do not mistake that presentation
+  // latency for a lifecycle failure: wait until the real cast control is
+  // enabled, then exercise the sixth-line write/handoff failure.
+  await page.waitForFunction(
+    () => [...document.querySelectorAll("button")].some(
+      (node) => node.textContent?.trim() === "Toss three coins" && !node.disabled,
+    ),
+    { timeout: 15_000 },
+  );
   await dispatchThreeCoinPointer(page, "pointerdown");
   await dispatchThreeCoinPointer(page, "pointerup");
   await page.waitForSelector("[data-record-this-cast]:not(:disabled)", { timeout: 15_000 });
