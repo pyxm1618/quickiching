@@ -142,7 +142,7 @@ async function waitForExactHandoffStorageCommit(page, castingId, timeout = 15_00
   throw new Error(`Exact handoff storage transaction did not commit within ${timeout}ms; last state: ${JSON.stringify(lastState)}`);
 }
 
-async function readRetryHandoffDiagnostics(page) {
+async function readRetryHandoffDiagnostics(page, castingId) {
   try {
     return await page.evaluate(({ pendingPrefix, storageKey, id }) => {
       const rawPending = localStorage.getItem(`${pendingPrefix}${id}`);
@@ -164,7 +164,7 @@ async function readRetryHandoffDiagnostics(page) {
         retryDisabled: retry instanceof HTMLButtonElement ? retry.disabled : null,
         historyLength: history.length,
       };
-    }, { pendingPrefix: PENDING_READING_KEY_PREFIX, storageKey: STORAGE_KEY, id });
+    }, { pendingPrefix: PENDING_READING_KEY_PREFIX, storageKey: STORAGE_KEY, id: castingId });
   } catch (error) {
     return { url: page.url(), evaluationError: error instanceof Error ? error.message : String(error) };
   }
@@ -244,7 +244,7 @@ async function seedCompletedReading(page) {
       clickButton(page, "Retry Handoff"),
     ]);
   } catch (error) {
-    const state = await readRetryHandoffDiagnostics(page);
+    const state = await readRetryHandoffDiagnostics(page, FIXTURE_CASTING_ID);
     console.error("[Three-Coin V2 Browser Gate] Retry Handoff diagnostics", JSON.stringify({
       ...state,
       navigationEvents,
