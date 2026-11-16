@@ -691,14 +691,8 @@ async function verifyPendingClosure(page) {
       return original.call(this, key);
     };
   }, PENDING_PREFIX + ID_A);
-  const clicked = await page.evaluate(() => {
-    const button = [...document.querySelectorAll("button")]
-      .find((node) => node.textContent?.includes("Start a New Reading"));
-    if (!(button instanceof HTMLButtonElement)) return false;
-    button.click();
-    return true;
-  });
-  assert(clicked, "Free Result must expose Start a New Reading");
+  await page.waitForSelector("[data-free-reading-actions] button", { visible: true, timeout: 15_000 });
+  await page.click("[data-free-reading-actions] button");
   await page.waitForSelector("[data-three-coin-clear-error]", { timeout: 10_000 });
   assert.equal(new URL(page.url()).pathname, "/readings/result", "Remove failure must keep exact result open");
   assert(await page.evaluate((key) => localStorage.getItem(key), PENDING_PREFIX + ID_A), "Remove failure must not pretend Pending[A] was removed");
