@@ -272,22 +272,59 @@ export function SceneNavigation({
       <SeoRouteGraph locale={locale} />
 
       {contract.id === "S01" ? (
-        <a
-          href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="scene-partnership"
-          aria-label={zh ? "打开合作伙伴网站" : "Quick I Ching - Featured on Startup Fame"}
-        >
-          <span>{zh ? "合作伙伴" : "In partnership with"}</span>
-          <img
-            src="https://startupfa.me/badge?t=small&theme=dark"
-            alt={zh ? "合作伙伴标识" : "Quick I Ching - Featured on Startup Fame"}
-            width="180"
-            height="27"
-            decoding="async"
-          />
-        </a>
+        <div className="scene-partnership">
+          <span className="scene-partnership-label">{zh ? "合作伙伴" : "In partnership with"}</span>
+          <div
+            className="scene-partner-list"
+            aria-label={zh ? "合作伙伴链接" : "Partner links"}
+          >
+            <a
+              href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="scene-partner-link"
+              aria-label={zh ? "打开 Startup Fame" : "Quick I Ching - Featured on Startup Fame"}
+            >
+              <img
+                src="https://startupfa.me/badge?t=small&theme=dark"
+                alt={zh ? "Startup Fame 合作伙伴标识" : "Quick I Ching - Featured on Startup Fame"}
+                width="180"
+                height="27"
+                decoding="async"
+              />
+            </a>
+            <a
+              href="https://www.betterlaunch.co/product/quick-i-ching"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="scene-partner-link"
+              aria-label={zh ? "打开 Better Launch" : "Quick I Ching on Better Launch"}
+            >
+              <img
+                src="https://www.betterlaunch.co/badge-launching-gradient.svg"
+                alt={zh ? "Better Launch 合作伙伴标识" : "Better Launch"}
+                width="200"
+                height="56"
+                decoding="async"
+              />
+            </a>
+            <a
+              href="https://shipstry.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="scene-partner-link"
+              aria-label={zh ? "打开 Shipstry" : "Quick I Ching on Shipstry"}
+            >
+              <img
+                src="https://shipstry.com/badges/featured.svg"
+                alt={zh ? "Shipstry 合作伙伴标识" : "Featured on Shipstry"}
+                width="220"
+                height="52"
+                decoding="async"
+              />
+            </a>
+          </div>
+        </div>
       ) : null}
 
       {contract.primaryNavigation ? <nav className="scene-scrolls" aria-label={zh ? "探索易经" : "Explore the I Ching"}>
