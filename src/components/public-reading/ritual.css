@@ -130,6 +130,14 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 }
 
 .ritual-home-skip {display:block;width:100%;padding:0;margin:calc(20 * var(--u)) 0 0;font:400 calc(16 * var(--u))/1.25 Georgia,serif;color:#ffe8a4;text-decoration:none;}
+.ritual-resume-ingress {position:absolute;right:calc(34 * var(--u));bottom:calc(24 * var(--u));z-index:3;}
+.ritual-resume-action {min-height:36px;padding:7px 14px;border:1px solid rgba(255,225,145,.34);border-radius:999px;background:rgba(8,5,2,.34);color:rgba(255,240,197,.88);font:400 calc(14 * var(--u))/1.25 Georgia,serif;letter-spacing:.01em;cursor:pointer;}
+.ritual-resume-action:hover {background:rgba(8,5,2,.52);border-color:rgba(255,225,145,.56);color:#fff0c5;}
+.ritual-resume-action:focus-visible {outline:2px solid #fff0ac;outline-offset:4px;}
+@media(max-width:800px) {
+ .ritual-resume-ingress {position:relative;right:auto;bottom:auto;margin:18px auto 0;text-align:center;}
+ .ritual-resume-action {font-size:14px;}
+}
 
 /* Non-QA narrow screens retain the same room/composition with a bounded raster budget. */
 @media (max-width:600px) and (max-aspect-ratio:11/20) {
