@@ -19,7 +19,6 @@ import {
   NO_READING_RESUME,
   clearLiveFlowRegistration,
   registerLiveFlowFromSession,
-  resumeProgressLabel,
   threeCoinResumeState,
   useLiveFlowUnmountCleanup,
   useLocaleContinuationActivation,
@@ -386,14 +385,6 @@ export function ThreeCoinRitual({
                   ? (zh ? "每个问题都值得看见。现在开始你的起卦。" : "No question is too small. Begin your divination now →")
                   : (zh ? "三枚铜钱将随机落定，为你带来一次易经起卦。" : <>Three coins will be cast at random,<br />bringing you an I Ching reading.</>)}</p>}
             </div>
-            {landing && resumeState.kind === "partial" ? (
-              <div className="ritual-resume" data-reading-resume={resumeState.method}>
-                <p>{zh ? "你有一次尚未完成的起卦。" : "You have an unfinished cast."}</p>
-                <button type="button" className="ritual-text-button" onClick={requestResume} data-reading-resume-action>
-                  {zh ? "继续上次起卦" : "Resume"} · {resumeProgressLabel(resumeState, zh)}
-                </button>
-              </div>
-            ) : null}
             {confirming && !coreQuestionFrozenAtCast ? <button type="button" onClick={() => setExperienceStage("landing")} className="ritual-back">← {zh ? "返回" : "Back"}</button> : null}
           </div>
         ) : (
