@@ -233,10 +233,19 @@ export function ReadingResultClient({
     persistenceStatus,
   });
   const revealAllowed = resultRevealGate === "reveal";
+  const initialInterpretationReady = resultReading
+    ? hasRequiredInterpretationBundles(
+        resultReading.primaryHexagram,
+        resultReading.relatingHexagram,
+        initialInterpretationBundles,
+      )
+    : false;
   const shouldPrepareBrowserInterpretation = pageMode === "free"
     && !zh
-    && initialInterpretationBundles === undefined;
-  const effectiveInterpretationBundles = initialInterpretationBundles ?? browserInterpretationBundles;
+    && !initialInterpretationReady;
+  const effectiveInterpretationBundles = initialInterpretationReady
+    ? initialInterpretationBundles
+    : browserInterpretationBundles;
   const effectiveLocalizedContent = initialLocalizedContent ?? browserLocalizedContent;
   const resultInterpretationKey = resultReading
     ? `${resultReading.id}:${resultReading.primaryHexagram}:${resultReading.relatingHexagram ?? "none"}`
