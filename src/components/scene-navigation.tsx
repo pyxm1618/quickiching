@@ -264,7 +264,7 @@ export function SceneNavigation({
 
       {contract.homeControl ? (
         <Link href={homeHref} prefetch={false} className="scene-brand" data-shell-home onClick={() => setPanel(null)}>
-          <Image unoptimized src="/navigation/logo.webp" alt="" width={72} height={72} priority />
+          <Image unoptimized src="/navigation/logo-reference.webp" alt="" width={72} height={72} priority />
           <span>Quick I Ching</span>
         </Link>
       ) : null}
