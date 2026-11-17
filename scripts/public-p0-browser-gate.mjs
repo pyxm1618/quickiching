@@ -526,16 +526,52 @@ async function verifyManualAndMovement(page) {
 
 async function verifyPartialRestart(page) {
   const question = "What remains important if I begin again?";
+
+  // Ordinary recovery path: a passive 4/6 session keeps Home clean but exposes
+  // one low-interference Resume ingress. Clicking it restores the exact facts.
+  await seedThreeCoinSession(page, "partial-reading-resume", "2026-08-19T09:55:00.000Z", FIXTURE_STEPS.slice(0, 4), question);
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]');
+  assert.equal(await page.$(".ritual-six-lines"), null, "A stored partial Three Coin cast must remain passive before Resume");
+  await page.waitForSelector('[data-reading-resume="three-coin"] [data-reading-resume-action]', { visible: true, timeout: 15_000 });
+  const homeText = await page.$eval("[data-three-coin-ritual]", (node) => node.textContent ?? "");
+  assert(!homeText.includes("You have an unfinished cast."), "Home must not restore the retired unfinished-cast pollution");
+  assert(!homeText.includes("Resume ·"), "Home must not restore the retired Resume progress copy");
+  assert(homeText.includes("Start Divination"), "Home primary CTA must remain visible beside recovery");
+  assert(homeText.includes("Skip — free reading only"), "Home Skip CTA must remain visible beside recovery");
+
+  const beforeResume = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
+  await page.click("[data-reading-resume-action]");
+  await page.waitForFunction(
+    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
+    { timeout: 15_000 },
+  );
+  await page.waitForFunction(
+    () => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 4,
+    { timeout: 15_000 },
+  );
+  const resumed = await page.evaluate((key) => {
+    const session = JSON.parse(sessionStorage.getItem(key) || "null");
+    return {
+      id: session?.id ?? null,
+      question: session?.coreQuestionAtCast ?? session?.question ?? null,
+      steps: session?.data?.steps ?? null,
+      visibleQuestion: document.querySelector("[data-ritual-question-context] input")?.value ?? null,
+    };
+  }, THREE_COIN_STORAGE_KEY);
+  assert.equal(resumed.id, beforeResume.id, "Ordinary Resume must preserve the exact reading identity");
+  assert.equal(resumed.question, question, "Ordinary Resume must preserve the exact frozen question");
+  assert.equal(resumed.visibleQuestion, question, "Ordinary Resume must restore the exact visible question");
+  assert.deepEqual(resumed.steps, beforeResume.data.steps, "Ordinary Resume must restore the exact four committed lines without reroll");
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Resume affordance must be consumed after explicit activation");
+
+  // Explicit fresh start remains a separate discard contract.
   await seedThreeCoinSession(page, "partial-reading-before", "2026-08-19T10:00:00.000Z", FIXTURE_STEPS.slice(0, 1), question);
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-
-  // A stored partial remains exact recovery state, but Home stays the clean
-  // landing surface. Starting again is the explicit discard boundary.
   await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]');
-  assert.equal(await page.$(".ritual-six-lines"), null, "A stored partial Three Coin cast must not auto-enter the ritual");
-  assert.equal(await page.$("[data-reading-resume-action]"), null, "Home must not expose the retired Three Coin Resume presentation");
+  await page.waitForSelector("[data-reading-resume-action]", { visible: true, timeout: 15_000 });
   const before = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
-  assert.equal(before?.data?.steps?.length, 1, "Home presentation removal must preserve the exact stored partial cast");
+  assert.equal(before?.data?.steps?.length, 1, "Fresh-start proof requires one exact stored partial line");
 
   await page.type("textarea[data-private-question]", question);
   await clickText(page, "Start Divination");
@@ -547,7 +583,7 @@ async function verifyPartialRestart(page) {
   assert.notEqual(after.createdAt, before.createdAt, "Starting again must create a fresh timestamp");
   assert.equal(after.question, question, "The same question can start a new independent cast");
   assert.equal("data" in after, false, "Starting again must discard the retired partial facts");
-  log("Stored partial stays preserved on clean Home; explicit new start replaces identity and facts PASS");
+  log("Three Coin 4/6 ordinary Resume restores exact facts; explicit fresh start independently replaces identity and facts PASS");
 }
 
 async function verifyYarrowPartialRestart(page) {
