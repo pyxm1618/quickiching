@@ -535,11 +535,21 @@ async function verifyHistorySaveRetry(browser) {
 
     await pending.respond({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "READING_SAVE_FAILED" }) });
     pending = null;
-    await page.waitForSelector("[data-retry-account-reading-save]");
+    await page.waitForSelector('[data-retry-account-reading-save="true"]');
+    assert(await page.$("[data-result-choice]"), "Save failure must remain on the canonical Result Choice surface");
     assert.equal(await page.$("[data-public-reading-result]"), null, "Save failure must keep the result concealed");
+    assert(!(await page.evaluate(() => document.body?.innerText.includes("Save Your Reading"))), "Retired standalone Saving page must not return");
+    assert(!(await page.evaluate(() => document.body?.innerText.includes("Saved to My Readings"))), "Retired standalone Saved/Preparing page must not return");
 
-    await clickButton(page, "Retry saving this cast");
-    await page.waitForSelector("[data-account-reading-saving]");
+    await page.waitForFunction(
+      () => {
+        const node = document.querySelector('[data-retry-account-reading-save="true"]');
+        return node instanceof HTMLButtonElement && !node.disabled;
+      },
+      { timeout: 15_000 },
+    );
+    await page.click('[data-retry-account-reading-save="true"]');
+    await page.waitForSelector('[data-account-reading-saving="true"]');
     assert(pending, "Retry must issue the same POST /api/readings");
     assert.deepEqual(requests[1], requests[0], "Retry must reuse the identical saved-cast payload");
     assert.equal(requests[1].clientCastingId, fixtureSessionId, "History save must use the same stable browser casting id");
