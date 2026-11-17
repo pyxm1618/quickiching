@@ -46,7 +46,7 @@ describe("approved scene navigation integration",()=>{
  it("renders the official Startup Fame badge only on the S01 homepage surface",()=>{
   const home=renderToStaticMarkup(<SceneNavigation locale="en" contract={surfaceContract("S01")}/>);
   expect(home).toContain('class="scene-partnership"');
-  expect(home).toContain('href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"');
+  expect(home).toContain('href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"'.replace("&","&amp;"));
   expect(home).toContain('src="https://startupfa.me/badge?t=small&amp;theme=dark"');
   expect(home).toContain('alt="Quick I Ching - Featured on Startup Fame"');
   expect(home).not.toContain("BetterLaunch");
