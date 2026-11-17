@@ -65,7 +65,7 @@ async function inspectBrandChrome(page, label) {
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     };
   });
-  assert(state.source.includes(BRAND_ASSET), `${label}: formal brand image missing: ${state.source}`);
+  const decodedSource = decodeURIComponent(state.source);\n  assert(decodedSource.includes(BRAND_ASSET), `${label}: formal brand image missing: ${state.source}`);
   assert(state.width > 0 && state.height > 0, `${label}: approved brand image must remain visible`);
   if (scene) {
     assert.equal(state.imageAlt, "", `${label}: decorative scene mark must retain its adjacent accessible brand text`);
@@ -74,8 +74,8 @@ async function inspectBrandChrome(page, label) {
     assert.equal(state.objectFit, "contain");
     assert.equal(state.filter, "none", `${label}: shared formal brand mark must not use the retired inverted treatment`);
   }
-  assert(!state.source.includes("/quick-i-ching-logo-mark.png"), `${label}: retired logo asset is still active`);
-  assert(!state.source.endsWith("/navigation/logo.webp"), `${label}: duplicate scene logo source is still active`);
+  assert(!decodedSource.includes("/quick-i-ching-logo-mark.png"), `${label}: retired logo asset is still active`);
+  assert(!decodedSource.includes("/navigation/logo.webp"), `${label}: duplicate scene logo source is still active`);
   assert(state.text.includes("Quick I Ching"), `${label}: visible brand text missing`);
   assert.equal(state.retiredFooter, false, `${label}: retired global Footer must stay absent`);
   assert.equal(state.overflow, false, `${label}: horizontal overflow`);
