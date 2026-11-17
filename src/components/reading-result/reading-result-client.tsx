@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { RitualRevealTransition } from "@/components/public-reading/ritual-reveal-transition";
-import { ResultChoiceView } from "@/components/reading-result/result-choice-client";
+import { ResultChoiceLoadingShell, ResultChoiceView } from "@/components/reading-result/result-choice-client";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import type { HexagramInterpretationBundle } from "@/domain/interpretation/v2/types";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
@@ -709,15 +709,7 @@ export function ReadingResultClient({
   }
 
   if (state.kind === "loading") {
-    return (
-      <div
-        className="sr-only"
-        role="status"
-        aria-label={t("Loading your completed reading", "正在恢复已完成的起卦结果")}
-      >
-        {t("Restoring your sealed reading…", "正在恢复已经落定的起卦结果…")}
-      </div>
-    );
+    return <ResultChoiceLoadingShell locale={locale} />;
   }
 
   if (state.kind === "empty") {
