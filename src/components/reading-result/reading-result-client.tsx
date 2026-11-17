@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { RitualRevealTransition } from "@/components/public-reading/ritual-reveal-transition";
-import { ResultChoiceLoadingShell, ResultChoiceView } from "@/components/reading-result/result-choice-client";
+import { ResultChoiceView } from "@/components/reading-result/result-choice-client";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import type { HexagramInterpretationBundle } from "@/domain/interpretation/v2/types";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
@@ -709,7 +709,17 @@ export function ReadingResultClient({
   }
 
   if (state.kind === "loading") {
-    return <ResultChoiceLoadingShell locale={locale} />;
+    const choice = <ResultChoiceView locale={locale} />;
+    return (
+      <RitualRevealTransition stage="gate">
+        {pageMode === "deep" ? (
+          <div data-realm="chamber" className="ritual-result-scene" data-result-choice-pending-shell>
+            <div className="ritual-room" aria-hidden="true" />
+            {choice}
+          </div>
+        ) : choice}
+      </RitualRevealTransition>
+    );
   }
 
   if (state.kind === "empty") {
