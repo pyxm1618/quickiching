@@ -240,6 +240,15 @@ async function verifyMethodDetailIsNotASecondEntry(page) {
 }
 
 
+async function verifyNoPartialResumeAbsent(page) {
+  await seed(page);
+  await page.goto(BASE + "/", { waitUntil: "networkidle0" });
+  await page.waitForSelector('[data-experience-stage="landing"]', { timeout: 15_000 });
+  assert.equal(await page.$("[data-reading-resume]"), null, "Home must not render a Resume affordance when no partial Three Coin session exists");
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Home must not render a Resume action when no partial Three Coin session exists");
+  log("C1 — no partial session: Home has no Resume affordance");
+}
+
 async function verifyQuestionOnlyResume(page) {
   await seed(page, { threeCoinSession: threeCoinQuestionOnlyPayload(ID_B) });
   await page.goto(BASE + "/", { waitUntil: "networkidle0" });
@@ -893,6 +902,7 @@ async function main() {
   try {
     log(`Using ${usingSystemChrome ? "system Chrome" : "bundled Chromium"} at ${executablePath}`);
     await verifyMethodDetailIsNotASecondEntry(page);
+    await verifyNoPartialResumeAbsent(page);
     await verifyQuestionOnlyResume(page);
     await verifyPartialResume(page);
     await verifyFreshCompletionNonReentry(page);
