@@ -54,7 +54,10 @@ describe("approved scene navigation integration",()=>{
 
   const chineseHome=renderToStaticMarkup(<SceneNavigation locale="zh-Hans" contract={surfaceContract("S01")}/>);
   expect(chineseHome).toContain("合作伙伴");
+  expect(chineseHome).toContain('aria-label="打开合作伙伴网站"');
+  expect(chineseHome).toContain('alt="合作伙伴标识"');
   expect(chineseHome).not.toContain("In partnership with");
+  expect(chineseHome).not.toContain("Quick I Ching 与 Startup Fame 合作");
 
   const refining=renderToStaticMarkup(<SceneNavigation locale="en" contract={surfaceContract("S02")}/>);
   expect(refining).not.toContain("scene-partnership");
