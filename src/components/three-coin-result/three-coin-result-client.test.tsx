@@ -325,7 +325,8 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "我是否应该停止服用处方药？" }} />,
     );
     expect(html).toContain('data-completed-cast-gate="auth-required"');
-    expect(html).toContain("登录、保存并查看本次卦象");
+    expect(html).toContain("登录并继续免费解卦");
+    expect(html).toContain("data-result-choice");
     expect(html).not.toContain("data-primary-card");
     expect(html).not.toContain("免费卦象解读仍可完整查看");
   });
