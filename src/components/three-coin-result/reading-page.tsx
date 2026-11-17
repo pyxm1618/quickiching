@@ -24,11 +24,11 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
     sessionId ? loadCastingView(sessionId) : Promise.resolve(null),
   ]);
   const result = castingView?.result;
-  const initialInterpretationBundles = result ? {
+  const initialInterpretationBundles = pageMode === "free" && result ? {
     primary: await loadHexagramInterpretation(result.primaryHexagramNumber),
     relating: result.relatingHexagramNumber === null ? null : await loadHexagramInterpretation(result.relatingHexagramNumber),
   } : undefined;
-  const initialLocalizedContent = locale === "zh-Hans" && result ? zhHansReadingContentFor([
+  const initialLocalizedContent = pageMode === "free" && locale === "zh-Hans" && result ? zhHansReadingContentFor([
     result.primaryHexagramNumber,
     ...(result.relatingHexagramNumber === null ? [] : [result.relatingHexagramNumber]),
   ]) : undefined;
