@@ -542,17 +542,20 @@ async function main() {
     await page.goto(`${BASE}/zh/readings/result?session=${completedThreeCoinId}`, { waitUntil: "networkidle0" });
     await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 5000 });
     const completedState = await page.evaluate(() => ({
-      heading: document.querySelector("h1")?.textContent?.trim() ?? "",
-      completionCopy: document.querySelector(".ritual-gate-complete")?.textContent?.trim() ?? "",
+      heading: document.querySelector("[data-result-choice-question] h1")?.textContent?.trim() ?? "",
+      resultChoice: document.querySelector("[data-result-choice='true']") !== null,
       authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
       sixLines: document.querySelector("[data-completed-six-lines]") !== null,
+      freeChoice: document.querySelector("[data-result-choice-free]") !== null,
+      deepChoice: document.querySelector("[data-result-choice-deep]") !== null,
       primaryCard: document.querySelector("[data-primary-card]") !== null,
       deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
     }));
-    assert.equal(completedState.heading, "保存本次起卦", `Completed-cast heading mismatch: ${completedState.heading}`);
-    assert.equal(completedState.completionCopy, "六爻已经完成", "The formal gate must confirm six-line completion");
+    assert.equal(completedState.heading, "我现在是否适合换一份工作？", `Completed-cast Result Choice must preserve the exact question, got: ${completedState.heading}`);
+    assert(completedState.resultChoice, "Completed Chinese Three-Coin cast must stay on the canonical Result Choice presentation");
     assert(completedState.authGate, "Completed Chinese Three-Coin cast must require sign-in before reveal");
     assert(completedState.sixLines, "Completed Chinese Three-Coin cast must preserve all six lines");
+    assert(completedState.freeChoice && completedState.deepChoice, "Authenticated continuation gate must preserve both Free and Deep choices");
     assert.equal(completedState.primaryCard, false, "Primary result must remain hidden before sign-in and account persistence");
     assert.equal(completedState.deepEntry, false, "Deep Reading must remain hidden before result reveal");
     await assertPurity(page, "Three-Coin Completed Cast Auth Gate");
