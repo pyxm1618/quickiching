@@ -66,6 +66,37 @@ function HexagramGlyph({
   );
 }
 
+export function ResultChoiceLoadingShell({ locale = "en" }: { locale?: "en" | "zh-Hans" }) {
+  const zh = locale === "zh-Hans";
+  return (
+    <main className={styles.page} data-result-choice-loading-shell aria-busy="true">
+      <div className={styles.scene}>
+        <div className={`${styles.artLayer} ${styles.leftBlossom}`} aria-hidden="true">
+          <img src={RESULT_CHOICE_ASSETS.leftBlossom} width="650" height="478" alt="" decoding="async" />
+        </div>
+        <section className={styles.questionBanner} aria-hidden="true">
+          <img src={RESULT_CHOICE_ASSETS.question} width="900" height="300" alt="" fetchPriority="high" />
+        </section>
+        <section className={`${styles.stone} ${styles.primaryStone}`} aria-hidden="true">
+          <img src={RESULT_CHOICE_ASSETS.primary} width="650" height="597" alt="" fetchPriority="high" />
+        </section>
+        <div className={styles.transition} aria-hidden="true">
+          <img src={RESULT_CHOICE_ASSETS.taiji} width="520" height="347" alt="" fetchPriority="high" />
+        </div>
+        <section className={`${styles.stone} ${styles.changingStone}`} aria-hidden="true">
+          <img src={RESULT_CHOICE_ASSETS.changing} width="650" height="580" alt="" fetchPriority="high" />
+        </section>
+        <div className={`${styles.artLayer} ${styles.rightForeground}`} aria-hidden="true">
+          <img src={RESULT_CHOICE_ASSETS.rightForeground} width="650" height="412" alt="" decoding="async" />
+        </div>
+        <p className={styles.loadingChoiceStatus} role="status">
+          {zh ? "正在恢复这次已经完成的起卦…" : "Restoring your completed cast…"}
+        </p>
+      </div>
+    </main>
+  );
+}
+
 export type ResultChoiceContinuation = {
   intent: "free" | "deep";
   state: "auth-required" | "saving" | "save-error" | "preparing" | "content-error";
