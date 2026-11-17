@@ -424,7 +424,7 @@
   width: calc(98 * var(--u));
   height: calc(35 * var(--u));
   opacity: .22;
-  background: url('/ritual/decor/gold-cloud.png') center / contain no-repeat;
+  background: url('/ritual/decor/gold-cloud-button-2x.png') center / contain no-repeat;
   mix-blend-mode: multiply;
 }
 .deepAction::before { left: calc(12 * var(--u)); }
