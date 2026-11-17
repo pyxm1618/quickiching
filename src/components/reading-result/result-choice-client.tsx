@@ -56,6 +56,9 @@ function HexagramGlyph({
           <div
             key={index}
             className={`${styles.line} ${yang ? styles.yang : styles.yin} ${changing ? styles.changing : ""}`}
+            data-line-position={index + 1}
+            data-line-value={value}
+            data-line-changing={changing ? "true" : "false"}
           >
             <span />
             <span />
@@ -123,7 +126,7 @@ export function ResultChoiceView({
     >
       <div className={styles.scene}>
         <div className={`${styles.artLayer} ${styles.leftBlossom}`} aria-hidden="true">
-          <img src={RESULT_CHOICE_ASSETS.leftBlossom} width="650" height="478" alt="" decoding="async" />
+          <img src={RESULT_CHOICE_ASSETS.leftBlossom} width="650" height="478" alt="" decoding="async" fetchPriority="low" />
         </div>
 
         <section className={styles.questionBanner} data-result-choice-question>
@@ -135,7 +138,7 @@ export function ResultChoiceView({
         </section>
 
         <section className={`${styles.stone} ${styles.primaryStone}`} data-result-choice-primary data-completed-six-lines={continuation ? "true" : undefined}>
-          <img src={RESULT_CHOICE_ASSETS.primary} width="650" height="597" alt="" fetchPriority="high" />
+          <img src={RESULT_CHOICE_ASSETS.primary} width="650" height="597" alt="" fetchPriority="high" decoding="sync" />
           {reading && primary ? <>
             <p className={styles.stoneTitle}>{zh ? "本卦" : "Primary Hexagram"}</p>
             <h2 className={styles.stoneName} style={{ "--name-scale": nameScaleFor(zh ? primary.chineseName : primary.englishName) } as React.CSSProperties}>{zh ? primary.chineseName : primary.englishName}</h2>
@@ -153,7 +156,7 @@ export function ResultChoiceView({
         </section>
 
         <div className={styles.transition} data-result-choice-changing>
-          <img src={RESULT_CHOICE_ASSETS.taiji} width="520" height="347" alt="" fetchPriority="high" />
+          <img src={RESULT_CHOICE_ASSETS.taiji} width="520" height="347" alt="" fetchPriority="low" decoding="async" />
           <p className={styles.changingAnnotation}>{changingLabel}</p>
         </div>
 
@@ -162,7 +165,7 @@ export function ResultChoiceView({
           data-result-choice-relating
           data-result-choice-relating-state={unchanged ? "unchanged" : "changing"}
         >
-          <img src={RESULT_CHOICE_ASSETS.changing} width="650" height="580" alt="" fetchPriority="high" />
+          <img src={RESULT_CHOICE_ASSETS.changing} width="650" height="580" alt="" fetchPriority="low" decoding="async" />
           <p className={styles.stoneTitle}>
             {unchanged
               ? (zh ? "卦象不变" : "Unchanged Hexagram")
@@ -202,7 +205,7 @@ export function ResultChoiceView({
         </section>
 
         <div className={`${styles.artLayer} ${styles.rightForeground}`} aria-hidden="true">
-          <img src={RESULT_CHOICE_ASSETS.rightForeground} width="650" height="412" alt="" decoding="async" />
+          <img src={RESULT_CHOICE_ASSETS.rightForeground} width="650" height="412" alt="" decoding="async" fetchPriority="low" />
         </div>
 
         {reading ? <nav
