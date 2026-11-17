@@ -12,7 +12,7 @@ execFileSync('bun',['scripts/fixtures/build-reading-business-fixture.mjs',direct
 const server = createServer(async (request,response) => {
   const path = new URL(request.url,'http://localhost').pathname;
   const fixtureAsset = ['.js','.css'].includes(extname(path)) ? path.slice(1) : null;
-  const publicAsset = ['/free-reading/','/ai-deep-reading/','/ritual/','/performance/','/account/'].some(prefix=>path.startsWith(prefix))
+  const publicAsset = ['/free-reading/','/ai-deep-reading/','/ritual/','/performance/','/account/','/result-choice/'].some(prefix=>path.startsWith(prefix))
     ? join(process.cwd(),'public',path.slice(1))
     : null;
   try {
