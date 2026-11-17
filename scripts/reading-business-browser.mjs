@@ -196,8 +196,8 @@ try {
     const retryPayload=JSON.parse(continued.saves[1].body);
     assert.equal(retryPayload.clientCastingId,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/${intent}: Retry must keep exact clientCastingId`);
     assert.equal(retryPayload.question,locale==='zh'?'我现在是否适合换一份工作？':'Should I change to a new job?',`${locale}/${method}/${intent}: Retry must keep exact question`);
-    assert.deepEqual(retryPayload.lineValuesBottomUp,method==='mei_hua_number_time'?retryPayload.lineValuesBottomUp:retryPayload.lineValuesBottomUp,`${locale}/${method}/${intent}: six-line payload must remain present`);
     assert.equal(retryPayload.lineValuesBottomUp.length,6,`${locale}/${method}/${intent}: Retry must keep all six lines`);
+    assert.ok(retryPayload.lineValuesBottomUp.every(value=>[6,7,8,9].includes(value)),`${locale}/${method}/${intent}: Retry must keep valid sealed line values`);
     assert.equal(continued.session,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/${intent}: authoritative URL session must keep exact id`);
     assert.deepEqual(continued.pendingKeys,[],`${locale}/${method}/${intent}: durable save must remove only the completed exact Pending record`);
     assert.ok(!continued.text.includes('Save Your Reading'),`${locale}/${method}/${intent}: retired Saving page must not reappear after Retry`);
