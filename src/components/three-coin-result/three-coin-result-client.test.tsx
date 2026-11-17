@@ -12,7 +12,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-import { ThreeCoinResultClient, getResultRevealGate, getTerminalCreditReconciliation, hasRequiredInterpretationBundles } from "./three-coin-result-client";
+import { ThreeCoinResultClient, getResultRevealGate, getTerminalCreditReconciliation, hasRequiredInterpretationBundles, initialReadingResultState } from "./three-coin-result-client";
 import { AiDeepReadingResult } from "./ai-deep-reading-result";
 import { zhHansReadingContentFor } from "@/content/mei-hua-yi-shu/zh-Hans";
 import { buildPublicReading } from "@/domain/public-reading/reading";
@@ -99,6 +99,54 @@ describe("ThreeCoinResultClient auth-save-reveal gate", () => {
     expect(html).not.toContain("data-primary-card");
     expect(html).not.toContain("data-ritual-result-card");
     expect(html).not.toContain("data-deep-reading-entry");
+  });
+});
+
+describe("ThreeCoinResultClient server-backed initial state", () => {
+  it("uses owned six-line server truth as the initial ready state", () => {
+    expect(initialReadingResultState({
+      initialCastingView: {
+        castingId: "cast_server",
+        context: "What should I understand now?",
+        createdAt: "2026-11-17T00:00:00.000Z",
+        lineValuesBottomUp: [7, 8, 9, 6, 7, 8],
+        owns: true,
+      },
+    })).toEqual({
+      kind: "ready",
+      lineValues: [7, 8, 9, 6, 7, 8],
+      question: "What should I understand now?",
+      createdAt: "2026-11-17T00:00:00.000Z",
+    });
+  });
+
+  it("renders owned server-backed six-line truth on the first render without the loading shell", async () => {
+    const lineValues = [7, 7, 7, 7, 7, 7];
+    const reading = buildPublicReading({
+      method: "three-coin",
+      methodVersion: "three-coin-v1",
+      lineValuesBottomUp: lineValues,
+      evidence: { kind: "three-coin", steps: [] },
+    });
+    const primary = await loadHexagramInterpretation(reading.primaryHexagram);
+
+    const html = renderToStaticMarkup(
+      <ThreeCoinResultClient
+        locale="en"
+        initialUser={{ id: "usr_server", email: "server@example.com" }}
+        initialInterpretationBundles={{ primary, relating: null }}
+        initialCastingView={{
+          castingId: "cast_server_first_render",
+          context: "What should I understand now?",
+          createdAt: "2026-11-17T00:00:00.000Z",
+          lineValuesBottomUp: lineValues,
+          owns: true,
+        }}
+      />,
+    );
+
+    expect(html).toContain("data-primary-card");
+    expect(html).not.toContain("Restoring your sealed reading…");
   });
 });
 
