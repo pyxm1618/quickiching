@@ -43,6 +43,26 @@ describe("approved scene navigation integration",()=>{
   const html=core+methods+info;
   for(const label of ["Hexagrams","Other Methods","Info","Yarrow Stalks","Mei Hua Yi Shu","Manual Cast","Privacy Settings","EN","中文"])expect(html).toContain(label);
  });
+ it("renders the official Startup Fame badge only on the S01 homepage surface",()=>{
+  const home=renderToStaticMarkup(<SceneNavigation locale="en" contract={surfaceContract("S01")}/>);
+  expect(home).toContain('class="scene-partnership"');
+  expect(home).toContain('href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"');
+  expect(home).toContain('src="https://startupfa.me/badge?t=small&amp;theme=dark"');
+  expect(home).toContain('alt="Quick I Ching - Featured on Startup Fame"');
+  expect(home).toContain("In partnership with");
+  expect(home).not.toContain("BetterLaunch");
+
+  const chineseHome=renderToStaticMarkup(<SceneNavigation locale="zh-Hans" contract={surfaceContract("S01")}/>);
+  expect(chineseHome).toContain("合作伙伴");
+  expect(chineseHome).toContain('aria-label="打开合作伙伴网站"');
+  expect(chineseHome).toContain('alt="合作伙伴标识"');
+  expect(chineseHome).not.toContain("In partnership with");
+  expect(chineseHome).not.toContain("Quick I Ching 与 Startup Fame 合作");
+
+  const refining=renderToStaticMarkup(<SceneNavigation locale="en" contract={surfaceContract("S02")}/>);
+  expect(refining).not.toContain("scene-partnership");
+  expect(refining).not.toContain("startupfa.me");
+ });
  it("reuses the sign-in callback without introducing a second signup flow",()=>{
   const html=renderToStaticMarkup(<UserNavControl appearance="scene" initialUser={null}/>);
   expect(html).toContain('href="/signin?callbackURL=%2F"');expect(html).toContain("Sign In");expect(html).not.toContain('/signup');

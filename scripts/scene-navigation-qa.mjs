@@ -16,6 +16,8 @@ async function openSceneHome(page,locale){
  const home=locale==='en'?'/':'/zh';
  await page.goto(base+home+'?ritualTime=700',{waitUntil:'networkidle0'});
  await page.waitForSelector('.scene-navigation');
+ const startupFamePartnership=await page.$eval('.scene-partnership',link=>{const image=link.querySelector('img');return {href:link.getAttribute('href'),src:image?.getAttribute('src'),width:image?.getAttribute('width'),height:image?.getAttribute('height')};});
+ check('Startup Fame partnership markup retained',startupFamePartnership.href==='https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'&&startupFamePartnership.src==='https://startupfa.me/badge?t=small&theme=dark'&&startupFamePartnership.width==='180'&&startupFamePartnership.height==='27');
 }
 async function clickSceneDestination(page,locale,path){
  const prefix=locale==='en'?'':'/zh';
@@ -55,14 +57,16 @@ try {
  await page.goto(base+'/?ritualTime=700',{waitUntil:'networkidle0'});
  for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent==='Decline'))await button.click();
  await page.waitForSelector('.scene-navigation');
- await page.evaluate(async()=>{for(const image of document.images)image.loading='eager';await Promise.all([...document.images].map(image=>image.decode()));await document.fonts.ready;});
+ // The Startup Fame badge is an external partnership asset, not an approved first-party navigation asset.
+ // Keep first-party image readiness strict while validating the external badge markup separately below.
+ await page.evaluate(async()=>{const controlledImages=[...document.images].filter(image=>!image.matches('.scene-partnership img'));for(const image of controlledImages)image.loading='eager';await Promise.all(controlledImages.map(image=>image.decode()));await document.fonts.ready;});
  for(const state of ['default','methods','info']) {
   const width=state==='default'?1671:1670,height=state==='default'?941:942;
   await page.setViewport({width,height,deviceScaleFactor:1});
   if(state!=='default')await page.click(`.scene-scroll-${state}`);
   await page.waitForFunction(value=>document.querySelector('.scene-navigation').dataset.scenePanel===(value==='default'?'closed':value),{},state);
   await page.mouse.move(1000,100);await new Promise(resolve=>setTimeout(resolve,800));
-  const metadata=await page.evaluate(()=>({url:location.href,title:document.title,viewport:{width:innerWidth,height:innerHeight},dpr:devicePixelRatio,fontsReady:document.fonts.status==='loaded',imagesReady:[...document.images].every(image=>image.complete&&image.naturalWidth>0),overflow:document.documentElement.scrollWidth>innerWidth,fullPage:false,screenshotScale:'css',panel:document.querySelector('.scene-navigation').dataset.scenePanel,elements:[...document.querySelectorAll('.scene-brand,.scene-utility,.scene-scroll,.scene-scroll-holder,.scene-panel:not([hidden]),.scene-panel:not([hidden]) h2,.scene-panel:not([hidden]) h3,.scene-panel:not([hidden]) a,.scene-panel:not([hidden]) p')].map(node=>({className:node.className,text:node.textContent,rect:node.getBoundingClientRect().toJSON(),font:getComputedStyle(node).font}))}));
+  const metadata=await page.evaluate(()=>({url:location.href,title:document.title,viewport:{width:innerWidth,height:innerHeight},dpr:devicePixelRatio,fontsReady:document.fonts.status==='loaded',imagesReady:[...document.images].filter(image=>!image.matches('.scene-partnership img')).every(image=>image.complete&&image.naturalWidth>0),overflow:document.documentElement.scrollWidth>innerWidth,fullPage:false,screenshotScale:'css',panel:document.querySelector('.scene-navigation').dataset.scenePanel,elements:[...document.querySelectorAll('.scene-brand,.scene-utility,.scene-scroll,.scene-scroll-holder,.scene-panel:not([hidden]),.scene-panel:not([hidden]) h2,.scene-panel:not([hidden]) h3,.scene-panel:not([hidden]) a,.scene-panel:not([hidden]) p')].map(node=>({className:node.className,text:node.textContent,rect:node.getBoundingClientRect().toJSON(),font:getComputedStyle(node).font}))}));
   check(`${state}: exact viewport and DPR`,metadata.viewport.width===width&&metadata.viewport.height===height&&metadata.dpr===1);
   check(`${state}: images and fonts ready`,metadata.imagesReady&&metadata.fontsReady);
   check(`${state}: no horizontal overflow`,!metadata.overflow);
