@@ -66,12 +66,23 @@ function HexagramGlyph({
   );
 }
 
+export type ResultChoiceContinuation = {
+  intent: "free" | "deep";
+  state: "auth-required" | "saving" | "save-error" | "preparing" | "content-error";
+  signinHref?: string;
+  alternateSigninHref?: string;
+  message?: string;
+  onRetry?: () => void;
+};
+
 export function ResultChoiceView({
   reading,
   locale = "en",
+  continuation,
 }: {
   reading: PublicReading;
   locale?: "en" | "zh-Hans";
+  continuation?: ResultChoiceContinuation;
 }) {
   const zh = locale === "zh-Hans";
   const prefix = zh ? "/zh" : "";
@@ -95,6 +106,15 @@ export function ResultChoiceView({
       data-result-choice
       data-reading-method={reading.method}
       data-reading-session={reading.id}
+      data-completed-cast-gate={continuation?.state === "auth-required"
+        ? "auth-required"
+        : continuation?.state === "save-error"
+          ? "save-error"
+          : continuation?.state === "saving"
+            ? "saving"
+            : undefined}
+      data-result-reveal-pending={continuation?.state === "preparing" ? "true" : undefined}
+      data-reading-interpretation-loading={continuation?.state === "preparing" ? "true" : undefined}
     >
       <div className={styles.scene}>
         <div className={`${styles.artLayer} ${styles.leftBlossom}`} aria-hidden="true">
@@ -176,13 +196,107 @@ export function ResultChoiceView({
           <img src={RESULT_CHOICE_ASSETS.rightForeground} width="650" height="412" alt="" decoding="async" />
         </div>
 
-        <nav className={styles.actions} aria-label={zh ? "选择解读方式" : "Choose a reading"}>
-          <Link href={deepHref} className={styles.deepAction} data-result-choice-deep>
-            <strong>{zh ? "深度解读" : "Deep Reading"}</strong>
-          </Link>
-          <Link href={freeHref} className={styles.freeAction} data-result-choice-free>
-            {zh ? "免费解卦" : "Free Reading"}
-          </Link>
+        <nav
+          className={styles.actions}
+          aria-label={zh ? "选择解读方式" : "Choose a reading"}
+          data-result-choice-continuation={continuation?.state}
+        >
+          {continuation?.state === "auth-required" ? (
+            <>
+              <Link
+                href={continuation.intent === "deep" ? continuation.signinHref ?? deepHref : continuation.alternateSigninHref ?? deepHref}
+                prefetch={false}
+                className={styles.deepAction}
+                data-result-choice-deep
+                data-auth-reading-intent={continuation.intent === "deep" ? "deep" : undefined}
+                data-auth-reading-alternate-intent={continuation.intent === "free" ? "deep" : undefined}
+              >
+                <strong>{continuation.intent === "deep"
+                  ? (zh ? "登录并继续深度解读" : "Sign In for Deep Reading")
+                  : (zh ? "深度解读" : "Deep Reading")}</strong>
+              </Link>
+              <Link
+                href={continuation.intent === "free" ? continuation.signinHref ?? freeHref : continuation.alternateSigninHref ?? freeHref}
+                prefetch={false}
+                className={styles.freeAction}
+                data-result-choice-free
+                data-auth-reading-intent={continuation.intent === "free" ? "free" : undefined}
+                data-auth-reading-alternate-intent={continuation.intent === "deep" ? "free" : undefined}
+              >
+                {continuation.intent === "free"
+                  ? (zh ? "登录并继续免费解卦" : "Sign In for Free Reading")
+                  : (zh ? "免费解卦" : "Free Reading")}
+              </Link>
+              <p className={styles.continuationStatus}>
+                {continuation.message ?? (zh ? "登录后将继续使用这次已经完成的同一卦。" : "Sign in to continue with this exact completed cast.")}
+              </p>
+            </>
+          ) : continuation ? (
+            <>
+              <button
+                type="button"
+                className={styles.deepAction}
+                data-result-choice-deep
+                data-account-reading-saving={continuation.state === "saving" && continuation.intent === "deep" ? "true" : undefined}
+                data-retry-account-reading-save={continuation.state === "save-error" && continuation.intent === "deep" ? "true" : undefined}
+                onClick={continuation.state === "save-error" && continuation.intent === "deep"
+                  ? continuation.onRetry
+                  : continuation.state === "content-error" && continuation.intent === "deep"
+                    ? continuation.onRetry
+                    : undefined}
+                disabled={continuation.intent !== "deep" || (continuation.state !== "save-error" && continuation.state !== "content-error")}
+              >
+                <strong>{continuation.intent === "deep" && continuation.state === "saving"
+                  ? (zh ? "正在保存…" : "Saving…")
+                  : continuation.intent === "deep" && continuation.state === "save-error"
+                    ? (zh ? "重试保存" : "Retry Save")
+                    : (zh ? "深度解读" : "Deep Reading")}</strong>
+              </button>
+              <button
+                type="button"
+                className={styles.freeAction}
+                data-result-choice-free
+                data-account-reading-saving={continuation.state === "saving" && continuation.intent === "free" ? "true" : undefined}
+                data-retry-account-reading-save={continuation.state === "save-error" && continuation.intent === "free" ? "true" : undefined}
+                onClick={(continuation.state === "save-error" || continuation.state === "content-error") && continuation.intent === "free"
+                  ? continuation.onRetry
+                  : undefined}
+                disabled={continuation.intent !== "free" || (continuation.state !== "save-error" && continuation.state !== "content-error")}
+              >
+                {continuation.intent === "free" && continuation.state === "saving"
+                  ? (zh ? "正在保存…" : "Saving…")
+                  : continuation.intent === "free" && continuation.state === "preparing"
+                    ? (zh ? "正在准备解卦…" : "Preparing Reading…")
+                    : continuation.intent === "free" && continuation.state === "save-error"
+                      ? (zh ? "重试保存" : "Retry Save")
+                      : continuation.intent === "free" && continuation.state === "content-error"
+                        ? (zh ? "重试准备解卦" : "Retry Reading Preparation")
+                        : (zh ? "免费解卦" : "Free Reading")}
+              </button>
+              <p
+                className={styles.continuationStatus}
+                role={continuation.state === "save-error" || continuation.state === "content-error" ? "alert" : "status"}
+                data-account-reading-save-error={continuation.state === "save-error" ? "true" : undefined}
+              >
+                {continuation.message ?? (continuation.state === "saving"
+                  ? (zh ? "正在保存这次已经完成的同一卦；完成后会直接继续。" : "Saving this exact completed cast; you will continue automatically.")
+                  : continuation.state === "preparing"
+                    ? (zh ? "正在准备免费解卦；保存与内容准备完成后会直接进入结果。" : "Preparing the Free Reading; it will open as soon as saving and content are ready.")
+                    : continuation.state === "content-error"
+                      ? (zh ? "解卦内容准备失败。这次卦象已保留，可原地重试。" : "Reading content could not be prepared. This exact cast is preserved; retry here.")
+                      : (zh ? "保存失败。这次卦象仍然保留，可原地重试。" : "Saving failed. This exact cast is preserved; retry here."))}
+              </p>
+            </>
+          ) : (
+            <>
+              <Link href={deepHref} className={styles.deepAction} data-result-choice-deep>
+                <strong>{zh ? "深度解读" : "Deep Reading"}</strong>
+              </Link>
+              <Link href={freeHref} className={styles.freeAction} data-result-choice-free>
+                {zh ? "免费解卦" : "Free Reading"}
+              </Link>
+            </>
+          )}
         </nav>
 
         <Link href={zh ? "/zh" : "/"} prefetch={false} className={styles.exitAction} data-result-choice-exit>
