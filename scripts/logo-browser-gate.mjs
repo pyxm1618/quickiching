@@ -65,7 +65,8 @@ async function inspectBrandChrome(page, label) {
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     };
   });
-  const decodedSource = decodeURIComponent(state.source);\n  assert(decodedSource.includes(BRAND_ASSET), `${label}: formal brand image missing: ${state.source}`);
+  const decodedSource = decodeURIComponent(state.source);
+  assert(decodedSource.includes(BRAND_ASSET), `${label}: formal brand image missing: ${state.source}`);
   assert(state.width > 0 && state.height > 0, `${label}: approved brand image must remain visible`);
   if (scene) {
     assert.equal(state.imageAlt, "", `${label}: decorative scene mark must retain its adjacent accessible brand text`);
