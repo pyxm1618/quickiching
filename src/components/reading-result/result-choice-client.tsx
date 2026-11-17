@@ -67,22 +67,7 @@ function HexagramGlyph({
 }
 
 export function ResultChoiceLoadingShell({ locale = "en" }: { locale?: "en" | "zh-Hans" }) {
-  const zh = locale === "zh-Hans";
-  return (
-    <main className={styles.page} data-result-choice-loading-shell aria-busy="true">
-      <div className={styles.scene}>
-        <section className={styles.questionBanner} aria-hidden="true" />
-        <section className={`${styles.stone} ${styles.primaryStone}`} aria-hidden="true">
-          <img src={RESULT_CHOICE_ASSETS.primary} width="650" height="597" alt="" fetchPriority="high" />
-        </section>
-        <div className={styles.transition} aria-hidden="true" />
-        <section className={`${styles.stone} ${styles.changingStone}`} aria-hidden="true" />
-        <p className={styles.loadingChoiceStatus} role="status">
-          {zh ? "正在恢复这次已经完成的起卦…" : "Restoring your completed cast…"}
-        </p>
-      </div>
-    </main>
-  );
+  return <ResultChoiceView locale={locale} />;
 }
 
 export type ResultChoiceContinuation = {
@@ -99,32 +84,36 @@ export function ResultChoiceView({
   locale = "en",
   continuation,
 }: {
-  reading: PublicReading;
+  reading?: PublicReading;
   locale?: "en" | "zh-Hans";
   continuation?: ResultChoiceContinuation;
 }) {
   const zh = locale === "zh-Hans";
   const prefix = zh ? "/zh" : "";
-  const primary = hexagramByNumber(reading.primaryHexagram);
-  const relating = reading.relatingHexagram === null ? null : hexagramByNumber(reading.relatingHexagram);
-  const changedLines = relatingLineValues(reading.lineValuesBottomUp);
+  const primary = reading ? hexagramByNumber(reading.primaryHexagram) : null;
+  const relating = reading && reading.relatingHexagram !== null ? hexagramByNumber(reading.relatingHexagram) : null;
+  const changedLines = reading ? relatingLineValues(reading.lineValuesBottomUp) : [];
   /* A cast with no moving line has no relating hexagram: the primary pattern simply
      stands. The right-hand stone then speaks the no-change truth instead of
      inventing a 变卦 / relating figure. */
-  const unchanged = reading.changingLines.length === 0 && relating === null;
-  const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(reading.id)}`;
-  const deepHref = `${prefix}/readings/deep?session=${encodeURIComponent(reading.id)}`;
-  const changingLabel = reading.changingLines.length
-    ? (zh ? `动爻：第 ${reading.changingLines.join("、")} 爻` : `Changing line${reading.changingLines.length > 1 ? "s" : ""}: ${reading.changingLines.join(", ")}`)
-    : (zh ? "无动爻" : "No changing lines");
-  const question = reading.question?.trim() || (zh ? "本次起卦未记录问题" : "No question was recorded for this cast.");
+  const unchanged = Boolean(reading && reading.changingLines.length === 0 && relating === null);
+  const freeHref = reading ? `${prefix}/readings/result?session=${encodeURIComponent(reading.id)}` : "#";
+  const deepHref = reading ? `${prefix}/readings/deep?session=${encodeURIComponent(reading.id)}` : "#";
+  const changingLabel = reading
+    ? reading.changingLines.length
+      ? (zh ? `动爻：第 ${reading.changingLines.join("、")} 爻` : `Changing line${reading.changingLines.length > 1 ? "s" : ""}: ${reading.changingLines.join(", ")}`)
+      : (zh ? "无动爻" : "No changing lines")
+    : "";
+  const question = reading?.question?.trim() || (reading ? (zh ? "本次起卦未记录问题" : "No question was recorded for this cast.") : "");
 
   return (
     <main
       className={styles.page}
-      data-result-choice
-      data-reading-method={reading.method}
-      data-reading-session={reading.id}
+      data-result-choice={reading ? "true" : undefined}
+      data-result-choice-loading-shell={!reading ? "true" : undefined}
+      aria-busy={!reading ? true : undefined}
+      data-reading-method={reading?.method}
+      data-reading-session={reading?.id}
       data-completed-cast-gate={continuation?.state === "auth-required"
         ? "auth-required"
         : continuation?.state === "save-error"
@@ -143,24 +132,28 @@ export function ResultChoiceView({
 
         <section className={styles.questionBanner} data-result-choice-question>
           <img src={RESULT_CHOICE_ASSETS.question} width="900" height="300" alt="" fetchPriority="high" />
-          <p className={styles.questionLabel}>{zh ? "你的问题" : "Your Question"}</p>
-          <h1 className={styles.questionText}>{question}</h1>
+          {reading ? <>
+            <p className={styles.questionLabel}>{zh ? "你的问题" : "Your Question"}</p>
+            <h1 className={styles.questionText}>{question}</h1>
+          </> : null}
         </section>
 
         <section className={`${styles.stone} ${styles.primaryStone}`} data-result-choice-primary data-completed-six-lines={continuation ? "true" : undefined}>
           <img src={RESULT_CHOICE_ASSETS.primary} width="650" height="597" alt="" fetchPriority="high" />
-          <p className={styles.stoneTitle}>{zh ? "本卦" : "Primary Hexagram"}</p>
-          <h2 className={styles.stoneName} style={{ "--name-scale": nameScaleFor(zh ? primary.chineseName : primary.englishName) } as React.CSSProperties}>{zh ? primary.chineseName : primary.englishName}</h2>
-          <p className={styles.stoneSecondary}>
-            {zh ? `第 ${primary.number} 卦` : `${primary.chineseName} · Hexagram ${primary.number}`}
-          </p>
-          <HexagramGlyph lines={reading.lineValuesBottomUp} movingPositions={reading.changingLines} />
-          <p className={styles.verticalName}>{primary.chineseName}</p>
-          <p className={styles.stoneSeal}>{zh ? "本卦" : "本卦"}</p>
-          <p className={styles.stoneCopy}>
-            <span>{zh ? "当前卦象" : "Current pattern"}</span>
-            <span>{zh ? `第 ${primary.number} 卦` : `Hexagram ${primary.number}`}</span>
-          </p>
+          {reading && primary ? <>
+            <p className={styles.stoneTitle}>{zh ? "本卦" : "Primary Hexagram"}</p>
+            <h2 className={styles.stoneName} style={{ "--name-scale": nameScaleFor(zh ? primary.chineseName : primary.englishName) } as React.CSSProperties}>{zh ? primary.chineseName : primary.englishName}</h2>
+            <p className={styles.stoneSecondary}>
+              {zh ? `第 ${primary.number} 卦` : `${primary.chineseName} · Hexagram ${primary.number}`}
+            </p>
+            <HexagramGlyph lines={reading.lineValuesBottomUp} movingPositions={reading.changingLines} />
+            <p className={styles.verticalName}>{primary.chineseName}</p>
+            <p className={styles.stoneSeal}>{zh ? "本卦" : "本卦"}</p>
+            <p className={styles.stoneCopy}>
+              <span>{zh ? "当前卦象" : "Current pattern"}</span>
+              <span>{zh ? `第 ${primary.number} 卦` : `Hexagram ${primary.number}`}</span>
+            </p>
+          </> : null}
         </section>
 
         <div className={styles.transition} data-result-choice-changing>
@@ -179,7 +172,7 @@ export function ResultChoiceView({
               ? (zh ? "卦象不变" : "Unchanged Hexagram")
               : (zh ? "变卦" : "Changing Hexagram")}
           </p>
-          {unchanged ? (
+          {reading && unchanged && primary ? (
             <>
               <h2 className={styles.stoneName} style={{ "--name-scale": nameScaleFor(zh ? primary.chineseName : primary.englishName) } as React.CSSProperties}>{zh ? primary.chineseName : primary.englishName}</h2>
               <p className={styles.stoneSecondary}>
@@ -193,7 +186,7 @@ export function ResultChoiceView({
                 <span>{zh ? "卦象不变" : "Unchanged hexagram"}</span>
               </p>
             </>
-          ) : relating ? (
+          ) : reading && relating ? (
             <>
               <h2 className={styles.stoneName} style={{ "--name-scale": nameScaleFor(zh ? relating.chineseName : relating.englishName) } as React.CSSProperties}>{zh ? relating.chineseName : relating.englishName}</h2>
               <p className={styles.stoneSecondary}>
@@ -221,7 +214,11 @@ export function ResultChoiceView({
           aria-label={zh ? "选择解读方式" : "Choose a reading"}
           data-result-choice-continuation={continuation?.state}
         >
-          {continuation?.state === "auth-required" ? (
+          {!reading ? (
+            <p className={styles.loadingChoiceStatus} role="status">
+              {zh ? "正在恢复这次已经完成的起卦…" : "Restoring your completed cast…"}
+            </p>
+          ) : continuation?.state === "auth-required" ? (
             <>
               <Link
                 href={continuation.intent === "deep" ? continuation.signinHref ?? deepHref : continuation.alternateSigninHref ?? deepHref}
@@ -319,9 +316,9 @@ export function ResultChoiceView({
           )}
         </nav>
 
-        <Link href={zh ? "/zh" : "/"} prefetch={false} className={styles.exitAction} data-result-choice-exit>
+        {reading ? <Link href={zh ? "/zh" : "/"} prefetch={false} className={styles.exitAction} data-result-choice-exit>
           {zh ? "退出解读" : "Exit Reading"}
-        </Link>
+        </Link> : null}
       </div>
     </main>
   );
