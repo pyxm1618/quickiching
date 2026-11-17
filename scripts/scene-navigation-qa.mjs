@@ -16,8 +16,20 @@ async function openSceneHome(page,locale){
  const home=locale==='en'?'/':'/zh';
  await page.goto(base+home+'?ritualTime=700',{waitUntil:'networkidle0'});
  await page.waitForSelector('.scene-navigation');
- const startupFamePartnership=await page.$eval('.scene-partnership',link=>{const image=link.querySelector('img');return {href:link.getAttribute('href'),src:image?.getAttribute('src'),width:image?.getAttribute('width'),height:image?.getAttribute('height')};});
- check('Startup Fame partnership markup retained',startupFamePartnership.href==='https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'&&startupFamePartnership.src==='https://startupfa.me/badge?t=small&theme=dark'&&startupFamePartnership.width==='180'&&startupFamePartnership.height==='27');
+ const partnership=await page.$eval('.scene-partnership',root=>({
+  tag:root.tagName,
+  label:root.querySelector('.scene-partnership-label')?.textContent,
+  labelInsideLink:Boolean(root.querySelector('a .scene-partnership-label')),
+  links:[...root.querySelectorAll('.scene-partner-link')].map(link=>({href:link.getAttribute('href'),target:link.getAttribute('target'),rel:link.getAttribute('rel'),src:link.querySelector('img')?.getAttribute('src')})),
+  list:{clientHeight:root.querySelector('.scene-partner-list')?.clientHeight,scrollHeight:root.querySelector('.scene-partner-list')?.scrollHeight},
+ }));
+ check('Partnership label is static and outside links',partnership.tag==='DIV'&&Boolean(partnership.label)&&!partnership.labelInsideLink);
+ check('Three partner links retained',partnership.links.length===3);
+ check('Startup Fame partnership retained',partnership.links.some(link=>link.href==='https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'&&link.src==='https://startupfa.me/badge?t=small&theme=dark'));
+ check('Better Launch partnership retained',partnership.links.some(link=>link.href==='https://www.betterlaunch.co/product/quick-i-ching'&&link.src==='https://www.betterlaunch.co/badge-launching-gradient.svg'));
+ check('Shipstry partnership retained',partnership.links.some(link=>link.href==='https://shipstry.com/'&&link.src==='https://shipstry.com/badges/featured.svg'));
+ check('Partner links open safely',partnership.links.every(link=>link.target==='_blank'&&link.rel?.split(/\s+/).includes('noopener')&&link.rel?.split(/\s+/).includes('noreferrer')));
+ check('Partner list is vertically scrollable',Number(partnership.list.scrollHeight)>Number(partnership.list.clientHeight));
 }
 async function clickSceneDestination(page,locale,path){
  const prefix=locale==='en'?'':'/zh';
@@ -57,8 +69,8 @@ try {
  await page.goto(base+'/?ritualTime=700',{waitUntil:'networkidle0'});
  for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent==='Decline'))await button.click();
  await page.waitForSelector('.scene-navigation');
- // The Startup Fame badge is an external partnership asset, not an approved first-party navigation asset.
- // Keep first-party image readiness strict while validating the external badge markup separately below.
+ // Partner badges are external partnership assets, not approved first-party navigation assets.
+ // Keep first-party image readiness strict while validating partner markup separately below.
  await page.evaluate(async()=>{const controlledImages=[...document.images].filter(image=>!image.matches('.scene-partnership img'));for(const image of controlledImages)image.loading='eager';await Promise.all(controlledImages.map(image=>image.decode()));await document.fonts.ready;});
  for(const state of ['default','methods','info']) {
   const width=state==='default'?1671:1670,height=state==='default'?941:942;
