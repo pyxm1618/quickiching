@@ -489,6 +489,21 @@ button.freeAction { border: 0; background: transparent; font-family: inherit; cu
   text-shadow: 0 2px 8px rgba(0, 0, 0, .9);
 }
 
+.loadingChoiceStatus {
+  position: absolute;
+  left: 50%;
+  top: calc(600 * var(--u));
+  z-index: 9;
+  width: min(72%, 520px);
+  transform: translateX(-50%);
+  margin: 0;
+  color: #f5dfb4;
+  font-size: calc(15 * var(--u));
+  line-height: 1.4;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .9);
+}
+
 .status {
   position: relative;
   z-index: 2;
@@ -663,6 +678,14 @@ button.freeAction { border: 0; background: transparent; font-family: inherit; cu
   .deepAction::after { width: 76px; height: 28px; bottom: 4px; }
   .freeAction { margin-top: 18px; font-size: 18px; transform: none; }
   .continuationStatus { margin-top: 14px; font-size: 14px; }
+  .loadingChoiceStatus {
+    position: relative;
+    inset: auto;
+    width: min(82%, 350px);
+    transform: none;
+    margin: -8px auto 0;
+    font-size: 14px;
+  }
 
   .emptyState { margin: 36px auto; padding: 42px 24px; }
 }
