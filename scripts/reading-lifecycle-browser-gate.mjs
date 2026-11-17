@@ -193,11 +193,21 @@ async function startFreshThreeCoin(page, lineCount = 0) {
     await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 15_000 });
     await dispatchPointer(page, "pointerdown", 100 + index);
     await dispatchPointer(page, "pointerup", 100 + index);
-    await page.waitForFunction(
-      (expected) => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === expected,
-      { timeout: 15_000 },
-      index + 1,
-    );
+    await page.waitForSelector("[data-record-this-cast]:not(:disabled)", { timeout: 15_000 });
+
+    // A pointer release seals the authoritative line immediately, but the
+    // visible six-line stack advances only when the user records it. Keep the
+    // sixth line sealed-but-unrecorded so the completion test can exercise the
+    // real final handoff click itself.
+    const leaveFinalSealed = lineCount === 6 && index === 5;
+    if (!leaveFinalSealed) {
+      await page.click("[data-record-this-cast]");
+      await page.waitForFunction(
+        (expected) => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === expected,
+        { timeout: 15_000 },
+        index + 1,
+      );
+    }
   }
 
   return page.evaluate((key) => {
