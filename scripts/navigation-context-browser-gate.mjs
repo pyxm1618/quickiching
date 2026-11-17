@@ -7,7 +7,7 @@ import { resolveChromeExecutable } from "./browser-runtime.mjs";
  *
  * C9:
  *   A. Three Coin 4/6 active locale switch continues exact reading.
- *   B. Passive direct /zh entry remains default entry + Resume.
+ *   B. Passive direct /zh entry remains the clean default entry with exact recovery state preserved.
  *   C. Yarrow 8/18 active locale switch continues exact reading.
  *   D. Manual active draft continues exact session/question/mode/draft.
  *   E. Mei Hua partial continues exact session/question/number/step.
@@ -160,6 +160,29 @@ async function clickResume(page) {
   await page.click("[data-reading-resume-action]");
 }
 
+async function activateStoredThreeCoinViaLocaleContinuation(page, targetLocale = "en") {
+  const armed = await page.evaluate(({ sessionKey, continuationKey, locale }) => {
+    const raw = sessionStorage.getItem(sessionKey);
+    const session = raw ? JSON.parse(raw) : null;
+    if (!session?.id) return null;
+    sessionStorage.setItem(continuationKey, JSON.stringify({
+      schemaVersion: 1,
+      nonce: `nav-context-${session.id}-${Date.now()}`,
+      method: "three-coin",
+      readingId: session.id,
+      targetLocale: locale,
+      issuedAt: Date.now(),
+    }));
+    return session.id;
+  }, { sessionKey: THREE_COIN_KEY, continuationKey: LOCALE_CONTINUATION_KEY, locale: targetLocale });
+  assert(armed, "Three Coin locale continuation activation requires an exact stored reading id");
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForFunction(
+    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
+    { timeout: 15_000 },
+  );
+}
+
 async function doneLineCount(page) {
   return page.evaluate(() => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length);
 }
@@ -187,18 +210,15 @@ async function verifyThreeCoinActiveLocaleSwitch(page) {
   await seed(page, { threeCoin: threeCoinSessionPayload(ID_A, 4) });
   await page.goto(BASE + "/", { waitUntil: "networkidle0" });
 
-  // Enter the active flow through the single Resume boundary.
-  await page.waitForSelector("[data-reading-resume-action]", { visible: true, timeout: 15_000 });
-  await clickResume(page);
-  await page.waitForFunction(
-    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
-    { timeout: 15_000 },
-  );
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Home must not expose the retired Three Coin Resume presentation");
+  // The exact stored flow may still be resumed by the existing C9 locale
+  // continuation mechanism. Activate it without reintroducing Home UI.
+  await activateStoredThreeCoinViaLocaleContinuation(page, "en");
   await page.waitForFunction(
     () => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 4,
     { timeout: 15_000 },
   );
-  assert.equal(await doneLineCount(page), 4, "Resume must restore exactly four sealed lines before the switch");
+  assert.equal(await doneLineCount(page), 4, "Locale continuation must restore exactly four sealed lines before the switch");
 
   await clickLocaleSwitch(page, "zh-Hans");
   await page.waitForFunction(() => location.pathname === "/zh", { timeout: 20_000 });
@@ -224,7 +244,8 @@ async function verifyThreeCoinActiveLocaleSwitch(page) {
 
 /**
  * B — passive entry remains passive: a stored 4/6 opened directly in the
- * other locale renders the default entry with Resume and no auto ritual.
+ * other locale renders the clean default entry, preserves exact recovery data,
+ * and does not fabricate continuation intent.
  */
 async function verifyPassiveEntryStaysPassive(page) {
   await seed(page, { threeCoin: threeCoinSessionPayload(ID_A, 4) });
@@ -234,12 +255,16 @@ async function verifyPassiveEntryStaysPassive(page) {
   assert.equal(stage, "landing", "A direct /zh entry must render the default entry even with a stored 4/6");
   assert.equal(await page.$(".hold-button"), null, "A direct /zh entry must not auto-enter the ritual");
   assert.equal(await page.$("[data-ritual-question-context]"), null, "A direct /zh entry must not open the casting stage");
-  await page.waitForSelector("[data-reading-resume-action]", { visible: true, timeout: 15_000 });
-  const label = await page.$eval("[data-reading-resume-action]", (node) => node.textContent ?? "");
-  assert(label.includes("4 / 6"), `Resume must be available and report 4/6, received: ${label}`);
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "A direct /zh entry must not expose the retired Three Coin Resume presentation");
+  const stored = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }, THREE_COIN_KEY);
+  assert.equal(stored?.id, ID_A, "Passive entry must preserve the exact reading id");
+  assert.equal(stored?.data?.steps?.length, 4, "Passive entry must preserve all four stored lines");
   const leftover = await page.evaluate((key) => sessionStorage.getItem(key), LOCALE_CONTINUATION_KEY);
   assert.equal(leftover, null, "A passive entry must never fabricate a continuation intent");
-  log("B — passive /zh entry stays passive: default entry + Resume, no auto ritual");
+  log("B — passive /zh entry stays clean while exact 4/6 recovery state remains preserved");
 }
 
 /**
@@ -435,15 +460,12 @@ async function verifyRestartBoundariesClearLocaleAuthority(page) {
   assert.equal(yarrowTarget.progress, false, "Target locale must not auto-enter the old Yarrow cast");
   assert.equal(yarrowTarget.resume, false, "Target locale must not offer Resume for the retired Yarrow reading");
 
-  // J — Three Coin: resume an exact active 4/6 flow, then use the ritual Back
-  // action, which is the Start New Reading boundary.
+  // J — Three Coin: activate an exact 4/6 flow through the existing locale
+  // continuation capability, then use ritual Back as the Start New boundary.
   await seed(page, { threeCoin: threeCoinSessionPayload(ID_A, 4) });
   await page.goto(BASE + "/", { waitUntil: "networkidle0" });
-  await clickResume(page);
-  await page.waitForFunction(
-    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
-    { timeout: 15_000 },
-  );
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Home must stay free of Three Coin Resume presentation");
+  await activateStoredThreeCoinViaLocaleContinuation(page, "en");
   await page.waitForFunction(
     () => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 4,
     { timeout: 15_000 },
