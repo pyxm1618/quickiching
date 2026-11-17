@@ -38,7 +38,7 @@ describe("Next.js redirect policy", () => {
 });
 
 describe("Next.js security headers", () => {
-  it("allows only the external origins required by GA4 and Microsoft Clarity", async () => {
+  it("allows the external origins required by analytics, Turnstile, and the homepage partnership badge", async () => {
     const config = await getConfig();
     const headerGroups = await config.headers();
     const globalHeaders = headerGroups.find((group) => group.source === "/:path*")?.headers ?? [];
@@ -49,6 +49,7 @@ describe("Next.js security headers", () => {
     expect(csp).toContain("https://*.analytics.google.com");
     expect(csp).toContain("https://c.bing.com");
     expect(csp).toContain("https://challenges.cloudflare.com");
+    expect(csp).toContain("https://startupfa.me");
   });
   it("does not allow the retired Adsterra origin in CSP", () => {
     expect(buildContentSecurityPolicy({ NODE_ENV: "production" })).not.toContain("effectivecpmnetwork.com");
