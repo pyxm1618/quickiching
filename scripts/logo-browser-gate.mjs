@@ -4,7 +4,7 @@ import chromium from "@sparticuz/chromium";
 import { resolveChromeExecutable } from "./browser-runtime.mjs";
 
 const BASE = process.env.PUBLIC_V1_TEST_BASE_URL || "http://127.0.0.1:3000";
-const BRAND_ASSET = "quick-i-ching-logo-mark.png";
+const BRAND_ASSET = "/navigation/logo-reference.webp";
 
 const DESKTOP_PATHS = [
   ["/", "Homepage"],
@@ -65,17 +65,17 @@ async function inspectBrandChrome(page, label) {
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     };
   });
-  assert(state.source.includes(scene ? "/navigation/logo.webp" : BRAND_ASSET), `${label}: approved brand image missing: ${state.source}`);
+  assert(state.source.includes(BRAND_ASSET), `${label}: formal brand image missing: ${state.source}`);
   assert(state.width > 0 && state.height > 0, `${label}: approved brand image must remain visible`);
   if (scene) {
-    assert(state.content.includes("/navigation/logo-reference.webp"), `${label}: approved scene brand artwork changed`);
     assert.equal(state.imageAlt, "", `${label}: decorative scene mark must retain its adjacent accessible brand text`);
   } else {
-    assert(Math.abs(state.width - 34) <= 0.5 && Math.abs(state.height - 34) <= 0.5, `${label}: approved Info brand size changed`);
     assert.equal(state.background, "rgba(0, 0, 0, 0)");
     assert.equal(state.objectFit, "contain");
-    assert(state.filter.includes("invert(1)"));
+    assert.equal(state.filter, "none", `${label}: shared formal brand mark must not use the retired inverted treatment`);
   }
+  assert(!state.source.includes("/quick-i-ching-logo-mark.png"), `${label}: retired logo asset is still active`);
+  assert(!state.source.endsWith("/navigation/logo.webp"), `${label}: duplicate scene logo source is still active`);
   assert(state.text.includes("Quick I Ching"), `${label}: visible brand text missing`);
   assert.equal(state.retiredFooter, false, `${label}: retired global Footer must stay absent`);
   assert.equal(state.overflow, false, `${label}: horizontal overflow`);
