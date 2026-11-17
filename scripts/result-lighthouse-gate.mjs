@@ -241,12 +241,19 @@ async function auditResult(browser, desktop) {
       const visible = await page.evaluate(() => ({
         sixLines: document.querySelector("[data-completed-six-lines]") !== null,
         authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
+        resultChoice: document.querySelector("[data-result-choice]") !== null,
+        session: document.querySelector("[data-result-choice]")?.getAttribute("data-reading-session") ?? null,
         primaryCard: document.querySelector("[data-primary-card]") !== null,
-        text: document.body?.innerText ?? "",
+        publicResult: document.querySelector("[data-public-reading-result]") !== null,
+        deepReport: document.querySelector("[data-ai-deep-reading-report]") !== null,
+        deepGeneration: document.querySelector("[data-start-deep-reading]") !== null,
       }));
-      assert(visible.sixLines && visible.authGate, `${desktop ? "desktop" : "mobile"}: Lighthouse audited an empty/incorrect completed-cast gate`);
-      assert.equal(visible.primaryCard, false, `${desktop ? "desktop" : "mobile"}: primary result leaked before authentication and account persistence`);
-      assert(!visible.text.includes("Fellowship") && !visible.text.includes("Gentle penetration"), `${desktop ? "desktop" : "mobile"}: hexagram identity leaked through the auth gate`);
+      assert(visible.sixLines && visible.authGate && visible.resultChoice, `${desktop ? "desktop" : "mobile"}: Lighthouse must audit the exact Result Choice auth continuation`);
+      assert.equal(visible.session, sessionId, `${desktop ? "desktop" : "mobile"}: auth continuation must keep the exact reading identity`);
+      assert.equal(visible.primaryCard, false, `${desktop ? "desktop" : "mobile"}: Free interpretation leaked before authentication and account persistence`);
+      assert.equal(visible.publicResult, false, `${desktop ? "desktop" : "mobile"}: Free result leaked before authentication and account persistence`);
+      assert.equal(visible.deepReport, false, `${desktop ? "desktop" : "mobile"}: Deep report leaked before authentication and account persistence`);
+      assert.equal(visible.deepGeneration, false, `${desktop ? "desktop" : "mobile"}: Deep generation leaked before authentication and account persistence`);
       if (!desktop) await logPageFontDiagnostics(page);
       return runnerResult;
     } finally {

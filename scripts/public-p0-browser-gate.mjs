@@ -327,9 +327,17 @@ async function verifyQuestionReading(page, locale = "en") {
   const callback = new URL(signinHref, BASE).searchParams.get("callbackURL");
   assert.equal(new URL(callback, BASE).searchParams.get("session"), choiceState.completed.readingId, "Free Reading sign-in callback must preserve this exact cast identity");
 
-  const lineDescriptions = zh ? { 6: "阴爻，动爻", 7: "阳爻", 8: "阴爻", 9: "阳爻，动爻" } : { 6: "yin, moving", 7: "yang", 8: "yin", 9: "yang, moving" };
-  const expectedLabels = choiceState.completed.lineValuesBottomUp.map((value, index) => zh ? `第 ${index + 1} 爻：${lineDescriptions[value]}` : `Line ${index + 1}: ${lineDescriptions[value]}`).reverse();
-  assert.deepEqual(await page.$$eval('[data-completed-six-lines] [role="img"]', nodes => nodes.map(node => node.getAttribute("aria-label"))), expectedLabels, "Free Reading auth gate must preserve this cast's six lines");
+  const authChoiceState = await page.evaluate(() => ({
+    session: document.querySelector("[data-result-choice]")?.getAttribute("data-reading-session") ?? null,
+    primaryLineValuesTopDown: [...document.querySelectorAll("[data-result-choice-primary] [data-line-value]")]
+      .map(node => Number(node.getAttribute("data-line-value"))),
+  }));
+  assert.equal(authChoiceState.session, choiceState.completed.readingId, "Free Reading auth gate must preserve this exact cast identity");
+  assert.deepEqual(
+    authChoiceState.primaryLineValuesTopDown,
+    [...choiceState.completed.lineValuesBottomUp].reverse(),
+    "Free Reading auth gate must preserve this cast's exact six line values",
+  );
   assert.equal(choiceState.completed.question, question, "The frozen question must be stored with this cast");
   assert.equal(choiceState.completed.lineValuesBottomUp?.length, 6, "The pending reading must preserve all six authoritative lines");
 

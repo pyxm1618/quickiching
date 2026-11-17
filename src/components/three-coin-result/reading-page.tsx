@@ -24,11 +24,11 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
     sessionId ? loadCastingView(sessionId) : Promise.resolve(null),
   ]);
   const result = castingView?.result;
-  const initialInterpretationBundles = result ? {
+  const initialInterpretationBundles = pageMode === "free" && result ? {
     primary: await loadHexagramInterpretation(result.primaryHexagramNumber),
     relating: result.relatingHexagramNumber === null ? null : await loadHexagramInterpretation(result.relatingHexagramNumber),
   } : undefined;
-  const initialLocalizedContent = locale === "zh-Hans" && result ? zhHansReadingContentFor([
+  const initialLocalizedContent = pageMode === "free" && locale === "zh-Hans" && result ? zhHansReadingContentFor([
     result.primaryHexagramNumber,
     ...(result.relatingHexagramNumber === null ? [] : [result.relatingHexagramNumber]),
   ]) : undefined;
@@ -51,10 +51,17 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
 
   if (pageMode === "deep") return client;
 
+  const hasDurableInitialResult = Boolean(castingView?.owns && result);
   return <div data-realm="chamber" className="ritual-result-scene">
-    <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
-    <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
-    <link rel="preload" as="image" href="/navigation/scroll-64-hexagrams-no-text.webp" media="(max-width:800px)" />
+    {hasDurableInitialResult ? (
+      <>
+        <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
+        <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
+        <link rel="preload" as="image" href="/navigation/scroll-64-hexagrams-no-text.webp" media="(max-width:800px)" />
+      </>
+    ) : (
+      <link rel="preload" as="image" href="/result-choice/primary-stone.avif" fetchPriority="high" />
+    )}
     <div className="ritual-room" aria-hidden="true" />
     {client}
   </div>;

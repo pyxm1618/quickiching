@@ -70,13 +70,17 @@ describe("final engineering closeout source contracts", () => {
     expect(source("./components/public-reading/public-reading-result.tsx")).toContain('import("@/content/mei-hua-yi-shu/zh-Hans")');
   });
 
-  it("keeps anonymous browser-session Three-Coin results on the interpretation loading contract", () => {
+  it("prepares browser-session Free interpretation in parallel without a standalone preparation page", () => {
     const client = source("./components/reading-result/reading-result-client.tsx");
+    const choice = source("./components/reading-result/result-choice-client.tsx");
     const genericResult = source("./components/public-reading/public-reading-result.tsx");
-    expect(client).toContain("shouldDeferBrowserInterpretation");
-    expect(client).toContain("waitingForBrowserInterpretation");
-    expect(client).toContain("data-reading-interpretation-loading");
+    expect(client).toContain("browserFreeContentRequired");
+    expect(client).toContain("shouldPrepareBrowserInterpretation");
+    expect(client).toContain("waitingForFreeContent");
     expect(client).toContain("loadHexagramInterpretation(resultReading.primaryHexagram)");
+    expect(choice).toContain("data-reading-interpretation-loading");
+    expect(client).not.toContain("Saved to My Readings");
+    expect(client).not.toContain("Preparing your reading");
     expect(genericResult).not.toContain("data-reading-interpretation-loading");
   });
 
@@ -85,6 +89,8 @@ describe("final engineering closeout source contracts", () => {
     expect(loader).toContain("initialInterpretationBundles");
     expect(loader).toContain("initialLocalizedContent");
     expect(loader).toContain("zhHansReadingContentFor");
+    expect(loader).toContain('pageMode === "free" && result');
+    expect(loader).toContain('pageMode === "free" && locale === "zh-Hans"');
     for (const path of ["./app/(default)/readings/result/page.tsx", "./app/(default)/readings/deep/page.tsx", "./app/(localized)/zh/readings/result/page.tsx", "./app/(localized)/zh/readings/deep/page.tsx"]) {
       expect(source(path)).toContain("<ReadingPage");
     }

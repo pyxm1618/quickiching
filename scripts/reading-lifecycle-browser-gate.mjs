@@ -240,6 +240,68 @@ async function verifyMethodDetailIsNotASecondEntry(page) {
 }
 
 
+async function verifyEmptyHomeQuestionFeedback(page) {
+  const cases = [
+    { path: "/", question: "Should I stay on this path?", error: "Please enter the question you want to ask" },
+    { path: "/zh", question: "我现在是否应该继续这条路？", error: "请先输入你想问的问题" },
+  ];
+
+  for (const item of cases) {
+    await seed(page);
+    await page.goto(BASE + item.path, { waitUntil: "networkidle0" });
+    await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]', { timeout: 15_000 });
+
+    const primarySelector = "[data-home-primary-action]";
+    assert.equal(await page.$eval(primarySelector, (node) => node.disabled), false, `${item.path} empty Home CTA must remain clickable`);
+
+    await page.click(primarySelector);
+    await page.waitForSelector(".ritual-form-error", { visible: true, timeout: 15_000 });
+    let state = await page.evaluate(() => ({
+      stage: document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage"),
+      error: document.querySelector(".ritual-form-error")?.textContent ?? "",
+      focused: document.activeElement === document.querySelector("textarea[data-private-question]"),
+    }));
+    assert.equal(state.stage, "landing", `${item.path} empty click must stay on Home`);
+    assert.ok(state.error.includes(item.error), `${item.path} empty click must show the field error`);
+    assert.equal(state.focused, true, `${item.path} empty click must focus the textarea`);
+
+    await page.type("textarea[data-private-question]", "   ");
+    await page.click(primarySelector);
+    state = await page.evaluate(() => ({
+      stage: document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage"),
+      focused: document.activeElement === document.querySelector("textarea[data-private-question]"),
+    }));
+    assert.equal(state.stage, "landing", `${item.path} whitespace-only question must remain invalid`);
+    assert.equal(state.focused, true, `${item.path} whitespace-only click must refocus the textarea`);
+
+    await page.click("textarea[data-private-question]", { clickCount: 3 });
+    await page.keyboard.press("Backspace");
+    await page.type("textarea[data-private-question]", item.question);
+    await page.waitForFunction(() => document.querySelector(".ritual-form-error") === null, { timeout: 15_000 });
+    await page.click(primarySelector);
+    await page.waitForFunction(
+      () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "question-confirm",
+      { timeout: 15_000 },
+    );
+
+    await seed(page);
+    await page.goto(BASE + item.path, { waitUntil: "networkidle0" });
+    await page.waitForSelector('[data-experience-stage="landing"] [data-home-skip-question]', { visible: true, timeout: 15_000 });
+    await page.click("[data-home-skip-question]");
+    await page.waitForFunction(
+      () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "question-confirm",
+      { timeout: 15_000 },
+    );
+    assert.equal(
+      await page.$eval("textarea[data-private-question]", (node) => node.value),
+      "",
+      `${item.path} Skip must remain an explicit question-free path`,
+    );
+  }
+
+  log("Home CTA — EN/ZH empty + whitespace feedback/focus, valid confirmation, and Skip path PASS");
+}
+
 async function verifyNoPartialResumeAbsent(page) {
   await seed(page);
   await page.goto(BASE + "/", { waitUntil: "networkidle0" });
@@ -902,6 +964,7 @@ async function main() {
   try {
     log(`Using ${usingSystemChrome ? "system Chrome" : "bundled Chromium"} at ${executablePath}`);
     await verifyMethodDetailIsNotASecondEntry(page);
+    await verifyEmptyHomeQuestionFeedback(page);
     await verifyNoPartialResumeAbsent(page);
     await verifyQuestionOnlyResume(page);
     await verifyPartialResume(page);
