@@ -137,7 +137,7 @@ if (surface === 'pricing') {
     pageMode={query.get('page') === 'deep' ? 'deep' : 'free'}
     initialUser={query.has('anon') ? null : {id:'browser-fixture-owner',email:'fixture@example.com'}}
     initialCredits={query.get('credits') === '0' ? 0 : 1}
-    initialState={{kind:'ready',lineValues,question}}
+    initialState={query.has('pending') ? undefined : {kind:'ready',lineValues,question}}
     initialCastingView={query.has('pending') ? null : {
       castingId:'browser-fixture-cast',
       method,
