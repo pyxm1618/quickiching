@@ -8,6 +8,8 @@ import { buildPricingView } from '../../src/app/(default)/pricing/pricing-model'
 import '../../src/components/public-reading/ritual.css';
 import { generateYarrowLine } from '../../src/domain/casting/yarrow/algorithm';
 import { meiHuaFromNumberAndTime } from '../../src/domain/casting/mei-hua/number-time';
+import { buildPublicReading } from '../../src/domain/public-reading/reading';
+import { writePendingCompletedReading } from '../../src/lib/pending-completed-reading';
 
 const query = new URLSearchParams(location.search);
 const surface = query.get('surface') ?? 'reading';
@@ -52,14 +54,46 @@ const viewModel = zh ? {
   disclaimer: 'Reflective interpretation only, not a certain prediction.',
 };
 const context = { question };
+const PENDING_CASTING_ID = '11111111-1111-4111-8111-111111111111';
+const publicMethod = method === 'three_coin'
+  ? 'three-coin'
+  : method === 'yarrow_stalk'
+    ? 'yarrow-stalks'
+    : method === 'mei_hua_number_time'
+      ? 'mei-hua-yi-shu'
+      : 'manual';
+const pendingEvidence = method === 'yarrow_stalk'
+  ? {kind:'yarrow-stalks' as const,lines:yarrowLines}
+  : method === 'mei_hua_number_time'
+    ? {kind:'mei-hua-yi-shu' as const,calculation:meiHua}
+    : method === 'manual'
+      ? {kind:'manual' as const,mode:'line-values' as const}
+      : {kind:'three-coin' as const,steps:[]};
+if (query.has('pending')) {
+  writePendingCompletedReading(buildPublicReading({
+    id:PENDING_CASTING_ID,
+    method:publicMethod,
+    question,
+    lineValuesBottomUp:lineValues,
+    evidence:pendingEvidence,
+  }));
+}
 
 let posted = false;
+let saveAttempts = 0;
 (window as any).__requests = [];
 window.fetch = async (url, init) => {
   (window as any).__requests.push({url:String(url),method:init?.method ?? 'GET',body:init?.body});
   if (surface === 'pricing' && init?.method === 'POST') {
     if (query.has('signedout')) return Response.json({error:'AUTH_REQUIRED'},{status:401});
     return Response.json({orderId:'fixture-order',checkoutUrl:'https://pancake.waffo.ai/checkout/session#token=fixture'});
+  }
+  if (surface === 'reading' && String(url) === '/api/readings' && init?.method === 'POST') {
+    saveAttempts += 1;
+    if (query.has('savefailonce') && saveAttempts === 1) {
+      return Response.json({error:'SAVE_READING_FAILED'},{status:500});
+    }
+    return Response.json({castingId:PENDING_CASTING_ID,idempotent:saveAttempts > 1});
   }
   if (init?.method === 'POST') {
     posted = true;
@@ -99,11 +133,12 @@ if (surface === 'pricing') {
 } else {
   root.render(<ThreeCoinResultClient
     locale={locale}
+    initialSessionId={query.has('pending') ? PENDING_CASTING_ID : undefined}
     pageMode={query.get('page') === 'deep' ? 'deep' : 'free'}
     initialUser={query.has('anon') ? null : {id:'browser-fixture-owner',email:'fixture@example.com'}}
     initialCredits={query.get('credits') === '0' ? 0 : 1}
     initialState={{kind:'ready',lineValues,question}}
-    initialCastingView={{
+    initialCastingView={query.has('pending') ? null : {
       castingId:'browser-fixture-cast',
       method,
       algorithmVersion:method==='three_coin'
