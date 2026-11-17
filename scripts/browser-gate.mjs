@@ -451,23 +451,22 @@ async function verifyThreeCoinTransactionSemantics(page) {
   assert.equal(duringReveal.labelsVisible,false,"Faces must not be labelled during the initial airborne phase");
 
   await page.reload({ waitUntil: "networkidle0" });
-  // C1: a reload renders the normal entry state; the partial cast returns only
-  // after an explicit Resume.
+  // Reload must preserve the committed storage truth without presenting Resume
+  // on Home. An explicit fresh start is the retirement boundary.
   await page.waitForSelector('[data-experience-stage="landing"]', { timeout: 15_000 });
-  assert.equal(await page.$(".hold-button"), null, "A restored partial cast must not expose the cast button before Resume");
-  await page.click("[data-reading-resume-action]");
-  await waitForRecordedLines(page,1);
+  assert.equal(await page.$(".hold-button"), null, "A restored partial cast must not auto-enter casting");
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Home must not expose the retired Three Coin Resume presentation");
   const restored = await page.evaluate((key) => {
     const raw = sessionStorage.getItem(key);
     if (!raw) return 0;
     const parsed = JSON.parse(raw);
     return (Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? []).length;
   }, storageKey);
-  assert.equal(restored, 1, "reload during Motion F must restore the already-committed Three-Coin line");
-  await page.locator(".ritual-back").click();
-  await page.waitForSelector('[data-experience-stage="landing"]');
+  assert.equal(restored, 1, "reload during Motion F must preserve the already-committed Three-Coin line");
+
+  await skipOptionalQuestion(page);
   const resetSteps=await page.evaluate(key=>JSON.parse(sessionStorage.getItem(key)||"null")?.data?.steps??[],storageKey);
-  assert.equal(resetSteps.length,0,"Explicit Back/restart clears the prior cast");
+  assert.equal(resetSteps.length,0,"Explicit fresh start must retire the prior partial cast");
 }
 
 async function finishThreeCoin(page) {
