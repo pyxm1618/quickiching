@@ -9,11 +9,12 @@ describe("shared post-Reading business architecture", () => {
   });
   it("owns post-Reading Auth/Save/Deep/retry once", () => {
     const shared = source("./reading-result-client.tsx");
+    const choice = source("./result-choice-client.tsx");
     expect(shared).toContain('fetch("/api/readings"');
     expect(shared).toContain("persistCurrentReading");
     expect(shared).toContain("handleUnlockDeepReading");
-    expect(shared).toContain("data-retry-account-reading-save");
-    expect(shared).toContain("data-auth-reading-intent");
+    expect(choice).toContain("data-retry-account-reading-save");
+    expect(choice).toContain("data-auth-reading-intent");
     expect(shared).toContain("/readings/deep?session=");
     expect(shared).toContain("ResultChoiceView");
     expect(shared).not.toContain("Save Your Reading");
