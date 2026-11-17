@@ -115,6 +115,7 @@ export function ResultChoiceView({
             : undefined}
       data-result-reveal-pending={continuation?.state === "preparing" ? "true" : undefined}
       data-reading-interpretation-loading={continuation?.state === "preparing" ? "true" : undefined}
+      data-auth-required-before-reveal={continuation?.state === "auth-required" ? "true" : undefined}
     >
       <div className={styles.scene}>
         <div className={`${styles.artLayer} ${styles.leftBlossom}`} aria-hidden="true">
@@ -127,7 +128,7 @@ export function ResultChoiceView({
           <h1 className={styles.questionText}>{question}</h1>
         </section>
 
-        <section className={`${styles.stone} ${styles.primaryStone}`} data-result-choice-primary>
+        <section className={`${styles.stone} ${styles.primaryStone}`} data-result-choice-primary data-completed-six-lines={continuation ? "true" : undefined}>
           <img src={RESULT_CHOICE_ASSETS.primary} width="650" height="597" alt="" fetchPriority="high" />
           <p className={styles.stoneTitle}>{zh ? "本卦" : "Primary Hexagram"}</p>
           <h2 className={styles.stoneName} style={{ "--name-scale": nameScaleFor(zh ? primary.chineseName : primary.englishName) } as React.CSSProperties}>{zh ? primary.chineseName : primary.englishName}</h2>
