@@ -66,10 +66,6 @@ function HexagramGlyph({
   );
 }
 
-export function ResultChoiceLoadingShell({ locale = "en" }: { locale?: "en" | "zh-Hans" }) {
-  return <ResultChoiceView locale={locale} />;
-}
-
 export type ResultChoiceContinuation = {
   intent: "free" | "deep";
   state: "auth-required" | "saving" | "save-error" | "preparing" | "content-error";
