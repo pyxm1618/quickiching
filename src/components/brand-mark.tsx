@@ -22,11 +22,11 @@ export function BrandMark({ size = "md", priority = false, className, locale = "
   return (
     <Image
       alt={locale === "zh-Hans" ? "Quick I Ching 标志" : "Quick I Ching logo"}
-      src="/quick-i-ching-logo-mark.png"
+      src="/navigation/logo-reference.webp"
       width={pixels}
       height={pixels}
       priority={priority}
-      className={cn("shrink-0 object-contain brightness-0 invert", className)}
+      className={cn("shrink-0 object-contain", className)}
     />
   );
 }

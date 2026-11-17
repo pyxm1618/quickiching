@@ -3,6 +3,7 @@ export {
   getResultRevealGate,
   getTerminalCreditReconciliation,
   hasRequiredInterpretationBundles,
+  initialReadingResultState,
 } from "@/components/reading-result/reading-result-client";
 
 export type {

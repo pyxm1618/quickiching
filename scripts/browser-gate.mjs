@@ -451,23 +451,39 @@ async function verifyThreeCoinTransactionSemantics(page) {
   assert.equal(duringReveal.labelsVisible,false,"Faces must not be labelled during the initial airborne phase");
 
   await page.reload({ waitUntil: "networkidle0" });
-  // C1: a reload renders the normal entry state; the partial cast returns only
-  // after an explicit Resume.
+  // Reload remains passive, but the exact partial must be recoverable through
+  // the ordinary user-visible Resume ingress.
   await page.waitForSelector('[data-experience-stage="landing"]', { timeout: 15_000 });
-  assert.equal(await page.$(".hold-button"), null, "A restored partial cast must not expose the cast button before Resume");
-  await page.click("[data-reading-resume-action]");
-  await waitForRecordedLines(page,1);
-  const restored = await page.evaluate((key) => {
+  assert.equal(await page.$(".hold-button"), null, "A restored partial cast must not auto-enter casting");
+  await page.waitForSelector('[data-reading-resume="three-coin"] [data-reading-resume-action]', { visible: true, timeout: 15_000 });
+  const restoredBeforeResume = await page.evaluate((key) => {
     const raw = sessionStorage.getItem(key);
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
-    return (Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? []).length;
+    return raw ? JSON.parse(raw) : null;
   }, storageKey);
-  assert.equal(restored, 1, "reload during Motion F must restore the already-committed Three-Coin line");
-  await page.locator(".ritual-back").click();
-  await page.waitForSelector('[data-experience-stage="landing"]');
+  assert.equal(restoredBeforeResume?.data?.steps?.length, 1, "reload during Motion F must preserve the already-committed Three-Coin line");
+  assert.deepEqual(restoredBeforeResume?.data?.steps, duringReveal.stored, "reload must preserve the exact committed Three-Coin facts before Resume");
+
+  await page.click("[data-reading-resume-action]");
+  await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 15_000 });
+  await waitForRecordedLines(page, 1);
+  const restoredAfterResume = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }, storageKey);
+  assert.equal(restoredAfterResume?.id, restoredBeforeResume?.id, "Resume must restore the exact same reading id");
+  assert.deepEqual(restoredAfterResume?.data?.steps, duringReveal.stored, "Resume must not reroll or rewrite the committed line");
+
+  // Exit keeps the partial session. Back on the passive Home entry, an
+  // explicit fresh Skip remains the retirement boundary.
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "networkidle0", timeout: 15_000 }),
+    page.click("[data-flow-exit]"),
+  ]);
+  await page.waitForSelector('[data-experience-stage="landing"]', { timeout: 15_000 });
+  await page.waitForSelector("[data-reading-resume-action]", { visible: true, timeout: 15_000 });
+  await skipOptionalQuestion(page);
   const resetSteps=await page.evaluate(key=>JSON.parse(sessionStorage.getItem(key)||"null")?.data?.steps??[],storageKey);
-  assert.equal(resetSteps.length,0,"Explicit Back/restart clears the prior cast");
+  assert.equal(resetSteps.length,0,"Explicit fresh start must retire the prior partial cast");
 }
 
 async function finishThreeCoin(page) {

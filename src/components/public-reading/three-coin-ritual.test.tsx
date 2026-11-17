@@ -125,6 +125,10 @@ describe("ThreeCoinRitual entry authority", () => {
     expect(html).toContain('data-experience-stage="landing"');
     expect(html).not.toContain("data-ritual-question-context");
     expect(html).toContain("Start Divination");
+    expect(html).toContain("Skip — free reading only");
+    expect(html).not.toContain("You have an unfinished cast.");
+    expect(html).not.toContain("data-reading-resume");
+    expect(html).not.toContain("data-reading-resume-action");
   });
 
   it("renders confirmation without the retired generic Three-Coin presentation", () => {
