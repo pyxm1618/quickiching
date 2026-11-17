@@ -89,6 +89,11 @@ describe("shared post-cast Result Choice", () => {
     expect(html).toContain("变卦");
   });
 
+  it("retires the root full-screen route loading scene", () => {
+    expect(existsSync(new URL("../../app/loading.tsx", import.meta.url))).toBe(false);
+    expect(existsSync(new URL("../../app/loading.module.css", import.meta.url))).toBe(false);
+  });
+
   it("fully retires the legacy ritual result reveal production implementation", () => {
     const publicResult = readFileSync(new URL("../public-reading/public-reading-result.tsx", import.meta.url), "utf8");
     const resultClient = readFileSync(new URL("./reading-result-client.tsx", import.meta.url), "utf8");
