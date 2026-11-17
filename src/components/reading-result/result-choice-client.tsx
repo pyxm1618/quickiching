@@ -209,16 +209,12 @@ export function ResultChoiceView({
           <img src={RESULT_CHOICE_ASSETS.rightForeground} width="650" height="412" alt="" decoding="async" />
         </div>
 
-        <nav
+        {reading ? <nav
           className={styles.actions}
           aria-label={zh ? "选择解读方式" : "Choose a reading"}
           data-result-choice-continuation={continuation?.state}
         >
-          {!reading ? (
-            <p className={styles.loadingChoiceStatus} role="status">
-              {zh ? "正在恢复这次已经完成的起卦…" : "Restoring your completed cast…"}
-            </p>
-          ) : continuation?.state === "auth-required" ? (
+          {continuation?.state === "auth-required" ? (
             <>
               <Link
                 href={continuation.intent === "deep" ? continuation.signinHref ?? deepHref : continuation.alternateSigninHref ?? deepHref}
@@ -314,7 +310,11 @@ export function ResultChoiceView({
               </Link>
             </>
           )}
-        </nav>
+        </nav> : (
+          <p className={styles.loadingChoiceStatus} role="status">
+            {zh ? "正在恢复这次已经完成的起卦…" : "Restoring your completed cast…"}
+          </p>
+        )}
 
         {reading ? <Link href={zh ? "/zh" : "/"} prefetch={false} className={styles.exitAction} data-result-choice-exit>
           {zh ? "退出解读" : "Exit Reading"}
