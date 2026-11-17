@@ -283,11 +283,11 @@ export function SceneNavigation({
               target="_blank"
               rel="noopener noreferrer"
               className="scene-partner-link"
-              aria-label={zh ? "打开 Startup Fame" : "Quick I Ching - Featured on Startup Fame"}
+              aria-label={zh ? "打开第一个合作伙伴网站" : "Quick I Ching - Featured on Startup Fame"}
             >
               <img
                 src="https://startupfa.me/badge?t=small&theme=dark"
-                alt={zh ? "Startup Fame 合作伙伴标识" : "Quick I Ching - Featured on Startup Fame"}
+                alt={zh ? "" : "Quick I Ching - Featured on Startup Fame"}
                 width="180"
                 height="27"
                 decoding="async"
@@ -298,11 +298,11 @@ export function SceneNavigation({
               target="_blank"
               rel="noopener noreferrer"
               className="scene-partner-link"
-              aria-label={zh ? "打开 Better Launch" : "Quick I Ching on Better Launch"}
+              aria-label={zh ? "打开第二个合作伙伴网站" : "Quick I Ching on Better Launch"}
             >
               <img
                 src="https://www.betterlaunch.co/badge-launching-gradient.svg"
-                alt={zh ? "Better Launch 合作伙伴标识" : "Better Launch"}
+                alt={zh ? "" : "Better Launch"}
                 width="200"
                 height="56"
                 decoding="async"
@@ -313,11 +313,11 @@ export function SceneNavigation({
               target="_blank"
               rel="noopener noreferrer"
               className="scene-partner-link"
-              aria-label={zh ? "打开 Shipstry" : "Quick I Ching on Shipstry"}
+              aria-label={zh ? "打开第三个合作伙伴网站" : "Quick I Ching on Shipstry"}
             >
               <img
                 src="https://shipstry.com/badges/featured.svg"
-                alt={zh ? "Shipstry 合作伙伴标识" : "Featured on Shipstry"}
+                alt={zh ? "" : "Featured on Shipstry"}
                 width="220"
                 height="52"
                 decoding="async"
