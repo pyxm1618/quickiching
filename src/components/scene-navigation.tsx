@@ -271,6 +271,25 @@ export function SceneNavigation({
 
       <SeoRouteGraph locale={locale} />
 
+      {contract.id === "S01" ? (
+        <a
+          href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="scene-partnership"
+          aria-label={zh ? "打开合作伙伴网站" : "Quick I Ching - Featured on Startup Fame"}
+        >
+          <span>{zh ? "合作伙伴" : "In partnership with"}</span>
+          <img
+            src="https://startupfa.me/badge?t=small&theme=dark"
+            alt={zh ? "合作伙伴标识" : "Quick I Ching - Featured on Startup Fame"}
+            width="180"
+            height="27"
+            decoding="async"
+          />
+        </a>
+      ) : null}
+
       {contract.primaryNavigation ? <nav className="scene-scrolls" aria-label={zh ? "探索易经" : "Explore the I Ching"}>
         <Link href={localize("/hexagrams")} className="scene-scroll scene-scroll-hexagrams" prefetch={false}>
           <Image src="/navigation/scroll-64-hexagrams-no-text.webp" alt="" width={450} height={675} sizes="(max-width: 800px) 94px, 151px" quality={90} priority fetchPriority="high" decoding="sync" />
