@@ -528,26 +528,26 @@ async function verifyPartialRestart(page) {
   const question = "What remains important if I begin again?";
   await seedThreeCoinSession(page, "partial-reading-before", "2026-08-19T10:00:00.000Z", FIXTURE_STEPS.slice(0, 1), question);
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  // C1: the stored 1/6 cast stays on the default entry; one Resume restores it.
-  await page.waitForSelector("[data-reading-resume-action]", { timeout: 30_000 });
-  assert.equal(await page.$(".ritual-six-lines"), null, "A stored partial Three Coin cast must not auto-enter the ritual");
-  await page.evaluate(() => document.querySelector("[data-reading-resume-action]")?.click());
-  await page.waitForFunction(() => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 1, { timeout: 30_000 });
-  const before = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
-  await page.waitForSelector('.ritual-back:not(:disabled)', { timeout: 30_000 });
-  await page.evaluate(() => document.querySelector('.ritual-back')?.click());
+
+  // A stored partial remains exact recovery state, but Home stays the clean
+  // landing surface. Starting again is the explicit discard boundary.
   await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]');
-  assert.equal(await page.evaluate(key => sessionStorage.getItem(key), THREE_COIN_STORAGE_KEY), null, "Formal restart must clear the old partial cast");
+  assert.equal(await page.$(".ritual-six-lines"), null, "A stored partial Three Coin cast must not auto-enter the ritual");
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Home must not expose the retired Three Coin Resume presentation");
+  const before = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
+  assert.equal(before?.data?.steps?.length, 1, "Home presentation removal must preserve the exact stored partial cast");
+
   await page.type("textarea[data-private-question]", question);
   await clickText(page, "Start Divination");
   await clickText(page, "Cast the Coins");
   await page.waitForSelector('.hold-button:not(:disabled)');
+
   const after = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
-  assert.notEqual(after.id, before.id, "Restart must create a fresh reading identity");
-  assert.notEqual(after.createdAt, before.createdAt, "Restart must create a fresh timestamp");
+  assert.notEqual(after.id, before.id, "Starting again must create a fresh reading identity");
+  assert.notEqual(after.createdAt, before.createdAt, "Starting again must create a fresh timestamp");
   assert.equal(after.question, question, "The same question can start a new independent cast");
-  assert.equal("data" in after, false, "Restart must discard partial facts");
-  log("Formal partial restart clears old facts and permits a fresh same-question cast PASS");
+  assert.equal("data" in after, false, "Starting again must discard the retired partial facts");
+  log("Stored partial stays preserved on clean Home; explicit new start replaces identity and facts PASS");
 }
 
 async function verifyYarrowPartialRestart(page) {
