@@ -385,6 +385,18 @@ export function ThreeCoinRitual({
                   ? (zh ? "每个问题都值得看见。现在开始你的起卦。" : "No question is too small. Begin your divination now →")
                   : (zh ? "三枚铜钱将随机落定，为你带来一次易经起卦。" : <>Three coins will be cast at random,<br />bringing you an I Ching reading.</>)}</p>}
             </div>
+            {landing && resumeState.kind === "partial" && !resumeRequested ? (
+              <div className="ritual-resume-ingress" data-reading-resume="three-coin">
+                <button
+                  type="button"
+                  className="ritual-resume-action"
+                  data-reading-resume-action
+                  onClick={requestResume}
+                >
+                  {zh ? "继续上次起卦" : "Continue unfinished reading"}
+                </button>
+              </div>
+            ) : null}
             {confirming && !coreQuestionFrozenAtCast ? <button type="button" onClick={() => setExperienceStage("landing")} className="ritual-back">← {zh ? "返回" : "Back"}</button> : null}
           </div>
         ) : (
