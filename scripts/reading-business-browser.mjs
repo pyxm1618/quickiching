@@ -11,22 +11,22 @@ const directory = await mkdtemp(join(tmpdir(),'qic-reading-browser-'));
 execFileSync('bun',['scripts/fixtures/build-reading-business-fixture.mjs',directory],{stdio:'pipe'});
 const server = createServer(async (request,response) => {
   const path = new URL(request.url,'http://localhost').pathname;
-  const asset = path === '/reading-business-entry.js' || path === '/reading-business-entry.css' ? path.slice(1) : null;
+  const fixtureAsset = ['.js','.css'].includes(extname(path)) ? path.slice(1) : null;
   const publicAsset = ['/free-reading/','/ai-deep-reading/','/ritual/','/performance/','/account/'].some(prefix=>path.startsWith(prefix))
     ? join(process.cwd(),'public',path.slice(1))
     : null;
   try {
     const type = extname(path);
     response.setHeader('Content-Type',
-      asset?.endsWith('.js') ? 'text/javascript'
-      : asset ? 'text/css'
+      fixtureAsset?.endsWith('.js') ? 'text/javascript'
+      : fixtureAsset?.endsWith('.css') ? 'text/css'
       : type === '.png' ? 'image/png'
       : type === '.jpg' || type === '.jpeg' ? 'image/jpeg'
       : type === '.webp' ? 'image/webp'
       : type === '.avif' ? 'image/avif'
       : 'text/html');
-    response.end(asset
-      ? await readFile(join(directory,asset))
+    response.end(fixtureAsset
+      ? await readFile(join(directory,fixtureAsset))
       : publicAsset
         ? await readFile(publicAsset)
         : '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Reading business test fixture</title><link rel="stylesheet" href="/reading-business-entry.css"><script>window.process={env:{NODE_ENV:"production"}}</script><div id="root"></div><script type="module" src="/reading-business-entry.js"></script>');
