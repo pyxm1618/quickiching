@@ -240,7 +240,11 @@ export function ReadingResultClient({
         initialInterpretationBundles,
       )
     : false;
-  const shouldPrepareBrowserInterpretation = pageMode === "free"
+  // Only browser-session Pending[A] needs client-side Free preparation. A
+  // server-owned saved casting is preloaded by ReadingPage and must not be
+  // regated by this client fallback contract.
+  const browserFreeContentRequired = pageMode === "free" && initialCastingView === null;
+  const shouldPrepareBrowserInterpretation = browserFreeContentRequired
     && !zh
     && !initialInterpretationReady;
   const effectiveInterpretationBundles = initialInterpretationReady
@@ -296,7 +300,7 @@ export function ReadingResultClient({
   // English interpretation bundles. Prepare it during the same save window.
   useEffect(() => {
     if (
-      pageMode !== "free"
+      !browserFreeContentRequired
       || !zh
       || initialLocalizedContent
       || browserLocalizedContent
@@ -322,16 +326,16 @@ export function ReadingResultClient({
     browserLocalizedContent,
     freeContentRetryNonce,
     initialLocalizedContent,
-    pageMode,
+    browserFreeContentRequired,
     resultReading,
     zh,
   ]);
 
-  const freeContentReady = pageMode !== "free"
+  const freeContentReady = !browserFreeContentRequired
     || (zh ? Boolean(effectiveLocalizedContent) : browserInterpretationReady);
-  const freeContentLoadFailed = pageMode === "free"
+  const freeContentLoadFailed = browserFreeContentRequired
     && (zh ? browserLocalizedContentLoadFailed : browserInterpretationLoadFailed);
-  const waitingForFreeContent = pageMode === "free"
+  const waitingForFreeContent = browserFreeContentRequired
     && state.kind === "ready"
     && resultReading !== null
     && !freeContentReady
