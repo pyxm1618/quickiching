@@ -155,6 +155,16 @@ describe("Navigation / Surface Authority architecture", () => {
     expect(info).toContain("contract.accountControl && authEnabled");
   });
 
+  it("keeps one active brand asset across every shell presentation", () => {
+    expect(filesMatching(/quick-i-ching-logo-mark\.png/u)).toEqual([]);
+    expect(filesMatching(/\/navigation\/logo\.webp/u)).toEqual([]);
+
+    const scene = readFileSync(new URL("../components/scene-navigation.tsx", import.meta.url), "utf8");
+    const brandMark = readFileSync(new URL("../components/brand-mark.tsx", import.meta.url), "utf8");
+    expect(scene).toContain('src="/navigation/logo-reference.webp"');
+    expect(brandMark).toContain('src="/navigation/logo-reference.webp"');
+  });
+
   it("keeps local flow exits explicit and separate from Start New semantics", () => {
     const yarrow = readFileSync(new URL("../components/public-reading/yarrow-tool.tsx", import.meta.url), "utf8");
     const manual = readFileSync(new URL("../components/public-reading/manual-cast-tool.tsx", import.meta.url), "utf8");
