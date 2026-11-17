@@ -277,12 +277,12 @@ export function SceneNavigation({
           target="_blank"
           rel="noopener noreferrer"
           className="scene-partnership"
-          aria-label="Quick I Ching - Featured on Startup Fame"
+          aria-label={zh ? "Quick I Ching 与 Startup Fame 合作" : "Quick I Ching - Featured on Startup Fame"}
         >
-          <span>In partnership with</span>
+          <span>{zh ? "合作伙伴" : "In partnership with"}</span>
           <img
             src="https://startupfa.me/badge?t=small&theme=dark"
-            alt="Quick I Ching - Featured on Startup Fame"
+            alt={zh ? "Quick I Ching 与 Startup Fame 合作" : "Quick I Ching - Featured on Startup Fame"}
             width="180"
             height="27"
             decoding="async"

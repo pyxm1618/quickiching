@@ -49,7 +49,12 @@ describe("approved scene navigation integration",()=>{
   expect(home).toContain('href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"');
   expect(home).toContain('src="https://startupfa.me/badge?t=small&amp;theme=dark"');
   expect(home).toContain('alt="Quick I Ching - Featured on Startup Fame"');
+  expect(home).toContain("In partnership with");
   expect(home).not.toContain("BetterLaunch");
+
+  const chineseHome=renderToStaticMarkup(<SceneNavigation locale="zh-Hans" contract={surfaceContract("S01")}/>);
+  expect(chineseHome).toContain("合作伙伴");
+  expect(chineseHome).not.toContain("In partnership with");
 
   const refining=renderToStaticMarkup(<SceneNavigation locale="en" contract={surfaceContract("S02")}/>);
   expect(refining).not.toContain("scene-partnership");
