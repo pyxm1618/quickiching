@@ -166,6 +166,29 @@ async function clickResume(page) {
   await page.click("[data-reading-resume-action]");
 }
 
+async function activateStoredThreeCoinViaLocaleContinuation(page, targetLocale = "en") {
+  const armed = await page.evaluate(({ sessionKey, continuationKey, locale }) => {
+    const raw = sessionStorage.getItem(sessionKey);
+    const session = raw ? JSON.parse(raw) : null;
+    if (!session?.id) return null;
+    sessionStorage.setItem(continuationKey, JSON.stringify({
+      schemaVersion: 1,
+      nonce: `r3-three-coin-${session.id}-${Date.now()}`,
+      method: "three-coin",
+      readingId: session.id,
+      targetLocale: locale,
+      issuedAt: Date.now(),
+    }));
+    return session.id;
+  }, { sessionKey: THREE_COIN_KEY, continuationKey: LOCALE_CONTINUATION_KEY, locale: targetLocale });
+  assert(armed, "Three Coin locale continuation activation requires an exact stored reading id");
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForFunction(
+    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
+    { timeout: 15_000 },
+  );
+}
+
 async function openSettings(page, expectedEmail) {
   const identity = await page.evaluate(async () => {
     const response = await fetch("/api/user/me", { cache: "no-store", credentials: "same-origin" });
@@ -355,12 +378,22 @@ async function seedSignOutState(page) {
     pendingE: pendingPayload(ID_E, "Pending E survives Sign Out"),
   });
 
-  await page.reload({ waitUntil: "networkidle0" });
-  await clickResume(page);
-  await page.waitForFunction(
-    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
-    { timeout: 15_000 },
-  );
+  // Home no longer presents Three Coin Resume. Use the existing locale
+  // continuation capability to reactivate the exact 4/6 flow for this
+  // authenticated sign-out retention scenario.
+  await activateStoredThreeCoinViaLocaleContinuation(page, "en");
+  // Re-arm one unrelated continuation intent so Sign Out still proves that C9
+  // recovery context is cleared independently of the retained cast state.
+  await page.evaluate(({ key, readingId }) => {
+    sessionStorage.setItem(key, JSON.stringify({
+      schemaVersion: 1,
+      nonce: "r3-signout-clear-proof",
+      method: "three-coin",
+      readingId,
+      targetLocale: "zh-Hans",
+      issuedAt: Date.now(),
+    }));
+  }, { key: LOCALE_CONTINUATION_KEY, readingId: THREE_ID });
 }
 
 async function verifySignOutRetention(page) {
@@ -377,13 +410,10 @@ async function verifySignOutRetention(page) {
   ]);
   assert.equal(new URL(page.url()).pathname, "/", "Sign Out success must navigate to the canonical Root");
   await page.waitForSelector("[data-three-coin-ritual]", { timeout: 15_000 });
-  // C1 passive detection runs in QuestionFirst's mount effect. Wait for that
-  // effect to expose the affordance before asserting retention; the UI must
-  // still remain at the default landing stage until the user explicitly resumes.
-  await page.waitForSelector(
-    '[data-reading-resume="three-coin"] [data-reading-resume-action]',
-    { visible: true, timeout: 15_000 },
-  );
+  // The cast state must remain retained, but the canonical Root must stay the
+  // clean landing surface with no Three Coin Resume presentation.
+  await page.waitForSelector('[data-experience-stage="landing"]', { timeout: 15_000 });
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Sign Out return must not expose Three Coin Resume on Home");
 
   const state = await page.evaluate((x) => ({
     three: sessionStorage.getItem(x.threeKey),
@@ -435,7 +465,7 @@ async function verifySignOutRetention(page) {
   assert.equal(state.language, "en", "Sign Out must preserve language preference");
   assert.equal(state.appearance, "dark", "Sign Out must preserve appearance preference");
   assert.equal(state.stage, "landing", "Sign Out return must render default Three Coin entry");
-  assert.equal(state.resume, true, "Sign Out preserved Three Coin state must expose Resume");
+  assert.equal(state.resume, false, "Sign Out preserved Three Coin state must not expose Resume on Home");
   assert.equal(state.activeCastButton, false, "Sign Out must not automatically reactivate casting");
 
   const checks = [
@@ -656,8 +686,7 @@ async function verifyPendingClosure(page) {
       return original.call(this, storageKey, storageValue);
     };
   }, { key: THREE_COIN_KEY, value: threeCoinSession(THREE_ID, 5), prefix: PENDING_PREFIX });
-  await page.reload({ waitUntil: "networkidle0" });
-  await clickResume(page);
+  await activateStoredThreeCoinViaLocaleContinuation(page, "en");
   // Reinstall the write blocker after reload.
   await page.evaluate((prefix) => {
     const original = Storage.prototype.setItem;
@@ -739,9 +768,8 @@ async function seedHistoryMethod(page, method, id) {
       key: THREE_COIN_KEY,
       value: threeCoinSession(id, 5),
     });
-    await page.reload({ waitUntil: "networkidle0" });
-    await clickResume(page);
-    // Resume restores the exact five-line session before the visual layer
+    await activateStoredThreeCoinViaLocaleContinuation(page, "en");
+    // Locale continuation restores the exact five-line session before the visual layer
     // necessarily completes its readiness handshake. Wait for the real cast
     // control to be enabled before dispatching the sixth-line pointer gesture,
     // just as the Pending write-failure proof does above.
