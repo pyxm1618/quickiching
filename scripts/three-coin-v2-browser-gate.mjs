@@ -494,6 +494,7 @@ async function verifyHistorySaveRetry(browser) {
   const page = await context.newPage();
   const requests = [];
   let pending = null;
+  const fixtureSessionId = "51515151-5151-4515-8515-515151515151";
   try {
     await seedCompletedReading(page);
 
@@ -505,14 +506,13 @@ async function verifyHistorySaveRetry(browser) {
         pending = request;
         return;
       }
-      if (url.pathname.startsWith("/api/readings/browser-gate-saved-cast/") && request.method() === "GET") {
+      if (url.pathname.startsWith(`/api/readings/${fixtureSessionId}/`) && request.method() === "GET") {
         return request.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "not_started" }) });
       }
       if (request.method() !== "GET" && request.method() !== "HEAD") return request.abort("blockedbyclient");
       request.continue();
     });
 
-    const fixtureSessionId = "ritual-qa-saved-cast";
     await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.evaluate(({ prefix, id, steps }) => {
       const now = Date.now();
@@ -531,7 +531,14 @@ async function verifyHistorySaveRetry(browser) {
     await page.goto(`${BASE}/ritual-qa-local?view=saving&session=${fixtureSessionId}`, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForSelector("[data-account-reading-saving]");
     assert(pending, "Authenticated save fixture must issue POST /api/readings");
+    assert(await page.$("[data-result-choice]"), "Saving must stay on the canonical Result Choice presentation");
+    assert.equal(
+      await page.$eval("[data-result-choice]", (node) => node.getAttribute("data-reading-session")),
+      fixtureSessionId,
+      "Saving must preserve the exact completed reading identity on Result Choice",
+    );
     assert.equal(await page.$("[data-public-reading-result]"), null, "Result must remain concealed while History save is pending");
+    assert.equal((await page.content()).includes("Save Your Reading"), false, "Standalone Saving page copy must stay retired");
 
     await pending.respond({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "READING_SAVE_FAILED" }) });
     pending = null;
@@ -555,7 +562,7 @@ async function verifyHistorySaveRetry(browser) {
     assert.equal(requests[1].clientCastingId, fixtureSessionId, "History save must use the same stable browser casting id");
     assert.equal(requests[1].lineValuesBottomUp?.length, 6, "History save must use the exact completed six lines");
 
-    await pending.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ castingId: "browser-gate-saved-cast" }) });
+    await pending.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ castingId: fixtureSessionId }) });
     pending = null;
     await page.waitForSelector("[data-public-reading-result]", { timeout: 15_000 });
     const afterSave = await page.evaluate(({ key, prefix, id }) => ({
@@ -564,7 +571,12 @@ async function verifyHistorySaveRetry(browser) {
     }), { key: STORAGE_KEY, prefix: PENDING_READING_KEY_PREFIX, id: fixtureSessionId });
     assert.equal(afterSave.session, null, "A durable save must not revive the retired method session");
     assert.equal(afterSave.pending, null, "A durable save must remove exactly the Pending record");
-    log("History save failure/retry + same-cast reveal PASS");
+    assert.equal(
+      await page.evaluate(() => new URL(location.href).searchParams.get("session")),
+      fixtureSessionId,
+      "Durable save must keep the same authoritative reading id instead of minting another id",
+    );
+    log("History save failure/retry + identical payload + same-id reveal PASS");
   } finally {
     await context.close();
   }
