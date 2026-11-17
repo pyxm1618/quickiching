@@ -179,10 +179,12 @@ describe("ThreeCoinResultClient server-backed initial state", () => {
 });
 
 describe("ThreeCoinResultClient interpretation bundle readiness", () => {
-  it("keeps the initial anonymous browser-session render on the existing stable loading shell", () => {
+  it("keeps the initial anonymous browser-session render on the Result Choice restoration frame", () => {
     const html = renderToStaticMarkup(<ThreeCoinResultClient locale="en" />);
-    expect(html).toContain("Restoring your sealed reading…");
+    expect(html).toContain("data-result-choice-loading-shell");
+    expect(html).toContain("Restoring your completed cast…");
     expect(html).not.toContain("data-primary-card");
+    expect(html).not.toContain("data-public-reading-result");
   });
 
   it("requires the relating bundle only when a relating hexagram exists", async () => {
