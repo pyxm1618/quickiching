@@ -79,8 +79,11 @@ describe("ThreeCoinResultClient auth-save-reveal gate", () => {
       />,
     );
     expect(html).toContain('data-completed-cast-gate="auth-required"');
-    expect(html).toContain("Sign in to save and reveal this reading");
+    expect(html).toContain("data-result-choice");
+    expect(html).toContain("Sign In for Free Reading");
     expect(html).toContain("data-completed-six-lines");
+    expect(html).not.toContain("Save Your Reading");
+    expect(html).not.toContain("ritual-save-gate");
     expect(html).not.toContain("data-primary-card");
     expect(html).not.toContain("data-ritual-result-card");
     expect(html).not.toContain("data-deep-reading-entry");
@@ -95,12 +98,37 @@ describe("ThreeCoinResultClient auth-save-reveal gate", () => {
       />,
     );
     expect(html).toContain('data-completed-cast-gate="saving"');
+    expect(html).toContain("data-result-choice");
     expect(html).toContain("data-account-reading-saving");
+    expect(html).not.toContain("Save Your Reading");
+    expect(html).not.toContain("ritual-save-gate");
     expect(html).not.toContain("data-primary-card");
     expect(html).not.toContain("data-ritual-result-card");
     expect(html).not.toContain("data-deep-reading-entry");
   });
 });
+
+  it("does not make Deep Reading wait for Free-only interpretation bundles", () => {
+    const html = renderToStaticMarkup(
+      <ThreeCoinResultClient
+        pageMode="deep"
+        locale="en"
+        initialUser={{ id: "usr_deep", email: "deep@example.com" }}
+        initialCredits={1}
+        initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on?" }}
+        initialCastingView={{
+          castingId: "cast_deep_saved",
+          context: "What should I focus on?",
+          lineValuesBottomUp: [7, 7, 7, 7, 7, 7],
+          owns: true,
+        }}
+      />,
+    );
+    expect(html).toContain("data-start-deep-reading");
+    expect(html).not.toContain("data-reading-interpretation-loading");
+    expect(html).not.toContain("Preparing Reading");
+    expect(html).not.toContain("Saved to My Readings");
+  });
 
 describe("ThreeCoinResultClient server-backed initial state", () => {
   it("uses owned six-line server truth as the initial ready state", () => {
