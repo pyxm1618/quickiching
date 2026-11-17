@@ -89,6 +89,47 @@ describe("shared post-cast Result Choice", () => {
     expect(html).toContain("变卦");
   });
 
+  it.each(readings.map((reading) => [reading.method, reading] as const))(
+    "keeps %s on Result Choice while the exact reading is saving",
+    (_method, reading) => {
+      const html = renderToStaticMarkup(
+        <ResultChoiceView reading={reading} locale="en" continuation={{ intent: "free", state: "saving" }} />,
+      );
+      expect(html).toContain("data-result-choice");
+      expect(html).toContain('data-completed-cast-gate="saving"');
+      expect(html).toContain('data-account-reading-saving="true"');
+      expect(html).toContain(`data-reading-session="${id}"`);
+      expect(html).not.toContain("Save Your Reading");
+      expect(html).not.toContain("ritual-save-gate");
+    },
+  );
+
+  it("keeps Free preparation on Result Choice instead of rendering a second preparing page", () => {
+    const html = renderToStaticMarkup(
+      <ResultChoiceView reading={readings[0]} locale="en" continuation={{ intent: "free", state: "preparing" }} />,
+    );
+    expect(html).toContain('data-result-reveal-pending="true"');
+    expect(html).toContain('data-reading-interpretation-loading="true"');
+    expect(html).toContain("Preparing Reading");
+    expect(html).not.toContain("Saved to My Readings");
+    expect(html).not.toContain("Preparing your reading");
+  });
+
+  it("keeps save failure and retry on the same exact Result Choice identity", () => {
+    const html = renderToStaticMarkup(
+      <ResultChoiceView
+        reading={readings[3]}
+        locale="en"
+        continuation={{ intent: "deep", state: "save-error", message: "Saving failed.", onRetry: () => {} }}
+      />,
+    );
+    expect(html).toContain('data-completed-cast-gate="save-error"');
+    expect(html).toContain('data-account-reading-save-error="true"');
+    expect(html).toContain('data-retry-account-reading-save="true"');
+    expect(html).toContain(`data-reading-session="${id}"`);
+    expect(html).not.toContain("Save Your Reading");
+  });
+
   it("retires the root full-screen route loading scene", () => {
     expect(existsSync(new URL("../../app/loading.tsx", import.meta.url))).toBe(false);
     expect(existsSync(new URL("../../app/loading.module.css", import.meta.url))).toBe(false);
