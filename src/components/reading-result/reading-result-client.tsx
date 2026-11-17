@@ -70,6 +70,26 @@ export type ReadingResultClientProps = {
   } | null;
 };
 
+export function initialReadingResultState({
+  initialState,
+  initialCastingView,
+}: Pick<ReadingResultClientProps, "initialState" | "initialCastingView">): ResultState {
+  if (initialState) return initialState;
+  if (
+    initialCastingView?.owns
+    && initialCastingView.lineValuesBottomUp
+    && initialCastingView.lineValuesBottomUp.length === 6
+  ) {
+    return {
+      kind: "ready",
+      lineValues: [...initialCastingView.lineValuesBottomUp],
+      question: initialCastingView.context || undefined,
+      createdAt: initialCastingView.createdAt,
+    };
+  }
+  return { kind: "loading" };
+}
+
 type DeepStatus = "idle" | "generating" | "completed" | "failed";
 type PersistenceStatus = "idle" | "saving" | "saved" | "error";
 export type ResultRevealGate = "auth-required" | "saving" | "save-error" | "reveal";
@@ -154,7 +174,7 @@ export function ReadingResultClient({
   const pricingHref = (returnPath: string) => zh
     ? "/zh/pricing?returnUrl=" + encodeURIComponent(returnPath)
     : buildPricingHref(returnPath);
-  const [state, setState] = useState<ResultState>(() => initialState ?? { kind: "loading" });
+  const [state, setState] = useState<ResultState>(() => initialReadingResultState({ initialState, initialCastingView }));
   const [completedReading, setCompletedReading] = useState<PublicReading | null>(null);
   const [clearError, setClearError] = useState<string | null>(null);
   const [clientCastingId, setClientCastingId] = useState<string | null>(null);
@@ -363,26 +383,16 @@ export function ReadingResultClient({
   // 1. 初始化起卦数据（服务端优先 -> 本地 sessionStorage 降级）
   useEffect(() => {
     if (initialState) return;
+    // Server-owned six-line truth is already the initial React state. Do not
+    // manufacture a hydration-only loading window before rendering it.
+    if (
+      initialCastingView?.owns
+      && initialCastingView.lineValuesBottomUp
+      && initialCastingView.lineValuesBottomUp.length === 6
+    ) return;
     let active = true;
 
     async function init() {
-      // 优先从服务端 initialCastingView 恢复
-      if (
-        initialCastingView?.owns &&
-        initialCastingView.lineValuesBottomUp &&
-        initialCastingView.lineValuesBottomUp.length === 6
-      ) {
-        if (active) {
-          setState({
-            kind: "ready",
-            lineValues: initialCastingView.lineValuesBottomUp,
-            question: initialCastingView.context || undefined,
-            createdAt: initialCastingView.createdAt,
-          });
-        }
-        return;
-      }
-
       // Otherwise resolve the exact session identity: Pending[A] only, never the
       // latest stored reading, and never B when the request asked for A.
       const resolution = resolveReadingIdentity({
