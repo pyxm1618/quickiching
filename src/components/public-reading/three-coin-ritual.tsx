@@ -380,7 +380,7 @@ export function ThreeCoinRitual({
               <p className="ritual-question-description">{zh ? "描述一个你心中的具体问题。" : "Describe a specific question that is on your mind."}</p>
               <textarea ref={questionInputRef} id={`${THREE_COIN_SESSION_STORAGE_KEY}-question`} value={draft} onChange={(event) => {
                 setDraft(event.target.value);
-                if (error) setError("");
+                if (error && event.target.value.trim()) setError("");
               }} rows={3}
                 placeholder={landing ? (zh ? "例如：我应该继续现在的道路吗？" : "For example: Should I continue on my current path?") : (zh ? "在此输入你的问题…" : "Type your question here...")}
                 data-clarity-mask="true" data-private-question="true" disabled={coreQuestionFrozenAtCast} />
