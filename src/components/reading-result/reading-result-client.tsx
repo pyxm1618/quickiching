@@ -245,6 +245,7 @@ export function ReadingResultClient({
   // regated by this client fallback contract.
   const browserFreeContentRequired = pageMode === "free" && initialCastingView === null;
   const shouldPrepareBrowserInterpretation = browserFreeContentRequired
+    && Boolean(user)
     && !zh
     && !initialInterpretationReady;
   const effectiveInterpretationBundles = initialInterpretationReady
@@ -301,6 +302,7 @@ export function ReadingResultClient({
   useEffect(() => {
     if (
       !browserFreeContentRequired
+      || !user
       || !zh
       || initialLocalizedContent
       || browserLocalizedContent
@@ -328,6 +330,7 @@ export function ReadingResultClient({
     initialLocalizedContent,
     browserFreeContentRequired,
     resultReading,
+    user,
     zh,
   ]);
 
