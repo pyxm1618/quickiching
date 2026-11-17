@@ -1,4 +1,4 @@
-import "@/components/reading-result/reading-result-shell.css";
+import "@/components/public-reading/ritual.css";
 import { visualRuntimeAssets } from "@/lib/visual-runtime-assets";
 import { getCurrentUser } from "@/lib/auth/session";
 import { loadCastingView, loadEntitlementBalance } from "@/server/loaders";
@@ -59,7 +59,9 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
         <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
         <link rel="preload" as="image" href="/navigation/scroll-64-hexagrams-no-text.webp" media="(max-width:800px)" />
       </>
-    ) : null}
+    ) : (
+      <link rel="preload" as="image" href="/result-choice/primary-stone.avif" fetchPriority="high" />
+    )}
     <div className="ritual-room" aria-hidden="true" />
     {client}
   </div>;
