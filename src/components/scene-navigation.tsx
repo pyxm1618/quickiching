@@ -88,6 +88,7 @@ export function SceneNavigation({
   const [partnerIndex, setPartnerIndex] = useState(0);
   const [partnerPreviousIndex, setPartnerPreviousIndex] = useState<number | null>(null);
   const [partnerTransitioning, setPartnerTransitioning] = useState(false);
+  const [partnerFocusWithin, setPartnerFocusWithin] = useState(false);
   const location = useNavigationLocation();
   const id = useId();
   const rootRef = useRef<HTMLElement>(null);
@@ -184,14 +185,14 @@ export function SceneNavigation({
   }, [locale]);
 
   useEffect(() => {
-    if (contract.id !== "S01") return;
+    if (contract.id !== "S01" || partnerFocusWithin) return;
     const timer = window.setTimeout(() => {
       setPartnerPreviousIndex(partnerIndex);
       setPartnerTransitioning(true);
       setPartnerIndex((partnerIndex + 1) % PARTNER_BADGES.length);
     }, PARTNER_ROTATION_INTERVAL_MS);
     return () => window.clearTimeout(timer);
-  }, [contract.id, partnerIndex]);
+  }, [contract.id, partnerFocusWithin, partnerIndex]);
 
   useEffect(() => {
     if (!partnerTransitioning) return;
@@ -344,6 +345,13 @@ export function SceneNavigation({
           <div
             className="scene-partner-viewport"
             aria-label={zh ? "合作伙伴链接" : "Partner links"}
+            onFocus={() => setPartnerFocusWithin(true)}
+            onBlur={event => {
+              const nextTarget = event.relatedTarget;
+              if (!nextTarget || !event.currentTarget.contains(nextTarget as Node)) {
+                setPartnerFocusWithin(false);
+              }
+            }}
           >
             {PARTNER_BADGES.map((partner, index) => {
               const state = partnerStateFor(index);

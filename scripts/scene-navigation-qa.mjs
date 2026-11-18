@@ -7,6 +7,7 @@ const {default:puppeteer}=await import(process.env.PUPPETEER_MODULE||'puppeteer-
 const {default:chromium}=await import('@sparticuz/chromium');
 const {resolveChromeExecutable}=await import('./browser-runtime.mjs');
 const base=process.env.PUBLIC_V1_TEST_BASE_URL||'http://127.0.0.1:3056';
+const PARTNER_FOCUS_PAUSE_ASSERT_MS=5600;
 const output=resolve(process.env.NAV_QA_OUTPUT||'docs/design/scene-navigation/evidence/2026-11-01');
 await mkdir(output,{recursive:true});
 const authClosed=(await fetch(base+'/account',{redirect:'manual'})).status===410;
@@ -103,6 +104,9 @@ async function verifyActivePartnerClick(page,id,href,prefix){
  await page.click(`.scene-partner-link[data-partner-id="${id}"][data-partner-state="active"]`);
  const clickedHref=await page.evaluate(()=>globalThis.__partnerClickHref);
  check(`${prefix}: click active ${id} reaches its own destination`,clickedHref===href);
+ await page.evaluate(()=>{
+  if(document.activeElement instanceof HTMLElement)document.activeElement.blur();
+ });
 }
 async function verifyPartnerRotation(page,prefix,{verifyClicks=false}={}){
  const sequence=[
@@ -117,6 +121,39 @@ async function verifyPartnerRotation(page,prefix,{verifyClicks=false}={}){
  }
  await waitForPartnerRest(page,'startup-fame');
  check(`${prefix}: partner rotation loops to Startup Fame`,true);
+}
+async function verifyPartnerFocusPauseResume(page,prefix){
+ await waitForPartnerRest(page,'startup-fame');
+ const startupSelector='.scene-partner-link[data-partner-id="startup-fame"][data-partner-state="active"]';
+ await page.focus(startupSelector);
+ await page.waitForFunction(()=>document.activeElement?.getAttribute('data-partner-id')==='startup-fame');
+ await new Promise(resolve=>setTimeout(resolve,PARTNER_FOCUS_PAUSE_ASSERT_MS));
+ const paused=await page.$eval('.scene-partner-viewport',viewport=>{
+  const active=viewport.querySelector('[data-partner-state="active"]');
+  const focused=document.activeElement;
+  const focusedStyle=focused instanceof Element?getComputedStyle(focused):null;
+  const focusedRect=focused instanceof Element?focused.getBoundingClientRect():null;
+  return {
+   activeId:active?.getAttribute('data-partner-id'),
+   focusedId:focused instanceof Element?focused.getAttribute('data-partner-id'):null,
+   focusedState:focused instanceof Element?focused.getAttribute('data-partner-state'):null,
+   focusedAriaHidden:focused instanceof Element?focused.getAttribute('aria-hidden'):null,
+   focusedTabIndex:focused instanceof HTMLElement?focused.tabIndex:null,
+   focusedOpacity:focusedStyle?Number(focusedStyle.opacity):0,
+   focusedPointerEvents:focusedStyle?.pointerEvents??null,
+   focusedVisible:Boolean(focusedRect&&focusedRect.width>0&&focusedRect.height>0),
+  };
+ });
+ check(`${prefix}: focus pauses rotation beyond one full interval`,paused.activeId==='startup-fame');
+ check(`${prefix}: focused partner remains the visible active destination`,paused.focusedId==='startup-fame'&&paused.focusedState==='active'&&paused.focusedAriaHidden!=='true'&&Number(paused.focusedTabIndex)>=0&&paused.focusedOpacity>.9&&paused.focusedPointerEvents==='auto'&&paused.focusedVisible);
+ await page.focus('.scene-scroll-methods');
+ check(`${prefix}: focus leaves the entire partner viewport`,await page.evaluate(()=>!document.querySelector('.scene-partner-viewport')?.contains(document.activeElement)));
+ await waitForPartnerRest(page,'better-launch');
+ check(`${prefix}: resume preserves Startup Fame -> Better Launch`,true);
+ await waitForPartnerRest(page,'shipstry');
+ check(`${prefix}: resume preserves Better Launch -> Shipstry`,true);
+ await waitForPartnerRest(page,'startup-fame');
+ check(`${prefix}: resume preserves Shipstry -> Startup Fame without skip or double timer`,true);
 }
 
 async function clickSceneDestination(page,locale,path){
@@ -160,6 +197,7 @@ try {
  for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent==='Decline'))await button.click();
  await page.waitForSelector('.scene-navigation');
  await openSceneHome(page,'en');
+ await verifyPartnerFocusPauseResume(page,'Desktop EN');
  await verifyPartnerRotation(page,'Desktop EN',{verifyClicks:true});
  for(const locale of ['en','zh']){
   await page.setViewport({width:390,height:844,deviceScaleFactor:1});
