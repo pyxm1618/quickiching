@@ -12,25 +12,80 @@ await mkdir(output,{recursive:true});
 const authClosed=(await fetch(base+'/account',{redirect:'manual'})).status===410;
 const report={base,authClosed,states:[],checks:[],errors:[],status:'RUNNING'};
 function check(name,value){assert(value,name);report.checks.push({name,status:'PASS'});}
+async function readPartnerSnapshot(page){
+ return page.$eval('.scene-partnership',root=>{
+  const viewport=root.querySelector('.scene-partner-viewport');
+  const viewportStyle=viewport?getComputedStyle(viewport):null;
+  return {
+   tag:root.tagName,
+   label:root.querySelector('.scene-partnership-label')?.textContent,
+   labelInsideLink:Boolean(root.querySelector('a .scene-partnership-label')),
+   viewport:viewport?{
+    clientHeight:viewport.clientHeight,scrollHeight:viewport.scrollHeight,
+    clientWidth:viewport.clientWidth,scrollWidth:viewport.scrollWidth,
+    overflowX:viewportStyle?.overflowX,overflowY:viewportStyle?.overflowY,
+   }:null,
+   links:[...root.querySelectorAll('.scene-partner-link')].map(link=>{
+    const image=link.querySelector('img');
+    const style=getComputedStyle(link);
+    return {
+     id:link.getAttribute('data-partner-id'),
+     state:link.getAttribute('data-partner-state'),
+     href:link.getAttribute('href'),
+     target:link.getAttribute('target'),
+     rel:link.getAttribute('rel'),
+     tabIndex:link.getAttribute('tabindex'),
+     opacity:Number(style.opacity),
+     pointerEvents:style.pointerEvents,
+     src:image?.getAttribute('src'),
+     complete:image?.complete,
+     naturalWidth:image?.naturalWidth,
+     naturalHeight:image?.naturalHeight,
+    };
+   }),
+  };
+ });
+}
+async function waitForPartnerRest(page,id){
+ await page.waitForFunction(expected=>{
+  const root=document.querySelector('.scene-partnership');
+  if(!root)return false;
+  const moving=root.querySelector('[data-partner-state="entering"],[data-partner-state="exiting"]');
+  return !moving&&root.querySelector('[data-partner-state="active"]')?.getAttribute('data-partner-id')===expected;
+ },{timeout:12000},id);
+}
 async function openSceneHome(page,locale){
  const home=locale==='en'?'/':'/zh';
  await page.goto(base+home+'?ritualTime=700',{waitUntil:'networkidle0'});
  await page.waitForSelector('.scene-navigation');
- const partnership=await page.$eval('.scene-partnership',root=>({
-  tag:root.tagName,
-  label:root.querySelector('.scene-partnership-label')?.textContent,
-  labelInsideLink:Boolean(root.querySelector('a .scene-partnership-label')),
-  links:[...root.querySelectorAll('.scene-partner-link')].map(link=>({href:link.getAttribute('href'),target:link.getAttribute('target'),rel:link.getAttribute('rel'),src:link.querySelector('img')?.getAttribute('src')})),
-  list:{clientHeight:root.querySelector('.scene-partner-list')?.clientHeight,scrollHeight:root.querySelector('.scene-partner-list')?.scrollHeight},
- }));
+ await page.waitForFunction(()=>!document.querySelector('.scene-partnership [data-partner-state="entering"],.scene-partnership [data-partner-state="exiting"]'),{timeout:3000});
+ const partnership=await readPartnerSnapshot(page);
  check('Partnership label is static and outside links',partnership.tag==='DIV'&&Boolean(partnership.label)&&!partnership.labelInsideLink);
+ check('Single partner viewport retained',Boolean(partnership.viewport));
  check('Three partner links retained',partnership.links.length===3);
- check('Startup Fame partnership retained',partnership.links.some(link=>link.href==='https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'&&link.src==='https://startupfa.me/badge?t=small&theme=dark'));
- check('Better Launch partnership retained',partnership.links.some(link=>link.href==='https://www.betterlaunch.co/product/quick-i-ching'&&link.src==='https://www.betterlaunch.co/badge-launching-gradient.svg'));
- check('Shipstry partnership retained',partnership.links.some(link=>link.href==='https://shipstry.com/'&&link.src==='https://shipstry.com/badges/featured.svg'));
+ check('Startup Fame partnership retained',partnership.links.some(link=>link.id==='startup-fame'&&link.href==='https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'&&link.src==='https://startupfa.me/badges/featured-badge.webp'));
+ check('Better Launch partnership retained',partnership.links.some(link=>link.id==='better-launch'&&link.href==='https://www.betterlaunch.co/product/quick-i-ching'&&link.src==='https://www.betterlaunch.co/badge-launching-gradient.svg'));
+ check('Shipstry partnership retained',partnership.links.some(link=>link.id==='shipstry'&&link.href==='https://shipstry.com/'&&link.src==='https://shipstry.com/badges/featured.svg'));
  check('Partner links open safely',partnership.links.every(link=>link.target==='_blank'&&link.rel?.split(/\s+/).includes('noopener')&&link.rel?.split(/\s+/).includes('noreferrer')));
- check('Partner list is vertically scrollable',Number(partnership.list.scrollHeight)>Number(partnership.list.clientHeight));
+ check('Only one partner badge visible at rest',partnership.links.filter(link=>link.state==='active'&&link.opacity>.9&&link.pointerEvents==='auto').length===1&&partnership.links.filter(link=>link.opacity>.01).length===1);
+ check('Partner viewport clips instead of scrolling',partnership.viewport?.overflowX==='hidden'&&partnership.viewport?.overflowY==='hidden');
+ check('Partner viewport has no scrollable overflow',partnership.viewport?.scrollHeight===partnership.viewport?.clientHeight&&partnership.viewport?.scrollWidth===partnership.viewport?.clientWidth);
+ const scrollLocked=await page.$eval('.scene-partner-viewport',viewport=>{viewport.scrollTop=20;viewport.scrollLeft=20;return viewport.scrollTop===0&&viewport.scrollLeft===0;});
+ check('Manual partner scrolling is disabled',scrollLocked);
+ check('All partner badge images are ready',partnership.links.every(link=>link.complete===true&&Number(link.naturalWidth)>0&&Number(link.naturalHeight)>0));
+ return partnership;
 }
+async function verifyPartnerRotation(page){
+ await waitForPartnerRest(page,'startup-fame');
+ check('Rotation starts at Startup Fame',true);
+ await waitForPartnerRest(page,'better-launch');
+ check('Automatic rotation reaches Better Launch',true);
+ await waitForPartnerRest(page,'shipstry');
+ check('Automatic rotation reaches Shipstry',true);
+ await waitForPartnerRest(page,'startup-fame');
+ check('Partner rotation loops to Startup Fame',true);
+}
+
 async function clickSceneDestination(page,locale,path){
  const prefix=locale==='en'?'':'/zh';
  const target=prefix+path;
@@ -69,16 +124,43 @@ try {
  await page.goto(base+'/?ritualTime=700',{waitUntil:'networkidle0'});
  for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent==='Decline'))await button.click();
  await page.waitForSelector('.scene-navigation');
+ await openSceneHome(page,'en');
+ await verifyPartnerRotation(page);
+ for(const locale of ['en','zh']){
+  await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+  const mobilePartner=await openSceneHome(page,locale);
+  check(`${locale}: mobile partner viewport remains single-slot`,mobilePartner.links.filter(link=>link.opacity>.01).length===1&&mobilePartner.viewport?.overflowY==='hidden');
+ }
+ await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
+ await page.setViewport({width:1671,height:941,deviceScaleFactor:1});
+ await openSceneHome(page,'en');
+ await waitForPartnerRest(page,'better-launch');
+ check('Reduced motion preserves automatic partner rotation',true);
+ await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
+ await page.goto(base+'/?ritualTime=700',{waitUntil:'networkidle0'});
+ await page.waitForSelector('.scene-navigation');
  // Partner badges are external partnership assets, not approved first-party navigation assets.
  // Keep first-party image readiness strict while validating partner markup separately below.
- await page.evaluate(async()=>{const controlledImages=[...document.images].filter(image=>!image.matches('.scene-partnership img'));for(const image of controlledImages)image.loading='eager';await Promise.all(controlledImages.map(image=>image.decode()));await document.fonts.ready;});
+ await page.evaluate(async()=>{
+  const controlledImages=[...document.images];
+  for(const image of controlledImages)image.loading='eager';
+  await Promise.all(controlledImages.map(async image=>{
+   if(!image.complete)await new Promise((resolve,reject)=>{
+    image.addEventListener('load',resolve,{once:true});
+    image.addEventListener('error',()=>reject(new Error(`IMAGE_LOAD_FAILED:${image.currentSrc||image.src}`)),{once:true});
+   });
+   if(image.naturalWidth<=0||image.naturalHeight<=0)throw new Error(`IMAGE_NOT_READY:${image.currentSrc||image.src}`);
+   try{await image.decode();}catch(error){if(image.naturalWidth<=0||image.naturalHeight<=0)throw error;}
+  }));
+  await document.fonts.ready;
+ });
  for(const state of ['default','methods','info']) {
   const width=state==='default'?1671:1670,height=state==='default'?941:942;
   await page.setViewport({width,height,deviceScaleFactor:1});
   if(state!=='default')await page.click(`.scene-scroll-${state}`);
   await page.waitForFunction(value=>document.querySelector('.scene-navigation').dataset.scenePanel===(value==='default'?'closed':value),{},state);
   await page.mouse.move(1000,100);await new Promise(resolve=>setTimeout(resolve,800));
-  const metadata=await page.evaluate(()=>({url:location.href,title:document.title,viewport:{width:innerWidth,height:innerHeight},dpr:devicePixelRatio,fontsReady:document.fonts.status==='loaded',imagesReady:[...document.images].filter(image=>!image.matches('.scene-partnership img')).every(image=>image.complete&&image.naturalWidth>0),overflow:document.documentElement.scrollWidth>innerWidth,fullPage:false,screenshotScale:'css',panel:document.querySelector('.scene-navigation').dataset.scenePanel,elements:[...document.querySelectorAll('.scene-brand,.scene-utility,.scene-scroll,.scene-scroll-holder,.scene-panel:not([hidden]),.scene-panel:not([hidden]) h2,.scene-panel:not([hidden]) h3,.scene-panel:not([hidden]) a,.scene-panel:not([hidden]) p')].map(node=>({className:node.className,text:node.textContent,rect:node.getBoundingClientRect().toJSON(),font:getComputedStyle(node).font}))}));
+  const metadata=await page.evaluate(()=>({url:location.href,title:document.title,viewport:{width:innerWidth,height:innerHeight},dpr:devicePixelRatio,fontsReady:document.fonts.status==='loaded',imagesReady:[...document.images].every(image=>image.complete&&image.naturalWidth>0&&image.naturalHeight>0),overflow:document.documentElement.scrollWidth>innerWidth,fullPage:false,screenshotScale:'css',panel:document.querySelector('.scene-navigation').dataset.scenePanel,elements:[...document.querySelectorAll('.scene-brand,.scene-utility,.scene-scroll,.scene-scroll-holder,.scene-panel:not([hidden]),.scene-panel:not([hidden]) h2,.scene-panel:not([hidden]) h3,.scene-panel:not([hidden]) a,.scene-panel:not([hidden]) p')].map(node=>({className:node.className,text:node.textContent,rect:node.getBoundingClientRect().toJSON(),font:getComputedStyle(node).font}))}));
   check(`${state}: exact viewport and DPR`,metadata.viewport.width===width&&metadata.viewport.height===height&&metadata.dpr===1);
   check(`${state}: images and fonts ready`,metadata.imagesReady&&metadata.fontsReady);
   check(`${state}: no horizontal overflow`,!metadata.overflow);
