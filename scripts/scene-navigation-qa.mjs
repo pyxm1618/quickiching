@@ -63,7 +63,27 @@ async function openSceneHome(page,locale){
   await page.waitForFunction(()=>[...document.querySelectorAll('.scene-partnership img')].every(image=>image.complete&&image.naturalWidth>0&&image.naturalHeight>0),{timeout:10000});
  } catch {
   const failedImages=await page.$eval('.scene-partnership',root=>[...root.querySelectorAll('.scene-partner-link')].map(link=>{const image=link.querySelector('img');return {id:link.getAttribute('data-partner-id'),src:image?.currentSrc||image?.getAttribute('src'),complete:image?.complete,naturalWidth:image?.naturalWidth,naturalHeight:image?.naturalHeight};}).filter(image=>image.complete!==true||Number(image.naturalWidth)<=0||Number(image.naturalHeight)<=0));
-  throw new Error(`PARTNER_IMAGE_NOT_READY:${JSON.stringify(failedImages)}`);
+  const startupFailure=failedImages.find(image=>image.id==='startup-fame');
+  let remoteDiagnostic=null;
+  if(startupFailure?.src){
+   try{
+    const response=await fetch(startupFailure.src,{redirect:'follow'});
+    const bytes=Buffer.from(await response.arrayBuffer());
+    remoteDiagnostic={
+     status:response.status,
+     url:response.url,
+     contentType:response.headers.get('content-type'),
+     contentLength:response.headers.get('content-length'),
+     crossOriginResourcePolicy:response.headers.get('cross-origin-resource-policy'),
+     cacheControl:response.headers.get('cache-control'),
+     bytes:bytes.length,
+     base64:response.ok?bytes.toString('base64'):null,
+    };
+   }catch(error){
+    remoteDiagnostic={fetchError:String(error)};
+   }
+  }
+  throw new Error(`PARTNER_IMAGE_NOT_READY:${JSON.stringify(failedImages)} REMOTE_DIAGNOSTIC:${JSON.stringify(remoteDiagnostic)}`);
  }
  const partnership=await readPartnerSnapshot(page);
  check('Partnership label is static and outside links',partnership.tag==='DIV'&&Boolean(partnership.label)&&!partnership.labelInsideLink);
