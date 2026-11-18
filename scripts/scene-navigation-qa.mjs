@@ -59,6 +59,12 @@ async function openSceneHome(page,locale){
  await page.goto(base+home+'?ritualTime=700',{waitUntil:'networkidle0'});
  await page.waitForSelector('.scene-navigation');
  await page.waitForFunction(()=>!document.querySelector('.scene-partnership [data-partner-state="entering"],.scene-partnership [data-partner-state="exiting"]'),{timeout:3000});
+ try {
+  await page.waitForFunction(()=>[...document.querySelectorAll('.scene-partnership img')].every(image=>image.complete&&image.naturalWidth>0&&image.naturalHeight>0),{timeout:10000});
+ } catch {
+  const failedImages=await page.$eval('.scene-partnership .scene-partner-link',links=>links.map(link=>{const image=link.querySelector('img');return {id:link.getAttribute('data-partner-id'),src:image?.currentSrc||image?.getAttribute('src'),complete:image?.complete,naturalWidth:image?.naturalWidth,naturalHeight:image?.naturalHeight};}).filter(image=>image.complete!==true||Number(image.naturalWidth)<=0||Number(image.naturalHeight)<=0));
+  throw new Error(`PARTNER_IMAGE_NOT_READY:${JSON.stringify(failedImages)}`);
+ }
  const partnership=await readPartnerSnapshot(page);
  check('Partnership label is static and outside links',partnership.tag==='DIV'&&Boolean(partnership.label)&&!partnership.labelInsideLink);
  check('Single partner viewport retained',Boolean(partnership.viewport));
