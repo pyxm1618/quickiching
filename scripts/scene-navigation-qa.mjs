@@ -139,8 +139,7 @@ try {
  await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
  await page.goto(base+'/?ritualTime=700',{waitUntil:'networkidle0'});
  await page.waitForSelector('.scene-navigation');
- // Partner badges are external partnership assets, not approved first-party navigation assets.
- // Keep first-party image readiness strict while validating partner markup separately below.
+ // Image readiness is global: partner badges are intentionally included so a broken remote badge fails this gate.
  await page.evaluate(async()=>{
   const controlledImages=[...document.images];
   for(const image of controlledImages)image.loading='eager';
