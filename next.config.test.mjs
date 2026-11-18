@@ -49,7 +49,7 @@ describe("Next.js security headers", () => {
     expect(csp).toContain("https://*.analytics.google.com");
     expect(csp).toContain("https://c.bing.com");
     expect(csp).toContain("https://challenges.cloudflare.com");
-    expect(csp).toContain("https://startupfa.me");
+    expect(csp).not.toContain("https://startupfa.me");
     expect(csp).toContain("https://www.betterlaunch.co");
     expect(csp).toContain("https://shipstry.com");
   });
