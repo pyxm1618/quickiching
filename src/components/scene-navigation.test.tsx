@@ -52,7 +52,7 @@ describe("approved scene navigation integration",()=>{
   expect(home).toContain('data-partner-id="better-launch" data-partner-state="next"');
   expect(home).toContain('data-partner-id="shipstry" data-partner-state="hidden"');
   expect(home).toContain('href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"');
-  expect(home).toContain('src="https://startupfa.me/badges/featured-badge.webp"');
+  expect(home).toContain('src="https://startupfa.me/badges/featured/dark.webp"');
   expect(home).not.toContain("badge?t=small");
   expect(home).toContain('href="https://www.betterlaunch.co/product/quick-i-ching"');
   expect(home).toContain('src="https://www.betterlaunch.co/badge-launching-gradient.svg"');
@@ -60,7 +60,7 @@ describe("approved scene navigation integration",()=>{
   expect(home).toContain('src="https://shipstry.com/badges/featured.svg"');
   expect(home.match(/target="_blank"/g)).toHaveLength(3);
   expect(home.match(/rel="noopener noreferrer"/g)).toHaveLength(3);
-  expect(home).toContain('src="https://startupfa.me/badges/featured-badge.webp" alt="" width="171" height="54"');
+  expect(home).toContain('src="https://startupfa.me/badges/featured/dark.webp" alt="" width="171" height="54"');
   expect(home).not.toContain('alt="Quick I Ching - Featured on Startup Fame"');
   expect(home.match(/tabindex="-1"/g)).toHaveLength(2);
 
