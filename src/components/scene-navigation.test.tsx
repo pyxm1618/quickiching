@@ -43,29 +43,32 @@ describe("approved scene navigation integration",()=>{
   const html=core+methods+info;
   for(const label of ["Hexagrams","Other Methods","Info","Yarrow Stalks","Mei Hua Yi Shu","Manual Cast","Privacy Settings","EN","中文"])expect(html).toContain(label);
  });
- it("renders a non-clickable partnership label with three scrollable partner links only on S01",()=>{
+ it("renders one fixed partner viewport with three independently clickable rotating badges only on S01",()=>{
   const home=renderToStaticMarkup(<SceneNavigation locale="en" contract={surfaceContract("S01")}/>);
-  expect(home).toContain('<div class="scene-partnership"><span class="scene-partnership-label">In partnership with</span><div class="scene-partner-list" aria-label="Partner links">');
-  expect(home).not.toContain('<a class="scene-partnership"');
+  expect(home).toContain('<div class="scene-partnership"><span class="scene-partnership-label">In partnership with</span><div class="scene-partner-viewport" aria-label="Partner links">');
+  expect(home).not.toContain("scene-partner-list");
   expect(home.match(/class="scene-partner-link"/g)).toHaveLength(3);
+  expect(home).toContain('data-partner-id="startup-fame" data-partner-state="active"');
+  expect(home).toContain('data-partner-id="better-launch" data-partner-state="next"');
+  expect(home).toContain('data-partner-id="shipstry" data-partner-state="hidden"');
   expect(home).toContain('href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"');
-  expect(home).toContain('src="https://startupfa.me/badge?t=small&amp;theme=dark"');
+  expect(home).toContain('src="https://startupfa.me/badges/featured-badge.webp"');
+  expect(home).not.toContain("badge?t=small");
   expect(home).toContain('href="https://www.betterlaunch.co/product/quick-i-ching"');
   expect(home).toContain('src="https://www.betterlaunch.co/badge-launching-gradient.svg"');
   expect(home).toContain('href="https://shipstry.com/"');
   expect(home).toContain('src="https://shipstry.com/badges/featured.svg"');
   expect(home.match(/target="_blank"/g)).toHaveLength(3);
   expect(home.match(/rel="noopener noreferrer"/g)).toHaveLength(3);
+  expect(home.match(/alt=""/g)).toHaveLength(4);
+  expect(home.match(/tabindex="-1"/g)).toHaveLength(2);
 
   const chineseHome=renderToStaticMarkup(<SceneNavigation locale="zh-Hans" contract={surfaceContract("S01")}/>);
   expect(chineseHome).toContain('<span class="scene-partnership-label">合作伙伴</span>');
   expect(chineseHome).toContain('aria-label="合作伙伴链接"');
-  expect(chineseHome).toContain('aria-label="打开第一个合作伙伴网站"');
-  expect(chineseHome).toContain('aria-label="打开第二个合作伙伴网站"');
-  expect(chineseHome).toContain('aria-label="打开第三个合作伙伴网站"');
-  expect(chineseHome).not.toContain("Startup Fame");
-  expect(chineseHome).not.toContain("Better Launch");
-  expect(chineseHome).not.toContain("Shipstry");
+  expect(chineseHome).toContain('aria-label="打开 Startup Fame"');
+  expect(chineseHome).toContain('aria-label="打开 Better Launch"');
+  expect(chineseHome).toContain('aria-label="打开 Shipstry"');
   expect(chineseHome).not.toContain("In partnership with");
 
   const refining=renderToStaticMarkup(<SceneNavigation locale="en" contract={surfaceContract("S02")}/>);
