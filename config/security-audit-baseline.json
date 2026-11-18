@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "capturedFromMain": "bbe5c127f71b224c8129389011736ca93aa2f8be",
+  "capturedFromMain": "6e466f593fc22ad8b24235cd4f1b0fd9985c3bc2",
   "policy": "Pre-existing high/critical dependency advisories are visible debt. CI fails on any advisory ID not present in this baseline. Removing baseline advisories is always allowed. Updating this baseline requires an explicit security review.",
-  "observedInstances": 27,
+  "observedInstances": 28,
   "uniqueAdvisories": [
     {
       "severity": "high",
@@ -118,6 +118,11 @@
       "severity": "high",
       "id": "GHSA-x5rw-q4pp-hg5g",
       "summary": "devalue: stringifyAsync can cause an unhandled rejection despite a caught returned promise"
+    },
+    {
+      "severity": "high",
+      "id": "GHSA-fc5q-39xc-vjpf",
+      "summary": "picomatch vulnerable to ReDoS through single-branch repeated extglobs"
     }
   ]
 }
