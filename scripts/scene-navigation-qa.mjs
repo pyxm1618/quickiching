@@ -10,7 +10,7 @@ const base=process.env.PUBLIC_V1_TEST_BASE_URL||'http://127.0.0.1:3056';
 const output=resolve(process.env.NAV_QA_OUTPUT||'docs/design/scene-navigation/evidence/2026-11-01');
 await mkdir(output,{recursive:true});
 const authClosed=(await fetch(base+'/account',{redirect:'manual'})).status===410;
-const report={base,authClosed,states:[],checks:[],errors:[],status:'RUNNING'};
+const report={base,authClosed,states:[],checks:[],errors:[],requestFailures:[],status:'RUNNING'};
 function check(name,value){assert(value,name);report.checks.push({name,status:'PASS'});}
 async function readPartnerSnapshot(page){
  return page.$eval('.scene-partnership',root=>{
@@ -81,7 +81,10 @@ async function openSceneHome(page,locale){
  await new Promise(resolve=>setTimeout(resolve,80));
  const afterWheel=await page.$eval('.scene-partner-viewport',viewport=>({scrollTop:viewport.scrollTop,scrollLeft:viewport.scrollLeft}));
  check('Manual partner scrolling is disabled',afterWheel.scrollTop===viewportBox.scrollTop&&afterWheel.scrollLeft===viewportBox.scrollLeft);
- check('All partner badge images are ready',partnership.links.every(link=>link.complete===true&&Number(link.naturalWidth)>0&&Number(link.naturalHeight)>0));
+ for(const link of partnership.links){
+  check(`Partner image ready: ${link.id} complete=${link.complete} width=${link.naturalWidth} height=${link.naturalHeight} src=${link.src}`,
+   link.complete===true&&Number(link.naturalWidth)>0&&Number(link.naturalHeight)>0);
+ }
  return partnership;
 }
 async function verifyPartnerRotation(page){
@@ -128,7 +131,9 @@ const browser=await puppeteer.launch({
     : [...chromium.args,'--disable-dev-shm-usage','--force-device-scale-factor=1'],
 });
 try {
- const page=await browser.newPage();page.on('pageerror',error=>report.errors.push(String(error)));
+ const page=await browser.newPage();
+ page.on('pageerror',error=>report.errors.push(String(error)));
+ page.on('requestfailed',request=>report.requestFailures.push({url:request.url(),error:request.failure()?.errorText??null}));
  await page.setViewport({width:1671,height:941,deviceScaleFactor:1});
  await page.goto(base+'/?ritualTime=700',{waitUntil:'networkidle0'});
  for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent==='Decline'))await button.click();
@@ -215,6 +220,9 @@ try {
   await page.goto(base+prefix+'/guides/how-to-ask-the-i-ching',{waitUntil:'networkidle0'});
   check(`Latest ${prefix||'English'} Info page header preserved`,await page.$eval('body > header',node=>node.className.includes('infoHeader')&&!node.classList.contains('scene-navigation')));
  }
- check('No browser page errors',report.errors.length===0);report.status='PASS';
+ check('No browser page errors',report.errors.length===0);
+ const partnerRequestFailures=report.requestFailures.filter(item=>/startupfa\.me|betterlaunch\.co|shipstry\.com/.test(item.url));
+ check(`No partner badge request failures (${JSON.stringify(partnerRequestFailures)})`,partnerRequestFailures.length===0);
+ report.status='PASS';
 } catch(error){report.status='FAIL';report.failure=String(error);process.exitCode=1;console.error(error);}
 finally{report.browser=await browser.version();await writeFile(`${output}/browser-verification.json`,JSON.stringify(report,null,2)+'\n');await browser.close();console.log(JSON.stringify({status:report.status,checks:report.checks.length,states:report.states,failure:report.failure}));}
