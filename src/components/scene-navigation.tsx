@@ -28,6 +28,40 @@ const loadSceneNavigationPanels = () => import("@/components/scene-navigation-pa
 
 type Panel = "methods" | "info";
 
+const PARTNER_ROTATION_INTERVAL_MS = 5000;
+const PARTNER_TRANSITION_MS = 420;
+const PARTNER_BADGES = [
+  {
+    id: "startup-fame",
+    href: "https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com",
+    src: "https://startupfa.me/badges/featured-badge.webp",
+    width: 171,
+    height: 54,
+    enLabel: "Open Startup Fame",
+    zhLabel: "打开 Startup Fame",
+  },
+  {
+    id: "better-launch",
+    href: "https://www.betterlaunch.co/product/quick-i-ching",
+    src: "https://www.betterlaunch.co/badge-launching-gradient.svg",
+    width: 200,
+    height: 56,
+    enLabel: "Open Better Launch",
+    zhLabel: "打开 Better Launch",
+  },
+  {
+    id: "shipstry",
+    href: "https://shipstry.com/",
+    src: "https://shipstry.com/badges/featured.svg",
+    width: 220,
+    height: 52,
+    enLabel: "Open Shipstry",
+    zhLabel: "打开 Shipstry",
+  },
+] as const;
+
+type PartnerBadgeState = "active" | "next" | "entering" | "exiting" | "hidden";
+
 function continuationMethodForSurface(id: SurfaceContract["id"]): PublicReadingMethod | null {
   if (id === "S02") return "three-coin";
   if (id === "S06") return "yarrow-stalks";
@@ -51,6 +85,9 @@ export function SceneNavigation({
   const zh = locale === "zh-Hans";
   const pathname = usePathname() ?? (zh ? "/zh" : "/");
   const [panel, setPanel] = useState<Panel | null>(null);
+  const [partnerIndex, setPartnerIndex] = useState(0);
+  const [partnerPreviousIndex, setPartnerPreviousIndex] = useState<number | null>(null);
+  const [partnerTransitioning, setPartnerTransitioning] = useState(false);
   const location = useNavigationLocation();
   const id = useId();
   const rootRef = useRef<HTMLElement>(null);
@@ -147,6 +184,25 @@ export function SceneNavigation({
   }, [locale]);
 
   useEffect(() => {
+    if (contract.id !== "S01") return;
+    const timer = window.setTimeout(() => {
+      setPartnerPreviousIndex(partnerIndex);
+      setPartnerTransitioning(true);
+      setPartnerIndex((partnerIndex + 1) % PARTNER_BADGES.length);
+    }, PARTNER_ROTATION_INTERVAL_MS);
+    return () => window.clearTimeout(timer);
+  }, [contract.id, partnerIndex]);
+
+  useEffect(() => {
+    if (!partnerTransitioning) return;
+    const timer = window.setTimeout(() => {
+      setPartnerTransitioning(false);
+      setPartnerPreviousIndex(null);
+    }, PARTNER_TRANSITION_MS);
+    return () => window.clearTimeout(timer);
+  }, [partnerTransitioning]);
+
+  useEffect(() => {
     if (!panel) return;
     function outside(event: PointerEvent) {
       if (!rootRef.current?.contains(event.target as Node)) setPanel(null);
@@ -225,6 +281,17 @@ export function SceneNavigation({
     items[next]?.focus();
   }
 
+  function partnerStateFor(index: number): PartnerBadgeState {
+    if (partnerTransitioning) {
+      if (index === partnerIndex) return "entering";
+      if (index === partnerPreviousIndex) return "exiting";
+      return "hidden";
+    }
+    if (index === partnerIndex) return "active";
+    if (index === (partnerIndex + 1) % PARTNER_BADGES.length) return "next";
+    return "hidden";
+  }
+
   return (
     <header
       ref={rootRef}
@@ -275,54 +342,35 @@ export function SceneNavigation({
         <div className="scene-partnership">
           <span className="scene-partnership-label">{zh ? "合作伙伴" : "In partnership with"}</span>
           <div
-            className="scene-partner-list"
+            className="scene-partner-viewport"
             aria-label={zh ? "合作伙伴链接" : "Partner links"}
           >
-            <a
-              href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="scene-partner-link"
-              aria-label={zh ? "打开第一个合作伙伴网站" : "Quick I Ching - Featured on Startup Fame"}
-            >
-              <img
-                src="https://startupfa.me/badge?t=small&theme=dark"
-                alt={zh ? "" : "Quick I Ching - Featured on Startup Fame"}
-                width="180"
-                height="27"
-                decoding="async"
-              />
-            </a>
-            <a
-              href="https://www.betterlaunch.co/product/quick-i-ching"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="scene-partner-link"
-              aria-label={zh ? "打开第二个合作伙伴网站" : "Quick I Ching on Better Launch"}
-            >
-              <img
-                src="https://www.betterlaunch.co/badge-launching-gradient.svg"
-                alt={zh ? "" : "Better Launch"}
-                width="200"
-                height="56"
-                decoding="async"
-              />
-            </a>
-            <a
-              href="https://shipstry.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="scene-partner-link"
-              aria-label={zh ? "打开第三个合作伙伴网站" : "Quick I Ching on Shipstry"}
-            >
-              <img
-                src="https://shipstry.com/badges/featured.svg"
-                alt={zh ? "" : "Featured on Shipstry"}
-                width="220"
-                height="52"
-                decoding="async"
-              />
-            </a>
+            {PARTNER_BADGES.map((partner, index) => {
+              const state = partnerStateFor(index);
+              const active = state === "active" || state === "entering";
+              return (
+                <a
+                  key={partner.id}
+                  href={partner.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="scene-partner-link"
+                  data-partner-id={partner.id}
+                  data-partner-state={state}
+                  aria-label={zh ? partner.zhLabel : partner.enLabel}
+                  aria-hidden={active ? undefined : true}
+                  tabIndex={active ? 0 : -1}
+                >
+                  <img
+                    src={partner.src}
+                    alt=""
+                    width={partner.width}
+                    height={partner.height}
+                    decoding="async"
+                  />
+                </a>
+              );
+            })}
           </div>
         </div>
       ) : null}
