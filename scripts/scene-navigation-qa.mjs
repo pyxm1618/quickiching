@@ -87,15 +87,36 @@ async function openSceneHome(page,locale){
  }
  return partnership;
 }
-async function verifyPartnerRotation(page){
+async function verifyActivePartnerClick(page,id,href,prefix){
+ await page.evaluate(()=>{
+  globalThis.__partnerClickHref=null;
+  const viewport=document.querySelector('.scene-partner-viewport');
+  viewport?.addEventListener('click',event=>{
+   const target=event.target;
+   const link=target instanceof Element?target.closest('.scene-partner-link'):null;
+   if(!link)return;
+   event.preventDefault();
+   event.stopPropagation();
+   globalThis.__partnerClickHref=link.getAttribute('href');
+  },{capture:true,once:true});
+ });
+ await page.click(`.scene-partner-link[data-partner-id="${id}"][data-partner-state="active"]`);
+ const clickedHref=await page.evaluate(()=>globalThis.__partnerClickHref);
+ check(`${prefix}: click active ${id} reaches its own destination`,clickedHref===href);
+}
+async function verifyPartnerRotation(page,prefix,{verifyClicks=false}={}){
+ const sequence=[
+  ['startup-fame','https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'],
+  ['better-launch','https://www.betterlaunch.co/product/quick-i-ching'],
+  ['shipstry','https://shipstry.com/'],
+ ];
+ for(const [id,href] of sequence){
+  await waitForPartnerRest(page,id);
+  check(`${prefix}: automatic rotation reaches ${id}`,true);
+  if(verifyClicks)await verifyActivePartnerClick(page,id,href,prefix);
+ }
  await waitForPartnerRest(page,'startup-fame');
- check('Rotation starts at Startup Fame',true);
- await waitForPartnerRest(page,'better-launch');
- check('Automatic rotation reaches Better Launch',true);
- await waitForPartnerRest(page,'shipstry');
- check('Automatic rotation reaches Shipstry',true);
- await waitForPartnerRest(page,'startup-fame');
- check('Partner rotation loops to Startup Fame',true);
+ check(`${prefix}: partner rotation loops to Startup Fame`,true);
 }
 
 async function clickSceneDestination(page,locale,path){
@@ -139,11 +160,12 @@ try {
  for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent==='Decline'))await button.click();
  await page.waitForSelector('.scene-navigation');
  await openSceneHome(page,'en');
- await verifyPartnerRotation(page);
+ await verifyPartnerRotation(page,'Desktop EN',{verifyClicks:true});
  for(const locale of ['en','zh']){
   await page.setViewport({width:390,height:844,deviceScaleFactor:1});
   const mobilePartner=await openSceneHome(page,locale);
   check(`${locale}: mobile partner viewport remains single-slot`,mobilePartner.links.filter(link=>link.opacity>.01).length===1&&mobilePartner.viewport?.overflowY==='hidden');
+  if(locale==='en')await verifyPartnerRotation(page,'Mobile EN');
  }
  await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
  await page.setViewport({width:1671,height:941,deviceScaleFactor:1});
