@@ -63,33 +63,13 @@ async function openSceneHome(page,locale){
   await page.waitForFunction(()=>[...document.querySelectorAll('.scene-partnership img')].every(image=>image.complete&&image.naturalWidth>0&&image.naturalHeight>0),{timeout:10000});
  } catch {
   const failedImages=await page.$eval('.scene-partnership',root=>[...root.querySelectorAll('.scene-partner-link')].map(link=>{const image=link.querySelector('img');return {id:link.getAttribute('data-partner-id'),src:image?.currentSrc||image?.getAttribute('src'),complete:image?.complete,naturalWidth:image?.naturalWidth,naturalHeight:image?.naturalHeight};}).filter(image=>image.complete!==true||Number(image.naturalWidth)<=0||Number(image.naturalHeight)<=0));
-  const startupFailure=failedImages.find(image=>image.id==='startup-fame');
-  let remoteDiagnostic=null;
-  if(startupFailure?.src){
-   try{
-    const response=await fetch(startupFailure.src,{redirect:'follow'});
-    const bytes=Buffer.from(await response.arrayBuffer());
-    remoteDiagnostic={
-     status:response.status,
-     url:response.url,
-     contentType:response.headers.get('content-type'),
-     contentLength:response.headers.get('content-length'),
-     crossOriginResourcePolicy:response.headers.get('cross-origin-resource-policy'),
-     cacheControl:response.headers.get('cache-control'),
-     bytes:bytes.length,
-     base64:response.ok?bytes.toString('base64'):null,
-    };
-   }catch(error){
-    remoteDiagnostic={fetchError:String(error)};
-   }
-  }
-  throw new Error(`PARTNER_IMAGE_NOT_READY:${JSON.stringify(failedImages)} REMOTE_DIAGNOSTIC:${JSON.stringify(remoteDiagnostic)}`);
+  throw new Error(`PARTNER_IMAGE_NOT_READY:${JSON.stringify(failedImages)}`);
  }
  const partnership=await readPartnerSnapshot(page);
  check('Partnership label is static and outside links',partnership.tag==='DIV'&&Boolean(partnership.label)&&!partnership.labelInsideLink);
  check('Single partner viewport retained',Boolean(partnership.viewport));
  check('Three partner links retained',partnership.links.length===3);
- check('Startup Fame partnership retained',partnership.links.some(link=>link.id==='startup-fame'&&link.href==='https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'&&link.src==='https://startupfa.me/badges/featured/dark.webp'));
+ check('Startup Fame partnership retained',partnership.links.some(link=>link.id==='startup-fame'&&link.href==='https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'&&link.src==='/partner-badges/startup-fame-featured-dark.webp'));
  check('Better Launch partnership retained',partnership.links.some(link=>link.id==='better-launch'&&link.href==='https://www.betterlaunch.co/product/quick-i-ching'&&link.src==='https://www.betterlaunch.co/badge-launching-gradient.svg'));
  check('Shipstry partnership retained',partnership.links.some(link=>link.id==='shipstry'&&link.href==='https://shipstry.com/'&&link.src==='https://shipstry.com/badges/featured.svg'));
  check('Partner links open safely',partnership.links.every(link=>link.target==='_blank'&&link.rel?.split(/\s+/).includes('noopener')&&link.rel?.split(/\s+/).includes('noreferrer')));

@@ -34,7 +34,7 @@ const PARTNER_BADGES = [
   {
     id: "startup-fame",
     href: "https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com",
-    src: "https://startupfa.me/badges/featured/dark.webp",
+    src: "/partner-badges/startup-fame-featured-dark.webp",
     width: 171,
     height: 54,
     enLabel: "Open Startup Fame",
