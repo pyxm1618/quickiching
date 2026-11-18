@@ -69,7 +69,7 @@ async function openSceneHome(page,locale){
  check('Partnership label is static and outside links',partnership.tag==='DIV'&&Boolean(partnership.label)&&!partnership.labelInsideLink);
  check('Single partner viewport retained',Boolean(partnership.viewport));
  check('Three partner links retained',partnership.links.length===3);
- check('Startup Fame partnership retained',partnership.links.some(link=>link.id==='startup-fame'&&link.href==='https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'&&link.src==='https://startupfa.me/badges/featured-badge.webp'));
+ check('Startup Fame partnership retained',partnership.links.some(link=>link.id==='startup-fame'&&link.href==='https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'&&link.src==='https://startupfa.me/badges/featured/dark.webp'));
  check('Better Launch partnership retained',partnership.links.some(link=>link.id==='better-launch'&&link.href==='https://www.betterlaunch.co/product/quick-i-ching'&&link.src==='https://www.betterlaunch.co/badge-launching-gradient.svg'));
  check('Shipstry partnership retained',partnership.links.some(link=>link.id==='shipstry'&&link.href==='https://shipstry.com/'&&link.src==='https://shipstry.com/badges/featured.svg'));
  check('Partner links open safely',partnership.links.every(link=>link.target==='_blank'&&link.rel?.split(/\s+/).includes('noopener')&&link.rel?.split(/\s+/).includes('noreferrer')));
