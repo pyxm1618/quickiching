@@ -60,7 +60,8 @@ describe("approved scene navigation integration",()=>{
   expect(home).toContain('src="https://shipstry.com/badges/featured.svg"');
   expect(home.match(/target="_blank"/g)).toHaveLength(3);
   expect(home.match(/rel="noopener noreferrer"/g)).toHaveLength(3);
-  expect(home.match(/alt=""/g)).toHaveLength(4);
+  expect(home).toContain('src="https://startupfa.me/badges/featured-badge.webp" alt="" width="171" height="54"');
+  expect(home).not.toContain('alt="Quick I Ching - Featured on Startup Fame"');
   expect(home.match(/tabindex="-1"/g)).toHaveLength(2);
 
   const chineseHome=renderToStaticMarkup(<SceneNavigation locale="zh-Hans" contract={surfaceContract("S01")}/>);
