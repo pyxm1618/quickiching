@@ -69,9 +69,12 @@ async function openSceneHome(page,locale){
  check('Partner links open safely',partnership.links.every(link=>link.target==='_blank'&&link.rel?.split(/\s+/).includes('noopener')&&link.rel?.split(/\s+/).includes('noreferrer')));
  check('Only one partner badge visible at rest',partnership.links.filter(link=>link.state==='active'&&link.opacity>.9&&link.pointerEvents==='auto').length===1&&partnership.links.filter(link=>link.opacity>.01).length===1);
  check('Partner viewport clips instead of scrolling',partnership.viewport?.overflowX==='hidden'&&partnership.viewport?.overflowY==='hidden');
- check('Partner viewport has no scrollable overflow',partnership.viewport?.scrollHeight===partnership.viewport?.clientHeight&&partnership.viewport?.scrollWidth===partnership.viewport?.clientWidth);
- const scrollLocked=await page.$eval('.scene-partner-viewport',viewport=>{viewport.scrollTop=20;viewport.scrollLeft=20;return viewport.scrollTop===0&&viewport.scrollLeft===0;});
- check('Manual partner scrolling is disabled',scrollLocked);
+ const viewportBox=await page.$eval('.scene-partner-viewport',viewport=>{const rect=viewport.getBoundingClientRect();return {x:rect.x,y:rect.y,width:rect.width,height:rect.height,scrollTop:viewport.scrollTop,scrollLeft:viewport.scrollLeft};});
+ await page.mouse.move(viewportBox.x+viewportBox.width/2,viewportBox.y+viewportBox.height/2);
+ await page.mouse.wheel({deltaY:240,deltaX:120});
+ await new Promise(resolve=>setTimeout(resolve,80));
+ const afterWheel=await page.$eval('.scene-partner-viewport',viewport=>({scrollTop:viewport.scrollTop,scrollLeft:viewport.scrollLeft}));
+ check('Manual partner scrolling is disabled',afterWheel.scrollTop===viewportBox.scrollTop&&afterWheel.scrollLeft===viewportBox.scrollLeft);
  check('All partner badge images are ready',partnership.links.every(link=>link.complete===true&&Number(link.naturalWidth)>0&&Number(link.naturalHeight)>0));
  return partnership;
 }
