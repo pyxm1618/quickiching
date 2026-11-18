@@ -38,7 +38,7 @@ const PARTNER_BADGES = [
     width: 171,
     height: 54,
     enLabel: "Open Startup Fame",
-    zhLabel: "打开 Startup Fame",
+    zhLabel: "打开第一个合作伙伴网站",
   },
   {
     id: "better-launch",
@@ -47,7 +47,7 @@ const PARTNER_BADGES = [
     width: 200,
     height: 56,
     enLabel: "Open Better Launch",
-    zhLabel: "打开 Better Launch",
+    zhLabel: "打开第二个合作伙伴网站",
   },
   {
     id: "shipstry",
@@ -56,7 +56,7 @@ const PARTNER_BADGES = [
     width: 220,
     height: 52,
     enLabel: "Open Shipstry",
-    zhLabel: "打开 Shipstry",
+    zhLabel: "打开第三个合作伙伴网站",
   },
 ] as const;
 
