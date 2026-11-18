@@ -67,9 +67,9 @@ describe("approved scene navigation integration",()=>{
   const chineseHome=renderToStaticMarkup(<SceneNavigation locale="zh-Hans" contract={surfaceContract("S01")}/>);
   expect(chineseHome).toContain('<span class="scene-partnership-label">合作伙伴</span>');
   expect(chineseHome).toContain('aria-label="合作伙伴链接"');
-  expect(chineseHome).toContain('aria-label="打开 Startup Fame"');
-  expect(chineseHome).toContain('aria-label="打开 Better Launch"');
-  expect(chineseHome).toContain('aria-label="打开 Shipstry"');
+  expect(chineseHome).toContain('aria-label="打开第一个合作伙伴网站"');
+  expect(chineseHome).toContain('aria-label="打开第二个合作伙伴网站"');
+  expect(chineseHome).toContain('aria-label="打开第三个合作伙伴网站"');
   expect(chineseHome).not.toContain("In partnership with");
 
   const refining=renderToStaticMarkup(<SceneNavigation locale="en" contract={surfaceContract("S02")}/>);
