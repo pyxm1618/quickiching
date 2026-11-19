@@ -497,7 +497,8 @@ async function verifyCurrentC5FilteringAndFragments(page) {
     BASE + "/readings/result?session=" + ID_A + "&utm_source=campaign&preview=test#section",
     { waitUntil: "networkidle0" },
   );
-  await page.waitForSelector("[data-completed-cast-gate]", { timeout: 20_000 });
+  await page.waitForSelector("[data-public-reading-result] [data-free-reading-ritual]", { timeout: 20_000 });
+  assert.equal(await page.$("[data-completed-cast-gate='auth-required']"), null, "Free Result must remain public before locale switching");
 
   await clickLocaleSwitch(page, "zh-Hans");
   await page.waitForFunction(
@@ -534,25 +535,28 @@ async function verifyCurrentC5FilteringAndFragments(page) {
 }
 
 /**
- * G — nested auth context: Result A's Sign In carries session A into
- * callbackURL, and the locale switch on the real auth surface keeps the
- * localized Result A.
+ * G — nested auth context: Deep Reading A remains account-gated. Its Sign In
+ * carries session A into callbackURL, and the locale switch on the real auth
+ * surface keeps the localized Deep Reading A.
  *
- * The originating Result surface runs on the product server; the Sign In
- * surface runs on the auth-capable instance of the same production build.
- * The bridging hop is the exact asserted Sign In href — no context is
- * synthesized on either side.
+ * Free Result is intentionally public in Phase 2; auth-context preservation is
+ * therefore verified on the paid Deep Reading capability that still requires
+ * authenticated ownership.
  */
 async function verifyNestedAuthLocaleContext(page) {
   await seed(page, {
     pendings: [[ID_A, pendingPayload(ID_A, "three-coin", THREE_COIN_QUESTION, [9, 6, 7, 8, 7, 9])]],
   });
-  await page.goto(`${BASE}/readings/result?session=${ID_A}`, { waitUntil: "networkidle0" });
-  await page.waitForSelector("[data-auth-reading-intent]", { visible: true, timeout: 20_000 });
-  const signinHref = await page.$eval("[data-auth-reading-intent]", (node) => node.getAttribute("href"));
-  assert(signinHref?.includes("/signin?callbackURL="), `Result Sign In must carry a callbackURL, received: ${signinHref}`);
+  await page.goto(`${BASE}/readings/deep?session=${ID_A}`, { waitUntil: "networkidle0" });
+  await page.waitForSelector('[data-completed-cast-gate="auth-required"]', { visible: true, timeout: 20_000 });
+  const signinHref = await page.$eval('[data-auth-reading-intent="deep"]', (node) => node.getAttribute("href"));
+  assert(signinHref?.includes("/signin?callbackURL="), `Deep Reading Sign In must carry a callbackURL, received: ${signinHref}`);
   const initialCallback = new URL(signinHref, BASE).searchParams.get("callbackURL") ?? "";
-  assert(initialCallback.includes(`session=${ID_A}`), `Result Sign In must keep session A in callbackURL, received: ${initialCallback}`);
+  assert.equal(
+    initialCallback,
+    `/readings/deep?session=${ID_A}`,
+    `Deep Reading Sign In must keep session A in callbackURL, received: ${initialCallback}`,
+  );
 
   // Open the exact Sign In target on the auth-capable surface and switch.
   await page.goto(`${AUTH_BASE}${signinHref}`, { waitUntil: "networkidle0" });
@@ -563,10 +567,10 @@ async function verifyNestedAuthLocaleContext(page) {
   const localizedCallback = await page.evaluate(() => new URLSearchParams(location.search).get("callbackURL"));
   assert.equal(
     localizedCallback,
-    `/zh/readings/result?session=${ID_A}`,
-    `The locale switch must keep the localized Result A in callbackURL, received: ${localizedCallback}`,
+    `/zh/readings/deep?session=${ID_A}`,
+    `The locale switch must keep localized Deep Reading A in callbackURL, received: ${localizedCallback}`,
   );
-  log("G — nested auth context keeps the localized Result A across the locale switch");
+  log("G — nested auth context keeps localized Deep Reading A across the locale switch");
 }
 
 /**
