@@ -239,7 +239,7 @@ async function auditResult(browser, desktop) {
       });
       await page.waitForSelector("[data-public-reading-result]", { timeout: 15_000 });
       const visible = await page.evaluate(() => ({
-        sixLines: document.querySelector("[data-completed-six-lines]") !== null,
+        freeRitual: document.querySelector("[data-free-reading-ritual]") !== null,
         authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
         resultChoice: document.querySelector("[data-result-choice]") !== null,
         primaryCard: document.querySelector("[data-primary-card]") !== null,
@@ -248,7 +248,7 @@ async function auditResult(browser, desktop) {
         deepReport: document.querySelector("[data-ai-deep-reading-report]") !== null,
         deepGeneration: document.querySelector("[data-start-deep-reading]") !== null,
       }));
-      assert(visible.sixLines && visible.primaryCard && visible.publicResult, `${desktop ? "desktop" : "mobile"}: Lighthouse must audit the anonymous Free Reading result`);
+      assert(visible.freeRitual && visible.primaryCard && visible.publicResult, `${desktop ? "desktop" : "mobile"}: Lighthouse must audit the anonymous Free Reading result`);
       assert.equal(visible.authGate, false, `${desktop ? "desktop" : "mobile"}: Free Reading must not require authentication`);
       assert.equal(visible.resultChoice, false, `${desktop ? "desktop" : "mobile"}: Free Reading must not remain behind Result Choice`);
       assert(visible.deepHref, `${desktop ? "desktop" : "mobile"}: Free Reading must preserve the Deep Reading continuation`);
