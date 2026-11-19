@@ -21,6 +21,15 @@ export function buildContentSecurityPolicy(environment = process.env) {
   ].join("; ");
 }
 
+export function buildCrawlerIndexingHeaders(environment = process.env) {
+  const branch = environment.VERCEL_GIT_COMMIT_REF?.trim();
+  const nonProduction = branch === "staging"
+    || (environment.VERCEL === "1" && environment.VERCEL_ENV !== "production");
+  return nonProduction
+    ? [{ key: "X-Robots-Tag", value: "noindex, nofollow" }]
+    : [];
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -82,6 +91,7 @@ const nextConfig = {
             value: buildContentSecurityPolicy(),
           },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          ...buildCrawlerIndexingHeaders(),
         ],
       },
     ];
