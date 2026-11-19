@@ -94,10 +94,14 @@ type PersistenceStatus = "idle" | "saving" | "saved" | "error";
 export type ResultRevealGate = "auth-required" | "saving" | "save-error" | "reveal";
 
 export function getResultRevealGate(input: {
+  pageMode: "free" | "deep";
   authenticated: boolean;
   castingId: string | null;
   persistenceStatus: PersistenceStatus;
 }): ResultRevealGate {
+  // Free Reading is public product output. Account persistence is an enhancement,
+  // not an authentication or durability prerequisite for revealing the cast.
+  if (input.pageMode === "free") return "reveal";
   if (!input.authenticated) return "auth-required";
   if (input.castingId && input.persistenceStatus === "saved") return "reveal";
   if (input.persistenceStatus === "error") return "save-error";
@@ -228,6 +232,7 @@ export function ReadingResultClient({
     });
   }, [castingId, clientCastingId, state, completedReading, initialCastingView?.method, initialCastingView?.algorithmVersion, initialCastingView?.methodCalculation]);
   const resultRevealGate = getResultRevealGate({
+    pageMode,
     authenticated: Boolean(user),
     castingId,
     persistenceStatus,
@@ -245,7 +250,6 @@ export function ReadingResultClient({
   // regated by this client fallback contract.
   const browserFreeContentRequired = pageMode === "free" && initialCastingView === null;
   const shouldPrepareBrowserInterpretation = browserFreeContentRequired
-    && Boolean(user)
     && !zh
     && !initialInterpretationReady;
   const effectiveInterpretationBundles = initialInterpretationReady
@@ -302,7 +306,6 @@ export function ReadingResultClient({
   useEffect(() => {
     if (
       !browserFreeContentRequired
-      || !user
       || !zh
       || initialLocalizedContent
       || browserLocalizedContent
@@ -330,7 +333,6 @@ export function ReadingResultClient({
     initialLocalizedContent,
     browserFreeContentRequired,
     resultReading,
-    user,
     zh,
   ]);
 
@@ -823,8 +825,8 @@ export function ReadingResultClient({
     );
   }
 
-  const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(castingId!)}`;
-  const deepHref = `${prefix}/readings/deep?session=${encodeURIComponent(castingId!)}`;
+  const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(intentCastId)}`;
+  const deepHref = `${prefix}/readings/deep?session=${encodeURIComponent(intentCastId)}`;
   const deepQuestion = deepContext?.question
     ?? (state.kind === "ready" ? state.question : undefined)
     ?? initialCastingView?.context

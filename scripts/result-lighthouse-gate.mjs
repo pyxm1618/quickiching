@@ -237,23 +237,24 @@ async function auditResult(browser, desktop) {
           disableStorageReset: true,
         },
       });
-      await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+      await page.waitForSelector("[data-public-reading-result]", { timeout: 15_000 });
       const visible = await page.evaluate(() => ({
-        sixLines: document.querySelector("[data-completed-six-lines]") !== null,
+        freeRitual: document.querySelector("[data-free-reading-ritual]") !== null,
         authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
         resultChoice: document.querySelector("[data-result-choice]") !== null,
-        session: document.querySelector("[data-result-choice]")?.getAttribute("data-reading-session") ?? null,
         primaryCard: document.querySelector("[data-primary-card]") !== null,
         publicResult: document.querySelector("[data-public-reading-result]") !== null,
+        deepHref: document.querySelector("[data-deep-reading-cta] a[href]")?.getAttribute("href") ?? null,
         deepReport: document.querySelector("[data-ai-deep-reading-report]") !== null,
         deepGeneration: document.querySelector("[data-start-deep-reading]") !== null,
       }));
-      assert(visible.sixLines && visible.authGate && visible.resultChoice, `${desktop ? "desktop" : "mobile"}: Lighthouse must audit the exact Result Choice auth continuation`);
-      assert.equal(visible.session, sessionId, `${desktop ? "desktop" : "mobile"}: auth continuation must keep the exact reading identity`);
-      assert.equal(visible.primaryCard, false, `${desktop ? "desktop" : "mobile"}: Free interpretation leaked before authentication and account persistence`);
-      assert.equal(visible.publicResult, false, `${desktop ? "desktop" : "mobile"}: Free result leaked before authentication and account persistence`);
-      assert.equal(visible.deepReport, false, `${desktop ? "desktop" : "mobile"}: Deep report leaked before authentication and account persistence`);
-      assert.equal(visible.deepGeneration, false, `${desktop ? "desktop" : "mobile"}: Deep generation leaked before authentication and account persistence`);
+      assert(visible.freeRitual && visible.primaryCard && visible.publicResult, `${desktop ? "desktop" : "mobile"}: Lighthouse must audit the anonymous Free Reading result`);
+      assert.equal(visible.authGate, false, `${desktop ? "desktop" : "mobile"}: Free Reading must not require authentication`);
+      assert.equal(visible.resultChoice, false, `${desktop ? "desktop" : "mobile"}: Free Reading must not remain behind Result Choice`);
+      assert(visible.deepHref, `${desktop ? "desktop" : "mobile"}: Free Reading must preserve the Deep Reading continuation`);
+      assert.equal(new URL(visible.deepHref, BASE).searchParams.get("session"), sessionId, `${desktop ? "desktop" : "mobile"}: Deep Reading continuation must keep the exact reading identity`);
+      assert.equal(visible.deepReport, false, `${desktop ? "desktop" : "mobile"}: paid Deep report must not appear in Free Reading`);
+      assert.equal(visible.deepGeneration, false, `${desktop ? "desktop" : "mobile"}: paid Deep generation must not open inside Free Reading`);
       if (!desktop) await logPageFontDiagnostics(page);
       return runnerResult;
     } finally {

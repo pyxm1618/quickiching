@@ -181,14 +181,19 @@ export function ThreeCoinRitual({
 
   function setQuestion(value: string | undefined) {
     if (coreQuestionFrozenAtCast) return;
+    const raw = value ?? "";
     try {
-      const normalized = normalizePublicQuestion(value);
-      if (!persist(true, normalized)) {
+      if (Array.from(raw).length > PUBLIC_QUESTION_MAX_CODE_POINTS) {
+        throw new Error("PUBLIC_QUESTION_TOO_LONG");
+      }
+      // Preserve the exact in-progress draft. Canonical normalization belongs
+      // at Continue / first-cast freeze boundaries.
+      if (!persist(true, raw || undefined)) {
         setError(dictionary.questionFirst.saveError);
         return;
       }
-      setQuestionState(normalized);
-      setDraft(normalized ?? "");
+      setQuestionState(raw || undefined);
+      setDraft(raw);
       setError("");
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
@@ -305,7 +310,7 @@ export function ThreeCoinRitual({
 
   function freezeCoreQuestion(): string | undefined | false {
     if (coreQuestionFrozenAtCast) return coreQuestionAtCast;
-    const frozenQuestion = question;
+    const frozenQuestion = normalizePublicQuestion(question);
     if (!persist(true, frozenQuestion, frozenQuestion ?? "", true)) {
       setError(dictionary.questionFirst.saveError);
       return false;
