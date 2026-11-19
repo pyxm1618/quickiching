@@ -109,6 +109,23 @@ for (const c of cases) {
   });
 }
 
+test("Reading lifecycle is selected only for lifecycle/persistence blast radius", () => {
+  const localUi = pick(["src/components/public-reading/three-coin-tool.tsx"]);
+  assert.equal(localUi.reading, true);
+  assert.equal(localUi.reading_lifecycle, false);
+
+  const lifecycle = pick(["src/server/generation/deep-reading-service.ts"]);
+  assert.equal(lifecycle.reading, true);
+  assert.equal(lifecycle.reading_lifecycle, true);
+  assert.equal(lifecycle.database, true);
+});
+
+test("Unknown server runtime also fail-closes Reading lifecycle", () => {
+  const r = pick(["src/server/new-cross-cutting/example.ts"]);
+  assert.equal(r.reading_lifecycle, true);
+  assert.equal(r.high_risk, true);
+});
+
 test("performance target selection is domain-aware", () => {
   assert.deepEqual(JSON.parse(pick(["src/components/account/account-shell.tsx"]).performance_targets), ["account.desktop"]);
   assert.deepEqual(JSON.parse(pick(["src/components/reading-result/reading-result-client.tsx"]).performance_targets), ["result.mobile", "result.desktop"]);
@@ -121,6 +138,7 @@ test("force-full contexts remain full regression for main/nightly/release", () =
   assert.equal(r.full, true);
   assert.equal(r.database, true);
   assert.equal(r.reading, true);
+  assert.equal(r.reading_lifecycle, true);
   assert.equal(r.payment_refund, true);
   assert.equal(r.payment, true);
   assert.equal(r.performance, true);
