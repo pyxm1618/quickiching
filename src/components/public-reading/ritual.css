@@ -363,3 +363,12 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 }
 .ritual-flow-exit:hover { background: rgba(8, 5, 2, .78); border-color: rgba(255, 225, 145, .7); }
 .ritual-flow-exit:focus-visible { outline: 2px solid #ffe191; outline-offset: 4px; }
+@media(max-width:800px) {
+  /* S02 keeps Global Home in the top-left shell band. Keep the local flow Exit
+     below the top-right utility pill so both controls remain independently tappable. */
+  .ritual-flow-exit {
+    left: auto;
+    right: max(18px, env(safe-area-inset-right));
+    top: max(64px, calc(env(safe-area-inset-top) + 52px));
+  }
+}
