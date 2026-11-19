@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   authenticateRefundOperator,
   refundOperatorAuthorityConfigured,
+  refundOperatorCredentialConfigurationValid,
 } from "./operator-auth";
 
 function request(value?: string) {
@@ -69,6 +70,20 @@ describe("refund operator authorization", () => {
     const legacyOnly = { REFUND_OPERATOR_SECRET: "legacy-shared-secret" };
     expect(refundOperatorAuthorityConfigured("decision", legacyOnly)).toBe(false);
     expect(refundOperatorAuthorityConfigured("dispatch", legacyOnly)).toBe(false);
+  });
+
+  it("validates the complete readiness credential contract with the runtime parser", () => {
+    expect(refundOperatorCredentialConfigurationValid(env)).toBe(true);
+    expect(refundOperatorCredentialConfigurationValid({
+      REFUND_DECISION_OPERATOR_CREDENTIALS: env.REFUND_DECISION_OPERATOR_CREDENTIALS,
+    })).toBe(false);
+    expect(refundOperatorCredentialConfigurationValid({
+      REFUND_DISPATCH_OPERATOR_CREDENTIALS: env.REFUND_DISPATCH_OPERATOR_CREDENTIALS,
+    })).toBe(false);
+    expect(refundOperatorCredentialConfigurationValid({
+      REFUND_DECISION_OPERATOR_CREDENTIALS: "{not-json",
+      REFUND_DISPATCH_OPERATOR_CREDENTIALS: env.REFUND_DISPATCH_OPERATOR_CREDENTIALS,
+    })).toBe(false);
   });
 
   it("rejects invalid bearer shapes and unknown credentials", () => {
