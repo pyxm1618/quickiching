@@ -617,55 +617,40 @@ async function verifyHistorySaveRetry(browser) {
         expiresAt: new Date(now + 60 * 60 * 1000).toISOString(),
       }));
     }, { prefix: PENDING_READING_KEY_PREFIX, id: fixtureSessionId, steps: FIXTURE_STEPS });
+
     await page.goto(`${BASE}/ritual-qa-local?view=saving&session=${fixtureSessionId}`, { waitUntil: "domcontentloaded", timeout: 30_000 });
-    await page.waitForSelector("[data-account-reading-saving]");
-    assert(pending, "Authenticated save fixture must issue POST /api/readings");
-    assert(await page.$("[data-result-choice]"), "Saving must stay on the canonical Result Choice presentation");
-    assert.equal(
-      await page.$eval("[data-result-choice]", (node) => node.getAttribute("data-reading-session")),
-      fixtureSessionId,
-      "Saving must preserve the exact completed reading identity on Result Choice",
-    );
-    assert.equal(await page.$("[data-public-reading-result]"), null, "Result must remain concealed while History save is pending");
-    assert.equal((await page.content()).includes("Save Your Reading"), false, "Standalone Saving page copy must stay retired");
+    await page.waitForSelector("[data-public-reading-result]", { timeout: 15_000 });
+    assert(pending, "Authenticated Free Reading should still attempt account persistence in the background");
+    assert.equal(await page.$("[data-result-choice]"), null, "Background account persistence must not replace the Free Reading");
+    assert(await page.$("[data-public-reading-result]"), "Free Reading must reveal while History save is pending");
 
     await pending.respond({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "READING_SAVE_FAILED" }) });
     pending = null;
-    await page.waitForSelector('[data-retry-account-reading-save="true"]');
-    assert(await page.$("[data-result-choice]"), "Save failure must remain on the canonical Result Choice surface");
-    assert.equal(await page.$("[data-public-reading-result]"), null, "Save failure must keep the result concealed");
-    assert(!(await page.evaluate(() => document.body?.innerText.includes("Save Your Reading"))), "Retired standalone Saving page must not return");
-    assert(!(await page.evaluate(() => document.body?.innerText.includes("Saved to My Readings"))), "Retired standalone Saved/Preparing page must not return");
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    assert(await page.$("[data-public-reading-result]"), "Account persistence failure must not hide the Free Reading");
+    assert.equal(await page.$('[data-completed-cast-gate="save-error"]'), null, "Free Reading must not regress to a save-error reveal gate");
 
-    await page.waitForFunction(
-      () => {
-        const node = document.querySelector('[data-retry-account-reading-save="true"]');
-        return node instanceof HTMLButtonElement && !node.disabled;
-      },
-      { timeout: 15_000 },
-    );
-    await page.click('[data-retry-account-reading-save="true"]');
-    await page.waitForSelector('[data-account-reading-saving="true"]');
-    assert(pending, "Retry must issue the same POST /api/readings");
-    assert.deepEqual(requests[1], requests[0], "Retry must reuse the identical saved-cast payload");
-    assert.equal(requests[1].clientCastingId, fixtureSessionId, "History save must use the same stable browser casting id");
-    assert.equal(requests[1].lineValuesBottomUp?.length, 6, "History save must use the exact completed six lines");
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForSelector("[data-public-reading-result]", { timeout: 15_000 });
+    assert(pending, "Reload should retry the same pending account persistence");
+    assert.deepEqual(requests[1], requests[0], "Persistence retry must reuse the identical sealed payload");
+    assert.equal(requests[1].clientCastingId, fixtureSessionId, "History save must keep the stable browser casting id");
+    assert.equal(requests[1].lineValuesBottomUp?.length, 6, "History save must keep the exact completed six lines");
 
     await pending.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ castingId: fixtureSessionId }) });
     pending = null;
-    await page.waitForSelector("[data-public-reading-result]", { timeout: 15_000 });
-    const afterSave = await page.evaluate(({ key, prefix, id }) => ({
-      session: sessionStorage.getItem(key),
-      pending: localStorage.getItem(prefix + id),
-    }), { key: STORAGE_KEY, prefix: PENDING_READING_KEY_PREFIX, id: fixtureSessionId });
-    assert.equal(afterSave.session, null, "A durable save must not revive the retired method session");
-    assert.equal(afterSave.pending, null, "A durable save must remove exactly the Pending record");
+    await page.waitForFunction(
+      ({ prefix, id }) => localStorage.getItem(`${prefix}${id}`) === null,
+      { timeout: 15_000 },
+      { prefix: PENDING_READING_KEY_PREFIX, id: fixtureSessionId },
+    );
+    assert(await page.$("[data-public-reading-result]"), "Successful account persistence must leave the same Free Reading visible");
     assert.equal(
       await page.evaluate(() => new URL(location.href).searchParams.get("session")),
       fixtureSessionId,
-      "Durable save must keep the same authoritative reading id instead of minting another id",
+      "Durable save must keep the same authoritative reading id",
     );
-    log("History save failure/retry + identical payload + same-id reveal PASS");
+    log("Free reveal independent of account persistence + same-id background save PASS");
   } finally {
     await context.close();
   }

@@ -20,7 +20,7 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
   const sessionId = query?.session?.trim() || undefined;
   const user = await getCurrentUser({ allowUnavailable: true });
   const shouldLoadPaidEntitlement = pageMode === "deep" && Boolean(user);
-  const shouldLoadDurableCasting = Boolean(sessionId) && (pageMode === "deep" || Boolean(user));
+  const shouldLoadDurableCasting = Boolean(sessionId) && Boolean(user);
   const [balance, castingView] = await Promise.all([
     shouldLoadPaidEntitlement ? loadEntitlementBalance() : Promise.resolve({ available: 0, expiringSoon: 0 }),
     shouldLoadDurableCasting && sessionId
