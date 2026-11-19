@@ -117,6 +117,10 @@ async function snapshot(page, path) {
       description: attr('meta[name="description"]', "content"),
       robots: attr('meta[name="robots"]', "content"),
       canonical: attr('link[rel="canonical"]', "href"),
+      ogImage: attr('meta[property="og:image"]', "content"),
+      ogImageWidth: attr('meta[property="og:image:width"]', "content"),
+      ogImageHeight: attr('meta[property="og:image:height"]', "content"),
+      ogImageType: attr('meta[property="og:image:type"]', "content"),
       htmlLang: document.documentElement.lang,
       h1: [...(main?.querySelectorAll("h1") ?? [])].map((node) => node.textContent?.replace(/\s+/gu, " ").trim() ?? ""),
       h2: [...(main?.querySelectorAll("h2") ?? [])].map((node) => node.textContent?.replace(/\s+/gu, " ").trim() ?? ""),
@@ -170,11 +174,16 @@ function auditBase(path, snapshot) {
   const jsonLd = jsonLdLanguageAndUrlOk(snapshot.jsonLd, expectedCanonical);
   const contamination = latinContamination(snapshot.visibleText);
   const wrongInternalLinks = ordinaryEnglishLinks(snapshot, path);
-  const designOwnedInteractiveFlow = path === "/zh/methods/mei-hua-yi-shu";
+  let ogImageOrigin = "";
+  try { ogImageOrigin = new URL(snapshot.ogImage).origin; } catch {}
   const failures = [
     snapshot.title ? null : "title:missing",
     snapshot.description ? null : "description:missing",
-    designOwnedInteractiveFlow || snapshot.h1.length === 1 ? null : "h1:count-" + snapshot.h1.length,
+    snapshot.h1.length === 1 ? null : "h1:count-" + snapshot.h1.length,
+    ogImageOrigin === CANONICAL_ORIGIN ? null : "og-image:canonical-origin",
+    snapshot.ogImageWidth === "1200" ? null : "og-image:width",
+    snapshot.ogImageHeight === "630" ? null : "og-image:height",
+    snapshot.ogImageType === "image/png" ? null : "og-image:type",
     snapshot.htmlLang === "zh-Hans" ? null : "html-lang:" + snapshot.htmlLang,
     new URL(snapshot.canonical, CANONICAL_ORIGIN).toString() === expectedCanonical ? null : "canonical",
     /\bindex\b/iu.test(snapshot.robots) && !/\bnoindex\b/iu.test(snapshot.robots) ? null : "robots:index",
