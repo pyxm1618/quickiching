@@ -124,10 +124,15 @@ describe("refund provider write outcome persistence", () => {
       provider_write_attempt_count: number;
       next_reconcile_at: Date | null;
       last_error_code: string | null;
+      refund_locked: boolean;
+      available: number;
     }>>`
-      select status, provider_write_state, provider_write_attempt_count,
-             next_reconcile_at, last_error_code
-      from refund_intents where id = ${fixture.intentId}
+      select r.status, r.provider_write_state, r.provider_write_attempt_count,
+             r.next_reconcile_at, r.last_error_code, b.refund_locked,
+             b.quantity_available::int as available
+      from refund_intents r
+      join entitlement_batches b on b.order_id = r.order_id
+      where r.id = ${fixture.intentId}
     `;
     expect(rows[0]).toMatchObject({
       status: "failed",
@@ -135,6 +140,8 @@ describe("refund provider write outcome persistence", () => {
       provider_write_attempt_count: 1,
       next_reconcile_at: null,
       last_error_code: "REFUND_PROVIDER_REJECTED",
+      refund_locked: false,
+      available: 3,
     });
 
     expect((await repository.claimProviderDispatch(fixture.intentId, "dispatcher-test", new Date())).mode).toBe("read_only");
