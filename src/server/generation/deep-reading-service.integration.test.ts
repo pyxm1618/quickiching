@@ -69,7 +69,12 @@ async function seedQuestionVersion(castingId: string, question: string, now: str
   `;
 }
 
-async function seedDeepReadingCandidateWithCredit(userId: string, method: DeterministicFacts["method"] = "three_coin", manualMode: "line-values" | "primary-changing" = "line-values") {
+async function seedDeepReadingCandidateWithCredit(
+  userId: string,
+  method: DeterministicFacts["method"] = "three_coin",
+  manualMode: "line-values" | "primary-changing" = "line-values",
+  expiringSoon = false,
+) {
   const orderId = randomUUID();
   const batchId = randomUUID();
   const castingId = randomUUID();
@@ -89,7 +94,7 @@ async function seedDeepReadingCandidateWithCredit(userId: string, method: Determ
   await sql`
     insert into entitlement_batches (
       id, user_id, order_id, quantity_total, quantity_available, quantity_reserved, quantity_consumed, quantity_revoked, expires_at, created_at, updated_at
-    ) values (${batchId}, ${userId}, ${orderId}, 1, 1, 0, 0, 0, now() + interval '12 months', ${now}, ${now})
+    ) values (${batchId}, ${userId}, ${orderId}, 1, 1, 0, 0, 0, case when ${expiringSoon} then now() + interval '10 days' else now() + interval '12 months' end, ${now}, ${now})
   `;
   await sql`
     insert into casting_sessions (id, user_id, method, lifecycle, risk_status, scene, interpretation_goal, created_at, updated_at)
@@ -184,12 +189,12 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
 
   it("keeps displayed balance aligned with refund-lock spendability and mixed batches", async () => {
     const userId = `refund-balance-${randomUUID()}`;
-    const fixture = await seedDeepReadingCandidateWithCredit(userId);
-    await sql`
-      update entitlement_batches
-      set expires_at = clock_timestamp() + interval '10 days'
-      where id = ${fixture.batchId}
-    `;
+    const fixture = await seedDeepReadingCandidateWithCredit(
+      userId,
+      "three_coin",
+      "line-values",
+      true,
+    );
 
     expect(await loadPostgresEntitlementBalance(sql, userId)).toEqual({
       available: 1,
