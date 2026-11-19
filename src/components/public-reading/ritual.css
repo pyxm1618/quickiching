@@ -79,11 +79,11 @@ body:has([data-ritual-view='progress'],[data-ritual-view='complete']) .ritual-qu
 @media(prefers-reduced-motion:reduce) {.ritual-canvas *{animation-duration:140ms!important;transition-duration:140ms!important;transition-delay:0ms!important;}}
 @media(max-width:800px) {
  .ritual-canvas {height:auto;min-height:calc(100svh - 75px);--u:1px;}
- .ritual-question-stage {position:relative;inset:auto;min-height:calc(100svh - 75px);padding:35px 20px;}
+ .ritual-question-stage {position:relative;inset:auto;min-height:calc(100svh - 75px);padding:88px 20px 35px;}
  .ritual-home-heading,.ritual-confirm-heading {position:relative;inset:auto;width:auto;}
  .ritual-home-heading .qic-gilded-title,.ritual-home-heading .qic-gilded-title em {font-size:36px;}
  /* Keep the confirm-stage back control clear of the two-line gilded heading. */
- .ritual-question-stage .ritual-back {position:absolute;top:0;left:0;font-size:16px;}
+ .ritual-question-stage .ritual-back {position:absolute;top:60px;left:20px;font-size:16px;}
  .ritual-home-heading p,.ritual-confirm-heading p {font-size:17px;margin:20px 0;}
  .ritual-confirm-heading .qic-gilded-title {font-size:42px;}
  .ritual-question-card,:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card {position:relative;inset:auto;width:100%;margin-top:28px;height:200px;padding:24px;}
@@ -136,6 +136,14 @@ body:has([data-ritual-view='progress'],[data-ritual-view='complete']) .ritual-qu
 }
 
 .ritual-home-skip {display:block;width:100%;padding:0;margin:calc(20 * var(--u)) 0 0;font:400 calc(16 * var(--u))/1.25 Georgia,serif;color:#ffe8a4;text-decoration:none;}
+.ritual-resume-ingress {position:absolute;right:calc(34 * var(--u));bottom:calc(24 * var(--u));z-index:3;}
+.ritual-resume-action {min-height:36px;padding:7px 14px;border:1px solid rgba(255,225,145,.34);border-radius:999px;background:rgba(8,5,2,.34);color:rgba(255,240,197,.88);font:400 calc(14 * var(--u))/1.25 Georgia,serif;letter-spacing:.01em;cursor:pointer;}
+.ritual-resume-action:hover {background:rgba(8,5,2,.52);border-color:rgba(255,225,145,.56);color:#fff0c5;}
+.ritual-resume-action:focus-visible {outline:2px solid #fff0ac;outline-offset:4px;}
+@media(max-width:800px) {
+ .ritual-resume-ingress {position:relative;right:auto;bottom:auto;margin:18px auto 0;text-align:center;}
+ .ritual-resume-action {font-size:14px;}
+}
 
 /* Non-QA narrow screens retain the same room/composition with a bounded raster budget. */
 @media (max-width:600px) and (max-aspect-ratio:11/20) {
@@ -200,11 +208,11 @@ body:has([data-ritual-view='progress'],[data-ritual-view='complete']) .ritual-qu
  body:has([data-ritual-view='casting'],[data-ritual-view='result']) .ritual-question-context textarea {max-height:3.9em;}
  .ritual-cast-ui {position:relative;inset:auto;min-height:780px;padding:20px;}
  .ritual-cast-ui:is([data-ritual-view='casting'],[data-ritual-view='result']) {padding-top:84px;--ritual-mobile-controls-top:76px;}
- .ritual-cast-heading,[data-ritual-view] .ritual-cast-heading {position:relative;inset:auto;width:auto;margin:35px 0 0;}
+ .ritual-cast-heading,[data-ritual-view] .ritual-cast-heading {position:relative;inset:auto;width:auto;margin:88px 0 0;}
  .ritual-cast-heading .qic-gilded-title,[data-ritual-view] .ritual-cast-heading .qic-gilded-title {font-size:38px;}
  .ritual-cast-result-title {font-size:38px;}
  .ritual-cast-heading > p:not(.ritual-stage-number),[data-ritual-view='result'] .ritual-cast-heading > p:last-child {font-size:17px;margin:15px 0;}
- .ritual-journey {display:none;}.ritual-sound{top:var(--ritual-mobile-controls-top,12px);right:20px;}.ritual-cast-ui .ritual-back{position:absolute;top:var(--ritual-mobile-controls-top,12px);left:20px;font-size:18px;}
+ .ritual-journey {display:none;}.ritual-sound{top:var(--ritual-mobile-controls-top,12px);right:20px;}.ritual-cast-ui .ritual-back{position:absolute;top:var(--ritual-mobile-controls-top,60px);left:20px;font-size:18px;}
  .ritual-six-lines {left:20px;top:235px;width:calc(100% - 40px);}.ritual-six-lines li {font-size:17px;}
  .ritual-cast-control,[data-ritual-view='progress'] .ritual-cast-control {left:20px;top:680px;width:calc(100% - 40px);height:auto;}
  [data-ritual-view='progress'] .hold-button {height:58px;background:#35200d;border:1px solid #bd9352;color:#fff1ca;border-radius:40px;}
@@ -346,13 +354,6 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 /* Finish the presentation even if the browser cancels or suppresses animation events. */
 .ritual-question-actions[data-entered='true'],.ritual-record-action[data-entered='true'] {animation:none;opacity:1;transform:none;}
 
-/* C1 — minimal passive-resume affordance. Normal entry stays the default state. */
-.ritual-resume {position:absolute;left:calc(311 * var(--u));top:calc(742 * var(--u));width:calc(417 * var(--u));z-index:2;text-align:center;}
-.ritual-resume p {margin:0 0 calc(6 * var(--u));font-size:calc(17 * var(--u));color:#fff9ef;opacity:.82;}
-.ritual-resume .ritual-text-button {font-size:calc(19 * var(--u));}
-@media(max-width:800px) {.ritual-resume {position:relative;inset:auto;width:100%;margin-top:18px;}}
-
-
 /* S02 local flow exit. The flow owns an explicit exit distinct from Global Home. */
 .ritual-flow-exit {
   position: fixed;
@@ -373,3 +374,12 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 }
 .ritual-flow-exit:hover { background: rgba(8, 5, 2, .78); border-color: rgba(255, 225, 145, .7); }
 .ritual-flow-exit:focus-visible { outline: 2px solid #ffe191; outline-offset: 4px; }
+@media(max-width:800px) {
+  /* S02 keeps Global Home in the top-left shell band. Keep the local flow Exit
+     below the top-right utility pill so both controls remain independently tappable. */
+  .ritual-flow-exit {
+    left: auto;
+    right: max(18px, env(safe-area-inset-right));
+    top: max(64px, calc(env(safe-area-inset-top) + 52px));
+  }
+}

@@ -1,6 +1,6 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
-import { magicLink } from "better-auth/plugins";
+import { captcha, magicLink } from "better-auth/plugins";
 import { nextCookies, toNextJsHandler } from "better-auth/next-js";
 import { authSchema } from "@/server/db/auth-schema";
 import { getAuthDatabaseConnection, type AuthDatabase } from "@/server/db/client";
@@ -82,6 +82,12 @@ export function buildAuthOptions(
   }
 
   const secureCookies = production && !browserFixture;
+  const turnstileSecret = env.TURNSTILE_SECRET_KEY?.trim();
+  const turnstileRequired = production && !browserFixture;
+  if (turnstileRequired && !turnstileSecret) {
+    throw new Error("AUTH_CONFIGURATION_UNAVAILABLE");
+  }
+  const turnstileEnabled = Boolean(turnstileSecret) && !browserFixture;
 
   return {
     appName: "Quick I Ching",
@@ -134,6 +140,13 @@ export function buildAuthOptions(
       disableOriginCheck: false,
     },
     plugins: [
+      ...(turnstileEnabled
+        ? [captcha({
+            provider: "cloudflare-turnstile",
+            secretKey: turnstileSecret!,
+            endpoints: ["/sign-in/magic-link", "/sign-in/social"],
+          })]
+        : []),
       magicLink({
         expiresIn: 600,
         storeToken: "hashed",

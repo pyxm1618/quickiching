@@ -16,7 +16,7 @@ export const LEGACY_REDIRECTS = [
   { source: "/three-coin-method", destination: "/methods/three-coin" },
   { source: "/yarrow-stalk-method", destination: "/methods/yarrow-stalks" },
   { source: "/mei-hua-yi-shu", destination: "/methods/mei-hua-yi-shu" },
-  { source: "/casting-methods", destination: "/#other-casting-methods" },
+  { source: "/casting-methods", destination: "/help#casting-methods" },
   { source: "/how-to-ask-the-i-ching", destination: "/guides/how-to-ask-the-i-ching" },
   { source: "/changing-lines", destination: "/guides/changing-lines" },
   { source: "/primary-and-relating-hexagrams", destination: "/guides/primary-relating-hexagrams" },

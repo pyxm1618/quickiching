@@ -5,7 +5,7 @@
     "deploymentEnabled": {
       "**": false,
       "main": true,
-      "staging": true
+      "staging": false
     }
   },
   "installCommand": "bunx bun@1.3.14 install --frozen-lockfile",

@@ -322,14 +322,19 @@ async function verifyQuestionReading(page, locale = "en") {
     page.waitForFunction(prefix => location.pathname === `${prefix}/readings/result`, { timeout: 30_000 }, prefix),
     clickSettled(page, "[data-result-choice-free]"),
   ]);
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
-  const signinHref = await page.$eval('[data-auth-reading-intent="free"]', node => node.getAttribute("href"));
-  const callback = new URL(signinHref, BASE).searchParams.get("callbackURL");
-  assert.equal(new URL(callback, BASE).searchParams.get("session"), choiceState.completed.readingId, "Free Reading sign-in callback must preserve this exact cast identity");
+  await page.waitForSelector("[data-public-reading-result] [data-free-reading-ritual]", { timeout: 15_000 });
 
-  const lineDescriptions = zh ? { 6: "阴爻，动爻", 7: "阳爻", 8: "阴爻", 9: "阳爻，动爻" } : { 6: "yin, moving", 7: "yang", 8: "yin", 9: "yang, moving" };
-  const expectedLabels = choiceState.completed.lineValuesBottomUp.map((value, index) => zh ? `第 ${index + 1} 爻：${lineDescriptions[value]}` : `Line ${index + 1}: ${lineDescriptions[value]}`).reverse();
-  assert.deepEqual(await page.$$eval('[data-completed-six-lines] [role="img"]', nodes => nodes.map(node => node.getAttribute("aria-label"))), expectedLabels, "Free Reading auth gate must preserve this cast's six lines");
+  const freeState = await page.evaluate(() => ({
+    publicResult: document.querySelector("[data-public-reading-result]") !== null,
+    primaryCard: document.querySelector("[data-primary-card]") !== null,
+    authGate: document.querySelector("[data-completed-cast-gate='auth-required']") !== null,
+    deepHref: document.querySelector("[data-deep-reading-cta] a[href]")?.getAttribute("href") ?? "",
+  }));
+  assert(freeState.publicResult && freeState.primaryCard, "Anonymous Free Reading must reveal the completed cast");
+  assert.equal(freeState.authGate, false, "Anonymous Free Reading must not require sign-in or account persistence");
+  const freeDeepUrl = new URL(freeState.deepHref, BASE);
+  assert.equal(freeDeepUrl.pathname, `${prefix}/readings/deep`);
+  assert.equal(freeDeepUrl.searchParams.get("session"), choiceState.completed.readingId, "Free Reading must preserve the exact cast identity when offering Deep Reading");
   assert.equal(choiceState.completed.question, question, "The frozen question must be stored with this cast");
   assert.equal(choiceState.completed.lineValuesBottomUp?.length, 6, "The pending reading must preserve all six authoritative lines");
 
@@ -338,15 +343,22 @@ async function verifyQuestionReading(page, locale = "en") {
     return localStorage.getItem(prefix + id);
   }, "quickiching:public-v1:pending-completed-reading:");
   await page.reload({ waitUntil: "networkidle0" });
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+  await page.waitForSelector("[data-public-reading-result] [data-free-reading-ritual]", { timeout: 15_000 });
   await assertQuestionPrivacy(page, question, { requireVisible: false });
   const pendingAfterRefresh = await page.evaluate((prefix) => {
     const id = new URLSearchParams(location.search).get("session") || "";
     return localStorage.getItem(prefix + id);
   }, "quickiching:public-v1:pending-completed-reading:");
-  assert.equal(pendingAfterRefresh, pendingBeforeRefresh, "Free Reading auth-gate refresh must restore the exact same pending cast and question");
+  assert.equal(pendingAfterRefresh, pendingBeforeRefresh, "Anonymous Free Reading refresh must restore the exact same pending cast and question");
+  assert.equal(await page.$("[data-completed-cast-gate='auth-required']"), null, "Free Reading refresh must remain public");
   assert.equal(await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin")), null, "Refresh must not revive the retired method session");
-  log(`${locale}: Result Choice first, same-session Free handoff, auth callback, six-line facts, privacy and restore PASS`);
+
+  await page.goto(freeDeepUrl.toString(), { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+  const deepSigninHref = await page.$eval('[data-auth-reading-intent="deep"]', node => node.getAttribute("href"));
+  const deepCallback = new URL(deepSigninHref, BASE).searchParams.get("callbackURL");
+  assert.equal(new URL(deepCallback, BASE).searchParams.get("session"), choiceState.completed.readingId, "Deep Reading sign-in callback must preserve this exact cast identity");
+  log(`${locale}: Result Choice first, public Free handoff, Deep auth gate, six-line facts, privacy and restore PASS`);
 }
 
 
@@ -526,28 +538,64 @@ async function verifyManualAndMovement(page) {
 
 async function verifyPartialRestart(page) {
   const question = "What remains important if I begin again?";
+
+  // Ordinary recovery path: a passive 4/6 session keeps Home clean but exposes
+  // one low-interference Resume ingress. Clicking it restores the exact facts.
+  await seedThreeCoinSession(page, "partial-reading-resume", "2026-08-19T09:55:00.000Z", FIXTURE_STEPS.slice(0, 4), question);
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]');
+  assert.equal(await page.$(".ritual-six-lines"), null, "A stored partial Three Coin cast must remain passive before Resume");
+  await page.waitForSelector('[data-reading-resume="three-coin"] [data-reading-resume-action]', { visible: true, timeout: 15_000 });
+  const homeText = await page.$eval("[data-three-coin-ritual]", (node) => node.textContent ?? "");
+  assert(!homeText.includes("You have an unfinished cast."), "Home must not restore the retired unfinished-cast pollution");
+  assert(!homeText.includes("Resume ·"), "Home must not restore the retired Resume progress copy");
+  assert(homeText.includes("Start Divination"), "Home primary CTA must remain visible beside recovery");
+  assert(homeText.includes("Skip — free reading only"), "Home Skip CTA must remain visible beside recovery");
+
+  const beforeResume = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
+  await page.click("[data-reading-resume-action]");
+  await page.waitForFunction(
+    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
+    { timeout: 15_000 },
+  );
+  await page.waitForFunction(
+    () => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 4,
+    { timeout: 15_000 },
+  );
+  const resumed = await page.evaluate((key) => {
+    const session = JSON.parse(sessionStorage.getItem(key) || "null");
+    return {
+      id: session?.id ?? null,
+      question: session?.coreQuestionAtCast ?? session?.question ?? null,
+      steps: session?.data?.steps ?? null,
+      visibleQuestion: document.querySelector("[data-ritual-question-context] input")?.value ?? null,
+    };
+  }, THREE_COIN_STORAGE_KEY);
+  assert.equal(resumed.id, beforeResume.id, "Ordinary Resume must preserve the exact reading identity");
+  assert.equal(resumed.question, question, "Ordinary Resume must preserve the exact frozen question");
+  assert.equal(resumed.visibleQuestion, question, "Ordinary Resume must restore the exact visible question");
+  assert.deepEqual(resumed.steps, beforeResume.data.steps, "Ordinary Resume must restore the exact four committed lines without reroll");
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Resume affordance must be consumed after explicit activation");
+
+  // Explicit fresh start remains a separate discard contract.
   await seedThreeCoinSession(page, "partial-reading-before", "2026-08-19T10:00:00.000Z", FIXTURE_STEPS.slice(0, 1), question);
   await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
-  // C1: the stored 1/6 cast stays on the default entry; one Resume restores it.
-  await page.waitForSelector("[data-reading-resume-action]", { timeout: 30_000 });
-  assert.equal(await page.$(".ritual-six-lines"), null, "A stored partial Three Coin cast must not auto-enter the ritual");
-  await page.evaluate(() => document.querySelector("[data-reading-resume-action]")?.click());
-  await page.waitForFunction(() => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 1, { timeout: 30_000 });
-  const before = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
-  await page.waitForSelector('.ritual-back:not(:disabled)', { timeout: 30_000 });
-  await page.evaluate(() => document.querySelector('.ritual-back')?.click());
   await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]');
-  assert.equal(await page.evaluate(key => sessionStorage.getItem(key), THREE_COIN_STORAGE_KEY), null, "Formal restart must clear the old partial cast");
+  await page.waitForSelector("[data-reading-resume-action]", { visible: true, timeout: 15_000 });
+  const before = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
+  assert.equal(before?.data?.steps?.length, 1, "Fresh-start proof requires one exact stored partial line");
+
   await page.type("textarea[data-private-question]", question);
   await clickText(page, "Start Divination");
   await clickText(page, "Cast the Coins");
   await page.waitForSelector('.hold-button:not(:disabled)');
+
   const after = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_STORAGE_KEY);
-  assert.notEqual(after.id, before.id, "Restart must create a fresh reading identity");
-  assert.notEqual(after.createdAt, before.createdAt, "Restart must create a fresh timestamp");
+  assert.notEqual(after.id, before.id, "Starting again must create a fresh reading identity");
+  assert.notEqual(after.createdAt, before.createdAt, "Starting again must create a fresh timestamp");
   assert.equal(after.question, question, "The same question can start a new independent cast");
-  assert.equal("data" in after, false, "Restart must discard partial facts");
-  log("Formal partial restart clears old facts and permits a fresh same-question cast PASS");
+  assert.equal("data" in after, false, "Starting again must discard the retired partial facts");
+  log("Three Coin 4/6 ordinary Resume restores exact facts; explicit fresh start independently replaces identity and facts PASS");
 }
 
 async function verifyYarrowPartialRestart(page) {
@@ -591,15 +639,16 @@ async function verifyAccountPersistenceBoundary(page) {
     page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 30_000 }),
     clickSettled(page, "[data-result-choice-free]"),
   ]);
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+  await page.waitForSelector("[data-public-reading-result] [data-free-reading-ritual]", { timeout: 15_000 });
 
   const freeState = await page.evaluate(() => ({
     authGate: document.querySelector("[data-completed-cast-gate='auth-required']") !== null,
+    publicResult: document.querySelector("[data-public-reading-result]") !== null,
     primaryCard: document.querySelector("[data-primary-card]") !== null,
   }));
-  assert(freeState.authGate, "Anonymous Free Reading must wait for account persistence after the user chooses Free Reading");
-  assert.equal(freeState.primaryCard, false, "Free Reading must not reveal before account persistence");
-  log("Three-Coin Result Choice precedes formal Free Reading account persistence PASS");
+  assert.equal(freeState.authGate, false, "Anonymous Free Reading must not wait for account persistence");
+  assert(freeState.publicResult && freeState.primaryCard, "Free Reading must reveal independently of account persistence");
+  log("Three-Coin Result Choice precedes public Free Reading; account persistence is not a reveal gate PASS");
 }
 
 async function verifyResponsiveKeyboard(page) {

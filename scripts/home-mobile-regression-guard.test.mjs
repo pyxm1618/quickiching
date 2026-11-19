@@ -92,7 +92,7 @@ describe("Home Mobile Regression Guard & Median-of-3 Aggregation", () => {
     const aggregated = validSample({ cls: 0.105 });
     assert.throws(
       () => assertHomeMobileRegressionGuard(aggregated, ACCEPTED_BASELINE),
-      /CLS 0.105 exceeds hard maximum 0.10/
+      /CLS 0.105 exceeds hard maximum 0.1/
     );
   });
 
@@ -108,7 +108,7 @@ describe("Home Mobile Regression Guard & Median-of-3 Aggregation", () => {
     const aggregated = validSample({ imageBytes: 768 * 1024 + 1 });
     assert.throws(
       () => assertHomeMobileRegressionGuard(aggregated, ACCEPTED_BASELINE),
-      /imageBytes .* exceeds budget 768KB/
+      /imageBytes 786433 exceeds budget 786432/
     );
   });
 
@@ -116,7 +116,7 @@ describe("Home Mobile Regression Guard & Median-of-3 Aggregation", () => {
     const aggregated = validSample({ maxImageBytes: 256 * 1024 + 1 });
     assert.throws(
       () => assertHomeMobileRegressionGuard(aggregated, ACCEPTED_BASELINE),
-      /maxImageBytes .* exceeds budget 256KB/
+      /maxImageBytes 262145 exceeds budget 262144/
     );
   });
 
@@ -124,7 +124,7 @@ describe("Home Mobile Regression Guard & Median-of-3 Aggregation", () => {
     const aggregated = validSample({ scriptBytes: 320 * 1024 + 1 });
     assert.throws(
       () => assertHomeMobileRegressionGuard(aggregated, ACCEPTED_BASELINE),
-      /scriptBytes .* exceeds budget 320KB/
+      /scriptBytes 327681 exceeds budget 327680/
     );
   });
 

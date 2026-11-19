@@ -6,7 +6,7 @@ import { resolveChromeExecutable } from "./browser-runtime.mjs";
  * Reading Lifecycle / Navigation Authority — Remediation 1 browser gate.
  *
  * Proves, in a real Chromium session:
- *   A. a stored partial cast does not auto-enter the ritual; Resume restores it exactly
+ *   A. a stored partial cast does not auto-enter the ritual or pollute the Home Hero; its exact data remains preserved
  *   B. a fresh completion hands off with replace, and Browser Back cannot resurrect it
  *   C. a completed reading does not hijack the Home entry
  *   D. two completed readings keep exact identity, and a missing session fails closed
@@ -59,6 +59,16 @@ function threeCoinSessionPayload(id, stepCount, question = THREE_COIN_QUESTION) 
     coreQuestionAtCast: question,
     coreQuestionFrozenAtCast: true,
     data: { steps: STEPS.slice(0, stepCount) },
+  };
+}
+
+function threeCoinQuestionOnlyPayload(id, question = THREE_COIN_QUESTION) {
+  return {
+    schemaVersion: 1,
+    id,
+    createdAt: new Date(Date.UTC(2026, 10, 14, 9, 25)).toISOString(),
+    started: true,
+    question,
   };
 }
 
@@ -174,6 +184,48 @@ async function clickResume(page) {
   await page.click("[data-reading-resume-action]");
 }
 
+
+async function startFreshThreeCoin(page, lineCount = 0) {
+  await page.goto(BASE + "/", { waitUntil: "networkidle0" });
+  await clearLifecycleStorage(page);
+  await page.waitForSelector("[data-home-skip-question]", { visible: true, timeout: 15_000 });
+  await page.click("[data-home-skip-question]");
+  await page.waitForSelector('[data-experience-stage="question-confirm"]', { timeout: 15_000 });
+  await page.waitForSelector("[data-home-primary-action]:not(:disabled)", { timeout: 15_000 });
+  await page.click("[data-home-primary-action]");
+  await page.waitForFunction(
+    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
+    { timeout: 15_000 },
+  );
+  await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 15_000 });
+
+  for (let index = 0; index < lineCount; index += 1) {
+    await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 15_000 });
+    await dispatchPointer(page, "pointerdown", 100 + index);
+    await dispatchPointer(page, "pointerup", 100 + index);
+    await page.waitForSelector("[data-record-this-cast]:not(:disabled)", { timeout: 15_000 });
+
+    // A pointer release seals the authoritative line immediately, but the
+    // visible six-line stack advances only when the user records it. Keep the
+    // sixth line sealed-but-unrecorded so the completion test can exercise the
+    // real final handoff click itself.
+    const leaveFinalSealed = lineCount === 6 && index === 5;
+    if (!leaveFinalSealed) {
+      await page.click("[data-record-this-cast]");
+      await page.waitForFunction(
+        (expected) => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === expected,
+        { timeout: 15_000 },
+        index + 1,
+      );
+    }
+  }
+
+  return page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }, THREE_COIN_KEY);
+}
+
 async function verifyMethodDetailIsNotASecondEntry(page) {
   await page.goto(`${BASE}/methods/three-coin`, { waitUntil: "networkidle0" });
   assert.equal(await page.$("[data-three-coin-ritual]"), null, "/methods/three-coin must not mount the ritual");
@@ -187,49 +239,216 @@ async function verifyMethodDetailIsNotASecondEntry(page) {
   log("C8 — / and /zh only: method detail renders SEO content + canonical CTA, no ritual");
 }
 
+
+async function verifyEmptyHomeQuestionFeedback(page) {
+  const cases = [
+    { path: "/", question: "Should I stay on this path?", error: "Please enter the question you want to ask" },
+    { path: "/zh", question: "我现在是否应该继续这条路？", error: "请先输入你想问的问题" },
+  ];
+
+  for (const item of cases) {
+    await seed(page);
+    await page.goto(BASE + item.path, { waitUntil: "networkidle0" });
+    await page.waitForSelector('[data-experience-stage="landing"] textarea[data-private-question]', { timeout: 15_000 });
+
+    const primarySelector = "[data-home-primary-action]";
+    assert.equal(await page.$eval(primarySelector, (node) => node.disabled), false, `${item.path} empty Home CTA must remain clickable`);
+
+    await page.click(primarySelector);
+    await page.waitForSelector(".ritual-form-error", { visible: true, timeout: 15_000 });
+    let state = await page.evaluate(() => ({
+      stage: document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage"),
+      error: document.querySelector(".ritual-form-error")?.textContent ?? "",
+      focused: document.activeElement === document.querySelector("textarea[data-private-question]"),
+    }));
+    assert.equal(state.stage, "landing", `${item.path} empty click must stay on Home`);
+    assert.ok(state.error.includes(item.error), `${item.path} empty click must show the field error`);
+    assert.equal(state.focused, true, `${item.path} empty click must focus the textarea`);
+
+    await page.type("textarea[data-private-question]", "   ");
+    await page.click(primarySelector);
+    state = await page.evaluate(() => ({
+      stage: document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage"),
+      focused: document.activeElement === document.querySelector("textarea[data-private-question]"),
+    }));
+    assert.equal(state.stage, "landing", `${item.path} whitespace-only question must remain invalid`);
+    assert.equal(state.focused, true, `${item.path} whitespace-only click must refocus the textarea`);
+
+    await page.click("textarea[data-private-question]", { clickCount: 3 });
+    await page.keyboard.press("Backspace");
+    await page.type("textarea[data-private-question]", item.question);
+    await page.waitForFunction(() => document.querySelector(".ritual-form-error") === null, { timeout: 15_000 });
+    await page.click(primarySelector);
+    await page.waitForFunction(
+      () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "question-confirm",
+      { timeout: 15_000 },
+    );
+
+    await seed(page);
+    await page.goto(BASE + item.path, { waitUntil: "networkidle0" });
+    await page.waitForSelector('[data-experience-stage="landing"] [data-home-skip-question]', { visible: true, timeout: 15_000 });
+    await page.click("[data-home-skip-question]");
+    await page.waitForFunction(
+      () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "question-confirm",
+      { timeout: 15_000 },
+    );
+    assert.equal(
+      await page.$eval("textarea[data-private-question]", (node) => node.value),
+      "",
+      `${item.path} Skip must remain an explicit question-free path`,
+    );
+  }
+
+  log("Home CTA — EN/ZH empty + whitespace feedback/focus, valid confirmation, and Skip path PASS");
+}
+
+async function verifyNoPartialResumeAbsent(page) {
+  await seed(page);
+  await page.goto(BASE + "/", { waitUntil: "networkidle0" });
+  await page.waitForSelector('[data-experience-stage="landing"]', { timeout: 15_000 });
+  assert.equal(await page.$("[data-reading-resume]"), null, "Home must not render a Resume affordance when no partial Three Coin session exists");
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Home must not render a Resume action when no partial Three Coin session exists");
+  log("C1 — no partial session: Home has no Resume affordance");
+}
+
+async function verifyQuestionOnlyResume(page) {
+  await seed(page, { threeCoinSession: threeCoinQuestionOnlyPayload(ID_B) });
+  await page.goto(BASE + "/", { waitUntil: "networkidle0" });
+  assert.equal(
+    await page.$eval("[data-three-coin-ritual]", (node) => node.getAttribute("data-experience-stage")),
+    "landing",
+    "A saved question-only session must remain passive on direct Home entry",
+  );
+  await page.waitForSelector('[data-reading-resume="three-coin"] [data-reading-resume-action]', { visible: true, timeout: 15_000 });
+  assert.equal(await page.$eval("textarea[data-private-question]", (node) => node.value), "", "Passive Home must not silently apply the saved question");
+
+  await clickResume(page);
+  await page.waitForFunction(
+    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "question-confirm",
+    { timeout: 15_000 },
+  );
+  const restored = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    const session = raw ? JSON.parse(raw) : null;
+    return {
+      id: session?.id ?? null,
+      question: session?.question ?? null,
+      steps: session?.data?.steps?.length ?? 0,
+      visibleQuestion: document.querySelector("textarea[data-private-question]")?.value ?? null,
+    };
+  }, THREE_COIN_KEY);
+  assert.equal(restored.id, ID_B, "Question-only Resume must preserve the exact reading id");
+  assert.equal(restored.question, THREE_COIN_QUESTION, "Question-only Resume must preserve the exact saved question");
+  assert.equal(restored.steps, 0, "Question-only Resume must not fabricate a cast line");
+  assert.equal(restored.visibleQuestion, THREE_COIN_QUESTION, "Question-only Resume must restore the question-confirm input");
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Question-only Resume affordance must be consumed after activation");
+  log("C1 — question-only reopen: explicit Resume restores same id + question at confirmation with 0/6 lines");
+}
+
 async function verifyPartialResume(page) {
   await seed(page, { threeCoinSession: threeCoinSessionPayload(ID_A, 4) });
   await page.goto(BASE + "/", { waitUntil: "networkidle0" });
+
   const stage = await page.$eval("[data-three-coin-ritual]", (node) => node.getAttribute("data-experience-stage"));
   assert.equal(stage, "landing", "A stored 4/6 cast must render the normal entry state");
   assert.equal(await page.$("[data-ritual-question-context]"), null, "A stored 4/6 cast must not auto-enter the ritual");
   assert.equal(await page.$(".hold-button"), null, "A stored 4/6 cast must not expose the cast button before Resume");
-  await page.waitForSelector("[data-reading-resume-action]", { visible: true, timeout: 15_000 });
-  const resumeLabel = await page.$eval("[data-reading-resume-action]", (node) => node.textContent ?? "");
-  assert(resumeLabel.includes("4 / 6"), `Resume affordance must report the stored progress, received: ${resumeLabel}`);
+  await page.waitForSelector('[data-reading-resume="three-coin"] [data-reading-resume-action]', { visible: true, timeout: 15_000 });
+
+  const heroText = await page.$eval("[data-three-coin-ritual]", (node) => node.textContent ?? "");
+  assert(!heroText.includes("You have an unfinished cast."), "Home Hero must not restore unfinished-cast pollution");
+  assert(!heroText.includes("Resume ·"), "Home Hero must not restore retired Resume progress copy");
+  assert(heroText.includes("Start Divination"), "Home primary CTA must remain");
+  assert(heroText.includes("Skip — free reading only"), "Home free-reading Skip must remain");
+
+  const beforeResume = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }, THREE_COIN_KEY);
+  assert.equal(beforeResume?.id, ID_A, "4/6 recovery proof must begin with the exact reading id");
+  assert.equal(beforeResume?.coreQuestionAtCast, THREE_COIN_QUESTION, "4/6 recovery proof must begin with the exact frozen question");
+  assert.deepEqual(beforeResume?.data?.steps, STEPS.slice(0, 4), "4/6 recovery proof must begin with the exact four committed line facts");
 
   await clickResume(page);
   await page.waitForFunction(
     () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
-    { timeout: 10_000 },
+    { timeout: 15_000 },
   );
-  await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 10_000 });
-  assert.equal(await doneLineCount(page), 4, "Resume must restore exactly four sealed lines");
-  const restored = await page.evaluate((key) => {
+  await page.waitForFunction(
+    () => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 4,
+    { timeout: 15_000 },
+  );
+  await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 15_000 });
+
+  const resumed = await page.evaluate((key) => {
     const raw = sessionStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
+    const session = raw ? JSON.parse(raw) : null;
+    return {
+      id: session?.id ?? null,
+      question: session?.coreQuestionAtCast ?? session?.question ?? null,
+      steps: session?.data?.steps ?? null,
+      visibleQuestion: document.querySelector("[data-ritual-question-context] input")?.value ?? null,
+      doneLines: document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length,
+    };
   }, THREE_COIN_KEY);
-  assert.equal(restored?.id, ID_A, "Resume must preserve the exact reading id");
-  assert.equal(restored?.coreQuestionAtCast, THREE_COIN_QUESTION, "Resume must preserve the frozen question");
-  assert.equal(restored?.data?.steps?.length, 4, "Resume must preserve exactly four cast steps");
-  log("C1 — stored 4/6 renders the default entry, Resume restores the exact 4/6 cast");
+  assert.equal(resumed.id, ID_A, "Resume must preserve the exact Three Coin reading id");
+  assert.equal(resumed.question, THREE_COIN_QUESTION, "Resume must preserve the exact frozen question");
+  assert.equal(resumed.visibleQuestion, THREE_COIN_QUESTION, "Resume must restore the exact visible question");
+  assert.equal(resumed.doneLines, 4, "Resume must restore the next actionable position at line 5");
+  assert.deepEqual(resumed.steps, beforeResume.data.steps, "Resume must not reroll or rewrite any committed line");
+
+  // Continue through line 5 and line 6 from the restored exact session.
+  await dispatchPointer(page, "pointerdown", 205);
+  await dispatchPointer(page, "pointerup", 205);
+  await page.waitForSelector("[data-record-this-cast]:not(:disabled)", { timeout: 15_000 });
+  await page.click("[data-record-this-cast]");
+  await page.waitForFunction(
+    () => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 5,
+    { timeout: 15_000 },
+  );
+  const afterFive = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_KEY);
+  assert.equal(afterFive?.id, ID_A, "Continuing line 5 must keep the same reading id");
+  assert.equal(afterFive?.data?.steps?.length, 5, "Continuing after Resume must append exactly line 5");
+  assert.deepEqual(afterFive?.data?.steps?.slice(0, 4), beforeResume.data.steps, "Line 5 continuation must not mutate the restored first four lines");
+  assert.equal(afterFive?.data?.steps?.[4]?.lineIndex, 4, "The next committed line after 4/6 must be line index 4");
+
+  await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 15_000 });
+  await dispatchPointer(page, "pointerdown", 206);
+  await dispatchPointer(page, "pointerup", 206);
+  await page.waitForSelector("[data-record-this-cast]:not(:disabled)", { timeout: 15_000 });
+  const sealedSix = await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null"), THREE_COIN_KEY);
+  assert.equal(sealedSix?.id, ID_A, "Sealing line 6 must keep the same reading id");
+  assert.equal(sealedSix?.data?.steps?.length, 6, "The resumed reading must reach exactly 6/6 before handoff");
+  assert.deepEqual(sealedSix?.data?.steps?.slice(0, 4), beforeResume.data.steps, "Line 6 continuation must not mutate the restored first four lines");
+  assert.equal(sealedSix?.data?.steps?.[5]?.lineIndex, 5, "The final committed line after Resume must be line index 5");
+
+  await page.click("[data-record-this-cast]");
+  await page.waitForFunction(
+    (expectedId) => location.pathname === "/readings/choice"
+      && new URLSearchParams(location.search).get("session") === expectedId,
+    { timeout: 20_000 },
+    ID_A,
+  );
+  const pending = await page.evaluate(({ prefix, id }) => {
+    const raw = localStorage.getItem(prefix + id);
+    return raw ? JSON.parse(raw) : null;
+  }, { prefix: PENDING_PREFIX, id: ID_A });
+  assert.equal(pending?.readingId, ID_A, "Completed resumed reading must hand off the same reading identity");
+  assert.equal(pending?.question, THREE_COIN_QUESTION, "Completed resumed reading must keep the exact question");
+  assert.deepEqual(pending?.evidence?.steps?.slice(0, 4), beforeResume.data.steps, "Completed resumed reading must preserve the original four committed evidence steps");
+  log("C1 — Three Coin 4/6 ordinary Resume restores exact facts, continues lines 5/6, and completes under the same reading identity");
 }
 
 async function verifyFreshCompletionNonReentry(page) {
-  await seed(page, { threeCoinSession: threeCoinSessionPayload(ID_A, 5) });
-  await page.goto(BASE + "/", { waitUntil: "networkidle0" });
-  await clickResume(page);
-  await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 10_000 });
-  assert.equal(await doneLineCount(page), 5, "Resume must restore five sealed lines");
+  const readingA = await startFreshThreeCoin(page, 6);
+  assert(readingA?.id, "Fresh Three Coin completion must own an exact reading id");
+  assert.equal(readingA?.data?.steps?.length, 6, "Fresh Three Coin completion must seal six lines before handoff");
 
-  await dispatchPointer(page, "pointerdown");
-  await dispatchPointer(page, "pointerup");
   await page.waitForSelector("[data-record-this-cast]:not(:disabled)", { timeout: 15_000 });
   await page.click("[data-record-this-cast]");
   await page.waitForFunction(() => location.pathname === "/readings/choice", { timeout: 20_000 });
   const sessionId = await page.evaluate(() => new URLSearchParams(location.search).get("session"));
-  assert(sessionId, "Fresh completion must hand off with an exact session id");
-  assert.equal(sessionId, ID_A, "Fresh completion must never mint a new reading id");
+  assert.equal(sessionId, readingA.id, "Fresh completion must hand off the exact reading id");
   await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
 
   const storage = await page.evaluate(({ threeCoinKey, pendingPrefix, retired }) => ({
@@ -239,7 +458,7 @@ async function verifyFreshCompletionNonReentry(page) {
   }), { threeCoinKey: THREE_COIN_KEY, pendingPrefix: PENDING_PREFIX, retired: RETIRED_SINGLETON_KEY });
   assert.equal(storage.session, null, "Fresh completion must retire the exact method session");
   assert(storage.pending, "Fresh completion must persist exactly Pending[A]");
-  assert.equal(JSON.parse(storage.pending).readingId, ID_A, "Pending must be keyed by the exact reading id");
+  assert.equal(JSON.parse(storage.pending).readingId, readingA.id, "Pending must be keyed by the exact reading id");
   assert.equal(storage.singleton, null, "The retired completed-reading singleton must not be written");
 
   await page.goBack({ waitUntil: "networkidle0" });
@@ -247,9 +466,8 @@ async function verifyFreshCompletionNonReentry(page) {
   assert.equal(await page.$(".hold-button"), null, "Browser Back must not resurrect the completed casting screen");
   assert.equal(await page.$("[data-ritual-question-context]"), null, "Browser Back must not restore an active cast step");
   assert.equal(await page.$("[data-completed-cast]"), null, "Browser Back must not restore a terminal casting screen");
-  log("C2/C7 — fresh completion writes Pending[A], retires the session, replaces into Choice; Back cannot re-enter casting");
+  log("C2/C7 — fresh completion writes exact Pending[A], retires the session, replaces into Choice; Back cannot re-enter casting");
 }
-
 async function verifyHomeIsNotHijacked(page) {
   await seed(page, {
     threeCoinSession: threeCoinSessionPayload(ID_A, 6),
@@ -296,6 +514,43 @@ async function verifyCrossMethodIdentity(page) {
   assert.equal(await page.$("[data-result-choice]"), null, "An unknown session must never fall back to another reading");
   log("C3 — exact server/pending identity: A→A, B→B, missing session and unknown session fail closed");
 }
+
+async function verifyChoiceTransitionsHaveNoGlobalLoading(page) {
+  const pending = pendingPayload(ID_A, "three-coin", THREE_COIN_QUESTION, [9, 6, 7, 8, 7, 9]);
+
+  for (const target of [
+    { selector: "[data-result-choice-free]", pathname: "/readings/result", label: "Free Reading" },
+    { selector: "[data-result-choice-deep]", pathname: "/readings/deep", label: "Deep Reading" },
+  ]) {
+    await seed(page, { pendings: [[ID_A, pending]] });
+    await page.goto(`${BASE}/readings/choice?session=${ID_A}`, { waitUntil: "networkidle0" });
+    await page.waitForSelector("[data-result-choice]", { timeout: 15_000 });
+    await page.evaluate(() => {
+      window.__qicSawGlobalPreparingScene = document.body?.innerText.includes("Preparing Your Experience") ?? false;
+      const observer = new MutationObserver(() => {
+        if (document.body?.innerText.includes("Preparing Your Experience")) {
+          window.__qicSawGlobalPreparingScene = true;
+        }
+      });
+      observer.observe(document.documentElement, { subtree: true, childList: true, characterData: true });
+      window.__qicPreparingObserver = observer;
+    });
+
+    await page.click(target.selector);
+    await page.waitForFunction((pathname) => location.pathname === pathname, { timeout: 20_000 }, target.pathname);
+    await page.waitForFunction(
+      () => !document.body?.innerText.includes("Preparing Your Experience"),
+      { timeout: 15_000 },
+    );
+    const flashed = await page.evaluate(() => {
+      window.__qicPreparingObserver?.disconnect();
+      return window.__qicSawGlobalPreparingScene === true;
+    });
+    assert.equal(flashed, false, `${target.label} must not flash the retired global Preparing Your Experience scene`);
+  }
+  log("Choice → Free / Deep — no global full-screen intermediate loading scene");
+}
+
 
 async function verifyYarrowPartialReopen(page) {
   await seedMethodState(page, [
@@ -597,24 +852,24 @@ async function clickLocaleAndWait(page, expectedPath) {
 }
 
 async function verifyActiveFlowLocaleContinuation(page) {
-  // Three Coin: direct reopen stays passive; explicit locale switch continues 4/6.
-  await seed(page, { threeCoinSession: threeCoinSessionPayload(ID_A, 4) });
-  await page.goto(BASE + "/", { waitUntil: "networkidle0" });
-  assert(await page.$("[data-reading-resume-action]"), "Three Coin direct reopen must remain passive");
-  await clickResume(page);
-  await page.waitForFunction(
-    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
-    { timeout: 15_000 },
-  );
+  // Three Coin: Home has no Resume presentation. Locale continuation still
+  // preserves an actively entered 4/6 flow through the existing C9 mechanism.
+  const threeCoinActive = await startFreshThreeCoin(page, 4);
+  assert(threeCoinActive?.id, "Three Coin active flow must own an exact identity");
   await page.waitForSelector('body > header[data-navigation-surface="S02"]', { timeout: 15_000 });
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Three Coin Home/flow must not expose the retired Resume presentation");
   await clickLocaleAndWait(page, "/zh");
   await page.waitForFunction(
     () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
     { timeout: 15_000 },
   );
-  assert.equal(await doneLineCount(page), 4, "Three Coin locale switch must restore exact 4/6 facts without Resume");
-  assert.equal(await page.$("[data-reading-resume-action]"), null, "Three Coin locale switch must not require a second Resume");
-  assert.equal(await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.id, THREE_COIN_KEY), ID_A, "Three Coin locale switch must keep identity");
+  assert.equal(await doneLineCount(page), 4, "Three Coin locale switch must restore exact 4/6 active-flow facts");
+  assert.equal(await page.$("[data-reading-resume-action]"), null, "Three Coin locale switch must not introduce a Resume UI");
+  assert.equal(
+    await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.id, THREE_COIN_KEY),
+    threeCoinActive.id,
+    "Three Coin locale switch must keep identity",
+  );
 
   // Yarrow: direct reopen stays passive; explicit locale switch continues exact 8/18.
   await seedMethodState(page, [
@@ -709,6 +964,9 @@ async function main() {
   try {
     log(`Using ${usingSystemChrome ? "system Chrome" : "bundled Chromium"} at ${executablePath}`);
     await verifyMethodDetailIsNotASecondEntry(page);
+    await verifyEmptyHomeQuestionFeedback(page);
+    await verifyNoPartialResumeAbsent(page);
+    await verifyQuestionOnlyResume(page);
     await verifyPartialResume(page);
     await verifyFreshCompletionNonReentry(page);
     await verifyHomeIsNotHijacked(page);
@@ -719,6 +977,7 @@ async function main() {
     await verifyYarrowSealedStartNewLifecycle(page);
     await verifyActiveFlowLocaleContinuation(page);
     await verifyCrossMethodIdentity(page);
+    await verifyChoiceTransitionsHaveNoGlobalLoading(page);
     const fatal = consoleErrors.filter((message) => !/favicon|Failed to load resource.*404/i.test(message));
     assert.deepEqual(fatal, [], `Unexpected browser errors: ${fatal.join(" | ")}`);
     log("PASS — reading lifecycle browser gate");

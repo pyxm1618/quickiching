@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import nextConfig, { buildContentSecurityPolicy } from "./next.config.mjs";
+import nextConfig, { buildContentSecurityPolicy, buildCrawlerIndexingHeaders } from "./next.config.mjs";
+import { CANONICAL_PRODUCTION_VERCEL_PROJECT_ID } from "./src/lib/vercel-deployment.mjs";
 
 const getConfig = async () =>
   typeof nextConfig === "function"
@@ -24,6 +25,7 @@ describe("Next.js redirect policy", () => {
       ["/three-coin-method", "/methods/three-coin"],
       ["/yarrow-stalk-method", "/methods/yarrow-stalks"],
       ["/mei-hua-yi-shu", "/methods/mei-hua-yi-shu"],
+      ["/casting-methods", "/help#casting-methods"],
       ["/how-to-ask-the-i-ching", "/guides/how-to-ask-the-i-ching"],
       ["/changing-lines", "/guides/changing-lines"],
       ["/primary-and-relating-hexagrams", "/guides/primary-relating-hexagrams"],
@@ -38,19 +40,62 @@ describe("Next.js redirect policy", () => {
 });
 
 describe("Next.js security headers", () => {
-  it("allows only the external origins required by GA4 and Microsoft Clarity", async () => {
+  it("allows the external origins required by analytics, Turnstile, and the homepage partnership badge", async () => {
     const config = await getConfig();
     const headerGroups = await config.headers();
     const globalHeaders = headerGroups.find((group) => group.source === "/:path*")?.headers ?? [];
     const csp = globalHeaders.find((header) => header.key === "Content-Security-Policy")?.value;
 
+    // Next.js 15 still emits framework bootstrap scripts inline in the current
+    // static-rendering architecture. Keep script element compatibility, but
+    // remove inline event-handler authority via CSP3 script-src-attr.
     expect(csp).toContain("script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms");
+    expect(csp).toContain("script-src-attr 'none'");
+    expect(csp).not.toContain("'unsafe-eval'");
+    expect(csp).not.toContain("script-src *");
+    expect(csp).not.toContain("connect-src *");
     expect(csp).toContain("https://*.google-analytics.com");
     expect(csp).toContain("https://*.analytics.google.com");
     expect(csp).toContain("https://c.bing.com");
     expect(csp).toContain("https://challenges.cloudflare.com");
+    expect(csp).toContain("https://startupfa.me");
+    expect(csp).toContain("https://www.betterlaunch.co");
+    expect(csp).toContain("https://shipstry.com");
   });
   it("does not allow the retired Adsterra origin in CSP", () => {
     expect(buildContentSecurityPolicy({ NODE_ENV: "production" })).not.toContain("effectivecpmnetwork.com");
+  });
+});
+
+
+describe("Next.js crawler indexing headers", () => {
+  it("keeps canonical production free of a noindex response header", () => {
+    expect(buildCrawlerIndexingHeaders({
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      VERCEL_PROJECT_ID: CANONICAL_PRODUCTION_VERCEL_PROJECT_ID,
+      VERCEL_GIT_COMMIT_REF: "main",
+    })).toEqual([]);
+  });
+
+  it("fails closed for staging and preview deployments", () => {
+    expect(buildCrawlerIndexingHeaders({
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      VERCEL_PROJECT_ID: "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE",
+      VERCEL_GIT_COMMIT_REF: "staging",
+    })).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
+    expect(buildCrawlerIndexingHeaders({
+      VERCEL: "1",
+      VERCEL_ENV: "preview",
+      VERCEL_PROJECT_ID: CANONICAL_PRODUCTION_VERCEL_PROJECT_ID,
+      VERCEL_GIT_COMMIT_REF: "feature/seo",
+    })).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
+    expect(buildCrawlerIndexingHeaders({
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      VERCEL_PROJECT_ID: "prj_unknown",
+      VERCEL_GIT_COMMIT_REF: "main",
+    })).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
   });
 });

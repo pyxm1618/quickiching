@@ -244,7 +244,7 @@ export function createDeepReadingService(dependencies: {
     const rows = await sql`
       select coalesce(sum(quantity_available), 0)::integer as available
       from entitlement_batches
-      where user_id = ${userId} and expires_at > clock_timestamp()
+      where user_id = ${userId} and refund_locked = false and expires_at > clock_timestamp()
     ` as Array<{ available: number }>;
     return Number(rows[0]?.available ?? 0);
   }
@@ -425,7 +425,7 @@ export function createDeepReadingService(dependencies: {
 
         const batchRows = await transaction`
           select id, expires_at from entitlement_batches
-          where user_id = ${userId} and quantity_available > 0 and expires_at > clock_timestamp()
+          where user_id = ${userId} and refund_locked = false and quantity_available > 0 and expires_at > clock_timestamp()
           order by expires_at asc, created_at asc limit 1 for update
         ` as Row[];
         const batch = batchRows[0];

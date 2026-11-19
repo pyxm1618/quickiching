@@ -1,3 +1,4 @@
+import { sharedOpenGraphImageMetadata } from "@/lib/shared-open-graph-image";
 import React from "react";
 import type { Metadata } from "next";
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
     canonical: CANONICAL,
     languages: alternateLanguages("hexagrams-hub"),
   },
-  openGraph: {
+  openGraph: { images: [sharedOpenGraphImageMetadata("zh-Hans")],
     title: SEO.finalTitle,
     description: SEO.finalDescription,
     url: CANONICAL,

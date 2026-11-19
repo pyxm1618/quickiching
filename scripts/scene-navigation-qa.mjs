@@ -7,16 +7,155 @@ const {default:puppeteer}=await import(process.env.PUPPETEER_MODULE||'puppeteer-
 const {default:chromium}=await import('@sparticuz/chromium');
 const {resolveChromeExecutable}=await import('./browser-runtime.mjs');
 const base=process.env.PUBLIC_V1_TEST_BASE_URL||'http://127.0.0.1:3056';
+const PARTNER_FOCUS_PAUSE_ASSERT_MS=5600;
 const output=resolve(process.env.NAV_QA_OUTPUT||'docs/design/scene-navigation/evidence/2026-11-01');
 await mkdir(output,{recursive:true});
 const authClosed=(await fetch(base+'/account',{redirect:'manual'})).status===410;
-const report={base,authClosed,states:[],checks:[],errors:[],status:'RUNNING'};
+const report={base,authClosed,states:[],checks:[],errors:[],requestFailures:[],status:'RUNNING'};
 function check(name,value){assert(value,name);report.checks.push({name,status:'PASS'});}
+async function readPartnerSnapshot(page){
+ return page.$eval('.scene-partnership',root=>{
+  const viewport=root.querySelector('.scene-partner-viewport');
+  const viewportStyle=viewport?getComputedStyle(viewport):null;
+  return {
+   tag:root.tagName,
+   label:root.querySelector('.scene-partnership-label')?.textContent,
+   labelInsideLink:Boolean(root.querySelector('a .scene-partnership-label')),
+   viewport:viewport?{
+    clientHeight:viewport.clientHeight,scrollHeight:viewport.scrollHeight,
+    clientWidth:viewport.clientWidth,scrollWidth:viewport.scrollWidth,
+    overflowX:viewportStyle?.overflowX,overflowY:viewportStyle?.overflowY,
+   }:null,
+   links:[...root.querySelectorAll('.scene-partner-link')].map(link=>{
+    const image=link.querySelector('img');
+    const style=getComputedStyle(link);
+    return {
+     id:link.getAttribute('data-partner-id'),
+     state:link.getAttribute('data-partner-state'),
+     href:link.getAttribute('href'),
+     target:link.getAttribute('target'),
+     rel:link.getAttribute('rel'),
+     tabIndex:link.getAttribute('tabindex'),
+     opacity:Number(style.opacity),
+     pointerEvents:style.pointerEvents,
+     src:image?.getAttribute('src'),
+     complete:image?.complete,
+     naturalWidth:image?.naturalWidth,
+     naturalHeight:image?.naturalHeight,
+    };
+   }),
+  };
+ });
+}
+async function waitForPartnerRest(page,id){
+ await page.waitForFunction(expected=>{
+  const root=document.querySelector('.scene-partnership');
+  if(!root)return false;
+  const moving=root.querySelector('[data-partner-state="entering"],[data-partner-state="exiting"]');
+  return !moving&&root.querySelector('[data-partner-state="active"]')?.getAttribute('data-partner-id')===expected;
+ },{timeout:12000},id);
+}
 async function openSceneHome(page,locale){
  const home=locale==='en'?'/':'/zh';
  await page.goto(base+home+'?ritualTime=700',{waitUntil:'networkidle0'});
  await page.waitForSelector('.scene-navigation');
+ await page.waitForFunction(()=>!document.querySelector('.scene-partnership [data-partner-state="entering"],.scene-partnership [data-partner-state="exiting"]'),{timeout:3000});
+ try {
+  await page.waitForFunction(()=>[...document.querySelectorAll('.scene-partnership img')].every(image=>image.complete&&image.naturalWidth>0&&image.naturalHeight>0),{timeout:10000});
+ } catch {
+  const failedImages=await page.$eval('.scene-partnership',root=>[...root.querySelectorAll('.scene-partner-link')].map(link=>{const image=link.querySelector('img');return {id:link.getAttribute('data-partner-id'),src:image?.currentSrc||image?.getAttribute('src'),complete:image?.complete,naturalWidth:image?.naturalWidth,naturalHeight:image?.naturalHeight};}).filter(image=>image.complete!==true||Number(image.naturalWidth)<=0||Number(image.naturalHeight)<=0));
+  throw new Error(`PARTNER_IMAGE_NOT_READY:${JSON.stringify(failedImages)}`);
+ }
+ const partnership=await readPartnerSnapshot(page);
+ check('Partnership label is static and outside links',partnership.tag==='DIV'&&Boolean(partnership.label)&&!partnership.labelInsideLink);
+ check('Single partner viewport retained',Boolean(partnership.viewport));
+ check('Three partner links retained',partnership.links.length===3);
+ check('Startup Fame partnership retained',partnership.links.some(link=>link.id==='startup-fame'&&link.href==='https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'&&link.src==='/partner-badges/startup-fame-featured-dark.webp'));
+ check('Better Launch partnership retained',partnership.links.some(link=>link.id==='better-launch'&&link.href==='https://www.betterlaunch.co/product/quick-i-ching'&&link.src==='https://www.betterlaunch.co/badge-launching-gradient.svg'));
+ check('Shipstry partnership retained',partnership.links.some(link=>link.id==='shipstry'&&link.href==='https://shipstry.com/'&&link.src==='https://shipstry.com/badges/featured.svg'));
+ check('Partner links open safely',partnership.links.every(link=>link.target==='_blank'&&link.rel?.split(/\s+/).includes('noopener')&&link.rel?.split(/\s+/).includes('noreferrer')));
+ check('Only one partner badge visible at rest',partnership.links.filter(link=>link.state==='active'&&link.opacity>.9&&link.pointerEvents==='auto').length===1&&partnership.links.filter(link=>link.opacity>.01).length===1);
+ check('Partner viewport clips instead of scrolling',partnership.viewport?.overflowX==='hidden'&&partnership.viewport?.overflowY==='hidden');
+ const viewportBox=await page.$eval('.scene-partner-viewport',viewport=>{const rect=viewport.getBoundingClientRect();return {x:rect.x,y:rect.y,width:rect.width,height:rect.height,scrollTop:viewport.scrollTop,scrollLeft:viewport.scrollLeft};});
+ await page.mouse.move(viewportBox.x+viewportBox.width/2,viewportBox.y+viewportBox.height/2);
+ await page.mouse.wheel({deltaY:240,deltaX:120});
+ await new Promise(resolve=>setTimeout(resolve,80));
+ const afterWheel=await page.$eval('.scene-partner-viewport',viewport=>({scrollTop:viewport.scrollTop,scrollLeft:viewport.scrollLeft}));
+ check('Manual partner scrolling is disabled',afterWheel.scrollTop===viewportBox.scrollTop&&afterWheel.scrollLeft===viewportBox.scrollLeft);
+ for(const link of partnership.links){
+  check(`Partner image ready: ${link.id} complete=${link.complete} width=${link.naturalWidth} height=${link.naturalHeight} src=${link.src}`,
+   link.complete===true&&Number(link.naturalWidth)>0&&Number(link.naturalHeight)>0);
+ }
+ return partnership;
 }
+async function verifyActivePartnerClick(page,id,href,prefix){
+ await page.evaluate(()=>{
+  globalThis.__partnerClickHref=null;
+  const viewport=document.querySelector('.scene-partner-viewport');
+  viewport?.addEventListener('click',event=>{
+   const target=event.target;
+   const link=target instanceof Element?target.closest('.scene-partner-link'):null;
+   if(!link)return;
+   event.preventDefault();
+   event.stopPropagation();
+   globalThis.__partnerClickHref=link.getAttribute('href');
+  },{capture:true,once:true});
+ });
+ await page.click(`.scene-partner-link[data-partner-id="${id}"][data-partner-state="active"]`);
+ const clickedHref=await page.evaluate(()=>globalThis.__partnerClickHref);
+ check(`${prefix}: click active ${id} reaches its own destination`,clickedHref===href);
+ await page.evaluate(()=>{
+  if(document.activeElement instanceof HTMLElement)document.activeElement.blur();
+ });
+}
+async function verifyPartnerRotation(page,prefix,{verifyClicks=false}={}){
+ const sequence=[
+  ['startup-fame','https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com'],
+  ['better-launch','https://www.betterlaunch.co/product/quick-i-ching'],
+  ['shipstry','https://shipstry.com/'],
+ ];
+ for(const [id,href] of sequence){
+  await waitForPartnerRest(page,id);
+  check(`${prefix}: automatic rotation reaches ${id}`,true);
+  if(verifyClicks)await verifyActivePartnerClick(page,id,href,prefix);
+ }
+ await waitForPartnerRest(page,'startup-fame');
+ check(`${prefix}: partner rotation loops to Startup Fame`,true);
+}
+async function verifyPartnerFocusPauseResume(page,prefix){
+ await waitForPartnerRest(page,'startup-fame');
+ const startupSelector='.scene-partner-link[data-partner-id="startup-fame"][data-partner-state="active"]';
+ await page.focus(startupSelector);
+ await page.waitForFunction(()=>document.activeElement?.getAttribute('data-partner-id')==='startup-fame');
+ await new Promise(resolve=>setTimeout(resolve,PARTNER_FOCUS_PAUSE_ASSERT_MS));
+ const paused=await page.$eval('.scene-partner-viewport',viewport=>{
+  const active=viewport.querySelector('[data-partner-state="active"]');
+  const focused=document.activeElement;
+  const focusedStyle=focused instanceof Element?getComputedStyle(focused):null;
+  const focusedRect=focused instanceof Element?focused.getBoundingClientRect():null;
+  return {
+   activeId:active?.getAttribute('data-partner-id'),
+   focusedId:focused instanceof Element?focused.getAttribute('data-partner-id'):null,
+   focusedState:focused instanceof Element?focused.getAttribute('data-partner-state'):null,
+   focusedAriaHidden:focused instanceof Element?focused.getAttribute('aria-hidden'):null,
+   focusedTabIndex:focused instanceof HTMLElement?focused.tabIndex:null,
+   focusedOpacity:focusedStyle?Number(focusedStyle.opacity):0,
+   focusedPointerEvents:focusedStyle?.pointerEvents??null,
+   focusedVisible:Boolean(focusedRect&&focusedRect.width>0&&focusedRect.height>0),
+  };
+ });
+ check(`${prefix}: focus pauses rotation beyond one full interval`,paused.activeId==='startup-fame');
+ check(`${prefix}: focused partner remains the visible active destination`,paused.focusedId==='startup-fame'&&paused.focusedState==='active'&&paused.focusedAriaHidden!=='true'&&Number(paused.focusedTabIndex)>=0&&paused.focusedOpacity>.9&&paused.focusedPointerEvents==='auto'&&paused.focusedVisible);
+ await page.focus('.scene-scroll-methods');
+ check(`${prefix}: focus leaves the entire partner viewport`,await page.evaluate(()=>!document.querySelector('.scene-partner-viewport')?.contains(document.activeElement)));
+ await waitForPartnerRest(page,'better-launch');
+ check(`${prefix}: resume preserves Startup Fame -> Better Launch`,true);
+ await waitForPartnerRest(page,'shipstry');
+ check(`${prefix}: resume preserves Better Launch -> Shipstry`,true);
+ await waitForPartnerRest(page,'startup-fame');
+ check(`${prefix}: resume preserves Shipstry -> Startup Fame without skip or double timer`,true);
+}
+
 async function clickSceneDestination(page,locale,path){
  const prefix=locale==='en'?'':'/zh';
  const target=prefix+path;
@@ -50,19 +189,51 @@ const browser=await puppeteer.launch({
     : [...chromium.args,'--disable-dev-shm-usage','--force-device-scale-factor=1'],
 });
 try {
- const page=await browser.newPage();page.on('pageerror',error=>report.errors.push(String(error)));
+ const page=await browser.newPage();
+ page.on('pageerror',error=>report.errors.push(String(error)));
+ page.on('requestfailed',request=>report.requestFailures.push({url:request.url(),error:request.failure()?.errorText??null}));
  await page.setViewport({width:1671,height:941,deviceScaleFactor:1});
  await page.goto(base+'/?ritualTime=700',{waitUntil:'networkidle0'});
  for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent==='Decline'))await button.click();
  await page.waitForSelector('.scene-navigation');
- await page.evaluate(async()=>{for(const image of document.images)image.loading='eager';await Promise.all([...document.images].map(image=>image.decode()));await document.fonts.ready;});
+ await openSceneHome(page,'en');
+ await verifyPartnerFocusPauseResume(page,'Desktop EN');
+ await verifyPartnerRotation(page,'Desktop EN',{verifyClicks:true});
+ for(const locale of ['en','zh']){
+  await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+  const mobilePartner=await openSceneHome(page,locale);
+  check(`${locale}: mobile partner viewport remains single-slot`,mobilePartner.links.filter(link=>link.opacity>.01).length===1&&mobilePartner.viewport?.overflowY==='hidden');
+  if(locale==='en')await verifyPartnerRotation(page,'Mobile EN');
+ }
+ await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
+ await page.setViewport({width:1671,height:941,deviceScaleFactor:1});
+ await openSceneHome(page,'en');
+ await waitForPartnerRest(page,'better-launch');
+ check('Reduced motion preserves automatic partner rotation',true);
+ await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
+ await page.goto(base+'/?ritualTime=700',{waitUntil:'networkidle0'});
+ await page.waitForSelector('.scene-navigation');
+ // Image readiness is global: partner badges are intentionally included so a broken remote badge fails this gate.
+ await page.evaluate(async()=>{
+  const controlledImages=[...document.images];
+  for(const image of controlledImages)image.loading='eager';
+  await Promise.all(controlledImages.map(async image=>{
+   if(!image.complete)await new Promise((resolve,reject)=>{
+    image.addEventListener('load',resolve,{once:true});
+    image.addEventListener('error',()=>reject(new Error(`IMAGE_LOAD_FAILED:${image.currentSrc||image.src}`)),{once:true});
+   });
+   if(image.naturalWidth<=0||image.naturalHeight<=0)throw new Error(`IMAGE_NOT_READY:${image.currentSrc||image.src}`);
+   try{await image.decode();}catch(error){if(image.naturalWidth<=0||image.naturalHeight<=0)throw error;}
+  }));
+  await document.fonts.ready;
+ });
  for(const state of ['default','methods','info']) {
   const width=state==='default'?1671:1670,height=state==='default'?941:942;
   await page.setViewport({width,height,deviceScaleFactor:1});
   if(state!=='default')await page.click(`.scene-scroll-${state}`);
   await page.waitForFunction(value=>document.querySelector('.scene-navigation').dataset.scenePanel===(value==='default'?'closed':value),{},state);
   await page.mouse.move(1000,100);await new Promise(resolve=>setTimeout(resolve,800));
-  const metadata=await page.evaluate(()=>({url:location.href,title:document.title,viewport:{width:innerWidth,height:innerHeight},dpr:devicePixelRatio,fontsReady:document.fonts.status==='loaded',imagesReady:[...document.images].every(image=>image.complete&&image.naturalWidth>0),overflow:document.documentElement.scrollWidth>innerWidth,fullPage:false,screenshotScale:'css',panel:document.querySelector('.scene-navigation').dataset.scenePanel,elements:[...document.querySelectorAll('.scene-brand,.scene-utility,.scene-scroll,.scene-scroll-holder,.scene-panel:not([hidden]),.scene-panel:not([hidden]) h2,.scene-panel:not([hidden]) h3,.scene-panel:not([hidden]) a,.scene-panel:not([hidden]) p')].map(node=>({className:node.className,text:node.textContent,rect:node.getBoundingClientRect().toJSON(),font:getComputedStyle(node).font}))}));
+  const metadata=await page.evaluate(()=>({url:location.href,title:document.title,viewport:{width:innerWidth,height:innerHeight},dpr:devicePixelRatio,fontsReady:document.fonts.status==='loaded',imagesReady:[...document.images].every(image=>image.complete&&image.naturalWidth>0&&image.naturalHeight>0),overflow:document.documentElement.scrollWidth>innerWidth,fullPage:false,screenshotScale:'css',panel:document.querySelector('.scene-navigation').dataset.scenePanel,elements:[...document.querySelectorAll('.scene-brand,.scene-utility,.scene-scroll,.scene-scroll-holder,.scene-panel:not([hidden]),.scene-panel:not([hidden]) h2,.scene-panel:not([hidden]) h3,.scene-panel:not([hidden]) a,.scene-panel:not([hidden]) p')].map(node=>({className:node.className,text:node.textContent,rect:node.getBoundingClientRect().toJSON(),font:getComputedStyle(node).font}))}));
   check(`${state}: exact viewport and DPR`,metadata.viewport.width===width&&metadata.viewport.height===height&&metadata.dpr===1);
   check(`${state}: images and fonts ready`,metadata.imagesReady&&metadata.fontsReady);
   check(`${state}: no horizontal overflow`,!metadata.overflow);
@@ -109,6 +280,9 @@ try {
   await page.goto(base+prefix+'/guides/how-to-ask-the-i-ching',{waitUntil:'networkidle0'});
   check(`Latest ${prefix||'English'} Info page header preserved`,await page.$eval('body > header',node=>node.className.includes('infoHeader')&&!node.classList.contains('scene-navigation')));
  }
- check('No browser page errors',report.errors.length===0);report.status='PASS';
+ check('No browser page errors',report.errors.length===0);
+ const partnerRequestFailures=report.requestFailures.filter(item=>/startupfa\.me|betterlaunch\.co|shipstry\.com/.test(item.url));
+ check(`No partner badge request failures (${JSON.stringify(partnerRequestFailures)})`,partnerRequestFailures.length===0);
+ report.status='PASS';
 } catch(error){report.status='FAIL';report.failure=String(error);process.exitCode=1;console.error(error);}
 finally{report.browser=await browser.version();await writeFile(`${output}/browser-verification.json`,JSON.stringify(report,null,2)+'\n');await browser.close();console.log(JSON.stringify({status:report.status,checks:report.checks.length,states:report.states,failure:report.failure}));}

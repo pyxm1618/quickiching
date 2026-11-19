@@ -355,12 +355,27 @@ async function seedSignOutState(page) {
     pendingE: pendingPayload(ID_E, "Pending E survives Sign Out"),
   });
 
+  // Activate the retained 4/6 flow through the same ordinary user Resume
+  // ingress that a real visitor receives after a reload.
   await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForSelector('[data-reading-resume="three-coin"] [data-reading-resume-action]', { visible: true, timeout: 15_000 });
   await clickResume(page);
   await page.waitForFunction(
-    () => document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual",
+    () => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 4,
     { timeout: 15_000 },
   );
+  // Re-arm one unrelated continuation intent so Sign Out still proves that C9
+  // recovery context is cleared independently of the retained cast state.
+  await page.evaluate(({ key, readingId }) => {
+    sessionStorage.setItem(key, JSON.stringify({
+      schemaVersion: 1,
+      nonce: "r3-signout-clear-proof",
+      method: "three-coin",
+      readingId,
+      targetLocale: "zh-Hans",
+      issuedAt: Date.now(),
+    }));
+  }, { key: LOCALE_CONTINUATION_KEY, readingId: THREE_ID });
 }
 
 async function verifySignOutRetention(page) {
@@ -377,13 +392,10 @@ async function verifySignOutRetention(page) {
   ]);
   assert.equal(new URL(page.url()).pathname, "/", "Sign Out success must navigate to the canonical Root");
   await page.waitForSelector("[data-three-coin-ritual]", { timeout: 15_000 });
-  // C1 passive detection runs in QuestionFirst's mount effect. Wait for that
-  // effect to expose the affordance before asserting retention; the UI must
-  // still remain at the default landing stage until the user explicitly resumes.
-  await page.waitForSelector(
-    '[data-reading-resume="three-coin"] [data-reading-resume-action]',
-    { visible: true, timeout: 15_000 },
-  );
+  // The cast state remains retained and passive. The canonical Root stays on
+  // the clean landing surface while offering an explicit Resume choice.
+  await page.waitForSelector('[data-experience-stage="landing"]', { timeout: 15_000 });
+  await page.waitForSelector('[data-reading-resume="three-coin"] [data-reading-resume-action]', { visible: true, timeout: 15_000 });
 
   const state = await page.evaluate((x) => ({
     three: sessionStorage.getItem(x.threeKey),
@@ -435,8 +447,27 @@ async function verifySignOutRetention(page) {
   assert.equal(state.language, "en", "Sign Out must preserve language preference");
   assert.equal(state.appearance, "dark", "Sign Out must preserve appearance preference");
   assert.equal(state.stage, "landing", "Sign Out return must render default Three Coin entry");
-  assert.equal(state.resume, true, "Sign Out preserved Three Coin state must expose Resume");
+  assert.equal(state.resume, true, "Sign Out preserved Three Coin state must expose ordinary explicit Resume");
   assert.equal(state.activeCastButton, false, "Sign Out must not automatically reactivate casting");
+
+  await clickResume(page);
+  await page.waitForFunction(
+    () => document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length === 4,
+    { timeout: 15_000 },
+  );
+  const resumedThree = await page.evaluate((key) => {
+    const session = JSON.parse(sessionStorage.getItem(key) || "null");
+    return {
+      id: session?.id ?? null,
+      question: session?.coreQuestionAtCast ?? session?.question ?? null,
+      steps: session?.data?.steps?.length ?? null,
+    };
+  }, THREE_COIN_KEY);
+  assert.deepEqual(
+    resumedThree,
+    { id: THREE_ID, question: THREE_QUESTION, steps: 4 },
+    "Sign Out ordinary Resume must restore the exact retained Three Coin identity, question and 4/6 progress",
+  );
 
   const checks = [
     ["/methods/yarrow-stalks", "yarrow-stalks", () => document.querySelector(".ritual-progress-badge")],
@@ -741,7 +772,7 @@ async function seedHistoryMethod(page, method, id) {
     });
     await page.reload({ waitUntil: "networkidle0" });
     await clickResume(page);
-    // Resume restores the exact five-line session before the visual layer
+    // Ordinary Resume restores the exact five-line session before the visual layer
     // necessarily completes its readiness handshake. Wait for the real cast
     // control to be enabled before dispatching the sixth-line pointer gesture,
     // just as the Pending write-failure proof does above.

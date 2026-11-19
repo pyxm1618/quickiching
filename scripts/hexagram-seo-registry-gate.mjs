@@ -40,7 +40,7 @@ for (const classical of CLASSICAL_HEXAGRAMS) {
   if (en.primaryKeyword !== "hexagram " + classical.number) {
     failures.push("English Primary mismatch for " + classical.number + ": " + en.primaryKeyword);
   }
-  if (en.finalTitle !== "I Ching Hexagram " + classical.number + ": " + en.hexagramName + " — Meaning, Love & Unchanging") {
+  if (en.finalTitle !== "I Ching Hexagram " + classical.number + ": " + en.hexagramName + " — Meaning") {
     failures.push("English Title mismatch for " + classical.number);
   }
   if (en.finalH1 !== "Hexagram " + classical.number + " — " + en.hexagramName) {
@@ -49,9 +49,21 @@ for (const classical of CLASSICAL_HEXAGRAMS) {
   if (en.finalDescription.length < 100 || en.finalDescription.length > 160) {
     failures.push("English Description length out of range for " + classical.number + ": " + en.finalDescription.length);
   }
+  if (en.finalTitle.length > 65) {
+    failures.push("English Title over 65 characters for " + classical.number + ": " + en.finalTitle.length);
+  }
   const description = en.finalDescription.toLocaleLowerCase("en-US");
-  if (!description.includes("hexagram " + classical.number) || !description.includes("love") || !description.includes("unchanging")) {
+  if (!description.includes("hexagram " + classical.number)) {
     failures.push("English Description intent mismatch for " + classical.number);
+  }
+  if (description.includes("love") || description.includes("unchanging")) {
+    failures.push("English Description promises unsupported content for " + classical.number);
+  }
+  if (en.recommendedModules.includes("love") || en.recommendedModules.includes("unchanging")) {
+    failures.push("English recommendedModules promises unsupported content for " + classical.number);
+  }
+  if (en.loveKeyword !== null || en.unchangingKeyword !== null) {
+    failures.push("English keyword authority still contains unsupported love/unchanging intent for " + classical.number);
   }
 }
 

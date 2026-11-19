@@ -108,6 +108,10 @@ async function collectPageSnapshot(page, path) {
     title: document.title,
     description: document.querySelector('meta[name="description"]')?.getAttribute("content") ?? "",
     canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? "",
+    ogImage: document.querySelector('meta[property="og:image"]')?.getAttribute("content") ?? "",
+    ogImageWidth: document.querySelector('meta[property="og:image:width"]')?.getAttribute("content") ?? "",
+    ogImageHeight: document.querySelector('meta[property="og:image:height"]')?.getAttribute("content") ?? "",
+    ogImageType: document.querySelector('meta[property="og:image:type"]')?.getAttribute("content") ?? "",
     h1: [...document.querySelectorAll("h1")].map((node) => node.textContent?.trim() ?? ""),
     lineAnchors: Array.from({ length: 6 }, (_, index) => document.querySelector(`#line-${index + 1}`) !== null),
     jsonLd: [...document.querySelectorAll('script[type="application/ld+json"]')].map((node) => {
@@ -131,12 +135,25 @@ try {
   const desktop = await browser.newPage();
   await desktop.setViewport({ width: 1440, height: 1000 });
 
+  await desktop.goto(`${BASE}/casting-methods`, { waitUntil: "networkidle0", timeout: 30_000 });
+  const castingMethodsTarget = new URL(desktop.url());
+  assert.equal(castingMethodsTarget.pathname, "/help", "/casting-methods must land on the canonical multi-method help page");
+  assert.equal(castingMethodsTarget.hash, "#casting-methods", "/casting-methods must retain the live target fragment");
+  assert(await desktop.$("#casting-methods"), "/casting-methods target fragment must exist in the rendered DOM");
+  log("/casting-methods legacy redirect → live #casting-methods target PASS");
+
   for (const path of INDEXABLE_PATHS) {
     const snapshot = await collectPageSnapshot(desktop, path);
     assert(snapshot.title.trim(), `${path}: title missing`);
     assert(snapshot.description.trim(), `${path}: description missing`);
     assert.equal(snapshot.h1.length, 1, `${path}: expected exactly one H1`);
     assert(snapshot.h1[0], `${path}: H1 is empty`);
+    assert(snapshot.ogImage, `${path}: shared Open Graph image missing`);
+    const ogImageUrl = new URL(snapshot.ogImage);
+    assert.equal(ogImageUrl.origin, "https://www.quickiching.com", `${path}: Open Graph image must resolve on the production canonical host`);
+    assert.equal(snapshot.ogImageWidth, "1200", `${path}: Open Graph image width mismatch`);
+    assert.equal(snapshot.ogImageHeight, "630", `${path}: Open Graph image height mismatch`);
+    assert.equal(snapshot.ogImageType, "image/png", `${path}: Open Graph image content type mismatch`);
     const expectedTdh = EXPECTED_TDH[path];
     if (expectedTdh) {
       assert.equal(snapshot.title, expectedTdh.title, `${path}: title drift`);

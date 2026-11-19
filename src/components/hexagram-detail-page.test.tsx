@@ -47,8 +47,6 @@ function approvedFamily(seo: ReturnType<typeof hexagramSeoFor>): string[] {
     ...keywordPhrases(seo.secondaryVariantFamily),
     seo.otherCoreVariant,
     seo.meaningKeyword,
-    seo.loveKeyword,
-    seo.unchangingKeyword,
     seo.relationshipKeyword,
     ...seo.specialKeywords,
   ].filter((phrase): phrase is string => Boolean(phrase)))];

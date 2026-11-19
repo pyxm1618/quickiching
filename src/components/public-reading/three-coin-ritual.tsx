@@ -2,7 +2,7 @@
 
 import "./ritual.css";
 import { ArrowRight } from "lucide-react";
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { GildedTitle } from "@/components/typography/gilded-title";
 import { normalizePublicQuestion, PUBLIC_QUESTION_MAX_CODE_POINTS } from "@/domain/public-reading/question";
 import { EN_UI_DICTIONARY } from "@/i18n/dictionaries/en";
@@ -19,7 +19,6 @@ import {
   NO_READING_RESUME,
   clearLiveFlowRegistration,
   registerLiveFlowFromSession,
-  resumeProgressLabel,
   threeCoinResumeState,
   useLiveFlowUnmountCleanup,
   useLocaleContinuationActivation,
@@ -85,6 +84,10 @@ export function ThreeCoinRitual({
   const [coreQuestionFrozenAtCast, setCoreQuestionFrozenAtCast] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
+  const questionInputRef = useRef<HTMLTextAreaElement>(null);
+  const emptyQuestionError = zh
+    ? "请先输入你想问的问题，或选择下方“跳过问题，仅免费起卦”。"
+    : "Please enter the question you want to ask, or choose “Skip — free reading only” below.";
   const [resumeState, setResumeState] = useState<ReadingResumeState>(NO_READING_RESUME);
   const [resumeRequested, setResumeRequested] = useState(false);
 
@@ -178,14 +181,19 @@ export function ThreeCoinRitual({
 
   function setQuestion(value: string | undefined) {
     if (coreQuestionFrozenAtCast) return;
+    const raw = value ?? "";
     try {
-      const normalized = normalizePublicQuestion(value);
-      if (!persist(true, normalized)) {
+      if (Array.from(raw).length > PUBLIC_QUESTION_MAX_CODE_POINTS) {
+        throw new Error("PUBLIC_QUESTION_TOO_LONG");
+      }
+      // Preserve the exact in-progress draft. Canonical normalization belongs
+      // at Continue / first-cast freeze boundaries.
+      if (!persist(true, raw || undefined)) {
         setError(dictionary.questionFirst.saveError);
         return;
       }
-      setQuestionState(normalized);
-      setDraft(normalized ?? "");
+      setQuestionState(raw || undefined);
+      setDraft(raw);
       setError("");
     } catch (nextError: unknown) {
       setError(nextError instanceof Error && nextError.message === "PUBLIC_QUESTION_TOO_LONG"
@@ -208,6 +216,14 @@ export function ThreeCoinRitual({
 
   function prepareQuestionConfirmation() {
     if (coreQuestionFrozenAtCast) return;
+    // Empty input is a field-validation failure, not a new-reading boundary.
+    // Validate before discarding an un-resumed partial so a mistaken click can
+    // never retire recovery state.
+    if (!draft.trim()) {
+      setError(emptyQuestionError);
+      questionInputRef.current?.focus();
+      return;
+    }
     // Starting a brand-new reading is an explicit discard of an un-resumed
     // partial, and it must not inherit the old reading id.
     if (!discardUnresumedPartial()) return;
@@ -294,7 +310,7 @@ export function ThreeCoinRitual({
 
   function freezeCoreQuestion(): string | undefined | false {
     if (coreQuestionFrozenAtCast) return coreQuestionAtCast;
-    const frozenQuestion = question;
+    const frozenQuestion = normalizePublicQuestion(question);
     if (!persist(true, frozenQuestion, frozenQuestion ?? "", true)) {
       setError(dictionary.questionFirst.saveError);
       return false;
@@ -367,7 +383,10 @@ export function ThreeCoinRitual({
             <div className="ritual-question-card">
               <label htmlFor={`${THREE_COIN_SESSION_STORAGE_KEY}-question`}>{zh ? "此刻，你想问什么？" : "What would you like to ask?"}</label>
               <p className="ritual-question-description">{zh ? "描述一个你心中的具体问题。" : "Describe a specific question that is on your mind."}</p>
-              <textarea id={`${THREE_COIN_SESSION_STORAGE_KEY}-question`} value={draft} onChange={(event) => setDraft(event.target.value)} rows={3}
+              <textarea ref={questionInputRef} id={`${THREE_COIN_SESSION_STORAGE_KEY}-question`} value={draft} onChange={(event) => {
+                setDraft(event.target.value);
+                if (error && event.target.value.trim()) setError("");
+              }} rows={3}
                 placeholder={landing ? (zh ? "例如：我应该继续现在的道路吗？" : "For example: Should I continue on my current path?") : (zh ? "在此输入你的问题…" : "Type your question here...")}
                 data-clarity-mask="true" data-private-question="true" disabled={coreQuestionFrozenAtCast} />
               <span className="ritual-character-count">{Array.from(draft).length}/{PUBLIC_QUESTION_MAX_CODE_POINTS}</span>
@@ -375,7 +394,7 @@ export function ThreeCoinRitual({
             </div>
             <div className="ritual-question-actions" data-entered={confirmationEntered} onAnimationEnd={(event) => { if (event.target === event.currentTarget && confirming) setConfirmationEntered(true); }}>
               <button type="button" className="ritual-gold-button" onClick={landing ? prepareQuestionConfirmation : continueToCasting}
-                disabled={(landing && !draft.trim()) || (confirming && !confirmationEntered)} data-home-primary-action>
+                disabled={confirming && !confirmationEntered} data-home-primary-action>
                 <span className="ritual-taichi" aria-hidden="true" />
                 {landing ? (zh ? "开始起卦" : "Start Divination") : (zh ? "开始掷币" : "Cast the Coins")}
                 <ArrowRight size={26} strokeWidth={1.5} aria-hidden="true" />
@@ -386,11 +405,15 @@ export function ThreeCoinRitual({
                   ? (zh ? "每个问题都值得看见。现在开始你的起卦。" : "No question is too small. Begin your divination now →")
                   : (zh ? "三枚铜钱将随机落定，为你带来一次易经起卦。" : <>Three coins will be cast at random,<br />bringing you an I Ching reading.</>)}</p>}
             </div>
-            {landing && resumeState.kind === "partial" ? (
-              <div className="ritual-resume" data-reading-resume={resumeState.method}>
-                <p>{zh ? "你有一次尚未完成的起卦。" : "You have an unfinished cast."}</p>
-                <button type="button" className="ritual-text-button" onClick={requestResume} data-reading-resume-action>
-                  {zh ? "继续上次起卦" : "Resume"} · {resumeProgressLabel(resumeState, zh)}
+            {landing && resumeState.kind === "partial" && !resumeRequested ? (
+              <div className="ritual-resume-ingress" data-reading-resume="three-coin">
+                <button
+                  type="button"
+                  className="ritual-resume-action"
+                  data-reading-resume-action
+                  onClick={requestResume}
+                >
+                  {zh ? "继续上次起卦" : "Continue unfinished reading"}
                 </button>
               </div>
             ) : null}

@@ -1,8 +1,9 @@
 import { withWorkflow } from "workflow/next";
+import { isNonCanonicalVercelDeployment } from "./src/lib/vercel-deployment.mjs";
 
 export function buildContentSecurityPolicy(environment = process.env) {
   const scriptSources = ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://challenges.cloudflare.com"];
-  const imageSources = ["'self'", "data:", "https://*.google-analytics.com", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://c.bing.com"];
+  const imageSources = ["'self'", "data:", "https://*.google-analytics.com", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://c.bing.com", "https://startupfa.me", "https://www.betterlaunch.co", "https://shipstry.com"];
   const connectSources = ["'self'", "https://*.google-analytics.com", "https://*.analytics.google.com", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://c.bing.com", "https://challenges.cloudflare.com"];
   const frameSources = ["https://challenges.cloudflare.com"];
 
@@ -10,6 +11,7 @@ export function buildContentSecurityPolicy(environment = process.env) {
   return [
     "default-src 'self'",
     `script-src ${scriptSources.join(" ")}`,
+    "script-src-attr 'none'",
     "style-src 'self' 'unsafe-inline'",
     `img-src ${imageSources.join(" ")}`,
     "font-src 'self' data:",
@@ -19,6 +21,12 @@ export function buildContentSecurityPolicy(environment = process.env) {
     "base-uri 'self'",
     "form-action 'self'",
   ].join("; ");
+}
+
+export function buildCrawlerIndexingHeaders(environment = process.env) {
+  return isNonCanonicalVercelDeployment(environment)
+    ? [{ key: "X-Robots-Tag", value: "noindex, nofollow" }]
+    : [];
 }
 
 /** @type {import('next').NextConfig} */
@@ -56,7 +64,7 @@ const nextConfig = {
       { source: "/three-coin-method", destination: "/methods/three-coin", permanent: true },
       { source: "/yarrow-stalk-method", destination: "/methods/yarrow-stalks", permanent: true },
       { source: "/mei-hua-yi-shu", destination: "/methods/mei-hua-yi-shu", permanent: true },
-      { source: "/casting-methods", destination: "/#other-casting-methods", permanent: true },
+      { source: "/casting-methods", destination: "/help#casting-methods", permanent: true },
       { source: "/how-to-ask-the-i-ching", destination: "/guides/how-to-ask-the-i-ching", permanent: true },
       { source: "/changing-lines", destination: "/guides/changing-lines", permanent: true },
       { source: "/primary-and-relating-hexagrams", destination: "/guides/primary-relating-hexagrams", permanent: true },
@@ -82,6 +90,7 @@ const nextConfig = {
             value: buildContentSecurityPolicy(),
           },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          ...buildCrawlerIndexingHeaders(),
         ],
       },
     ];

@@ -3,7 +3,7 @@ import { alternateLanguages } from "@/i18n/helpers";
 import { LegalPageLayout } from "@/components/info-pages/legal-page-layout";
 
 export const metadata: Metadata = {
-  title: "使用规范 | Quick I Ching",
+  title: "使用规范",
   description: "负责任使用 Quick I Ching 的边界与禁止事项。",
   alternates: { canonical: "/zh/acceptable-use", languages: alternateLanguages("acceptable-use") },
   robots: { index: false, follow: true },

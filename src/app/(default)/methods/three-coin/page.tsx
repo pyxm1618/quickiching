@@ -1,3 +1,4 @@
+import { sharedOpenGraphImageMetadata } from "@/lib/shared-open-graph-image";
 import type { Metadata } from "next";
 import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
   title: "I Ching Three-Coin Method — Free Online Cast",
   description: "Use the I Ching three-coin method online. Toss six lines from bottom to top, identify changing lines, and read the primary and relating hexagrams for free.",
   alternates: { canonical: "/methods/three-coin", languages: alternateLanguages("three-coin-method") },
-  openGraph: { title: "I Ching Three-Coin Method — Free Online Cast", description: "Cast a complete free three-coin I Ching reading online.", url: "/methods/three-coin", type: "website" },
+  openGraph: { images: [sharedOpenGraphImageMetadata("en")], title: "I Ching Three-Coin Method — Free Online Cast", description: "Cast a complete free three-coin I Ching reading online.", url: "/methods/three-coin", type: "website" },
 };
 
 export default function ThreeCoinMethodPage() {

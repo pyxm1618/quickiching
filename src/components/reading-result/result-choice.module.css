@@ -424,7 +424,7 @@
   width: calc(98 * var(--u));
   height: calc(35 * var(--u));
   opacity: .22;
-  background: url('/ritual/decor/gold-cloud.png') center / contain no-repeat;
+  background: url('/ritual/decor/gold-cloud-button-2x.png') center / contain no-repeat;
   mix-blend-mode: multiply;
 }
 .deepAction::before { left: calc(12 * var(--u)); }
@@ -473,9 +473,36 @@
   pointer-events: none;
 }
 
-.deepAction:hover { transform: translateY(calc(-1.5 * var(--u))); filter: brightness(1.04); }
+.deepAction:hover:not(:disabled) { transform: translateY(calc(-1.5 * var(--u))); filter: brightness(1.04); }
 .deepAction:focus-visible,
 .freeAction:focus-visible { outline: 2px solid #fff0ac; outline-offset: 5px; }
+button.freeAction { border: 0; background: transparent; font-family: inherit; cursor: pointer; }
+.deepAction:disabled,
+.freeAction:disabled { cursor: wait; opacity: .72; }
+.continuationStatus {
+  width: min(100%, 470px);
+  margin: calc(14 * var(--u)) auto 0;
+  color: #f5dfb4;
+  font-size: calc(14 * var(--u));
+  line-height: 1.45;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .9);
+}
+
+.loadingChoiceStatus {
+  position: absolute;
+  left: 50%;
+  top: calc(600 * var(--u));
+  z-index: 9;
+  width: min(72%, 520px);
+  transform: translateX(-50%);
+  margin: 0;
+  color: #f5dfb4;
+  font-size: calc(15 * var(--u));
+  line-height: 1.4;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .9);
+}
 
 .status {
   position: relative;
@@ -650,6 +677,15 @@
   .deepAction::before,
   .deepAction::after { width: 76px; height: 28px; bottom: 4px; }
   .freeAction { margin-top: 18px; font-size: 18px; transform: none; }
+  .continuationStatus { margin-top: 14px; font-size: 14px; }
+  .loadingChoiceStatus {
+    position: relative;
+    inset: auto;
+    width: min(82%, 350px);
+    transform: none;
+    margin: -8px auto 0;
+    font-size: 14px;
+  }
 
   .emptyState { margin: 36px auto; padding: 42px 24px; }
 }

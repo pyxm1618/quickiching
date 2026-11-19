@@ -90,6 +90,20 @@ describe("commercial account loaders", () => {
     expect(mocks.getBatches).not.toHaveBeenCalled();
   });
 
+  it("uses the same refund-lock spendability fence for the PostgreSQL displayed balance", async () => {
+    const sql = vi.fn(async () => [{ available: 2, expiring_soon: 1 }]);
+    mocks.getPostgresClient.mockReturnValue(sql);
+
+    await expect(loadEntitlementBalance({ id: "user-1", email: "user@example.com" }))
+      .resolves.toEqual({ available: 2, expiringSoon: 1 });
+
+    const query = sql.mock.calls[0] as unknown as [TemplateStringsArray, ...unknown[]];
+    const text = query[0].join("?");
+    expect(text).toContain("refund_locked = false");
+    expect(text).toContain("expires_at > clock_timestamp()");
+    expect(query.slice(1)).toContain("user-1");
+  });
+
   it("retains the in-memory path when PostgreSQL mode is not configured", async () => {
     vi.stubEnv("DATABASE_ADAPTER_MODE", "memory");
     vi.stubEnv("DATABASE_URL", "");

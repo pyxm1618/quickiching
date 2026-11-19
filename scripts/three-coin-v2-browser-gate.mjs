@@ -321,6 +321,106 @@ async function verifyFormalEntryPoints(browser) {
   log("EN/ZH Home formal entry + SEO-only method detail PASS");
 }
 
+
+async function verifyMobileBrandInteractionSafety(browser, viewport) {
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  await page.setViewport(viewport);
+
+  async function assertBrandClear(label, selectors) {
+    const facts = await page.evaluate((targetSelectors) => {
+      const brand = document.querySelector(".scene-brand");
+      if (!(brand instanceof HTMLElement)) return { brand: null, hitBrand: false, targets: [] };
+      const brandRect = brand.getBoundingClientRect();
+      const centerX = brandRect.left + brandRect.width / 2;
+      const centerY = brandRect.top + brandRect.height / 2;
+      const hit = document.elementFromPoint(centerX, centerY);
+      const targets = targetSelectors.flatMap((selector) =>
+        [...document.querySelectorAll(selector)]
+          .filter((node) => node instanceof HTMLElement)
+          .map((node) => {
+            const rect = node.getBoundingClientRect();
+            const style = getComputedStyle(node);
+            const visible = rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+            const overlapWidth = Math.max(0, Math.min(brandRect.right, rect.right) - Math.max(brandRect.left, rect.left));
+            const overlapHeight = Math.max(0, Math.min(brandRect.bottom, rect.bottom) - Math.max(brandRect.top, rect.top));
+            return {
+              selector,
+              visible,
+              rect: rect.toJSON(),
+              overlapArea: overlapWidth * overlapHeight,
+              text: node.textContent?.trim() ?? "",
+            };
+          }),
+      );
+      return {
+        brand: brandRect.toJSON(),
+        hitBrand: Boolean(hit?.closest?.(".scene-brand")),
+        targets,
+      };
+    }, selectors);
+
+    assert(facts.brand, `${label}: scene brand must be present`);
+    assert(facts.hitBrand, `${label}: scene brand center must remain directly clickable`);
+    for (const target of facts.targets.filter((item) => item.visible)) {
+      assert.equal(
+        target.overlapArea,
+        0,
+        `${label}: scene brand must not overlap interactive target ${target.selector} (${target.text})`,
+      );
+    }
+  }
+
+  try {
+    const response = await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
+    assert.equal(response?.status(), 200, "Mobile Three-Coin entry must return HTTP 200");
+    await page.waitForSelector("[data-three-coin-ritual]");
+    await page.waitForSelector(".scene-brand");
+
+    await page.evaluate(() => {
+      const decline = [...document.querySelectorAll('[aria-label="Analytics Consent"] button')]
+        .find((node) => node.textContent?.trim() === "Decline");
+      if (decline instanceof HTMLButtonElement) decline.click();
+    });
+
+    await page.waitForSelector("textarea[data-private-question]");
+    await page.type("textarea[data-private-question]", "Will this work ");
+    await clickButton(page, "Start Divination");
+    await page.waitForFunction(() =>
+      document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "question-confirm"
+      && document.querySelector(".scene-navigation")?.getAttribute("data-navigation-surface") === "S02",
+    );
+    await assertBrandClear(
+      `${viewport.width}x${viewport.height} question-confirm`,
+      ["textarea[data-private-question]", ".ritual-gold-button", ".ritual-back"],
+    );
+
+    await clickButton(page, "Cast the Coins");
+    await page.waitForFunction(() =>
+      document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual"
+      && document.querySelector(".scene-navigation")?.getAttribute("data-navigation-surface") === "S02",
+    );
+    await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 15_000 });
+    const activeQuestionBefore = await page.$eval("[data-ritual-question-context] input", (node) => node.value);
+    await page.focus("[data-ritual-question-context] input");
+    await page.type("[data-ritual-question-context] input", " ");
+    const activeQuestionAfter = await page.$eval("[data-ritual-question-context] input", (node) => node.value);
+    assert.equal(
+      activeQuestionAfter,
+      `${activeQuestionBefore} `,
+      `${viewport.width}x${viewport.height}: active Three-Coin question must preserve a trailing space while typing`,
+    );
+    await assertBrandClear(
+      `${viewport.width}x${viewport.height} casting`,
+      ["[data-ritual-question-context] input", ".hold-button", "[data-flow-exit]"],
+    );
+
+    log(`${viewport.width}x${viewport.height} S02 mobile brand / interaction safety PASS`);
+  } finally {
+    await context.close();
+  }
+}
+
 async function verifyInvalidResult(browser) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
@@ -494,6 +594,7 @@ async function verifyHistorySaveRetry(browser) {
   const page = await context.newPage();
   const requests = [];
   let pending = null;
+  const fixtureSessionId = "51515151-5151-4515-8515-515151515151";
   try {
     await seedCompletedReading(page);
 
@@ -505,14 +606,13 @@ async function verifyHistorySaveRetry(browser) {
         pending = request;
         return;
       }
-      if (url.pathname.startsWith("/api/readings/browser-gate-saved-cast/") && request.method() === "GET") {
+      if (url.pathname.startsWith(`/api/readings/${fixtureSessionId}/`) && request.method() === "GET") {
         return request.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "not_started" }) });
       }
       if (request.method() !== "GET" && request.method() !== "HEAD") return request.abort("blockedbyclient");
       request.continue();
     });
 
-    const fixtureSessionId = "ritual-qa-saved-cast";
     await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.evaluate(({ prefix, id, steps }) => {
       const now = Date.now();
@@ -528,33 +628,40 @@ async function verifyHistorySaveRetry(browser) {
         expiresAt: new Date(now + 60 * 60 * 1000).toISOString(),
       }));
     }, { prefix: PENDING_READING_KEY_PREFIX, id: fixtureSessionId, steps: FIXTURE_STEPS });
+
     await page.goto(`${BASE}/ritual-qa-local?view=saving&session=${fixtureSessionId}`, { waitUntil: "domcontentloaded", timeout: 30_000 });
-    await page.waitForSelector("[data-account-reading-saving]");
-    assert(pending, "Authenticated save fixture must issue POST /api/readings");
-    assert.equal(await page.$("[data-public-reading-result]"), null, "Result must remain concealed while History save is pending");
+    await page.waitForSelector("[data-public-reading-result]", { timeout: 15_000 });
+    assert(pending, "Authenticated Free Reading should still attempt account persistence in the background");
+    assert.equal(await page.$("[data-result-choice]"), null, "Background account persistence must not replace the Free Reading");
+    assert(await page.$("[data-public-reading-result]"), "Free Reading must reveal while History save is pending");
 
     await pending.respond({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "READING_SAVE_FAILED" }) });
     pending = null;
-    await page.waitForSelector("[data-retry-account-reading-save]");
-    assert.equal(await page.$("[data-public-reading-result]"), null, "Save failure must keep the result concealed");
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    assert(await page.$("[data-public-reading-result]"), "Account persistence failure must not hide the Free Reading");
+    assert.equal(await page.$('[data-completed-cast-gate="save-error"]'), null, "Free Reading must not regress to a save-error reveal gate");
 
-    await clickButton(page, "Retry saving this cast");
-    await page.waitForSelector("[data-account-reading-saving]");
-    assert(pending, "Retry must issue the same POST /api/readings");
-    assert.deepEqual(requests[1], requests[0], "Retry must reuse the identical saved-cast payload");
-    assert.equal(requests[1].clientCastingId, fixtureSessionId, "History save must use the same stable browser casting id");
-    assert.equal(requests[1].lineValuesBottomUp?.length, 6, "History save must use the exact completed six lines");
-
-    await pending.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ castingId: "browser-gate-saved-cast" }) });
-    pending = null;
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForSelector("[data-public-reading-result]", { timeout: 15_000 });
-    const afterSave = await page.evaluate(({ key, prefix, id }) => ({
-      session: sessionStorage.getItem(key),
-      pending: localStorage.getItem(prefix + id),
-    }), { key: STORAGE_KEY, prefix: PENDING_READING_KEY_PREFIX, id: fixtureSessionId });
-    assert.equal(afterSave.session, null, "A durable save must not revive the retired method session");
-    assert.equal(afterSave.pending, null, "A durable save must remove exactly the Pending record");
-    log("History save failure/retry + same-cast reveal PASS");
+    assert(pending, "Reload should retry the same pending account persistence");
+    assert.deepEqual(requests[1], requests[0], "Persistence retry must reuse the identical sealed payload");
+    assert.equal(requests[1].clientCastingId, fixtureSessionId, "History save must keep the stable browser casting id");
+    assert.equal(requests[1].lineValuesBottomUp?.length, 6, "History save must keep the exact completed six lines");
+
+    await pending.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ castingId: fixtureSessionId }) });
+    pending = null;
+    await page.waitForFunction(
+      ({ prefix, id }) => localStorage.getItem(`${prefix}${id}`) === null,
+      { timeout: 15_000 },
+      { prefix: PENDING_READING_KEY_PREFIX, id: fixtureSessionId },
+    );
+    assert(await page.$("[data-public-reading-result]"), "Successful account persistence must leave the same Free Reading visible");
+    assert.equal(
+      await page.evaluate(() => new URL(location.href).searchParams.get("session")),
+      fixtureSessionId,
+      "Durable save must keep the same authoritative reading id",
+    );
+    log("Free reveal independent of account persistence + same-id background save PASS");
   } finally {
     await context.close();
   }
@@ -663,6 +770,13 @@ const browser = await puppeteer.launch({
 });
 try {
   await verifyFormalEntryPoints(browser);
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 375, height: 667 },
+    { width: 360, height: 740 },
+  ]) {
+    await verifyMobileBrandInteractionSafety(browser, viewport);
+  }
   await verifyInvalidResult(browser);
   await verifyStorageReadFailure(browser);
   await verifyStorageWriteFailureRetry(browser);

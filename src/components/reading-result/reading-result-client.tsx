@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Check, ArrowRight, UserRound } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildHexagramResult } from "@/domain/casting/hexagrams/compute";
 import { buildPublicReading } from "@/domain/public-reading/reading";
 import { RitualRevealTransition } from "@/components/public-reading/ritual-reveal-transition";
-import { HexagramLines } from "@/components/hex/hexagram-lines";
+import { ResultChoiceView } from "@/components/reading-result/result-choice-client";
 import type { LocalizedReadingContent } from "@/content/mei-hua-yi-shu/types";
 import type { HexagramInterpretationBundle } from "@/domain/interpretation/v2/types";
 import { loadHexagramInterpretation } from "@/domain/interpretation/v2/load-interpretation";
@@ -70,15 +69,39 @@ export type ReadingResultClientProps = {
   } | null;
 };
 
+export function initialReadingResultState({
+  initialState,
+  initialCastingView,
+}: Pick<ReadingResultClientProps, "initialState" | "initialCastingView">): ResultState {
+  if (initialState) return initialState;
+  if (
+    initialCastingView?.owns
+    && initialCastingView.lineValuesBottomUp
+    && initialCastingView.lineValuesBottomUp.length === 6
+  ) {
+    return {
+      kind: "ready",
+      lineValues: [...initialCastingView.lineValuesBottomUp],
+      question: initialCastingView.context || undefined,
+      createdAt: initialCastingView.createdAt,
+    };
+  }
+  return { kind: "loading" };
+}
+
 type DeepStatus = "idle" | "generating" | "completed" | "failed";
 type PersistenceStatus = "idle" | "saving" | "saved" | "error";
 export type ResultRevealGate = "auth-required" | "saving" | "save-error" | "reveal";
 
 export function getResultRevealGate(input: {
+  pageMode: "free" | "deep";
   authenticated: boolean;
   castingId: string | null;
   persistenceStatus: PersistenceStatus;
 }): ResultRevealGate {
+  // Free Reading is public product output. Account persistence is an enhancement,
+  // not an authentication or durability prerequisite for revealing the cast.
+  if (input.pageMode === "free") return "reveal";
   if (!input.authenticated) return "auth-required";
   if (input.castingId && input.persistenceStatus === "saved") return "reveal";
   if (input.persistenceStatus === "error") return "save-error";
@@ -154,7 +177,7 @@ export function ReadingResultClient({
   const pricingHref = (returnPath: string) => zh
     ? "/zh/pricing?returnUrl=" + encodeURIComponent(returnPath)
     : buildPricingHref(returnPath);
-  const [state, setState] = useState<ResultState>(() => initialState ?? { kind: "loading" });
+  const [state, setState] = useState<ResultState>(() => initialReadingResultState({ initialState, initialCastingView }));
   const [completedReading, setCompletedReading] = useState<PublicReading | null>(null);
   const [clearError, setClearError] = useState<string | null>(null);
   const [clientCastingId, setClientCastingId] = useState<string | null>(null);
@@ -162,6 +185,9 @@ export function ReadingResultClient({
     { primary?: HexagramInterpretationBundle; relating?: HexagramInterpretationBundle | null } | undefined
   >(undefined);
   const [failedBrowserInterpretationKey, setFailedBrowserInterpretationKey] = useState<string | null>(null);
+  const [browserLocalizedContent, setBrowserLocalizedContent] = useState<LocalizedReadingContent | undefined>(undefined);
+  const [browserLocalizedContentLoadFailed, setBrowserLocalizedContentLoadFailed] = useState(false);
+  const [freeContentRetryNonce, setFreeContentRetryNonce] = useState(0);
 
   const [castingId, setCastingId] = useState<string | null>(
     initialCastingView?.owns ? initialCastingView.castingId : null,
@@ -206,17 +232,30 @@ export function ReadingResultClient({
     });
   }, [castingId, clientCastingId, state, completedReading, initialCastingView?.method, initialCastingView?.algorithmVersion, initialCastingView?.methodCalculation]);
   const resultRevealGate = getResultRevealGate({
+    pageMode,
     authenticated: Boolean(user),
     castingId,
     persistenceStatus,
   });
   const revealAllowed = resultRevealGate === "reveal";
-  const shouldDeferBrowserInterpretation = revealAllowed
+  const initialInterpretationReady = resultReading
+    ? hasRequiredInterpretationBundles(
+        resultReading.primaryHexagram,
+        resultReading.relatingHexagram,
+        initialInterpretationBundles,
+      )
+    : false;
+  // Only browser-session Pending[A] needs client-side Free preparation. A
+  // server-owned saved casting is preloaded by ReadingPage and must not be
+  // regated by this client fallback contract.
+  const browserFreeContentRequired = pageMode === "free" && initialCastingView === null;
+  const shouldPrepareBrowserInterpretation = browserFreeContentRequired
     && !zh
-    && initialState === undefined
-    && initialCastingView === null
-    && initialInterpretationBundles === undefined;
-  const effectiveInterpretationBundles = initialInterpretationBundles ?? browserInterpretationBundles;
+    && !initialInterpretationReady;
+  const effectiveInterpretationBundles = initialInterpretationReady
+    ? initialInterpretationBundles
+    : browserInterpretationBundles;
+  const effectiveLocalizedContent = initialLocalizedContent ?? browserLocalizedContent;
   const resultInterpretationKey = resultReading
     ? `${resultReading.id}:${resultReading.primaryHexagram}:${resultReading.relatingHexagram ?? "none"}`
     : null;
@@ -230,8 +269,11 @@ export function ReadingResultClient({
   const browserInterpretationLoadFailed = resultInterpretationKey !== null
     && failedBrowserInterpretationKey === resultInterpretationKey;
 
+  // Free Reading content preparation starts as soon as the exact completed cast
+  // is available. It intentionally does not depend on durable-save completion,
+  // so persistence and interpretation run in parallel.
   useEffect(() => {
-    if (!shouldDeferBrowserInterpretation || !resultReading || browserInterpretationReady || !resultInterpretationKey) return;
+    if (!shouldPrepareBrowserInterpretation || !resultReading || browserInterpretationReady || !resultInterpretationKey) return;
     let active = true;
     void Promise.all([
       loadHexagramInterpretation(resultReading.primaryHexagram),
@@ -253,16 +295,62 @@ export function ReadingResultClient({
     };
   }, [
     browserInterpretationReady,
+    freeContentRetryNonce,
     resultInterpretationKey,
     resultReading,
-    shouldDeferBrowserInterpretation,
+    shouldPrepareBrowserInterpretation,
   ]);
 
-  const waitingForBrowserInterpretation = shouldDeferBrowserInterpretation
+  // Chinese Free Reading uses its localized content bundle instead of the
+  // English interpretation bundles. Prepare it during the same save window.
+  useEffect(() => {
+    if (
+      !browserFreeContentRequired
+      || !zh
+      || initialLocalizedContent
+      || browserLocalizedContent
+      || !resultReading
+    ) return;
+    let active = true;
+    void import("@/content/mei-hua-yi-shu/zh-Hans")
+      .then(({ zhHansReadingContentFor }) => {
+        if (!active) return;
+        setBrowserLocalizedContent(zhHansReadingContentFor([
+          resultReading.primaryHexagram,
+          ...(resultReading.relatingHexagram === null ? [] : [resultReading.relatingHexagram]),
+        ]));
+        setBrowserLocalizedContentLoadFailed(false);
+      })
+      .catch(() => {
+        if (active) setBrowserLocalizedContentLoadFailed(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    browserLocalizedContent,
+    freeContentRetryNonce,
+    initialLocalizedContent,
+    browserFreeContentRequired,
+    resultReading,
+    zh,
+  ]);
+
+  const freeContentReady = !browserFreeContentRequired
+    || (zh ? Boolean(effectiveLocalizedContent) : browserInterpretationReady);
+  const freeContentLoadFailed = browserFreeContentRequired
+    && (zh ? browserLocalizedContentLoadFailed : browserInterpretationLoadFailed);
+  const waitingForFreeContent = browserFreeContentRequired
     && state.kind === "ready"
     && resultReading !== null
-    && !browserInterpretationReady
-    && !browserInterpretationLoadFailed;
+    && !freeContentReady
+    && !freeContentLoadFailed;
+
+  function retryFreeContentPreparation() {
+    setFailedBrowserInterpretationKey(null);
+    setBrowserLocalizedContentLoadFailed(false);
+    setFreeContentRetryNonce((value) => value + 1);
+  }
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollRunRef = useRef(0);
@@ -363,26 +451,16 @@ export function ReadingResultClient({
   // 1. 初始化起卦数据（服务端优先 -> 本地 sessionStorage 降级）
   useEffect(() => {
     if (initialState) return;
+    // Server-owned six-line truth is already the initial React state. Do not
+    // manufacture a hydration-only loading window before rendering it.
+    if (
+      initialCastingView?.owns
+      && initialCastingView.lineValuesBottomUp
+      && initialCastingView.lineValuesBottomUp.length === 6
+    ) return;
     let active = true;
 
     async function init() {
-      // 优先从服务端 initialCastingView 恢复
-      if (
-        initialCastingView?.owns &&
-        initialCastingView.lineValuesBottomUp &&
-        initialCastingView.lineValuesBottomUp.length === 6
-      ) {
-        if (active) {
-          setState({
-            kind: "ready",
-            lineValues: initialCastingView.lineValuesBottomUp,
-            question: initialCastingView.context || undefined,
-            createdAt: initialCastingView.createdAt,
-          });
-        }
-        return;
-      }
-
       // Otherwise resolve the exact session identity: Pending[A] only, never the
       // latest stored reading, and never B when the request asked for A.
       const resolution = resolveReadingIdentity({
@@ -636,15 +714,16 @@ export function ReadingResultClient({
   }
 
   if (state.kind === "loading") {
+    const choice = <ResultChoiceView locale={locale} />;
     return (
-      <div
-        className="sr-only"
-        role="status"
-        aria-label={t("Loading your completed reading", "正在恢复已完成的起卦结果")}
-        data-reading-interpretation-loading={waitingForBrowserInterpretation ? "true" : undefined}
-      >
-        {t("Restoring your sealed reading…", "正在恢复已经落定的起卦结果…")}
-      </div>
+      <RitualRevealTransition stage="gate">
+        {pageMode === "deep" ? (
+          <div data-realm="chamber" className="ritual-result-scene" data-result-choice-pending-shell>
+            <div className="ritual-room" aria-hidden="true" />
+            {choice}
+          </div>
+        ) : choice}
+      </RitualRevealTransition>
     );
   }
 
@@ -696,63 +775,58 @@ export function ReadingResultClient({
   const resultDictionary = zh ? ZH_HANS_UI_DICTIONARY : EN_UI_DICTIONARY;
 
   if (!revealAllowed) {
-    const gateState = resultRevealGate;
+    const continuationState = resultRevealGate === "auth-required"
+      ? "auth-required"
+      : resultRevealGate === "save-error"
+        ? "save-error"
+        : "saving";
+    const choice = <ResultChoiceView
+      reading={resultReading!}
+      locale={locale}
+      continuation={{
+        intent: pageMode,
+        state: continuationState,
+        signinHref,
+        alternateSigninHref,
+        message: continuationState === "save-error"
+          ? actionError ?? t(
+              "Saving failed. The same completed cast is still preserved and has not been revealed.",
+              "保存失败。同一份已完成起卦仍然保留，结果尚未揭示。",
+            )
+          : undefined,
+        onRetry: continuationState === "save-error" ? () => { void persistCurrentReading(true); } : undefined,
+      }}
+    />;
     return (
-      <RitualRevealTransition stage="gate"><div
-        className="ritual-save-gate"
-        data-completed-cast-gate={gateState}
-      >
-        <section className="ritual-gate-card" aria-labelledby="completed-cast-title">
-          <div className="ritual-gate-complete-mark" aria-hidden="true"><Check /></div>
-          <p className="ritual-gate-complete">{t("Your six lines are complete", "六爻已经完成")}</p>
-          <h1 id="completed-cast-title">{t("Save Your Reading", "保存本次起卦")}</h1>
-          <p className="ritual-gate-description">{!user ? <>{t("Sign in to save this reading and", "登录以保存本次起卦，")}<br />{t("continue to view the full result.", "继续查看完整结果。")}</> : t("Your completed cast is preserved while it is saved to My Readings.", "保存到“我的解读”期间，同一份已完成起卦始终保留。")}</p>
-          <div className="sr-only" data-completed-six-lines><HexagramLines lines={state.lineValues} sealedCount={6} size="lg" showLabels locale={locale} /></div>
-
-          {!user ? (
-            <div key="auth-required" className="ritual-gate-action" data-auth-required-before-reveal>
-              <Link href={signinHref} prefetch={false} className="ritual-gate-signin" data-auth-reading-intent={pageMode} onClick={(event) => { if (event.currentTarget.closest(".ritual-gate-card")?.getAnimations().some(animation => animation.playState === "running")) event.preventDefault(); }} aria-label={pageMode === "deep" ? t("Sign in and continue to Deep Reading", "登录并继续深度解读") : t("Sign in to save and reveal this reading", "登录、保存并查看本次卦象")}>
-                <UserRound aria-hidden="true" />{pageMode === "deep" ? t("Sign In for Deep Reading", "登录并继续深度解读") : t("Sign In to Save & Reveal", "登录、保存并查看")}<ArrowRight aria-hidden="true" />
-              </Link>
-              <Link href={alternateSigninHref} prefetch={false} className="mt-3 inline-flex text-sm underline underline-offset-4" data-auth-reading-alternate-intent={pageMode === "deep" ? "free" : "deep"}>
-                {pageMode === "deep" ? t("Use Free Reading instead", "改为查看免费解卦") : t("Continue to Deep Reading instead", "改为继续深度解读")}
-              </Link>
-            </div>
-          ) : persistenceStatus === "error" ? (
-            <div key="save-error" className="ritual-gate-action ritual-gate-error" data-account-reading-save-error role="alert">
-              <p className="text-sm leading-7 text-[var(--danger)]">
-                {actionError ?? t(
-                  "Saving failed. The same completed cast is still preserved and has not been revealed.",
-                  "保存失败。同一份已完成起卦仍然保留，结果尚未揭示。",
-                )}
-              </p>
-              <button type="button" className="mystic-button mt-5" onClick={() => void persistCurrentReading(true)} data-retry-account-reading-save>
-                {t("Retry saving this cast", "重试保存本次起卦")}
-              </button>
-            </div>
-          ) : (
-            <div key="saving" className="ritual-gate-action" role="status" data-account-reading-saving>
-              <p className="text-sm leading-7 text-[var(--ink-2)]">
-                {t("Saving this completed cast to My Readings before reveal…", "正在先把这次已完成起卦保存到“我的解读”…")}
-              </p>
-            </div>
-          )}
-        </section>
-      </div></RitualRevealTransition>
+      <RitualRevealTransition stage="gate">
+        {pageMode === "deep" ? (
+          <div data-realm="chamber" className="ritual-result-scene" data-result-choice-pending-shell>
+            <div className="ritual-room" aria-hidden="true" />
+            {choice}
+          </div>
+        ) : choice}
+      </RitualRevealTransition>
     );
   }
 
-  if (waitingForBrowserInterpretation) {
-    return <RitualRevealTransition stage="gate"><div className="ritual-save-gate" data-reading-interpretation-loading="true" data-result-reveal-pending="true">
-      <section className="ritual-gate-card" role="status" aria-label={t("Preparing your saved reading", "正在准备已保存的起卦结果")}>
-        <p className="ritual-gate-complete">{t("Saved to My Readings", "已保存到“我的解读”")}</p>
-        <h1>{t("Preparing your reading…", "正在准备结果揭示…")}</h1>
-      </section>
-    </div></RitualRevealTransition>;
+  if (pageMode === "free" && (waitingForFreeContent || freeContentLoadFailed)) {
+    return (
+      <RitualRevealTransition stage="gate">
+        <ResultChoiceView
+          reading={resultReading!}
+          locale={locale}
+          continuation={{
+            intent: "free",
+            state: freeContentLoadFailed ? "content-error" : "preparing",
+            onRetry: freeContentLoadFailed ? retryFreeContentPreparation : undefined,
+          }}
+        />
+      </RitualRevealTransition>
+    );
   }
 
-  const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(castingId!)}`;
-  const deepHref = `${prefix}/readings/deep?session=${encodeURIComponent(castingId!)}`;
+  const freeHref = `${prefix}/readings/result?session=${encodeURIComponent(intentCastId)}`;
+  const deepHref = `${prefix}/readings/deep?session=${encodeURIComponent(intentCastId)}`;
   const deepQuestion = deepContext?.question
     ?? (state.kind === "ready" ? state.question : undefined)
     ?? initialCastingView?.context
@@ -802,7 +876,7 @@ export function ReadingResultClient({
         reading={resultReading!}
         onNewReading={startNewReading}
         dictionary={resultDictionary}
-        localizedContent={zh ? initialLocalizedContent : undefined}
+        localizedContent={zh ? effectiveLocalizedContent : undefined}
         initialBundles={effectiveInterpretationBundles}
         title={t("Your Free Reading", "免费解卦")}
         deepReadingHref={deepHref}

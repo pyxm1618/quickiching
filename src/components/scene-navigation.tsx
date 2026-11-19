@@ -28,6 +28,40 @@ const loadSceneNavigationPanels = () => import("@/components/scene-navigation-pa
 
 type Panel = "methods" | "info";
 
+const PARTNER_ROTATION_INTERVAL_MS = 5000;
+const PARTNER_TRANSITION_MS = 420;
+const PARTNER_BADGES = [
+  {
+    id: "startup-fame",
+    href: "https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com",
+    src: "/partner-badges/startup-fame-featured-dark.webp",
+    width: 171,
+    height: 54,
+    enLabel: "Open Startup Fame",
+    zhLabel: "打开第一个合作伙伴网站",
+  },
+  {
+    id: "better-launch",
+    href: "https://www.betterlaunch.co/product/quick-i-ching",
+    src: "https://www.betterlaunch.co/badge-launching-gradient.svg",
+    width: 200,
+    height: 56,
+    enLabel: "Open Better Launch",
+    zhLabel: "打开第二个合作伙伴网站",
+  },
+  {
+    id: "shipstry",
+    href: "https://shipstry.com/",
+    src: "https://shipstry.com/badges/featured.svg",
+    width: 220,
+    height: 52,
+    enLabel: "Open Shipstry",
+    zhLabel: "打开第三个合作伙伴网站",
+  },
+] as const;
+
+type PartnerBadgeState = "active" | "next" | "entering" | "exiting" | "hidden";
+
 function continuationMethodForSurface(id: SurfaceContract["id"]): PublicReadingMethod | null {
   if (id === "S02") return "three-coin";
   if (id === "S06") return "yarrow-stalks";
@@ -51,6 +85,10 @@ export function SceneNavigation({
   const zh = locale === "zh-Hans";
   const pathname = usePathname() ?? (zh ? "/zh" : "/");
   const [panel, setPanel] = useState<Panel | null>(null);
+  const [partnerIndex, setPartnerIndex] = useState(0);
+  const [partnerPreviousIndex, setPartnerPreviousIndex] = useState<number | null>(null);
+  const [partnerTransitioning, setPartnerTransitioning] = useState(false);
+  const [partnerFocusWithin, setPartnerFocusWithin] = useState(false);
   const location = useNavigationLocation();
   const id = useId();
   const rootRef = useRef<HTMLElement>(null);
@@ -147,6 +185,25 @@ export function SceneNavigation({
   }, [locale]);
 
   useEffect(() => {
+    if (contract.id !== "S01" || partnerFocusWithin) return;
+    const timer = window.setTimeout(() => {
+      setPartnerPreviousIndex(partnerIndex);
+      setPartnerTransitioning(true);
+      setPartnerIndex((partnerIndex + 1) % PARTNER_BADGES.length);
+    }, PARTNER_ROTATION_INTERVAL_MS);
+    return () => window.clearTimeout(timer);
+  }, [contract.id, partnerFocusWithin, partnerIndex]);
+
+  useEffect(() => {
+    if (!partnerTransitioning) return;
+    const timer = window.setTimeout(() => {
+      setPartnerTransitioning(false);
+      setPartnerPreviousIndex(null);
+    }, PARTNER_TRANSITION_MS);
+    return () => window.clearTimeout(timer);
+  }, [partnerTransitioning]);
+
+  useEffect(() => {
     if (!panel) return;
     function outside(event: PointerEvent) {
       if (!rootRef.current?.contains(event.target as Node)) setPanel(null);
@@ -225,6 +282,17 @@ export function SceneNavigation({
     items[next]?.focus();
   }
 
+  function partnerStateFor(index: number): PartnerBadgeState {
+    if (partnerTransitioning) {
+      if (index === partnerIndex) return "entering";
+      if (index === partnerPreviousIndex) return "exiting";
+      return "hidden";
+    }
+    if (index === partnerIndex) return "active";
+    if (index === (partnerIndex + 1) % PARTNER_BADGES.length) return "next";
+    return "hidden";
+  }
+
   return (
     <header
       ref={rootRef}
@@ -264,12 +332,56 @@ export function SceneNavigation({
 
       {contract.homeControl ? (
         <Link href={homeHref} prefetch={false} className="scene-brand" data-shell-home onClick={() => setPanel(null)}>
-          <Image unoptimized src="/navigation/logo.webp" alt="" width={72} height={72} priority />
+          <Image unoptimized src="/navigation/logo-reference.webp" alt="" width={72} height={72} priority />
           <span>Quick I Ching</span>
         </Link>
       ) : null}
 
       <SeoRouteGraph locale={locale} />
+
+      {contract.id === "S01" ? (
+        <div className="scene-partnership">
+          <span className="scene-partnership-label">{zh ? "合作伙伴" : "In partnership with"}</span>
+          <div
+            className="scene-partner-viewport"
+            aria-label={zh ? "合作伙伴链接" : "Partner links"}
+            onFocus={() => setPartnerFocusWithin(true)}
+            onBlur={event => {
+              const nextTarget = event.relatedTarget;
+              if (!nextTarget || !event.currentTarget.contains(nextTarget as Node)) {
+                setPartnerFocusWithin(false);
+              }
+            }}
+          >
+            {PARTNER_BADGES.map((partner, index) => {
+              const state = partnerStateFor(index);
+              const active = state === "active" || state === "entering";
+              return (
+                <a
+                  key={partner.id}
+                  href={partner.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="scene-partner-link"
+                  data-partner-id={partner.id}
+                  data-partner-state={state}
+                  aria-label={zh ? partner.zhLabel : partner.enLabel}
+                  aria-hidden={active ? undefined : true}
+                  tabIndex={active ? 0 : -1}
+                >
+                  <img
+                    src={partner.src}
+                    alt=""
+                    width={partner.width}
+                    height={partner.height}
+                    decoding="async"
+                  />
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {contract.primaryNavigation ? <nav className="scene-scrolls" aria-label={zh ? "探索易经" : "Explore the I Ching"}>
         <Link href={localize("/hexagrams")} className="scene-scroll scene-scroll-hexagrams" prefetch={false}>

@@ -531,7 +531,8 @@ async function main() {
     await assertPurity(page, "Three-Coin Result Page Empty State");
     log("Three-coin result PASS: empty state");
 
-    // 6.b: Completed cast / auth-before-reveal state on the canonical shared Reading route
+    // 6.b: Completed cast / public Free Reading on the canonical shared Reading route.
+    // Deep Reading remains the authenticated capability for the exact same cast.
     await page.goto(`${BASE}/zh`, { waitUntil: "networkidle0" });
     await page.evaluate(() => {
       sessionStorage.clear();
@@ -540,23 +541,41 @@ async function main() {
     const completedThreeCoinId = "550e8400-e29b-41d4-a716-446655440105";
     await seedCompletedReading(page, { id: completedThreeCoinId, method: "three-coin" });
     await page.goto(`${BASE}/zh/readings/result?session=${completedThreeCoinId}`, { waitUntil: "networkidle0" });
+    await page.waitForSelector("[data-public-reading-result] [data-free-reading-ritual]", { timeout: 10000 });
+    const completedState = await page.evaluate((readingId) => {
+      const pending = JSON.parse(localStorage.getItem("quickiching:public-v1:pending-completed-reading:" + readingId) || "null");
+      return {
+        publicResult: document.querySelector("[data-public-reading-result]") !== null,
+        authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
+        method: document.querySelector("[data-free-reading-ritual]")?.getAttribute("data-reading-method") ?? "",
+        primaryCard: document.querySelector("[data-primary-card]") !== null,
+        deepHref: document.querySelector("[data-deep-reading-cta] a[href]")?.getAttribute("href") ?? "",
+        deepReport: document.querySelector("[data-ai-deep-reading-report]") !== null,
+        deepGeneration: document.querySelector("[data-start-deep-reading]") !== null,
+        pendingQuestion: pending?.question ?? null,
+        pendingLines: pending?.lineValuesBottomUp ?? [],
+      };
+    }, completedThreeCoinId);
+    assert(completedState.publicResult && completedState.primaryCard, "Completed Chinese Three-Coin cast must reveal the public Free Reading");
+    assert.equal(completedState.authGate, false, "Completed Chinese Free Reading must not require sign-in");
+    assert.equal(completedState.method, "three-coin", "Completed Chinese Free Reading must preserve the casting method");
+    assert.equal(completedState.pendingQuestion, "我现在是否适合换一份工作？", "Browser pending record must preserve the exact frozen question");
+    assert.equal(completedState.pendingLines.length, 6, "Browser pending record must preserve all six authoritative lines");
+    assert.equal(completedState.deepReport, false, "Paid Deep report must not appear inside Free Reading");
+    assert.equal(completedState.deepGeneration, false, "Paid Deep generation must not open inside Free Reading");
+    const deepUrl = new URL(completedState.deepHref, BASE);
+    assert.equal(deepUrl.pathname, "/zh/readings/deep");
+    assert.equal(deepUrl.searchParams.get("session"), completedThreeCoinId);
+    await assertPurity(page, "Three-Coin Completed Free Reading");
+
+    await page.goto(deepUrl.toString(), { waitUntil: "networkidle0" });
     await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 5000 });
-    const completedState = await page.evaluate(() => ({
-      heading: document.querySelector("h1")?.textContent?.trim() ?? "",
-      completionCopy: document.querySelector(".ritual-gate-complete")?.textContent?.trim() ?? "",
-      authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
-      sixLines: document.querySelector("[data-completed-six-lines]") !== null,
-      primaryCard: document.querySelector("[data-primary-card]") !== null,
-      deepEntry: document.querySelector("[data-deep-reading-entry]") !== null,
-    }));
-    assert.equal(completedState.heading, "保存本次起卦", `Completed-cast heading mismatch: ${completedState.heading}`);
-    assert.equal(completedState.completionCopy, "六爻已经完成", "The formal gate must confirm six-line completion");
-    assert(completedState.authGate, "Completed Chinese Three-Coin cast must require sign-in before reveal");
-    assert(completedState.sixLines, "Completed Chinese Three-Coin cast must preserve all six lines");
-    assert.equal(completedState.primaryCard, false, "Primary result must remain hidden before sign-in and account persistence");
-    assert.equal(completedState.deepEntry, false, "Deep Reading must remain hidden before result reveal");
-    await assertPurity(page, "Three-Coin Completed Cast Auth Gate");
-    log("Three-coin result PASS: canonical completed cast auth-before-reveal state");
+    assert.equal(await page.$("[data-public-reading-result]"), null, "Anonymous Deep Reading must remain behind authentication");
+    const deepSigninHref = await page.$eval('[data-auth-reading-intent="deep"]', node => node.getAttribute("href"));
+    const deepCallback = new URL(deepSigninHref, BASE).searchParams.get("callbackURL");
+    assert.equal(new URL(deepCallback, BASE).searchParams.get("session"), completedThreeCoinId, "Chinese Deep Reading auth callback must preserve the exact cast");
+    await assertPurity(page, "Three-Coin Deep Reading Auth Gate");
+    log("Three-coin result PASS: public Free Reading with authenticated Deep continuation");
 
     // 6.c: Browser storage unavailable degrades safely to the shared empty state.
     // The production reader intentionally catches sessionStorage access failures and returns null.

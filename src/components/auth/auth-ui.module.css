@@ -421,3 +421,10 @@
     transition: none;
   }
 }
+
+
+.formState [data-turnstile-widget] {
+  min-height: 65px;
+  display: flex;
+  justify-content: center;
+}

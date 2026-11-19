@@ -36,7 +36,7 @@ export function RitualCastPresentation({zh,motion,steps,visibleStep,complete,can
    {state==='result'?<>
     <p className="ritual-stage-number">{t('Step 4 of 6','第 4 步 / 共 6 步')}</p>
     <h2 className="ritual-cast-result-title" id="three-coin-tool-title">{t('Casting Result','掷币结果')}</h2>
-    <p>{t('This is the positive and negative face of your three coins.','这是本次三枚铜钱落定的正反面。')}<br/>{t('Click below to record this cast.','点击下方记录这一爻。')}</p>
+    <p>{t('These are the faces of your three coins.','这是本次三枚铜钱落定的正反面。')}<br/>{t('Click below to record this cast.','点击下方记录这一爻。')}</p>
    </>:state==='progress'||state==='complete'?<>
     <p className="ritual-stage-number">{t('Step 5','第 5 步')}</p>
     <GildedTitle as="h2" size="lg" id="three-coin-tool-title">{complete?t('Your Six Lines','六爻已成'):t('Repeat 6 Times','重复六次')}<br/>{complete?t('Are Complete','本次起卦已完成'):t('to Complete All Six Lines','完成全部六爻')}</GildedTitle>
@@ -52,19 +52,19 @@ export function RitualCastPresentation({zh,motion,steps,visibleStep,complete,can
    <div className="ritual-departing-result-heading">
     <p className="ritual-stage-number">{t('Step 4 of 6','第 4 步 / 共 6 步')}</p>
     <h2 className="ritual-cast-result-title">{t('Casting Result','掷币结果')}</h2>
-    <p>{t('This is the positive and negative face of your three coins.','这是本次三枚铜钱落定的正反面。')}<br/>{t('Click below to record this cast.','点击下方记录这一爻。')}</p>
+    <p>{t('These are the faces of your three coins.','这是本次三枚铜钱落定的正反面。')}<br/>{t('Click below to record this cast.','点击下方记录这一爻。')}</p>
    </div>
    <div className="ritual-face-labels ritual-departing-face-labels">{visibleStep.coinFaces.map((face,index)=><span key={index} data-face={face}>{face==='yang'?t('Heads','阳面'):t('Tails','阴面')}</span>)}</div>
    <div className="ritual-record-action ritual-departing-record-action">
     <button type="button" className="ritual-gold-button" disabled>{t('Record This Cast','记录这一爻')}</button>
-    <p className="ritual-stage-number">{zh?`第 ${visibleStep.lineIndex+1} 爻 / 共 6 爻`:`Cast ${visibleStep.lineIndex+1} of 6`}</p>
+    <p className="ritual-stage-number">{zh?`第 ${visibleStep.lineIndex+1} 爻 / 共 6 爻`:`Cast ${visibleStep.lineIndex+1} of 6`} · {visibleStep.lineValue}</p>
    </div>
   </div>:null}
   {state==='result'&&visibleStep?<>
    <div className="ritual-face-labels" aria-live="polite">{visibleStep.coinFaces.map((face,index)=><span key={index} data-face={face}>{face==='yang'?t('Heads','阳面'):t('Tails','阴面')}</span>)}</div>
    <div className="ritual-record-action" data-entered={recordEntered} data-settled-awaiting-record onAnimationEnd={event=>{if(event.target===event.currentTarget)setRecordEntered(true);}}>
     <button type="button" className="ritual-gold-button" data-record-this-cast disabled={!canRecord||!recordEntered} onClick={onRecord}>{t('Record This Cast','记录这一爻')}</button>
-    <p className="ritual-stage-number">{zh?`第 ${visibleStep.lineIndex+1} 爻 / 共 6 爻`:`Cast ${visibleStep.lineIndex+1} of 6`}</p>
+    <p className="ritual-stage-number">{zh?`第 ${visibleStep.lineIndex+1} 爻 / 共 6 爻`:`Cast ${visibleStep.lineIndex+1} of 6`} · {visibleStep.lineValue}</p>
    </div>
   </>:null}
   {state==='progress'||state==='complete'?<>

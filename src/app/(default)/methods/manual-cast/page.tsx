@@ -1,3 +1,4 @@
+import { sharedOpenGraphImageMetadata } from "@/lib/shared-open-graph-image";
 import type { Metadata } from "next";
 import "@/components/public-reading/manual-cast.css";
 import { ManualCastTool } from "@/components/public-reading/manual-cast-tool";
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
   title: "Manual I Ching Cast — Enter Lines Online",
   description: "Build a deterministic I Ching reading by entering six line values or choosing a primary hexagram and moving lines. No randomness; the completed cast uses the same saved Free Reading flow as other methods.",
   alternates: { canonical: "/methods/manual-cast", languages: alternateLanguages("manual-cast-method") },
-  openGraph: { title: "Manual I Ching Cast — Enter Lines Online", description: "Use Manual Cast to enter an I Ching structure directly and read the same primary, moving-line, and relating result.", url: "/methods/manual-cast", type: "website" },
+  openGraph: { images: [sharedOpenGraphImageMetadata("en")], title: "Manual I Ching Cast — Enter Lines Online", description: "Use Manual Cast to enter an I Ching structure directly and read the same primary, moving-line, and relating result.", url: "/methods/manual-cast", type: "website" },
 };
 
 export default function ManualCastPage() {

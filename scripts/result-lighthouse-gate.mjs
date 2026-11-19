@@ -237,16 +237,24 @@ async function auditResult(browser, desktop) {
           disableStorageReset: true,
         },
       });
-      await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+      await page.waitForSelector("[data-public-reading-result]", { timeout: 15_000 });
       const visible = await page.evaluate(() => ({
-        sixLines: document.querySelector("[data-completed-six-lines]") !== null,
+        freeRitual: document.querySelector("[data-free-reading-ritual]") !== null,
         authGate: document.querySelector("[data-auth-required-before-reveal]") !== null,
+        resultChoice: document.querySelector("[data-result-choice]") !== null,
         primaryCard: document.querySelector("[data-primary-card]") !== null,
-        text: document.body?.innerText ?? "",
+        publicResult: document.querySelector("[data-public-reading-result]") !== null,
+        deepHref: document.querySelector("[data-deep-reading-cta] a[href]")?.getAttribute("href") ?? null,
+        deepReport: document.querySelector("[data-ai-deep-reading-report]") !== null,
+        deepGeneration: document.querySelector("[data-start-deep-reading]") !== null,
       }));
-      assert(visible.sixLines && visible.authGate, `${desktop ? "desktop" : "mobile"}: Lighthouse audited an empty/incorrect completed-cast gate`);
-      assert.equal(visible.primaryCard, false, `${desktop ? "desktop" : "mobile"}: primary result leaked before authentication and account persistence`);
-      assert(!visible.text.includes("Fellowship") && !visible.text.includes("Gentle penetration"), `${desktop ? "desktop" : "mobile"}: hexagram identity leaked through the auth gate`);
+      assert(visible.freeRitual && visible.primaryCard && visible.publicResult, `${desktop ? "desktop" : "mobile"}: Lighthouse must audit the anonymous Free Reading result`);
+      assert.equal(visible.authGate, false, `${desktop ? "desktop" : "mobile"}: Free Reading must not require authentication`);
+      assert.equal(visible.resultChoice, false, `${desktop ? "desktop" : "mobile"}: Free Reading must not remain behind Result Choice`);
+      assert(visible.deepHref, `${desktop ? "desktop" : "mobile"}: Free Reading must preserve the Deep Reading continuation`);
+      assert.equal(new URL(visible.deepHref, BASE).searchParams.get("session"), sessionId, `${desktop ? "desktop" : "mobile"}: Deep Reading continuation must keep the exact reading identity`);
+      assert.equal(visible.deepReport, false, `${desktop ? "desktop" : "mobile"}: paid Deep report must not appear in Free Reading`);
+      assert.equal(visible.deepGeneration, false, `${desktop ? "desktop" : "mobile"}: paid Deep generation must not open inside Free Reading`);
       if (!desktop) await logPageFontDiagnostics(page);
       return runnerResult;
     } finally {

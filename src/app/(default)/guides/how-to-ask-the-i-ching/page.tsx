@@ -1,3 +1,4 @@
+import { sharedOpenGraphImageMetadata } from "@/lib/shared-open-graph-image";
 
 import type { Metadata } from "next";
 import { alternateLanguages } from "@/i18n/helpers";
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
   title: "How to Ask the I Ching — Question Guide",
   description: "Learn how to frame a clear I Ching question for reflection without forcing a yes/no prediction or handing over your decision-making.",
   alternates: { canonical: "/guides/how-to-ask-the-i-ching", languages: alternateLanguages("guides-how-to-ask") },
-  openGraph: { title: "How to Ask the I Ching — Question Guide", description: "A practical guide to asking one clear, reflective I Ching question.", url: "/guides/how-to-ask-the-i-ching", type: "article" },
+  openGraph: { images: [sharedOpenGraphImageMetadata("en")], title: "How to Ask the I Ching — Question Guide", description: "A practical guide to asking one clear, reflective I Ching question.", url: "/guides/how-to-ask-the-i-ching", type: "article" },
 };
 
 const QUESTION_EXAMPLES = [

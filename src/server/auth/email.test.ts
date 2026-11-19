@@ -80,4 +80,49 @@ describe("Magic Link email transport", () => {
       token: "secret",
     })).rejects.toThrow("AUTH_EMAIL_DELIVERY_FAILED");
   });
+
+  it("never logs a staging Magic Link or token", async () => {
+    vi.stubEnv("APP_ENV", "staging");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VITEST", "");
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const send = vi.fn().mockResolvedValue(undefined);
+    const transport = createMagicLinkEmailTransport(send);
+    const url = "https://staging.quickiching.com/api/auth/magic-link/verify?token=staging-secret-token";
+
+    await transport.sendMagicLink({
+      email: "staging-user@example.com",
+      url,
+      token: "staging-secret-token",
+    });
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(log.mock.calls)).not.toContain("staging-secret-token");
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("staging-secret-token");
+    log.mockRestore();
+    warn.mockRestore();
+    vi.unstubAllEnvs();
+  });
+
+  it("propagates staging delivery failure instead of reporting false success", async () => {
+    vi.stubEnv("APP_ENV", "staging");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VITEST", "");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const transport = createMagicLinkEmailTransport(async () => {
+      throw new Error("provider included a sensitive transport detail");
+    });
+
+    await expect(transport.sendMagicLink({
+      email: "staging-user@example.com",
+      url: "https://staging.quickiching.com/api/auth/magic-link/verify?token=staging-secret-token",
+      token: "staging-secret-token",
+    })).rejects.toThrow("AUTH_EMAIL_DELIVERY_FAILED");
+
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("staging-secret-token");
+    warn.mockRestore();
+    vi.unstubAllEnvs();
+  });
+
 });

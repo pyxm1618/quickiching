@@ -22,17 +22,39 @@ describe('Ritual presentation consumes authoritative casts',()=>{
   expect([...html.matchAll(/data-face="([^"]+)"/g)].map(match=>match[1])).toEqual(step.coinFaces);
   expect(draws).toBe(3);
  });
- it.each([false,true])('keeps the record label and count free of arrows and line values during reset=%s',resetting=>{
+ it.each([
+  {bits:[false,false,false] as const,lineValue:6},
+  {bits:[true,false,false] as const,lineValue:7},
+  {bits:[true,true,false] as const,lineValue:8},
+  {bits:[true,true,true] as const,lineValue:9},
+ ])('shows every authoritative lineValue in the normal result',({bits,lineValue})=>{
+  let draw=0;
+  const step=generateThreeCoinLine(0,()=>bits[draw++]);
+  const html=renderToStaticMarkup(<RitualCastPresentation {...common} motion="settled" canRecord steps={[]} visibleStep={step}/>);
+  expect(step.lineValue).toBe(lineValue);
+  expect(html).toContain(`>Cast 1 of 6 · ${lineValue}</p>`);
+ });
+ it.each([false,true])('keeps the record label arrow-free while preserving lineValue during reset=%s',resetting=>{
   const step=generateThreeCoinLine(0,()=>true);
   const html=renderToStaticMarkup(<RitualCastPresentation {...common} motion="settled" canRecord steps={[]} visibleStep={step} resetting={resetting}/>);
-  const actions=[...html.matchAll(/<div class="ritual-record-action[^\"]*"[^>]*>([\s\S]*?)<\/div>/g)].map(match=>match[1]);
+  const actions=[...html.matchAll(/<div class="ritual-record-action[^\\"]*"[^>]*>([\\s\\S]*?)<\\/div>/g)].map(match=>match[1]);
   expect(actions).toHaveLength(resetting?2:1);
   for(const action of actions) {
    expect(action).toContain('>Record This Cast</button>');
-   expect(action).toContain('>Cast 1 of 6</p>');
+   expect(action).toContain('>Cast 1 of 6 · 9</p>');
    expect(action).not.toContain('<svg');
-   expect(action).not.toContain(' · ');
   }
+ });
+ it.each([false,true])('keeps the authoritative result copy during reset=%s',resetting=>{
+  const step=generateThreeCoinLine(0,()=>true);
+  const html=renderToStaticMarkup(<RitualCastPresentation {...common} motion="settled" canRecord steps={[]} visibleStep={step} resetting={resetting}/>);
+  expect(html).toContain('These are the faces of your three coins.');
+  expect(html).not.toContain('This is the positive and negative face of your three coins.');
+ });
+ it('keeps the Chinese result count paired with the authoritative lineValue',()=>{
+  const step=generateThreeCoinLine(0,()=>true);
+  const html=renderToStaticMarkup(<RitualCastPresentation {...common} zh motion="settled" canRecord steps={[]} visibleStep={step}/>);
+  expect(html).toContain('>第 1 爻 / 共 6 爻 · 9</p>');
  });
  it('keeps Record disabled until its visual entrance completes',()=>{
   const step=generateThreeCoinLine(0,()=>true);

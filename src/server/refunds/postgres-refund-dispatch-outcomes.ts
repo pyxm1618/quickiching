@@ -33,6 +33,11 @@ export class PostgresRefundDispatchOutcomeRepository {
         throw new Error("REFUND_PROVIDER_WRITE_STATE_CONFLICT");
       }
 
+      const batchRows = await transaction`
+        select id from entitlement_batches where order_id = ${orderId} limit 1 for update
+      ` as Row[];
+      if (!batchRows[0]) throw new Error("REFUND_ENTITLEMENT_SOURCE_UNAVAILABLE");
+
       const updated = await transaction`
         update refund_intents
         set provider_write_state = 'not_started', provider_write_attempt_count = 0,
@@ -45,6 +50,12 @@ export class PostgresRefundDispatchOutcomeRepository {
         returning id
       ` as Row[];
       if (!updated[0]) throw new Error("REFUND_PROVIDER_WRITE_STATE_CONFLICT");
+
+      await transaction`
+        update entitlement_batches
+        set refund_locked = false, updated_at = ${input.now.toISOString()}
+        where order_id = ${orderId}
+      `;
 
       await transaction`
         insert into audit_events (
@@ -90,6 +101,11 @@ export class PostgresRefundDispatchOutcomeRepository {
         throw new Error("REFUND_PROVIDER_WRITE_STATE_CONFLICT");
       }
 
+      const batchRows = await transaction`
+        select id from entitlement_batches where order_id = ${orderId} limit 1 for update
+      ` as Row[];
+      if (!batchRows[0]) throw new Error("REFUND_ENTITLEMENT_SOURCE_UNAVAILABLE");
+
       const updated = await transaction`
         update refund_intents
         set provider_write_state = 'confirmed', status = 'failed', next_reconcile_at = null,
@@ -101,6 +117,12 @@ export class PostgresRefundDispatchOutcomeRepository {
         returning id
       ` as Row[];
       if (!updated[0]) throw new Error("REFUND_PROVIDER_WRITE_STATE_CONFLICT");
+
+      await transaction`
+        update entitlement_batches
+        set refund_locked = false, updated_at = ${input.now.toISOString()}
+        where order_id = ${orderId}
+      `;
 
       await transaction`
         insert into audit_events (

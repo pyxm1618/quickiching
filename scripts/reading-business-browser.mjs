@@ -11,22 +11,22 @@ const directory = await mkdtemp(join(tmpdir(),'qic-reading-browser-'));
 execFileSync('bun',['scripts/fixtures/build-reading-business-fixture.mjs',directory],{stdio:'pipe'});
 const server = createServer(async (request,response) => {
   const path = new URL(request.url,'http://localhost').pathname;
-  const asset = path === '/reading-business-entry.js' || path === '/reading-business-entry.css' ? path.slice(1) : null;
-  const publicAsset = ['/free-reading/','/ai-deep-reading/','/ritual/','/performance/','/account/'].some(prefix=>path.startsWith(prefix))
+  const fixtureAsset = ['.js','.css'].includes(extname(path)) ? path.slice(1) : null;
+  const publicAsset = ['/free-reading/','/ai-deep-reading/','/ritual/','/performance/','/account/','/result-choice/'].some(prefix=>path.startsWith(prefix))
     ? join(process.cwd(),'public',path.slice(1))
     : null;
   try {
     const type = extname(path);
     response.setHeader('Content-Type',
-      asset?.endsWith('.js') ? 'text/javascript'
-      : asset ? 'text/css'
+      fixtureAsset?.endsWith('.js') ? 'text/javascript'
+      : fixtureAsset?.endsWith('.css') ? 'text/css'
       : type === '.png' ? 'image/png'
       : type === '.jpg' || type === '.jpeg' ? 'image/jpeg'
       : type === '.webp' ? 'image/webp'
       : type === '.avif' ? 'image/avif'
       : 'text/html');
-    response.end(asset
-      ? await readFile(join(directory,asset))
+    response.end(fixtureAsset
+      ? await readFile(join(directory,fixtureAsset))
       : publicAsset
         ? await readFile(publicAsset)
         : '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Reading business test fixture</title><link rel="stylesheet" href="/reading-business-entry.css"><script>window.process={env:{NODE_ENV:"production"}}</script><div id="root"></div><script type="module" src="/reading-business-entry.js"></script>');
@@ -98,7 +98,28 @@ try {
    assert.equal(page.url(),freeUrl);
    if(method==='three_coin') await captureVisual(`free-${locale}`);
    await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&anon=1`,{waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-public-reading-result]');
+   const anonFree=await page.evaluate(()=>({
+    freeResult:!!document.querySelector('[data-public-reading-result]'),
+    authGate:!!document.querySelector('[data-completed-cast-gate="auth-required"]'),
+    deepLinks:[...document.querySelectorAll('[data-deep-reading-cta] a[href]')].map(node=>node.getAttribute('href')),
+   }));
+   assert.equal(anonFree.freeResult,true,`${locale}/${method}: anonymous Free Reading must reveal`);
+   assert.equal(anonFree.authGate,false,`${locale}/${method}: anonymous Free Reading must not require sign-in`);
+   for(const href of anonFree.deepLinks) {
+    const url=new URL(href,fixtureBase);
+    assert.equal(url.pathname,locale==='zh'?'/zh/readings/deep':'/readings/deep');
+    assert.equal(url.searchParams.get('session'),'browser-fixture-cast');
+   }
+   const anonFreeUrl=page.url();
+   await page.reload({waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-public-reading-result]');
+   assert.equal(page.url(),anonFreeUrl);
+
+   await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&anon=1&page=deep`,{waitUntil:'networkidle0'});
    await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+   assert.equal(await page.$('[data-start-deep-reading]'),null);
+   assert.equal(await page.$('[data-public-reading-result]'),null);
    const callbacks=await page.evaluate(()=>[...document.querySelectorAll('[data-auth-reading-intent],[data-auth-reading-alternate-intent]')].map(node=>({intent:node.getAttribute('data-auth-reading-intent')??node.getAttribute('data-auth-reading-alternate-intent'),href:node.getAttribute('href')})));
    assert.equal(callbacks.length,2);
    for(const item of callbacks) {
@@ -108,8 +129,9 @@ try {
     assert.equal(callback.searchParams.get('session'),'browser-fixture-cast');
     assert.equal(callback.pathname,item.intent==='deep'?(locale==='zh'?'/zh/readings/deep':'/readings/deep'):(locale==='zh'?'/zh/readings/result':'/readings/result'));
    }
-   evidence.push({locale,method,authCallbacks:'shared-free-deep-same-cast'});
-   const anonUrl=page.url();
+   const anonDeepUrl=page.url();
+   evidence.push({locale,method,anonymousFree:true,anonymousDeepAuthGated:true,authCallbacks:'shared-free-deep-same-cast'});
+
    await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&page=deep`,{waitUntil:'networkidle0'});
    await page.waitForSelector('[data-start-deep-reading]');
    assert.equal(await page.$('[data-public-reading-result]'),null);
@@ -129,11 +151,15 @@ try {
    assert.equal(freeUrlFromDeep.searchParams.get('session'),'browser-fixture-cast');
    evidence.push({locale,method,deep:{sections:true,postBody:JSON.parse(post.body),report:true},deepToFreeSameCast:true});
    if(method==='three_coin') await captureVisual(`deep-${locale}`);
+
    await page.goBack({waitUntil:'networkidle0'});
    await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
-   assert.equal(page.url(),anonUrl);
-   const backCallback=await page.$eval('[data-auth-reading-intent]',node=>node.getAttribute('href'));
-   assert.equal(new URL(new URL(backCallback,fixtureBase).searchParams.get('callbackURL'),fixtureBase).searchParams.get('session'),'browser-fixture-cast');
+   assert.equal(page.url(),anonDeepUrl);
+   await page.goBack({waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-public-reading-result]');
+   assert.equal(page.url(),anonFreeUrl);
+   await page.goForward({waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
    await page.goForward({waitUntil:'networkidle0'});
    await page.waitForFunction(()=>[...document.querySelectorAll('a[href]')].some(node=>node.getAttribute('href')?.includes('/readings/result?session=browser-fixture-cast')));
    const forwardFreeHref=await page.evaluate(()=>[...document.querySelectorAll('a[href]')].map(node=>node.getAttribute('href')).find(href=>href?.includes('/readings/result?session=browser-fixture-cast'))??null);
@@ -143,6 +169,92 @@ try {
    evidence.push({locale,method,refreshBackForwardSameCast:true});
   }
  }
+ // Persistence convergence: Free Reading stays visible even when account
+ // persistence fails, while Deep Reading still fails closed until the exact
+ // completed cast is durably owned.
+ for(const locale of ['en','zh']) {
+  for(const method of ['three_coin','yarrow_stalk','mei_hua_number_time','manual']) {
+   await page.goto(
+    `${fixtureBase}/?method=${method}&locale=${locale}&pending=1&savefailonce=1`,
+    {waitUntil:'networkidle0'},
+   );
+   await page.waitForSelector('[data-public-reading-result]',{timeout:10000});
+   await page.waitForFunction(()=>window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings').length===1);
+   const freeFailure=await page.evaluate(()=>({
+    freeResult:!!document.querySelector('[data-public-reading-result]'),
+    saveErrorGate:!!document.querySelector('[data-completed-cast-gate="save-error"]'),
+    retry:!!document.querySelector('[data-retry-account-reading-save="true"]'),
+    saves:window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings'),
+    pendingKeys:[...Array(localStorage.length)].map((_,index)=>localStorage.key(index)).filter(key=>key?.startsWith('quickiching:public-v1:pending-completed-reading:')),
+   }));
+   assert.equal(freeFailure.freeResult,true,`${locale}/${method}/free: account save failure must not block Free Reading`);
+   assert.equal(freeFailure.saveErrorGate,false,`${locale}/${method}/free: Free Reading must not enter the durable-save gate`);
+   assert.equal(freeFailure.retry,false,`${locale}/${method}/free: account retry UI must not replace the Free result`);
+   assert.equal(freeFailure.saves.length,1,`${locale}/${method}/free: background account save should still be attempted`);
+   assert.equal(freeFailure.pendingKeys.length,1,`${locale}/${method}/free: failed account save must preserve the browser Pending reading`);
+   const failedFreeSaveBody=freeFailure.saves[0].body;
+
+   await page.goto(
+    `${fixtureBase}/?method=${method}&locale=${locale}&pending=1`,
+    {waitUntil:'networkidle0'},
+   );
+   await page.waitForSelector('[data-public-reading-result]',{timeout:10000});
+   await page.waitForFunction(()=>window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings').length===1);
+   await page.waitForFunction(()=>[...Array(localStorage.length)].map((_,index)=>localStorage.key(index)).filter(key=>key?.startsWith('quickiching:public-v1:pending-completed-reading:')).length===0);
+   const freeSaved=await page.evaluate(()=>({
+    session:new URL(location.href).searchParams.get('session'),
+    freeResult:!!document.querySelector('[data-public-reading-result]'),
+    saves:window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings'),
+    pendingKeys:[...Array(localStorage.length)].map((_,index)=>localStorage.key(index)).filter(key=>key?.startsWith('quickiching:public-v1:pending-completed-reading:')),
+   }));
+   assert.equal(freeSaved.freeResult,true,`${locale}/${method}/free: successful account persistence must keep Free Reading visible`);
+   assert.equal(freeSaved.saves.length,1,`${locale}/${method}/free: successful account persistence should use one save request`);
+   assert.equal(freeSaved.saves[0].body,failedFreeSaveBody,`${locale}/${method}/free: failure and later successful persistence must use the same sealed payload`);
+   const freePayload=JSON.parse(freeSaved.saves[0].body);
+   assert.equal(freePayload.clientCastingId,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/free: account save must keep exact clientCastingId`);
+   assert.equal(freePayload.question,locale==='zh'?'我现在是否适合换一份工作？':'Should I change to a new job?',`${locale}/${method}/free: account save must keep exact question`);
+   assert.equal(freeSaved.session,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/free: successful persistence must bind the exact session id`);
+   assert.deepEqual(freeSaved.pendingKeys,[],`${locale}/${method}/free: successful persistence must retire only the exact Pending record`);
+
+   await page.goto(
+    `${fixtureBase}/?method=${method}&locale=${locale}&pending=1&savefailonce=1&page=deep`,
+    {waitUntil:'networkidle0'},
+   );
+   await page.waitForSelector('[data-completed-cast-gate="save-error"]',{timeout:10000});
+   const deepBlocked=await page.evaluate(()=>({
+    choice:!!document.querySelector('[data-result-choice]'),
+    session:document.querySelector('[data-result-choice]')?.getAttribute('data-reading-session'),
+    freeResult:!!document.querySelector('[data-public-reading-result]'),
+    deepReady:!!document.querySelector('[data-start-deep-reading]'),
+    retry:!!document.querySelector('[data-retry-account-reading-save="true"]'),
+    saves:window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings'),
+   }));
+   assert.equal(deepBlocked.choice,true,`${locale}/${method}/deep: save failure must remain on Result Choice`);
+   assert.equal(deepBlocked.session,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/deep: exact pending id must remain visible`);
+   assert.equal(deepBlocked.freeResult,false,`${locale}/${method}/deep: paid intent must not substitute the Free result`);
+   assert.equal(deepBlocked.deepReady,false,`${locale}/${method}/deep: save failure must block paid continuation`);
+   assert.equal(deepBlocked.retry,true,`${locale}/${method}/deep: save failure must expose inline Retry`);
+   assert.equal(deepBlocked.saves.length,1,`${locale}/${method}/deep: first save attempt count`);
+
+   await page.click('[data-retry-account-reading-save="true"]');
+   await page.waitForSelector('[data-start-deep-reading]',{timeout:10000});
+   const deepContinued=await page.evaluate(()=>({
+    session:new URL(location.href).searchParams.get('session'),
+    saves:window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings'),
+    pendingKeys:[...Array(localStorage.length)].map((_,index)=>localStorage.key(index)).filter(key=>key?.startsWith('quickiching:public-v1:pending-completed-reading:')),
+   }));
+   assert.equal(deepContinued.saves.length,2,`${locale}/${method}/deep: Retry must make exactly one second save attempt`);
+   assert.equal(deepContinued.saves[0].body,deepContinued.saves[1].body,`${locale}/${method}/deep: Retry payload must remain identical`);
+   const deepRetryPayload=JSON.parse(deepContinued.saves[1].body);
+   assert.equal(deepRetryPayload.clientCastingId,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/deep: Retry must keep exact clientCastingId`);
+   assert.equal(deepContinued.session,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/deep: durable ownership must keep exact session id`);
+   assert.deepEqual(deepContinued.pendingKeys,[],`${locale}/${method}/deep: durable save must retire only the exact Pending record`);
+
+   evidence.push({locale,method,anonymousFree:true,freeSurvivesPersistenceFailure:true,authenticatedFreePersistence:true,deepPersistenceGate:true});
+  }
+ }
+
+
  // Pricing / Purchase formal UI: real Chromium verification of the three formal design states.
  const commercialViewports=[
   ['1440',{width:1440,height:1000,deviceScaleFactor:1}],

@@ -46,7 +46,7 @@ export type HexagramSeoEntry = HexagramSeoBaseEntry & {
   otherCoreVariant: string | null;
   meaningKeyword: string;
   loveKeyword: string | null;
-  unchangingKeyword: string;
+  unchangingKeyword: string | null;
   relationshipKeyword: string | null;
   specialKeywords: readonly string[];
   recommendedModules: readonly string[];
@@ -4167,15 +4167,13 @@ function workbookPhrase(value: string, suffix: string, fallback: string): string
 function buildEnglishMetaDescription(legacyDescription: string): string {
   const firstStop = legacyDescription.indexOf(".");
   const lead = (firstStop >= 0 ? legacyDescription.slice(0, firstStop) : legacyDescription).trim();
-  return `${lead}. Love, meaning, and unchanging guidance.`;
+  return `${lead}. Read the Judgment, Image, and six lines.`;
 }
 
 export const HEXAGRAM_SEO_REGISTRY: readonly HexagramSeoEntry[] = LEGACY_HEXAGRAM_SEO_REGISTRY.map((entry) => {
   if (entry.locale === "en") {
     const research = englishGlobalExactRow(entry.number);
     const meaningKeyword = `hexagram ${entry.number} meaning`;
-    const loveKeyword = `hexagram ${entry.number} love`;
-    const unchangingKeyword = `hexagram ${entry.number} unchanging`;
     const relationshipKeyword = research.recommendedModules.includes("relationship")
       ? `hexagram ${entry.number} relationship`
       : null;
@@ -4183,8 +4181,6 @@ export const HEXAGRAM_SEO_REGISTRY: readonly HexagramSeoEntry[] = LEGACY_HEXAGRA
     const secondaryVariantFamily = [
       research.otherCoreVariant,
       meaningKeyword,
-      loveKeyword,
-      unchangingKeyword,
       research.commonEnglishName,
       relationshipKeyword,
       ...research.specialKeywords,
@@ -4197,7 +4193,7 @@ export const HEXAGRAM_SEO_REGISTRY: readonly HexagramSeoEntry[] = LEGACY_HEXAGRA
       secondaryCore: research.secondaryCore,
       secondaryVariantFamily,
       lineQueryFamily: Array.from({ length: 6 }, (_, index) => `hexagram ${entry.number} line ${index + 1}`).join("; "),
-      semanticEntityTerms: `I Ching; ${research.commonEnglishName}; meaning; love; unchanging; changing lines`,
+      semanticEntityTerms: `I Ching; ${research.commonEnglishName}; meaning; Judgment; Image; changing lines`,
       finalTitle: research.titleTarget,
       titleLength: research.titleTarget.length,
       finalDescription,
@@ -4215,8 +4211,8 @@ export const HEXAGRAM_SEO_REGISTRY: readonly HexagramSeoEntry[] = LEGACY_HEXAGRA
       sourceNotes: `English FINAL GLOBAL EXACT workbook SHA-256 ${EN_GLOBAL_EXACT_SOURCE_SHA256}; exact_match=true country records only.`,
       otherCoreVariant: research.otherCoreVariant,
       meaningKeyword,
-      loveKeyword,
-      unchangingKeyword,
+      loveKeyword: null,
+      unchangingKeyword: null,
       relationshipKeyword,
       specialKeywords: research.specialKeywords,
       recommendedModules: research.recommendedModules,

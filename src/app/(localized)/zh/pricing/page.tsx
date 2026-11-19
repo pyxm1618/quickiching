@@ -9,7 +9,7 @@ import { PricingSurfaceState } from "@/navigation/pricing-surface-state";
 import { buildPricingView } from "@/app/(default)/pricing/pricing-model";
 
 export const metadata: Metadata = {
-  title: "深度解读次数与价格 | Quick I Ching",
+  title: "深度解读次数与价格",
   description: "查看 Quick I Ching 可选个性化深度解读次数包的当前可用状态、价格、有效期与支付说明。",
   robots: { index: false, follow: true },
 };

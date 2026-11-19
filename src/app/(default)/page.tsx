@@ -1,3 +1,4 @@
+import { sharedOpenGraphImageMetadata } from "@/lib/shared-open-graph-image";
 import React from "react";
 import type { Metadata } from "next";
 import { ThreeCoinRitual } from "@/components/public-reading/three-coin-ritual";
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
   title: { absolute: HOME_TITLE },
   description: HOME_DESCRIPTION,
   alternates: { canonical: canonicalUrl("/"), languages: alternateLanguages("homepage") },
-  openGraph: { title: HOME_TITLE, description: HOME_DESCRIPTION, url: canonicalUrl("/"), type: "website" },
+  openGraph: { images: [sharedOpenGraphImageMetadata("en")], title: HOME_TITLE, description: HOME_DESCRIPTION, url: canonicalUrl("/"), type: "website" },
 };
 
 const WEBSITE_STRUCTURED_DATA = {

@@ -112,6 +112,19 @@ function extractCanonicalHref(html) {
   return null;
 }
 
+function extractTitle(html) {
+  return /<title>([^<]*)<\/title>/i.exec(html)?.[1] ?? "";
+}
+
+function extractMetaProperty(html, property) {
+  for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
+    const tag = match[0];
+    if ((/\bproperty=["']([^"']+)["']/i.exec(tag)?.[1] ?? "") !== property) continue;
+    return /\bcontent=["']([^"']*)["']/i.exec(tag)?.[1] ?? "";
+  }
+  return "";
+}
+
 async function verifyHttpAndSeo() {
   log("Checking initial HTML, canonical URLs, sitemap, robots, redirects, 404/410 and internal links");
 
@@ -124,6 +137,7 @@ async function verifyHttpAndSeo() {
   assert(homeHtml.includes("data-three-coin-ritual"), "Homepage Three-Coin single-stage scaffold is missing from initial HTML");
   assert(!homeHtml.includes('"@type":"FAQPage"'), "Homepage must not keep FAQ structured data after the visible FAQ was removed");
 
+  const sharedOgImages = new Set();
   for (const path of INDEXABLE_PATHS) {
     const response = await expectStatus(path, 200);
     const html = await response.text();
@@ -136,6 +150,22 @@ async function verifyHttpAndSeo() {
       `${path}: self-canonical wrong: ${actualCanonical}`,
     );
     assert(!/name="robots" content="[^"]*noindex/i.test(html), `${path}: indexable page unexpectedly noindex`);
+    const title = extractTitle(html);
+    assert(!/Quick I Ching\s*\|\s*Quick I Ching/iu.test(title), `${path}: duplicate Quick I Ching branding in title`);
+    const ogImage = extractMetaProperty(html, "og:image");
+    assert(ogImage, `${path}: shared og:image missing`);
+    const ogUrl = new URL(ogImage, "https://www.quickiching.com");
+    assert.equal(ogUrl.origin, "https://www.quickiching.com", `${path}: og:image must resolve to canonical production host`);
+    assert.equal(extractMetaProperty(html, "og:image:width"), "1200", `${path}: og:image width mismatch`);
+    assert.equal(extractMetaProperty(html, "og:image:height"), "630", `${path}: og:image height mismatch`);
+    assert.equal(extractMetaProperty(html, "og:image:type"), "image/png", `${path}: og:image type mismatch`);
+    sharedOgImages.add(ogUrl.toString());
+  }
+  assert(sharedOgImages.size <= 2, `shared OG fallback unexpectedly expanded to ${sharedOgImages.size} image URLs`);
+  for (const imageUrl of sharedOgImages) {
+    const url = new URL(imageUrl);
+    const response = await expectStatus(`${url.pathname}${url.search}`, 200);
+    assert.match(response.headers.get("content-type") ?? "", /^image\/png\b/iu, `${url.pathname}: OG endpoint must serve image/png`);
   }
 
   const noindexPaths = [
@@ -157,6 +187,7 @@ async function verifyHttpAndSeo() {
     const response = await expectStatus(path, 200);
     const html = await response.text();
     assert(/name="robots" content="[^"]*noindex/i.test(html), `${path}: expected noindex metadata`);
+    assert(!/Quick I Ching\s*\|\s*Quick I Ching/iu.test(extractTitle(html)), `${path}: duplicate Quick I Ching branding in title`);
   }
 
   const resultHtml = await (await expectStatus("/readings/result", 200)).text();
@@ -208,7 +239,10 @@ async function verifyHttpAndSeo() {
 
   const castingMethods = await expectStatus("/casting-methods", 308);
   const castingLocation = new URL(castingMethods.headers.get("location"), BASE);
-  assert.equal(`${castingLocation.pathname}${castingLocation.hash}`, "/#other-casting-methods");
+  assert.equal(`${castingLocation.pathname}${castingLocation.hash}`, "/help#casting-methods");
+  const castingTarget = await expectStatus("/help", 200);
+  const castingTargetHtml = await castingTarget.text();
+  assert(castingTargetHtml.includes('id="casting-methods"'), "/casting-methods target fragment must exist in rendered Help HTML");
 
   for (const path of ["/signin", "/account", "/checkout/example"]) {
     const response = await expectStatus(path, 410);
@@ -451,23 +485,39 @@ async function verifyThreeCoinTransactionSemantics(page) {
   assert.equal(duringReveal.labelsVisible,false,"Faces must not be labelled during the initial airborne phase");
 
   await page.reload({ waitUntil: "networkidle0" });
-  // C1: a reload renders the normal entry state; the partial cast returns only
-  // after an explicit Resume.
+  // Reload remains passive, but the exact partial must be recoverable through
+  // the ordinary user-visible Resume ingress.
   await page.waitForSelector('[data-experience-stage="landing"]', { timeout: 15_000 });
-  assert.equal(await page.$(".hold-button"), null, "A restored partial cast must not expose the cast button before Resume");
-  await page.click("[data-reading-resume-action]");
-  await waitForRecordedLines(page,1);
-  const restored = await page.evaluate((key) => {
+  assert.equal(await page.$(".hold-button"), null, "A restored partial cast must not auto-enter casting");
+  await page.waitForSelector('[data-reading-resume="three-coin"] [data-reading-resume-action]', { visible: true, timeout: 15_000 });
+  const restoredBeforeResume = await page.evaluate((key) => {
     const raw = sessionStorage.getItem(key);
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
-    return (Array.isArray(parsed) ? parsed : parsed?.data?.steps ?? []).length;
+    return raw ? JSON.parse(raw) : null;
   }, storageKey);
-  assert.equal(restored, 1, "reload during Motion F must restore the already-committed Three-Coin line");
-  await page.locator(".ritual-back").click();
-  await page.waitForSelector('[data-experience-stage="landing"]');
+  assert.equal(restoredBeforeResume?.data?.steps?.length, 1, "reload during Motion F must preserve the already-committed Three-Coin line");
+  assert.deepEqual(restoredBeforeResume?.data?.steps, duringReveal.stored, "reload must preserve the exact committed Three-Coin facts before Resume");
+
+  await page.click("[data-reading-resume-action]");
+  await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 15_000 });
+  await waitForRecordedLines(page, 1);
+  const restoredAfterResume = await page.evaluate((key) => {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }, storageKey);
+  assert.equal(restoredAfterResume?.id, restoredBeforeResume?.id, "Resume must restore the exact same reading id");
+  assert.deepEqual(restoredAfterResume?.data?.steps, duringReveal.stored, "Resume must not reroll or rewrite the committed line");
+
+  // Exit keeps the partial session. Back on the passive Home entry, an
+  // explicit fresh Skip remains the retirement boundary.
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "networkidle0", timeout: 15_000 }),
+    page.click("[data-flow-exit]"),
+  ]);
+  await page.waitForSelector('[data-experience-stage="landing"]', { timeout: 15_000 });
+  await page.waitForSelector("[data-reading-resume-action]", { visible: true, timeout: 15_000 });
+  await skipOptionalQuestion(page);
   const resetSteps=await page.evaluate(key=>JSON.parse(sessionStorage.getItem(key)||"null")?.data?.steps??[],storageKey);
-  assert.equal(resetSteps.length,0,"Explicit Back/restart clears the prior cast");
+  assert.equal(resetSteps.length,0,"Explicit fresh start must retire the prior partial cast");
 }
 
 async function finishThreeCoin(page) {

@@ -1,3 +1,4 @@
+import { sharedOpenGraphImageMetadata } from "@/lib/shared-open-graph-image";
 import type { Metadata } from "next";
 import "@/components/public-reading/manual-cast.css";
 import { QuestionFirst } from "@/components/public-reading/question-first";
@@ -13,7 +14,7 @@ const CANONICAL = canonicalUrl(SEO.canonicalUrl);
 export const metadata: Metadata = {
   title: { absolute: SEO.finalTitle }, description: SEO.finalDescription,
   alternates: { canonical: CANONICAL, languages: alternateLanguages("manual-cast-method") },
-  openGraph: { title: SEO.finalTitle, description: SEO.finalDescription, url: CANONICAL, type: "article", locale: "zh_CN" },
+  openGraph: { images: [sharedOpenGraphImageMetadata("zh-Hans")], title: SEO.finalTitle, description: SEO.finalDescription, url: CANONICAL, type: "article", locale: "zh_CN" },
   robots: { index: true, follow: true },
 };
 

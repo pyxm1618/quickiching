@@ -503,7 +503,6 @@
 
 .legalToc { padding-bottom: 190px; }
 
-.infoBrand img { filter: brightness(0) invert(1); }
 
 .changingPrimer { display: grid; grid-template-columns: 1fr 1fr 1.15fr 1.4fr; gap: 0; margin-top: 24px; }
 

@@ -120,7 +120,7 @@ async function jsonResponse(response: Response) {
   return response.json() as Promise<Record<string, unknown>>;
 }
 
-describe("Better Auth 1.7.1 PostgreSQL integration", () => {
+describe("Better Auth 1.7.25 PostgreSQL integration", () => {
   beforeAll(async () => {
     await migrate(db, { migrationsFolder: "drizzle" });
   });

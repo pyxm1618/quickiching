@@ -43,6 +43,42 @@ describe("approved scene navigation integration",()=>{
   const html=core+methods+info;
   for(const label of ["Hexagrams","Other Methods","Info","Yarrow Stalks","Mei Hua Yi Shu","Manual Cast","Privacy Settings","EN","中文"])expect(html).toContain(label);
  });
+ it("renders one fixed partner viewport with three independently clickable rotating badges only on S01",()=>{
+  const home=renderToStaticMarkup(<SceneNavigation locale="en" contract={surfaceContract("S01")}/>);
+  expect(home).toContain('<div class="scene-partnership"><span class="scene-partnership-label">In partnership with</span><div class="scene-partner-viewport" aria-label="Partner links">');
+  expect(home).not.toContain("scene-partner-list");
+  expect(home.match(/class="scene-partner-link"/g)).toHaveLength(3);
+  expect(home).toContain('data-partner-id="startup-fame" data-partner-state="active"');
+  expect(home).toContain('data-partner-id="better-launch" data-partner-state="next"');
+  expect(home).toContain('data-partner-id="shipstry" data-partner-state="hidden"');
+  expect(home).toContain('href="https://startupfa.me/s/quick-i-ching?utm_source=www.quickiching.com"');
+  expect(home).toContain('src="/partner-badges/startup-fame-featured-dark.webp"');
+  expect(home).not.toContain("badge?t=small");
+  expect(home).toContain('href="https://www.betterlaunch.co/product/quick-i-ching"');
+  expect(home).toContain('src="https://www.betterlaunch.co/badge-launching-gradient.svg"');
+  expect(home).toContain('href="https://shipstry.com/"');
+  expect(home).toContain('src="https://shipstry.com/badges/featured.svg"');
+  expect(home.match(/target="_blank"/g)).toHaveLength(3);
+  expect(home.match(/rel="noopener noreferrer"/g)).toHaveLength(3);
+  expect(home).toContain('src="/partner-badges/startup-fame-featured-dark.webp" alt="" width="171" height="54"');
+  expect(home).not.toContain('alt="Quick I Ching - Featured on Startup Fame"');
+  expect(home.match(/tabindex="-1"/g)).toHaveLength(2);
+
+  const chineseHome=renderToStaticMarkup(<SceneNavigation locale="zh-Hans" contract={surfaceContract("S01")}/>);
+  expect(chineseHome).toContain('<span class="scene-partnership-label">合作伙伴</span>');
+  expect(chineseHome).toContain('aria-label="合作伙伴链接"');
+  expect(chineseHome).toContain('aria-label="打开第一个合作伙伴网站"');
+  expect(chineseHome).toContain('aria-label="打开第二个合作伙伴网站"');
+  expect(chineseHome).toContain('aria-label="打开第三个合作伙伴网站"');
+  expect(chineseHome).not.toContain("In partnership with");
+
+  const refining=renderToStaticMarkup(<SceneNavigation locale="en" contract={surfaceContract("S02")}/>);
+  expect(refining).not.toContain("scene-partnership");
+  expect(refining).not.toContain("startupfa.me");
+  expect(refining).not.toContain("betterlaunch.co");
+  expect(refining).not.toContain("shipstry.com");
+ });
+
  it("reuses the sign-in callback without introducing a second signup flow",()=>{
   const html=renderToStaticMarkup(<UserNavControl appearance="scene" initialUser={null}/>);
   expect(html).toContain('href="/signin?callbackURL=%2F"');expect(html).toContain("Sign In");expect(html).not.toContain('/signup');

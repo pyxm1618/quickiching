@@ -7,7 +7,7 @@ import { GuideDecoration, PaperArtwork } from "@/components/info-pages/paper-art
 import styles from "@/components/info-pages/info-pages.module.css";
 
 export const metadata: Metadata = {
-  title: "帮助与支持 | Quick I Ching",
+  title: "帮助与支持",
   description: "Quick I Ching 四种起卦方法、浏览器记录、梅花易数时区、深度解读次数与退款的中文帮助。",
   alternates: { canonical: "/zh/help", languages: alternateLanguages("help") },
   robots: { index: false, follow: true },

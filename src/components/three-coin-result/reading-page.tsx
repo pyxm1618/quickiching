@@ -19,16 +19,25 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
   const query = searchParams ? await searchParams : undefined;
   const sessionId = query?.session?.trim() || undefined;
   const user = await getCurrentUser({ allowUnavailable: true });
+  const shouldLoadPaidEntitlement = pageMode === "deep" && Boolean(user);
+  const shouldLoadDurableCasting = Boolean(sessionId) && Boolean(user);
   const [balance, castingView] = await Promise.all([
-    user ? loadEntitlementBalance() : Promise.resolve({ available: 0, expiringSoon: 0 }),
-    sessionId ? loadCastingView(sessionId) : Promise.resolve(null),
+    shouldLoadPaidEntitlement ? loadEntitlementBalance() : Promise.resolve({ available: 0, expiringSoon: 0 }),
+    shouldLoadDurableCasting && sessionId
+      ? loadCastingView(sessionId).catch((error) => {
+          // A browser-completed Free Reading must remain usable when account
+          // persistence is unavailable. Deep Reading still fails closed.
+          if (pageMode === "free") return null;
+          throw error;
+        })
+      : Promise.resolve(null),
   ]);
   const result = castingView?.result;
-  const initialInterpretationBundles = result ? {
+  const initialInterpretationBundles = pageMode === "free" && result ? {
     primary: await loadHexagramInterpretation(result.primaryHexagramNumber),
     relating: result.relatingHexagramNumber === null ? null : await loadHexagramInterpretation(result.relatingHexagramNumber),
   } : undefined;
-  const initialLocalizedContent = locale === "zh-Hans" && result ? zhHansReadingContentFor([
+  const initialLocalizedContent = pageMode === "free" && locale === "zh-Hans" && result ? zhHansReadingContentFor([
     result.primaryHexagramNumber,
     ...(result.relatingHexagramNumber === null ? [] : [result.relatingHexagramNumber]),
   ]) : undefined;
@@ -51,10 +60,17 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
 
   if (pageMode === "deep") return client;
 
+  const hasDurableInitialResult = Boolean(castingView?.owns && result);
   return <div data-realm="chamber" className="ritual-result-scene">
-    <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
-    <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
-    <link rel="preload" as="image" href="/navigation/scroll-64-hexagrams-no-text.webp" media="(max-width:800px)" />
+    {hasDurableInitialResult ? (
+      <>
+        <link rel="preload" as="image" href={visualRuntimeAssets.resultDesktop} media="(min-width:801px)" fetchPriority="high" />
+        <link rel="preload" as="image" href={visualRuntimeAssets.resultMobile} media="(max-width:800px)" fetchPriority="high" />
+        <link rel="preload" as="image" href="/navigation/scroll-64-hexagrams-no-text.webp" media="(max-width:800px)" />
+      </>
+    ) : (
+      <link rel="preload" as="image" href="/result-choice/primary-stone.avif" fetchPriority="high" />
+    )}
     <div className="ritual-room" aria-hidden="true" />
     {client}
   </div>;
