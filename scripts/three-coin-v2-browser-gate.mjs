@@ -377,9 +377,11 @@ async function verifyMobileBrandInteractionSafety(browser, viewport) {
     await page.waitForSelector("[data-three-coin-ritual]");
     await page.waitForSelector(".scene-brand");
 
-    for (const button of await page.$('[aria-label="Analytics Consent"] button')) {
-      if (await button.evaluate((node) => node.textContent?.trim() === "Decline")) await button.click();
-    }
+    await page.evaluate(() => {
+      const decline = [...document.querySelectorAll('[aria-label="Analytics Consent"] button')]
+        .find((node) => node.textContent?.trim() === "Decline");
+      if (decline instanceof HTMLButtonElement) decline.click();
+    });
 
     await page.waitForSelector("textarea[data-private-question]");
     await page.type("textarea[data-private-question]", "Will this work ");
