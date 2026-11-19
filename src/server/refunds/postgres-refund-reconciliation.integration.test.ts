@@ -45,7 +45,7 @@ async function dispatchedRefund() {
   `;
   const intent = await refunds.apply({ userId, orderId, reason: "Reconcile me", now: new Date() });
   await refunds.decide({ refundId: intent.id, action: "approve", operatorId: "operator-test", now: new Date() });
-  const claim = await refunds.claimProviderDispatch(intent.id, new Date());
+  const claim = await refunds.claimProviderDispatch(intent.id, "dispatcher-test", new Date());
   expect(claim.mode).toBe("dispatch");
   await refunds.markProviderDispatchAmbiguous({
     refundId: intent.id,
@@ -136,10 +136,13 @@ describe("PostgreSQL refund reconciliation claims", () => {
       refund_status: string;
       provider_write_attempt_count: number;
       last_error_code: string | null;
+      refund_locked: boolean;
     }>>`
       select o.status as order_status, r.status as refund_status,
-        r.provider_write_attempt_count, r.last_error_code
-      from refund_intents r join payment_orders o on o.id = r.order_id
+        r.provider_write_attempt_count, r.last_error_code, b.refund_locked
+      from refund_intents r
+      join payment_orders o on o.id = r.order_id
+      join entitlement_batches b on b.order_id = r.order_id
       where r.id = ${fixture.refundId}
     `;
     expect(rows[0]).toEqual({
@@ -147,6 +150,7 @@ describe("PostgreSQL refund reconciliation claims", () => {
       refund_status: "reconciliation_required",
       provider_write_attempt_count: 1,
       last_error_code: "REFUND_RECONCILE_MAX_ATTEMPTS",
+      refund_locked: true,
     });
   });
 });

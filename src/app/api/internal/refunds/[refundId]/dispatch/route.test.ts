@@ -1,17 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
-  verifyAuthorization: vi.fn(() => true),
-  resolveSecret: vi.fn(() => "operator-secret"),
+  authorityConfigured: vi.fn(() => true),
+  authenticate: vi.fn(() => ({ operatorId: "dispatcher.carol", authority: "dispatch" as const })),
 }));
 
 vi.mock("@/server/refunds/composition", () => ({
   createProductionRefundCommandService: () => ({ execute: mocks.execute }),
 }));
 vi.mock("@/server/refunds/operator-auth", () => ({
-  verifyRefundOperatorAuthorization: mocks.verifyAuthorization,
-  resolveRefundOperatorSecret: mocks.resolveSecret,
+  refundOperatorAuthorityConfigured: mocks.authorityConfigured,
+  authenticateRefundOperator: mocks.authenticate,
 }));
 
 import { POST } from "./route";
@@ -22,24 +22,33 @@ const context = { params: Promise.resolve({ refundId }) };
 function request() {
   return new Request(`https://staging.quickiching.com/api/internal/refunds/${refundId}/dispatch`, {
     method: "POST",
-    headers: { Authorization: "Bearer operator-secret" },
+    headers: { Authorization: "Bearer dispatch-secret-0001" },
   });
 }
 
 describe("refund operator dispatch route provider-write outcomes", () => {
   beforeEach(() => {
-    vi.stubEnv("REFUND_OPERATOR_SECRET", "operator-secret");
     mocks.execute.mockReset();
-    mocks.verifyAuthorization.mockClear();
+    mocks.authorityConfigured.mockClear();
+    mocks.authenticate.mockClear();
   });
 
-  afterEach(() => vi.unstubAllEnvs());
+  it("binds the provider dispatch command to the authenticated dispatch operator", async () => {
+    mocks.execute.mockResolvedValueOnce({ outcome: "dispatched" });
+
+    const response = await POST(request(), context);
+
+    expect(response.status).toBe(200);
+    expect(mocks.authenticate).toHaveBeenCalledWith(expect.any(Request), "dispatch");
+    expect(mocks.execute).toHaveBeenCalledWith(refundId, "dispatcher.carol");
+  });
 
   it("marks a proven not-dispatched provider write as safe for explicit operator retry", async () => {
     mocks.execute.mockRejectedValueOnce(new Error("REFUND_PROVIDER_WRITE_NOT_DISPATCHED"));
 
     const response = await POST(request(), context);
 
+    expect(mocks.execute).toHaveBeenCalledWith(refundId, "dispatcher.carol");
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({
       error: "REFUND_PROVIDER_WRITE_NOT_DISPATCHED",

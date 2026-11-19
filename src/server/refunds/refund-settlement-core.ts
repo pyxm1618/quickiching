@@ -63,6 +63,13 @@ async function markFinancialReview(
     `;
   }
   await transaction`
+    update entitlement_batches
+    set refund_locked = true,
+        updated_at = ${input.now.toISOString()}
+    where order_id = ${input.orderId}
+      and quantity_revoked < quantity_total
+  `;
+  await transaction`
     update payment_orders
     set status = case when status = 'refunded' then status else 'financial_review' end,
         updated_at = ${input.now.toISOString()}
@@ -201,6 +208,12 @@ export async function applyRefundSettlement(
 
     if (input.status === "failed") {
       await transaction`
+        update entitlement_batches
+        set refund_locked = false,
+            updated_at = ${input.now.toISOString()}
+        where order_id = ${input.orderId}
+      `;
+      await transaction`
         update refund_intents
         set provider_write_state = 'confirmed',
             provider_ticket_id = ${input.providerTicketId},
@@ -237,8 +250,22 @@ export async function applyRefundSettlement(
     ` as Row[];
     const batch = batchRows[0];
     if (!batch) return markFinancialReview(transaction, input, "REFUND_ENTITLEMENT_SOURCE_UNAVAILABLE");
+
+    const providerInitiatedSettlement =
+      Number(refund.provider_write_attempt_count) === 0
+      && String(refund.provider_write_state) === "not_started"
+      && String(refund.screen_reason) === "PROVIDER_INITIATED";
+    if (providerInitiatedSettlement && batch.refund_locked !== true) {
+      await transaction`
+        update entitlement_batches
+        set refund_locked = true, updated_at = ${input.now.toISOString()}
+        where id = ${String(batch.id)}
+      `;
+    }
+
     if (
-      Number(batch.quantity_available) !== Number(batch.quantity_total)
+      (batch.refund_locked !== true && !providerInitiatedSettlement)
+      || Number(batch.quantity_available) !== Number(batch.quantity_total)
       || Number(batch.quantity_reserved) !== 0
       || Number(batch.quantity_consumed) !== 0
       || Number(batch.quantity_revoked) !== 0
@@ -251,6 +278,7 @@ export async function applyRefundSettlement(
       update entitlement_batches
       set quantity_available = 0,
           quantity_revoked = ${quantity},
+          refund_locked = false,
           updated_at = ${input.now.toISOString()}
       where id = ${String(batch.id)}
     `;

@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { PostgresRefundRepository } from "./postgres-refund-repository";
 import { applyRefundSettlement } from "./refund-settlement-core";
+import { loadPostgresEntitlementBalance } from "@/server/loaders";
 
 const databaseURL = process.env.TEST_DATABASE_URL;
 if (!databaseURL) throw new Error("TEST_DATABASE_URL is required for PostgreSQL integration tests");
@@ -52,7 +53,7 @@ async function dispatchedRefund() {
   await refundRepository.decide({
     refundId: intent.id, action: "approve", operatorId: "operator-test", now: new Date(),
   });
-  const claim = await refundRepository.claimProviderDispatch(intent.id, new Date());
+  const claim = await refundRepository.claimProviderDispatch(intent.id, "dispatcher-test", new Date());
   expect(claim.mode).toBe("dispatch");
   return {
     userId,
@@ -153,10 +154,12 @@ describe("shared refund settlement core", () => {
       refund_status: string;
       available: number;
       revoked: number;
+      refund_locked: boolean;
       revoke_count: number;
     }>>`
       select o.status as order_status, r.status as refund_status,
         b.quantity_available::int as available, b.quantity_revoked::int as revoked,
+        b.refund_locked,
         (select count(*)::int from entitlement_ledger l
           where l.order_id = o.id and l.action = 'revoke') as revoke_count
       from payment_orders o
@@ -166,7 +169,20 @@ describe("shared refund settlement core", () => {
     `;
     expect(rows[0]).toEqual({
       order_status: "refunded", refund_status: "succeeded",
-      available: 0, revoked: 3, revoke_count: 1,
+      available: 0, revoked: 3, refund_locked: false, revoke_count: 1,
+    });
+  });
+
+  it("keeps successful refund revocation out of the displayed balance", async () => {
+    const fixture = await dispatchedRefund();
+    expect(await loadPostgresEntitlementBalance(sql, fixture.userId)).toEqual({
+      available: 0,
+      expiringSoon: 0,
+    });
+    await applyRefundSettlement(sql, succeededInput(fixture, "provider_read"));
+    expect(await loadPostgresEntitlementBalance(sql, fixture.userId)).toEqual({
+      available: 0,
+      expiringSoon: 0,
     });
   });
 
@@ -212,10 +228,12 @@ describe("shared refund settlement core", () => {
       refund_status: string;
       available: number;
       revoked: number;
+      refund_locked: boolean;
       revoke_count: number;
     }>>`
       select o.status as order_status, r.status as refund_status,
         b.quantity_available::int as available, b.quantity_revoked::int as revoked,
+        b.refund_locked,
         (select count(*)::int from entitlement_ledger l
           where l.order_id = o.id and l.action = 'revoke') as revoke_count
       from payment_orders o
@@ -225,7 +243,62 @@ describe("shared refund settlement core", () => {
     `;
     expect(rows[0]).toEqual({
       order_status: "paid", refund_status: "failed",
-      available: 3, revoked: 0, revoke_count: 0,
+      available: 3, revoked: 0, refund_locked: false, revoke_count: 0,
+    });
+  });
+
+  it("reconciliation-confirmed provider failure restores the held entitlement exactly once", async () => {
+    const fixture = await dispatchedRefund();
+    const before = await sql<Array<{ refund_locked: boolean }>>`
+      select refund_locked from entitlement_batches where id = ${fixture.batchId}
+    `;
+    expect(before[0]?.refund_locked).toBe(true);
+
+    const failed = {
+      ...succeededInput(fixture, "provider_read"),
+      status: "failed" as const,
+    };
+    await expect(applyRefundSettlement(sql, failed)).resolves.toMatchObject({ outcome: "failed" });
+    await expect(applyRefundSettlement(sql, failed)).resolves.toMatchObject({ outcome: "already_settled" });
+
+    const rows = await sql<Array<{
+      available: number;
+      reserved: number;
+      consumed: number;
+      revoked: number;
+      refund_locked: boolean;
+      revoke_count: number;
+    }>>`
+      select b.quantity_available::int as available, b.quantity_reserved::int as reserved,
+        b.quantity_consumed::int as consumed, b.quantity_revoked::int as revoked,
+        b.refund_locked,
+        (select count(*)::int from entitlement_ledger l
+          where l.order_id = b.order_id and l.action = 'revoke') as revoke_count
+      from entitlement_batches b where b.id = ${fixture.batchId}
+    `;
+    expect(rows[0]).toEqual({
+      available: 3,
+      reserved: 0,
+      consumed: 0,
+      revoked: 0,
+      refund_locked: false,
+      revoke_count: 0,
+    });
+  });
+
+  it("restores the displayed balance when refund failure unlocks the source batch", async () => {
+    const fixture = await dispatchedRefund();
+    expect(await loadPostgresEntitlementBalance(sql, fixture.userId)).toEqual({
+      available: 0,
+      expiringSoon: 0,
+    });
+    await applyRefundSettlement(sql, {
+      ...succeededInput(fixture, "provider_read"),
+      status: "failed",
+    });
+    expect(await loadPostgresEntitlementBalance(sql, fixture.userId)).toEqual({
+      available: 3,
+      expiringSoon: 0,
     });
   });
 
@@ -244,11 +317,12 @@ describe("shared refund settlement core", () => {
       available: number;
       consumed: number;
       revoked: number;
+      refund_locked: boolean;
       revoke_count: number;
     }>>`
       select o.status as order_status, r.status as refund_status,
         b.quantity_available::int as available, b.quantity_consumed::int as consumed,
-        b.quantity_revoked::int as revoked,
+        b.quantity_revoked::int as revoked, b.refund_locked,
         (select count(*)::int from entitlement_ledger l
           where l.order_id = o.id and l.action = 'revoke') as revoke_count
       from payment_orders o
@@ -258,7 +332,7 @@ describe("shared refund settlement core", () => {
     `;
     expect(rows[0]).toEqual({
       order_status: "financial_review", refund_status: "reconciliation_required",
-      available: 2, consumed: 1, revoked: 0, revoke_count: 0,
+      available: 2, consumed: 1, revoked: 0, refund_locked: true, revoke_count: 0,
     });
   });
 

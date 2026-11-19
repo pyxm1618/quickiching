@@ -51,9 +51,10 @@ describe("refund command provider-write fence", () => {
       now: () => new Date("2026-09-07T00:00:00.000Z"),
     });
 
-    await expect(service.execute(baseClaim.refundId)).resolves.toEqual({ outcome: "dispatched" });
-    await expect(service.execute(baseClaim.refundId)).resolves.toEqual({ outcome: "read_only" });
+    await expect(service.execute(baseClaim.refundId, "dispatcher.carol")).resolves.toEqual({ outcome: "dispatched" });
+    await expect(service.execute(baseClaim.refundId, "dispatcher.carol")).resolves.toEqual({ outcome: "read_only" });
 
+    expect(claimProviderDispatch).toHaveBeenCalledWith(baseClaim.refundId, "dispatcher.carol", expect.any(Date));
     expect(requestRefund).toHaveBeenCalledTimes(1);
     expect(requestRefund).toHaveBeenCalledWith(expect.objectContaining({
       providerPaymentId: "PAY_test",
@@ -78,7 +79,7 @@ describe("refund command provider-write fence", () => {
       now: () => new Date("2026-09-07T00:00:00.000Z"),
     });
 
-    await expect(service.execute(baseClaim.refundId)).rejects.toThrow("REFUND_PROVIDER_WRITE_NOT_DISPATCHED");
+    await expect(service.execute(baseClaim.refundId, "dispatcher.carol")).rejects.toThrow("REFUND_PROVIDER_WRITE_NOT_DISPATCHED");
 
     expect(requestRefund).toHaveBeenCalledTimes(1);
     expect(repo.releaseProviderDispatchNotSent).toHaveBeenCalledTimes(1);
@@ -101,8 +102,8 @@ describe("refund command provider-write fence", () => {
       now: () => new Date("2026-09-07T00:00:00.000Z"),
     });
 
-    await expect(service.execute(baseClaim.refundId)).rejects.toThrow("REFUND_PROVIDER_REJECTED");
-    await expect(service.execute(baseClaim.refundId)).resolves.toEqual({ outcome: "read_only" });
+    await expect(service.execute(baseClaim.refundId, "dispatcher.carol")).rejects.toThrow("REFUND_PROVIDER_REJECTED");
+    await expect(service.execute(baseClaim.refundId, "dispatcher.carol")).resolves.toEqual({ outcome: "read_only" });
 
     expect(requestRefund).toHaveBeenCalledTimes(1);
     expect(repo.markProviderDispatchRejected).toHaveBeenCalledTimes(1);
@@ -123,8 +124,8 @@ describe("refund command provider-write fence", () => {
       now: () => new Date("2026-09-07T00:00:00.000Z"),
     });
 
-    await expect(service.execute(baseClaim.refundId)).rejects.toThrow("REFUND_PROVIDER_WRITE_OUTCOME_UNKNOWN");
-    await expect(service.execute(baseClaim.refundId)).resolves.toEqual({ outcome: "read_only" });
+    await expect(service.execute(baseClaim.refundId, "dispatcher.carol")).rejects.toThrow("REFUND_PROVIDER_WRITE_OUTCOME_UNKNOWN");
+    await expect(service.execute(baseClaim.refundId, "dispatcher.carol")).resolves.toEqual({ outcome: "read_only" });
 
     expect(requestRefund).toHaveBeenCalledTimes(1);
     expect(repo.markProviderDispatchConfirmed).not.toHaveBeenCalled();

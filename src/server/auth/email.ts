@@ -80,13 +80,6 @@ export function createMagicLinkEmailTransport(
 ) {
   return {
     async sendMagicLink(data: MagicLinkData): Promise<void> {
-      const isStagingRuntime =
-        process.env.APP_ENV === "staging" &&
-        process.env.NODE_ENV !== "test" &&
-        !process.env.VITEST;
-      if (isStagingRuntime) {
-        console.log("[STAGING_MAGIC_LINK]", data.url);
-      }
       try {
         const safeURL = escapeHtml(data.url);
         const textContent = [
@@ -167,11 +160,7 @@ export function createMagicLinkEmailTransport(
           text: textContent,
           html: htmlContent,
         });
-      } catch (error) {
-        if (isStagingRuntime) {
-          console.warn("[STAGING_MAGIC_LINK_TRANSPORT_FALLBACK]", error);
-          return;
-        }
+      } catch {
         throw new Error("AUTH_EMAIL_DELIVERY_FAILED");
       }
     },

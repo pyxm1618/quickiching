@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   integer,
@@ -197,6 +198,7 @@ export const entitlementBatches = pgTable(
     quantityReserved: integer("quantity_reserved").notNull().default(0),
     quantityConsumed: integer("quantity_consumed").notNull().default(0),
     quantityRevoked: integer("quantity_revoked").notNull().default(0),
+    refundLocked: boolean("refund_locked").notNull().default(false),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     ...timestamps,
   },

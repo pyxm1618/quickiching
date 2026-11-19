@@ -97,6 +97,12 @@ export class PostgresRefundReconciliationRepository implements RefundReconciliat
         const attempts = Number(refund.reconcile_attempt_count);
         if (attempts >= REFUND_RECONCILE_MAX_ATTEMPTS) {
           await transaction`
+            update entitlement_batches
+            set refund_locked = true, updated_at = ${now.toISOString()}
+            where order_id = ${hint.order_id}
+              and quantity_revoked < quantity_total
+          `;
+          await transaction`
             update payment_orders
             set status = case when status = 'refunded' then status else 'financial_review' end,
                 updated_at = ${now.toISOString()}
@@ -168,6 +174,13 @@ export class PostgresRefundReconciliationRepository implements RefundReconciliat
       if (String(refund.status) === "succeeded" || String(refund.status) === "failed") return;
       if (String(refund.reconcile_lease_token ?? "") !== input.leaseToken) return;
 
+      await transaction`
+        update entitlement_batches
+        set refund_locked = true, updated_at = ${input.now.toISOString()}
+        where order_id = ${hints[0]!.order_id}
+          and quantity_revoked < quantity_total
+      `;
+
       const currentTicket = refund.provider_ticket_id == null ? null : String(refund.provider_ticket_id);
       if (input.providerTicketId && currentTicket && currentTicket !== input.providerTicketId) {
         await transaction`
@@ -219,6 +232,13 @@ export class PostgresRefundReconciliationRepository implements RefundReconciliat
       if (!refund) return;
       if (String(refund.status) === "succeeded" || String(refund.status) === "failed") return;
       if (String(refund.reconcile_lease_token ?? "") !== input.leaseToken) return;
+
+      await transaction`
+        update entitlement_batches
+        set refund_locked = true, updated_at = ${input.now.toISOString()}
+        where order_id = ${hints[0]!.order_id}
+          and quantity_revoked < quantity_total
+      `;
 
       await transaction`
         update payment_orders
