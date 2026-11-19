@@ -24,6 +24,7 @@ describe("Next.js redirect policy", () => {
       ["/three-coin-method", "/methods/three-coin"],
       ["/yarrow-stalk-method", "/methods/yarrow-stalks"],
       ["/mei-hua-yi-shu", "/methods/mei-hua-yi-shu"],
+      ["/casting-methods", "/help#casting-methods"],
       ["/how-to-ask-the-i-ching", "/guides/how-to-ask-the-i-ching"],
       ["/changing-lines", "/guides/changing-lines"],
       ["/primary-and-relating-hexagrams", "/guides/primary-relating-hexagrams"],
