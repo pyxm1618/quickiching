@@ -402,7 +402,11 @@ async function verifyMobileBrandInteractionSafety(browser, viewport) {
     );
     await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 15_000 });
     const activeQuestionBefore = await page.$eval("[data-ritual-question-context] textarea", (node) => node.value);
-    await page.focus("[data-ritual-question-context] textarea");
+    await page.$eval("[data-ritual-question-context] textarea", (node) => {
+      node.focus();
+      const end = node.value.length;
+      node.setSelectionRange(end, end);
+    });
     await page.type("[data-ritual-question-context] textarea", " ");
     const activeQuestionAfter = await page.$eval("[data-ritual-question-context] textarea", (node) => node.value);
     assert.equal(
