@@ -37,7 +37,7 @@ describe('Ritual presentation consumes authoritative casts',()=>{
  it.each([false,true])('keeps the record label arrow-free while preserving lineValue during reset=%s',resetting=>{
   const step=generateThreeCoinLine(0,()=>true);
   const html=renderToStaticMarkup(<RitualCastPresentation {...common} motion="settled" canRecord steps={[]} visibleStep={step} resetting={resetting}/>);
-  const actions=[...html.matchAll(/<div class="ritual-record-action[^\\"]*"[^>]*>([\\s\\S]*?)<\\/div>/g)].map(match=>match[1]);
+  const actions=[...html.matchAll(/<div class="ritual-record-action[^"]*"[^>]*>([\s\S]*?)<\/div>/g)].map(match=>match[1]);
   expect(actions).toHaveLength(resetting?2:1);
   for(const action of actions) {
    expect(action).toContain('>Record This Cast</button>');
