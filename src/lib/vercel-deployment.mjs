@@ -9,8 +9,7 @@ export function isCanonicalProductionVercelDeployment(environment = process.env)
     && environment.VERCEL_PROJECT_ID === CANONICAL_PRODUCTION_VERCEL_PROJECT_ID;
 }
 
-/** @param {Record<string, string | undefined>} [environment] */
-/** @param {VercelDeploymentEnvironment} environment */
+/** @param {VercelDeploymentEnvironment} [environment] */
 export function isNonCanonicalVercelDeployment(environment = process.env) {
   return environment.VERCEL === "1"
     && !isCanonicalProductionVercelDeployment(environment);
