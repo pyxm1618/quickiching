@@ -120,6 +120,7 @@ describe("Better Auth server options", () => {
     expect(() => buildAuthOptions({} as AuthDatabase, {
       ...env,
       NODE_ENV: "production",
+      TURNSTILE_SECRET_KEY: "turnstile-production-secret",
       BETTER_AUTH_URL: "http://www.quickiching.com",
     }, { sendMagicLink: async () => undefined })).toThrow("AUTH_CONFIGURATION_UNAVAILABLE");
 
