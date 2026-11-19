@@ -44,7 +44,7 @@ export default function HelpPage() {
               </span>
               <span>Understanding Your Reading</span>
             </h2>
-            <section className={styles.helpQuestion}>
+            <section id="casting-methods" className={styles.helpQuestion}>
               <h3>Are the four readings really free?</h3>
               <p>Yes. Three Coin, Yarrow Stalk, Mei Hua Yi Shu current-time casting, and Manual Cast each end with the primary hexagram, changing lines, relating hexagram when present, and a general static interpretation. No sign-in or payment is required.</p>
             </section>
