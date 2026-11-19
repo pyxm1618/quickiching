@@ -374,7 +374,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
       <section className="mei-scene mei-step-3" data-mei-hua-flow data-reading-sealed={sealedReading.id} aria-live="polite">
         <SceneBook zh={zh} />
         <div className="mei-confirm">
-          {zh ? <div className="mei-flow-title" role="heading" aria-level={2}>起卦已完成</div> : <h1>Casting Complete</h1>}
+          {zh ? <h1 className="mei-flow-title">起卦已完成</h1> : <h1>Casting Complete</h1>}
           <p className="mei-confirm-copy">
             {error || (zh
               ? "这次起卦已经落定，但还没有进入解卦选择。同一个数字、时刻和卦象会继续沿用。"
@@ -407,7 +407,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
         <span>{t("Your question", "你的问题")}</span><p>{question}</p><button type="button" onClick={changeQuestion}>{t("✎ Edit", "✎ 修改")}</button>
       </div> : null}
       {step === 1 ? <form className="mei-ask" onSubmit={(event) => { event.preventDefault(); submitQuestion(); }}>
-        <header className="mei-heading">{zh ? <GildedTitle as="span" size="lg" role="heading" aria-level={2}>梅花易数</GildedTitle> : <GildedTitle as="h1" size="lg">Mei Hua Yi Shu</GildedTitle>}<p>{t("One thought. One hexagram. A reflection of what matters now.", "一念一卦，映照此刻最重要之事。")}</p></header>
+        <header className="mei-heading">{zh ? <GildedTitle as="h1" size="lg">梅花易数</GildedTitle> : <GildedTitle as="h1" size="lg">Mei Hua Yi Shu</GildedTitle>}<p>{t("One thought. One hexagram. A reflection of what matters now.", "一念一卦，映照此刻最重要之事。")}</p></header>
         <div className="mei-question-scroll">
           <label htmlFor="mei-hua-question">{t("What would you like to ask?", "你想问什么？")}</label>
           <textarea id="mei-hua-question" value={questionDraft} onChange={(event) => setQuestionDraft(event.target.value)}
@@ -417,7 +417,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
         </div>
       </form> : null}
       {step === 2 ? <form className="mei-choose" onSubmit={(event) => { event.preventDefault(); submitNumber(); }}>
-        <header className="mei-heading">{zh ? <GildedTitle as="span" size="lg" role="heading" aria-level={2}>梅花易数</GildedTitle> : <GildedTitle as="h1" size="lg">Mei Hua Yi Shu</GildedTitle>}<p>{t("One thought. One hexagram. A reflection of what matters now.", "一念一卦，映照此刻最重要之事。")}</p></header>
+        <header className="mei-heading">{zh ? <GildedTitle as="h1" size="lg">梅花易数</GildedTitle> : <GildedTitle as="h1" size="lg">Mei Hua Yi Shu</GildedTitle>}<p>{t("One thought. One hexagram. A reflection of what matters now.", "一念一卦，映照此刻最重要之事。")}</p></header>
         <h2>{t("Choose a Number", "选择一个数字")}</h2>
         <p className="mei-number-copy">{t("Keep your question in mind and enter the first number that comes to you. Don’t calculate or overthink it.", "心中保持这个问题，输入第一个自然浮现的数字。不要计算，也不要反复推敲。")}</p>
         <div className="mei-number-decoration">
@@ -427,7 +427,7 @@ export function MeiHuaNumberFlow({ locale = "en" }: { locale?: "en" | "zh-Hans" 
         <button type="submit" className="mei-button"><span aria-hidden="true">☯</span>{t("Continue", "继续")}</button>
       </form> : null}
       {step === 3 && selectedNumber !== null ? <div className="mei-confirm">
-        {zh ? <div className="mei-flow-title" role="heading" aria-level={2}>确认你的数字</div> : <h1>Confirm Your Number</h1>}
+        {zh ? <h1 className="mei-flow-title">确认你的数字</h1> : <h1>Confirm Your Number</h1>}
         <p className="mei-confirm-copy">{t("Once confirmed, this number and this moment will be locked for this reading.", "确认后，本次起卦的数字与此刻将被锁定。")}</p>
         <div className="mei-confirm-cards" aria-label={t("Your Number and This Moment", "你的数字与此刻")}>
           <section className="mei-number-ring"><h2>{t("Your Number", "你的数字")}</h2><p>{selectedNumber}</p></section>
