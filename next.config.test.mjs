@@ -46,7 +46,14 @@ describe("Next.js security headers", () => {
     const globalHeaders = headerGroups.find((group) => group.source === "/:path*")?.headers ?? [];
     const csp = globalHeaders.find((header) => header.key === "Content-Security-Policy")?.value;
 
+    // Next.js 15 still emits framework bootstrap scripts inline in the current
+    // static-rendering architecture. Keep script element compatibility, but
+    // remove inline event-handler authority via CSP3 script-src-attr.
     expect(csp).toContain("script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms");
+    expect(csp).toContain("script-src-attr 'none'");
+    expect(csp).not.toContain("'unsafe-eval'");
+    expect(csp).not.toContain("script-src *");
+    expect(csp).not.toContain("connect-src *");
     expect(csp).toContain("https://*.google-analytics.com");
     expect(csp).toContain("https://*.analytics.google.com");
     expect(csp).toContain("https://c.bing.com");
