@@ -6,7 +6,7 @@ import { LegalPageLayout, type LegalSection } from "@/components/info-pages/lega
 import styles from "@/components/info-pages/info-pages.module.css";
 
 export const metadata: Metadata = {
-  title: "隐私政策 | Quick I Ching",
+  title: "隐私政策",
   description: "说明 Quick I Ching 如何处理浏览器数据、账户数据、分析与广告、技术日志和支持消息。",
   alternates: { canonical: "/zh/privacy", languages: alternateLanguages("privacy") },
   robots: { index: false, follow: true },

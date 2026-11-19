@@ -1,3 +1,4 @@
+import { sharedOpenGraphImageMetadata } from "@/lib/shared-open-graph-image";
 import type { Metadata } from "next";
 import { alternateLanguages } from "@/i18n/helpers";
 import Link from "next/link";
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
   title: "I Ching Yarrow Stalk Method — Online Cast",
   description: "Use the I Ching yarrow stalk method online with 49-stalk arithmetic, 18 recorded changes, changing lines, and a free basic hexagram interpretation.",
   alternates: { canonical: "/methods/yarrow-stalks", languages: alternateLanguages("yarrow-stalks-method") },
-  openGraph: { title: "I Ching Yarrow Stalk Method — Online Cast", description: "Complete a free 49-stalk yarrow I Ching casting online.", url: "/methods/yarrow-stalks", type: "website" },
+  openGraph: { images: [sharedOpenGraphImageMetadata("en")], title: "I Ching Yarrow Stalk Method — Online Cast", description: "Complete a free 49-stalk yarrow I Ching casting online.", url: "/methods/yarrow-stalks", type: "website" },
 };
 
 export default function YarrowStalksPage() {

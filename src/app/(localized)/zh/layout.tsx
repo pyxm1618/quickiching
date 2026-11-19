@@ -8,6 +8,7 @@ import { NavigationLocationProvider } from "@/navigation/navigation-location";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { SITE_ORIGIN } from "@/lib/seo";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
+import { publicRobotsMetadata } from "@/lib/indexing-policy";
 import { localizedFontVariableClassNames } from "../../localized-fonts";
 
 export const metadata: Metadata = {
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
     siteName: "Quick I Ching",
     locale: "zh_CN",
   },
-  robots: { index: true, follow: true },
+  robots: publicRobotsMetadata(),
   other: { "google-adsense-account": "ca-pub-2804737462866511" },
 };
 

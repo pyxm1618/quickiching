@@ -29,15 +29,20 @@ describe("workbook-derived 128-page SEO registry", () => {
     }
   });
 
-  it("applies the exact English Global Exact Title and H1 structure to all 64 rows", () => {
+  it("keeps all 64 English titles and descriptions truthful to rendered content", () => {
     for (let number = 1; number <= 64; number += 1) {
       const entry = hexagramSeoFor(number, "en");
       expect(entry.primaryKeyword).toBe(`hexagram ${number}`);
-      expect(entry.finalTitle).toBe(`I Ching Hexagram ${number}: ${entry.hexagramName} — Meaning, Love & Unchanging`);
+      expect(entry.finalTitle).toBe(`I Ching Hexagram ${number}: ${entry.hexagramName} — Meaning`);
+      expect(entry.finalTitle.length).toBeLessThanOrEqual(65);
       expect(entry.finalH1).toBe(`Hexagram ${number} — ${entry.hexagramName}`);
       expect(entry.finalDescription.toLocaleLowerCase("en-US")).toContain(`hexagram ${number}`);
-      expect(entry.finalDescription.toLocaleLowerCase("en-US")).toContain("love");
-      expect(entry.finalDescription.toLocaleLowerCase("en-US")).toContain("unchanging");
+      expect(entry.finalDescription.toLocaleLowerCase("en-US")).not.toContain("love");
+      expect(entry.finalDescription.toLocaleLowerCase("en-US")).not.toContain("unchanging");
+      expect(entry.recommendedModules).not.toContain("love");
+      expect(entry.recommendedModules).not.toContain("unchanging");
+      expect(entry.loveKeyword).toBeNull();
+      expect(entry.unchangingKeyword).toBeNull();
       expect(entry.finalDescription.length).toBeGreaterThanOrEqual(100);
       expect(entry.finalDescription.length).toBeLessThanOrEqual(160);
     }

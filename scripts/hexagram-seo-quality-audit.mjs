@@ -101,8 +101,6 @@ function approvedFamilyFor(entry) {
     ...splitPhrases(entry.secondaryVariantFamily),
     entry.otherCoreVariant,
     entry.meaningKeyword,
-    entry.loveKeyword,
-    entry.unchangingKeyword,
     entry.relationshipKeyword,
     ...(entry.specialKeywords ?? []),
   ].filter(Boolean));

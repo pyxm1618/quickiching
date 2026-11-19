@@ -112,6 +112,19 @@ function extractCanonicalHref(html) {
   return null;
 }
 
+function extractTitle(html) {
+  return /<title>([^<]*)<\/title>/i.exec(html)?.[1] ?? "";
+}
+
+function extractMetaProperty(html, property) {
+  for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
+    const tag = match[0];
+    if ((/\bproperty=["']([^"']+)["']/i.exec(tag)?.[1] ?? "") !== property) continue;
+    return /\bcontent=["']([^"']*)["']/i.exec(tag)?.[1] ?? "";
+  }
+  return "";
+}
+
 async function verifyHttpAndSeo() {
   log("Checking initial HTML, canonical URLs, sitemap, robots, redirects, 404/410 and internal links");
 
@@ -124,6 +137,7 @@ async function verifyHttpAndSeo() {
   assert(homeHtml.includes("data-three-coin-ritual"), "Homepage Three-Coin single-stage scaffold is missing from initial HTML");
   assert(!homeHtml.includes('"@type":"FAQPage"'), "Homepage must not keep FAQ structured data after the visible FAQ was removed");
 
+  const sharedOgImages = new Set();
   for (const path of INDEXABLE_PATHS) {
     const response = await expectStatus(path, 200);
     const html = await response.text();
@@ -136,6 +150,22 @@ async function verifyHttpAndSeo() {
       `${path}: self-canonical wrong: ${actualCanonical}`,
     );
     assert(!/name="robots" content="[^"]*noindex/i.test(html), `${path}: indexable page unexpectedly noindex`);
+    const title = extractTitle(html);
+    assert(!/Quick I Ching\s*\|\s*Quick I Ching/iu.test(title), `${path}: duplicate Quick I Ching branding in title`);
+    const ogImage = extractMetaProperty(html, "og:image");
+    assert(ogImage, `${path}: shared og:image missing`);
+    const ogUrl = new URL(ogImage, "https://www.quickiching.com");
+    assert.equal(ogUrl.origin, "https://www.quickiching.com", `${path}: og:image must resolve to canonical production host`);
+    assert.equal(extractMetaProperty(html, "og:image:width"), "1200", `${path}: og:image width mismatch`);
+    assert.equal(extractMetaProperty(html, "og:image:height"), "630", `${path}: og:image height mismatch`);
+    assert.equal(extractMetaProperty(html, "og:image:type"), "image/png", `${path}: og:image type mismatch`);
+    sharedOgImages.add(ogUrl.toString());
+  }
+  assert(sharedOgImages.size <= 2, `shared OG fallback unexpectedly expanded to ${sharedOgImages.size} image URLs`);
+  for (const imageUrl of sharedOgImages) {
+    const url = new URL(imageUrl);
+    const response = await expectStatus(`${url.pathname}${url.search}`, 200);
+    assert.match(response.headers.get("content-type") ?? "", /^image\/png\b/iu, `${url.pathname}: OG endpoint must serve image/png`);
   }
 
   const noindexPaths = [
@@ -157,6 +187,7 @@ async function verifyHttpAndSeo() {
     const response = await expectStatus(path, 200);
     const html = await response.text();
     assert(/name="robots" content="[^"]*noindex/i.test(html), `${path}: expected noindex metadata`);
+    assert(!/Quick I Ching\s*\|\s*Quick I Ching/iu.test(extractTitle(html)), `${path}: duplicate Quick I Ching branding in title`);
   }
 
   const resultHtml = await (await expectStatus("/readings/result", 200)).text();
@@ -208,7 +239,10 @@ async function verifyHttpAndSeo() {
 
   const castingMethods = await expectStatus("/casting-methods", 308);
   const castingLocation = new URL(castingMethods.headers.get("location"), BASE);
-  assert.equal(`${castingLocation.pathname}${castingLocation.hash}`, "/#other-casting-methods");
+  assert.equal(`${castingLocation.pathname}${castingLocation.hash}`, "/help#casting-methods");
+  const castingTarget = await expectStatus("/help", 200);
+  const castingTargetHtml = await castingTarget.text();
+  assert(castingTargetHtml.includes('id="casting-methods"'), "/casting-methods target fragment must exist in rendered Help HTML");
 
   for (const path of ["/signin", "/account", "/checkout/example"]) {
     const response = await expectStatus(path, 410);

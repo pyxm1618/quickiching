@@ -9,6 +9,7 @@ import { NavigationLocationProvider } from "@/navigation/navigation-location";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { HOME_DESCRIPTION, HOME_TITLE, SITE_ORIGIN } from "@/lib/seo";
 import { isAuthCapabilityEnabled } from "@/server/auth/capability";
+import { publicRobotsMetadata } from "@/lib/indexing-policy";
 import { fontVariableClassNames } from "../fonts";
 
 export const metadata: Metadata = {
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     siteName: "Quick I Ching",
     url: SITE_ORIGIN,
   },
-  robots: { index: true, follow: true },
+  robots: publicRobotsMetadata(),
   other: { "google-adsense-account": "ca-pub-2804737462866511" },
 };
 

@@ -1,3 +1,4 @@
+import { sharedOpenGraphImageMetadata } from "@/lib/shared-open-graph-image";
 import type { Metadata } from "next";
 import { MeiHuaNumberFlow } from "@/components/public-reading/mei-hua-number-flow";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
@@ -11,7 +12,7 @@ export function generateMetadata(): Metadata {
     title: { absolute: seo.finalTitle },
     description: seo.finalDescription,
     alternates: { canonical, languages: alternateLanguages("mei-hua-yi-shu") },
-    openGraph: { title: seo.finalTitle, description: seo.finalDescription, url: canonical, type: "article", locale: "zh_CN" },
+    openGraph: { images: [sharedOpenGraphImageMetadata("zh-Hans")], title: seo.finalTitle, description: seo.finalDescription, url: canonical, type: "article", locale: "zh_CN" },
   };
 }
 

@@ -71,6 +71,10 @@ function callbackFromHref(href){
 }
 async function runCase({path,viewport,zh=false,capturePrefix}){
   const p=await browser.newPage();
+  async function assertSingleRealH1(label){
+    const headings=await p.$$eval("h1",nodes=>nodes.map(node=>node.textContent?.trim()??"").filter(Boolean));
+    assert.equal(headings.length,1,`${label}: ${zh?"Chinese":"English"} Mei Hua must expose exactly one real H1`);
+  }
   try{
     await p.setViewport(viewport);
     await p.emulateMediaFeatures([{name:"prefers-reduced-motion",value:"reduce"}]);
@@ -78,14 +82,17 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
     await clearSessions(p);
     await p.goto(`${BASE}${path}`,{waitUntil:"networkidle0"});
     await p.waitForSelector("#mei-hua-question");
+    await assertSingleRealH1("step 1");
     if(capturePrefix)await capture(p,`${capturePrefix}-step-1`);
     await setControlledValue(p,"#mei-hua-question",zh?"今年是否适合换一份新工作？":"Should I change to a new job this year?");
     await p.click(".mei-ask button");
     await p.waitForSelector("#mei-hua-number");
+    await assertSingleRealH1("step 2");
     await setControlledValue(p,"#mei-hua-number","29");
     if(capturePrefix)await capture(p,`${capturePrefix}-step-2`);
     await p.click(".mei-choose button");
     await p.waitForSelector(".mei-moment");
+    await assertSingleRealH1("step 3");
     if(capturePrefix)await capture(p,`${capturePrefix}-step-3`);
 
     const before=Date.now();

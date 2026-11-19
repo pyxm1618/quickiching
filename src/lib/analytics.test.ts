@@ -5,6 +5,7 @@ import {
   readStoredAnalyticsConsent,
   analyticsProvidersAllowed,
 } from "./analytics";
+import { CANONICAL_PRODUCTION_VERCEL_PROJECT_ID } from "./vercel-deployment.mjs";
 
 describe("getAnalyticsConfig", () => {
   it("keeps analytics disabled outside production when public IDs are absent", () => {
@@ -19,7 +20,12 @@ describe("getAnalyticsConfig", () => {
   });
 
   it("activates the reviewed Quick I Ching IDs on Vercel production", () => {
-    expect(getAnalyticsConfig({ VERCEL_ENV: "production" })).toEqual({
+    expect(getAnalyticsConfig({
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      VERCEL_PROJECT_ID: CANONICAL_PRODUCTION_VERCEL_PROJECT_ID,
+      VERCEL_GIT_COMMIT_REF: "main",
+    })).toEqual({
       gaMeasurementId: "G-NLFCDYQSJQ",
       clarityProjectId: "xvz3gv8ics",
     });
@@ -28,7 +34,10 @@ describe("getAnalyticsConfig", () => {
   it("ignores stale public env overrides on the canonical production site", () => {
     expect(
       getAnalyticsConfig({
+        VERCEL: "1",
         VERCEL_ENV: "production",
+        VERCEL_PROJECT_ID: CANONICAL_PRODUCTION_VERCEL_PROJECT_ID,
+        VERCEL_GIT_COMMIT_REF: "main",
         NEXT_PUBLIC_GA_MEASUREMENT_ID: "G-WNMZ8YWC3B",
         NEXT_PUBLIC_CLARITY_PROJECT_ID: "stale-project",
       }),
@@ -36,6 +45,29 @@ describe("getAnalyticsConfig", () => {
       gaMeasurementId: "G-NLFCDYQSJQ",
       clarityProjectId: "xvz3gv8ics",
     });
+  });
+
+  it("does not auto-inject production analytics into the staging production target", () => {
+    expect(
+      getAnalyticsConfig({
+        VERCEL: "1",
+        VERCEL_ENV: "production",
+        VERCEL_PROJECT_ID: "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE",
+        VERCEL_GIT_COMMIT_REF: "staging",
+      }),
+    ).toEqual({
+      gaMeasurementId: null,
+      clarityProjectId: null,
+    });
+  });
+
+  it("does not auto-inject production analytics into an unknown Vercel project on main", () => {
+    expect(getAnalyticsConfig({
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      VERCEL_PROJECT_ID: "prj_unknown",
+      VERCEL_GIT_COMMIT_REF: "main",
+    })).toEqual({ gaMeasurementId: null, clarityProjectId: null });
   });
 
   it("accepts valid explicit GA4 and Clarity IDs outside production", () => {

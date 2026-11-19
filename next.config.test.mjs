@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import nextConfig, { buildContentSecurityPolicy } from "./next.config.mjs";
+import nextConfig, { buildContentSecurityPolicy, buildCrawlerIndexingHeaders } from "./next.config.mjs";
+import { CANONICAL_PRODUCTION_VERCEL_PROJECT_ID } from "./src/lib/vercel-deployment.mjs";
 
 const getConfig = async () =>
   typeof nextConfig === "function"
@@ -24,6 +25,7 @@ describe("Next.js redirect policy", () => {
       ["/three-coin-method", "/methods/three-coin"],
       ["/yarrow-stalk-method", "/methods/yarrow-stalks"],
       ["/mei-hua-yi-shu", "/methods/mei-hua-yi-shu"],
+      ["/casting-methods", "/help#casting-methods"],
       ["/how-to-ask-the-i-ching", "/guides/how-to-ask-the-i-ching"],
       ["/changing-lines", "/guides/changing-lines"],
       ["/primary-and-relating-hexagrams", "/guides/primary-relating-hexagrams"],
@@ -55,5 +57,38 @@ describe("Next.js security headers", () => {
   });
   it("does not allow the retired Adsterra origin in CSP", () => {
     expect(buildContentSecurityPolicy({ NODE_ENV: "production" })).not.toContain("effectivecpmnetwork.com");
+  });
+});
+
+
+describe("Next.js crawler indexing headers", () => {
+  it("keeps canonical production free of a noindex response header", () => {
+    expect(buildCrawlerIndexingHeaders({
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      VERCEL_PROJECT_ID: CANONICAL_PRODUCTION_VERCEL_PROJECT_ID,
+      VERCEL_GIT_COMMIT_REF: "main",
+    })).toEqual([]);
+  });
+
+  it("fails closed for staging and preview deployments", () => {
+    expect(buildCrawlerIndexingHeaders({
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      VERCEL_PROJECT_ID: "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE",
+      VERCEL_GIT_COMMIT_REF: "staging",
+    })).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
+    expect(buildCrawlerIndexingHeaders({
+      VERCEL: "1",
+      VERCEL_ENV: "preview",
+      VERCEL_PROJECT_ID: CANONICAL_PRODUCTION_VERCEL_PROJECT_ID,
+      VERCEL_GIT_COMMIT_REF: "feature/seo",
+    })).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
+    expect(buildCrawlerIndexingHeaders({
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      VERCEL_PROJECT_ID: "prj_unknown",
+      VERCEL_GIT_COMMIT_REF: "main",
+    })).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
   });
 });

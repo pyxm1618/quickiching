@@ -1,3 +1,4 @@
+import { sharedOpenGraphImageMetadata } from "@/lib/shared-open-graph-image";
 import type { Metadata } from "next";
 import { ThreeCoinRitual } from "@/components/public-reading/three-coin-ritual";
 import { ThreeCoinTool } from "@/components/public-reading/three-coin-tool";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   title: { absolute: SEO.finalTitle },
   description: SEO.finalDescription,
   alternates: { canonical: CANONICAL, languages: alternateLanguages("homepage") },
-  openGraph: { title: SEO.finalTitle, description: SEO.finalDescription, url: CANONICAL, type: "website", locale: "zh_CN" },
+  openGraph: { images: [sharedOpenGraphImageMetadata("zh-Hans")], title: SEO.finalTitle, description: SEO.finalDescription, url: CANONICAL, type: "website", locale: "zh_CN" },
   robots: { index: true, follow: true },
 };
 

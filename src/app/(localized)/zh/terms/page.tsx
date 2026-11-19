@@ -4,7 +4,7 @@ import { alternateLanguages } from "@/i18n/helpers";
 import { LegalPageLayout, type LegalSection } from "@/components/info-pages/legal-page-layout";
 
 export const metadata: Metadata = {
-  title: "服务条款 | Quick I Ching",
+  title: "服务条款",
   description: "Quick I Ching 起卦方法、账户、深度解读次数与可选个性化解读服务的使用条款。",
   alternates: { canonical: "/zh/terms", languages: alternateLanguages("terms") },
   robots: { index: false, follow: true },
