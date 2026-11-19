@@ -151,6 +151,8 @@ const SEO_STATIC = [
   /^scripts\/interpretation-bundle-gate\.mjs$/,
 ];
 const SEO_BROWSER = [
+  "src/content/hexagrams/seo.ts",
+  "src/domain/public-reading/classical.ts",
   "src/app/",
   "src/components/hex/",
   "src/components/hexagram-detail-page",
