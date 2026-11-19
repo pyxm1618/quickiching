@@ -126,6 +126,14 @@ test("Unknown server runtime also fail-closes Reading lifecycle", () => {
   assert.equal(r.high_risk, true);
 });
 
+test("SEO registry source selects rendered SEO browser quality audit", () => {
+  const r = pick(["src/content/hexagrams/seo.ts"]);
+  assert.equal(r.seo_static, true);
+  assert.equal(r.seo_browser, true);
+  assert.equal(r.database, false);
+  assert.equal(r.payment_refund, false);
+});
+
 test("performance target selection is domain-aware", () => {
   assert.deepEqual(JSON.parse(pick(["src/components/account/account-shell.tsx"]).performance_targets), ["account.desktop"]);
   assert.deepEqual(JSON.parse(pick(["src/components/reading-result/reading-result-client.tsx"]).performance_targets), ["result.mobile", "result.desktop"]);
