@@ -178,7 +178,7 @@ export class PostgresRefundRepository {
         const updated = await transaction`
           update refund_intents
           set status = 'approved', approved_at = ${input.now.toISOString()}, operator_note = ${note},
-              updated_at = ${input.now.toISOString()}
+              decision_operator_id = ${input.operatorId}, updated_at = ${input.now.toISOString()}
           where id = ${input.refundId} and status = 'manual_review'
           returning *
         ` as Row[];
@@ -200,7 +200,7 @@ export class PostgresRefundRepository {
       const updated = await transaction`
         update refund_intents
         set status = 'rejected', rejected_at = ${input.now.toISOString()}, operator_note = ${note},
-            updated_at = ${input.now.toISOString()}
+            decision_operator_id = ${input.operatorId}, updated_at = ${input.now.toISOString()}
         where id = ${input.refundId} and status = 'manual_review'
         returning *
       ` as Row[];
@@ -218,8 +218,9 @@ export class PostgresRefundRepository {
     });
   }
 
-  async claimProviderDispatch(refundId: string, now: Date): Promise<RefundDispatchClaim> {
-    if (!Number.isFinite(now.getTime())) throw new Error("REFUND_COMMAND_INVALID");
+  async claimProviderDispatch(refundId: string, operatorId: string, now: Date): Promise<RefundDispatchClaim> {
+    const authenticatedOperatorId = operatorId.trim();
+    if (!authenticatedOperatorId || !Number.isFinite(now.getTime())) throw new Error("REFUND_COMMAND_INVALID");
     const hints = await this.sql`
       select order_id from refund_intents where id = ${refundId} limit 1
     ` as Row[];
@@ -260,7 +261,8 @@ export class PostgresRefundRepository {
       const batch = batchRows[0];
       if (!batch) throw new Error("REFUND_ENTITLEMENT_SOURCE_UNAVAILABLE");
       if (
-        Number(batch.quantity_available) !== Number(batch.quantity_total)
+        Boolean(batch.refund_locked)
+        || Number(batch.quantity_available) !== Number(batch.quantity_total)
         || Number(batch.quantity_reserved) !== 0
         || Number(batch.quantity_consumed) !== 0
         || Number(batch.quantity_revoked) !== 0
@@ -291,6 +293,7 @@ export class PostgresRefundRepository {
         update refund_intents
         set provider_write_state = 'dispatched', status = 'processing',
             provider_write_attempt_count = 1, provider_dispatched_at = ${now.toISOString()},
+            dispatch_operator_id = ${authenticatedOperatorId},
             next_reconcile_at = ${now.toISOString()}, last_error_code = null, updated_at = ${now.toISOString()}
         where id = ${refundId} and status = 'approved'
           and provider_write_state = 'not_started' and provider_write_attempt_count = 0
@@ -304,12 +307,25 @@ export class PostgresRefundRepository {
         return { blocked: false as const, claim: dispatchClaim(order, latestRows[0], "read_only") };
       }
 
+      const locked = await transaction`
+        update entitlement_batches
+        set refund_locked = true, updated_at = ${now.toISOString()}
+        where id = ${String(batch.id)} and refund_locked = false
+        returning id
+      ` as Row[];
+      if (!locked[0]) throw new Error("REFUND_ENTITLEMENT_LOCK_STATE_INVALID");
+
       await transaction`
         insert into audit_events (
           id, category, action, entity_type, entity_id, user_id, payload, created_at
         ) values (
           ${randomUUID()}, 'reconcile', 'refund_provider_dispatch_fenced', 'refund_intent', ${refundId},
-          ${String(refund.user_id)}, ${JSON.stringify({ orderId, providerWriteAttemptCount: 1 })}::jsonb, ${now.toISOString()}
+          ${String(refund.user_id)}, ${JSON.stringify({
+            source: "operator",
+            operatorId: authenticatedOperatorId,
+            orderId,
+            providerWriteAttemptCount: 1,
+          })}::jsonb, ${now.toISOString()}
         )
       `;
       return { blocked: false as const, claim: dispatchClaim(order, updated[0], "dispatch") };
@@ -345,6 +361,12 @@ export class PostgresRefundRepository {
       }
 
       const failed = input.result.status === "failed";
+      if (failed) {
+        const batchRows = await transaction`
+          select id from entitlement_batches where order_id = ${orderId} limit 1 for update
+        ` as Row[];
+        if (!batchRows[0]) throw new Error("REFUND_ENTITLEMENT_SOURCE_UNAVAILABLE");
+      }
       const updated = await transaction`
         update refund_intents
         set provider_write_state = 'confirmed', provider_ticket_id = ${input.result.providerTicketId},
@@ -357,6 +379,13 @@ export class PostgresRefundRepository {
         returning id
       ` as Row[];
       if (!updated[0]) throw new Error("REFUND_PROVIDER_WRITE_STATE_CONFLICT");
+      if (failed) {
+        await transaction`
+          update entitlement_batches
+          set refund_locked = false, updated_at = ${input.now.toISOString()}
+          where order_id = ${orderId}
+        `;
+      }
       await transaction`
         insert into audit_events (
           id, category, action, entity_type, entity_id, user_id, payload, created_at
@@ -396,6 +425,16 @@ export class PostgresRefundRepository {
       if (state !== "dispatched" || Number(refund.provider_write_attempt_count) !== 1) {
         throw new Error("REFUND_PROVIDER_WRITE_STATE_CONFLICT");
       }
+
+      const batchRows = await transaction`
+        select id from entitlement_batches where order_id = ${orderId} limit 1 for update
+      ` as Row[];
+      if (!batchRows[0]) throw new Error("REFUND_ENTITLEMENT_SOURCE_UNAVAILABLE");
+      await transaction`
+        update entitlement_batches
+        set refund_locked = true, updated_at = ${input.now.toISOString()}
+        where order_id = ${orderId}
+      `;
 
       await transaction`
         update refund_intents
