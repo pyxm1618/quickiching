@@ -48,7 +48,7 @@ async function paidRefundFixture() {
   `;
   const intent = await refundRepository.apply({ userId, orderId, reason: "Webhook settlement", now: new Date() });
   await refundRepository.decide({ refundId: intent.id, action: "approve", operatorId: "operator-test", now: new Date() });
-  const claim = await refundRepository.claimProviderDispatch(intent.id, new Date());
+  const claim = await refundRepository.claimProviderDispatch(intent.id, "dispatcher-test", new Date());
   expect(claim.mode).toBe("dispatch");
   return { userId, orderId, providerOrderId, providerPaymentId, refundId: intent.id };
 }
