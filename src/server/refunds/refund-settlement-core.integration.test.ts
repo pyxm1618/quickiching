@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { PostgresRefundRepository } from "./postgres-refund-repository";
 import { applyRefundSettlement } from "./refund-settlement-core";
+import { loadPostgresEntitlementBalance } from "@/server/loaders";
 
 const databaseURL = process.env.TEST_DATABASE_URL;
 if (!databaseURL) throw new Error("TEST_DATABASE_URL is required for PostgreSQL integration tests");
@@ -172,6 +173,19 @@ describe("shared refund settlement core", () => {
     });
   });
 
+  it("keeps successful refund revocation out of the displayed balance", async () => {
+    const fixture = await dispatchedRefund();
+    expect(await loadPostgresEntitlementBalance(sql, fixture.userId)).toEqual({
+      available: 0,
+      expiringSoon: 0,
+    });
+    await applyRefundSettlement(sql, succeededInput(fixture, "provider_read"));
+    expect(await loadPostgresEntitlementBalance(sql, fixture.userId)).toEqual({
+      available: 0,
+      expiringSoon: 0,
+    });
+  });
+
   it("is replay-safe when provider read wins before a late webhook", async () => {
     const fixture = await dispatchedRefund();
     await applyRefundSettlement(sql, succeededInput(fixture, "provider_read"));
@@ -269,6 +283,22 @@ describe("shared refund settlement core", () => {
       revoked: 0,
       refund_locked: false,
       revoke_count: 0,
+    });
+  });
+
+  it("restores the displayed balance when refund failure unlocks the source batch", async () => {
+    const fixture = await dispatchedRefund();
+    expect(await loadPostgresEntitlementBalance(sql, fixture.userId)).toEqual({
+      available: 0,
+      expiringSoon: 0,
+    });
+    await applyRefundSettlement(sql, {
+      ...succeededInput(fixture, "provider_read"),
+      status: "failed",
+    });
+    expect(await loadPostgresEntitlementBalance(sql, fixture.userId)).toEqual({
+      available: 3,
+      expiringSoon: 0,
     });
   });
 
