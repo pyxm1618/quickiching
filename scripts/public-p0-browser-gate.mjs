@@ -322,22 +322,19 @@ async function verifyQuestionReading(page, locale = "en") {
     page.waitForFunction(prefix => location.pathname === `${prefix}/readings/result`, { timeout: 30_000 }, prefix),
     clickSettled(page, "[data-result-choice-free]"),
   ]);
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
-  const signinHref = await page.$eval('[data-auth-reading-intent="free"]', node => node.getAttribute("href"));
-  const callback = new URL(signinHref, BASE).searchParams.get("callbackURL");
-  assert.equal(new URL(callback, BASE).searchParams.get("session"), choiceState.completed.readingId, "Free Reading sign-in callback must preserve this exact cast identity");
+  await page.waitForSelector("[data-public-reading-result] [data-free-reading-ritual]", { timeout: 15_000 });
 
-  const authChoiceState = await page.evaluate(() => ({
-    session: document.querySelector("[data-result-choice]")?.getAttribute("data-reading-session") ?? null,
-    primaryLineValuesTopDown: [...document.querySelectorAll("[data-result-choice-primary] [data-line-value]")]
-      .map(node => Number(node.getAttribute("data-line-value"))),
+  const freeState = await page.evaluate(() => ({
+    publicResult: document.querySelector("[data-public-reading-result]") !== null,
+    primaryCard: document.querySelector("[data-primary-card]") !== null,
+    authGate: document.querySelector("[data-completed-cast-gate='auth-required']") !== null,
+    deepHref: document.querySelector("[data-deep-reading-cta] a[href]")?.getAttribute("href") ?? "",
   }));
-  assert.equal(authChoiceState.session, choiceState.completed.readingId, "Free Reading auth gate must preserve this exact cast identity");
-  assert.deepEqual(
-    authChoiceState.primaryLineValuesTopDown,
-    [...choiceState.completed.lineValuesBottomUp].reverse(),
-    "Free Reading auth gate must preserve this cast's exact six line values",
-  );
+  assert(freeState.publicResult && freeState.primaryCard, "Anonymous Free Reading must reveal the completed cast");
+  assert.equal(freeState.authGate, false, "Anonymous Free Reading must not require sign-in or account persistence");
+  const freeDeepUrl = new URL(freeState.deepHref, BASE);
+  assert.equal(freeDeepUrl.pathname, `${prefix}/readings/deep`);
+  assert.equal(freeDeepUrl.searchParams.get("session"), choiceState.completed.readingId, "Free Reading must preserve the exact cast identity when offering Deep Reading");
   assert.equal(choiceState.completed.question, question, "The frozen question must be stored with this cast");
   assert.equal(choiceState.completed.lineValuesBottomUp?.length, 6, "The pending reading must preserve all six authoritative lines");
 
@@ -346,15 +343,22 @@ async function verifyQuestionReading(page, locale = "en") {
     return localStorage.getItem(prefix + id);
   }, "quickiching:public-v1:pending-completed-reading:");
   await page.reload({ waitUntil: "networkidle0" });
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+  await page.waitForSelector("[data-public-reading-result] [data-free-reading-ritual]", { timeout: 15_000 });
   await assertQuestionPrivacy(page, question, { requireVisible: false });
   const pendingAfterRefresh = await page.evaluate((prefix) => {
     const id = new URLSearchParams(location.search).get("session") || "";
     return localStorage.getItem(prefix + id);
   }, "quickiching:public-v1:pending-completed-reading:");
-  assert.equal(pendingAfterRefresh, pendingBeforeRefresh, "Free Reading auth-gate refresh must restore the exact same pending cast and question");
+  assert.equal(pendingAfterRefresh, pendingBeforeRefresh, "Anonymous Free Reading refresh must restore the exact same pending cast and question");
+  assert.equal(await page.$("[data-completed-cast-gate='auth-required']"), null, "Free Reading refresh must remain public");
   assert.equal(await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin")), null, "Refresh must not revive the retired method session");
-  log(`${locale}: Result Choice first, same-session Free handoff, auth callback, six-line facts, privacy and restore PASS`);
+
+  await page.goto(freeState.deepHref, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+  const deepSigninHref = await page.$eval('[data-auth-reading-intent="deep"]', node => node.getAttribute("href"));
+  const deepCallback = new URL(deepSigninHref, BASE).searchParams.get("callbackURL");
+  assert.equal(new URL(deepCallback, BASE).searchParams.get("session"), choiceState.completed.readingId, "Deep Reading sign-in callback must preserve this exact cast identity");
+  log(`${locale}: Result Choice first, public Free handoff, Deep auth gate, six-line facts, privacy and restore PASS`);
 }
 
 
@@ -635,15 +639,16 @@ async function verifyAccountPersistenceBoundary(page) {
     page.waitForFunction(() => location.pathname === "/readings/result", { timeout: 30_000 }),
     clickSettled(page, "[data-result-choice-free]"),
   ]);
-  await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
+  await page.waitForSelector("[data-public-reading-result] [data-free-reading-ritual]", { timeout: 15_000 });
 
   const freeState = await page.evaluate(() => ({
     authGate: document.querySelector("[data-completed-cast-gate='auth-required']") !== null,
+    publicResult: document.querySelector("[data-public-reading-result]") !== null,
     primaryCard: document.querySelector("[data-primary-card]") !== null,
   }));
-  assert(freeState.authGate, "Anonymous Free Reading must wait for account persistence after the user chooses Free Reading");
-  assert.equal(freeState.primaryCard, false, "Free Reading must not reveal before account persistence");
-  log("Three-Coin Result Choice precedes formal Free Reading account persistence PASS");
+  assert.equal(freeState.authGate, false, "Anonymous Free Reading must not wait for account persistence");
+  assert(freeState.publicResult && freeState.primaryCard, "Free Reading must reveal independently of account persistence");
+  log("Three-Coin Result Choice precedes public Free Reading; account persistence is not a reveal gate PASS");
 }
 
 async function verifyResponsiveKeyboard(page) {
