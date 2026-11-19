@@ -9,6 +9,7 @@ import { decryptDeepReadingContextSnapshot } from "./deep-reading-snapshot";
 import { resultIntegrityHmac } from "./integrity";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
 import { createDeepReadingService, DeepReadingService } from "./deep-reading-service";
+import { PostgresRefundRepository } from "@/server/refunds/postgres-refund-repository";
 
 const databaseURL = process.env.TEST_DATABASE_URL;
 if (!databaseURL) throw new Error("TEST_DATABASE_URL is required for PostgreSQL integration tests");
@@ -131,6 +132,141 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
     expect(retry.creditReservationCreated).toBe(false);
   });
 
+
+  it("rejects a new Deep Reading reservation once refund provider dispatch owns the source entitlement", async () => {
+    const userId = `refund-held-${randomUUID()}`;
+    const fixture = await seedDeepReadingCandidateWithCredit(userId);
+    const refunds = new PostgresRefundRepository(sql);
+    const intent = await refunds.apply({
+      userId,
+      orderId: fixture.orderId,
+      reason: "Refund before reading",
+      now: new Date(),
+    });
+    await refunds.decide({
+      refundId: intent.id,
+      action: "approve",
+      operatorId: "approver-test",
+      now: new Date(),
+    });
+    await expect(refunds.claimProviderDispatch(
+      intent.id,
+      "dispatcher-test",
+      new Date(),
+    )).resolves.toMatchObject({ mode: "dispatch" });
+
+    await expect(deepReadingService.requestDeepReading({
+      userId,
+      castingId: fixture.castingId,
+      locale: "en",
+    })).rejects.toThrow("INSUFFICIENT_CREDITS");
+
+    const rows = await sql<Array<{
+      refund_locked: boolean;
+      available: number;
+      reserved: number;
+      reservations: number;
+    }>>`
+      select b.refund_locked, b.quantity_available::int as available,
+        b.quantity_reserved::int as reserved,
+        (select count(*)::int from entitlement_reservations er
+          where er.batch_id = b.id and er.status = 'reserved') as reservations
+      from entitlement_batches b where b.id = ${fixture.batchId}
+    `;
+    expect(rows[0]).toEqual({
+      refund_locked: true,
+      available: 1,
+      reserved: 0,
+      reservations: 0,
+    });
+  });
+
+  it("serializes concurrent refund dispatch against the real Deep Reading reservation transaction", async () => {
+    const userId = `refund-race-${randomUUID()}`;
+    const fixture = await seedDeepReadingCandidateWithCredit(userId);
+    const refunds = new PostgresRefundRepository(sql);
+    const intent = await refunds.apply({
+      userId,
+      orderId: fixture.orderId,
+      reason: "Concurrent refund",
+      now: new Date(),
+    });
+    await refunds.decide({
+      refundId: intent.id,
+      action: "approve",
+      operatorId: "approver-test",
+      now: new Date(),
+    });
+
+    const results = await Promise.allSettled([
+      deepReadingService.requestDeepReading({
+        userId,
+        castingId: fixture.castingId,
+        locale: "en",
+      }),
+      refunds.claimProviderDispatch(intent.id, "dispatcher-test", new Date()),
+    ]);
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+
+    const rows = await sql<Array<{
+      refund_status: string;
+      provider_write_state: string;
+      refund_locked: boolean;
+      available: number;
+      reserved: number;
+      reservations: number;
+      reserve_ledger_count: number;
+    }>>`
+      select r.status as refund_status, r.provider_write_state,
+        b.refund_locked, b.quantity_available::int as available,
+        b.quantity_reserved::int as reserved,
+        (select count(*)::int from entitlement_reservations er
+          where er.batch_id = b.id and er.status = 'reserved') as reservations,
+        (select count(*)::int from entitlement_ledger l
+          where l.batch_id = b.id and l.action = 'reserve') as reserve_ledger_count
+      from refund_intents r
+      join entitlement_batches b on b.order_id = r.order_id
+      where r.id = ${intent.id}
+    `;
+    const state = rows[0];
+    expect(state).toBeDefined();
+
+    const refundWon = state?.provider_write_state === "dispatched";
+    if (refundWon) {
+      expect(state).toEqual({
+        refund_status: "processing",
+        provider_write_state: "dispatched",
+        refund_locked: true,
+        available: 1,
+        reserved: 0,
+        reservations: 0,
+        reserve_ledger_count: 0,
+      });
+      const reading = results[0];
+      expect(reading.status).toBe("rejected");
+      if (reading.status === "rejected") {
+        expect(reading.reason).toBeInstanceOf(Error);
+        expect((reading.reason as Error).message).toBe("INSUFFICIENT_CREDITS");
+      }
+    } else {
+      expect(state).toEqual({
+        refund_status: "manual_review",
+        provider_write_state: "not_started",
+        refund_locked: false,
+        available: 0,
+        reserved: 1,
+        reservations: 1,
+        reserve_ledger_count: 1,
+      });
+      const dispatch = results[1];
+      expect(dispatch.status).toBe("rejected");
+      if (dispatch.status === "rejected") {
+        expect(dispatch.reason).toBeInstanceOf(Error);
+        expect((dispatch.reason as Error).message).toBe("REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE");
+      }
+    }
+  });
 
   it.each(["line-values", "primary-changing"] as const)("accepts persisted Manual %s casts for Deep Reading with one idempotent reservation", async (manualMode) => {
     const userId = `manual-${manualMode}-${randomUUID()}`;
