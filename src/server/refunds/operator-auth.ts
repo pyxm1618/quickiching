@@ -69,6 +69,13 @@ function secretDigest(value: string): Buffer {
   return createHash("sha256").update(value, "utf8").digest();
 }
 
+export function refundOperatorCredentialConfigurationValid(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  const state = loadCredentialState(env);
+  return state.valid && state.decision.length > 0 && state.dispatch.length > 0;
+}
+
 export function refundOperatorAuthorityConfigured(
   authority: RefundOperatorAuthority,
   env: Record<string, string | undefined> = process.env,
