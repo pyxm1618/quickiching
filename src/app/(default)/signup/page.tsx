@@ -5,7 +5,7 @@ import { isAuthCapabilityEnabled } from "@/server/auth/capability";
 import { validateAuthCallbackURL } from "@/server/auth/callback";
 
 export const metadata: Metadata = {
-  title: "Sign up | Quick I Ching",
+  title: "Sign up",
   robots: { index: false, follow: false },
 };
 
