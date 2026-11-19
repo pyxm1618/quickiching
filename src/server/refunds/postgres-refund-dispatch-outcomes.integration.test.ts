@@ -69,7 +69,7 @@ describe("refund provider write outcome persistence", () => {
 
   it("reopens the durable fence only after a proven not-dispatched outcome", async () => {
     const fixture = await approvedIntent();
-    expect((await repository.claimProviderDispatch(fixture.intentId, new Date())).mode).toBe("dispatch");
+    expect((await repository.claimProviderDispatch(fixture.intentId, "dispatcher-test", new Date())).mode).toBe("dispatch");
 
     await outcomes.releaseProviderDispatchNotSent({
       refundId: fixture.intentId,
@@ -96,14 +96,16 @@ describe("refund provider write outcome persistence", () => {
       provider_dispatched_at: null,
       next_reconcile_at: null,
       last_error_code: "REFUND_PROVIDER_PREFLIGHT_FAILED",
+      refund_locked: false,
+      available: 3,
     });
 
-    expect((await repository.claimProviderDispatch(fixture.intentId, new Date())).mode).toBe("dispatch");
+    expect((await repository.claimProviderDispatch(fixture.intentId, "dispatcher-test", new Date())).mode).toBe("dispatch");
   });
 
   it("makes a definite provider rejection terminal and never reopens the POST fence", async () => {
     const fixture = await approvedIntent();
-    expect((await repository.claimProviderDispatch(fixture.intentId, new Date())).mode).toBe("dispatch");
+    expect((await repository.claimProviderDispatch(fixture.intentId, "dispatcher-test", new Date())).mode).toBe("dispatch");
 
     await outcomes.markProviderDispatchRejected({
       refundId: fixture.intentId,
@@ -135,6 +137,6 @@ describe("refund provider write outcome persistence", () => {
       last_error_code: "REFUND_PROVIDER_REJECTED",
     });
 
-    expect((await repository.claimProviderDispatch(fixture.intentId, new Date())).mode).toBe("read_only");
+    expect((await repository.claimProviderDispatch(fixture.intentId, "dispatcher-test", new Date())).mode).toBe("read_only");
   });
 });
