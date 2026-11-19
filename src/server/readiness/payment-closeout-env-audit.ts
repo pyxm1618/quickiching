@@ -1,3 +1,5 @@
+import { refundOperatorCredentialConfigurationValid } from "@/server/refunds/operator-auth";
+
 export type PaymentCloseoutEnvEntry = {
   key?: unknown;
   target?: unknown;
@@ -21,7 +23,13 @@ const BASE_REQUIRED_KEYS = Object.freeze([
   "WAFFO_PRIVATE_KEY",
   "WAFFO_STORE_ID",
   "PAYMENT_CHECKOUT_URL_KEYS",
-  "REFUND_OPERATOR_SECRET",
+  "REFUND_DECISION_OPERATOR_CREDENTIALS",
+  "REFUND_DISPATCH_OPERATOR_CREDENTIALS",
+] as const);
+
+const REFUND_CREDENTIAL_KEYS = Object.freeze([
+  "REFUND_DECISION_OPERATOR_CREDENTIALS",
+  "REFUND_DISPATCH_OPERATOR_CREDENTIALS",
 ] as const);
 
 function requiredKeys(mode: AuditMode): readonly string[] {
@@ -69,8 +77,33 @@ function auditPaymentCloseoutEnv<M extends AuditMode>(
   const appEnv = appEnvRaw === expectedAppEnv ? expectedAppEnv : appEnvRaw;
   const waffoEnvironment = waffoRaw === expectedWaffo ? expectedWaffo : waffoRaw;
 
+  const refundCredentialEnv: Record<string, string | undefined> = {};
+  let refundCredentialValuesReadable = true;
+  for (const key of REFUND_CREDENTIAL_KEYS) {
+    const entry = production.get(key);
+    if (!entry) {
+      refundCredentialValuesReadable = false;
+      continue;
+    }
+    if (typeof entry.value !== "string" || !entry.value.trim()) {
+      unreadableRequiredValues.push(key);
+      refundCredentialValuesReadable = false;
+      continue;
+    }
+    refundCredentialEnv[key] = entry.value;
+  }
+
+  const refundCredentialsValid = refundCredentialValuesReadable
+    && refundOperatorCredentialConfigurationValid(refundCredentialEnv);
+  if (refundCredentialValuesReadable && !refundCredentialsValid) {
+    for (const key of REFUND_CREDENTIAL_KEYS) {
+      if (!unreadableRequiredValues.includes(key)) unreadableRequiredValues.push(key);
+    }
+  }
+
   return {
     ok: missingKeys.length === 0 && unreadableRequiredValues.length === 0
+      && refundCredentialsValid
       && appEnv === expectedAppEnv && waffoEnvironment === expectedWaffo,
     appEnv,
     waffoEnvironment,
