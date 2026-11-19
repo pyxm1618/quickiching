@@ -128,7 +128,7 @@ export const EN_GLOBAL_EXACT_ROWS = RESEARCH_TUPLES.map((tuple): EnGlobalExactRo
     unchangingGlobal,
     relationshipGlobal,
   ] = tuple;
-  const recommendedModules = ["meaning", "love", "unchanging", "six-lines"];
+  const recommendedModules = ["meaning", "six-lines"];
   if (RELATIONSHIP_SPECIFIC.has(number)) recommendedModules.push("relationship");
   if (number === 23) recommendedModules.push("splitting-apart-bo");
   if (number === 54) recommendedModules.push("romance-reading");
@@ -149,7 +149,7 @@ export const EN_GLOBAL_EXACT_ROWS = RESEARCH_TUPLES.map((tuple): EnGlobalExactRo
     unchangingGlobal,
     relationshipGlobal,
     recommendedModules,
-    titleTarget: `I Ching Hexagram ${number}: ${commonEnglishName} — Meaning, Love & Unchanging`,
+    titleTarget: `I Ching Hexagram ${number}: ${commonEnglishName} — Meaning`,
     h1Target: `Hexagram ${number} — ${commonEnglishName}`,
     specialKeywords: specialKeywords(number),
   };
