@@ -352,6 +352,7 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
   }
 
   selected.public_seo = selected.seo_static || selected.seo_browser || selected.locale_browser;
+  selected.payment = selected.payment_refund;
 
   const targets = new Set();
   if (forceFull || broadFrontend || nextConfigChange || any(files, ["config/performance-gates.json"])) {
