@@ -273,6 +273,11 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
   const broadFrontend = any(files, BROAD_FRONTEND);
   const dependencyChange = any(files, ["package.json", "bun.lock"]);
   const tsconfigChange = any(files, [/^tsconfig(?:\..+)?\.json$/]);
+  const dependencyCompilerOnly = files.length > 0 && files.every((file) =>
+    file === "package.json"
+    || file === "bun.lock"
+    || /^tsconfig(?:\..+)?\.json$/.test(file)
+  );
   const nextConfigChange = any(files, [/^next\.config\./]);
 
   const selected = {
@@ -352,7 +357,7 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
 
   // Dependency and compiler changes validate install/build/unit/security, but do not
   // imply that every business browser or database domain is affected.
-  if ((dependencyChange || tsconfigChange) && !forceFull) {
+  if (dependencyCompilerOnly && !forceFull) {
     selected.database = false;
     selected.reading = false;
     selected.reading_lifecycle = false;
