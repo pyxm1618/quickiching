@@ -19,9 +19,18 @@ export async function ReadingPage({ searchParams, locale = "en", pageMode = "fre
   const query = searchParams ? await searchParams : undefined;
   const sessionId = query?.session?.trim() || undefined;
   const user = await getCurrentUser({ allowUnavailable: true });
+  const shouldLoadPaidEntitlement = pageMode === "deep" && Boolean(user);
+  const shouldLoadDurableCasting = Boolean(sessionId) && (pageMode === "deep" || Boolean(user));
   const [balance, castingView] = await Promise.all([
-    user ? loadEntitlementBalance() : Promise.resolve({ available: 0, expiringSoon: 0 }),
-    sessionId ? loadCastingView(sessionId) : Promise.resolve(null),
+    shouldLoadPaidEntitlement ? loadEntitlementBalance() : Promise.resolve({ available: 0, expiringSoon: 0 }),
+    shouldLoadDurableCasting && sessionId
+      ? loadCastingView(sessionId).catch((error) => {
+          // A browser-completed Free Reading must remain usable when account
+          // persistence is unavailable. Deep Reading still fails closed.
+          if (pageMode === "free") return null;
+          throw error;
+        })
+      : Promise.resolve(null),
   ]);
   const result = castingView?.result;
   const initialInterpretationBundles = pageMode === "free" && result ? {
