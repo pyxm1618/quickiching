@@ -5,7 +5,7 @@ import { isAuthCapabilityEnabled } from "@/server/auth/capability";
 import { validateAuthCallbackURL } from "@/server/auth/callback";
 
 export const metadata: Metadata = {
-  title: "登录 | Quick I Ching",
+  title: "登录",
   description: "登录 Quick I Ching 账户，继续查看“我的解读”与可用的深度解读次数。",
   robots: { index: false, follow: false },
 };
