@@ -76,13 +76,13 @@ jobs:
           node-version-file: .node-version
       - name: Diff hygiene
         env:
-          CI_BASE_SHA: \${{ github.event.pull_request.base.sha || github.event.before }}
-          CI_HEAD_SHA: \${{ github.event.pull_request.head.sha || github.sha }}
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -n "\${CI_BASE_SHA:-}" ] && [ "\${CI_BASE_SHA}" != "0000000000000000000000000000000000000000" ]; then
-            git diff --check "\$CI_BASE_SHA...\$CI_HEAD_SHA"
+          if [ -n "${CI_BASE_SHA:-}" ] && [ "${CI_BASE_SHA}" != "0000000000000000000000000000000000000000" ]; then
+            git diff --check "$CI_BASE_SHA...$CI_HEAD_SHA"
           else
             git diff --check HEAD^ HEAD
           fi
@@ -90,7 +90,7 @@ jobs:
         run: node --test scripts/ci/*.test.mjs
       - name: Secret diff scan
         env:
-          CI_BASE_SHA: \${{ github.event.pull_request.base.sha || github.event.before }}
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: node scripts/ci/secret-scan.mjs
       - uses: oven-sh/setup-bun@v2
         if: needs.select.outputs.runtime == 'true'
@@ -158,18 +158,18 @@ jobs:
       - name: Compatibility aggregate only
         shell: bash
         env:
-          SELECT_RESULT: \${{ needs.select.result }}
-          FAST_RESULT: \${{ needs.fast.result }}
-          BUILD_RESULT: \${{ needs.build.result }}
-          SCHEMA_RESULT: \${{ needs.schema.result }}
-          BUILD_SELECTED: \${{ needs.select.outputs.build }}
-          SCHEMA_SELECTED: \${{ needs.select.outputs.schema }}
+          SELECT_RESULT: ${{ needs.select.result }}
+          FAST_RESULT: ${{ needs.fast.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          SCHEMA_RESULT: ${{ needs.schema.result }}
+          BUILD_SELECTED: ${{ needs.select.outputs.build }}
+          SCHEMA_SELECTED: ${{ needs.select.outputs.schema }}
         run: |
           set -euo pipefail
-          test "\$SELECT_RESULT" = success
-          test "\$FAST_RESULT" = success
-          if [ "\$BUILD_SELECTED" = true ]; then test "\$BUILD_RESULT" = success; else test "\$BUILD_RESULT" = skipped -o "\$BUILD_RESULT" = success; fi
-          if [ "\$SCHEMA_SELECTED" = true ]; then test "\$SCHEMA_RESULT" = success; else test "\$SCHEMA_RESULT" = skipped -o "\$SCHEMA_RESULT" = success; fi
+          test "$SELECT_RESULT" = success
+          test "$FAST_RESULT" = success
+          if [ "$BUILD_SELECTED" = true ]; then test "$BUILD_RESULT" = success; else test "$BUILD_RESULT" = skipped -o "$BUILD_RESULT" = success; fi
+          if [ "$SCHEMA_SELECTED" = true ]; then test "$SCHEMA_RESULT" = success; else test "$SCHEMA_RESULT" = skipped -o "$SCHEMA_RESULT" = success; fi
 
   database:
     name: CI / Database
