@@ -73,11 +73,11 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 @media(prefers-reduced-motion:reduce) {.ritual-canvas *{animation-duration:140ms!important;transition-duration:140ms!important;transition-delay:0ms!important;}}
 @media(max-width:800px) {
  .ritual-canvas {height:auto;min-height:calc(100svh - 75px);--u:1px;}
- .ritual-question-stage {position:relative;inset:auto;min-height:calc(100svh - 75px);padding:35px 20px;}
+ .ritual-question-stage {position:relative;inset:auto;min-height:calc(100svh - 75px);padding:88px 20px 35px;}
  .ritual-home-heading,.ritual-confirm-heading {position:relative;inset:auto;width:auto;}
  .ritual-home-heading .qic-gilded-title,.ritual-home-heading .qic-gilded-title em {font-size:36px;}
  /* Keep the confirm-stage back control clear of the two-line gilded heading. */
- .ritual-question-stage .ritual-back {position:absolute;top:0;left:0;font-size:16px;}
+ .ritual-question-stage .ritual-back {position:absolute;top:60px;left:20px;font-size:16px;}
  .ritual-home-heading p,.ritual-confirm-heading p {font-size:17px;margin:20px 0;}
  .ritual-confirm-heading .qic-gilded-title {font-size:42px;}
  .ritual-question-card,:is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-question-card {position:relative;inset:auto;width:100%;margin-top:28px;height:200px;padding:24px;}
@@ -202,10 +202,10 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 body:has([data-ritual-view='casting'],[data-ritual-view='result'],[data-ritual-view='progress'],[data-ritual-view='complete']) .ritual-question-context {opacity:0;pointer-events:none;}
 @media(max-width:800px) {
  .ritual-cast-ui {position:relative;inset:auto;min-height:780px;padding:20px;}
- .ritual-cast-heading,[data-ritual-view] .ritual-cast-heading {position:relative;inset:auto;width:auto;margin:35px 0 0;}
+ .ritual-cast-heading,[data-ritual-view] .ritual-cast-heading {position:relative;inset:auto;width:auto;margin:88px 0 0;}
  .ritual-cast-heading .qic-gilded-title,[data-ritual-view] .ritual-cast-heading .qic-gilded-title {font-size:38px;}
  .ritual-cast-heading > p:not(.ritual-stage-number),[data-ritual-view='result'] .ritual-cast-heading > p:last-child {font-size:17px;margin:15px 0;}
- .ritual-journey {display:none;}.ritual-sound{top:12px;right:20px;}.ritual-cast-ui .ritual-back{position:absolute;top:12px;left:20px;font-size:18px;}
+ .ritual-journey {display:none;}.ritual-sound{top:12px;right:20px;}.ritual-cast-ui .ritual-back{position:absolute;top:60px;left:20px;font-size:18px;}
  .ritual-six-lines {left:20px;top:235px;width:calc(100% - 40px);}.ritual-six-lines li {font-size:17px;}
  .ritual-cast-control,[data-ritual-view='progress'] .ritual-cast-control {left:20px;top:680px;width:calc(100% - 40px);height:auto;}
  [data-ritual-view='progress'] .hold-button {height:58px;background:#35200d;border:1px solid #bd9352;color:#fff1ca;border-radius:40px;}
