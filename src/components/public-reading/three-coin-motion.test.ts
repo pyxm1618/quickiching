@@ -24,7 +24,7 @@ describe('pure Three.js presentation contract', () => {
     }
   });
   it('keeps all canonical airborne ellipses face-independent without changing landing faces', () => {
-    const targets=[{x:730,y:500,ratio:.57,angle:40,textureAngle:9},{x:920,y:410,ratio:.50,angle:28,textureAngle:8},{x:1010,y:605,ratio:.88,angle:60,textureAngle:18}];
+    const targets=[{x:734,y:498,ratio:.57,angle:42,textureAngle:14},{x:918,y:418,ratio:.50,angle:28,textureAngle:8},{x:1005,y:608,ratio:.91,angle:50,textureAngle:24}];
     for(const face of ['yang','yin'] as const) for(let index=0;index<3;index++) {
       const pose=coinPose({phase:'casting',face,index,time:500,seed:1618,reducedMotion:false});
       const q=new Quaternion().setFromEuler(new Euler(...pose.rotation,pose.rotationOrder));

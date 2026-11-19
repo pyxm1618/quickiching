@@ -52,9 +52,20 @@ export type ThreeCoinSceneProps = {
   onReady?:()=>void;
 };
 
+// Screen-space control points for the three branches rising from the Bagua.
+const CAST_FLOW = [
+  { control1:[1000,728], control2:[710,639], coinOffset:[.28,.30] },
+  { control1:[930,748], control2:[854,590], coinOffset:[.28,.33] },
+  { control1:[580,540], control2:[880,725], coinOffset:[.42,.19] },
+] as const;
+
 function makeEffects(seed:number) {
   const group=new Group();
   const heroCurves=HERO_LIGHT_PATHS.map(points=>new CatmullRomCurve3(points.map(([x,y])=>new Vector3(x,y,0)),false,'centripetal'));
+  const crossingCurve=new CatmullRomCurve3([
+    new Vector3(835,790,0),new Vector3(812,730,0),new Vector3(752,653,0),
+    new Vector3(823,636,0),new Vector3(950,651,0),new Vector3(1089,647,0),
+  ],false,'centripetal');
   const samples=420;
   const geometry=new BufferGeometry();
   geometry.setAttribute('position',new BufferAttribute(new Float32Array(samples*3),3));
@@ -88,7 +99,7 @@ function makeEffects(seed:number) {
           float ends=endsBase+(1.-endsBase)*sin(vUv.y*3.14159);
           float highlight=glints*(exp(-pow((vUv.y-glintAt)*45.,2.))+.65*exp(-pow((vUv.y-glintAt2)*55.,2.)));
           vec3 radiance=mix(mix(vec3(1.35,.62,.16),vec3(2.6,1.5,.55),core),vec3(1.6,.85,.33),mist)*(1.+highlight*12.);
-          radiance=mix(radiance,vec3(2.5,2.25,1.75),white*core);
+          radiance=mix(radiance,vec3(2.8,1.9,.85),white*core);
           float edgeFade=pow(sin(vUv.x*3.14159),2.);
           gl_FragColor=vec4(radiance,min(.5+highlight*.3,(core+halo)*ends*intensity*(1.+highlight*9.)*mix(1.,turbulence*edgeFade*(.35+.65*noise(vec2(vUv.y*5.,7.))),mist)));
         }`,
@@ -134,7 +145,7 @@ function makeEffects(seed:number) {
   });
   const centers=Array.from({length:12},()=>new Float32Array(300));
   const projected=Array.from({length:12},()=>new Float32Array(200));
-  return {group,points,strands,glow,baseGlow,qi,heroCurves,centers,projected};
+  return {group,points,strands,glow,baseGlow,qi,heroCurves,crossingCurve,centers,projected};
 }
 
 export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
@@ -249,33 +260,56 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
     const edgeMaterial=new MeshStandardMaterial({map:textures[0],bumpMap:textures[0],bumpScale:0.0008,color:0x8a6a45,metalness:0.6,roughness:0.45,envMapIntensity:0.1,emissive:0xff8020,emissiveMap:textures[0],emissiveIntensity:0.4});
     const castingInnerShade={value:0};
     const rimHeat={value:0};
-    const rimDirs=[new Vector2(.8,-.6),new Vector2(.7,-.7),new Vector2(.9,.35)];
-    function hookEdge(material:MeshStandardMaterial,dir:Vector2) {
+    const primaryTrailGlints=[.73,.59,.68];
+    const secondaryTrailGlints=[.1,.35,-1];
+    const rimGlints=[
+      {direction:new Vector2(.94,.34),strength:1},
+      {direction:new Vector2(-.94,-.34),strength:.65},
+      {direction:new Vector2(-.85,-.53),strength:1.2},
+    ];
+    function hookEdge(material:MeshStandardMaterial,{direction,strength}:(typeof rimGlints)[number]) {
       material.onBeforeCompile=shader=>{
-        shader.uniforms.castingInnerShade=castingInnerShade;shader.uniforms.rimHeat=rimHeat;shader.uniforms.rimDir={value:dir};
+        shader.uniforms.castingInnerShade=castingInnerShade;shader.uniforms.rimHeat=rimHeat;shader.uniforms.rimDir={value:direction};shader.uniforms.rimStrength={value:strength};
         shader.vertexShader='varying float coinRadius;varying vec3 vRimPos;varying vec3 vRimCenter;\n'+shader.vertexShader;
         shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncoinRadius=length(position.xy);vRimPos=(modelViewMatrix*vec4(position,1.)).xyz;vRimCenter=(modelViewMatrix*vec4(0.,0.,0.,1.)).xyz;');
-        shader.fragmentShader='uniform float castingInnerShade;uniform float rimHeat;uniform vec2 rimDir;varying float coinRadius;varying vec3 vRimPos;varying vec3 vRimCenter;\n'+shader.fragmentShader;
-        shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>','outgoingLight*=mix(1.,.12,castingInnerShade*(1.-step(.6,coinRadius)));\nvec2 rimD=normalize(vRimPos.xy-vRimCenter.xy);outgoingLight+=vec3(2.4,1.7,.85)*pow(max(0.,dot(rimD,normalize(rimDir))),24.)*smoothstep(.86,.99,coinRadius)*rimHeat;\n#include <opaque_fragment>');
+        shader.fragmentShader='uniform float castingInnerShade;uniform float rimHeat;uniform vec2 rimDir;uniform float rimStrength;varying float coinRadius;varying vec3 vRimPos;varying vec3 vRimCenter;\n'+shader.fragmentShader;
+        shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>','outgoingLight*=mix(1.,.12,castingInnerShade*(1.-step(.6,coinRadius)));\nvec2 rimD=normalize(vRimPos.xy-vRimCenter.xy);outgoingLight+=vec3(2.6,1.55,.58)*pow(max(0.,dot(rimD,normalize(rimDir))),24.)*smoothstep(.86,.99,coinRadius)*rimHeat*rimStrength;\n#include <opaque_fragment>');
       };
     }
-    hookEdge(edgeMaterial,rimDirs[0]);
-    const edgeMaterials=[edgeMaterial,...rimDirs.slice(1).map(dir=>{const clone=edgeMaterial.clone();hookEdge(clone,dir);return clone;})];
+    hookEdge(edgeMaterial,rimGlints[0]);
+    const edgeMaterials=[edgeMaterial,...rimGlints.slice(1).map(glint=>{const clone=edgeMaterial.clone();hookEdge(clone,glint);return clone;})];
     const faceMaterials=textures.map(map=>new MeshStandardMaterial({map,color:0x8a6a45,bumpMap:map,bumpScale:0.0015,metalness:0.35,roughness:0.6,envMapIntensity:0.02,emissive:0xffd8b0,emissiveMap:map,emissiveIntensity:0.25}));
     const haloGeometry=new PlaneGeometry(3.2,3.2);
-    const haloMaterial=new ShaderMaterial({uniforms:{strength:{value:.18},radius:{value:1},settled:{value:0},orbitStrength:{value:0},faceSign:{value:1}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
+    const haloMaterial=new ShaderMaterial({uniforms:{strength:{value:.18},radius:{value:1},settled:{value:0},castingRim:{value:0},orbitStrength:{value:0},faceSign:{value:1}},transparent:true,depthWrite:false,side:DoubleSide,blending:AdditiveBlending,
       vertexShader:`varying vec2 p;void main(){p=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`uniform float strength;uniform float radius;uniform float settled;uniform float orbitStrength;uniform float faceSign;varying vec2 p;void main(){float d=length(p);vec2 screenP=vec2(p.x,p.y*faceSign);float angle=atan(screenP.y,screenP.x);float glints=.2+.15*orbitStrength+8.*pow(max(0.,cos(angle-mix(.8,1.5,orbitStrength))),80.)+5.*orbitStrength*pow(max(0.,cos(angle-2.8)),70.)+3.*pow(max(0.,cos(angle+1.4)),60.);float ring=mix(exp(-pow(d-radius,2.)*55.),exp(-pow((d-radius)*75.,2.))*glints,settled);float aura=exp(-d*d*2.2)*mix(.16,.035+orbitStrength*.09,settled);vec2 orbitP=vec2(screenP.x/1.35,(screenP.y+.31)/.25);float orbitAngle=atan(orbitP.y,orbitP.x);float contour=length(orbitP)-1.+.03*sin(orbitAngle*7.)+.015*sin(orbitAngle*13.);float orbit=(exp(-pow(contour*65.,2.))+.5*exp(-pow((contour+.09+.08*sin(orbitAngle*2.+1.1))*70.,2.))+.25*exp(-pow((contour-.1+.03*sin(orbitAngle*5.))*80.,2.)))*orbitStrength*(.025+.8*pow(abs(sin(orbitAngle*2.+.5)),12.));float a=(ring*.9+aura+orbit)*strength;gl_FragColor=vec4(mix(vec3(1.,.5,.1),vec3(3.8,1.9,.7),settled),a);}`,
+      fragmentShader:`uniform float strength;uniform float radius;uniform float settled;uniform float castingRim;uniform float orbitStrength;uniform float faceSign;varying vec2 p;void main(){float d=length(p);vec2 screenP=vec2(p.x,p.y*faceSign);float angle=atan(screenP.y,screenP.x);float glints=.2+.15*orbitStrength+8.*pow(max(0.,cos(angle-mix(.8,1.5,orbitStrength))),80.)+5.*orbitStrength*pow(max(0.,cos(angle-2.8)),70.)+3.*pow(max(0.,cos(angle+1.4)),60.);float ring=mix(exp(-pow(d-radius,2.)*55.),exp(-pow((d-radius)*75.,2.))*glints,settled);float aura=exp(-d*d*2.2)*mix(.16,.035+orbitStrength*.09,settled);vec2 orbitP=vec2(screenP.x/1.35,(screenP.y+.31)/.25);float orbitAngle=atan(orbitP.y,orbitP.x);float contour=length(orbitP)-1.+.03*sin(orbitAngle*7.)+.015*sin(orbitAngle*13.);float orbit=(exp(-pow(contour*65.,2.))+.5*exp(-pow((contour+.09+.08*sin(orbitAngle*2.+1.1))*70.,2.))+.25*exp(-pow((contour-.1+.03*sin(orbitAngle*5.))*80.,2.)))*orbitStrength*(.025+.8*pow(abs(sin(orbitAngle*2.+.5)),12.));float castEdge=exp(-pow((d-radius)*24.,2.))*(.14+.86*pow(max(0.,cos(angle+2.32)),5.))*castingRim;float a=(ring*.9+aura+orbit)*strength+castEdge;gl_FragColor=vec4(mix(vec3(1.,.5,.1),vec3(3.8,1.9,.7),max(settled,step(0.001,castingRim))),a);}`,
     });
     const coinFaceMaterials=Array.from({length:3},()=>faceMaterials.map(material=>{
       const clone=material.clone();
-      const contrast={faceMask:{value:null as Texture|null},faceContrast:{value:0},faceSheen:{value:0}};
+      const contrast={faceMask:{value:null as Texture|null},faceContrast:{value:0},faceSheen:{value:0},faceShadow:{value:0}};
       clone.userData.contrast=contrast;
       clone.onBeforeCompile=shader=>{
-        shader.uniforms.faceMask=contrast.faceMask;shader.uniforms.faceContrast=contrast.faceContrast;shader.uniforms.faceSheen=contrast.faceSheen;
-        shader.fragmentShader='uniform sampler2D faceMask;uniform float faceContrast;uniform float faceSheen;\n'+shader.fragmentShader;
+        shader.uniforms.faceMask=contrast.faceMask;shader.uniforms.faceContrast=contrast.faceContrast;shader.uniforms.faceSheen=contrast.faceSheen;shader.uniforms.faceShadow=contrast.faceShadow;
+        shader.fragmentShader='uniform sampler2D faceMask;uniform float faceContrast;uniform float faceSheen;uniform float faceShadow;\n'+shader.fragmentShader;
         shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\nfloat faceM=texture2D(faceMask,vMapUv).r;\nfloat faceL=dot(diffuseColor.rgb,vec3(.299,.587,.114));\ndiffuseColor.rgb=mix(diffuseColor.rgb,vec3(faceL)*vec3(1.08,1.,.9),faceContrast*.38*(1.-faceM));');
-        shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>','outgoingLight+=vec3(1.15,.72,.28)*faceContrast*faceM*.55;\noutgoingLight+=vec3(1.5,1.4,1.2)*faceSheen*pow(max(0.,dot(normal,normalize(vec3(-.45,-.55,.7)))),6.);\n#include <opaque_fragment>');
+        shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
+          if (faceShadow > 0.) {
+            float litFace = dot(outgoingLight, vec3(.299,.587,.114));
+            outgoingLight *= mix(1.,smoothstep(.005,.18,litFace),faceShadow);
+            vec2 faceOffset = vMapUv - .5;
+            float faceBevel = smoothstep(.388,.419,length(faceOffset));
+            float warmReflection = .33+.67*pow(max(0.,dot(normalize(faceOffset+vec2(.00001)),normalize(vec2(-.7,-.7)))),6.);
+            outgoingLight += vec3(.8,.38,.09)*faceBevel*warmReflection*faceShadow*(.2+.8*faceL);
+          }
+          outgoingLight += vec3(1.15,.72,.28)*faceContrast*faceM*.55;
+          if (faceSheen > 0.) {
+            vec2 reflectionOffset = (vMapUv-vec2(.69,.63))*vec2(2.85,2.45);
+            float reflection = .08+.92*exp(-dot(reflectionOffset,reflectionOffset));
+            float incidence = .68+.32*max(0.,dot(normal,normalize(vec3(-.45,-.55,.7))));
+            outgoingLight += vec3(1.55,.97,.48)*faceSheen*reflection*smoothstep(.065,.32,faceL)*incidence;
+          }
+          #include <opaque_fragment>
+        `);
       };
       return clone;
     }));
@@ -356,19 +390,20 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       });
       coins.forEach((coin,index)=> {
         coinFaceMaterials[index].forEach((material,faceIndex)=> {
-          material.color.setHex(castingScene?[0xbfb9ae,0xb5afa4,0x716c63][index]:settledScene?[0x704b28,0xb4b1a8,0xb4b1a8][index]:0x8a6a45);
-          const contrast=material.userData.contrast as {faceMask:{value:Texture|null};faceContrast:{value:number};faceSheen:{value:number}};
-          contrast.faceContrast.value=castingScene&&index<2?1:0;
-          contrast.faceSheen.value=castingScene&&index<2?.3:0;
+          material.color.setHex(castingScene?[0xc4b6a2,0xb5afa4,0x593f29][index]:settledScene?[0x704b28,0xb4b1a8,0xb4b1a8][index]:0x8a6a45);
+          const contrast=material.userData.contrast as {faceMask:{value:Texture|null};faceContrast:{value:number};faceSheen:{value:number};faceShadow:{value:number}};
+          contrast.faceContrast.value=castingScene?[1,.9,1.15][index]:0;
+          contrast.faceSheen.value=castingScene?[1.16,.33,.022][index]:0;
+          contrast.faceShadow.value=castingScene?[.6,.29,.91][index]:0;
           contrast.faceMask.value=emissiveMasks[1][faceIndex];
           material.metalness=.35;
-          material.roughness=castingScene?[.5,.46,.45][index]:settledScene?.4:.6;
+          material.roughness=castingScene?[.39,.46,.39][index]:settledScene?.4:.6;
           material.envMap=castingScene||settledScene?castingEnvironmentTarget.texture:null;
-          material.envMapIntensity=castingScene?[.7,.65,1.2][index]:settledScene?.35:.02;
+          material.envMapIntensity=castingScene?[.85,.50,1.2][index]:settledScene?.35:.02;
           material.bumpScale=castingScene?.012:.0015;
           material.emissiveMap=castingScene?emissiveMasks[index===0?1:index][faceIndex]:settledScene?emissiveMasks[index===0?3:1][faceIndex]:textures[faceIndex];
           material.emissive.setHex(castingScene?[0xffe8c7,0xffe8c7,0xffcf99][index]:settledScene?[0xffb348,0xffbc70,0xffbc70][index]:0xffd8b0);
-          material.emissiveIntensity=settledScene?[2,1.3,1.3][index]:castingScene?[.12,.18,.95][index]:.25;
+          material.emissiveIntensity=settledScene?[2,1.3,1.3][index]:castingScene?[.43,.12,1.12][index]:.25;
           if(lightingChanged)material.needsUpdate=true;
         });
         const pose=coinPose({phase:input.phase,face:input.faces[index],index,time,seed:input.visualSeed,reducedMotion:reduced.matches});
@@ -383,7 +418,8 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         coin.visible=pose.opacity>0;layerOpacity=Math.max(layerOpacity,pose.opacity);
         const halo=coin.children[0] as Mesh<PlaneGeometry,ShaderMaterial>;
         halo.material.uniforms.strength.value=settledScene?(index===0?1:.3):castingScene?0:.18;
-        halo.material.uniforms.radius.value=settledScene?(index===0?.9:.87):1;
+        halo.material.uniforms.radius.value=settledScene?(index===0?.9:.87):castingScene?1.018:1;
+        halo.material.uniforms.castingRim.value=castingScene&&index===2&&!reduced.matches?castTrailIntensity(time,index)*.88:0;
         halo.material.uniforms.settled.value=settledScene?1:0;
         halo.material.uniforms.orbitStrength.value=settledScene&&index===0?1:0;
         halo.material.uniforms.faceSign.value=settledScene&&input.faces[index]==='yin'?-1:1;
@@ -409,11 +445,11 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
       const opacities=effects.points.geometry.getAttribute('opacity') as BufferAttribute;
       const sizes=effects.points.geometry.getAttribute('size') as BufferAttribute;
       for(let i=0;i<position.count;i++) {
-        sizes.setX(i,(i<130?1.1+visualNoise(input.visualSeed,i+500)*1.6:0.45+visualNoise(input.visualSeed,i+500)*0.45)*(settledScene?.5:input.phase==='casting'?(i<130?.7:1.4):1));
+        sizes.setX(i,(i<130?1.1+visualNoise(input.visualSeed,i+500)*1.6:0.45+visualNoise(input.visualSeed,i+500)*0.45)*(settledScene?.5:input.phase==='casting'?(i<130?.78:1.52):1));
         const n=visualNoise(input.visualSeed,i);const altitude=Math.pow(visualNoise(input.visualSeed,i+200),1.35)*(heroScene?500:430);
         const angle=n*Math.PI*2+effectTime/1000*0.3;
         const age=((effectTime+n*1900)%1900)/1900;
-        const radius=visualNoise(input.visualSeed,i+300)*(i%20<13?150:280);
+        const radius=visualNoise(input.visualSeed,i+300)*(i%20<13?150:castingScene?325:280);
         let x=originX+Math.cos(angle)*radius;
         let y=originY-altitude-age*45;
         if(heroScene && i%20>=13 && i%20<18) {
@@ -447,6 +483,10 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
           const ny=pose.rotationOrder==='XYZ'?-Math.sin(pitch)*Math.cos(yaw):Math.sin(roll)*Math.sin(yaw)*Math.cos(pitch)-Math.cos(roll)*Math.sin(pitch);
           const tilt=Math.atan2(-ny,nx)+Math.PI/2;
           const centers=effects.centers[index],screen=effects.projected[index];
+          const crossesCoins=ci===2&&variant===2;
+          if(crossesCoins){
+            effects.crossingCurve.points[5].set(pose.x+pose.diameter*CAST_FLOW[ci].coinOffset[0],pose.y+pose.diameter*CAST_FLOW[ci].coinOffset[1],0);
+          }
           for(let i=0;i<100;i++) {
             const t=i/99;
             let x:number,y:number,z:number;
@@ -458,16 +498,20 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
               const arcTilt=variant===1&&ci===0?0:tilt;
               x=pose.x+ex*Math.cos(arcTilt)-ey*Math.sin(arcTilt)+(variant===1&&ci===0?-75+t*40:0);
               y=pose.y+ex*Math.sin(arcTilt)+ey*Math.cos(arcTilt)+(variant===1&&ci===0?-50+t*20:0);
-              z=depth-45+Math.sin(ang)*12*scale+(variant===0?160*(Math.exp(-Math.pow((t-[.73,.76,.68][ci])*45,2))+.65*Math.exp(-Math.pow((t-[.1,.35,-1][ci])*55,2)))*scale:0);
+              z=depth-45+Math.sin(ang)*12*scale+(variant===0?160*(Math.exp(-Math.pow((t-primaryTrailGlints[ci])*45,2))+.65*Math.exp(-Math.pow((t-secondaryTrailGlints[ci])*55,2)))*scale:0);
             } else {
               const spread=(variant-2.5)*18;
-              const endX=pose.x+pose.diameter*[.28,.28,-.46][ci];
-              const endY=pose.y+pose.diameter*[.3,.33,-.02][ci];
-              const c1x=[1130,1070,1070][ci]+spread,c2x=[680,770,1090][ci]+spread;
-              const c1y=[750,710,750][ci],c2y=[650,590,680][ci];
+              const {control1:[c1x,c1y],control2:[c2x,c2y],coinOffset:[offsetX,offsetY]}=CAST_FLOW[ci];
+              const endX=pose.x+pose.diameter*offsetX;
+              const endY=pose.y+pose.diameter*offsetY;
               const u=1-t;
-              x=u*u*u*originX+3*u*u*t*c1x+3*u*t*t*c2x+t*t*t*endX;
-              y=u*u*u*originY+3*u*u*t*c1y+3*u*t*t*c2y+t*t*t*endY;
+              if(crossesCoins){
+                effects.crossingCurve.getPoint(t,projection);
+                x=projection.x;y=projection.y;
+              }else{
+                x=u*u*u*originX+3*u*u*t*(c1x+spread*2)+3*u*t*t*(c2x+spread*3)+t*t*t*endX;
+                y=u*u*u*originY+3*u*u*t*c1y+3*u*t*t*c2y+t*t*t*endY;
+              }
               z=12*(1-t)+depth*t;
             }
             const correction=(camera.position.z-z)/camera.position.z;
@@ -483,17 +527,18 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
             for(let side=0;side<2;side++) {
               const t=i/99;
               const curl=Math.sin(t*Math.PI*2.2+index*1.35)*Math.sin(t*Math.PI)*2*scale*depthScale;
-              const offset=((side-.5)*(variant===1?(ci===0?80:42):2.5)*scale*depthScale)+curl;
+              const offset=((side-.5)*(variant===1?(ci===0?92:46):crossesCoins?3.8:2.5)*scale*depthScale)+curl;
               rimPoint.set(centers[i*3]-dy/length*offset,centers[i*3+1]+dx/length*offset,centers[i*3+2]).applyMatrix4(inverseEffects);
               positions.setXYZ(i*2+side,rimPoint.x,rimPoint.y,rimPoint.z);uv.setXY(i*2+side,side,i/99);
             }
           }
-          ribbon.material.uniforms.intensity.value=energy*castTrailIntensity(effectTime,ci)*(variant===0?.8:variant===1?[.38,.28,.28][ci]:[.48,.4,.36][ci]);
+          ribbon.material.uniforms.intensity.value=energy*castTrailIntensity(effectTime,ci)*(variant===0?.8:variant===1?[.49,.28,.45][ci]:crossesCoins?.76:[.56,.40,.46][ci]);
           ribbon.material.uniforms.mist.value=variant===1?1:0;
           ribbon.material.uniforms.soft.value=variant===1?2:.25;ribbon.material.uniforms.endsBase.value=variant===1?0:.15;
-          ribbon.material.uniforms.glints.value=variant===0?1:0;
-          ribbon.material.uniforms.glintAt.value=(variant===0?[.73,.76,.68]:[.34,.08,.45])[ci];
-          ribbon.material.uniforms.glintAt2.value=variant===0?[.1,.35,-1][ci]:-1;
+          const risingGlint=ci===1&&variant===2;
+          ribbon.material.uniforms.glints.value=variant===0?1:risingGlint?.26:0;
+          ribbon.material.uniforms.glintAt.value=variant===0?primaryTrailGlints[ci]:risingGlint?.72:0;
+          ribbon.material.uniforms.glintAt2.value=variant===0?secondaryTrailGlints[ci]:-1;
           ribbon.material.uniforms.white.value=variant===2?1:0;
         } else {
           const centers=effects.centers[index];
@@ -520,14 +565,15 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         const uv=mesh.geometry.getAttribute('uv') as BufferAttribute;
         const ci=index%3;
         const pose=castingScene?coinPose({phase:'casting',face:input.faces[ci],index:ci,time:effectTime,seed:input.visualSeed,reducedMotion:false}):null;
+        const {control1,control2,coinOffset:[offsetX,offsetY]}=CAST_FLOW[ci];
+        const c1x=control1[0]+(index<3?-32:12),c2x=control2[0]+(index<3?-42:12);
+        const c1y=control1[1],c2y=control2[1];
+        const endX=pose?pose.x+pose.diameter*offsetX:originX;
+        const endY=pose?pose.y+pose.diameter*offsetY:originY;
         for(let i=0;i<100;i++) {
           const t=i/99;const angle=t*7.2+index*1.5+effectTime/4200;
           const sway=Math.sin(t*Math.PI);
           const u=1-t;
-          const c1x=[1130,1070,1070][ci]+(index<3?-12:12),c2x=[680,770,1090][ci]+(index<3?-12:12);
-          const c1y=[750,710,750][ci],c2y=[650,590,680][ci];
-          const endX=pose?pose.x+pose.diameter*[.28,.28,-.46][ci]:originX;
-          const endY=pose?pose.y+pose.diameter*[.3,.33,-.02][ci]:originY;
           const x=pose?u*u*u*originX+3*u*u*t*c1x+3*u*t*t*c2x+t*t*t*endX:originX+Math.sin(angle)*t*185;
           const y=pose?u*u*u*originY+3*u*u*t*c1y+3*u*t*t*c2y+t*t*t*endY:originY-t*490-((effectTime-index*200)%1300)/1000*25;
           const dx=3*u*u*(c1x-originX)+6*u*t*(c2x-c1x)+3*t*t*(endX-c2x);
@@ -536,7 +582,7 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
           const ddx=6*u*(c2x-2*c1x+originX)+6*t*(endX-2*c2x+c1x);
           const ddy=6*u*(c2y-2*c1y+originY)+6*t*(endY-2*c2y+c1y);
           const curvature=Math.abs(dx*ddy-dy*ddx)/(length*length*length);
-          const bandWidth=pose?Math.min(10+sway*[180,110,150][ci],1.5/Math.max(curvature,.001)):14+sway*70;
+          const bandWidth=pose?Math.min(10+sway*[154,104,109][ci],1.5/Math.max(curvature,.001)):14+sway*70;
           for(let side=0;side<2;side++) {
             const offset=(side-.5)*bandWidth;
             positions.setXYZ(i*2+side,(x-836+offset*(pose?-dy/length:1))*scale,(470.5-y-offset*(pose?dx/length:0))*scale,12);
@@ -546,17 +592,17 @@ export default function ThreeCoinScene(props:ThreeCoinSceneProps) {
         const delay=castingScene?ci*80:index*200;
         positions.needsUpdate=true;uv.needsUpdate=true;const age=((effectTime-delay)%1300)/1000;
         const birth=effectTime-age*1000;
-        mesh.material.uniforms.intensity.value=effectTime<delay||age<0||age>1||birth>1850?0:energy*(progressScene?.46:castingScene?[.85,.65,.75][ci]:.34)*Math.sin(age*Math.PI);
+        mesh.material.uniforms.intensity.value=effectTime<delay||age<0||age>1||birth>1850?0:energy*(progressScene?.46:castingScene?[1.1,.60,.98][ci]:.34)*Math.sin(age*Math.PI);
         mesh.material.uniforms.flowTime.value=effectTime/4000;
         mesh.material.uniforms.filaments.value=castingScene?1:0;
-        (mesh.material.uniforms.tint.value as Vector3).set(...(castingScene?[2.2,1.5,.8] as [number,number,number]:[.78,.42,.16] as [number,number,number]));
+        (mesh.material.uniforms.tint.value as Vector3).set(...(castingScene?[2.65,1.68,.72] as [number,number,number]:[.78,.42,.16] as [number,number,number]));
       });
       effects.glow.position.set((originX-836)*scale,(470.5-(heroScene?650:660))*scale,-5);effects.glow.scale.set(scale,scale*(heroScene?2:1),scale);
       effects.glow.material.uniforms.intensity.value=energy*(input.phase==='casting'?.16:.4);
       effects.baseGlow.visible=true;
       effects.baseGlow.position.set(((progressScene?1008:heroScene?1118:835)-836)*scale,(470.5-(progressScene?770:heroScene?785:800))*scale,-4);
       effects.baseGlow.scale.setScalar(scale*(castingScene?.55:1));
-      effects.baseGlow.material.uniforms.intensity.value=energy*(castingScene?1.4:.65);
+      effects.baseGlow.material.uniforms.intensity.value=energy*(castingScene?1.1:.65);
       (effects.baseGlow.material.uniforms.radiance.value as Vector3).set(4,castingScene?2.6:1.6,castingScene?.9:.22);
       }
       }

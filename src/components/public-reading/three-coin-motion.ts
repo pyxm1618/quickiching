@@ -98,7 +98,7 @@ export function coinPose(input:{
       opacity:1,
     };
   }
-  const peakDiameter=[215,168,200][index];
+  const peakDiameter=[207,178,201][index];
   const variance=visualNoise(seed,index)*3;
   const elevation=[542+variance,612-variance,563+variance][index];
   const peakX=[610,944,1063][index];
@@ -118,12 +118,12 @@ export function coinPose(input:{
   const spin=spinProgress(progress,index);
   const targetAngle=(index===1&&face==='yang'?6*PI:4*PI)+(face==='yin'?PI:0);
   const flightInitial=flightInitialRotations[index];
-  const precession=Math.pow(Math.sin(spin*PI),[2.5,2,2][index])*[.543108,.59617,.399701][index];
-  const roll=Math.sin(clamp(progress/.72)*PI)*[.35646,.472605,-.354251][index];
+  const precession=Math.pow(Math.sin(spin*PI),[2.5,2,2][index])*[.569876,.59617,.292534][index];
+  const roll=Math.sin(clamp(progress/.72)*PI)*[.27944,.472605,-.54][index];
   // The airborne bias unwinds before the authoritative landing.
-  const tiltBias=Math.sin(spin*PI)*(face==='yang'?[-1.506605,-1.9487,.846188]:[3.100184,-.682391,-.518454])[index]*(1-guidance);
+  const tiltBias=Math.sin(spin*PI)*(face==='yang'?[-1.491236,-1.9487,.824212]:[3.115553,-.682391,-.54043])[index]*(1-guidance);
   const drift=(1-guidance)*sizeEntry;
-  return {x:x+[25,16,5][index]*drift,y:y+[24,14,16][index]*drift,diameter,rotation:[
+  return {x:x+[29,14,0][index]*drift,y:y+[22,22,19][index]*drift,diameter,rotation:[
     flightInitial[0]*(1-spin)+targetAngle*spin+tiltBias,
     (precession+flightInitial[1]*(1-spin))*(1-guidance),
     (roll+flightInitial[2]*(1-spin))*(1-guidance),
