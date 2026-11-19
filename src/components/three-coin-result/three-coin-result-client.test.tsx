@@ -56,55 +56,71 @@ describe("ThreeCoinResultClient Deep Reading credit reconciliation", () => {
 });
 
 describe("ThreeCoinResultClient auth-save-reveal gate", () => {
-  it("requires authentication before reveal", () => {
-    expect(getResultRevealGate({ authenticated: false, castingId: null, persistenceStatus: "idle" })).toBe("auth-required");
+  it("reveals Free Reading without authentication or durable persistence", () => {
+    for (const persistenceStatus of ["idle", "saving", "error", "saved"] as const) {
+      expect(getResultRevealGate({
+        pageMode: "free",
+        authenticated: false,
+        castingId: null,
+        persistenceStatus,
+      })).toBe("reveal");
+    }
   });
 
-  it("keeps a signed-in completed cast behind saving until account persistence succeeds", () => {
-    expect(getResultRevealGate({ authenticated: true, castingId: null, persistenceStatus: "idle" })).toBe("saving");
-    expect(getResultRevealGate({ authenticated: true, castingId: null, persistenceStatus: "saving" })).toBe("saving");
-    expect(getResultRevealGate({ authenticated: true, castingId: null, persistenceStatus: "error" })).toBe("save-error");
+  it("keeps Deep Reading authenticated and durably owned", () => {
+    expect(getResultRevealGate({
+      pageMode: "deep",
+      authenticated: false,
+      castingId: null,
+      persistenceStatus: "idle",
+    })).toBe("auth-required");
+    expect(getResultRevealGate({
+      pageMode: "deep",
+      authenticated: true,
+      castingId: null,
+      persistenceStatus: "idle",
+    })).toBe("saving");
+    expect(getResultRevealGate({
+      pageMode: "deep",
+      authenticated: true,
+      castingId: null,
+      persistenceStatus: "error",
+    })).toBe("save-error");
+    expect(getResultRevealGate({
+      pageMode: "deep",
+      authenticated: true,
+      castingId: "cast_1",
+      persistenceStatus: "saved",
+    })).toBe("reveal");
   });
 
-  it("allows reveal only for an authenticated saved casting id", () => {
-    expect(getResultRevealGate({ authenticated: true, castingId: "cast_1", persistenceStatus: "saved" })).toBe("reveal");
-    expect(getResultRevealGate({ authenticated: false, castingId: "cast_1", persistenceStatus: "saved" })).toBe("auth-required");
-  });
-
-  it("renders an anonymous completed cast as an auth gate without leaking the free result", () => {
+  it("renders an anonymous completed cast as a Free Reading when content is ready", async () => {
+    const primary = await loadHexagramInterpretation(1);
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient
+        locale="en"
+        initialInterpretationBundles={{ primary, relating: null }}
+        initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on?" }}
+      />,
+    );
+    expect(html).toContain("data-public-reading-result");
+    expect(html).toContain("data-primary-card");
+    expect(html).toContain("Your Free Reading");
+    expect(html).not.toContain('data-completed-cast-gate="auth-required"');
+    expect(html).not.toContain("Sign In for Free Reading");
+  });
+
+  it("keeps an anonymous completed cast behind auth on the Deep Reading intent", () => {
+    const html = renderToStaticMarkup(
+      <ThreeCoinResultClient
+        pageMode="deep"
         locale="en"
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on?" }}
       />,
     );
     expect(html).toContain('data-completed-cast-gate="auth-required"');
     expect(html).toContain("data-result-choice");
-    expect(html).toContain("Sign In for Free Reading");
-    expect(html).toContain("data-completed-six-lines");
-    expect(html).not.toContain("Save Your Reading");
-    expect(html).not.toContain("ritual-save-gate");
-    expect(html).not.toContain("data-primary-card");
-    expect(html).not.toContain("data-ritual-result-card");
-    expect(html).not.toContain("data-deep-reading-entry");
-  });
-
-  it("renders a signed-in unsaved completed cast as saving without leaking the free result", () => {
-    const html = renderToStaticMarkup(
-      <ThreeCoinResultClient
-        locale="en"
-        initialUser={{ id: "usr_1", email: "test@example.com" }}
-        initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "What should I focus on?" }}
-      />,
-    );
-    expect(html).toContain('data-completed-cast-gate="saving"');
-    expect(html).toContain("data-result-choice");
-    expect(html).toContain("data-account-reading-saving");
-    expect(html).not.toContain("Save Your Reading");
-    expect(html).not.toContain("ritual-save-gate");
-    expect(html).not.toContain("data-primary-card");
-    expect(html).not.toContain("data-ritual-result-card");
-    expect(html).not.toContain("data-deep-reading-entry");
+    expect(html).not.toContain("data-start-deep-reading");
   });
 });
 
