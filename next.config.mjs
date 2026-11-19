@@ -1,4 +1,5 @@
 import { withWorkflow } from "workflow/next";
+import { isNonCanonicalVercelDeployment } from "./src/lib/vercel-deployment.mjs";
 
 export function buildContentSecurityPolicy(environment = process.env) {
   const scriptSources = ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com", "https://*.clarity.ms", "https://challenges.cloudflare.com"];
@@ -22,10 +23,7 @@ export function buildContentSecurityPolicy(environment = process.env) {
 }
 
 export function buildCrawlerIndexingHeaders(environment = process.env) {
-  const branch = environment.VERCEL_GIT_COMMIT_REF?.trim();
-  const nonProduction = branch === "staging"
-    || (environment.VERCEL === "1" && environment.VERCEL_ENV !== "production");
-  return nonProduction
+  return isNonCanonicalVercelDeployment(environment)
     ? [{ key: "X-Robots-Tag", value: "noindex, nofollow" }]
     : [];
 }
