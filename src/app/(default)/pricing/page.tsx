@@ -9,7 +9,7 @@ import { PricingSurfaceState } from "@/navigation/pricing-surface-state";
 import { buildPricingView } from "./pricing-model";
 
 export const metadata: Metadata = {
-  title: "Deep Reading Credits | Quick I Ching",
+  title: "Deep Reading Credits",
   description: "Pricing and availability for Deep Reading credits that connect an I Ching cast to your specific question and situation.",
   alternates: { canonical: "/pricing" },
   robots: { index: false, follow: true },
