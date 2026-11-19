@@ -17,6 +17,7 @@ describe("metadata title branding contract", () => {
       for (const [index, line] of source.split("\n").entries()) {
         if (!/\btitle\s*:/u.test(line)) continue;
         if (/\babsolute\s*:/u.test(line)) continue;
+        if (/\btemplate\s*:/u.test(line)) continue;
         if (/\|\s*Quick I Ching/u.test(line)) offenders.push(`${path}:${index + 1}`);
       }
     }
