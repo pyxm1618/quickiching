@@ -146,22 +146,30 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
     assert.equal(clickProbe.href,freeChoiceHref,"Free Reading DOM href must stay bound to this completed cast");
     assert(clickProbe.contained&&clickProbe.hitHref===freeChoiceHref,`Free Reading center hit-test must target its own link: ${JSON.stringify(clickProbe)}`);
     await p.click('[data-result-choice-free]');
-    await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
-    assert.equal(new URL(p.url()).pathname,expectedFree,`Free Reading must navigate to the downstream auth-gated route; final=${p.url()} probe=${JSON.stringify(clickProbe)}`);
-    const freeHref=await p.$eval('[data-auth-reading-intent="free"]',e=>e.getAttribute("href"));
-    const deepHref=await p.$eval('[data-auth-reading-alternate-intent="deep"]',e=>e.getAttribute("href"));
-    const free=callbackFromHref(freeHref),deep=callbackFromHref(deepHref);
-    assert.equal(free.login.pathname,zh?"/zh/signin":"/signin");
-    assert.equal(free.callback.pathname,expectedFree);
-    assert.equal(free.callback.searchParams.get("session"),sessionId);
-    assert.equal(deep.callback.pathname,expectedDeep);
-    assert.equal(deep.callback.searchParams.get("session"),sessionId);
+    await p.waitForSelector('[data-public-reading-result]');
+    assert.equal(new URL(p.url()).pathname,expectedFree,`Free Reading must navigate to the public result route; final=${p.url()} probe=${JSON.stringify(clickProbe)}`);
+    assert.equal(await p.$('[data-completed-cast-gate="auth-required"]'),null,"Free Reading must not require authentication");
+    const freeDeepHref=await p.$eval('[data-deep-reading-cta] a[href]',e=>e.getAttribute("href"));
+    assert.equal(new URL(freeDeepHref,BASE).pathname,expectedDeep);
+    assert.equal(new URL(freeDeepHref,BASE).searchParams.get("session"),sessionId);
 
     await p.reload({waitUntil:"networkidle0"});
-    await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
+    await p.waitForSelector('[data-public-reading-result]');
     assert.equal(await p.evaluate(({prefix,id})=>localStorage.getItem(prefix+id),{prefix:PENDING_PREFIX,id:sessionId}),beforeReload,"Reload must preserve the exact Pending record");
     assert.equal(new URL(p.url()).searchParams.get("session"),sessionId);
-    results.checks.push(`${zh?"ZH":"EN"} ${viewport.width}px: number+moment cast → Result Choice → Free auth handoff + Deep callback → reload same cast PASS`);
+
+    await p.goto(new URL(deepChoiceHref,BASE).toString(),{waitUntil:"networkidle0"});
+    await p.waitForSelector('[data-completed-cast-gate="auth-required"]');
+    assert.equal(await p.$('[data-start-deep-reading]'),null,"Anonymous Deep Reading must remain gated");
+    const deepHref=await p.$eval('[data-auth-reading-intent="deep"]',e=>e.getAttribute("href"));
+    const freeHref=await p.$eval('[data-auth-reading-alternate-intent="free"]',e=>e.getAttribute("href"));
+    const deep=callbackFromHref(deepHref),free=callbackFromHref(freeHref);
+    assert.equal(deep.login.pathname,zh?"/zh/signin":"/signin");
+    assert.equal(deep.callback.pathname,expectedDeep);
+    assert.equal(deep.callback.searchParams.get("session"),sessionId);
+    assert.equal(free.callback.pathname,expectedFree);
+    assert.equal(free.callback.searchParams.get("session"),sessionId);
+    results.checks.push(`${zh?"ZH":"EN"} ${viewport.width}px: number+moment cast → public Free Reading + auth-gated Deep callback → reload same cast PASS`);
     return {id:sessionId,algorithmVersion:completed.methodVersion};
   }finally{await p.close();}
 }
