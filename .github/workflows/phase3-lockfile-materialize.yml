@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   lockfile:
@@ -13,29 +13,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: fix/phase3-security-runtime-hardening
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
-      - name: Resolve lockfile through the canonical npm registry
+      - name: Resolve and commit the Phase 3A dependency lock
         run: |
           set -euo pipefail
-          bun install --lockfile-only --registry=https://registry.npmjs.org
-          node - <<'NODE' > phase3-lock-report.txt
-          const fs = require("fs");
-          const lock = fs.readFileSync("bun.lock", "utf8");
-          const mirror = (lock.match(/registry\.npmmirror\.com/g) || []).length;
-          const npm = (lock.match(/registry\.npmjs\.org/g) || []).length;
-          console.log("npmmirror=" + mirror);
-          console.log("npmjs=" + npm);
-          console.log("betterAuth1725=" + (lock.includes('better-auth@1.7.25') || lock.includes('better-auth", "1.7.25')));
-          NODE
-          cat phase3-lock-report.txt
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: phase3a-lockfile
-          path: |
-            bun.lock
-            phase3-lock-report.txt
-          if-no-files-found: error
-          retention-days: 2
+          bun install --lockfile-only
+          bun install --frozen-lockfile
+          grep -q '"better-auth": "1.7.25"' bun.lock
+          grep -q '"@better-auth/drizzle-adapter": "1.7.25"' bun.lock
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock
+          if git diff --cached --quiet; then
+            echo "bun.lock already current"
+          else
+            git commit -m "chore: update Better Auth lockfile"
+            git push origin HEAD:fix/phase3-security-runtime-hardening
+          fi
