@@ -53,7 +53,27 @@ jobs:
           rm -rf node_modules
           bun install --frozen-lockfile
           bun pm ls --all | sort > /tmp/phase3-new-tree.txt
-          diff -u /tmp/phase3-old-tree.txt /tmp/phase3-new-tree.txt
+          diff -u /tmp/phase3-old-tree.txt /tmp/phase3-new-tree.txt > phase3-raw-tree.diff || true
+          node - <<'NODE'
+          const fs = require("fs");
+          const platformOptional = /^(?:@esbuild\/|@rollup\/rollup-|@next\/swc-|@img\/sharp-|@img\/sharp-libvips-|lightningcss-(?:linux|darwin|win32|freebsd|android)|fsevents@)/;
+          const parse = (file) => new Set(
+            fs.readFileSync(file, "utf8")
+              .split(/\r?\n/)
+              .map(line => line.replace(/^[\s│├└─]+/, "").trim())
+              .filter(Boolean)
+              .filter(item => !platformOptional.test(item))
+          );
+          const oldSet = parse("/tmp/phase3-old-tree.txt");
+          const newSet = parse("/tmp/phase3-new-tree.txt");
+          const removed = [...oldSet].filter(x => !newSet.has(x)).sort();
+          const added = [...newSet].filter(x => !oldSet.has(x)).sort();
+          if (removed.length || added.length) {
+            console.error(JSON.stringify({removed, added}, null, 2));
+            process.exit(1);
+          }
+          console.log("semantic-dependency-tree=identical (platform optional packages normalized)");
+          NODE
           mirror_count="$(grep -c 'registry.npmmirror.com' bun.lock || true)"
           npm_count="$(grep -c 'registry.npmjs.org' bun.lock || true)"
           echo "npmmirror=$mirror_count"
@@ -69,5 +89,6 @@ jobs:
             bun.lock
             phase3-old-tree.txt
             phase3-new-tree.txt
+            phase3-raw-tree.diff
           if-no-files-found: error
           retention-days: 2
