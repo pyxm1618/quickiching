@@ -1,3 +1,4 @@
+import { sharedOpenGraphImageMetadata } from "@/lib/shared-open-graph-image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: { absolute: seo.finalTitle },
     description: seo.finalDescription,
     alternates: { canonical, languages: alternateLanguages(`hexagram:${entry.slug}`) },
-    openGraph: { title: seo.finalTitle, description: seo.finalDescription, url: canonical, type: "article" },
+    openGraph: { images: [sharedOpenGraphImageMetadata("en")], title: seo.finalTitle, description: seo.finalDescription, url: canonical, type: "article" },
     robots: { index: true, follow: true },
   };
 }
