@@ -73,7 +73,7 @@ async function runCase({path,viewport,zh=false,capturePrefix}){
   const p=await browser.newPage();
   async function assertSingleRealH1(label){
     if(!zh)return;
-    const headings=await p.$eval("h1",nodes=>nodes.map(node=>node.textContent?.trim()??"").filter(Boolean));
+    const headings=await p.$$eval("h1",nodes=>nodes.map(node=>node.textContent?.trim()??"").filter(Boolean));
     assert.equal(headings.length,1,`${label}: Chinese Mei Hua must expose exactly one real H1`);
   }
   try{
