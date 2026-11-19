@@ -34,6 +34,9 @@ const stateHarness = vi.hoisted(() => {
 
       return [values[index] as T, setState] as const;
     },
+    useRef<T>(initialValue: T) {
+      return { current: initialValue };
+    },
   };
 });
 
@@ -51,6 +54,7 @@ vi.mock("react", async (importOriginal) => {
   return {
     ...actual,
     useState: stateHarness.useState,
+    useRef: stateHarness.useRef,
   };
 });
 
