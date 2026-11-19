@@ -132,6 +132,14 @@ const READING = [
   /\/readings\/(?:result|deep)\//,
   /^scripts\/(?:reading-business-browser|manual-cast-ui-browser-gate|three-coin-v2-browser-gate|ritual-scene-boundary-gate|mei-hua-ui-browser-gate|public-p0-browser-gate|reading-lifecycle-browser-gate)\.mjs$/,
 ];
+const READING_LIFECYCLE = [
+  "src/server/generation/",
+  "src/server/workflows/",
+  "src/server/repositories/reading-repository.ts",
+  /^src\/lib\/(?:reading-resume|reading-handoff|browser-lifecycle-cleanup)/,
+  "scripts/reading-lifecycle-browser-gate.mjs",
+];
+
 const SEO_STATIC = [
   "src/content/",
   "src/data/",
@@ -272,6 +280,7 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
     schema,
     database: forceFull || any(files, DATABASE),
     reading: forceFull || any(files, READING),
+    reading_lifecycle: forceFull || any(files, READING_LIFECYCLE),
     seo_static: forceFull || any(files, SEO_STATIC),
     seo_browser: forceFull || any(files, SEO_BROWSER),
     locale_browser: forceFull || any(files, LOCALE_BROWSER),
@@ -314,6 +323,7 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
   if (unknownServerRuntime) {
     selected.database = true;
     selected.reading = true;
+    selected.reading_lifecycle = true;
     selected.auth_lifecycle = true;
     selected.payment_refund = true;
     selected.security = true;
@@ -322,6 +332,7 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
   if (onlyNonRuntime && !forceFull) {
     selected.database = false;
     selected.reading = false;
+    selected.reading_lifecycle = false;
     selected.seo_static = false;
     selected.seo_browser = false;
     selected.locale_browser = false;
@@ -339,6 +350,7 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
   if ((dependencyChange || tsconfigChange) && !forceFull) {
     selected.database = false;
     selected.reading = false;
+    selected.reading_lifecycle = false;
     selected.seo_static = false;
     selected.seo_browser = false;
     selected.locale_browser = false;
