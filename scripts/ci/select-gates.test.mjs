@@ -122,6 +122,7 @@ test("force-full contexts remain full regression for main/nightly/release", () =
   assert.equal(r.database, true);
   assert.equal(r.reading, true);
   assert.equal(r.payment_refund, true);
+  assert.equal(r.payment, true);
   assert.equal(r.performance, true);
   assert.equal(JSON.parse(r.performance_targets).length, 8);
 });
