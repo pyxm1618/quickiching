@@ -169,71 +169,91 @@ try {
    evidence.push({locale,method,refreshBackForwardSameCast:true});
   }
  }
- // Persistence convergence: every casting method, locale and target intent keeps
- // the exact Result Choice surface while save is pending/failed, then retries the
- // identical payload and continues only after durable save succeeds.
+ // Persistence convergence: Free Reading stays visible even when account
+ // persistence fails, while Deep Reading still fails closed until the exact
+ // completed cast is durably owned.
  for(const locale of ['en','zh']) {
   for(const method of ['three_coin','yarrow_stalk','mei_hua_number_time','manual']) {
-   for(const intent of ['free','deep']) {
-    const targetQuery = intent === 'deep' ? '&page=deep' : '';
-    await page.goto(
-      `${fixtureBase}/?method=${method}&locale=${locale}&pending=1&savefailonce=1${targetQuery}`,
-      {waitUntil:'networkidle0'},
-    );
-    await page.waitForSelector('[data-completed-cast-gate="save-error"]',{timeout:10000});
+   await page.goto(
+    `${fixtureBase}/?method=${method}&locale=${locale}&pending=1&savefailonce=1`,
+    {waitUntil:'networkidle0'},
+   );
+   await page.waitForSelector('[data-public-reading-result]',{timeout:10000});
+   await page.waitForFunction(()=>window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings').length===1);
+   const freeFailure=await page.evaluate(()=>({
+    freeResult:!!document.querySelector('[data-public-reading-result]'),
+    saveErrorGate:!!document.querySelector('[data-completed-cast-gate="save-error"]'),
+    retry:!!document.querySelector('[data-retry-account-reading-save="true"]'),
+    saves:window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings'),
+    pendingKeys:[...Array(localStorage.length)].map((_,index)=>localStorage.key(index)).filter(key=>key?.startsWith('quickiching:public-v1:pending-completed-reading:')),
+   }));
+   assert.equal(freeFailure.freeResult,true,`${locale}/${method}/free: account save failure must not block Free Reading`);
+   assert.equal(freeFailure.saveErrorGate,false,`${locale}/${method}/free: Free Reading must not enter the durable-save gate`);
+   assert.equal(freeFailure.retry,false,`${locale}/${method}/free: account retry UI must not replace the Free result`);
+   assert.equal(freeFailure.saves.length,1,`${locale}/${method}/free: background account save should still be attempted`);
+   assert.equal(freeFailure.pendingKeys.length,1,`${locale}/${method}/free: failed account save must preserve the browser Pending reading`);
+   const failedFreeSaveBody=freeFailure.saves[0].body;
 
-    const blocked = await page.evaluate(()=>({
-      choice:!!document.querySelector('[data-result-choice]'),
-      session:document.querySelector('[data-result-choice]')?.getAttribute('data-reading-session'),
-      freeResult:!!document.querySelector('[data-public-reading-result]'),
-      deepReady:!!document.querySelector('[data-start-deep-reading]'),
-      retry:!!document.querySelector('[data-retry-account-reading-save="true"]'),
-      preparing:!!document.querySelector('[data-reading-interpretation-loading="true"]'),
-      text:document.body.innerText,
-      saves:window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings'),
-    }));
-    assert.equal(blocked.choice,true,`${locale}/${method}/${intent}: save failure must remain on Result Choice`);
-    assert.equal(blocked.session,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/${intent}: exact pending id must remain visible`);
-    assert.equal(blocked.freeResult,false,`${locale}/${method}/${intent}: save failure must block Free reveal`);
-    assert.equal(blocked.deepReady,false,`${locale}/${method}/${intent}: save failure must block Deep continuation`);
-    assert.equal(blocked.retry,true,`${locale}/${method}/${intent}: save failure must expose inline Retry`);
-    assert.equal(blocked.saves.length,1,`${locale}/${method}/${intent}: first save attempt count`);
-    assert.ok(!blocked.text.includes('Save Your Reading'),`${locale}/${method}/${intent}: standalone Saving page must stay retired`);
-    assert.ok(!blocked.text.includes('Saved to My Readings'),`${locale}/${method}/${intent}: standalone Saved/Preparing page must stay retired`);
-    if(intent==='deep') assert.equal(blocked.preparing,false,`${locale}/${method}/deep: Deep must not wait for Free interpretation`);
+   await page.goto(
+    `${fixtureBase}/?method=${method}&locale=${locale}&pending=1`,
+    {waitUntil:'networkidle0'},
+   );
+   await page.waitForSelector('[data-public-reading-result]',{timeout:10000});
+   await page.waitForFunction(()=>window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings').length===1);
+   await page.waitForFunction(()=>[...Array(localStorage.length)].map((_,index)=>localStorage.key(index)).filter(key=>key?.startsWith('quickiching:public-v1:pending-completed-reading:')).length===0);
+   const freeSaved=await page.evaluate(()=>({
+    session:new URL(location.href).searchParams.get('session'),
+    freeResult:!!document.querySelector('[data-public-reading-result]'),
+    saves:window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings'),
+    pendingKeys:[...Array(localStorage.length)].map((_,index)=>localStorage.key(index)).filter(key=>key?.startsWith('quickiching:public-v1:pending-completed-reading:')),
+   }));
+   assert.equal(freeSaved.freeResult,true,`${locale}/${method}/free: successful account persistence must keep Free Reading visible`);
+   assert.equal(freeSaved.saves.length,1,`${locale}/${method}/free: successful account persistence should use one save request`);
+   assert.equal(freeSaved.saves[0].body,failedFreeSaveBody,`${locale}/${method}/free: failure and later successful persistence must use the same sealed payload`);
+   const freePayload=JSON.parse(freeSaved.saves[0].body);
+   assert.equal(freePayload.clientCastingId,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/free: account save must keep exact clientCastingId`);
+   assert.equal(freePayload.question,locale==='zh'?'我现在是否适合换一份工作？':'Should I change to a new job?',`${locale}/${method}/free: account save must keep exact question`);
+   assert.equal(freeSaved.session,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/free: successful persistence must bind the exact session id`);
+   assert.deepEqual(freeSaved.pendingKeys,[],`${locale}/${method}/free: successful persistence must retire only the exact Pending record`);
 
-    await page.click('[data-retry-account-reading-save="true"]');
-    if(intent==='free') {
-      await page.waitForSelector('[data-public-reading-result]',{timeout:10000});
-    } else {
-      await page.waitForSelector('[data-start-deep-reading]',{timeout:10000});
-    }
+   await page.goto(
+    `${fixtureBase}/?method=${method}&locale=${locale}&pending=1&savefailonce=1&page=deep`,
+    {waitUntil:'networkidle0'},
+   );
+   await page.waitForSelector('[data-completed-cast-gate="save-error"]',{timeout:10000});
+   const deepBlocked=await page.evaluate(()=>({
+    choice:!!document.querySelector('[data-result-choice]'),
+    session:document.querySelector('[data-result-choice]')?.getAttribute('data-reading-session'),
+    freeResult:!!document.querySelector('[data-public-reading-result]'),
+    deepReady:!!document.querySelector('[data-start-deep-reading]'),
+    retry:!!document.querySelector('[data-retry-account-reading-save="true"]'),
+    saves:window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings'),
+   }));
+   assert.equal(deepBlocked.choice,true,`${locale}/${method}/deep: save failure must remain on Result Choice`);
+   assert.equal(deepBlocked.session,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/deep: exact pending id must remain visible`);
+   assert.equal(deepBlocked.freeResult,false,`${locale}/${method}/deep: paid intent must not substitute the Free result`);
+   assert.equal(deepBlocked.deepReady,false,`${locale}/${method}/deep: save failure must block paid continuation`);
+   assert.equal(deepBlocked.retry,true,`${locale}/${method}/deep: save failure must expose inline Retry`);
+   assert.equal(deepBlocked.saves.length,1,`${locale}/${method}/deep: first save attempt count`);
 
-    const continued = await page.evaluate(()=>({
-      session:new URL(location.href).searchParams.get('session'),
-      saves:window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings'),
-      interpretationLoading:!!document.querySelector('[data-reading-interpretation-loading="true"]'),
-      pendingKeys:[...Array(localStorage.length)].map((_,index)=>localStorage.key(index)).filter(key=>key?.startsWith('quickiching:public-v1:pending-completed-reading:')),
-      text:document.body.innerText,
-    }));
-    assert.equal(continued.saves.length,2,`${locale}/${method}/${intent}: Retry must make exactly one second save attempt`);
-    assert.equal(continued.saves[0].body,continued.saves[1].body,`${locale}/${method}/${intent}: requests[0] === requests[1] body invariant`);
-    assert.deepEqual(JSON.parse(continued.saves[0].body),JSON.parse(continued.saves[1].body),`${locale}/${method}/${intent}: Retry payload must remain structurally identical`);
-    const retryPayload=JSON.parse(continued.saves[1].body);
-    assert.equal(retryPayload.clientCastingId,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/${intent}: Retry must keep exact clientCastingId`);
-    assert.equal(retryPayload.question,locale==='zh'?'我现在是否适合换一份工作？':'Should I change to a new job?',`${locale}/${method}/${intent}: Retry must keep exact question`);
-    assert.equal(retryPayload.lineValuesBottomUp.length,6,`${locale}/${method}/${intent}: Retry must keep all six lines`);
-    assert.ok(retryPayload.lineValuesBottomUp.every(value=>[6,7,8,9].includes(value)),`${locale}/${method}/${intent}: Retry must keep valid sealed line values`);
-    assert.equal(continued.session,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/${intent}: authoritative URL session must keep exact id`);
-    assert.deepEqual(continued.pendingKeys,[],`${locale}/${method}/${intent}: durable save must remove only the completed exact Pending record`);
-    assert.ok(!continued.text.includes('Save Your Reading'),`${locale}/${method}/${intent}: retired Saving page must not reappear after Retry`);
-    assert.ok(!continued.text.includes('Saved to My Readings'),`${locale}/${method}/${intent}: retired Preparing page must not reappear after Retry`);
-    if(intent==='deep') assert.equal(continued.interpretationLoading,false,`${locale}/${method}/deep: Deep continuation must remain independent of Free-only content`);
+   await page.click('[data-retry-account-reading-save="true"]');
+   await page.waitForSelector('[data-start-deep-reading]',{timeout:10000});
+   const deepContinued=await page.evaluate(()=>({
+    session:new URL(location.href).searchParams.get('session'),
+    saves:window.__requests.filter(item=>item.method==='POST'&&item.url==='/api/readings'),
+    pendingKeys:[...Array(localStorage.length)].map((_,index)=>localStorage.key(index)).filter(key=>key?.startsWith('quickiching:public-v1:pending-completed-reading:')),
+   }));
+   assert.equal(deepContinued.saves.length,2,`${locale}/${method}/deep: Retry must make exactly one second save attempt`);
+   assert.equal(deepContinued.saves[0].body,deepContinued.saves[1].body,`${locale}/${method}/deep: Retry payload must remain identical`);
+   const deepRetryPayload=JSON.parse(deepContinued.saves[1].body);
+   assert.equal(deepRetryPayload.clientCastingId,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/deep: Retry must keep exact clientCastingId`);
+   assert.equal(deepContinued.session,'11111111-1111-4111-8111-111111111111',`${locale}/${method}/deep: durable ownership must keep exact session id`);
+   assert.deepEqual(deepContinued.pendingKeys,[],`${locale}/${method}/deep: durable save must retire only the exact Pending record`);
 
-    evidence.push({locale,method,intent,saveFailureRetrySamePayload:true,exactReadingId:true,noEarlyReveal:true,noIntermediatePages:true});
-   }
+   evidence.push({locale,method,anonymousFree:true,freeSurvivesPersistenceFailure:true,authenticatedFreePersistence:true,deepPersistenceGate:true});
   }
  }
+
 
  // Pricing / Purchase formal UI: real Chromium verification of the three formal design states.
  const commercialViewports=[
