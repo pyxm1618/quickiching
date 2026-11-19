@@ -337,16 +337,17 @@ describe("ThreeCoinResultClient Component Locale Routing & State Parity", () => 
     expect(html).not.toContain("data-primary-card");
   });
 
-  it("keeps an anonymous high-risk completed cast behind the auth gate without leaking interpretation", () => {
+  it("keeps anonymous high-risk casts visible in Free Reading while paid Deep Reading remains separate", () => {
     const html = renderToStaticMarkup(
       <ThreeCoinResultClient locale="zh-Hans" initialLocalizedContent={ZH_TEST_READING_CONTENT}
         initialState={{ kind: "ready", lineValues: [7, 7, 7, 7, 7, 7], question: "我是否应该停止服用处方药？" }} />,
     );
-    expect(html).toContain('data-completed-cast-gate="auth-required"');
-    expect(html).toContain("登录并继续免费解卦");
-    expect(html).toContain("data-result-choice");
-    expect(html).not.toContain("data-primary-card");
-    expect(html).not.toContain("免费卦象解读仍可完整查看");
+    expect(html).toContain("data-public-reading-result");
+    expect(html).toContain("data-primary-card");
+    expect(html).toContain("免费解卦");
+    expect(html).not.toContain('data-completed-cast-gate="auth-required"');
+    expect(html).not.toContain("登录并继续免费解卦");
+    expect(html).not.toContain("data-start-deep-reading");
   });
 
   it("renders empty state pointing to /zh/methods/three-coin in Chinese mode", () => {
