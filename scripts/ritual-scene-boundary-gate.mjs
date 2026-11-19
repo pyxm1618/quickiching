@@ -1,11 +1,12 @@
 // Local-only browser regressions. Crypto is a named test fixture; production algorithm is unchanged.
 import assert from 'node:assert/strict';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
 import puppeteer from 'puppeteer-core';
 const base=process.env.PUBLIC_V1_TEST_BASE_URL||'http://127.0.0.1:3028';
 if(new URL(base).hostname!=='127.0.0.1')throw new Error('This fixture gate only runs on 127.0.0.1');
 const key='quickiching:public-v1:three-coin';
-const output='.artifacts/ritual-qa/business-boundary';await mkdir(output,{recursive:true});
+const output=process.env.RITUAL_SCENE_BOUNDARY_OUTPUT||'.artifacts/ritual-qa/business-boundary';await mkdir(output,{recursive:true});
 const acceptanceOutput=output+'/three-coin-ui-state';await mkdir(acceptanceOutput,{recursive:true});
 const assets=JSON.parse(await readFile('docs/performance/pr-76-assets.json','utf8'));
 const outcomes=[];
@@ -33,7 +34,7 @@ async function runCase({id,bits,zh=false,reduced=false,fallback=false,storageFai
    });
   }
   if(moduleFailure) {
-   const manifest=JSON.parse(await readFile('.next/react-loadable-manifest.json','utf8'));
+   const manifest=JSON.parse(await readFile(join(process.env.QIC_NEXT_DIST_DIR?.trim()||'.next','react-loadable-manifest.json'),'utf8'));
    const entry=Object.entries(manifest).find(([name])=>name.includes('three-coin-visual')&&name.includes('three-coin-scene'))?.[1];
    assert(entry,'The actual build must declare its scene chunk');
    const chunk=entry.files.find(file=>file.split('/').at(-1).startsWith(String(entry.id)+'.'));
