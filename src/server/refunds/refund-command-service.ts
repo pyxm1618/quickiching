@@ -20,7 +20,7 @@ export type RefundDispatchClaim = {
 };
 
 export type RefundCommandRepository = {
-  claimProviderDispatch(refundId: string, now: Date): Promise<RefundDispatchClaim>;
+  claimProviderDispatch(refundId: string, operatorId: string, now: Date): Promise<RefundDispatchClaim>;
   markProviderDispatchConfirmed(input: {
     refundId: string;
     result: RefundWriteResult;
@@ -57,9 +57,9 @@ export function createRefundCommandService(dependencies: {
   const now = dependencies.now ?? (() => new Date());
 
   return {
-    async execute(refundId: string): Promise<{ outcome: "dispatched" | "read_only" }> {
+    async execute(refundId: string, operatorId: string): Promise<{ outcome: "dispatched" | "read_only" }> {
       const startedAt = now();
-      const claim = await dependencies.repository.claimProviderDispatch(refundId, startedAt);
+      const claim = await dependencies.repository.claimProviderDispatch(refundId, operatorId, startedAt);
       if (claim.mode !== "dispatch") return { outcome: "read_only" };
 
       try {

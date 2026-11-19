@@ -47,7 +47,7 @@ async function fixture() {
   `;
   const intent = await refundRepository.apply({ userId, orderId, reason: "Concurrency test", now: new Date() });
   await refundRepository.decide({ refundId: intent.id, action: "approve", operatorId: "operator-test", now: new Date() });
-  const dispatch = await refundRepository.claimProviderDispatch(intent.id, new Date());
+  const dispatch = await refundRepository.claimProviderDispatch(intent.id, "dispatcher-test", new Date());
   expect(dispatch.mode).toBe("dispatch");
 
   const claims = await reconciliationRepository.claimBatch({ limit: 10, now: new Date(), leaseDurationMs: 30_000 });
@@ -110,10 +110,12 @@ describe("concurrent refund webhook and provider-read reconciliation", () => {
       refund_status: string;
       available: number;
       revoked: number;
+      refund_locked: boolean;
       revoke_count: number;
     }>>`
       select o.status as order_status, r.status as refund_status,
         b.quantity_available::int as available, b.quantity_revoked::int as revoked,
+        b.refund_locked,
         (select count(*)::int from entitlement_ledger l
           where l.order_id = o.id and l.action = 'revoke') as revoke_count
       from payment_orders o
@@ -126,6 +128,7 @@ describe("concurrent refund webhook and provider-read reconciliation", () => {
       refund_status: "succeeded",
       available: 0,
       revoked: 3,
+      refund_locked: false,
       revoke_count: 1,
     });
   });

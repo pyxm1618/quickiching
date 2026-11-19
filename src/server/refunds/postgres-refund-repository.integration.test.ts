@@ -124,17 +124,25 @@ describe("refund application, operator decision, and provider dispatch fence", (
 
     expect(approved.status).toBe("approved");
     expect(replay.status).toBe("approved");
-    const rows = await sql<Array<{ provider_write_state: string; provider_write_attempt_count: number }>>`
-      select provider_write_state, provider_write_attempt_count
+    const rows = await sql<Array<{
+      provider_write_state: string;
+      provider_write_attempt_count: number;
+      decision_operator_id: string | null;
+    }>>`
+      select provider_write_state, provider_write_attempt_count, decision_operator_id
       from refund_intents where id = ${intent.id}
     `;
-    expect(rows[0]).toEqual({ provider_write_state: "not_started", provider_write_attempt_count: 0 });
+    expect(rows[0]).toEqual({
+      provider_write_state: "not_started",
+      provider_write_attempt_count: 0,
+      decision_operator_id: "operator-test",
+    });
   });
 
   it("allows exactly one concurrent worker to cross the durable provider-write fence", async () => {
     const fixture = await approvedIntent();
     const claims = await Promise.all(Array.from({ length: 8 }, () => (
-      repository.claimProviderDispatch(fixture.intentId, new Date())
+      repository.claimProviderDispatch(fixture.intentId, "dispatcher-test", new Date())
     )));
 
     expect(claims.filter((claim) => claim.mode === "dispatch")).toHaveLength(1);
@@ -143,47 +151,58 @@ describe("refund application, operator decision, and provider dispatch fence", (
       status: string;
       provider_write_state: string;
       provider_write_attempt_count: number;
+      dispatch_operator_id: string | null;
+      refund_locked: boolean;
     }>>`
-      select status, provider_write_state, provider_write_attempt_count
-      from refund_intents where id = ${fixture.intentId}
+      select r.status, r.provider_write_state, r.provider_write_attempt_count,
+        r.dispatch_operator_id, b.refund_locked
+      from refund_intents r
+      join entitlement_batches b on b.order_id = r.order_id
+      where r.id = ${fixture.intentId}
     `;
     expect(rows[0]).toEqual({
       status: "processing",
       provider_write_state: "dispatched",
       provider_write_attempt_count: 1,
+      dispatch_operator_id: "dispatcher-test",
+      refund_locked: true,
     });
   });
 
   it("never reopens the write fence after an ambiguous provider outcome", async () => {
     const fixture = await approvedIntent();
-    const first = await repository.claimProviderDispatch(fixture.intentId, new Date());
+    const first = await repository.claimProviderDispatch(fixture.intentId, "dispatcher-test", new Date());
     expect(first.mode).toBe("dispatch");
     await repository.markProviderDispatchAmbiguous({
       refundId: fixture.intentId,
       errorCode: "REFUND_PROVIDER_WRITE_OUTCOME_UNKNOWN",
       now: new Date(),
     });
-    const retry = await repository.claimProviderDispatch(fixture.intentId, new Date());
+    const retry = await repository.claimProviderDispatch(fixture.intentId, "dispatcher-test", new Date());
     expect(retry.mode).toBe("read_only");
 
     const rows = await sql<Array<{
       status: string;
       provider_write_state: string;
       provider_write_attempt_count: number;
+      refund_locked: boolean;
     }>>`
-      select status, provider_write_state, provider_write_attempt_count
-      from refund_intents where id = ${fixture.intentId}
+      select r.status, r.provider_write_state, r.provider_write_attempt_count, b.refund_locked
+      from refund_intents r
+      join entitlement_batches b on b.order_id = r.order_id
+      where r.id = ${fixture.intentId}
     `;
     expect(rows[0]).toEqual({
       status: "reconciliation_required",
       provider_write_state: "ambiguous",
       provider_write_attempt_count: 1,
+      refund_locked: true,
     });
   });
 
   it("persists the provider ticket without treating a POST response as final settlement", async () => {
     const fixture = await approvedIntent();
-    await repository.claimProviderDispatch(fixture.intentId, new Date());
+    await repository.claimProviderDispatch(fixture.intentId, "dispatcher-test", new Date());
     await repository.markProviderDispatchConfirmed({
       refundId: fixture.intentId,
       result: { providerTicketId: `RT_${randomUUID()}`, status: "succeeded" },
@@ -216,7 +235,7 @@ describe("refund application, operator decision, and provider dispatch fence", (
       where id = ${fixture.batchId}
     `;
 
-    await expect(repository.claimProviderDispatch(fixture.intentId, new Date()))
+    await expect(repository.claimProviderDispatch(fixture.intentId, "dispatcher-test", new Date()))
       .rejects.toThrow("REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE");
     const rows = await sql<Array<{
       status: string;
@@ -232,6 +251,44 @@ describe("refund application, operator decision, and provider dispatch fence", (
       auto_screen: "manual_exception",
       provider_write_state: "not_started",
       provider_write_attempt_count: 0,
+    });
+  });
+
+  it("blocks provider dispatch when an existing Deep Reading reservation owns source credit", async () => {
+    const fixture = await approvedIntent();
+    await sql`
+      update entitlement_batches
+      set quantity_available = quantity_available - 1,
+          quantity_reserved = quantity_reserved + 1,
+          updated_at = now()
+      where id = ${fixture.batchId}
+    `;
+
+    await expect(repository.claimProviderDispatch(
+      fixture.intentId,
+      "dispatcher-test",
+      new Date(),
+    )).rejects.toThrow("REFUND_ENTITLEMENTS_NOT_FULLY_AVAILABLE");
+
+    const rows = await sql<Array<{
+      provider_write_state: string;
+      provider_write_attempt_count: number;
+      refund_locked: boolean;
+      available: number;
+      reserved: number;
+    }>>`
+      select r.provider_write_state, r.provider_write_attempt_count, b.refund_locked,
+        b.quantity_available::int as available, b.quantity_reserved::int as reserved
+      from refund_intents r
+      join entitlement_batches b on b.order_id = r.order_id
+      where r.id = ${fixture.intentId}
+    `;
+    expect(rows[0]).toEqual({
+      provider_write_state: "not_started",
+      provider_write_attempt_count: 0,
+      refund_locked: false,
+      available: 2,
+      reserved: 1,
     });
   });
 

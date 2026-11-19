@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { readRequestBody, RequestBodyTooLargeError } from "@/server/http/read-request-body";
 import { createProductionRefundRepository } from "@/server/refunds/composition";
-import { resolveRefundOperatorSecret, verifyRefundOperatorAuthorization } from "@/server/refunds/operator-auth";
+import { authenticateRefundOperator, refundOperatorAuthorityConfigured } from "@/server/refunds/operator-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,9 +31,9 @@ async function refundId(context: RouteContext): Promise<string | null> {
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
-  const secret = resolveRefundOperatorSecret();
-  if (!secret) return notFound();
-  if (!verifyRefundOperatorAuthorization(request, secret)) return unauthorized();
+  if (!refundOperatorAuthorityConfigured("decision")) return notFound();
+  const operator = authenticateRefundOperator(request, "decision");
+  if (!operator) return unauthorized();
   const id = await refundId(context);
   if (!id) return json({ error: "INVALID_REQUEST" }, 400);
   if (request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase() !== "application/json") {
@@ -55,7 +55,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
     const result = await repository.decide({
       refundId: id,
       action: parsed.data.action,
-      operatorId: "refund-operator",
+      operatorId: operator.operatorId,
       ...(parsed.data.note ? { note: parsed.data.note } : {}),
       now: new Date(),
     });

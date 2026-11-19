@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createProductionRefundCommandService } from "@/server/refunds/composition";
-import { resolveRefundOperatorSecret, verifyRefundOperatorAuthorization } from "@/server/refunds/operator-auth";
+import { authenticateRefundOperator, refundOperatorAuthorityConfigured } from "@/server/refunds/operator-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,15 +25,15 @@ async function refundId(context: RouteContext): Promise<string | null> {
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
-  const secret = resolveRefundOperatorSecret();
-  if (!secret) return notFound();
-  if (!verifyRefundOperatorAuthorization(request, secret)) return unauthorized();
+  if (!refundOperatorAuthorityConfigured("dispatch")) return notFound();
+  const operator = authenticateRefundOperator(request, "dispatch");
+  if (!operator) return unauthorized();
   const id = await refundId(context);
   if (!id) return json({ error: "INVALID_REQUEST" }, 400);
 
   try {
     const service = createProductionRefundCommandService();
-    const result = await service.execute(id);
+    const result = await service.execute(id, operator.operatorId);
     return json({ refundId: id, outcome: result.outcome });
   } catch (error) {
     const code = error instanceof Error ? error.message : "REFUND_DISPATCH_UNAVAILABLE";
