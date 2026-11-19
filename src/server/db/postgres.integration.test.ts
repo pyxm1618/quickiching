@@ -71,7 +71,7 @@ describe("CP2 PostgreSQL migration and auth persistence", () => {
     `;
     expect(indexRows.map((row) => row.indexname)).toEqual(expect.arrayContaining([
       "accounts_user_id_idx",
-      "accounts_issuer_account_id_idx",
+      "accounts_provider_account_id_idx",
       "login_intents_owner_idx",
       "login_intents_expiry_idx",
       "sessions_user_id_idx",
@@ -147,12 +147,12 @@ describe("CP2 PostgreSQL migration and auth persistence", () => {
     });
 
     await sql`
-      insert into accounts (id, issuer, account_id, provider_id, user_id, created_at, updated_at)
-      values ('account-one', 'https://accounts.google.com', 'google-subject-1', 'google', ${userId}, now(), now())
+      insert into accounts (id, account_id, provider_id, user_id, created_at, updated_at)
+      values ('account-one', 'google-subject-1', 'google', ${userId}, now(), now())
     `;
     await expect(sql`
-      insert into accounts (id, issuer, account_id, provider_id, user_id, created_at, updated_at)
-      values ('account-two', 'https://accounts.google.com', 'google-subject-1', 'google', 'cp2-user-integration-two', now(), now())
+      insert into accounts (id, account_id, provider_id, user_id, created_at, updated_at)
+      values ('account-two', 'google-subject-1', 'google', 'cp2-user-integration-two', now(), now())
     `).rejects.toThrow();
   });
 
