@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import nextConfig, { buildContentSecurityPolicy } from "./next.config.mjs";
+import nextConfig, { buildContentSecurityPolicy, buildCrawlerIndexingHeaders } from "./next.config.mjs";
 
 const getConfig = async () =>
   typeof nextConfig === "function"
@@ -56,5 +56,29 @@ describe("Next.js security headers", () => {
   });
   it("does not allow the retired Adsterra origin in CSP", () => {
     expect(buildContentSecurityPolicy({ NODE_ENV: "production" })).not.toContain("effectivecpmnetwork.com");
+  });
+});
+
+
+describe("Next.js crawler indexing headers", () => {
+  it("keeps canonical production free of a noindex response header", () => {
+    expect(buildCrawlerIndexingHeaders({
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      VERCEL_GIT_COMMIT_REF: "main",
+    })).toEqual([]);
+  });
+
+  it("fails closed for staging and preview deployments", () => {
+    expect(buildCrawlerIndexingHeaders({
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      VERCEL_GIT_COMMIT_REF: "staging",
+    })).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
+    expect(buildCrawlerIndexingHeaders({
+      VERCEL: "1",
+      VERCEL_ENV: "preview",
+      VERCEL_GIT_COMMIT_REF: "feature/seo",
+    })).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
   });
 });
