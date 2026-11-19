@@ -11,6 +11,7 @@ export function buildContentSecurityPolicy(environment = process.env) {
   return [
     "default-src 'self'",
     `script-src ${scriptSources.join(" ")}`,
+    "script-src-attr 'none'",
     "style-src 'self' 'unsafe-inline'",
     `img-src ${imageSources.join(" ")}`,
     "font-src 'self' data:",
