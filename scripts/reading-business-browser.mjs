@@ -98,7 +98,28 @@ try {
    assert.equal(page.url(),freeUrl);
    if(method==='three_coin') await captureVisual(`free-${locale}`);
    await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&anon=1`,{waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-public-reading-result]');
+   const anonFree=await page.evaluate(()=>({
+    freeResult:!!document.querySelector('[data-public-reading-result]'),
+    authGate:!!document.querySelector('[data-completed-cast-gate="auth-required"]'),
+    deepLinks:[...document.querySelectorAll('[data-deep-reading-cta] a[href]')].map(node=>node.getAttribute('href')),
+   }));
+   assert.equal(anonFree.freeResult,true,`${locale}/${method}: anonymous Free Reading must reveal`);
+   assert.equal(anonFree.authGate,false,`${locale}/${method}: anonymous Free Reading must not require sign-in`);
+   for(const href of anonFree.deepLinks) {
+    const url=new URL(href,fixtureBase);
+    assert.equal(url.pathname,locale==='zh'?'/zh/readings/deep':'/readings/deep');
+    assert.equal(url.searchParams.get('session'),'browser-fixture-cast');
+   }
+   const anonFreeUrl=page.url();
+   await page.reload({waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-public-reading-result]');
+   assert.equal(page.url(),anonFreeUrl);
+
+   await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&anon=1&page=deep`,{waitUntil:'networkidle0'});
    await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+   assert.equal(await page.$('[data-start-deep-reading]'),null);
+   assert.equal(await page.$('[data-public-reading-result]'),null);
    const callbacks=await page.evaluate(()=>[...document.querySelectorAll('[data-auth-reading-intent],[data-auth-reading-alternate-intent]')].map(node=>({intent:node.getAttribute('data-auth-reading-intent')??node.getAttribute('data-auth-reading-alternate-intent'),href:node.getAttribute('href')})));
    assert.equal(callbacks.length,2);
    for(const item of callbacks) {
@@ -108,8 +129,9 @@ try {
     assert.equal(callback.searchParams.get('session'),'browser-fixture-cast');
     assert.equal(callback.pathname,item.intent==='deep'?(locale==='zh'?'/zh/readings/deep':'/readings/deep'):(locale==='zh'?'/zh/readings/result':'/readings/result'));
    }
-   evidence.push({locale,method,authCallbacks:'shared-free-deep-same-cast'});
-   const anonUrl=page.url();
+   const anonDeepUrl=page.url();
+   evidence.push({locale,method,anonymousFree:true,anonymousDeepAuthGated:true,authCallbacks:'shared-free-deep-same-cast'});
+
    await page.goto(`${fixtureBase}/?method=${method}&locale=${locale}&page=deep`,{waitUntil:'networkidle0'});
    await page.waitForSelector('[data-start-deep-reading]');
    assert.equal(await page.$('[data-public-reading-result]'),null);
@@ -129,11 +151,15 @@ try {
    assert.equal(freeUrlFromDeep.searchParams.get('session'),'browser-fixture-cast');
    evidence.push({locale,method,deep:{sections:true,postBody:JSON.parse(post.body),report:true},deepToFreeSameCast:true});
    if(method==='three_coin') await captureVisual(`deep-${locale}`);
+
    await page.goBack({waitUntil:'networkidle0'});
    await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
-   assert.equal(page.url(),anonUrl);
-   const backCallback=await page.$eval('[data-auth-reading-intent]',node=>node.getAttribute('href'));
-   assert.equal(new URL(new URL(backCallback,fixtureBase).searchParams.get('callbackURL'),fixtureBase).searchParams.get('session'),'browser-fixture-cast');
+   assert.equal(page.url(),anonDeepUrl);
+   await page.goBack({waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-public-reading-result]');
+   assert.equal(page.url(),anonFreeUrl);
+   await page.goForward({waitUntil:'networkidle0'});
+   await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
    await page.goForward({waitUntil:'networkidle0'});
    await page.waitForFunction(()=>[...document.querySelectorAll('a[href]')].some(node=>node.getAttribute('href')?.includes('/readings/result?session=browser-fixture-cast')));
    const forwardFreeHref=await page.evaluate(()=>[...document.querySelectorAll('a[href]')].map(node=>node.getAttribute('href')).find(href=>href?.includes('/readings/result?session=browser-fixture-cast'))??null);
