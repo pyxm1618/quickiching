@@ -426,7 +426,6 @@ jobs:
         run: |
           set -euo pipefail
           bun run seo:registry
-          bun run seo:quality
           bun scripts/interpretation-bundle-gate.mjs
 
   public_seo_browser:
@@ -488,6 +487,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          bun run seo:quality
           bun run seo:browser
           bun scripts/browser-gate.mjs
           bun scripts/on-page-seo-browser-gate.mjs
