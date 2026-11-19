@@ -4179,7 +4179,7 @@ export const HEXAGRAM_SEO_REGISTRY: readonly HexagramSeoEntry[] = LEGACY_HEXAGRA
     const relationshipKeyword = research.recommendedModules.includes("relationship")
       ? `hexagram ${entry.number} relationship`
       : null;
-    const finalDescription = buildEnglishMetaDescription(entry.number, research.commonEnglishName);
+    const finalDescription = buildEnglishMetaDescription(entry.finalDescription);
     const secondaryVariantFamily = [
       research.otherCoreVariant,
       meaningKeyword,
