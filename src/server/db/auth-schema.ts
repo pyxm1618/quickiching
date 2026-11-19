@@ -13,7 +13,7 @@ const timestamps = {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 };
 
-// These four tables are intentionally shaped to Better Auth 1.7.1's current
+// These four tables are intentionally shaped to Better Auth 1.7.25's current
 // PostgreSQL adapter contract. The exported authSchema keys are singular
 // Better Auth model names; the SQL tables remain plural application tables.
 export const users = pgTable("users", {
@@ -45,7 +45,7 @@ export const accounts = pgTable(
   "accounts",
   {
     id: text("id").primaryKey(),
-    issuer: text("issuer").notNull(),
+    issuer: text("issuer"),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(),
     userId: text("user_id")
@@ -61,7 +61,7 @@ export const accounts = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("accounts_issuer_account_id_idx").on(table.issuer, table.accountId),
+    uniqueIndex("accounts_provider_account_id_idx").on(table.providerId, table.accountId),
     index("accounts_user_id_idx").on(table.userId),
   ],
 );
