@@ -140,6 +140,15 @@ test("HIGH-001 navigation ownership selects Auth Lifecycle for R2", () => {
   assert.equal(locale.auth_lifecycle, true);
 });
 
+test("mixed dependency plus auth changes preserve Auth Lifecycle ownership", () => {
+  const result = pick(["package.json", "bun.lock", "src/server/auth/server.ts"]);
+  assert.equal(result.runtime, true);
+  assert.equal(result.build, true);
+  assert.equal(result.database, true);
+  assert.equal(result.auth_lifecycle, true);
+  assert.equal(result.security, true);
+});
+
 test("HIGH-001 negative controls avoid Auth Lifecycle over-trigger", () => {
   const controls = [
     ["docs", "README.md"],
