@@ -1,3 +1,4 @@
+import { sharedOpenGraphImageMetadata } from "@/lib/shared-open-graph-image";
 import React from "react";
 import type { Metadata } from "next";
 import { CLASSICAL_HEXAGRAMS } from "@/domain/public-reading/classical";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
     canonical: "/hexagrams",
     languages: alternateLanguages("hexagrams-hub"),
   },
-  openGraph: { title: "64 I Ching Hexagrams — King Wen Guide", description: "Explore all 64 I Ching hexagrams in King Wen order, with names, meanings, and links to detailed hexagram pages and casting methods.", url: "/hexagrams", type: "website" },
+  openGraph: { images: [sharedOpenGraphImageMetadata("en")], title: "64 I Ching Hexagrams — King Wen Guide", description: "Explore all 64 I Ching hexagrams in King Wen order, with names, meanings, and links to detailed hexagram pages and casting methods.", url: "/hexagrams", type: "website" },
 };
 
 export default function HexagramsHubPage() {
