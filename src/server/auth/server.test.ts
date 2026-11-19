@@ -54,6 +54,7 @@ describe("Better Auth server options", () => {
     const options = buildAuthOptions({} as AuthDatabase, {
       ...env,
       NODE_ENV: "production",
+      TURNSTILE_SECRET_KEY: "turnstile-production-secret",
     }, { sendMagicLink: async () => undefined });
     expect(options.advanced?.defaultCookieAttributes).toMatchObject({
       httpOnly: true,
@@ -63,7 +64,31 @@ describe("Better Auth server options", () => {
     });
   });
 
-  it("allows only the explicit loopback browser fixture to use local HTTP cookies", () => {
+  it("fails closed when production bot protection is not configured", () => {
+    expect(() => buildAuthOptions({} as AuthDatabase, {
+      ...env,
+      NODE_ENV: "production",
+    }, { sendMagicLink: async () => undefined })).toThrow("AUTH_CONFIGURATION_UNAVAILABLE");
+  });
+
+  it("enables Better Auth's single Turnstile authority on the risky auth entrypoints", () => {
+    const options = buildAuthOptions({} as AuthDatabase, {
+      ...env,
+      NODE_ENV: "production",
+      TURNSTILE_SECRET_KEY: "turnstile-production-secret",
+    }, { sendMagicLink: async () => undefined });
+
+    expect(options.plugins?.map((plugin) => plugin.id)).toEqual(["captcha", "magic-link", "next-cookies"]);
+    expect(options.plugins?.[0]).toMatchObject({
+      id: "captcha",
+      options: {
+        provider: "cloudflare-turnstile",
+        endpoints: ["/sign-in/magic-link", "/sign-in/social"],
+      },
+    });
+  });
+
+  it("allows only the explicit loopback browser fixture to bypass Turnstile and use local HTTP cookies", () => {
     const options = buildAuthOptions({} as AuthDatabase, {
       ...env,
       NODE_ENV: "production",
@@ -73,6 +98,7 @@ describe("Better Auth server options", () => {
     }, { sendMagicLink: async () => undefined });
 
     expect(options.trustedOrigins).toEqual(["http://127.0.0.1:3037"]);
+    expect(options.plugins?.map((plugin) => plugin.id)).toEqual(["magic-link", "next-cookies"]);
     expect(options.advanced?.defaultCookieAttributes).toMatchObject({
       httpOnly: true,
       secure: false,
@@ -83,6 +109,7 @@ describe("Better Auth server options", () => {
     expect(() => buildAuthOptions({} as AuthDatabase, {
       ...env,
       NODE_ENV: "production",
+      TURNSTILE_SECRET_KEY: "turnstile-production-secret",
       BETTER_AUTH_URL: "http://www.quickiching.com",
       AUTH_BROWSER_FIXTURE: "1",
       AUTH_MAGIC_LINK_CAPTURE_FILE: "/tmp/qic-r3-magic-link.json",
@@ -99,6 +126,7 @@ describe("Better Auth server options", () => {
     expect(() => buildAuthOptions({} as AuthDatabase, {
       ...env,
       NODE_ENV: "production",
+      TURNSTILE_SECRET_KEY: "turnstile-production-secret",
       BETTER_AUTH_TRUSTED_ORIGINS: "https://www.quickiching.com,http://localhost:3000",
     }, { sendMagicLink: async () => undefined })).toThrow("AUTH_CONFIGURATION_UNAVAILABLE");
   });
