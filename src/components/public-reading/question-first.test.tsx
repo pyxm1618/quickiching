@@ -172,6 +172,47 @@ describe("QuestionFirst component question freeze regressions", () => {
     expect(getLiveFlowRegistration()).toBeNull();
   });
 
+  it.each([
+    "Will this work ",
+    "Keep  two internal spaces ",
+    "要继续吗？ ",
+    "下一步 Next  step ",
+  ])("preserves the raw active question draft on each keystroke: %j", async (raw) => {
+    const key = "test-reading-raw-draft";
+    const storage = installSessionStorage({
+      [key]: JSON.stringify({
+        schemaVersion: 1,
+        id: "raw-draft-reading",
+        createdAt: new Date().toISOString(),
+        started: true,
+        question: "Seed",
+        coreQuestionFrozenAtCast: false,
+      }),
+    });
+
+    let exposedContext: ReturnType<typeof useQuestionFirstContext>;
+    function Capture() {
+      exposedContext = useQuestionFirstContext();
+      return null;
+    }
+
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    renderToStaticMarkup(
+      <QuestionFirst
+        storageKey={key}
+        initialSession={{ started: true, question: "Seed", coreQuestionFrozenAtCast: false }}
+      >
+        <Capture />
+      </QuestionFirst>,
+    );
+
+    exposedContext?.setQuestion(raw);
+
+    const persisted = JSON.parse(storage.getItem(key) ?? "null");
+    expect(persisted?.question).toBe(raw);
+    expect(readPublicReadingSessionState(key).question).toBe(raw);
+  });
+
   it("makes a pre-cast skip explicitly free-only and does not offer a late question field", async () => {
     const { renderToStaticMarkup } = await import("react-dom/server");
     const html = renderToStaticMarkup(
