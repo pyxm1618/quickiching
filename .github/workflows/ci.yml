@@ -1159,18 +1159,42 @@ jobs:
   required:
     name: CI / Required
     if: always()
-    needs: [select, fast, build, schema, core_compat, database, product_compat, performance]
+    needs: [select, fast, build, schema, database, reading, reading_lifecycle, seo_static, public_seo_browser, locale_browser, navigation, auth_lifecycle, account_info, hexagram, security, payment_refund, performance]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - name: Enforce required gate results
         env:
           SELECT_RESULT: ${{ needs.select.result }}
-          CORE_RESULT: ${{ needs.core_compat.result }}
+          FAST_RESULT: ${{ needs.fast.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          SCHEMA_RESULT: ${{ needs.schema.result }}
           DATABASE_RESULT: ${{ needs.database.result }}
-          PRODUCT_RESULT: ${{ needs.product_compat.result }}
+          READING_RESULT: ${{ needs.reading.result }}
+          READING_LIFECYCLE_RESULT: ${{ needs.reading_lifecycle.result }}
+          SEO_STATIC_RESULT: ${{ needs.seo_static.result }}
+          SEO_BROWSER_RESULT: ${{ needs.public_seo_browser.result }}
+          LOCALE_BROWSER_RESULT: ${{ needs.locale_browser.result }}
+          NAVIGATION_RESULT: ${{ needs.navigation.result }}
+          AUTH_LIFECYCLE_RESULT: ${{ needs.auth_lifecycle.result }}
+          ACCOUNT_INFO_RESULT: ${{ needs.account_info.result }}
+          HEXAGRAM_RESULT: ${{ needs.hexagram.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
+          PAYMENT_REFUND_RESULT: ${{ needs.payment_refund.result }}
           PERFORMANCE_RESULT: ${{ needs.performance.result }}
+          BUILD_SELECTED: ${{ needs.select.outputs.build }}
+          SCHEMA_SELECTED: ${{ needs.select.outputs.schema }}
           DATABASE_SELECTED: ${{ needs.select.outputs.database }}
-          PRODUCT_SELECTED: ${{ needs.select.outputs.reading == 'true' || needs.select.outputs.public_seo == 'true' || needs.select.outputs.account_info == 'true' || needs.select.outputs.payment == 'true' || needs.select.outputs.hexagram_detail == 'true' }}
+          READING_SELECTED: ${{ needs.select.outputs.reading }}
+          READING_LIFECYCLE_SELECTED: ${{ needs.select.outputs.reading_lifecycle }}
+          SEO_STATIC_SELECTED: ${{ needs.select.outputs.seo_static }}
+          SEO_BROWSER_SELECTED: ${{ needs.select.outputs.seo_browser }}
+          LOCALE_BROWSER_SELECTED: ${{ needs.select.outputs.locale_browser }}
+          NAVIGATION_SELECTED: ${{ needs.select.outputs.navigation }}
+          AUTH_LIFECYCLE_SELECTED: ${{ needs.select.outputs.auth_lifecycle }}
+          ACCOUNT_INFO_SELECTED: ${{ needs.select.outputs.account_info }}
+          HEXAGRAM_SELECTED: ${{ needs.select.outputs.hexagram_detail }}
+          SECURITY_SELECTED: ${{ needs.select.outputs.security }}
+          PAYMENT_REFUND_SELECTED: ${{ needs.select.outputs.payment_refund }}
           PERFORMANCE_SELECTED: ${{ needs.select.outputs.performance }}
         run: node scripts/ci/required-gate.mjs
