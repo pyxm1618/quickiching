@@ -250,8 +250,21 @@ export async function applyRefundSettlement(
     ` as Row[];
     const batch = batchRows[0];
     if (!batch) return markFinancialReview(transaction, input, "REFUND_ENTITLEMENT_SOURCE_UNAVAILABLE");
+
+    const providerInitiatedSettlement =
+      Number(refund.provider_write_attempt_count) === 0
+      && String(refund.provider_write_state) === "not_started"
+      && String(refund.screen_reason) === "PROVIDER_INITIATED";
+    if (providerInitiatedSettlement && batch.refund_locked !== true) {
+      await transaction`
+        update entitlement_batches
+        set refund_locked = true, updated_at = ${input.now.toISOString()}
+        where id = ${String(batch.id)}
+      `;
+    }
+
     if (
-      batch.refund_locked !== true
+      (batch.refund_locked !== true && !providerInitiatedSettlement)
       || Number(batch.quantity_available) !== Number(batch.quantity_total)
       || Number(batch.quantity_reserved) !== 0
       || Number(batch.quantity_consumed) !== 0

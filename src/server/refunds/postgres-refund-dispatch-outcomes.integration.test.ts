@@ -84,10 +84,15 @@ describe("refund provider write outcome persistence", () => {
       provider_dispatched_at: Date | null;
       next_reconcile_at: Date | null;
       last_error_code: string | null;
+      refund_locked: boolean;
+      available: number;
     }>>`
-      select status, provider_write_state, provider_write_attempt_count,
-             provider_dispatched_at, next_reconcile_at, last_error_code
-      from refund_intents where id = ${fixture.intentId}
+      select r.status, r.provider_write_state, r.provider_write_attempt_count,
+             r.provider_dispatched_at, r.next_reconcile_at, r.last_error_code,
+             b.refund_locked, b.quantity_available::int as available
+      from refund_intents r
+      join entitlement_batches b on b.order_id = r.order_id
+      where r.id = ${fixture.intentId}
     `;
     expect(rows[0]).toMatchObject({
       status: "approved",
