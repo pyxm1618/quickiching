@@ -1,8 +1,8 @@
-name: Phase 3B Bun 1.4 Lock Probe
+name: Phase 3B C4 Bun 1.3.14 Registry Integrity Probe
 
 on:
   pull_request:
-    branches: [main]
+    branches: [fix/phase3-security-runtime-hardening]
 
 permissions:
   contents: read
@@ -11,84 +11,298 @@ jobs:
   probe:
     if: github.head_ref == 'fix/phase3-engineering-hardening'
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version-file: .node-version
-          registry-url: https://registry.npmjs.org
-      - name: Use repository Bun 1.3.14
-        uses: oven-sh/setup-bun@v2
+          node-version: 22.23.2
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
-      - name: Capture the current exact dependency tree
+
+      - name: Verify repository Bun authority
         run: |
           set -euo pipefail
-          bun install --frozen-lockfile
-          bun pm ls --all | sort > /tmp/phase3-old-tree.txt
-      - name: Materialize the exact installed tree as npm shrinkwrap
+          test "$(bun --version)" = "1.3.14"
+          node -e 'const p=require("./package.json"); if(p.packageManager!=="bun@1.3.14" || p.engines?.bun!=="1.3.14") process.exit(1)'
+          test ! -e .npmrc
+          test ! -e bunfig.toml
+          echo "bun-version=$(bun --version)"
+          echo "starting-npmmirror=$(grep -o 'registry.npmmirror.com' bun.lock | wc -l)"
+          echo "starting-npmjs=$(grep -o 'registry.npmjs.org' bun.lock | wc -l)"
+
+      - name: Build pre-migration semantic snapshot and verified canonical candidate
+        env:
+          NODE_NO_WARNINGS: "1"
         run: |
           set -euo pipefail
-          cp package.json /tmp/package.json
-          node - <<'NODE'
+          node <<'NODE'
           const fs = require("fs");
-          const p = JSON.parse(fs.readFileSync("package.json","utf8"));
-          p.devDependencies.postcss = p.overrides.postcss;
-          fs.writeFileSync("package.json", JSON.stringify(p,null,2)+"\n");
-          NODE
-          rm -f package-lock.json npm-shrinkwrap.json
-          npm shrinkwrap --ignore-scripts
-          mv /tmp/package.json package.json
-      - name: Use Bun 1.4.4
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.4
-      - name: Generate canonical-registry Bun 1.4 lock and prove zero tree drift
-        run: |
-          set -euo pipefail
-          rm bun.lock
-          printf 'registry=https://registry.npmjs.org/\n' > .npmrc
-          bun install --lockfile-only
-          rm .npmrc npm-shrinkwrap.json
-          rm -rf node_modules
-          bun install --frozen-lockfile
-          bun pm ls --all | sort > /tmp/phase3-new-tree.txt
-          diff -u /tmp/phase3-old-tree.txt /tmp/phase3-new-tree.txt > phase3-raw-tree.diff || true
-          node - <<'NODE'
-          const fs = require("fs");
-          const platformOptional = /^(?:@esbuild\/|@rollup\/rollup-|@next\/swc-|@img\/sharp-|@img\/sharp-libvips-|lightningcss-(?:linux|darwin|win32|freebsd|android)|fsevents@)/;
-          const parse = (file) => new Set(
-            fs.readFileSync(file, "utf8")
-              .split(/\r?\n/)
-              .map(line => line.replace(/^[\s│├└─]+/, "").trim())
-              .filter(Boolean)
-              .filter(item => !platformOptional.test(item))
-          );
-          const oldSet = parse("/tmp/phase3-old-tree.txt");
-          const newSet = parse("/tmp/phase3-new-tree.txt");
-          const removed = [...oldSet].filter(x => !newSet.has(x)).sort();
-          const added = [...newSet].filter(x => !oldSet.has(x)).sort();
-          if (removed.length || added.length) {
-            console.error(JSON.stringify({removed, added}, null, 2));
-            process.exit(1);
+          const vm = require("vm");
+          const crypto = require("crypto");
+
+          const source = fs.readFileSync("bun.lock", "utf8");
+
+          function extractObject(text, name) {
+            const marker = name + " =";
+            const at = text.indexOf(marker);
+            if (at < 0) return null;
+            const start = text.indexOf("{", at + marker.length);
+            if (start < 0) throw new Error("missing object for " + name);
+            let depth = 0, quote = null, esc = false;
+            for (let i = start; i < text.length; i++) {
+              const c = text[i];
+              if (quote) {
+                if (esc) { esc = false; continue; }
+                if (c === "\\") { esc = true; continue; }
+                if (c === quote) quote = null;
+                continue;
+              }
+              if (c === '"' || c === "'" || c === "`") { quote = c; continue; }
+              if (c === "{") depth++;
+              else if (c === "}") {
+                depth--;
+                if (depth === 0) return vm.runInNewContext("(" + text.slice(start, i + 1) + ")", Object.create(null), {timeout: 1000});
+              }
+            }
+            throw new Error("unterminated object " + name);
           }
-          console.log("semantic-dependency-tree=identical (platform optional packages normalized)");
+
+          function stable(value) {
+            if (Array.isArray(value)) return value.map(stable);
+            if (value && typeof value === "object") {
+              return Object.fromEntries(Object.keys(value).sort().map(k => [k, stable(value[k])]));
+            }
+            return value;
+          }
+
+          function semanticSnapshot(text) {
+            const packages = extractObject(text, "packages") || {};
+            const workspaces = extractObject(text, "workspaces") || {};
+            const overrides = extractObject(text, "overrides") || {};
+            const patchedDependencies = extractObject(text, "patchedDependencies") || {};
+            const normalizedPackages = {};
+            for (const [key, raw] of Object.entries(packages)) {
+              const identity = Array.isArray(raw) ? raw[0] : key;
+              const normalize = value => {
+                if (Array.isArray(value)) return value.map(normalize);
+                if (value && typeof value === "object") {
+                  return Object.fromEntries(Object.entries(value).map(([k,v]) => [k, normalize(v)]));
+                }
+                if (typeof value === "string" && /^https:\/\/registry\.(?:npmmirror\.com|npmjs\.org)\//.test(value)) {
+                  return "registry:" + identity;
+                }
+                return value;
+              };
+              normalizedPackages[key] = normalize(raw);
+            }
+            return stable({
+              workspaces,
+              overrides,
+              patchedDependencies,
+              packages: normalizedPackages,
+              packageCount: Object.keys(packages).length
+            });
+          }
+
+          function splitIdentity(identity) {
+            const i = identity.lastIndexOf("@");
+            if (i <= 0 || i === identity.length - 1) throw new Error("cannot parse registry identity: " + identity);
+            return {name: identity.slice(0, i), version: identity.slice(i + 1)};
+          }
+
+          function sriDigest(buffer, integrity) {
+            const token = integrity.trim().split(/\s+/)[0];
+            const dash = token.indexOf("-");
+            if (dash <= 0) throw new Error("bad integrity: " + integrity);
+            const algo = token.slice(0, dash);
+            return algo + "-" + crypto.createHash(algo).update(buffer).digest("base64");
+          }
+
+          async function fetchRetry(url, asBuffer=false) {
+            let last;
+            for (let attempt=1; attempt<=4; attempt++) {
+              try {
+                const res = await fetch(url, {
+                  headers: asBuffer ? {} : {"accept":"application/json"},
+                  redirect: "follow"
+                });
+                if (!res.ok) throw new Error(res.status + " " + res.statusText + " " + url);
+                return asBuffer ? Buffer.from(await res.arrayBuffer()) : await res.json();
+              } catch (e) {
+                last = e;
+                if (attempt < 4) await new Promise(r => setTimeout(r, attempt * 750));
+              }
+            }
+            throw last;
+          }
+
+          const before = semanticSnapshot(source);
+          fs.writeFileSync("/tmp/c4-before-lock-graph.json", JSON.stringify(before, null, 2) + "\n");
+
+          const packages = extractObject(source, "packages") || {};
+          const records = [];
+          for (const [key, raw] of Object.entries(packages)) {
+            if (!Array.isArray(raw)) continue;
+            const identity = raw[0];
+            const oldUrl = raw.find(x => typeof x === "string" && x.includes("registry.npmmirror.com/"));
+            if (!oldUrl) continue;
+            const integrity = raw.find(x => typeof x === "string" && /^sha(?:1|256|384|512)-/.test(x));
+            if (!integrity) throw new Error("missing integrity for " + key);
+            const {name, version} = splitIdentity(identity);
+            records.push({key, identity, name, version, oldUrl, integrity});
+          }
+
+          const unique = [...new Map(records.map(r => [r.oldUrl, r])).values()];
+          const mapping = new Map();
+          let verified = 0;
+          let cursor = 0;
+          const workers = Array.from({length: 10}, async () => {
+            while (true) {
+              const idx = cursor++;
+              if (idx >= unique.length) return;
+              const r = unique[idx];
+              const metadataUrl = "https://registry.npmjs.org/" + encodeURIComponent(r.name) + "/" + encodeURIComponent(r.version);
+              const meta = await fetchRetry(metadataUrl);
+              if (meta.name !== r.name || meta.version !== r.version) {
+                throw new Error("metadata identity mismatch for " + r.identity);
+              }
+              if (!meta.dist || meta.dist.integrity !== r.integrity) {
+                throw new Error("integrity metadata mismatch for " + r.identity + "\nlock=" + r.integrity + "\nnpm=" + (meta.dist && meta.dist.integrity));
+              }
+              const canonical = new URL(meta.dist.tarball);
+              if (canonical.protocol !== "https:" || canonical.hostname !== "registry.npmjs.org") {
+                throw new Error("non-canonical npm tarball host for " + r.identity + ": " + canonical.href);
+              }
+              const tarball = await fetchRetry(canonical.href, true);
+              const calculated = sriDigest(tarball, r.integrity);
+              if (calculated !== r.integrity) {
+                throw new Error("downloaded tarball integrity mismatch for " + r.identity);
+              }
+              mapping.set(r.oldUrl, canonical.href);
+              verified++;
+              if (verified % 50 === 0 || verified === unique.length) {
+                console.log("verified-artifacts=" + verified + "/" + unique.length);
+              }
+            }
+          });
+          await Promise.all(workers);
+
+          let candidate = source;
+          for (const [oldUrl, newUrl] of mapping.entries()) {
+            if (!candidate.includes(oldUrl)) throw new Error("verified URL disappeared before replacement: " + oldUrl);
+            candidate = candidate.split(oldUrl).join(newUrl);
+          }
+
+          const after = semanticSnapshot(candidate);
+          fs.writeFileSync("/tmp/c4-after-verified-migration.json", JSON.stringify(after, null, 2) + "\n");
+          const beforeJSON = JSON.stringify(before);
+          const afterJSON = JSON.stringify(after);
+          if (beforeJSON !== afterJSON) throw new Error("semantic lock graph drift after verified registry migration");
+
+          const mirrorCount = (candidate.match(/registry\.npmmirror\.com/g) || []).length;
+          const npmCount = (candidate.match(/registry\.npmjs\.org/g) || []).length;
+          if (mirrorCount !== 0 || npmCount <= 0) throw new Error("registry counts invalid after verified migration");
+
+          const digest = crypto.createHash("sha256").update(beforeJSON).digest("hex");
+          console.log(JSON.stringify({
+            packageCount: before.packageCount,
+            mirrorEntriesVerified: records.length,
+            uniqueArtifactsVerified: unique.length,
+            semanticSnapshotSha256: digest,
+            migratedNpmmirror: mirrorCount,
+            migratedNpmjs: npmCount
+          }));
+
+          fs.writeFileSync("bun.lock", candidate);
           NODE
-          mirror_count="$(grep -c 'registry.npmmirror.com' bun.lock || true)"
-          npm_count="$(grep -c 'registry.npmjs.org' bun.lock || true)"
-          echo "npmmirror=$mirror_count"
-          echo "npmjs=$npm_count"
-          test "$mirror_count" = "0"
-          test "$npm_count" -gt "0"
-          cp /tmp/phase3-old-tree.txt phase3-old-tree.txt
-          cp /tmp/phase3-new-tree.txt phase3-new-tree.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: phase3b-bun14-lock-probe
-          path: |
-            bun.lock
-            phase3-old-tree.txt
-            phase3-new-tree.txt
-            phase3-raw-tree.diff
-          if-no-files-found: error
-          retention-days: 2
+
+      - name: Add temporary project-local canonical registry authority for compatibility proof
+        run: |
+          set -euo pipefail
+          cat > bunfig.toml <<'EOF'
+          [install]
+          registry = "https://registry.npmjs.org/"
+          EOF
+
+      - name: Bun 1.3.14 fresh frozen install and no-rewrite proof
+        run: |
+          set -euo pipefail
+          rm -rf node_modules "$RUNNER_TEMP/c4-home-a" "$RUNNER_TEMP/c4-cache-a"
+          mkdir -p "$RUNNER_TEMP/c4-home-a" "$RUNNER_TEMP/c4-cache-a"
+          before="$(sha256sum bun.lock | awk '{print $1}')"
+          HOME="$RUNNER_TEMP/c4-home-a" BUN_INSTALL_CACHE_DIR="$RUNNER_TEMP/c4-cache-a" bun install --frozen-lockfile
+          after="$(sha256sum bun.lock | awk '{print $1}')"
+          test "$before" = "$after"
+          echo "frozen-install-lock-rewrite=NO"
+          bun pm ls --all | sort > /tmp/c4-tree-before-regen.txt
+
+      - name: Bun 1.3.14 canonical regeneration zero-drift proof
+        run: |
+          set -euo pipefail
+          cp bun.lock /tmp/c4-pre-regen.lock
+          rm -rf node_modules "$RUNNER_TEMP/c4-home-b" "$RUNNER_TEMP/c4-cache-b"
+          mkdir -p "$RUNNER_TEMP/c4-home-b" "$RUNNER_TEMP/c4-cache-b"
+          HOME="$RUNNER_TEMP/c4-home-b" BUN_INSTALL_CACHE_DIR="$RUNNER_TEMP/c4-cache-b" bun install --lockfile-only
+          node <<'NODE'
+          const fs=require("fs"), vm=require("vm"), crypto=require("crypto");
+          function extractObject(text,name){
+            const at=text.indexOf(name+" ="); if(at<0)return null;
+            const start=text.indexOf("{",at); let d=0,q=null,e=false;
+            for(let i=start;i<text.length;i++){const c=text[i];if(q){if(e){e=false;continue}if(c==="\\"){e=true;continue}if(c===q)q=null;continue}if(c==='"'||c==="'"||c==="`"){q=c;continue}if(c==="{")d++;else if(c==="}"&&--d===0)return vm.runInNewContext("("+text.slice(start,i+1)+")",Object.create(null),{timeout:1000})}
+            throw new Error("unterminated "+name);
+          }
+          function stable(v){if(Array.isArray(v))return v.map(stable);if(v&&typeof v==="object")return Object.fromEntries(Object.keys(v).sort().map(k=>[k,stable(v[k])]));return v}
+          function snap(text){
+            const p=extractObject(text,"packages")||{}, w=extractObject(text,"workspaces")||{}, o=extractObject(text,"overrides")||{}, pd=extractObject(text,"patchedDependencies")||{};
+            const np={};
+            for(const [k,raw] of Object.entries(p)){const id=Array.isArray(raw)?raw[0]:k;const n=v=>Array.isArray(v)?v.map(n):(v&&typeof v==="object")?Object.fromEntries(Object.entries(v).map(([a,b])=>[a,n(b)])):(typeof v==="string"&&/^https:\/\/registry\.(?:npmmirror\.com|npmjs\.org)\//.test(v))?"registry:"+id:v;np[k]=n(raw)}
+            return stable({workspaces:w,overrides:o,patchedDependencies:pd,packages:np,packageCount:Object.keys(p).length});
+          }
+          const before=snap(fs.readFileSync("/tmp/c4-pre-regen.lock","utf8"));
+          const after=snap(fs.readFileSync("bun.lock","utf8"));
+          if(JSON.stringify(before)!==JSON.stringify(after)) throw new Error("Bun 1.3.14 regeneration changed semantic dependency graph");
+          const s=fs.readFileSync("bun.lock","utf8");
+          const mirror=(s.match(/registry\.npmmirror\.com/g)||[]).length;
+          const npm=(s.match(/registry\.npmjs\.org/g)||[]).length;
+          if(mirror!==0||npm<=0) throw new Error("Bun 1.3.14 regeneration broke canonical registry");
+          const hosts={};
+          for(const m of s.matchAll(/https?:\/\/[^"'\s\],}]+/g)){try{const h=new URL(m[0]).hostname;hosts[h]=(hosts[h]||0)+1}catch{}}
+          fs.writeFileSync("/tmp/c4-after-lock-graph.json",JSON.stringify(after,null,2)+"\n");
+          console.log(JSON.stringify({regeneratedNpmmirror:mirror,regeneratedNpmjs:npm,remainingHosts:hosts,semanticSnapshotSha256:crypto.createHash("sha256").update(JSON.stringify(after)).digest("hex")}));
+          NODE
+
+      - name: Final Bun 1.3.14 fresh frozen install and dependency audit
+        run: |
+          set -euo pipefail
+          rm -rf node_modules "$RUNNER_TEMP/c4-home-c" "$RUNNER_TEMP/c4-cache-c"
+          mkdir -p "$RUNNER_TEMP/c4-home-c" "$RUNNER_TEMP/c4-cache-c"
+          before="$(sha256sum bun.lock | awk '{print $1}')"
+          HOME="$RUNNER_TEMP/c4-home-c" BUN_INSTALL_CACHE_DIR="$RUNNER_TEMP/c4-cache-c" bun install --frozen-lockfile
+          after="$(sha256sum bun.lock | awk '{print $1}')"
+          test "$before" = "$after"
+          bun pm ls --all | sort > /tmp/c4-tree-after-regen.txt
+          diff -u /tmp/c4-tree-before-regen.txt /tmp/c4-tree-after-regen.txt
+          set +e
+          bun audit --json > /tmp/c4-audit.json
+          audit_code=$?
+          set -e
+          echo "bun-audit-exit=$audit_code"
+          node -e 'const fs=require("fs"); const s=fs.readFileSync("/tmp/c4-audit.json","utf8"); console.log("bun-audit-json-bytes="+s.length)'
+          echo "final-frozen-install-lock-rewrite=NO"
+
+      - name: Emit verified final Bun 1.3.14 lock candidate
+        run: |
+          set -euo pipefail
+          rm bunfig.toml
+          node <<'NODE'
+          const fs=require("fs"), zlib=require("zlib"), crypto=require("crypto");
+          const lock=fs.readFileSync("bun.lock");
+          const encoded=zlib.gzipSync(lock,{level:9}).toString("base64");
+          const width=6000;
+          const count=Math.ceil(encoded.length/width);
+          console.log("C4_LOCK_SHA256 "+crypto.createHash("sha256").update(lock).digest("hex"));
+          console.log("C4_LOCK_CHUNKS "+count);
+          for(let i=0;i<count;i++) console.log("C4_LOCK_CHUNK "+i+" "+encoded.slice(i*width,(i+1)*width));
+          NODE
