@@ -8,6 +8,7 @@ import type { CastingSession } from "@/server/repository";
 import type { DeepReadingContextSnapshot } from "@/domain/generation/deep-reading-contract";
 import { decryptDeepReadingContextSnapshot } from "@/server/generation/deep-reading-snapshot";
 import { calculateDeepReadingContextSnapshotHash } from "@/server/generation/integrity";
+import type { Sql } from "postgres";
 
 export type CastingView = {
   session: CastingSession;
@@ -311,6 +312,26 @@ export async function loadMyReadings(
   });
 }
 
+export async function loadPostgresEntitlementBalance(
+  sql: Sql,
+  userId: string,
+): Promise<{ available: number; expiringSoon: number }> {
+  const rows = await sql`
+    select
+      coalesce(sum(quantity_available), 0)::integer as available,
+      coalesce(sum(case when expires_at < clock_timestamp() + interval '30 days' then quantity_available else 0 end), 0)::integer as expiring_soon
+    from entitlement_batches
+    where user_id = ${userId}
+      and refund_locked = false
+      and expires_at > clock_timestamp()
+  ` as Array<Record<string, any>>;
+
+  return {
+    available: Number(rows[0]?.available ?? 0),
+    expiringSoon: Number(rows[0]?.expiring_soon ?? 0),
+  };
+}
+
 export async function loadEntitlementBalance(
   resolvedUser?: { id: string; email: string } | null,
 ): Promise<{ available: number; expiringSoon: number }> {
@@ -319,19 +340,7 @@ export async function loadEntitlementBalance(
 
   if (process.env.DATABASE_ADAPTER_MODE === "postgres" && process.env.DATABASE_URL) {
     const { getPostgresClient } = await import("@/server/db/client");
-    const sql = getPostgresClient();
-    const rows = await sql`
-      select
-        coalesce(sum(quantity_available), 0)::integer as available,
-        coalesce(sum(case when expires_at < clock_timestamp() + interval '30 days' then quantity_available else 0 end), 0)::integer as expiring_soon
-      from entitlement_batches
-      where user_id = ${user.id} and expires_at > clock_timestamp()
-    ` as Array<Record<string, any>>;
-
-    return {
-      available: Number(rows[0]?.available ?? 0),
-      expiringSoon: Number(rows[0]?.expiring_soon ?? 0),
-    };
+    return loadPostgresEntitlementBalance(getPostgresClient(), user.id);
   }
 
   const batches = repo.getBatches(user.id);
