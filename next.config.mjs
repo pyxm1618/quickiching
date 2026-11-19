@@ -56,7 +56,7 @@ const nextConfig = {
       { source: "/three-coin-method", destination: "/methods/three-coin", permanent: true },
       { source: "/yarrow-stalk-method", destination: "/methods/yarrow-stalks", permanent: true },
       { source: "/mei-hua-yi-shu", destination: "/methods/mei-hua-yi-shu", permanent: true },
-      { source: "/casting-methods", destination: "/#other-casting-methods", permanent: true },
+      { source: "/casting-methods", destination: "/help#casting-methods", permanent: true },
       { source: "/how-to-ask-the-i-ching", destination: "/guides/how-to-ask-the-i-ching", permanent: true },
       { source: "/changing-lines", destination: "/guides/changing-lines", permanent: true },
       { source: "/primary-and-relating-hexagrams", destination: "/guides/primary-relating-hexagrams", permanent: true },
