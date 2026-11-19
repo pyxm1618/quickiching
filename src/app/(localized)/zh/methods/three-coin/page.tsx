@@ -1,3 +1,4 @@
+import { sharedOpenGraphImageMetadata } from "@/lib/shared-open-graph-image";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { alternateLanguages, canonicalUrl } from "@/i18n/helpers";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   title: { absolute: SEO.finalTitle },
   description: SEO.finalDescription,
   alternates: { canonical: CANONICAL, languages: alternateLanguages("three-coin-method") },
-  openGraph: { title: SEO.finalTitle, description: SEO.finalDescription, url: CANONICAL, type: "article", locale: "zh_CN" },
+  openGraph: { images: [sharedOpenGraphImageMetadata("zh-Hans")], title: SEO.finalTitle, description: SEO.finalDescription, url: CANONICAL, type: "article", locale: "zh_CN" },
   robots: { index: true, follow: true },
 };
 
