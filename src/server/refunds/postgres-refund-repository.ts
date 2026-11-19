@@ -229,7 +229,7 @@ export class PostgresRefundRepository {
 
     const result = await this.sql.begin(async (transaction) => {
       const orderRows = await transaction`
-        select * from payment_orders where id = ${orderId} limit 1 for update
+        select * from payment_orders where id = ${orderId} limit 1 for no key update
       ` as Row[];
       const order = orderRows[0];
       if (!order) throw new Error("REFUND_ORDER_NOT_FOUND");
