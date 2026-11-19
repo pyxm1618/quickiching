@@ -353,7 +353,7 @@ async function verifyQuestionReading(page, locale = "en") {
   assert.equal(await page.$("[data-completed-cast-gate='auth-required']"), null, "Free Reading refresh must remain public");
   assert.equal(await page.evaluate(() => sessionStorage.getItem("quickiching:public-v1:three-coin")), null, "Refresh must not revive the retired method session");
 
-  await page.goto(freeState.deepHref, { waitUntil: "networkidle0", timeout: 30_000 });
+  await page.goto(freeDeepUrl.toString(), { waitUntil: "networkidle0", timeout: 30_000 });
   await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 15_000 });
   const deepSigninHref = await page.$eval('[data-auth-reading-intent="deep"]', node => node.getAttribute("href"));
   const deepCallback = new URL(deepSigninHref, BASE).searchParams.get("callbackURL");
