@@ -34,6 +34,9 @@ const stateHarness = vi.hoisted(() => {
 
       return [values[index] as T, setState] as const;
     },
+    useRef<T>(initialValue: T) {
+      return { current: initialValue };
+    },
   };
 });
 
@@ -51,6 +54,7 @@ vi.mock("react", async (importOriginal) => {
   return {
     ...actual,
     useState: stateHarness.useState,
+    useRef: stateHarness.useRef,
   };
 });
 
@@ -58,6 +62,10 @@ vi.mock("better-auth/client", () => ({
   createAuthClient: mocks.createAuthClient,
 }));
 vi.mock("better-auth/client/plugins", () => ({ magicLinkClient: () => ({}) }));
+vi.mock("./turnstile-widget", () => ({
+  TURNSTILE_SITE_KEY: "",
+  TurnstileWidget: () => null,
+}));
 
 vi.stubGlobal("React", React);
 
@@ -134,6 +142,8 @@ describe("shared passwordless AuthForm", () => {
     }));
     expect(source).toContain('provider: "google"');
     expect(source).toContain("authClient.signIn.magicLink");
+    expect(source).toContain('"x-captcha-response"');
+    expect(source).toContain("TurnstileWidget");
     expect(source).not.toMatch(/signUp\.social|signUp\.magicLink|signUpGoogle|signUpMagicLink/);
   });
 

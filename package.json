@@ -28,10 +28,10 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.66",
-    "@better-auth/drizzle-adapter": "1.7.1",
+    "@better-auth/drizzle-adapter": "1.7.25",
     "@waffo/pancake-ts": "0.19.1",
     "ai": "7.0.77",
-    "better-auth": "1.7.1",
+    "better-auth": "1.7.25",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^0.474.0",
