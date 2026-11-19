@@ -106,6 +106,13 @@
       "createdAt": 1795050480000,
       "hash": "8912239e236b82f05bc3613ab940c1903da63671bbb801eb70d84e7bfde5c750",
       "gitBlobSha1": "3005677a20b5014aff000cba665d6ac99e45b878"
+    },
+    {
+      "idx": 15,
+      "tag": "0015_better_auth_1_7_account_identity",
+      "createdAt": 1795078500000,
+      "hash": "f7414571d5c4512046fce3dc731b0c735ef37aaa37f0df988f6c7cd3c23409fc",
+      "gitBlobSha1": "ff5c875df7918c374f32a6357e0df019a258d2d6"
     }
   ]
 }
