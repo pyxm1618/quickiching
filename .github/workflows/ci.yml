@@ -812,7 +812,6 @@ jobs:
             pg_ctl -D /tmp/qic-r3-postgres/data -m fast -w stop
           fi
           rm -f /tmp/qic-r3-magic-link.json
-          rm -rf .next-r3-auth
       - name: Remove Reading local QA fixture
         if: always()
         run: node scripts/ritual-qa-fixture.mjs remove
