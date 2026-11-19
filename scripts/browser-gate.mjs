@@ -208,7 +208,10 @@ async function verifyHttpAndSeo() {
 
   const castingMethods = await expectStatus("/casting-methods", 308);
   const castingLocation = new URL(castingMethods.headers.get("location"), BASE);
-  assert.equal(`${castingLocation.pathname}${castingLocation.hash}`, "/#other-casting-methods");
+  assert.equal(`${castingLocation.pathname}${castingLocation.hash}`, "/help#casting-methods");
+  const castingTarget = await expectStatus("/help", 200);
+  const castingTargetHtml = await castingTarget.text();
+  assert(castingTargetHtml.includes('id="casting-methods"'), "/casting-methods target fragment must exist in rendered Help HTML");
 
   for (const path of ["/signin", "/account", "/checkout/example"]) {
     const response = await expectStatus(path, 410);
