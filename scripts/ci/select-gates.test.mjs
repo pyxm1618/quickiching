@@ -33,7 +33,7 @@ const cases = [
   {
     name: "navigation",
     files: ["src/components/scene-navigation/scene-navigation.tsx"],
-    expect: { risk_class: "3", build: true, navigation: true, seo_browser: true, database: false, auth_lifecycle: false, payment_refund: false },
+    expect: { risk_class: "3", build: true, navigation: true, seo_browser: true, database: false, auth_lifecycle: true, payment_refund: false },
   },
   {
     name: "middleware",
@@ -109,14 +109,77 @@ for (const c of cases) {
   });
 }
 
+test("HIGH-001 reading lifecycle ownership selects Auth Lifecycle for R3", () => {
+  const cases = [
+    ["reading resume", "src/lib/reading-resume.ts", { build: true }],
+    ["reading handoff", "src/lib/reading-handoff.ts", { build: true }],
+    ["reading workflow", "src/server/workflows/deep-reading-workflow.ts", { build: true }],
+    ["reading repository", "src/server/repositories/reading-repository.ts", { build: true, database: true }],
+  ];
+
+  for (const [name, file, extra] of cases) {
+    const r = pick([file]);
+    assert.equal(r.reading, true, name + ": reading");
+    assert.equal(r.reading_lifecycle, true, name + ": reading_lifecycle");
+    assert.equal(r.auth_lifecycle, true, name + ": auth_lifecycle");
+    assert.equal(r.build, true, name + ": build");
+    if (extra.database) assert.equal(r.database, true, name + ": database");
+  }
+});
+
+test("HIGH-001 navigation ownership selects Auth Lifecycle for R2", () => {
+  const scene = pick(["src/components/scene-navigation/scene-navigation.tsx"]);
+  assert.equal(scene.navigation, true);
+  assert.equal(scene.auth_lifecycle, true);
+  assert.equal(scene.seo_browser, true);
+  assert.equal(scene.build, true);
+
+  const locale = pick(["src/navigation/locale-navigation.ts"]);
+  assert.equal(locale.build, true);
+  assert.equal(locale.navigation, true);
+  assert.equal(locale.auth_lifecycle, true);
+});
+
+test("HIGH-001 negative controls avoid Auth Lifecycle over-trigger", () => {
+  const controls = [
+    ["docs", "README.md"],
+    ["CI-only", "scripts/ci/select-gates.mjs"],
+    ["tsconfig-only", "tsconfig.json"],
+    ["package-only", "package.json"],
+    ["bun-lock-only", "bun.lock"],
+    ["unrelated local UI", "src/components/privacy-settings-button.tsx"],
+  ];
+
+  for (const [name, file] of controls) {
+    const r = pick([file]);
+    assert.equal(r.auth_lifecycle, false, name + ": auth_lifecycle");
+  }
+
+  const docs = pick(["README.md"]);
+  assert.equal(docs.navigation, false);
+  assert.equal(docs.reading_lifecycle, false);
+
+  const ciOnly = pick(["scripts/ci/select-gates.mjs"]);
+  assert.equal(ciOnly.navigation, false);
+  assert.equal(ciOnly.reading_lifecycle, false);
+
+  for (const file of ["tsconfig.json", "package.json", "bun.lock"]) {
+    const r = pick([file]);
+    assert.equal(r.navigation, false, file + ": navigation");
+    assert.equal(r.reading_lifecycle, false, file + ": reading_lifecycle");
+  }
+});
+
 test("Reading lifecycle is selected only for lifecycle/persistence blast radius", () => {
   const localUi = pick(["src/components/public-reading/three-coin-tool.tsx"]);
   assert.equal(localUi.reading, true);
   assert.equal(localUi.reading_lifecycle, false);
+  assert.equal(localUi.auth_lifecycle, false);
 
   const lifecycle = pick(["src/server/generation/deep-reading-service.ts"]);
   assert.equal(lifecycle.reading, true);
   assert.equal(lifecycle.reading_lifecycle, true);
+  assert.equal(lifecycle.auth_lifecycle, true);
   assert.equal(lifecycle.database, true);
 });
 

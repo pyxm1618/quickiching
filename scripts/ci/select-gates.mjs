@@ -181,6 +181,7 @@ const NAVIGATION = [
   /\/layout\.tsx$/,
   "src/components/scene-navigation",
   "src/components/site-header",
+  "src/navigation/",
   /^src\/i18n\/(?:routing|navigation)/,
   /^src\/(?:config\/)?routes?(?:\.|\/)/,
   /^next\.config\./,
@@ -365,6 +366,12 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
     selected.payment_refund = false;
     selected.performance = false;
     if (dependencyChange) selected.security = true;
+  }
+
+  // R2/R3 execute inside CI / Auth Lifecycle. Preserve that gate ownership only
+  // after exclusions/resets have established the domains that are truly affected.
+  if (selected.navigation || selected.reading_lifecycle) {
+    selected.auth_lifecycle = true;
   }
 
   selected.public_seo = selected.seo_static || selected.seo_browser || selected.locale_browser;
