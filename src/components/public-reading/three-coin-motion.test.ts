@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import {Euler,Quaternion,Vector3} from 'three';
 import { coinPose, visualNoise, particleCanEmit, castTrailIntensity, COIN_MOTION_END_MS } from './three-coin-motion';
 
 describe('pure Three.js presentation contract', () => {
@@ -16,8 +17,38 @@ describe('pure Three.js presentation contract', () => {
       const facing=Math.abs(Math.cos(pose.rotation[0])*Math.cos(pose.rotation[1]));
       expect(facing).toBeGreaterThan(.45);
       expect(facing).toBeLessThan(.95);
-      expect(pose.rotation[2]).toBeGreaterThan(-.65);
-      expect(pose.rotation[2]).toBeLessThan(-.35);
+      const normal=new Vector3(0,0,1).applyQuaternion(new Quaternion().setFromEuler(new Euler(...pose.rotation,pose.rotationOrder)));
+      const majorAxis=(Math.atan2(-normal.y,normal.x)*180/Math.PI+270)%180;
+      expect(majorAxis).toBeGreaterThan(27);
+      expect(majorAxis).toBeLessThan(29);
+    }
+  });
+  it('keeps all canonical airborne ellipses face-independent without changing landing faces', () => {
+    const targets=[{x:730,y:500,ratio:.57,angle:40,textureAngle:9},{x:920,y:410,ratio:.50,angle:28,textureAngle:8},{x:1010,y:605,ratio:.88,angle:60,textureAngle:18}];
+    for(const face of ['yang','yin'] as const) for(let index=0;index<3;index++) {
+      const pose=coinPose({phase:'casting',face,index,time:500,seed:1618,reducedMotion:false});
+      const q=new Quaternion().setFromEuler(new Euler(...pose.rotation,pose.rotationOrder));
+      const normal=new Vector3(0,0,1).applyQuaternion(q);
+      const horizontal=new Vector3(1,0,0).applyQuaternion(q);
+      const angle=(Math.atan2(-normal.y,normal.x)*180/Math.PI+270)%180;
+      const textureAngle=(Math.atan2(-horizontal.y,horizontal.x)*180/Math.PI+180)%180;
+      const target=targets[index];
+      expect(Math.abs(pose.x-target.x)).toBeLessThan(2);
+      expect(Math.abs(pose.y-target.y)).toBeLessThan(3);
+      expect(Math.abs(Math.abs(normal.z)-target.ratio)).toBeLessThan(.02);
+      expect(Math.abs(angle-target.angle)).toBeLessThan(2);
+      expect(Math.abs(textureAngle-target.textureAngle)).toBeLessThan(2);
+    }
+  });
+  it('changes Euler order at launch without a position or physical-orientation jump', () => {
+    for(const face of ['yang','yin'] as const) for(let index=0;index<3;index++) {
+      const input={face,index,seed:1618,reducedMotion:false};
+      const ready=coinPose({...input,phase:'ready',time:0});
+      const airborne=coinPose({...input,phase:'casting',time:80+index*65+.0000001});
+      const before=new Quaternion().setFromEuler(new Euler(...ready.rotation,ready.rotationOrder));
+      const after=new Quaternion().setFromEuler(new Euler(...airborne.rotation,airborne.rotationOrder));
+      expect(before.angleTo(after)).toBeLessThan(.000001);
+      expect(Math.hypot(airborne.x-ready.x,airborne.y-ready.y)).toBeLessThan(.000001);
     }
   });
   it('freezes the same seed/time to identical poses and decorative samples', () => {

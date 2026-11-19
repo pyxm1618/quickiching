@@ -12,6 +12,8 @@ const clamp = (value:number) => Math.max(0,Math.min(1,value));
 const mix = (a:number,b:number,t:number) => a+(b-a)*t;
 const smooth = (t:number) => t*t*(3-2*t);
 const initialRotations: readonly [number,number,number][]=[[-.16,.09,.06],[.18,-.12,-.08],[-.15,.1,.1]];
+// The same launch orientations in XYZ keep the change of Euler order continuous.
+const flightInitialRotations: readonly [number,number,number][]=[[-.1656238370729176,.07909999067448889,.07378908117741102],[.1713678885031089,-.13209230242323083,-.057795464133680086],[-.15977827672188297,.08339696294927888,.1142008961593385]];
 
 export type CoinPose = {
   x:number;y:number;diameter:number;rotation:[number,number,number];rotationOrder:'XYZ'|'ZYX';settled:boolean;opacity:number;
@@ -39,17 +41,10 @@ export function castTrailIntensity(time:number,index:number):number {
   return .48*(.25+.75*Math.sin(progress*PI))*fade;
 }
 
-// Integral of the specified acceleration / fast-spin / deceleration / settle envelope.
-function spinProgress(progress:number,accelerationPower:number):number {
-  const accelerationArea=.18/(accelerationPower+1);
-  const total=accelerationArea+.5875;
-  if(progress<=.18)return accelerationArea*Math.pow(progress/.18,accelerationPower+1)/total;
-  if(progress<=.62)return (accelerationArea+progress-.18)/total;
-  if(progress<=.82) {
-    const t=progress-.62;return (accelerationArea+.44+t-1.875*t*t)/total;
-  }
-  const t=progress-.82;
-  return (accelerationArea+.565+.25*t-.25*t*t/.36)/total;
+// Front-loaded spin: coins present a readable oblique face early, then decelerate into the authoritative landing.
+function spinProgress(progress:number,index:number):number {
+  const exponent=[2.52,1.71,2.62][index];
+  return 1-Math.pow(1-progress,exponent);
 }
 
 export function coinPose(input:{
@@ -86,6 +81,7 @@ export function coinPose(input:{
   const duration=reducedMotion?280:FLIGHT_DURATIONS[index];
   const delay=reducedMotion?0:COIN_LAUNCH_LEAD_MS+index*65;
   const progress=clamp((time-delay)/duration);
+  if(progress===0)return ready;
   if(progress===1)return final;
   if(reducedMotion) {
     const target:[number,number,number]=[face==='yin'?(initial[0]<0?-PI:PI):0,0,0];
@@ -102,10 +98,10 @@ export function coinPose(input:{
       opacity:1,
     };
   }
-  const peakDiameter=[210,190,215][index];
+  const peakDiameter=[215,168,200][index];
   const variance=visualNoise(seed,index)*3;
-  const elevation=[2.4*210+variance,3.1*190-variance,2.3*215+variance][index];
-  const peakX=[668,970,1079][index];
+  const elevation=[542+variance,612-variance,563+variance][index];
+  const peakX=[610,944,1063][index];
   const peakY=800-elevation;
   const rise=progress<=.46;
   const u=clamp(progress/.46);
@@ -119,13 +115,17 @@ export function coinPose(input:{
   const guidance=smooth(clamp((progress-.72)/.28));
   const sizeEntry=smooth(clamp(progress/.18));
   const diameter=mix(mix(164,peakDiameter,sizeEntry),164,guidance);
-  const spin=spinProgress(progress,index===2?8:index===1?1.8:1);
+  const spin=spinProgress(progress,index);
   const targetAngle=(index===1&&face==='yang'?6*PI:4*PI)+(face==='yin'?PI:0);
-  const precession=Math.pow(Math.sin(spin*PI),index===0?2.5:2)*[1.62,1.84,2.7][index];
-  const roll=Math.pow(Math.sin(clamp(progress/.72)*PI),index===2?10:1)*[-.45,-.49,.5][index];
-  return {x,y,diameter,rotation:[
-    initial[0]*(1-spin)+targetAngle*spin,
-    (precession+initial[1]*(1-spin))*(1-guidance),
-    (roll+initial[2]*(1-spin))*(1-guidance),
-  ],rotationOrder:'ZYX',settled:false,opacity:1};
+  const flightInitial=flightInitialRotations[index];
+  const precession=Math.pow(Math.sin(spin*PI),[2.5,2,2][index])*[.543108,.59617,.399701][index];
+  const roll=Math.sin(clamp(progress/.72)*PI)*[.35646,.472605,-.354251][index];
+  // The airborne bias unwinds before the authoritative landing.
+  const tiltBias=Math.sin(spin*PI)*(face==='yang'?[-1.506605,-1.9487,.846188]:[3.100184,-.682391,-.518454])[index]*(1-guidance);
+  const drift=(1-guidance)*sizeEntry;
+  return {x:x+[25,16,5][index]*drift,y:y+[24,14,16][index]*drift,diameter,rotation:[
+    flightInitial[0]*(1-spin)+targetAngle*spin+tiltBias,
+    (precession+flightInitial[1]*(1-spin))*(1-guidance),
+    (roll+flightInitial[2]*(1-spin))*(1-guidance),
+  ],rotationOrder:'XYZ',settled:false,opacity:1};
 }

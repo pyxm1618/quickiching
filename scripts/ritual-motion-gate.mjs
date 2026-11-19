@@ -28,15 +28,16 @@ async function run(reduced,suppressed=false){
   });
   await page.goto(base,{waitUntil:'networkidle0'});
   for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent)==='Decline')await button.click();
-  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
-  await page.waitForSelector('[data-renderer="three-webgl"]');
   if(suppressed)await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important}'});
   const room=await roomArtwork(page);
   assert(room.includes(REVIEWED_ROOM_ASSET),'Landing must use the reviewed production room artwork');
-  await page.evaluate(()=>window.__motionCanvas=document.querySelector('.ritual-webgl canvas'));
   await page.locator('[data-private-question]').fill('How should I understand this transition?');
   await page.locator('[data-home-primary-action]').click();
   await page.waitForSelector('[data-question-confirm]');
+  // WebGL mounts after landing and activates on the next pointer event.
+  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
+  await page.waitForSelector('[data-renderer="three-webgl"]');
+  await page.evaluate(()=>window.__motionCanvas=document.querySelector('.ritual-webgl canvas'));
   await page.screenshot({path:`${output}/${prefix}-question-enter.png`});
   assert.equal(await page.evaluate(()=>window.__motionDraws),0);
   await page.waitForSelector('[data-home-primary-action]:not(:disabled)');
