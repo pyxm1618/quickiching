@@ -10,6 +10,7 @@ import { resultIntegrityHmac } from "./integrity";
 import type { DeterministicFacts } from "@/domain/generation/schemas";
 import { createDeepReadingService, DeepReadingService } from "./deep-reading-service";
 import { PostgresRefundRepository } from "@/server/refunds/postgres-refund-repository";
+import { loadPostgresEntitlementBalance } from "@/server/loaders";
 
 const databaseURL = process.env.TEST_DATABASE_URL;
 if (!databaseURL) throw new Error("TEST_DATABASE_URL is required for PostgreSQL integration tests");
@@ -178,6 +179,83 @@ describe("CP5C Paid Deep Reading Service & Entitlement Flow (PostgreSQL)", () =>
       available: 1,
       reserved: 0,
       reservations: 0,
+    });
+  });
+
+  it("keeps displayed balance aligned with refund-lock spendability and mixed batches", async () => {
+    const userId = `refund-balance-${randomUUID()}`;
+    const fixture = await seedDeepReadingCandidateWithCredit(userId);
+    await sql`
+      update entitlement_batches
+      set expires_at = clock_timestamp() + interval '10 days'
+      where id = ${fixture.batchId}
+    `;
+
+    expect(await loadPostgresEntitlementBalance(sql, userId)).toEqual({
+      available: 1,
+      expiringSoon: 1,
+    });
+
+    const refunds = new PostgresRefundRepository(sql);
+    const intent = await refunds.apply({
+      userId,
+      orderId: fixture.orderId,
+      reason: "Refund balance consistency",
+      now: new Date(),
+    });
+    await refunds.decide({
+      refundId: intent.id,
+      action: "approve",
+      operatorId: "approver-test",
+      now: new Date(),
+    });
+    await refunds.claimProviderDispatch(intent.id, "dispatcher-test", new Date());
+
+    expect(await loadPostgresEntitlementBalance(sql, userId)).toEqual({
+      available: 0,
+      expiringSoon: 0,
+    });
+    await expect(deepReadingService.requestDeepReading({
+      userId,
+      castingId: fixture.castingId,
+      locale: "en",
+    })).rejects.toThrow("INSUFFICIENT_CREDITS");
+
+    const spendableOrderId = randomUUID();
+    const spendableBatchId = randomUUID();
+    const now = new Date().toISOString();
+    await sql`
+      insert into payment_orders (
+        id, user_id, product_key, quantity, amount_minor, currency, request_id,
+        provider, provider_environment, provider_product_id, provider_order_id, provider_payment_id,
+        status, paid_at, created_at, updated_at
+      ) values (
+        ${spendableOrderId}, ${userId}, 'one', 1, 299, 'USD', ${`req-${spendableOrderId}`},
+        'waffo', 'test', 'prod-1', ${`ord-${spendableOrderId}`}, ${`pay-${spendableOrderId}`},
+        'paid', ${now}, ${now}, ${now}
+      )
+    `;
+    await sql`
+      insert into entitlement_batches (
+        id, user_id, order_id, quantity_total, quantity_available, quantity_reserved,
+        quantity_consumed, quantity_revoked, expires_at, created_at, updated_at
+      ) values (
+        ${spendableBatchId}, ${userId}, ${spendableOrderId}, 1, 1, 0, 0, 0,
+        clock_timestamp() + interval '12 months', ${now}, ${now}
+      )
+    `;
+
+    expect(await loadPostgresEntitlementBalance(sql, userId)).toEqual({
+      available: 1,
+      expiringSoon: 0,
+    });
+    await expect(deepReadingService.requestDeepReading({
+      userId,
+      castingId: fixture.castingId,
+      locale: "en",
+    })).resolves.toMatchObject({
+      status: "queued",
+      creditReservationCreated: true,
     });
   });
 
