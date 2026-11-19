@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import nextConfig, { buildContentSecurityPolicy, buildCrawlerIndexingHeaders } from "./next.config.mjs";
+import { CANONICAL_PRODUCTION_VERCEL_PROJECT_ID } from "./src/lib/vercel-deployment.mjs";
 
 const getConfig = async () =>
   typeof nextConfig === "function"
@@ -65,6 +66,7 @@ describe("Next.js crawler indexing headers", () => {
     expect(buildCrawlerIndexingHeaders({
       VERCEL: "1",
       VERCEL_ENV: "production",
+      VERCEL_PROJECT_ID: CANONICAL_PRODUCTION_VERCEL_PROJECT_ID,
       VERCEL_GIT_COMMIT_REF: "main",
     })).toEqual([]);
   });
@@ -73,12 +75,20 @@ describe("Next.js crawler indexing headers", () => {
     expect(buildCrawlerIndexingHeaders({
       VERCEL: "1",
       VERCEL_ENV: "production",
+      VERCEL_PROJECT_ID: "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE",
       VERCEL_GIT_COMMIT_REF: "staging",
     })).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
     expect(buildCrawlerIndexingHeaders({
       VERCEL: "1",
       VERCEL_ENV: "preview",
+      VERCEL_PROJECT_ID: CANONICAL_PRODUCTION_VERCEL_PROJECT_ID,
       VERCEL_GIT_COMMIT_REF: "feature/seo",
+    })).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
+    expect(buildCrawlerIndexingHeaders({
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      VERCEL_PROJECT_ID: "prj_unknown",
+      VERCEL_GIT_COMMIT_REF: "main",
     })).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
   });
 });
