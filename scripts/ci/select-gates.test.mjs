@@ -134,6 +134,14 @@ test("SEO registry source selects rendered SEO browser quality audit", () => {
   assert.equal(r.payment_refund, false);
 });
 
+test("Interpretation bundle changes select both static registry and rendered SEO browser", () => {
+  const r = pick(["src/domain/interpretation/reading-text.ts"]);
+  assert.equal(r.seo_static, true);
+  assert.equal(r.seo_browser, true);
+  assert.equal(r.database, false);
+  assert.equal(r.payment_refund, false);
+});
+
 test("performance target selection is domain-aware", () => {
   assert.deepEqual(JSON.parse(pick(["src/components/account/account-shell.tsx"]).performance_targets), ["account.desktop"]);
   assert.deepEqual(JSON.parse(pick(["src/components/reading-result/reading-result-client.tsx"]).performance_targets), ["result.mobile", "result.desktop"]);
