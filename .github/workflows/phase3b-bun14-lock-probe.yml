@@ -1,0 +1,73 @@
+name: Phase 3B Bun 1.4 Lock Probe
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    if: github.head_ref == 'fix/phase3-engineering-hardening'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          registry-url: https://registry.npmjs.org
+      - name: Use repository Bun 1.3.14
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Capture the current exact dependency tree
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
+          bun pm ls --all | sort > /tmp/phase3-old-tree.txt
+      - name: Materialize the exact installed tree as npm shrinkwrap
+        run: |
+          set -euo pipefail
+          cp package.json /tmp/package.json
+          node - <<'NODE'
+          const fs = require("fs");
+          const p = JSON.parse(fs.readFileSync("package.json","utf8"));
+          p.devDependencies.postcss = p.overrides.postcss;
+          fs.writeFileSync("package.json", JSON.stringify(p,null,2)+"\n");
+          NODE
+          rm -f package-lock.json npm-shrinkwrap.json
+          npm shrinkwrap --ignore-scripts
+          mv /tmp/package.json package.json
+      - name: Use Bun 1.4.4
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - name: Generate canonical-registry Bun 1.4 lock and prove zero tree drift
+        run: |
+          set -euo pipefail
+          rm bun.lock
+          printf 'registry=https://registry.npmjs.org/\n' > .npmrc
+          bun install --lockfile-only
+          rm .npmrc npm-shrinkwrap.json
+          rm -rf node_modules
+          bun install --frozen-lockfile
+          bun pm ls --all | sort > /tmp/phase3-new-tree.txt
+          diff -u /tmp/phase3-old-tree.txt /tmp/phase3-new-tree.txt
+          mirror_count="$(grep -c 'registry.npmmirror.com' bun.lock || true)"
+          npm_count="$(grep -c 'registry.npmjs.org' bun.lock || true)"
+          echo "npmmirror=$mirror_count"
+          echo "npmjs=$npm_count"
+          test "$mirror_count" = "0"
+          test "$npm_count" -gt "0"
+          cp /tmp/phase3-old-tree.txt phase3-old-tree.txt
+          cp /tmp/phase3-new-tree.txt phase3-new-tree.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phase3b-bun14-lock-probe
+          path: |
+            bun.lock
+            phase3-old-tree.txt
+            phase3-new-tree.txt
+          if-no-files-found: error
+          retention-days: 2
