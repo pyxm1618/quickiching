@@ -153,6 +153,8 @@ const SEO_STATIC = [
 const SEO_BROWSER = [
   "src/content/hexagrams/seo.ts",
   "src/domain/public-reading/classical.ts",
+  "src/domain/interpretation/",
+  "scripts/interpretation-bundle-gate.mjs",
   "src/app/",
   "src/components/hex/",
   "src/components/hexagram-detail-page",
