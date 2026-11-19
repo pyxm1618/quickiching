@@ -321,6 +321,95 @@ async function verifyFormalEntryPoints(browser) {
   log("EN/ZH Home formal entry + SEO-only method detail PASS");
 }
 
+
+async function verifyMobileBrandInteractionSafety(browser, viewport) {
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  await page.setViewport(viewport);
+
+  async function assertBrandClear(label, selectors) {
+    const facts = await page.evaluate((targetSelectors) => {
+      const brand = document.querySelector(".scene-brand");
+      if (!(brand instanceof HTMLElement)) return { brand: null, hitBrand: false, targets: [] };
+      const brandRect = brand.getBoundingClientRect();
+      const centerX = brandRect.left + brandRect.width / 2;
+      const centerY = brandRect.top + brandRect.height / 2;
+      const hit = document.elementFromPoint(centerX, centerY);
+      const targets = targetSelectors.flatMap((selector) =>
+        [...document.querySelectorAll(selector)]
+          .filter((node) => node instanceof HTMLElement)
+          .map((node) => {
+            const rect = node.getBoundingClientRect();
+            const style = getComputedStyle(node);
+            const visible = rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+            const overlapWidth = Math.max(0, Math.min(brandRect.right, rect.right) - Math.max(brandRect.left, rect.left));
+            const overlapHeight = Math.max(0, Math.min(brandRect.bottom, rect.bottom) - Math.max(brandRect.top, rect.top));
+            return {
+              selector,
+              visible,
+              rect: rect.toJSON(),
+              overlapArea: overlapWidth * overlapHeight,
+              text: node.textContent?.trim() ?? "",
+            };
+          }),
+      );
+      return {
+        brand: brandRect.toJSON(),
+        hitBrand: Boolean(hit?.closest?.(".scene-brand")),
+        targets,
+      };
+    }, selectors);
+
+    assert(facts.brand, `${label}: scene brand must be present`);
+    assert(facts.hitBrand, `${label}: scene brand center must remain directly clickable`);
+    for (const target of facts.targets.filter((item) => item.visible)) {
+      assert.equal(
+        target.overlapArea,
+        0,
+        `${label}: scene brand must not overlap interactive target ${target.selector} (${target.text})`,
+      );
+    }
+  }
+
+  try {
+    const response = await page.goto(`${BASE}/`, { waitUntil: "networkidle0", timeout: 30_000 });
+    assert.equal(response?.status(), 200, "Mobile Three-Coin entry must return HTTP 200");
+    await page.waitForSelector("[data-three-coin-ritual]");
+    await page.waitForSelector(".scene-brand");
+
+    for (const button of await page.$('[aria-label="Analytics Consent"] button')) {
+      if (await button.evaluate((node) => node.textContent?.trim() === "Decline")) await button.click();
+    }
+
+    await page.waitForSelector("textarea[data-private-question]");
+    await page.type("textarea[data-private-question]", "Will this work ");
+    await clickButton(page, "Start Divination");
+    await page.waitForFunction(() =>
+      document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "question-confirm"
+      && document.querySelector(".scene-navigation")?.getAttribute("data-navigation-surface") === "S02",
+    );
+    await assertBrandClear(
+      `${viewport.width}x${viewport.height} question-confirm`,
+      ["textarea[data-private-question]", ".ritual-gold-button", ".ritual-back"],
+    );
+
+    await clickButton(page, "Cast the Coins");
+    await page.waitForFunction(() =>
+      document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "ritual"
+      && document.querySelector(".scene-navigation")?.getAttribute("data-navigation-surface") === "S02",
+    );
+    await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 15_000 });
+    await assertBrandClear(
+      `${viewport.width}x${viewport.height} casting`,
+      ["[data-ritual-question-context] input", ".hold-button", "[data-flow-exit]"],
+    );
+
+    log(`${viewport.width}x${viewport.height} S02 mobile brand / interaction safety PASS`);
+  } finally {
+    await context.close();
+  }
+}
+
 async function verifyInvalidResult(browser) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
@@ -685,6 +774,13 @@ const browser = await puppeteer.launch({
 });
 try {
   await verifyFormalEntryPoints(browser);
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 375, height: 667 },
+    { width: 360, height: 740 },
+  ]) {
+    await verifyMobileBrandInteractionSafety(browser, viewport);
+  }
   await verifyInvalidResult(browser);
   await verifyStorageReadFailure(browser);
   await verifyStorageWriteFailureRetry(browser);
