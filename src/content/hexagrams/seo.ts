@@ -46,7 +46,7 @@ export type HexagramSeoEntry = HexagramSeoBaseEntry & {
   otherCoreVariant: string | null;
   meaningKeyword: string;
   loveKeyword: string | null;
-  unchangingKeyword: string;
+  unchangingKeyword: string | null;
   relationshipKeyword: string | null;
   specialKeywords: readonly string[];
   recommendedModules: readonly string[];
@@ -4174,8 +4174,6 @@ export const HEXAGRAM_SEO_REGISTRY: readonly HexagramSeoEntry[] = LEGACY_HEXAGRA
   if (entry.locale === "en") {
     const research = englishGlobalExactRow(entry.number);
     const meaningKeyword = `hexagram ${entry.number} meaning`;
-    const loveKeyword = `hexagram ${entry.number} love`;
-    const unchangingKeyword = `hexagram ${entry.number} unchanging`;
     const relationshipKeyword = research.recommendedModules.includes("relationship")
       ? `hexagram ${entry.number} relationship`
       : null;
@@ -4213,8 +4211,8 @@ export const HEXAGRAM_SEO_REGISTRY: readonly HexagramSeoEntry[] = LEGACY_HEXAGRA
       sourceNotes: `English FINAL GLOBAL EXACT workbook SHA-256 ${EN_GLOBAL_EXACT_SOURCE_SHA256}; exact_match=true country records only.`,
       otherCoreVariant: research.otherCoreVariant,
       meaningKeyword,
-      loveKeyword,
-      unchangingKeyword,
+      loveKeyword: null,
+      unchangingKeyword: null,
       relationshipKeyword,
       specialKeywords: research.specialKeywords,
       recommendedModules: research.recommendedModules,

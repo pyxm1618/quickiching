@@ -41,6 +41,8 @@ describe("workbook-derived 128-page SEO registry", () => {
       expect(entry.finalDescription.toLocaleLowerCase("en-US")).not.toContain("unchanging");
       expect(entry.recommendedModules).not.toContain("love");
       expect(entry.recommendedModules).not.toContain("unchanging");
+      expect(entry.loveKeyword).toBeNull();
+      expect(entry.unchangingKeyword).toBeNull();
       expect(entry.finalDescription.length).toBeGreaterThanOrEqual(100);
       expect(entry.finalDescription.length).toBeLessThanOrEqual(160);
     }

@@ -250,10 +250,10 @@ function auditNonHex(path, snapshot, baseRow, homeLinks) {
   const placement = {
     titleExact: snapshot.title === entry.finalTitle,
     descriptionExact: snapshot.description === entry.finalDescription,
-    h1Exact: designOwnedInteractiveFlow || (snapshot.h1.length === 1 && snapshot.h1[0] === entry.finalH1),
+    h1Exact: snapshot.h1.length === 1 && snapshot.h1[0] === entry.finalH1,
     primaryInTitle: countExactPhrase(snapshot.title, entry.primaryKeyword, "zh-Hans") > 0,
     primaryInDescription: countExactPhrase(snapshot.description, entry.primaryKeyword, "zh-Hans") > 0,
-    primaryInH1: designOwnedInteractiveFlow || snapshot.h1.some((value) => countExactPhrase(value, entry.primaryKeyword, "zh-Hans") > 0),
+    primaryInH1: snapshot.h1.some((value) => countExactPhrase(value, entry.primaryKeyword, "zh-Hans") > 0),
     primaryInEarlyCopy: singleStageHomepage || designOwnedInteractiveFlow || retiredLegacyVisibleCopy ? true : countExactPhrase(snapshot.earlyCopy, entry.primaryKeyword, "zh-Hans") > 0,
     primaryInH2: singleStageHomepage || designOwnedInteractiveFlow || retiredLegacyVisibleCopy ? true : snapshot.h2.some((value) => countExactPhrase(value, entry.primaryKeyword, "zh-Hans") > 0),
     primaryInboundAnchor: true,

@@ -62,6 +62,9 @@ for (const classical of CLASSICAL_HEXAGRAMS) {
   if (en.recommendedModules.includes("love") || en.recommendedModules.includes("unchanging")) {
     failures.push("English recommendedModules promises unsupported content for " + classical.number);
   }
+  if (en.loveKeyword !== null || en.unchangingKeyword !== null) {
+    failures.push("English keyword authority still contains unsupported love/unchanging intent for " + classical.number);
+  }
 }
 
 for (const field of ["canonicalUrl", "finalTitle", "finalDescription", "finalH1"]) {
