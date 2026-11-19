@@ -1,3 +1,5 @@
+import { isCanonicalProductionVercelDeployment } from "@/lib/vercel-deployment.mjs";
+
 type AnalyticsEnvironment = Record<string, string | undefined>;
 
 export type AnalyticsConfig = {
@@ -47,13 +49,9 @@ function readOptionalAnalyticsId(
 export function getAnalyticsConfig(
   environment: AnalyticsEnvironment = process.env,
 ): AnalyticsConfig {
-  // The dedicated staging project deploys its `staging` Git branch with a
-  // Vercel production target. Only the canonical production branch may receive
-  // the reviewed production analytics identifiers automatically.
-  if (
-    environment.VERCEL_ENV === "production"
-    && environment.VERCEL_GIT_COMMIT_REF !== "staging"
-  ) {
+  // Only the canonical Vercel project receives the reviewed production IDs.
+  // Staging and previews require explicit isolated IDs and otherwise stay disabled.
+  if (isCanonicalProductionVercelDeployment(environment)) {
     return {
       gaMeasurementId: PRODUCTION_GA_MEASUREMENT_ID,
       clarityProjectId: PRODUCTION_CLARITY_PROJECT_ID,
