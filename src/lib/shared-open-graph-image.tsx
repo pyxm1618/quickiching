@@ -1,6 +1,17 @@
 import { ImageResponse } from "next/og";
+import { SITE_ORIGIN } from "@/i18n/config";
 
 export const SHARED_OG_SIZE = { width: 1200, height: 630 } as const;
+
+export function sharedOpenGraphImageMetadata(locale: "en" | "zh-Hans") {
+  return {
+    url: new URL(`/og-image?locale=${locale}`, SITE_ORIGIN).toString(),
+    width: SHARED_OG_SIZE.width,
+    height: SHARED_OG_SIZE.height,
+    type: "image/png",
+    alt: locale === "zh-Hans" ? "Quick I Ching 易经在线" : "Quick I Ching — I Ching Online",
+  };
+}
 
 export function quickIChingOpenGraphImage(locale: "en" | "zh-Hans"): ImageResponse {
   const zh = locale === "zh-Hans";
