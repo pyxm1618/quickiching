@@ -568,7 +568,7 @@ async function main() {
     assert.equal(deepUrl.searchParams.get("session"), completedThreeCoinId);
     await assertPurity(page, "Three-Coin Completed Free Reading");
 
-    await page.goto(completedState.deepHref, { waitUntil: "networkidle0" });
+    await page.goto(deepUrl.toString(), { waitUntil: "networkidle0" });
     await page.waitForSelector("[data-completed-cast-gate='auth-required']", { timeout: 5000 });
     assert.equal(await page.$("[data-public-reading-result]"), null, "Anonymous Deep Reading must remain behind authentication");
     const deepSigninHref = await page.$eval('[data-auth-reading-intent="deep"]', node => node.getAttribute("href"));
