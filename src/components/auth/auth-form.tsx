@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AlertCircle, Mail } from "lucide-react";
 import { createAuthClient } from "better-auth/client";
 import { magicLinkClient } from "better-auth/client/plugins";
@@ -9,6 +9,11 @@ import { getDictionary } from "@/i18n/dictionaries";
 import type { ContentLocale } from "@/i18n/config";
 import styles from "./auth-ui.module.css";
 import { GildedTitle } from "@/components/typography/gilded-title";
+import {
+  TURNSTILE_SITE_KEY,
+  TurnstileWidget,
+  type TurnstileWidgetHandle,
+} from "./turnstile-widget";
 
 const authClient = createAuthClient({
   basePath: "/api/auth",
@@ -220,6 +225,8 @@ export function AuthForm({
   const [newLinkMode, setNewLinkMode] = useState(initialError?.requestNewLink ?? false);
   const [formMode, setFormMode] = useState<AuthMode>(mode);
   const [pendingAction, setPendingAction] = useState<"google" | "email" | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
   const errorCallbackURL = authPageURL(formMode, callbackURL, locale);
   const prefix = locale === "zh-Hans" ? "/zh" : "";
   const homeHref = prefix || "/";
@@ -238,6 +245,9 @@ export function AuthForm({
         callbackURL: absoluteCallbackURL,
         newUserCallbackURL: absoluteCallbackURL,
         errorCallbackURL: absoluteErrorCallbackURL,
+        fetchOptions: captchaToken
+          ? { headers: { "x-captcha-response": captchaToken } }
+          : undefined,
       }));
       if (!ok) {
         setError({
@@ -250,6 +260,7 @@ export function AuthForm({
       setSentEmail(email.trim());
       setNewLinkMode(false);
     } finally {
+      turnstileRef.current?.reset();
       setPendingAction(null);
     }
   }
@@ -267,6 +278,9 @@ export function AuthForm({
         callbackURL: absoluteCallbackURL,
         newUserCallbackURL: absoluteCallbackURL,
         errorCallbackURL: absoluteErrorCallbackURL,
+        fetchOptions: captchaToken
+          ? { headers: { "x-captcha-response": captchaToken } }
+          : undefined,
       });
       if (result.error) {
         setError({
@@ -292,6 +306,7 @@ export function AuthForm({
         requestNewLink: false,
       });
     } finally {
+      turnstileRef.current?.reset();
       setPendingAction(null);
     }
   }
@@ -382,6 +397,7 @@ export function AuthForm({
   }
 
   const busy = pendingAction !== null;
+  const captchaPending = Boolean(TURNSTILE_SITE_KEY) && !captchaToken;
   const title = formMode === "signin" ? ui.signInTitle : ui.signUpTitle;
   const description = formMode === "signin" ? ui.signInDescription : ui.signUpDescription;
 
@@ -395,13 +411,19 @@ export function AuthForm({
       <button
         type="button"
         onClick={signInWithGoogle}
-        disabled={busy}
+        disabled={busy || captchaPending}
         aria-busy={pendingAction === "google"}
         className={styles.googleButton}
       >
         <GoogleMark />
         {pendingAction === "google" ? copy.connectingGoogle : copy.continueGoogle}
       </button>
+
+      <TurnstileWidget
+        ref={turnstileRef}
+        siteKey={TURNSTILE_SITE_KEY}
+        onToken={setCaptchaToken}
+      />
 
       <div className={styles.separator} aria-hidden="true">
         <span />
@@ -429,7 +451,7 @@ export function AuthForm({
         </div>
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || captchaPending}
           aria-busy={pendingAction === "email"}
           className={styles.primaryButton}
         >
