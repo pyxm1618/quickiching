@@ -422,8 +422,8 @@ export function ThreeCoinRitual({
         ) : (
           <div data-ritual-question-context className="ritual-question-context">
             {question
-              ? <input value={draft} onChange={(event) => setQuestion(event.target.value)} aria-label={zh ? "本次问题" : "Question for this reading"}
-                  data-clarity-mask="true" data-private-question="true" disabled={coreQuestionFrozenAtCast} />
+              ? <textarea value={draft} onChange={(event) => setQuestion(event.target.value)} aria-label={zh ? "本次问题" : "Question for this reading"}
+                  rows={1} data-clarity-mask="true" data-private-question="true" disabled={coreQuestionFrozenAtCast} />
               : <p>{zh ? "本次为无问题的免费起卦" : "This is a free cast without a bound question"}</p>}
           </div>
         )}

@@ -1,4 +1,4 @@
-import { Fraunces, IBM_Plex_Mono, Instrument_Sans, Pinyon_Script } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, Instrument_Sans, Kaushan_Script, Pinyon_Script } from "next/font/google";
 
 // Content display face. Hero titles are GildedTitle/Pinyon Script, so this face only
 // serves content headings and the hub subtitle. It is not preloaded: the home page
@@ -51,10 +51,19 @@ const titleScript = Pinyon_Script({
   preload: false,
 });
 
+const ritualBrush = Kaushan_Script({
+  variable: "--font-ritual-brush",
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+  preload: false,
+});
+
 export const fontVariableClassNames = [
   fraunces.variable,
   instrumentSans.variable,
   ibmPlexMono.variable,
   ibmPlexMonoSecondary.variable,
   titleScript.variable,
+  ritualBrush.variable,
 ].join(" ");

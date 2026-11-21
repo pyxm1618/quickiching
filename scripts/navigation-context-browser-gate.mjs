@@ -173,7 +173,7 @@ function threeCoinFacts(page) {
       question: session?.coreQuestionAtCast ?? session?.question ?? null,
       steps: session?.data?.steps?.length ?? 0,
       stage: document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") ?? null,
-      visibleQuestion: document.querySelector("[data-ritual-question-context] input")?.value ?? null,
+      visibleQuestion: document.querySelector("[data-ritual-question-context] textarea")?.value ?? null,
       continuationLeftover: sessionStorage.getItem("quickiching:public-v1:locale-continuation"),
     };
   }, THREE_COIN_KEY);

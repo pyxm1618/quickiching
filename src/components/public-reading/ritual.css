@@ -67,7 +67,13 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-gold-button {height:calc(82 * var(--u));font-size:calc(30 * var(--u));}
 :is([data-experience-stage='question-confirm'],[data-question-leaving='true']) .ritual-cta-description {font-size:calc(19 * var(--u));color:#fff8e8;}
 .ritual-question-context {position:fixed;top:calc(328 * var(--u));left:25%;width:50%;z-index:2;text-align:center;color:#d8c7aa;font-size:calc(15 * var(--u));}
-.ritual-question-context input {width:100%;background:transparent;border:0;text-align:center;font:inherit;color:inherit;}
+.ritual-question-context textarea {display:block;width:100%;field-sizing:content;max-height:5.2em;overflow:auto;resize:none;padding:0;background:transparent;border:0;text-align:center;font:inherit;color:inherit;}
+body:has([data-ritual-view='casting'],[data-ritual-view='result']) .ritual-question-context {top:calc(316 * var(--u));left:20%;width:60%;color:#e9d7b2;font-size:calc(19 * var(--u));font-weight:400;line-height:1.3;opacity:.82;text-shadow:0 1px 2px rgba(18,9,3,.7);}
+body:has([data-ritual-view='result']) .ritual-question-context {top:calc(336 * var(--u));}
+body:has([data-ritual-view='casting'],[data-ritual-view='result']) .ritual-question-context textarea {text-shadow:inherit;}
+body:has([data-ritual-view='casting']) .ritual-question-context textarea {max-height:1.3em;}
+body:has([data-ritual-view='casting'],[data-ritual-view='result']) .ritual-question-context textarea:disabled {opacity:1;-webkit-text-fill-color:currentColor;}
+body:has([data-ritual-view='progress'],[data-ritual-view='complete']) .ritual-question-context {opacity:0;pointer-events:none;}
 .ritual-form-error {background:#fff0d6;color:#8b1f12;font-size:16px;position:relative;z-index:3;}
 @keyframes ritual-ui-enter {from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce) {.ritual-canvas *{animation-duration:140ms!important;transition-duration:140ms!important;transition-delay:0ms!important;}}
@@ -163,19 +169,18 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-stage-number::before,.ritual-stage-number::after {content:'';width:calc(58 * var(--u));height:1px;background:linear-gradient(90deg,transparent,#c5a76b);}
 .ritual-stage-number::after {transform:scaleX(-1);}
 [data-ritual-view='result'] .ritual-cast-heading {top:calc(131 * var(--u));left:calc(480 * var(--u));}
-[data-ritual-view='result'] .ritual-cast-heading .qic-gilded-title {font-size:calc(68 * var(--u));margin-top:calc(12 * var(--u));}
-[data-ritual-view='result'] .ritual-cast-heading > p:last-child {font-size:calc(26 * var(--u));margin-top:calc(10 * var(--u));}
-.ritual-face-labels {position:absolute;left:calc(490 * var(--u));top:calc(643 * var(--u));display:flex;gap:calc(130 * var(--u));}
-.ritual-face-labels > span {display:flex;align-items:center;justify-content:center;width:calc(140 * var(--u));height:calc(46 * var(--u));background:url('/performance/questionDesktop.3b34ef04891180ba.webp') center/cover;color:#17100a;font:700 calc(25 * var(--u))/1 Georgia,serif;clip-path:polygon(6% 0,95% 0,100% 20%,98% 83%,93% 100%,5% 100%,0 70%,2% 20%);animation:ritual-ui-enter 180ms var(--ritual-enter) both;}
-.ritual-record-action {position:absolute;left:calc(615 * var(--u));top:calc(732 * var(--u));width:calc(440 * var(--u));text-align:center;animation:ritual-ui-enter 220ms var(--ritual-enter) both;}
+.ritual-cast-result-title {font:700 calc(56 * var(--u))/1.2375 Georgia,"Libre Baskerville",serif;color:#f3ead6;letter-spacing:.005em;margin:calc(13 * var(--u)) 0 0;text-shadow:0 1px 2px rgba(20,10,4,.6);}
+[data-ritual-view='result'] .ritual-cast-heading > p:last-child {font:400 calc(23.3 * var(--u))/1.325 Georgia,"Libre Baskerville",serif;margin-top:calc(13 * var(--u));transform:translateX(calc(9 * var(--u)));}
+.ritual-face-labels {position:absolute;left:calc(423 * var(--u));top:calc(644 * var(--u));width:calc(822 * var(--u));display:grid;grid-template-columns:repeat(3,minmax(0,1fr));}
+.ritual-face-labels > span {display:flex;align-items:center;justify-content:center;justify-self:center;width:max-content;padding-inline:calc(37 * var(--u));height:calc(46 * var(--u));background:url('/performance/questionDesktop.3b34ef04891180ba.webp') center/cover;color:#17100a;font:700 calc(21.5 * var(--u))/1 Georgia,"Libre Baskerville",serif;clip-path:polygon(6% 0,95% 0,100% 20%,98% 83%,93% 100%,5% 100%,0 70%,2% 20%);animation:ritual-ui-enter 180ms var(--ritual-enter) both;}
+.ritual-record-action {position:absolute;left:calc(615 * var(--u));top:calc(732 * var(--u));width:calc(440 * var(--u));text-align:center;isolation:isolate;animation:ritual-ui-enter 220ms var(--ritual-enter) both;}
+.ritual-record-action::after {content:'';position:absolute;left:calc(-92 * var(--u));right:calc(-92 * var(--u));top:calc(-34 * var(--u));bottom:calc(-34 * var(--u));z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 74%,rgba(14,7,3,.72) 0%,rgba(14,7,3,.52) 36%,rgba(14,7,3,.24) 62%,rgba(14,7,3,0) 82%);}
 .ritual-record-action .ritual-gold-button {font-size:calc(28 * var(--u));height:calc(72 * var(--u));}
-.ritual-record-action .ritual-stage-number {margin-top:calc(20 * var(--u));}
+.ritual-record-action .ritual-stage-number {margin-top:calc(20 * var(--u));padding-block:calc(2 * var(--u));text-shadow:0 1px 3px rgba(12,6,2,.95),0 0 10px rgba(12,6,2,.8);background:radial-gradient(ellipse at 50% 50%,rgba(10,5,2,.66) 0%,rgba(10,5,2,.42) 52%,rgba(10,5,2,.12) 74%,rgba(10,5,2,0) 86%);}
 .ritual-cast-control {position:absolute;left:calc(615 * var(--u));top:calc(828 * var(--u));width:calc(440 * var(--u));text-align:center;}
 .ritual-cast-control .hold-button {width:100%;height:calc(58 * var(--u));min-height:0;min-width:0;border:1px solid #e9bd74;border-radius:60px;background:rgba(43,24,6,.8);color:#fff0cc;box-shadow:none;font:400 calc(18 * var(--u))/1.2 Georgia,serif;}
 .ritual-cast-control .hold-button::before {display:none;}
 .ritual-cast-control > p {margin:calc(8 * var(--u)) 0;color:#f3deaf;font:400 calc(15 * var(--u))/1.3 Georgia,serif;}
-[data-ritual-view='casting'] .ritual-cast-control {opacity:0;pointer-events:none;}
-[data-ritual-view='casting'] .ritual-cast-control button {pointer-events:none;}
 [data-ritual-view='progress'] .ritual-cast-heading,[data-ritual-view='complete'] .ritual-cast-heading {left:calc(580 * var(--u));top:calc(113 * var(--u));width:calc(630 * var(--u));}
 [data-ritual-view='progress'] .ritual-stage-number,[data-ritual-view='complete'] .ritual-stage-number {font-size:calc(30 * var(--u));color:#ffedb2;}
 [data-ritual-view='progress'] .ritual-cast-heading .qic-gilded-title,[data-ritual-view='complete'] .ritual-cast-heading .qic-gilded-title {font-size:calc(52 * var(--u));line-height:1.08;margin-top:calc(5 * var(--u));}
@@ -199,18 +204,21 @@ body:has(.ritual-canvas) > header { background:rgba(0,0,0,.83); }
 .ritual-storage-notice:empty {display:none;}
 .ritual-storage-notice > div {background:rgba(32,13,7,.97);}
 .ritual-completion-status {position:absolute;left:25%;width:50%;top:calc(820 * var(--u));text-align:center;}
-body:has([data-ritual-view='casting'],[data-ritual-view='result'],[data-ritual-view='progress'],[data-ritual-view='complete']) .ritual-question-context {opacity:0;pointer-events:none;}
 @media(max-width:800px) {
+ body:has([data-ritual-view='casting'],[data-ritual-view='result']) .ritual-question-context {left:5%;width:90%;font-size:15px;}
+ body:has([data-ritual-view='casting'],[data-ritual-view='result']) .ritual-question-context textarea {max-height:3.9em;}
  .ritual-cast-ui {position:relative;inset:auto;min-height:780px;padding:20px;}
+ .ritual-cast-ui:is([data-ritual-view='casting'],[data-ritual-view='result']) {padding-top:84px;--ritual-mobile-controls-top:76px;}
  .ritual-cast-heading,[data-ritual-view] .ritual-cast-heading {position:relative;inset:auto;width:auto;margin:88px 0 0;}
  .ritual-cast-heading .qic-gilded-title,[data-ritual-view] .ritual-cast-heading .qic-gilded-title {font-size:38px;}
+ .ritual-cast-result-title {font-size:38px;}
  .ritual-cast-heading > p:not(.ritual-stage-number),[data-ritual-view='result'] .ritual-cast-heading > p:last-child {font-size:17px;margin:15px 0;}
- .ritual-journey {display:none;}.ritual-sound{top:12px;right:20px;}.ritual-cast-ui .ritual-back{position:absolute;top:60px;left:20px;font-size:18px;}
+ .ritual-journey {display:none;}.ritual-sound{top:var(--ritual-mobile-controls-top,12px);right:20px;}.ritual-cast-ui .ritual-back{position:absolute;top:var(--ritual-mobile-controls-top,60px);left:20px;font-size:18px;}
  .ritual-six-lines {left:20px;top:235px;width:calc(100% - 40px);}.ritual-six-lines li {font-size:17px;}
  .ritual-cast-control,[data-ritual-view='progress'] .ritual-cast-control {left:20px;top:680px;width:calc(100% - 40px);height:auto;}
  [data-ritual-view='progress'] .hold-button {height:58px;background:#35200d;border:1px solid #bd9352;color:#fff1ca;border-radius:40px;}
  [data-ritual-view='progress'] .hold-button::after {position:relative!important;width:auto;height:auto;clip-path:none;}
- .ritual-face-labels {left:4%;top:490px;width:92%;gap:10px;justify-content:space-around;}.ritual-face-labels > span {width:28%;font-size:21px;}
+ .ritual-face-labels {left:4%;top:490px;width:92%;display:flex;gap:10px;justify-content:space-around;}.ritual-face-labels > span {width:28%;padding-inline:0;font-size:21px;}
  .ritual-record-action {left:8%;top:580px;width:84%;}.ritual-record-action .ritual-gold-button{font-size:23px;}.ritual-stage-number{font-size:20px;}
  .ritual-storage-notice{left:5%;width:90%;top:220px;}
 }
@@ -261,14 +269,19 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 }
 
 @media(min-width:801px) {
- [data-ritual-view='casting'] .ritual-cast-heading .qic-gilded-title {font-size:calc(96 * var(--u));line-height:1.04;}
- [data-ritual-view='casting'] .ritual-cast-heading .ritual-ink {width:calc(230 * var(--u));height:calc(205 * var(--u));left:calc(14 * var(--u));top:calc(-25 * var(--u));}
+ [data-ritual-view='ready'] .ritual-cast-heading .qic-gilded-title {font-family:var(--font-ritual-brush),cursive;font-size:calc(104 * var(--u));line-height:1;letter-spacing:0;transform:translateX(calc(38 * var(--u)));}
+ [data-ritual-view='casting'] .ritual-cast-heading .qic-gilded-title:not(:lang(zh)) {font-family:var(--font-ritual-brush),cursive;font-style:normal;font-weight:400;font-size:calc(93.3 * var(--u));line-height:calc(104 * var(--u));letter-spacing:0;transform:translate(calc(32 * var(--u)),calc(-5 * var(--u))) scaleY(.84);transform-origin:50% 0;background-size:100% 220%;}
+ [data-ritual-view='casting'] .ritual-cast-heading .qic-gilded-title:not(:lang(zh))::first-letter {font-size:1.4em;line-height:.89;}
+ [data-ritual-view='casting'] .ritual-cast-heading > p:not(.ritual-stage-number) {font:400 calc(19.9 * var(--u))/1.46 Georgia,"Libre Baskerville",serif;margin-top:calc(4 * var(--u));}
+ [data-ritual-view='casting'] .ritual-cast-heading .ritual-ink {background-image:url('/ritual/decor/ink-circle-brush.png');background-size:100% 100%;filter:brightness(.55) saturate(.45);width:calc(215 * var(--u));height:calc(205 * var(--u));left:calc(28 * var(--u));top:calc(-32 * var(--u));}
+ [data-ritual-view='casting'] .ritual-cast-heading .ritual-cloud {right:calc(-52 * var(--u));top:calc(95 * var(--u));width:calc(132 * var(--u));height:calc(63 * var(--u));background-size:100% 100%;}
 }
 
 @media(min-width:801px) {
- [data-ritual-view='result'] .ritual-cast-heading {top:calc(123 * var(--u));}
+ .ritual-cast-result-title {transform:translateX(calc(19 * var(--u))) scaleY(1.18);}
+ [data-ritual-view='result'] .ritual-cast-heading {top:calc(131 * var(--u));}
  .ritual-record-action .ritual-gold-button::after {display:none;}
- .ritual-record-action .ritual-gold-button {box-shadow:inset 0 -3px 5px rgba(255,242,201,.78),0 0 3px rgba(255,224,145,.72),0 0 10px rgba(237,157,48,.62),0 0 18px rgba(177,101,26,.5);}
+ .ritual-record-action .ritual-gold-button {background:radial-gradient(ellipse at 50% 50%,#fbd47e 0%,#f9d27b 48%,#ffe29a 82%,#ffe7a4 100%);box-shadow:inset 0 -3px 5px rgba(255,242,201,.78),0 0 6px rgba(255,224,145,.85),0 0 18px rgba(237,157,48,.75),0 0 34px rgba(177,101,26,.6);}
 }
 
 @keyframes ritual-line-enter {from{opacity:0;transform:scaleX(.92)}to{opacity:1;transform:scaleX(1)}}
@@ -299,9 +312,8 @@ body:has(.ritual-result-scene) > header {background:rgba(0,0,0,.83);}
 @keyframes ritual-result-labels-exit {to{opacity:0;transform:translateY(5px)}}
 @keyframes ritual-result-record-exit {to{opacity:0;transform:translateY(6px)}}
 .ritual-result-departure {position:absolute;inset:0;z-index:3;pointer-events:none;}
-.ritual-departing-result-heading {position:absolute;left:calc(480 * var(--u));top:calc(123 * var(--u));width:calc(712 * var(--u));text-align:center;animation:ritual-result-heading-exit 180ms var(--ritual-exit) both;}
-.ritual-departing-result-heading .qic-gilded-title {font-size:calc(68 * var(--u));margin-block-start:calc(12 * var(--u));margin-inline:0;}
-.ritual-departing-result-heading > p:last-child {font:400 calc(26 * var(--u))/1.25 Georgia,serif;margin:calc(10 * var(--u)) calc(-100 * var(--u)) 0;color:#fff8ed;}
+.ritual-departing-result-heading {position:absolute;left:calc(480 * var(--u));top:calc(131 * var(--u));width:calc(712 * var(--u));text-align:center;animation:ritual-result-heading-exit 180ms var(--ritual-exit) both;}
+.ritual-departing-result-heading > p:last-child {font:400 calc(23.3 * var(--u))/1.325 Georgia,"Libre Baskerville",serif;margin:calc(13 * var(--u)) calc(-100 * var(--u)) 0;color:#fff8ed;transform:translateX(calc(9 * var(--u)));}
 .ritual-face-labels.ritual-departing-face-labels {animation:ritual-result-labels-exit 150ms var(--ritual-exit) both;}
 .ritual-face-labels.ritual-departing-face-labels > span {animation:none;}
 .ritual-record-action.ritual-departing-record-action {animation:ritual-result-record-exit 160ms var(--ritual-exit) both;}

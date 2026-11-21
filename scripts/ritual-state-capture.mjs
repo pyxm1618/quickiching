@@ -45,14 +45,16 @@ try {
  // Layout snapshots sample completed CSS entrances; motion is audited separately in real time.
  await page.addStyleTag({content:'*,*::before,*::after{animation-delay:0s!important;animation-duration:0s!important;transition:none!important;caret-color:transparent!important}'});
  if(state!=='07') {
-  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
-  await page.waitForSelector('[data-renderer="three-webgl"]');
   await page.locator('[data-private-question]').fill('Should I continue on my current path?');
   await page.locator('[data-home-primary-action]').click();
   await page.waitForSelector('[data-question-confirm]');
+  // WebGL mounts after landing and activates on the next pointer event.
+  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
+  await page.waitForSelector('[data-renderer="three-webgl"]');
   if(state==='02'){await page.$eval('textarea[data-private-question]',node=>{node.focus();node.select();});await page.keyboard.press('Backspace');await page.waitForFunction(()=>document.querySelector('.ritual-character-count')?.textContent.startsWith('0/'));await page.$eval('textarea[data-private-question]',node=>node.blur());}
   else {
    await page.locator('[data-home-primary-action]').click();
+   await page.waitForSelector('[data-ritual-question-context]');
    if(state==='03') {
     await page.waitForSelector('.hold-button:not(:disabled)');await page.locator('.hold-button').click();
     await page.waitForSelector('[data-renderer="three-webgl"][data-phase="casting"]');
