@@ -7,6 +7,7 @@ import {
   hexagramSeoFor,
   hexagramSeoRows,
 } from "./seo";
+import { zhHansHexagramContent } from "./zh-Hans";
 
 describe("workbook-derived 128-page SEO registry", () => {
   it("contains exactly 64 English and 64 Simplified Chinese rows", () => {
@@ -74,6 +75,32 @@ describe("workbook-derived 128-page SEO registry", () => {
       .filter((entry) => entry.locale === "en" && entry.relationshipKeyword)
       .map((entry) => entry.number);
     expect(relationshipNumbers).toEqual([1, 26, 37, 41, 42, 49, 54, 56]);
+  });
+
+  it("keeps Simplified Chinese descriptions within what the rendered body explains", () => {
+    for (const classical of CLASSICAL_HEXAGRAMS) {
+      const entry = hexagramSeoFor(classical.number, "zh-Hans");
+      const content = zhHansHexagramContent(classical.number);
+      const body = [
+        content.coreMeaning,
+        content.theme,
+        content.practicalUnderstanding,
+        content.realityUnderstanding,
+        ...content.supports,
+        ...content.watchFor,
+        ...content.lineNotes,
+      ].join(" ");
+
+      expect(entry.finalDescription).toContain(`易经第${classical.number}卦`);
+      expect(entry.finalDescription).not.toMatch(/没有动爻|无动爻|静卦/);
+      expect(entry.finalDescription).not.toMatch(/运势与吉凶/);
+      if (entry.finalDescription.includes("感情与关系")) {
+        expect(body, `hexagram ${classical.number}`).toMatch(/感情|关系|伴侣|恋爱|婚姻/);
+      }
+      if (entry.finalDescription.includes("事业与工作")) {
+        expect(body, `hexagram ${classical.number}`).toMatch(/事业|工作|职场|职业/);
+      }
+    }
   });
 
   it("retains workbook keyword mapping and placement instructions as source data", () => {

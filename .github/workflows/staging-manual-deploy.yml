@@ -1,0 +1,107 @@
+name: Staging Manual Baseline Deploy
+
+on:
+  push:
+    branches:
+      - fix/final-production-remediation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-manual-deploy
+  cancel-in-progress: false
+
+env:
+  VERCEL_PROJECT_ID: prj_iKtw9xKmIlEfe44gEocgLr2QDLfE
+  VERCEL_TEAM_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
+  STAGING_ORIGIN: https://staging.quickiching.com
+  STAGING_BASELINE_SHA: 94eda94ecd30d2a50dfaae70d47a85a96b565b9d
+
+jobs:
+  deploy:
+    name: Deploy the pinned stable baseline to staging
+    # Deploy only on an explicit dispatch or a commit that opts in with [deploy-staging].
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[deploy-staging]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_STAGING_TOKEN }}
+      VERCEL_ORG_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
+    steps:
+      - name: Lock staging project scope
+        run: |
+          set -euo pipefail
+          test -n "${VERCEL_TOKEN:-}" || { echo "::error::VERCEL_STAGING_TOKEN is not configured"; exit 1; }
+          test "$VERCEL_PROJECT_ID" = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE"
+          test "$VERCEL_TEAM_ID" = "team_z1b9TTQtbNkr43dzs5JVJPnQ"
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.STAGING_BASELINE_SHA }}
+
+      - name: Verify the checked-out source is the pinned baseline
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$STAGING_BASELINE_SHA"
+          git log -1 --format='baseline=%H date=%aI subject=%s'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+
+      - name: Keep staging automatic git deployments disabled
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            -X PATCH \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_TEAM_ID}" \
+            --data '{"gitProviderOptions":{"createDeployments":"disabled"}}' \
+            > "${RUNNER_TEMP}/project-update.json"
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            -H "Accept: application/json" \
+            "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_TEAM_ID}" \
+            > "${RUNNER_TEMP}/project.json"
+          jq '{gitProviderOptions, link: {productionBranch: .link.productionBranch}}' "${RUNNER_TEMP}/project.json"
+
+      - name: Deploy baseline production build to the staging project
+        run: |
+          set -euo pipefail
+          npx --yes vercel@latest deploy --prod --yes \
+            --token "${VERCEL_TOKEN}" \
+            --cwd "${GITHUB_WORKSPACE}" | tee "${RUNNER_TEMP}/deploy.txt"
+          deployment_url=$(grep -Eo 'https://[a-z0-9.-]+\.vercel\.app' "${RUNNER_TEMP}/deploy.txt" | tail -1)
+          test -n "$deployment_url" || { echo "::error::Deployment URL not found"; exit 1; }
+          echo "deploymentUrl=$deployment_url" >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Verify the staging domain no longer exposes production indexing or analytics
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            curl --fail-with-body --silent --show-error -D "${RUNNER_TEMP}/headers.txt" "${STAGING_ORIGIN}/" -o "${RUNNER_TEMP}/home.html"
+            if grep -qi '^x-robots-tag:.*noindex' "${RUNNER_TEMP}/headers.txt" \
+              && grep -qE '<meta[^>]+name="robots"[^>]*noindex' "${RUNNER_TEMP}/home.html"; then
+              break
+            fi
+            sleep 10
+          done
+          grep -iE '^(x-robots-tag|x-vercel-cache|age):' "${RUNNER_TEMP}/headers.txt"
+          meta=$(grep -oE '<meta[^>]+name="robots"[^>]*>' "${RUNNER_TEMP}/home.html" | head -1)
+          test -n "$meta" || { echo "::error::No robots meta rendered"; exit 1; }
+          echo "$meta"
+          echo "$meta" | grep -q 'noindex' || { echo "::error::Staging metadata is indexable"; exit 1; }
+          grep -qi '^x-robots-tag:.*noindex' "${RUNNER_TEMP}/headers.txt" || { echo "::error::Staging X-Robots-Tag missing noindex"; exit 1; }
+          if grep -qE 'G-NLFCDYQSJQ|xvz3gv8ics' "${RUNNER_TEMP}/home.html"; then
+            echo "::error::Production analytics identifiers are still served from staging"
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error "${STAGING_ORIGIN}/robots.txt" | tee "${RUNNER_TEMP}/robots.txt"
+          grep -q 'Disallow: /' "${RUNNER_TEMP}/robots.txt" || { echo "::error::Staging robots.txt does not disallow crawling"; exit 1; }
+          code=$(curl --silent --show-error -o "${RUNNER_TEMP}/ready.json" -w '%{http_code}' "${STAGING_ORIGIN}/api/ready")
+          printf 'stagingReadyStatus=%s\n' "$code"
+          cat "${RUNNER_TEMP}/ready.json"
