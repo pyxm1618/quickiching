@@ -100,3 +100,80 @@ jobs:
           curl --fail-with-body --silent --show-error -D "${RUNNER_TEMP}/headers.txt" "${STAGING_ORIGIN}/" -o "${RUNNER_TEMP}/home.html"
           grep -iE '^(x-robots-tag|x-vercel-cache|age):' "${RUNNER_TEMP}/headers.txt" || true
           grep -oE 'G-[A-Z0-9]{6,}|clarityProjectId[^,<]{0,80}|<meta[^>]+name="robots"[^>]*>' "${RUNNER_TEMP}/home.html" | sort -u | head -20
+
+  isolation:
+    name: Read-only staging vs production isolation fingerprint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      STAGING_TOKEN: ${{ secrets.VERCEL_STAGING_TOKEN }}
+      PRODUCTION_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Compare runtime identities without disclosing values
+        run: |
+          set -euo pipefail
+          test -n "${STAGING_TOKEN:-}" || { echo "::error::VERCEL_STAGING_TOKEN is not configured"; exit 1; }
+          test -n "${PRODUCTION_TOKEN:-}" || { echo "::error::VERCEL_TOKEN is not configured"; exit 1; }
+          test "$VERCEL_PROJECT_ID" = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE"
+          test "$VERCEL_TEAM_ID" = "team_z1b9TTQtbNkr43dzs5JVJPnQ"
+
+          fetch_env() {
+            curl --fail-with-body --silent --show-error \
+              -H "Authorization: Bearer $1" \
+              -H "Accept: application/json" \
+              "https://api.vercel.com/v10/projects/$2/env?teamId=${VERCEL_TEAM_ID}&decrypt=true&source=vercel-cli:pull"
+          }
+          fetch_env "$STAGING_TOKEN" "$VERCEL_PROJECT_ID" > "${RUNNER_TEMP}/staging-env.json"
+          fetch_env "$PRODUCTION_TOKEN" "prj_pCpeoAys2GOqKZvkbLugYjpJWZBS" > "${RUNNER_TEMP}/prod-env.json"
+
+          map_env() {
+            jq '[.envs[]
+              | select((.target == "production") or ((.target | type) == "array" and (.target | index("production") != null)))
+              | {key, value: (.value // "")}] | from_entries' "$1"
+          }
+          map_env "${RUNNER_TEMP}/staging-env.json" > "${RUNNER_TEMP}/staging-map.json"
+          map_env "${RUNNER_TEMP}/prod-env.json" > "${RUNNER_TEMP}/prod-map.json"
+
+          echo "stagingProductionTargetKeys:"
+          jq -r 'keys[]' "${RUNNER_TEMP}/staging-map.json" | sort
+
+          compare_key() {
+            local key="$1" sv pv sr=false pr=false same=false
+            sv=$(jq -r --arg k "$key" '.[$k] // ""' "${RUNNER_TEMP}/staging-map.json")
+            pv=$(jq -r --arg k "$key" '.[$k] // ""' "${RUNNER_TEMP}/prod-map.json")
+            [ -n "$sv" ] && sr=true
+            [ -n "$pv" ] && pr=true
+            if [ "$sr" = true ] && [ "$pr" = true ]; then
+              if [ "$(printf %s "$sv" | sha256sum | cut -d' ' -f1)" = "$(printf %s "$pv" | sha256sum | cut -d' ' -f1)" ]; then
+                same=true
+              fi
+            fi
+            printf '%-42s stagingReadable=%s productionReadable=%s sameHash=%s\n' "$key" "$sr" "$pr" "$same"
+          }
+          for key in DATABASE_URL DATABASE_URL_UNPOOLED BETTER_AUTH_SECRET AUTH_SECRET \
+            RESEND_API_KEY TURNSTILE_SECRET_KEY AI_GATEWAY_API_KEY \
+            WAFFO_API_KEY WAFFO_WEBHOOK_SECRET WAFFO_MERCHANT_ID; do
+            compare_key "$key"
+          done
+
+          for key in APP_BASE_URL BETTER_AUTH_URL NEXT_PUBLIC_APP_URL NEXT_PUBLIC_BETTER_AUTH_URL; do
+            value=$(jq -r --arg k "$key" '.[$k] // ""' "${RUNNER_TEMP}/staging-map.json")
+            if [ -n "$value" ]; then
+              host=$(node -e 'try{console.log(new URL(process.argv[1]).host)}catch{console.log("unparseable")}' "$value")
+              printf '%sHost=%s\n' "$key" "$host"
+            fi
+          done
+
+          printf 'stagingGaMeasurementId=%s\n' "$(jq -r '.NEXT_PUBLIC_GA_MEASUREMENT_ID // ""' "${RUNNER_TEMP}/staging-map.json")"
+          printf 'stagingClarityProjectId=%s\n' "$(jq -r '.NEXT_PUBLIC_CLARITY_PROJECT_ID // ""' "${RUNNER_TEMP}/staging-map.json")"
+          printf 'stagingAppEnv=%s\n' "$(jq -r '.APP_ENV // ""' "${RUNNER_TEMP}/staging-map.json")"
+          printf 'stagingWaffoEnvironment=%s\n' "$(jq -r '.WAFFO_ENVIRONMENT // ""' "${RUNNER_TEMP}/staging-map.json")"
+          printf 'productionPricingPreview=%s\n' "$(jq -r '.CHINESE_INTERACTIVE_GATE_PRICING_PREVIEW // "<unset>"' "${RUNNER_TEMP}/prod-map.json")"
+
+      - name: Staging readiness without exposing internals
+        run: |
+          set -euo pipefail
+          code=$(curl --silent --show-error -o "${RUNNER_TEMP}/ready.json" -w '%{http_code}' "${STAGING_ORIGIN}/api/ready" || true)
+          printf 'stagingReadyStatus=%s\n' "$code"
+          head -c 600 "${RUNNER_TEMP}/ready.json" || true
+          echo
