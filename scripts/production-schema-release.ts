@@ -270,6 +270,86 @@ async function readProductionPreflight(
   };
 }
 
+const MANAGED_BACKUP_PROVIDERS = Object.freeze([
+  { suffix: ".neon.tech", label: "neon" },
+  { suffix: ".supabase.co", label: "supabase" },
+  { suffix: ".supabase.com", label: "supabase" },
+  { suffix: ".rds.amazonaws.com", label: "aws-rds" },
+  { suffix: ".render.com", label: "render" },
+  { suffix: ".railway.app", label: "railway" },
+  { suffix: ".aivencloud.com", label: "aiven" },
+  { suffix: ".cockroachlabs.cloud", label: "cockroachdb-cloud" },
+  { suffix: ".vercel-storage.com", label: "vercel-postgres" },
+  { suffix: ".ondigitalocean.com", label: "digitalocean-managed" },
+  { suffix: ".timescale.com", label: "timescale-cloud" },
+] as const);
+
+type RecoveryPosture = {
+  provider: string;
+  managedBackupProvider: boolean;
+  serverVersionNum: number | null;
+  archiveMode: string | null;
+  walLevel: string | null;
+  inRecovery: boolean | null;
+  walArchivingObserved: boolean | null;
+  recoveryConfirmed: boolean;
+};
+
+function detectDatabaseProvider(databaseUrl: string): { label: string; managed: boolean } {
+  let host = "";
+  try {
+    host = new URL(databaseUrl).hostname.toLowerCase();
+  } catch {
+    return { label: "unparseable-connection", managed: false };
+  }
+  const match = MANAGED_BACKUP_PROVIDERS.find(
+    (candidate) => host === candidate.suffix.slice(1) || host.endsWith(candidate.suffix),
+  );
+  return match ? { label: match.label, managed: true } : { label: "self-hosted-or-unrecognized", managed: false };
+}
+
+async function readRecoveryPosture(
+  sql: ReturnType<typeof postgres>,
+  databaseUrl: string,
+): Promise<RecoveryPosture> {
+  const provider = detectDatabaseProvider(databaseUrl);
+  let settings: { server_version_num?: unknown; archive_mode?: unknown; wal_level?: unknown; in_recovery?: unknown } | undefined;
+  try {
+    [settings] = await sql`
+      SELECT current_setting('server_version_num') AS server_version_num,
+             current_setting('archive_mode') AS archive_mode,
+             current_setting('wal_level') AS wal_level,
+             pg_is_in_recovery() AS in_recovery
+    `;
+  } catch {
+    settings = undefined;
+  }
+  let walArchivingObserved: boolean | null = null;
+  try {
+    const [archiver] = await sql<{ archived_count: number }[]>`
+      SELECT count(*)::int AS archived_count
+      FROM pg_stat_archiver
+      WHERE last_archived_time IS NOT NULL
+    `;
+    walArchivingObserved = Number(archiver?.archived_count ?? 0) > 0;
+  } catch {
+    walArchivingObserved = null;
+  }
+  const serverVersionNum = Number.isFinite(Number(settings?.server_version_num))
+    ? Number(settings?.server_version_num)
+    : null;
+  return {
+    provider: provider.label,
+    managedBackupProvider: provider.managed,
+    serverVersionNum,
+    archiveMode: typeof settings?.archive_mode === "string" ? settings.archive_mode : null,
+    walLevel: typeof settings?.wal_level === "string" ? settings.wal_level : null,
+    inRecovery: typeof settings?.in_recovery === "boolean" ? settings.in_recovery : null,
+    walArchivingObserved,
+    recoveryConfirmed: provider.managed || walArchivingObserved === true,
+  };
+}
+
 function migrationHistoryView(applied: readonly AppliedMigrationRow[]) {
   return applied.map((migration, index) => ({
     id: migration.id,
@@ -318,6 +398,7 @@ async function main(): Promise<void> {
     const beforeMigrations = await readAppliedMigrations(sql);
     const beforeHistory = classifyAppliedMigrationHistory(beforeMigrations, EXPECTED_MIGRATIONS);
     const beforePreflight = await readProductionPreflight(sql, beforeMigrations.length);
+    const recoveryPosture = await readRecoveryPosture(sql, databaseUrl);
     const existingTables = new Set(beforeObjects.filter((object) => object.startsWith("table:")).map((object) => object.slice(6)));
     const missingExistingTables = EXISTING_COMMERCIAL_TABLES.filter((table) => !existingTables.has(table));
     const pendingTags = EXPECTED_TAGS.slice(beforeMigrations.length);
@@ -326,6 +407,7 @@ async function main(): Promise<void> {
       project: "quickiching production",
       existingCommercialTableCount: EXISTING_COMMERCIAL_TABLES.length,
       missingExistingTables,
+      recoveryPosture,
       migrationHistory: {
         appliedCount: beforeMigrations.length,
         expectedCount: EXPECTED_MIGRATIONS.length,
@@ -359,6 +441,11 @@ async function main(): Promise<void> {
     if (action === "inspect") {
       console.log(JSON.stringify(report, null, 2));
       return;
+    }
+
+    if (!recoveryPosture.recoveryConfirmed) {
+      console.log(JSON.stringify(report, null, 2));
+      throw new Error(`PRODUCTION_RECOVERY_CAPABILITY_UNCONFIRMED:${recoveryPosture.provider}`);
     }
 
     if (pendingTags.length > 0) {
