@@ -91,9 +91,11 @@ async function measureLanding(page) {
 
     const nav = document.querySelector(".scene-navigation");
     const scrolls = document.querySelector(".scene-scrolls");
+    const brand = document.querySelector(".scene-navigation .scene-brand");
     return {
       navPosition: nav ? getComputedStyle(nav).position : null,
       scrollsPosition: scrolls ? getComputedStyle(scrolls).position : null,
+      brandName: brand ? brand.textContent.trim() : null,
       scrollsRect: scrolls ? rectOf(scrolls) : null,
       chrome: chromeRects,
       overlaps,
@@ -127,6 +129,7 @@ async function assertLandingClear(page, label) {
   const measured = await measureLanding(page);
   assert.equal(measured.navPosition, "static", `${label}: home shell must not overlay the form`);
   assert.equal(measured.scrollsPosition, "relative", `${label}: discovery nav must dock in document flow`);
+  assert.equal(measured.brandName, "Quick I Ching", `${label}: compact brand must keep its accessible name`);
   assert.deepEqual(measured.overlaps, [], `${label}: fixed chrome must not overlap the form`);
 
   for (const [target, hit] of Object.entries(measured.hits)) {
