@@ -130,7 +130,7 @@ const READING = [
   /^src\/lib\/(?:three-coin|completed-public-reading|reading-resume|reading-handoff)/,
   /\/methods\/(?:three-coin|yarrow-stalks|mei-hua-yi-shu|manual-cast)\//,
   /\/readings\/(?:result|deep)\//,
-  /^scripts\/(?:reading-business-browser|manual-cast-ui-browser-gate|three-coin-v2-browser-gate|ritual-scene-boundary-gate|mei-hua-ui-browser-gate|public-p0-browser-gate|reading-lifecycle-browser-gate)\.mjs$/,
+  /^scripts\/(?:reading-business-browser|manual-cast-ui-browser-gate|three-coin-v2-browser-gate|home-mobile-chrome-gate|ritual-scene-boundary-gate|mei-hua-ui-browser-gate|public-p0-browser-gate|reading-lifecycle-browser-gate)\.mjs$/,
 ];
 const READING_LIFECYCLE = [
   "src/server/generation/",
@@ -187,7 +187,7 @@ const NAVIGATION = [
   /^next\.config\./,
   /^middleware\./,
   /^src\/middleware\./,
-  /^scripts\/(?:scene-navigation-qa|navigation-shell-browser-gate|navigation-context-browser-gate)\.mjs$/,
+  /^scripts\/(?:scene-navigation-qa|navigation-shell-browser-gate|navigation-context-browser-gate|home-mobile-chrome-gate)\.mjs$/,
 ];
 const ACCOUNT_INFO = [
   "src/components/account/",
