@@ -69,10 +69,13 @@ jobs:
             > "${RUNNER_TEMP}/project.json"
           jq '{gitProviderOptions, link: {productionBranch: .link.productionBranch}}' "${RUNNER_TEMP}/project.json"
 
+      - name: Install the Vercel CLI outside the project manifest
+        run: npm install --global vercel@latest
+
       - name: Deploy baseline production build to the staging project
         run: |
           set -euo pipefail
-          npx --yes vercel@latest deploy --prod --yes \
+          vercel deploy --prod --yes \
             --token "${VERCEL_TOKEN}" \
             --cwd "${GITHUB_WORKSPACE}" | tee "${RUNNER_TEMP}/deploy.txt"
           deployment_url=$(grep -Eo 'https://[a-z0-9.-]+\.vercel\.app' "${RUNNER_TEMP}/deploy.txt" | tail -1)
