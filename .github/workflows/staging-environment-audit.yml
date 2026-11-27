@@ -1,6 +1,9 @@
 name: Staging Environment Audit
 
 on:
+  push:
+    branches:
+      - fix/final-production-remediation
   workflow_dispatch:
 
 permissions:
