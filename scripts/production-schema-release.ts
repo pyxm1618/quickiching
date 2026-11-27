@@ -4,16 +4,28 @@ import migrationIntegrity from "../drizzle/migration-integrity.json";
 import {
   classifyAppliedMigrationHistory,
   classifyCurrentSchema,
+  classifyProductionMigrationPreflight,
   requireProductionDatabaseUrl,
   resolveProductionDatabaseUrl,
   type ProductionEnvironmentEntry,
+  type ProductionSchemaColumn,
+  type ProductionSchemaIndex,
 } from "../src/server/readiness/production-schema-release";
 import { REQUIRED_COMMERCIAL_TABLES } from "../src/server/readiness/readiness-service";
 
 const PRODUCTION_PROJECT_ID = "prj_pCpeoAys2GOqKZvkbLugYjpJWZBS";
 const PRODUCTION_TEAM_ID = "team_z1b9TTQtbNkr43dzs5JVJPnQ";
+const CURRENT_PRODUCTION_MIGRATION_TAG = "0015_better_auth_1_7_account_identity";
+const REFUND_INTEGRITY_TAG = "0014_security_refund_integrity";
 const EXPECTED_MIGRATIONS = migrationIntegrity.migrations.map(({ createdAt, hash }) => ({ createdAt, hash }));
+const EXPECTED_TAGS = migrationIntegrity.migrations.map((migration) => migration.tag);
 const EXISTING_COMMERCIAL_TABLES = [...REQUIRED_COMMERCIAL_TABLES];
+const REFUND_INTEGRITY_INDEX = EXPECTED_TAGS.indexOf(REFUND_INTEGRITY_TAG);
+const ACCOUNT_IDENTITY_INDEX = EXPECTED_TAGS.indexOf(CURRENT_PRODUCTION_MIGRATION_TAG);
+
+type AppliedMigrationRow = { id: number; createdAt: number; hash: string };
+type TargetColumnRow = { table_name: string; column_name: string; is_nullable: "YES" | "NO"; column_default: string | null };
+type AccountIndexRow = { indexname: string; indexdef: string; is_valid: boolean };
 
 async function fetchProductionDatabaseUrl(): Promise<string> {
   const releaseSecret = process.env.PRODUCTION_DATABASE_URL;
@@ -103,11 +115,102 @@ async function readSchemaObjects(sql: ReturnType<typeof postgres>): Promise<stri
   return rows.map((row) => row.object_name);
 }
 
-async function readAppliedMigrations(sql: ReturnType<typeof postgres>): Promise<{ createdAt: number; hash: string }[]> {
-  const rows = await sql<{ created_at: string | number | bigint; hash: string }[]>`
-    SELECT created_at, hash FROM drizzle.__drizzle_migrations ORDER BY id ASC
+async function readAppliedMigrations(sql: ReturnType<typeof postgres>): Promise<AppliedMigrationRow[]> {
+  const rows = await sql<{ id: number; created_at: string | number | bigint; hash: string }[]>`
+    SELECT id, created_at, hash FROM drizzle.__drizzle_migrations ORDER BY id ASC
   `;
-  return rows.map((row) => ({ createdAt: Number(row.created_at), hash: row.hash }));
+  return rows.map((row) => ({ id: Number(row.id), createdAt: Number(row.created_at), hash: row.hash }));
+}
+
+async function readTargetColumns(sql: ReturnType<typeof postgres>): Promise<ProductionSchemaColumn[]> {
+  const rows = await sql<TargetColumnRow[]>`
+    SELECT table_name, column_name, is_nullable, column_default
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND (table_name, column_name) IN (
+        ('entitlement_batches', 'refund_locked'),
+        ('refund_intents', 'decision_operator_id'),
+        ('refund_intents', 'dispatch_operator_id'),
+        ('accounts', 'issuer')
+      )
+    ORDER BY table_name, column_name
+  `;
+  return rows.map((row) => ({
+    table: row.table_name,
+    column: row.column_name,
+    isNullable: row.is_nullable === "YES",
+    columnDefault: row.column_default,
+  }));
+}
+
+async function readAccountsIndexes(sql: ReturnType<typeof postgres>): Promise<ProductionSchemaIndex[]> {
+  const rows = await sql<AccountIndexRow[]>`
+    SELECT index_row.relname AS indexname,
+           pg_get_indexdef(index_row.oid) AS indexdef,
+           index_meta.indisvalid AS is_valid
+    FROM pg_index index_meta
+    JOIN pg_class index_row ON index_row.oid = index_meta.indexrelid
+    JOIN pg_class table_row ON table_row.oid = index_meta.indrelid
+    JOIN pg_namespace table_schema ON table_schema.oid = table_row.relnamespace
+    WHERE table_schema.nspname = 'public'
+      AND table_row.relname = 'accounts'
+      AND index_row.relname IN ('accounts_issuer_account_id_idx', 'accounts_provider_account_id_idx')
+    ORDER BY index_row.relname
+  `;
+  return rows.map((row) => ({
+    name: row.indexname,
+    definition: row.indexdef,
+    isValid: Boolean(row.is_valid),
+  }));
+}
+
+async function readDuplicateAccountIdentities(sql: ReturnType<typeof postgres>): Promise<number> {
+  const rows = await sql<{ duplicate_count: number }[]>`
+    SELECT count(*)::int AS duplicate_count
+    FROM (
+      SELECT provider_id, account_id
+      FROM accounts
+      GROUP BY provider_id, account_id
+      HAVING count(*) > 1
+    ) AS duplicate_identities
+  `;
+  return Number(rows[0]?.duplicate_count ?? 0);
+}
+
+async function readRefundBackfillCandidates(
+  sql: ReturnType<typeof postgres>,
+  refundLockedColumnPresent: boolean,
+): Promise<number> {
+  const rows = refundLockedColumnPresent
+    ? await sql<{ candidate_count: number }[]>`
+        SELECT count(*)::int AS candidate_count
+        FROM entitlement_batches AS b
+        JOIN refund_intents AS r ON r.order_id = b.order_id
+        WHERE r.provider_write_attempt_count = 1
+          AND r.provider_write_state IN ('dispatched', 'confirmed', 'ambiguous')
+          AND r.status IN ('processing', 'reconciliation_required')
+          AND b.quantity_revoked < b.quantity_total
+          AND b.refund_locked = false
+      `
+    : await sql<{ candidate_count: number }[]>`
+        SELECT count(*)::int AS candidate_count
+        FROM entitlement_batches AS b
+        JOIN refund_intents AS r ON r.order_id = b.order_id
+        WHERE r.provider_write_attempt_count = 1
+          AND r.provider_write_state IN ('dispatched', 'confirmed', 'ambiguous')
+          AND r.status IN ('processing', 'reconciliation_required')
+          AND b.quantity_revoked < b.quantity_total
+      `;
+  return Number(rows[0]?.candidate_count ?? 0);
+}
+
+async function readRefundLockedBatches(sql: ReturnType<typeof postgres>): Promise<number | null> {
+  const rows = await sql<{ locked_count: number }[]>`
+    SELECT count(*)::int AS locked_count
+    FROM entitlement_batches
+    WHERE refund_locked = true
+  `;
+  return Number(rows[0]?.locked_count ?? 0);
 }
 
 async function readExistingRowCounts(sql: ReturnType<typeof postgres>): Promise<Record<string, string>> {
@@ -117,6 +220,63 @@ async function readExistingRowCounts(sql: ReturnType<typeof postgres>): Promise<
     return [table, rows[0]?.row_count ?? "0"] as const;
   }));
   return Object.fromEntries(entries);
+}
+
+type ProductionPreflightSnapshot = {
+  appliedCount: number;
+  refundIntegrityApplied: boolean;
+  accountIdentityApplied: boolean;
+  targetColumns: ProductionSchemaColumn[];
+  accountIndexes: ProductionSchemaIndex[];
+  duplicateAccountIdentities: number;
+  refundBackfillCandidates: number;
+  refundLockedBatches: number | null;
+  classification: ReturnType<typeof classifyProductionMigrationPreflight>;
+};
+
+async function readProductionPreflight(
+  sql: ReturnType<typeof postgres>,
+  appliedCount: number,
+): Promise<ProductionPreflightSnapshot> {
+  const targetColumns = await readTargetColumns(sql);
+  const refundLockedColumnPresent = targetColumns.some(
+    (column) => column.table === "entitlement_batches" && column.column === "refund_locked",
+  );
+  const [accountIndexes, duplicateAccountIdentities, refundBackfillCandidates, refundLockedBatches] = await Promise.all([
+    readAccountsIndexes(sql),
+    readDuplicateAccountIdentities(sql),
+    readRefundBackfillCandidates(sql, refundLockedColumnPresent),
+    refundLockedColumnPresent ? readRefundLockedBatches(sql) : Promise.resolve(null),
+  ]);
+  const refundIntegrityApplied = appliedCount > REFUND_INTEGRITY_INDEX;
+  const accountIdentityApplied = appliedCount > ACCOUNT_IDENTITY_INDEX;
+  const classification = classifyProductionMigrationPreflight({
+    refundIntegrityApplied,
+    accountIdentityApplied,
+    columns: targetColumns,
+    indexes: accountIndexes,
+    duplicateAccountIdentities,
+  });
+  return {
+    appliedCount,
+    refundIntegrityApplied,
+    accountIdentityApplied,
+    targetColumns,
+    accountIndexes,
+    duplicateAccountIdentities,
+    refundBackfillCandidates,
+    refundLockedBatches,
+    classification,
+  };
+}
+
+function migrationHistoryView(applied: readonly AppliedMigrationRow[]) {
+  return applied.map((migration, index) => ({
+    id: migration.id,
+    tag: EXPECTED_TAGS[index] ?? null,
+    createdAt: migration.createdAt,
+    hash: migration.hash,
+  }));
 }
 
 function runOfficialDrizzleMigration(databaseUrl: string): void {
@@ -141,8 +301,13 @@ function runOfficialDrizzleMigration(databaseUrl: string): void {
 async function main(): Promise<void> {
   const action = process.env.PRODUCTION_SCHEMA_ACTION?.trim();
   if (action !== "inspect" && action !== "migrate") throw new Error("PRODUCTION_SCHEMA_ACTION_INVALID");
-  if (EXPECTED_MIGRATIONS.length !== 14 || migrationIntegrity.migrations[13]?.tag !== "0013_drop_question_locks") {
-    throw new Error("EXPECTED_PRODUCTION_MIGRATION_0013_NOT_CURRENT");
+  if (
+    EXPECTED_MIGRATIONS.length !== 16
+    || EXPECTED_TAGS[15] !== CURRENT_PRODUCTION_MIGRATION_TAG
+    || REFUND_INTEGRITY_INDEX !== 14
+    || ACCOUNT_IDENTITY_INDEX !== 15
+  ) {
+    throw new Error("EXPECTED_PRODUCTION_MIGRATION_0015_NOT_CURRENT");
   }
 
   const databaseUrl = await fetchProductionDatabaseUrl();
@@ -152,15 +317,24 @@ async function main(): Promise<void> {
     const beforeSchema = classifyCurrentSchema(beforeObjects);
     const beforeMigrations = await readAppliedMigrations(sql);
     const beforeHistory = classifyAppliedMigrationHistory(beforeMigrations, EXPECTED_MIGRATIONS);
+    const beforePreflight = await readProductionPreflight(sql, beforeMigrations.length);
     const existingTables = new Set(beforeObjects.filter((object) => object.startsWith("table:")).map((object) => object.slice(6)));
     const missingExistingTables = EXISTING_COMMERCIAL_TABLES.filter((table) => !existingTables.has(table));
+    const pendingTags = EXPECTED_TAGS.slice(beforeMigrations.length);
     const report = {
       action,
       project: "quickiching production",
       existingCommercialTableCount: EXISTING_COMMERCIAL_TABLES.length,
       missingExistingTables,
-      migrationHistory: { appliedCount: beforeMigrations.length, state: beforeHistory },
+      migrationHistory: {
+        appliedCount: beforeMigrations.length,
+        expectedCount: EXPECTED_MIGRATIONS.length,
+        state: beforeHistory,
+        pendingTags,
+        applied: migrationHistoryView(beforeMigrations),
+      },
       currentSchema: beforeSchema,
+      productionPreflight: beforePreflight,
       existingCommercialRowCounts: null as Record<string, string> | null,
       after: null as Record<string, unknown> | null,
     };
@@ -173,22 +347,26 @@ async function main(): Promise<void> {
       console.log(JSON.stringify(report, null, 2));
       throw new Error("PRODUCTION_DRIZZLE_HISTORY_DOES_NOT_MATCH_CANDIDATE_MANIFEST");
     }
+    if (beforeSchema.state === "partial") {
+      console.log(JSON.stringify(report, null, 2));
+      throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_MIGRATION");
+    }
+    if (beforePreflight.classification.state !== "ready") {
+      console.log(JSON.stringify(report, null, 2));
+      throw new Error(`PRODUCTION_SCHEMA_PREFLIGHT_FAILED:${beforePreflight.classification.issues.join(",")}`);
+    }
 
     if (action === "inspect") {
       console.log(JSON.stringify(report, null, 2));
-      if (beforeSchema.state === "partial" || beforeHistory !== "complete") {
-        throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_MIGRATION_0013");
-      }
       return;
     }
 
-    if (beforeSchema.state === "partial") {
-      console.log(JSON.stringify(report, null, 2));
-      throw new Error("PRODUCTION_SCHEMA_PARTIAL_OR_UNTRACKED_MIGRATION_0013");
-    }
-
-    if (beforeHistory === "pending") {
+    if (pendingTags.length > 0) {
       report.existingCommercialRowCounts = await readExistingRowCounts(sql);
+      const refresh = await readProductionPreflight(sql, beforeMigrations.length);
+      if (refresh.classification.state !== "ready") {
+        throw new Error(`PRODUCTION_SCHEMA_PREFLIGHT_FAILED:${refresh.classification.issues.join(",")}`);
+      }
       runOfficialDrizzleMigration(databaseUrl);
     }
 
@@ -196,6 +374,7 @@ async function main(): Promise<void> {
     const afterSchema = classifyCurrentSchema(afterObjects);
     const afterMigrations = await readAppliedMigrations(sql);
     const afterHistory = classifyAppliedMigrationHistory(afterMigrations, EXPECTED_MIGRATIONS);
+    const afterPreflight = await readProductionPreflight(sql, afterMigrations.length);
     const afterRowCounts = report.existingCommercialRowCounts ? await readExistingRowCounts(sql) : null;
     const rowsPreserved = report.existingCommercialRowCounts !== null
       && JSON.stringify(report.existingCommercialRowCounts) === JSON.stringify(afterRowCounts);
@@ -203,11 +382,20 @@ async function main(): Promise<void> {
       appliedMigrationCount: afterMigrations.length,
       migrationHistory: afterHistory,
       currentSchema: afterSchema,
+      productionPreflight: afterPreflight,
+      remainingUnlockedRefundCandidates: afterPreflight.refundBackfillCandidates,
       existingCommercialTablesCountCompared: Object.keys(report.existingCommercialRowCounts ?? {}).length,
       existingCommercialRowCountsPreserved: report.existingCommercialRowCounts === null ? "not_applicable" : rowsPreserved,
     };
     console.log(JSON.stringify(report, null, 2));
-    if (afterSchema.state !== "complete" || afterHistory !== "complete" || (report.existingCommercialRowCounts !== null && !rowsPreserved)) {
+    if (
+      afterMigrations.length !== EXPECTED_MIGRATIONS.length
+      || afterHistory !== "complete"
+      || afterSchema.state !== "complete"
+      || afterPreflight.classification.state !== "ready"
+      || afterPreflight.refundBackfillCandidates !== 0
+      || (report.existingCommercialRowCounts !== null && !rowsPreserved)
+    ) {
       throw new Error("PRODUCTION_DRIZZLE_MIGRATION_POSTCHECK_FAILED");
     }
   } finally {

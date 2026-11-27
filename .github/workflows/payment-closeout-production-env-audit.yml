@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       schema_action:
-        description: Inspect production schema, or apply the exact next Drizzle migration after a complete preflight
+        description: Inspect production schema, or apply the pending Drizzle migrations after a complete preflight
         required: true
         type: choice
         default: inspect
@@ -54,7 +54,7 @@ jobs:
         run: bun scripts/payment-closeout-production-env-audit.ts
       - name: Verify Drizzle journal and migration integrity manifest
         run: node scripts/check-migration-integrity.mjs
-      - name: Inspect or apply migration 0013 through Drizzle
+      - name: Inspect or apply the pending Drizzle migrations through the official release path
         env:
           PRODUCTION_SCHEMA_ACTION: ${{ inputs.schema_action }}
         run: bun scripts/production-schema-release.ts
