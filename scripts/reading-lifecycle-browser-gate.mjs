@@ -387,7 +387,7 @@ async function verifyPartialResume(page) {
       id: session?.id ?? null,
       question: session?.coreQuestionAtCast ?? session?.question ?? null,
       steps: session?.data?.steps ?? null,
-      visibleQuestion: document.querySelector("[data-ritual-question-context] input")?.value ?? null,
+      visibleQuestion: document.querySelector("[data-ritual-question-context] textarea")?.value ?? null,
       doneLines: document.querySelectorAll('.ritual-six-lines li[data-state="done"]').length,
     };
   }, THREE_COIN_KEY);

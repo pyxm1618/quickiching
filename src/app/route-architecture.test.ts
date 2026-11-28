@@ -11,6 +11,7 @@ vi.mock("next/font/google", () => {
     Fraunces: font,
     IBM_Plex_Mono: font,
     Instrument_Sans: font,
+    Kaushan_Script: font,
     Pinyon_Script: font,
     Noto_Serif_SC: font,
   };

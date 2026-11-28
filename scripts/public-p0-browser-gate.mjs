@@ -568,7 +568,7 @@ async function verifyPartialRestart(page) {
       id: session?.id ?? null,
       question: session?.coreQuestionAtCast ?? session?.question ?? null,
       steps: session?.data?.steps ?? null,
-      visibleQuestion: document.querySelector("[data-ritual-question-context] input")?.value ?? null,
+      visibleQuestion: document.querySelector("[data-ritual-question-context] textarea")?.value ?? null,
     };
   }, THREE_COIN_STORAGE_KEY);
   assert.equal(resumed.id, beforeResume.id, "Ordinary Resume must preserve the exact reading identity");

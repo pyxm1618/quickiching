@@ -2,8 +2,11 @@
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import puppeteer from 'puppeteer-core';
-const base='http://127.0.0.1:3028',key='quickiching:public-v1:three-coin';
-const output='.artifacts/ritual-qa/final-closeout/motion';await mkdir(output,{recursive:true});
+const base=process.env.PUBLIC_V1_TEST_BASE_URL||'http://127.0.0.1:3028';
+assert.equal(new URL(base).hostname,'127.0.0.1','This fixture gate only runs on 127.0.0.1');
+const key='quickiching:public-v1:three-coin';
+const pendingPrefix='quickiching:public-v1:pending-completed-reading:';
+const output=process.env.RITUAL_MOTION_OUTPUT||'.artifacts/ritual-qa/final-closeout/motion';await mkdir(output,{recursive:true});
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--force-device-scale-factor=1']});
 const outcomes=[];
 const REVIEWED_ROOM_ASSET='stageDesktop.e37364561615e31f.webp';
@@ -28,15 +31,16 @@ async function run(reduced,suppressed=false){
   });
   await page.goto(base,{waitUntil:'networkidle0'});
   for(const button of await page.$$('button'))if(await button.evaluate(node=>node.textContent)==='Decline')await button.click();
-  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
-  await page.waitForSelector('[data-renderer="three-webgl"]');
   if(suppressed)await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important}'});
   const room=await roomArtwork(page);
   assert(room.includes(REVIEWED_ROOM_ASSET),'Landing must use the reviewed production room artwork');
-  await page.evaluate(()=>window.__motionCanvas=document.querySelector('.ritual-webgl canvas'));
   await page.locator('[data-private-question]').fill('How should I understand this transition?');
   await page.locator('[data-home-primary-action]').click();
   await page.waitForSelector('[data-question-confirm]');
+  // WebGL mounts after landing and activates on the next pointer event.
+  await page.evaluate(()=>window.dispatchEvent(new Event('pointerdown')));
+  await page.waitForSelector('[data-renderer="three-webgl"]');
+  await page.evaluate(()=>window.__motionCanvas=document.querySelector('.ritual-webgl canvas'));
   await page.screenshot({path:`${output}/${prefix}-question-enter.png`});
   assert.equal(await page.evaluate(()=>window.__motionDraws),0);
   await page.waitForSelector('[data-home-primary-action]:not(:disabled)');
@@ -76,45 +80,52 @@ async function run(reduced,suppressed=false){
    await page.waitForSelector('.hold-button:not(:disabled)');await page.locator('.hold-button').click();
    await page.waitForSelector('[data-record-this-cast]:not(:disabled)');await page.locator('[data-record-this-cast]').click();
   }
-  await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+  await page.waitForSelector('[data-result-choice]');
   assert.equal(await page.$('[data-public-reading-result]'),null);
+  assert.equal(await page.$('[data-completed-cast-gate]'),null,'Result Choice precedes authentication');
   assert.equal(await page.evaluate(()=>window.__motionDraws),18);
-  assert((await roomArtwork(page)).includes(REVIEWED_ROOM_ASSET),'Shared Auth gate must retain the reviewed production room artwork');
+  const completed=await page.evaluate(({prefix,id})=>JSON.parse(localStorage.getItem(prefix+id)),{prefix:pendingPrefix,id:session.id});
+  assert.equal(completed.readingId,session.id);
+  assert.equal(completed.lineValuesBottomUp.length,6);
+  assert.deepEqual(completed.evidence.steps[0],session.data.steps[0]);
+  await page.screenshot({path:`${output}/${prefix}-choice.png`});
+  await page.locator('[data-result-choice-deep]').click();
+  await page.waitForSelector('[data-completed-cast-gate="auth-required"]');
+  const callback=await page.$eval('[data-auth-reading-intent="deep"]',node=>new URL(node.href).searchParams.get('callbackURL'));
+  assert.equal(new URL(callback,base).searchParams.get('session'),completed.readingId);
   await page.screenshot({path:`${output}/${prefix}-auth-gate.png`});
-  const completed=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
+
   const requests=[];let pending;
   await page.setRequestInterception(true);
   page.on('request',request=>{
-   if(new URL(request.url()).pathname==='/api/readings'&&request.method()==='POST'){requests.push(JSON.parse(request.postData()));pending=request;return;}
+   const {pathname}=new URL(request.url());
+   if(pathname==='/api/readings'&&request.method()==='POST'){requests.push(JSON.parse(request.postData()));pending=request;return;}
    if(request.method()!=='GET'&&request.method()!=='HEAD')return request.abort('blockedbyclient');
-   if(new URL(request.url()).pathname.startsWith('/api/readings/ritual-qa-saved-cast/'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({status:'not_started'})});
+   if(pathname.startsWith('/api/readings/'+completed.readingId+'/'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({status:'not_started'})});
    request.continue();
   });
-  // Local-only initial-user fixture; no real sign-in or backend persistence is claimed.
-  await page.goto(base+'/ritual-qa-local?view=saving',{waitUntil:'domcontentloaded'});
-  await page.waitForSelector('[data-account-reading-saving]');
-  assert(pending,'The real client must issue the intercepted save');
-  assert.equal(await page.$('[data-public-reading-result]'),null);
-  await pending.respond({status:500,contentType:'application/json',body:JSON.stringify({error:'SAVE_READING_FAILED'})});pending=null;
-  await page.waitForSelector('[data-retry-account-reading-save]');
-  assert.equal(await page.$('[data-public-reading-result]'),null);
-  await page.locator('[data-retry-account-reading-save]').click();
-  await page.waitForFunction(()=>document.querySelector('[data-account-reading-saving]'));
-  assert(pending,'Retry must issue the same save');assert.deepEqual(requests[0],requests[1]);
-  assert.equal(requests[1].clientCastingId,completed.id);
-  assert.deepEqual(requests[1].lineValuesBottomUp,completed.data.steps.map(step=>step.lineValue));
-  await pending.respond({status:200,contentType:'application/json',body:JSON.stringify({castingId:'ritual-qa-saved-cast'})});
-  await page.waitForSelector('[data-ritual-reveal-stage="gate-exit"]');
-  assert.equal(await page.$('[data-public-reading-result]'),null,'Result stays concealed throughout gate exit');
-  await page.screenshot({path:`${output}/${prefix}-gate-exit.png`});
+  // The localhost account fixture uses the actual pending cast and intercepts durability only.
+  const savingUrl=base+'/ritual-qa-local?view=saving&session='+completed.readingId;
+  await page.goto(savingUrl,{waitUntil:'domcontentloaded'});
   await page.waitForSelector('[data-public-reading-result]');
-  await page.waitForSelector('[data-ritual-reveal-stage="result"] [data-public-reading-result]:not([data-reading-localization-loading])');
+  assert(pending,'The real client must issue the intercepted background save');
+  await pending.respond({status:503,contentType:'application/json',body:JSON.stringify({error:'READING_SAVE_FAILED'})});pending=null;
+  await page.waitForNetworkIdle();
+  assert(await page.$('[data-public-reading-result]'),'Background save failure must preserve the reading');
+  assert.equal(await page.$('[data-completed-cast-gate="save-error"]'),null);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForSelector('[data-public-reading-result]');
+  assert(pending,'Reload must retry the same pending save');
+  assert.deepEqual(requests[0],requests[1]);
+  assert.equal(requests[1].clientCastingId,completed.readingId);
+  assert.deepEqual(requests[1].lineValuesBottomUp,completed.lineValuesBottomUp);
+  await pending.respond({status:200,contentType:'application/json',body:JSON.stringify({castingId:completed.readingId})});
+  await page.waitForFunction(({prefix,id})=>localStorage.getItem(prefix+id)===null,{}, {prefix:pendingPrefix,id:completed.readingId});
   await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('[data-public-reading-result]')).opacity)===1);
   await page.screenshot({path:`${output}/${prefix}-result-entered.png`});
   assert((await roomArtwork(page)).includes(REVIEWED_ROOM_ASSET),'Saved Reading must retain the reviewed production room artwork');
-  const restored=await page.evaluate(storageKey=>JSON.parse(sessionStorage.getItem(storageKey)),key);
-  assert.deepEqual(restored,completed);
-  outcomes.push({mode:prefix,status:'PASS',firstResult,firstLabel,firstAction,saveFixture:{requests:requests.length,first:'SAVE_READING_FAILED',retry:'saved',sameCast:true,liveAccountEvidence:false}});
+  assert.equal(await page.evaluate(()=>new URL(location.href).searchParams.get('session')),completed.readingId);
+  outcomes.push({mode:prefix,status:'PASS',firstResult,firstLabel,firstAction,saveFixture:{requests:requests.length,first:'READING_SAVE_FAILED',retry:'saved',sameCast:true,liveAccountEvidence:false}});
  }finally{await context.close();}
 }
 try{for(const [reduced,suppressed] of [[false,false],[true,false],[false,true]]){try{await run(reduced,suppressed);}catch(error){outcomes.push({mode:suppressed?'animation-suppressed':reduced?'reduced':'normal',status:'FAIL',error:String(error),stack:error.stack});process.exitCode=1;}}}

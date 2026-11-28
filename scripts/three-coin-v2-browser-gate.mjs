@@ -401,10 +401,14 @@ async function verifyMobileBrandInteractionSafety(browser, viewport) {
       && document.querySelector(".scene-navigation")?.getAttribute("data-navigation-surface") === "S02",
     );
     await page.waitForSelector(".hold-button:not(:disabled)", { timeout: 15_000 });
-    const activeQuestionBefore = await page.$eval("[data-ritual-question-context] input", (node) => node.value);
-    await page.focus("[data-ritual-question-context] input");
-    await page.type("[data-ritual-question-context] input", " ");
-    const activeQuestionAfter = await page.$eval("[data-ritual-question-context] input", (node) => node.value);
+    const activeQuestionBefore = await page.$eval("[data-ritual-question-context] textarea", (node) => node.value);
+    await page.$eval("[data-ritual-question-context] textarea", (node) => {
+      node.focus();
+      const end = node.value.length;
+      node.setSelectionRange(end, end);
+    });
+    await page.type("[data-ritual-question-context] textarea", " ");
+    const activeQuestionAfter = await page.$eval("[data-ritual-question-context] textarea", (node) => node.value);
     assert.equal(
       activeQuestionAfter,
       `${activeQuestionBefore} `,
@@ -412,7 +416,7 @@ async function verifyMobileBrandInteractionSafety(browser, viewport) {
     );
     await assertBrandClear(
       `${viewport.width}x${viewport.height} casting`,
-      ["[data-ritual-question-context] input", ".hold-button", "[data-flow-exit]"],
+      ["[data-ritual-question-context] textarea", ".hold-button", "[data-flow-exit]"],
     );
 
     log(`${viewport.width}x${viewport.height} S02 mobile brand / interaction safety PASS`);
