@@ -174,9 +174,25 @@ async function assertPendingConsentClear(page, label, bannerSelector) {
   return measured;
 }
 
+async function settleStageAnimations(page) {
+  await page.evaluate(() => {
+    document.documentElement.style.scrollBehavior = "auto";
+  });
+  await page.waitForFunction(() => {
+    const actions = document.querySelector(".ritual-question-actions");
+    return actions
+      && actions.getAnimations().every((animation) => (
+        animation.playState === "finished" || animation.playState === "idle"
+      ));
+  }, { timeout: 5_000 });
+}
+
 async function assertScrolledTargetsClear(page, label, targets = TARGETS) {
   for (const { label: targetLabel, selector } of targets) {
     await page.$eval(selector, (node) => node.scrollIntoView({ block: "center", inline: "center", behavior: "instant" }));
+    await page.evaluate(() => new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    }));
     const hit = await page.evaluate((targetSelector) => {
       const node = document.querySelector(targetSelector);
       const rect = node.getBoundingClientRect();
@@ -195,6 +211,7 @@ async function verifyCase(browser, testCase) {
   const { context, page } = await openHome(browser, testCase, { consent: "denied" });
   const label = `${testCase.locale} ${testCase.width}x${testCase.height}`;
   try {
+    await settleStageAnimations(page);
     await assertLandingClear(page, label);
     await assertScrolledTargetsClear(page, label);
 
@@ -231,6 +248,7 @@ async function verifyCase(browser, testCase) {
     await page.waitForFunction(() =>
       document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "question-confirm",
     { timeout: 15_000 });
+    await settleStageAnimations(page);
 
     await assertScrolledTargetsClear(page, `${label} confirm`, TARGETS.filter(({ selector }) => selector !== ".ritual-home-skip"));
     log(`${label} real click, scroll nav and panel PASS`);
