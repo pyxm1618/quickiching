@@ -244,3 +244,60 @@ test("push, schedule, release and workflow_dispatch contexts force full", () => 
     assert.equal(shouldForceFullContext(eventName, ""), true);
   }
 });
+
+// PR #144 shipped a Home regression that merged green: ritual.css collapsed the
+// localized hero heading on mobile, yet the selector only asked for
+// three-coin.desktop and skipped the locale gate entirely. These cases pin the
+// blast radius of the Home surface so the same change can never merge unwatched.
+const PR_144_FILES = [
+  ".github/workflows/ci.yml",
+  "bun.lock",
+  "package.json",
+  "scripts/ci/select-gates.mjs",
+  "scripts/home-mobile-chrome-gate.mjs",
+  "scripts/production-schema-release.ts",
+  "src/components/public-reading/ritual.css",
+  "src/components/scene-navigation.css",
+  "src/content/hexagrams/seo.test.ts",
+  "src/content/hexagrams/seo.ts",
+  "src/server/readiness/production-schema-release.test.ts",
+  "src/server/readiness/production-schema-release.ts",
+];
+
+test("PR #144 change set selects Locale Browser and Home Lighthouse targets", () => {
+  const r = pick(PR_144_FILES);
+  assert.equal(r.locale_browser, true, "locale_browser");
+  assert.equal(r.public_seo, true, "public_seo");
+  assert.equal(r.performance, true, "performance");
+  const targets = JSON.parse(r.performance_targets);
+  assert.ok(targets.includes("home.mobile"), "home.mobile must be measured");
+  assert.ok(targets.includes("home.desktop"), "home.desktop must be measured");
+  assert.ok(targets.includes("three-coin.desktop"), "three-coin.desktop must stay selected");
+});
+
+test("Home surface styles own the Home performance targets", () => {
+  const ritual = pick(["src/components/public-reading/ritual.css"]);
+  assert.equal(ritual.reading, true, "ritual.css must select Reading");
+  assert.equal(ritual.locale_browser, true, "ritual.css carries the localized hero heading");
+  assert.deepEqual(JSON.parse(ritual.performance_targets), ["three-coin.desktop", "home.mobile", "home.desktop"]);
+
+  const navigationSheet = pick(["src/components/scene-navigation.css"]);
+  assert.equal(navigationSheet.navigation, true, "navigation sheet must select Navigation");
+  assert.equal(navigationSheet.locale_browser, true, "navigation labels are localized");
+  assert.deepEqual(JSON.parse(navigationSheet.performance_targets), ["home.mobile", "home.desktop"]);
+
+  const consent = pick(["src/components/analytics-consent.tsx"]);
+  assert.equal(consent.locale_browser, true, "consent copy is localized");
+  assert.deepEqual(JSON.parse(consent.performance_targets), ["home.mobile", "home.desktop"]);
+
+  const zhHome = pick(["src/app/(localized)/zh/page.tsx"]);
+  assert.equal(zhHome.locale_browser, true, "localized home route must select the locale gate");
+  assert.deepEqual(JSON.parse(zhHome.performance_targets), ["home.mobile", "home.desktop"]);
+});
+
+test("unrelated local UI still avoids the Home and locale blast radius", () => {
+  const local = pick(["src/components/privacy-settings-button.tsx"]);
+  assert.equal(local.locale_browser, false, "locale_browser");
+  assert.deepEqual(JSON.parse(local.performance_targets), [], "performance_targets");
+  assert.equal(local.performance, false, "performance");
+});

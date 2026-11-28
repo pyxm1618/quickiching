@@ -45,6 +45,19 @@ const STATIC_CONTENT = [
   "src/messages/",
   "public/",
 ];
+// Everything that draws the public Home surface: the hero heading, the question
+// form, the analytics consent panel and the shared chrome around them. A change
+// here can move the home composition in both locales and both devices, so it
+// owns the Home performance targets and the locale gates as a unit.
+const HOME_SURFACE = [
+  "src/components/public-reading/",
+  "src/components/analytics-consent",
+  "src/components/consent-gated-analytics",
+  "src/components/site-analytics",
+  "src/components/scene-navigation",
+  /^src\/app\/(?:\(default\)\/)?page\.tsx$/,
+  /^src\/app\/\(localized\)\/zh\/page\.tsx$/,
+];
 const FRONTEND_RUNTIME = [
   "src/app/",
   "src/components/",
@@ -174,6 +187,9 @@ const SEO_BROWSER = [
 const LOCALE_BROWSER = [
   "src/i18n/",
   /^src\/app\/.+\/zh(?:\/|$)/,
+  "src/components/public-reading/",
+  "src/components/analytics-consent",
+  "src/components/scene-navigation",
   /^scripts\/(?:chinese-interactive-language-gate|chinese-seo-browser-gate|multilingual-browser-gate)\.mjs$/,
 ];
 const NAVIGATION = [
@@ -400,7 +416,10 @@ export function classifyChangedFiles(rawFiles, { forceFull = false } = {}) {
       targets.add("info.desktop");
     }
     if (selected.hexagram_detail) targets.add("hexagram-hub.desktop");
-    if (files.some((file) => /^src\/app\/(?:\(default\)\/)?page\.tsx$/.test(file) || file.startsWith("src/components/analytics-consent") || file.startsWith("src/components/site-analytics"))) {
+    // The Home hero, its question form and the shared chrome around them decide
+    // both the mobile LCP element and the mobile layout shift budget, so a change
+    // there always re-measures Home on both devices instead of only the ritual page.
+    if (any(files, HOME_SURFACE)) {
       targets.add("home.mobile");
       targets.add("home.desktop");
     }

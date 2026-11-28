@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   ANALYTICS_CONSENT_OPEN_EVENT,
@@ -10,10 +10,13 @@ import {
 } from "@/lib/analytics";
 import styles from "./analytics-consent.module.css";
 
+const RESERVE_VAR = "--qic-consent-reserve";
+
 export function AnalyticsConsent({ onConsentChange }: { onConsentChange?: (consent: AnalyticsConsentState) => void }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -26,6 +29,28 @@ export function AnalyticsConsent({ onConsentChange }: { onConsentChange?: (conse
     window.addEventListener(ANALYTICS_CONSENT_OPEN_EVENT, reopen);
     return () => window.removeEventListener(ANALYTICS_CONSENT_OPEN_EVENT, reopen);
   }, []);
+
+  // The panel floats over the bottom of the page. Publishing its real height lets
+  // the reading surfaces reserve matching space after their last control, so the
+  // form stays fully reachable instead of any heading being collapsed away.
+  useEffect(() => {
+    const root = document.documentElement;
+    const node = panelRef.current;
+    if (!visible || !node) {
+      root.style.removeProperty(RESERVE_VAR);
+      return;
+    }
+    const sync = () => {
+      root.style.setProperty(RESERVE_VAR, `${Math.ceil(node.getBoundingClientRect().height + 16)}px`);
+    };
+    sync();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(sync);
+    observer?.observe(node);
+    return () => {
+      observer?.disconnect();
+      root.style.removeProperty(RESERVE_VAR);
+    };
+  }, [visible]);
 
   if (!mounted || !visible) {
     return null;
@@ -61,6 +86,7 @@ export function AnalyticsConsent({ onConsentChange }: { onConsentChange?: (conse
 
   return (
     <div
+      ref={panelRef}
       role="region"
       aria-label={isChinese ? "分析工具同意设置" : "Analytics Consent"}
       className={styles.panel}

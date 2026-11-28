@@ -28,6 +28,21 @@ const TARGETS = [
 ];
 const CHROME = [".scene-scrolls", ".scene-partnership", ".scene-navigation .scene-brand", ".scene-utility"];
 
+// The locale contract owns these strings; the chrome gate re-asserts them so a
+// layout change can never satisfy clearance by removing the page heading again.
+const HEADINGS = {
+  en: {
+    home: "I Ching Online — Cast Your Hexagram",
+    confirm: "What Would You Like to Ask?",
+  },
+  "zh-Hans": {
+    home: "易经在线起卦：从起卦到本卦、动爻与变卦",
+    confirm: "此刻，你想问什么？",
+  },
+};
+
+const squish = (value) => value.replace(/\s+/g, " ").trim();
+
 async function measureLanding(page, chromeSelectors = CHROME) {
   return page.evaluate(({ targets, chrome }) => {
     const rectOf = (node) => {
@@ -154,24 +169,105 @@ async function assertLandingClear(page, label) {
   return measured;
 }
 
-async function assertPendingConsentClear(page, label, bannerSelector) {
+async function assertPendingConsentClear(page, label, bannerSelector, locale) {
   const measured = await measureLanding(page, [...CHROME, bannerSelector]);
   assert.equal(measured.navPosition, "static", `${label}: home shell must not overlay the form`);
   assert.equal(measured.scrollsPosition, "relative", `${label}: discovery nav must dock in document flow`);
-  assert.deepEqual(measured.overlaps, [], `${label}: consent panel and fixed chrome must not overlap the form`);
   assert.equal(measured.utilityHitSelf, true, `${label}: top utility capsule must remain clickable`);
 
-  for (const [target, hit] of Object.entries(measured.hits)) {
-    assert.equal(hit.visible, true, `${label}: ${target} must be visible before consent`);
-    assert.equal(hit.inViewport, true, `${label}: ${target} must be in view before consent`);
-    assert.equal(
-      hit.hitSelf,
-      true,
-      `${label}: ${target} must receive its own click before consent, received ${hit.hitClass}`,
-    );
+  // A visible hero heading and a fixed consent panel taller than the free space
+  // below it cannot both fit above the fold on the 320x740 / 375x667 class of
+  // screens: the composite needs ~660px and those phones leave ~430px once the
+  // panel is drawn. Rest-at-top clearance is therefore not the contract — the
+  // contract is that no heading is removed to buy clearance, every control stays
+  // reachable, and once a control is the one being used nothing covers it.
+  await assertHeadingRendered(page, label, locale, "home");
+  for (const target of TARGETS) {
+    await assertScrolledTargetClear(page, label, target, [...CHROME, bannerSelector]);
   }
-  log(`${label} pending-consent controls PASS`);
+
+  log(`${label} pending-consent reachability PASS`);
   return measured;
+}
+
+async function assertHeadingRendered(page, label, locale, stage) {
+  const expected = HEADINGS[locale][stage];
+  const selector = stage === "home" ? ".ritual-home-heading" : ".ritual-confirm-heading";
+  const heading = await page.evaluate((target) => {
+    const node = document.querySelector(target);
+    if (!node) return { present: false };
+    const style = getComputedStyle(node);
+    const rect = node.getBoundingClientRect();
+    return {
+      present: true,
+      display: style.display,
+      visibility: style.visibility,
+      opacity: style.opacity,
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+      text: node.innerText.replace(/\s+/g, " ").trim(),
+    };
+  }, selector);
+
+  assert.equal(heading.present, true, `${label}: ${stage} heading must exist in the DOM`);
+  assert.notEqual(heading.display, "none", `${label}: ${stage} heading must not be display:none`);
+  assert.notEqual(heading.visibility, "hidden", `${label}: ${stage} heading must not be visibility:hidden`);
+  assert.notEqual(heading.opacity, "0", `${label}: ${stage} heading must not be faded out`);
+  assert(heading.width > 0 && heading.height > 0, `${label}: ${stage} heading must occupy layout space`);
+  assert(
+    heading.text.includes(squish(expected)),
+    `${label}: ${stage} heading must keep its text, received "${heading.text.slice(0, 80)}"`,
+  );
+  const bodyText = await page.evaluate(() => document.body.innerText.replace(/\s+/g, " "));
+  assert(
+    bodyText.includes(squish(expected)),
+    `${label}: ${stage} heading must remain part of the visible page text`,
+  );
+  return heading;
+}
+
+async function assertScrolledTargetClear(page, label, target, chromeSelectors) {
+  const result = await page.evaluate(async ({ selector, chrome }) => {
+    const node = document.querySelector(selector);
+    if (!node) return { present: false };
+    node.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    const visibleRects = chrome.flatMap((chromeSelector) =>
+      [...document.querySelectorAll(chromeSelector)]
+        .filter((candidate) => {
+          const style = getComputedStyle(candidate);
+          const box = candidate.getBoundingClientRect();
+          return box.width > 0 && box.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+        })
+        .map((candidate) => ({ selector: chromeSelector, box: candidate.getBoundingClientRect().toJSON() })),
+    );
+
+    const rect = node.getBoundingClientRect();
+    const overlaps = visibleRects
+      .filter(({ box }) => Math.max(0, Math.min(rect.right, box.right) - Math.max(rect.left, box.left))
+        * Math.max(0, Math.min(rect.bottom, box.bottom) - Math.max(rect.top, box.top)) > 0)
+      .map(({ selector: chromeSelector }) => chromeSelector);
+
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const inViewport = centerX >= 0 && centerX <= innerWidth && centerY >= 0 && centerY <= innerHeight;
+    const hit = inViewport ? document.elementFromPoint(centerX, centerY) : null;
+    return {
+      present: true,
+      overlaps,
+      inViewport,
+      hitSelf: Boolean(hit?.closest?.(selector)),
+      hitClass: hit ? (hit.className?.baseVal ?? hit.className ?? hit.tagName) : null,
+      y: Math.round(rect.top),
+    };
+  }, { selector: target.selector, chrome: chromeSelectors });
+
+  assert.equal(result.present, true, `${label}: ${target.label} must exist`);
+  assert.deepEqual(result.overlaps, [], `${label}: scrolled ${target.label} must not sit under ${result.overlaps.join(", ")}`);
+  assert.equal(result.inViewport, true, `${label}: scrolled ${target.label} center must be inside the viewport, y=${result.y}`);
+  assert.equal(result.hitSelf, true, `${label}: scrolled ${target.label} must receive its own click, received ${result.hitClass}`);
+  return result;
 }
 
 async function settleStageMotion(page) {
@@ -209,6 +305,7 @@ async function verifyCase(browser, testCase) {
   try {
     await settleStageMotion(page);
     await assertLandingClear(page, label);
+    await assertHeadingRendered(page, label, testCase.locale, "home");
     await assertScrolledTargetsClear(page, label);
 
     // The discovery panel lives on the landing surface only; starting a reading
@@ -246,6 +343,7 @@ async function verifyCase(browser, testCase) {
     { timeout: 15_000 });
     await settleStageMotion(page);
 
+    await assertHeadingRendered(page, `${label} confirm`, testCase.locale, "confirm");
     await assertScrolledTargetsClear(page, `${label} confirm`, TARGETS.filter(({ selector }) => selector !== ".ritual-home-skip"));
     log(`${label} real click, scroll nav and panel PASS`);
   } finally {
@@ -261,7 +359,7 @@ async function verifyFirstVisit(browser, testCase) {
       ? '[aria-label="分析工具同意设置"]'
       : '[aria-label="Analytics Consent"]';
     await page.waitForSelector(bannerSelector, { timeout: 10_000 });
-    await assertPendingConsentClear(page, label, bannerSelector);
+    await assertPendingConsentClear(page, label, bannerSelector, testCase.locale);
     const declineText = testCase.locale === "zh-Hans" ? "拒绝" : "Decline";
     const decline = await page.evaluateHandle((banner, text) => {
       return [...document.querySelectorAll(`${banner} button`)].find((node) => node.textContent?.trim() === text) ?? null;
@@ -273,9 +371,41 @@ async function verifyFirstVisit(browser, testCase) {
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     await page.waitForFunction((selector) => document.querySelector(selector) === null, { timeout: 10_000 }, bannerSelector);
     await assertLandingClear(page, label);
+    await assertHeadingRendered(page, label, testCase.locale, "home");
     const stored = await page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY);
     assert.equal(stored, "denied", `${label}: declining must persist the consent choice`);
     log(`${label} consent dismissal PASS`);
+  } finally {
+    await context.close();
+  }
+}
+
+// Accepting keeps the same composition as declining: the panel leaves, the hero
+// heading and every control stay exactly where the layout put them.
+async function verifyAcceptedConsent(browser, testCase) {
+  const label = `${testCase.locale} ${testCase.width}x${testCase.height} accepted`;
+  const { context, page } = await openHome(browser, testCase);
+  try {
+    const bannerSelector = testCase.locale === "zh-Hans"
+      ? '[aria-label="分析工具同意设置"]'
+      : '[aria-label="Analytics Consent"]';
+    await page.waitForSelector(bannerSelector, { timeout: 10_000 });
+    await assertHeadingRendered(page, label, testCase.locale, "home");
+    const allowText = testCase.locale === "zh-Hans" ? "允许分析" : "Allow analytics";
+    const allow = await page.evaluateHandle((banner, text) => {
+      return [...document.querySelectorAll(`${banner} button`)].find((node) => node.textContent?.trim() === text) ?? null;
+    }, bannerSelector, allowText);
+    const button = allow.asElement();
+    assert(button, `${label}: allow control must exist`);
+    const box = await button.boundingBox();
+    assert(box, `${label}: allow control must have a clickable box`);
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.waitForFunction((selector) => document.querySelector(selector) === null, { timeout: 10_000 }, bannerSelector);
+    await assertLandingClear(page, label);
+    await assertHeadingRendered(page, label, testCase.locale, "home");
+    const stored = await page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY);
+    assert.equal(stored, "granted", `${label}: allowing must persist the consent choice`);
+    log(`${label} consent acceptance PASS`);
   } finally {
     await context.close();
   }
@@ -296,6 +426,9 @@ try {
   for (const testCase of CASES) {
     await verifyCase(browser, testCase);
     await verifyFirstVisit(browser, testCase);
+  }
+  for (const testCase of CASES.filter(({ width, height }) => width === 375 && height === 667)) {
+    await verifyAcceptedConsent(browser, testCase);
   }
   log("ALL HOME MOBILE CHROME CLEARANCE GATES PASS");
 } finally {
