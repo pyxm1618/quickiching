@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, staging, fix/three-issue-frontend-convergence]
+    branches: [main, staging]
   workflow_dispatch:
   schedule:
     - cron: "17 3 * * *"
