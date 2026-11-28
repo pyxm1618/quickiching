@@ -138,6 +138,21 @@ jobs:
           echo "stagingReadyAuditLogs:"
           tail -5 "${RUNNER_TEMP}/ready-audit.ndjson" || true
 
+      - name: Inspect staging database readiness from the configured database
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "${PRODUCTION_DATABASE_URL:-}" || { echo "::error::STAGING_DATABASE_URL is not configured"; exit 1; }
+          set +e
+          bun scripts/check-production-database-schema.ts > "${RUNNER_TEMP}/staging-db-readiness.json" 2>&1
+          code=$?
+          set -e
+          cat "${RUNNER_TEMP}/staging-db-readiness.json"
+          if [ "$code" -ne 0 ]; then
+            echo "::warning::The configured staging database is not ready for the deployed readiness contract (exit ${code})."
+          fi
+
       - name: Compare staging and production database identities without exposing connection strings
         run: |
           set -euo pipefail
@@ -150,8 +165,18 @@ jobs:
           identity() {
             psql "$1" -Atc "SELECT current_database() || '|' || oid::text || '|' || pg_postmaster_start_time()::text || '|' || COALESCE(host(inet_server_addr()), '') || '|' || COALESCE(inet_server_port()::text, '') FROM pg_database WHERE datname = current_database()"
           }
+          neon_identity() {
+            psql "$1" -Atc "SELECT COALESCE(current_setting('neon.project_id', true), '') || '|' || COALESCE(current_setting('neon.branch_id', true), '') || '|' || COALESCE(current_setting('neon.endpoint_id', true), '')"
+          }
           staging_identity=$(identity "$STAGING_DATABASE_URL")
           production_identity=$(identity "$PRODUCTION_DATABASE_URL")
+          staging_neon=$(neon_identity "$STAGING_DATABASE_URL")
+          production_neon=$(neon_identity "$PRODUCTION_DATABASE_URL")
+          IFS='|' read -r staging_project staging_branch staging_endpoint <<< "$staging_neon"
+          IFS='|' read -r production_project production_branch production_endpoint <<< "$production_neon"
           printf 'stagingDatabaseIdentity=%s\n' "$staging_identity"
           printf 'productionDatabaseIdentity=%s\n' "$production_identity"
-          test "$staging_identity" != "$production_identity" || { echo "::error::Staging and production resolve to the same database identity"; exit 1; }
+          printf 'stagingNeonProject=%s stagingNeonBranch=%s stagingNeonEndpoint=%s\n' "$staging_project" "$staging_branch" "$staging_endpoint"
+          printf 'productionNeonProject=%s productionNeonBranch=%s productionNeonEndpoint=%s\n' "$production_project" "$production_branch" "$production_endpoint"
+          test -n "$staging_branch" && test -n "$production_branch" || { echo "::error::Neon branch identity is unavailable; database isolation cannot be confirmed"; exit 1; }
+          test "$staging_project|$staging_branch" != "$production_project|$production_branch" || { echo "::error::Staging and production resolve to the same Neon branch"; exit 1; }
