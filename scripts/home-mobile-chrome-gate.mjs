@@ -174,17 +174,13 @@ async function assertPendingConsentClear(page, label, bannerSelector) {
   return measured;
 }
 
-async function settleStageAnimations(page) {
+async function settleStageMotion(page) {
   await page.evaluate(() => {
     document.documentElement.style.scrollBehavior = "auto";
   });
-  await page.waitForFunction(() => {
-    const actions = document.querySelector(".ritual-question-actions");
-    return actions
-      && actions.getAnimations().every((animation) => (
-        animation.playState === "finished" || animation.playState === "idle"
-      ));
-  }, { timeout: 5_000 });
+  // The confirm primary action enters over 320ms after a 120ms delay. Wait past
+  // that window instead of polling animation state, which can stay running.
+  await new Promise((resolve) => setTimeout(resolve, 600));
 }
 
 async function assertScrolledTargetsClear(page, label, targets = TARGETS) {
@@ -211,7 +207,7 @@ async function verifyCase(browser, testCase) {
   const { context, page } = await openHome(browser, testCase, { consent: "denied" });
   const label = `${testCase.locale} ${testCase.width}x${testCase.height}`;
   try {
-    await settleStageAnimations(page);
+    await settleStageMotion(page);
     await assertLandingClear(page, label);
     await assertScrolledTargetsClear(page, label);
 
@@ -248,7 +244,7 @@ async function verifyCase(browser, testCase) {
     await page.waitForFunction(() =>
       document.querySelector("[data-three-coin-ritual]")?.getAttribute("data-experience-stage") === "question-confirm",
     { timeout: 15_000 });
-    await settleStageAnimations(page);
+    await settleStageMotion(page);
 
     await assertScrolledTargetsClear(page, `${label} confirm`, TARGETS.filter(({ selector }) => selector !== ".ritual-home-skip"));
     log(`${label} real click, scroll nav and panel PASS`);
