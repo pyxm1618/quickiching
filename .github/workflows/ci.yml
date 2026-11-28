@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, staging, fix/three-issue-frontend-convergence]
+    branches: [main, staging]
   workflow_dispatch:
   schedule:
     - cron: "17 3 * * *"
@@ -297,6 +297,7 @@ jobs:
           set -euo pipefail
           node scripts/manual-cast-ui-browser-gate.mjs
           node scripts/three-coin-v2-browser-gate.mjs
+          node scripts/home-mobile-chrome-gate.mjs
           node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth
           node scripts/ritual-scene-boundary-gate.mjs --case=six-lines-auth-zh-reduced
           bun scripts/mei-hua-ui-browser-gate.mjs
@@ -624,6 +625,7 @@ jobs:
           set -euo pipefail
           bun run gate:navigation
           node scripts/navigation-shell-browser-gate.mjs
+          node scripts/home-mobile-chrome-gate.mjs
       - name: Stop Navigation server
         if: always()
         shell: bash

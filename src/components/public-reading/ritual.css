@@ -77,6 +77,21 @@ body:has([data-ritual-view='progress'],[data-ritual-view='complete']) .ritual-qu
 .ritual-form-error {background:#fff0d6;color:#8b1f12;font-size:16px;position:relative;z-index:3;}
 @keyframes ritual-ui-enter {from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce) {.ritual-canvas *{animation-duration:140ms!important;transition-duration:140ms!important;transition-delay:0ms!important;}}
+/* A pristine Home visit shows the fixed analytics panel over the lower form.
+   Until that choice is made, the long intro headings would push the question,
+   primary action and skip choice under the panel. Collapse those headings only
+   while the panel is present so every control stays above it without raising
+   any stacking order; the full composition returns as soon as consent is set. */
+@media(max-width:800px) {
+ body:has([role="region"][aria-label="Analytics Consent"]) .ritual-home-heading,
+ body:has([role="region"][aria-label="分析工具同意设置"]) .ritual-home-heading,
+ body:has([role="region"][aria-label="Analytics Consent"]) .ritual-confirm-heading,
+ body:has([role="region"][aria-label="分析工具同意设置"]) .ritual-confirm-heading {display:none;}
+ body:has([role="region"][aria-label="Analytics Consent"]) .ritual-question-card,
+ body:has([role="region"][aria-label="分析工具同意设置"]) .ritual-question-card,
+ body:has([role="region"][aria-label="Analytics Consent"]) .ritual-question-actions,
+ body:has([role="region"][aria-label="分析工具同意设置"]) .ritual-question-actions {margin-top:8px;}
+}
 @media(max-width:800px) {
  .ritual-canvas {height:auto;min-height:calc(100svh - 75px);--u:1px;}
  .ritual-question-stage {position:relative;inset:auto;min-height:calc(100svh - 75px);padding:88px 20px 35px;}

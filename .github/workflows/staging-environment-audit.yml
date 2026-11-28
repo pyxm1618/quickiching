@@ -1,0 +1,192 @@
+name: Staging Environment Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-environment-audit
+  cancel-in-progress: true
+
+env:
+  VERCEL_PROJECT_ID: prj_iKtw9xKmIlEfe44gEocgLr2QDLfE
+  PRODUCTION_PROJECT_ID: prj_pCpeoAys2GOqKZvkbLugYjpJWZBS
+  VERCEL_TEAM_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
+  STAGING_ORIGIN: https://staging.quickiching.com
+
+jobs:
+  audit:
+    name: Read-only staging deployment and environment audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      STAGING_TOKEN: ${{ secrets.VERCEL_STAGING_TOKEN }}
+      PRODUCTION_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+    steps:
+      - name: Lock staging project scope
+        run: |
+          set -euo pipefail
+          test -n "${STAGING_TOKEN:-}" || { echo "::error::VERCEL_STAGING_TOKEN is not configured"; exit 1; }
+          test -n "${PRODUCTION_TOKEN:-}" || { echo "::error::VERCEL_TOKEN is not configured"; exit 1; }
+          test "$VERCEL_PROJECT_ID" = "prj_iKtw9xKmIlEfe44gEocgLr2QDLfE"
+          test "$PRODUCTION_PROJECT_ID" = "prj_pCpeoAys2GOqKZvkbLugYjpJWZBS"
+          test "$VERCEL_TEAM_ID" = "team_z1b9TTQtbNkr43dzs5JVJPnQ"
+
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked dependencies for the read-only readiness probe
+        run: bun install --frozen-lockfile
+
+      - name: Project git linkage
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${STAGING_TOKEN}" \
+            -H "Accept: application/json" \
+            "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_TEAM_ID}" \
+            > "${RUNNER_TEMP}/project.json"
+          jq '{name, framework, nodeVersion, link, gitProviderOptions, autoExposeSystemEnvs, createdAt, updatedAt}' "${RUNNER_TEMP}/project.json"
+
+      - name: Recent production deployments
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${STAGING_TOKEN}" \
+            -H "Accept: application/json" \
+            "https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&teamId=${VERCEL_TEAM_ID}&target=production&limit=10" \
+            > "${RUNNER_TEMP}/deployments.json"
+          jq '[.deployments[] | {
+            id: .uid,
+            url,
+            created: (.createdAt / 1000 | todate),
+            state: .readyState,
+            source,
+            creator: (.creator.username // null),
+            commitSha: (.meta.githubCommitSha // null),
+            commitRef: (.meta.githubCommitRef // null),
+            commitMessage: (.meta.githubCommitMessage // null)
+          }]' "${RUNNER_TEMP}/deployments.json"
+
+      - name: Domain assignment
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${STAGING_TOKEN}" \
+            -H "Accept: application/json" \
+            "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains?teamId=${VERCEL_TEAM_ID}" \
+            > "${RUNNER_TEMP}/domains.json"
+          jq '[.domains[] | {name, productionBranch, gitBranch, redirect, verified, updatedAt}]' "${RUNNER_TEMP}/domains.json"
+
+      - name: Read public environment identities from both projects
+        run: |
+          set -euo pipefail
+          fetch_env() {
+            curl --fail-with-body --silent --show-error \
+              -H "Authorization: Bearer $1" \
+              -H "Accept: application/json" \
+              "https://api.vercel.com/v10/projects/$2/env?teamId=${VERCEL_TEAM_ID}" \
+              > "$3"
+          }
+          fetch_env "$STAGING_TOKEN" "$VERCEL_PROJECT_ID" "${RUNNER_TEMP}/staging-env.json"
+          fetch_env "$PRODUCTION_TOKEN" "$PRODUCTION_PROJECT_ID" "${RUNNER_TEMP}/prod-env.json"
+
+          public_identity() {
+            jq '[.envs[]
+              | select((.target == "production") or ((.target | type) == "array" and (.target | index("production") != null)))
+              | select(.key | test("^(APP_ENV|WAFFO_ENVIRONMENT|COMMERCIAL_V2_.*_ENABLED|NEXT_PUBLIC_GA_MEASUREMENT_ID|NEXT_PUBLIC_CLARITY_PROJECT_ID)$"))
+              | {key, value: (if ((.type // "") | test("encrypted|sensitive"; "i")) then "(hidden)" else (.value // "(empty)") end)}] | sort_by(.key)' "$1"
+          }
+          echo "stagingPublicIdentity:"
+          public_identity "${RUNNER_TEMP}/staging-env.json"
+          echo "productionPublicIdentity:"
+          public_identity "${RUNNER_TEMP}/prod-env.json"
+
+          staging_app_env=$(jq -r '[.envs[] | select(.key == "APP_ENV") | select((.target == "production") or ((.target | type) == "array" and (.target | index("production") != null))) | .value][0] // ""' "${RUNNER_TEMP}/staging-env.json")
+          staging_waffo=$(jq -r '[.envs[] | select(.key == "WAFFO_ENVIRONMENT") | select((.target == "production") or ((.target | type) == "array" and (.target | index("production") != null))) | .value][0] // ""' "${RUNNER_TEMP}/staging-env.json")
+          production_app_env=$(jq -r '[.envs[] | select(.key == "APP_ENV") | select((.target == "production") or ((.target | type) == "array" and (.target | index("production") != null))) | .value][0] // ""' "${RUNNER_TEMP}/prod-env.json")
+          production_waffo=$(jq -r '[.envs[] | select(.key == "WAFFO_ENVIRONMENT") | select((.target == "production") or ((.target | type) == "array" and (.target | index("production") != null))) | .value][0] // ""' "${RUNNER_TEMP}/prod-env.json")
+          printf 'stagingAppEnv=%s stagingWaffoEnvironment=%s\n' "${staging_app_env:-<unreadable>}" "${staging_waffo:-<unreadable>}"
+          printf 'productionAppEnv=%s productionWaffoEnvironment=%s\n' "${production_app_env:-<unreadable>}" "${production_waffo:-<unreadable>}"
+          test "$staging_app_env" = "staging" || { echo "::error::Staging APP_ENV is not readable as staging"; exit 1; }
+          test "$staging_waffo" = "test" || { echo "::error::Staging WAFFO_ENVIRONMENT is not readable as test"; exit 1; }
+          test "$production_app_env" = "production" || { echo "::error::Production APP_ENV is not readable as production"; exit 1; }
+          test "$production_waffo" = "prod" || { echo "::error::Production WAFFO_ENVIRONMENT is not readable as prod"; exit 1; }
+
+      - name: Live staging robots and analytics
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error "${STAGING_ORIGIN}/robots.txt" || true
+          curl --fail-with-body --silent --show-error -D "${RUNNER_TEMP}/headers.txt" "${STAGING_ORIGIN}/" -o "${RUNNER_TEMP}/home.html"
+          grep -iE '^(x-robots-tag|x-vercel-cache|age):' "${RUNNER_TEMP}/headers.txt" || true
+          grep -oE 'G-[A-Z0-9]{6,}|clarityProjectId[^,<]{0,80}|<meta[^>]+name="robots"[^>]*>' "${RUNNER_TEMP}/home.html" | sort -u | head -20
+
+      - name: Capture staging readiness diagnosis from the current deployment
+        run: |
+          set -euo pipefail
+          deployment_id=$(jq -r '.deployments[0].uid // ""' "${RUNNER_TEMP}/deployments.json")
+          test -n "$deployment_id" || { echo "::error::No staging deployment found"; exit 1; }
+          (timeout 25s curl --silent --show-error --no-buffer \
+            -H "Authorization: Bearer ${STAGING_TOKEN}" \
+            -H "Accept: application/json" \
+            "https://api.vercel.com/v1/projects/${VERCEL_PROJECT_ID}/deployments/${deployment_id}/runtime-logs?teamId=${VERCEL_TEAM_ID}" \
+            | grep --line-buffered '\[READY_AUDIT\]' > "${RUNNER_TEMP}/ready-audit.ndjson" || true) &
+          log_job=$!
+          sleep 2
+          status=$(curl --silent --show-error --max-time 20 -o "${RUNNER_TEMP}/ready.json" -w '%{http_code}' "${STAGING_ORIGIN}/api/ready")
+          printf 'stagingReadyStatus=%s\n' "$status"
+          cat "${RUNNER_TEMP}/ready.json"
+          wait "$log_job" || true
+          echo "stagingReadyAuditLogs:"
+          tail -5 "${RUNNER_TEMP}/ready-audit.ndjson" || true
+
+      - name: Inspect staging database readiness from the configured database
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "${PRODUCTION_DATABASE_URL:-}" || { echo "::error::STAGING_DATABASE_URL is not configured"; exit 1; }
+          set +e
+          bun scripts/check-production-database-schema.ts > "${RUNNER_TEMP}/staging-db-readiness.json" 2>&1
+          code=$?
+          set -e
+          cat "${RUNNER_TEMP}/staging-db-readiness.json"
+          if [ "$code" -ne 0 ]; then
+            echo "::warning::The configured staging database is not ready for the deployed readiness contract (exit ${code})."
+          fi
+
+      - name: Compare staging and production database identities without exposing connection strings
+        run: |
+          set -euo pipefail
+          test -n "${STAGING_DATABASE_URL:-}" || { echo "::error::STAGING_DATABASE_URL is not configured"; exit 1; }
+          test -n "${PRODUCTION_DATABASE_URL:-}" || { echo "::error::PRODUCTION_DATABASE_URL is not configured"; exit 1; }
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+          identity() {
+            psql "$1" -Atc "SELECT current_database() || '|' || oid::text || '|' || pg_postmaster_start_time()::text || '|' || COALESCE(host(inet_server_addr()), '') || '|' || COALESCE(inet_server_port()::text, '') FROM pg_database WHERE datname = current_database()"
+          }
+          neon_identity() {
+            psql "$1" -Atc "SELECT COALESCE(current_setting('neon.project_id', true), '') || '|' || COALESCE(current_setting('neon.branch_id', true), '') || '|' || COALESCE(current_setting('neon.endpoint_id', true), '')"
+          }
+          staging_identity=$(identity "$STAGING_DATABASE_URL")
+          production_identity=$(identity "$PRODUCTION_DATABASE_URL")
+          staging_neon=$(neon_identity "$STAGING_DATABASE_URL")
+          production_neon=$(neon_identity "$PRODUCTION_DATABASE_URL")
+          IFS='|' read -r staging_project staging_branch staging_endpoint <<< "$staging_neon"
+          IFS='|' read -r production_project production_branch production_endpoint <<< "$production_neon"
+          printf 'stagingDatabaseIdentity=%s\n' "$staging_identity"
+          printf 'productionDatabaseIdentity=%s\n' "$production_identity"
+          printf 'stagingNeonProject=%s stagingNeonBranch=%s stagingNeonEndpoint=%s\n' "$staging_project" "$staging_branch" "$staging_endpoint"
+          printf 'productionNeonProject=%s productionNeonBranch=%s productionNeonEndpoint=%s\n' "$production_project" "$production_branch" "$production_endpoint"
+          test -n "$staging_branch" && test -n "$production_branch" || { echo "::error::Neon branch identity is unavailable; database isolation cannot be confirmed"; exit 1; }
+          test "$staging_project|$staging_branch" != "$production_project|$production_branch" || { echo "::error::Staging and production resolve to the same Neon branch"; exit 1; }
