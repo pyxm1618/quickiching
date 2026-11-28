@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       schema_action:
-        description: Inspect production schema, or apply the exact next Drizzle migration after a complete preflight
+        description: Inspect production schema, or apply the pending Drizzle migrations after a complete preflight
         required: true
         type: choice
         default: inspect
@@ -24,8 +24,8 @@ env:
   VERCEL_TEAM_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
 
 jobs:
-  audit:
-    name: Production schema readiness and Drizzle release
+  payment-env-audit:
+    name: Production payment environment audit
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -43,7 +43,6 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${VERCEL_TOKEN:-}" || { echo "::error::VERCEL_TOKEN is not configured"; exit 1; }
-          test -n "${PRODUCTION_DATABASE_URL:-}" || { echo "::error::PRODUCTION_DATABASE_URL is not configured in GitHub Actions secrets"; exit 1; }
           test "$VERCEL_PROJECT_ID" = "prj_pCpeoAys2GOqKZvkbLugYjpJWZBS"
           test "$VERCEL_TEAM_ID" = "team_z1b9TTQtbNkr43dzs5JVJPnQ"
       - name: Install locked dependencies
@@ -52,9 +51,50 @@ jobs:
         run: bunx vitest run src/server/readiness/payment-closeout-env-audit.test.ts src/server/payments/environment-contract.test.ts
       - name: Audit production payment env metadata without exposing values
         run: bun scripts/payment-closeout-production-env-audit.ts
+
+  schema-release:
+    name: Production schema release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      # Refund operator credentials configure refund endpoints; they do not
+      # change whether the deployed application can read its own schema.
+      - name: Lock production database scope
+        run: |
+          set -euo pipefail
+          test -n "${PRODUCTION_DATABASE_URL:-}" || { echo "::error::PRODUCTION_DATABASE_URL is not configured in GitHub Actions secrets"; exit 1; }
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
       - name: Verify Drizzle journal and migration integrity manifest
         run: node scripts/check-migration-integrity.mjs
-      - name: Inspect or apply migration 0013 through Drizzle
+      - name: Record production readiness before the schema action
+        run: |
+          set -euo pipefail
+          target="https://www.quickiching.com/api/ready"
+          at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          status=$(curl --silent --show-error --max-time 20 -o "${RUNNER_TEMP}/ready-before.json" -w '%{http_code}' "$target")
+          printf 'readyBefore target=%s at=%s status=%s\n' "$target" "$at" "$status"
+          cat "${RUNNER_TEMP}/ready-before.json"
+      - name: Inspect or apply the pending Drizzle migrations through the official release path
         env:
           PRODUCTION_SCHEMA_ACTION: ${{ inputs.schema_action }}
         run: bun scripts/production-schema-release.ts
+      - name: Record production readiness after the schema action
+        if: always()
+        run: |
+          set -euo pipefail
+          target="https://www.quickiching.com/api/ready"
+          at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          status=$(curl --silent --show-error --max-time 20 -o "${RUNNER_TEMP}/ready-after.json" -w '%{http_code}' "$target")
+          printf 'readyAfter target=%s at=%s status=%s\n' "$target" "$at" "$status"
+          cat "${RUNNER_TEMP}/ready-after.json"
