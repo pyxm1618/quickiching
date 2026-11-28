@@ -88,6 +88,36 @@ export function classifyAppliedMigrationHistory(
   return applied.length === expected.length ? "complete" : "pending";
 }
 
+export type RecoveryPostureEvidence = {
+  managedBackupProvider: boolean;
+  archiveMode: string | null;
+  walArchivingObserved: boolean | null;
+};
+
+export type RecoveryPostureAssessment = {
+  recoveryConfirmed: boolean;
+  recoveryEvidence:
+    | "WAL_ARCHIVING_OBSERVED"
+    | "WAL_ARCHIVING_DISABLED"
+    | "WAL_ARCHIVING_NOT_OBSERVED"
+    | "WAL_ARCHIVING_UNREADABLE";
+};
+
+export function assessRecoveryPosture(evidence: RecoveryPostureEvidence): RecoveryPostureAssessment {
+  if (evidence.archiveMode === "off") {
+    return { recoveryConfirmed: false, recoveryEvidence: "WAL_ARCHIVING_DISABLED" };
+  }
+  if (evidence.walArchivingObserved === true) {
+    return { recoveryConfirmed: true, recoveryEvidence: "WAL_ARCHIVING_OBSERVED" };
+  }
+  return {
+    recoveryConfirmed: false,
+    recoveryEvidence: evidence.walArchivingObserved === null
+      ? "WAL_ARCHIVING_UNREADABLE"
+      : "WAL_ARCHIVING_NOT_OBSERVED",
+  };
+}
+
 export type ProductionSchemaColumn = {
   table: string;
   column: string;

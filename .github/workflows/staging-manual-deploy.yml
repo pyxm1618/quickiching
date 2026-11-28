@@ -1,10 +1,12 @@
-name: Staging Manual Baseline Deploy
+name: Staging Manual Deploy
 
 on:
-  push:
-    branches:
-      - fix/final-production-remediation
   workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Full 40-character commit SHA to deploy to the staging project
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -17,13 +19,10 @@ env:
   VERCEL_PROJECT_ID: prj_iKtw9xKmIlEfe44gEocgLr2QDLfE
   VERCEL_TEAM_ID: team_z1b9TTQtbNkr43dzs5JVJPnQ
   STAGING_ORIGIN: https://staging.quickiching.com
-  STAGING_BASELINE_SHA: 94eda94ecd30d2a50dfaae70d47a85a96b565b9d
 
 jobs:
   deploy:
-    name: Deploy the pinned stable baseline to staging
-    # Deploy only on an explicit dispatch or a commit that opts in with [deploy-staging].
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[deploy-staging]')
+    name: Deploy an explicitly selected commit to staging
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -39,13 +38,17 @@ jobs:
 
       - uses: actions/checkout@v6
         with:
-          ref: ${{ env.STAGING_BASELINE_SHA }}
+          ref: ${{ inputs.commit_sha }}
 
-      - name: Verify the checked-out source is the pinned baseline
+      - name: Verify the checked-out source is the requested commit
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$STAGING_BASELINE_SHA"
-          git log -1 --format='baseline=%H date=%aI subject=%s'
+          test "${TARGET_SHA}" = "${{ inputs.commit_sha }}"
+          printf '%s' "$TARGET_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          git log -1 --format='target=%H date=%aI subject=%s'
+        env:
+          TARGET_SHA: ${{ inputs.commit_sha }}
 
       - uses: actions/setup-node@v6
         with:

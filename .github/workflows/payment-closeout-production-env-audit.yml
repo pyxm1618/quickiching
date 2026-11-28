@@ -77,7 +77,24 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Verify Drizzle journal and migration integrity manifest
         run: node scripts/check-migration-integrity.mjs
+      - name: Record production readiness before the schema action
+        run: |
+          set -euo pipefail
+          target="https://www.quickiching.com/api/ready"
+          at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          status=$(curl --silent --show-error --max-time 20 -o "${RUNNER_TEMP}/ready-before.json" -w '%{http_code}' "$target")
+          printf 'readyBefore target=%s at=%s status=%s\n' "$target" "$at" "$status"
+          cat "${RUNNER_TEMP}/ready-before.json"
       - name: Inspect or apply the pending Drizzle migrations through the official release path
         env:
           PRODUCTION_SCHEMA_ACTION: ${{ inputs.schema_action }}
         run: bun scripts/production-schema-release.ts
+      - name: Record production readiness after the schema action
+        if: always()
+        run: |
+          set -euo pipefail
+          target="https://www.quickiching.com/api/ready"
+          at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          status=$(curl --silent --show-error --max-time 20 -o "${RUNNER_TEMP}/ready-after.json" -w '%{http_code}' "$target")
+          printf 'readyAfter target=%s at=%s status=%s\n' "$target" "$at" "$status"
+          cat "${RUNNER_TEMP}/ready-after.json"

@@ -92,6 +92,7 @@ describe("workbook-derived 128-page SEO registry", () => {
       ].join(" ");
 
       expect(entry.finalDescription).toContain(`易经第${classical.number}卦`);
+      expect(entry.descriptionLength, `hexagram ${classical.number} description length`).toBe(entry.finalDescription.length);
       expect(entry.finalDescription).not.toMatch(/没有动爻|无动爻|静卦/);
       expect(entry.finalDescription).not.toMatch(/运势与吉凶/);
       if (entry.finalDescription.includes("感情与关系")) {

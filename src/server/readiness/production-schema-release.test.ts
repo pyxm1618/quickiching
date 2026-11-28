@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  assessRecoveryPosture,
   classifyAppliedMigrationHistory,
   classifyCurrentSchema,
   classifyProductionMigrationPreflight,
@@ -89,6 +90,37 @@ describe("Production Drizzle schema release preflight", () => {
     expect(classifyAppliedMigrationHistory(expected.slice(0, 2).map((entry, index) =>
       index === 1 ? { ...entry, hash: "tampered" } : entry), expected)).toBe("invalid");
     expect(classifyAppliedMigrationHistory([...expected, { createdAt: 50, hash: "extra" }], expected)).toBe("invalid");
+  });
+
+  it("does not treat a managed provider hostname as recovery evidence", () => {
+    expect(assessRecoveryPosture({
+      managedBackupProvider: true,
+      archiveMode: "off",
+      walArchivingObserved: false,
+    })).toEqual({ recoveryConfirmed: false, recoveryEvidence: "WAL_ARCHIVING_DISABLED" });
+    expect(assessRecoveryPosture({
+      managedBackupProvider: true,
+      archiveMode: null,
+      walArchivingObserved: null,
+    })).toEqual({ recoveryConfirmed: false, recoveryEvidence: "WAL_ARCHIVING_UNREADABLE" });
+    expect(assessRecoveryPosture({
+      managedBackupProvider: true,
+      archiveMode: "replica",
+      walArchivingObserved: false,
+    })).toEqual({ recoveryConfirmed: false, recoveryEvidence: "WAL_ARCHIVING_NOT_OBSERVED" });
+  });
+
+  it("confirms recovery prerequisites only after observing WAL archiving with archiving enabled", () => {
+    expect(assessRecoveryPosture({
+      managedBackupProvider: false,
+      archiveMode: "on",
+      walArchivingObserved: true,
+    })).toEqual({ recoveryConfirmed: true, recoveryEvidence: "WAL_ARCHIVING_OBSERVED" });
+    expect(assessRecoveryPosture({
+      managedBackupProvider: true,
+      archiveMode: "off",
+      walArchivingObserved: true,
+    })).toEqual({ recoveryConfirmed: false, recoveryEvidence: "WAL_ARCHIVING_DISABLED" });
   });
 
   it("accepts production before the two consecutive pending migrations", () => {

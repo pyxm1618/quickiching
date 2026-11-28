@@ -14,6 +14,7 @@ const CASES = [
   { locale: "zh-Hans", path: "/zh", width: 360, height: 740 },
   { locale: "zh-Hans", path: "/zh", width: 375, height: 667 },
   { locale: "zh-Hans", path: "/zh", width: 390, height: 844 },
+  { locale: "zh-Hans", path: "/zh", width: 414, height: 740 },
 ];
 
 function log(message) {
@@ -27,7 +28,7 @@ const TARGETS = [
 ];
 const CHROME = [".scene-scrolls", ".scene-partnership", ".scene-navigation .scene-brand", ".scene-utility"];
 
-async function measureLanding(page) {
+async function measureLanding(page, chromeSelectors = CHROME) {
   return page.evaluate(({ targets, chrome }) => {
     const rectOf = (node) => {
       const rect = node.getBoundingClientRect();
@@ -92,17 +93,26 @@ async function measureLanding(page) {
     const nav = document.querySelector(".scene-navigation");
     const scrolls = document.querySelector(".scene-scrolls");
     const brand = document.querySelector(".scene-navigation .scene-brand");
+    const utility = document.querySelector(".scene-utility");
+    const utilityHitSelf = utility
+      ? (() => {
+          const rect = utility.getBoundingClientRect();
+          const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+          return Boolean(hit?.closest?.(".scene-utility"));
+        })()
+      : null;
     return {
       navPosition: nav ? getComputedStyle(nav).position : null,
       scrollsPosition: scrolls ? getComputedStyle(scrolls).position : null,
       brandName: brand ? brand.textContent.trim() : null,
       scrollsRect: scrolls ? rectOf(scrolls) : null,
+      utilityHitSelf,
       chrome: chromeRects,
       overlaps,
       hits,
       scrollHeight: document.documentElement.scrollHeight,
     };
-  }, { targets: TARGETS, chrome: CHROME });
+  }, { targets: TARGETS, chrome: chromeSelectors });
 }
 
 async function openHome(browser, testCase, { consent } = {}) {
@@ -141,6 +151,26 @@ async function assertLandingClear(page, label) {
     );
   }
   log(`${label} landing chrome clearance PASS`);
+  return measured;
+}
+
+async function assertPendingConsentClear(page, label, bannerSelector) {
+  const measured = await measureLanding(page, [...CHROME, bannerSelector]);
+  assert.equal(measured.navPosition, "static", `${label}: home shell must not overlay the form`);
+  assert.equal(measured.scrollsPosition, "relative", `${label}: discovery nav must dock in document flow`);
+  assert.deepEqual(measured.overlaps, [], `${label}: consent panel and fixed chrome must not overlap the form`);
+  assert.equal(measured.utilityHitSelf, true, `${label}: top utility capsule must remain clickable`);
+
+  for (const [target, hit] of Object.entries(measured.hits)) {
+    assert.equal(hit.visible, true, `${label}: ${target} must be visible before consent`);
+    assert.equal(hit.inViewport, true, `${label}: ${target} must be in view before consent`);
+    assert.equal(
+      hit.hitSelf,
+      true,
+      `${label}: ${target} must receive its own click before consent, received ${hit.hitClass}`,
+    );
+  }
+  log(`${label} pending-consent controls PASS`);
   return measured;
 }
 
@@ -217,6 +247,7 @@ async function verifyFirstVisit(browser, testCase) {
       ? '[aria-label="分析工具同意设置"]'
       : '[aria-label="Analytics Consent"]';
     await page.waitForSelector(bannerSelector, { timeout: 10_000 });
+    await assertPendingConsentClear(page, label, bannerSelector);
     const declineText = testCase.locale === "zh-Hans" ? "拒绝" : "Decline";
     const decline = await page.evaluateHandle((banner, text) => {
       return [...document.querySelectorAll(`${banner} button`)].find((node) => node.textContent?.trim() === text) ?? null;
@@ -250,11 +281,6 @@ const browser = await puppeteer.launch({
 try {
   for (const testCase of CASES) {
     await verifyCase(browser, testCase);
-  }
-  for (const testCase of [
-    { locale: "en", path: "/", width: 360, height: 740 },
-    { locale: "zh-Hans", path: "/zh", width: 390, height: 844 },
-  ]) {
     await verifyFirstVisit(browser, testCase);
   }
   log("ALL HOME MOBILE CHROME CLEARANCE GATES PASS");

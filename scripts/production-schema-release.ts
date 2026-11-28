@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import postgres from "postgres";
 import migrationIntegrity from "../drizzle/migration-integrity.json";
 import {
+  assessRecoveryPosture,
   classifyAppliedMigrationHistory,
   classifyCurrentSchema,
   classifyProductionMigrationPreflight,
@@ -293,6 +294,8 @@ type RecoveryPosture = {
   inRecovery: boolean | null;
   walArchivingObserved: boolean | null;
   recoveryConfirmed: boolean;
+  recoveryEvidence: ReturnType<typeof assessRecoveryPosture>["recoveryEvidence"];
+  restoreVerified: false;
 };
 
 function detectDatabaseProvider(databaseUrl: string): { label: string; managed: boolean } {
@@ -338,15 +341,23 @@ async function readRecoveryPosture(
   const serverVersionNum = Number.isFinite(Number(settings?.server_version_num))
     ? Number(settings?.server_version_num)
     : null;
+  const archiveMode = typeof settings?.archive_mode === "string" ? settings.archive_mode : null;
+  const assessment = assessRecoveryPosture({
+    managedBackupProvider: provider.managed,
+    archiveMode,
+    walArchivingObserved,
+  });
   return {
     provider: provider.label,
     managedBackupProvider: provider.managed,
     serverVersionNum,
-    archiveMode: typeof settings?.archive_mode === "string" ? settings.archive_mode : null,
+    archiveMode,
     walLevel: typeof settings?.wal_level === "string" ? settings.wal_level : null,
     inRecovery: typeof settings?.in_recovery === "boolean" ? settings.in_recovery : null,
     walArchivingObserved,
-    recoveryConfirmed: provider.managed || walArchivingObserved === true,
+    recoveryConfirmed: assessment.recoveryConfirmed,
+    recoveryEvidence: assessment.recoveryEvidence,
+    restoreVerified: false,
   };
 }
 
@@ -443,12 +454,11 @@ async function main(): Promise<void> {
       return;
     }
 
-    if (!recoveryPosture.recoveryConfirmed) {
-      console.log(JSON.stringify(report, null, 2));
-      throw new Error(`PRODUCTION_RECOVERY_CAPABILITY_UNCONFIRMED:${recoveryPosture.provider}`);
-    }
-
     if (pendingTags.length > 0) {
+      if (!recoveryPosture.recoveryConfirmed) {
+        console.log(JSON.stringify(report, null, 2));
+        throw new Error(`PRODUCTION_RECOVERY_CAPABILITY_UNCONFIRMED:${recoveryPosture.recoveryEvidence}`);
+      }
       report.existingCommercialRowCounts = await readExistingRowCounts(sql);
       const refresh = await readProductionPreflight(sql, beforeMigrations.length);
       if (refresh.classification.state !== "ready") {
